@@ -57,7 +57,9 @@ describe("adv-review non-code evidence policy surface", () => {
 
   test("contract review matrix evaluates non-code evidence policies", () => {
     expect(command).toContain("Non-Code Evidence Policy in the Review Matrix");
-    expect(command).toContain("rq-subagentNonCodeEvidence01");
+    expect(command).toContain(
+      "For each non-code task, create or verify `contract.reviewMatrix` rows",
+    );
   });
 
   test("requires pass/fail status per applicable AC/SC", () => {
@@ -73,11 +75,44 @@ describe("adv-review non-code evidence policy surface", () => {
   });
 });
 
+// AC1: the 12-dimension framework is defined exactly once (embedded
+// methodology) and later usage is a same-file reference that preserves the
+// mandatory scanner behavior. Reintroducing a second full matrix, dropping the
+// OWASP top 10 security scope, or weakening the reference must fail here.
+describe("adv-review 12-dimension framework single-source (AC1)", () => {
+  const command = readFileSync(REVIEW_PATH, "utf8");
+
+  test("exactly one full 12-dimension matrix is defined", () => {
+    expect(command.match(/^\| 1 \| Design \|/gm) ?? []).toHaveLength(1);
+    expect(command.match(/^\| 12 \| Consistency \|/gm) ?? []).toHaveLength(1);
+    expect(command.match(/^\| 9 \| Security \|/gm) ?? []).toHaveLength(1);
+  });
+
+  test("canonical matrix retains OWASP top 10 security scope", () => {
+    expect(command).toContain(
+      "| 9 | Security | Auth, validation, secrets, OWASP top 10 |",
+    );
+  });
+
+  test("later framework section is a same-file reference preserving mandatory behavior", () => {
+    const methodologyIdx = command.indexOf("### Review Methodology");
+    const frameworkIdx = command.indexOf("## 12-Dimension Review Framework");
+    expect(methodologyIdx).toBeGreaterThan(-1);
+    expect(frameworkIdx).toBeGreaterThan(methodologyIdx);
+
+    const section = command.slice(frameworkIdx, frameworkIdx + 800);
+    expect(section).not.toMatch(/^\| 1 \| Design \|/m);
+    expect(section).toMatch(/embedded methodology/i);
+    expect(section).toMatch(/all 12 dimensions/i);
+    expect(section).toMatch(/explicit justification/i);
+  });
+});
+
 // NON-BEHAVIORAL (asset presence only): these tests assert that the command
 // markdown points operators at the STRUCTURAL enforcement rail. They prove the
 // guidance text exists — NOT that enforcement works. The behavioral guarantees
-// (concerns block acceptance/release; dispositions clear them; advisory agenda
-// promotion) are covered by gate-readiness.test.ts (checkUnresolvedDesignConcerns),
+// (concerns block acceptance/release; dispositions clear them; advisory consumer
+// warnings) are covered by gate-readiness.test.ts (checkUnresolvedDesignConcerns),
 // subagent-report.test.ts (consumeDesignerDesignConcerns), and
 // design-concern.test.ts (adv_design_concern_disposition). See AC11 / DONT8.
 describe("adv-review designer-concern prose points at the structural rail (non-behavioral)", () => {
@@ -91,7 +126,7 @@ describe("adv-review designer-concern prose points at the structural rail (non-b
     expect(command).toMatch(/STRUCTURAL, not reviewer-prose/i);
   });
 
-  test("prose preserves design-proof vocabulary and advisory-only agenda framing", () => {
+  test("prose preserves design-proof vocabulary and advisory-only consumer warning framing", () => {
     expect(command).toContain("design_dimensions");
     expect(command).toContain("neighboring_recommendation");
     expect(command).toContain("design_proof");

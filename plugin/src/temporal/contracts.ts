@@ -96,6 +96,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   gateCompleted: "adv.change.gateCompleted",
   gateReentered: "adv.change.gateReentered",
   wisdomAdded: "adv.change.wisdomAdded",
+  specDeltaAdded: "adv.change.specDeltaAdded",
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
   worktreeDeleted: "adv.change.worktreeDeleted",
@@ -264,6 +265,7 @@ export interface ChangeWorkflowInput {
       | "target_worktree_path"
       | "scope_worktrees"
       | "seenReportIds"
+      | "seenReportIdsTotal"
       | "design_concern_dispositions"
       | "verification_evidence_dispositions"
       | "signal_rejections"
@@ -509,8 +511,10 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   cross_project_links?: import("../types").Change["cross_project_links"];
   /** Advisory dependencies on external project changes. */
   external_dependencies?: import("../types").Change["external_dependencies"];
-  /** Deterministic idempotency keys for submitted sub-agent reports. */
+  /** Deterministic idempotency keys for submitted sub-agent reports. Bounded to the most recent 200 distinct IDs in FIFO order. */
   seenReportIds?: string[];
+  /** Cumulative count of every accepted distinct report ID. */
+  seenReportIdsTotal?: number;
 
   /**
    * Per-change worktree-auto-managed marker (rq-autoManageAdvWorktrees AC3).

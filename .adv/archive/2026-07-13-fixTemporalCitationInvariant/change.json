@@ -1,0 +1,636 @@
+{
+  "id": "fixTemporalCitationInvariant",
+  "title": "Fix temporal citation invariant",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T16:12:29.835Z",
+  "tasks": [
+    {
+      "id": "tk-49f4a44bf099",
+      "title": "Anchor Temporal determinism citation locally",
+      "type": "code",
+      "section": "Citation repair",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T16:35:42.367Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T16:44:23.415Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalCitationInvariant",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalCitationInvariant",
+          "task_id": "tk-49f4a44bf099",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-49f4a44bf099"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/workflow-bundle-boundary.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts --no-coverage",
+              "exit_code": 0,
+              "summary": "2/2 pass — citation invariant green with local anchor in place"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts --no-coverage",
+              "exit_code": 0,
+              "summary": "6/6 pass — workflow boundary behavior unchanged"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas, typecheck, isolation, lockfile, lint, format all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Placed JSDoc comment directly above the deterministic-API enforcement test inside the describe block",
+              "why": "Keeps citation adjacent to the enforcement site per AC1/AC2; JSDoc is versioned, scanned by spec-citation-invariant, and preserves locality of behavior"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added a comment-only citation anchor in plugin/src/temporal/workflow-bundle-boundary.test.ts containing exact rq-temporalTsDeterminismDocs01 and rq-changeWorkflowSignalOnly01. The comment describes Temporal TS deterministic Date/random allowance and signal-only defineUpdate rejection. AC3–AC5 all pass; no runtime or behavior change.",
+            "suggested_next_action": "Proceed to acceptance gate; the local citation repair is complete and verified."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts --no-coverage"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts --no-coverage"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Engineer recorded TDD RED then GREEN durable runs: spec citation invariant 2/2, workflow boundary 6/6, and pnpm run check all passed. Diff is comment-only local citation anchor.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/workflow-bundle-boundary.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/workflow-bundle-boundary.test.ts"
+      ],
+      "checkpointSha": "169ea392c3184d428d98e2f62cd2ea682a2f04fb",
+      "completedAt": "2026-07-13T16:49:57.298Z",
+      "completed_at": "2026-07-13T16:49:57.298Z",
+      "notes": "Contract refs repaired after approved AC3 correction removed non-parsed constraint IDs; implementation unchanged.",
+      "updatedAt": "2026-07-13T18:19:53.426Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalCitationInvariant",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validator"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — local Temporal determinism citation anchor",
+      "sources": [
+        {
+          "label": "Spec law rq-temporalTsDeterminismDocs01 (advance-delivery)",
+          "locator": ".adv/specs/advance-delivery/spec.json:1129-1157",
+          "summary": "Requires agent-facing guidance to state Date.now()/new Date()/Math.random() are deterministic sandbox values, route timers to sleep()/condition(), and distinguish official Temporal TS determinism from the project signal-only change-workflow surface. Priority 'should'."
+        },
+        {
+          "label": "Spec law rq-changeWorkflowSignalOnly01 (advance-delivery)",
+          "locator": ".adv/specs/advance-delivery/spec.json:1099-1127",
+          "summary": "Change workflow code stays signal/query-based; no defineUpdate; regression scan must fail on wf.defineUpdate/defineUpdate but must NOT fail merely because patched Date/random APIs are used. Paired law with the determinism-docs requirement."
+        },
+        {
+          "label": "Citation invariant enforcement (literal token scan)",
+          "locator": "plugin/src/__tests__/spec-citation-invariant.test.ts:93-145,169-198",
+          "summary": "findCitedRequirements builds an alternation regex over active requirement IDs and scans file CONTENTS under searchRoots including join(REPO_ROOT,'plugin/src') plus AGENTS.md/ADV_INSTRUCTIONS.md/CHANGELOG.md. ANY literal ID match in a scanned file satisfies the invariant. docs/specs mirrors and own spec.json excluded; meta.status=planned skipped. A comment token is sufficient — no executable code required."
+        },
+        {
+          "label": "Workflow-boundary enforcement site",
+          "locator": "plugin/src/temporal/workflow-bundle-boundary.test.ts:45-54,88-106",
+          "summary": "forbiddenWorkflowSurfaceUsages rejects wf.defineUpdate/defineUpdate; the passing unit test asserts a fixture containing Date.now()/new Date()/Math.random() yields ONLY ['wf.defineUpdate'] — i.e. deterministic APIs are not flagged. This is the versioned enforcement site for both requirements and lives under the plugin/src scan root. Currently lacks either requirement-ID token."
+        },
+        {
+          "label": "Current sole citation (fragile prose anchor)",
+          "locator": "AGENTS.md:37",
+          "summary": "The only existing citation for rq-temporalTsDeterminismDocs01 is a trailing HTML comment. grep of plugin/src returns zero matches. Archive digests (fixChangeListTimeouts, fixShallowRepoIdentity, alignCoordinateProjects) confirm this requirement is the single reproduced uncited baseline failure. AGENTS.md content also accurately matches the spec scenario (patched Date/random, sleep()/condition() routing, signal-only distinction)."
+        },
+        {
+          "label": "Pre-existing paired-citation precedent",
+          "locator": "plugin/src/tools/_adapters.ts:8",
+          "summary": "rq-changeWorkflowSignalOnly01 is ALREADY cited in plugin/src (not presently uncited). Adding it beside the boundary test is a locality co-citation (agreement O2/AC2), not a fix for a missing citation — a benign, low-risk addition consistent with the repo's comment-anchor convention."
+        },
+        {
+          "label": "Temporal TypeScript SDK determinism (official docs)",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows (basics.mdx)",
+          "summary": "Confirms Date.now()/new Date() are deterministic (time of last Workflow Task completion, advances on await sleep()), Math.random() is deterministic and safe in the sandbox, and functions like Math.random/Date/setTimeout are replaced by deterministic versions. Corroborates every factual claim the proposed comment will assert; the signal-only/no-defineUpdate rule is project-specific, correctly framed as distinct."
+        }
+      ],
+      "architecture_assessment": "The design is a comment-only citation anchor added beside the deterministic-API enforcement in plugin/src/temporal/workflow-bundle-boundary.test.ts, containing the literal IDs rq-temporalTsDeterminismDocs01 and rq-changeWorkflowSignalOnly01 plus accurate prose (patched Date/new Date/Math.random allowance; wf.defineUpdate rejection). Verified structurally sound against all three enforcement sites: (1) The citation invariant is a pure literal-token content scan whose searchRoots include plugin/src, so a comment token in this test file is scanned and satisfies AC1/AC3 — no code or telemetry needed, honoring C1/C2/DONT3. (2) The chosen location is the versioned enforcement site for BOTH requirements and is strictly more local/durable than the single fragile AGENTS.md trailing comment (C3 preserves AGENTS.md prose while removing sole-anchor fragility; DONT1 satisfied because the citation is in a live scanned source, not archive-only). (3) The proposed comment prose is accurate against the spec law body/scenario AND against official Temporal TS SDK docs — Date.now()/new Date()/Math.random() are genuinely deterministic sandbox-patched and permitted, while defineUpdate is a project-specific restriction correctly distinguished. AC2's co-citation of rq-changeWorkflowSignalOnly01 is a benign locality addition (that requirement is already independently cited at _adapters.ts:8), so it cannot regress. Acceptance commands prove the contract exactly: the citation-invariant targeted test (AC3) is the literal gate the fix satisfies, the workflow-boundary targeted test (AC4) proves no behavior change at the enforcement site, and pnpm run check (AC5) covers lint/format/typecheck of the touched test file. No runtime, schema, workflow, or bounded-read surface is reached — matching the archived-and-merged fixChangeListTimeouts boundary. Deviation from by-the-book citation-anchor convention: NONE (matches the // rq-{ID} comment pattern already used across plugin/src, e.g. _adapters.ts).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Comment-only repair is provably sufficient: the invariant is a literal token content scan over roots including plugin/src, so a scanned comment satisfies it with no behavior change. Spec law, both enforcement sites, and official Temporal docs all corroborate the proposed comment's accuracy. Two minor advisories (non-blocking): (a) AC2 co-citing rq-changeWorkflowSignalOnly01 is a locality nicety, not a missing-citation fix — that ID is already cited at plugin/src/tools/_adapters.ts:8; framing it as 'preserve the paired citation for locality' is correct and cannot regress. (b) Because the scan is literal token matching, the implementer must use the EXACT IDs verbatim (agreement Edge case already notes this) — a typo would silently fail to cite; AC3 running the targeted invariant test catches that."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Enforcement-site comment couples the citation token to a test file rather than to runtime code; acceptable because the requirement is documentation/agent-guidance (priority 'should') and the test file is the versioned scan-visible site for both paired laws.",
+          "Preserving the AGENTS.md prose (C3) means two anchors now cite the same requirement; this is intentional redundancy (locality + human-facing prose) at negligible maintenance cost, and the invariant tolerates multiple citations.",
+          "Literal-token matching means the fix's durability depends on exact-ID fidelity; mitigated by AC3 running the actual invariant gate rather than trusting review."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep citation only in AGENTS.md (status quo, fix committal only)",
+            "disposition": "rejected",
+            "rationale": "Sole fragile prose anchor is exactly the reproduced release-blocking failure across three archived changes; a trailing-comment-only anchor in a doc file is easily lost and less local to the enforcement it describes. DONT1/DONT2 discourage archive-only / weakened evidence."
+          },
+          {
+            "option": "Add executable assertion binding the requirement to code behavior",
+            "disposition": "rejected",
+            "rationale": "The invariant only needs a literal token; adding runtime/test behavior would violate C1/C2/DONT3 (no behavior change for a documentation/citation repair) and over-engineer a 'should'-priority docs requirement. P19/P29 favor the minimal correct solution."
+          },
+          {
+            "option": "Cite in a non-test plugin/src source file (e.g. workflows.ts)",
+            "disposition": "rejected",
+            "rationale": "workflow-bundle-boundary.test.ts is the actual enforcement site that verifies the exact allowance (Date/random permitted, defineUpdate rejected) the requirement documents; co-locating the citation with its enforcement maximizes locality (P04) and keeps workflow-reachable production code untouched (respecting the workflow-bundle import-graph boundary)."
+          }
+        ],
+        "recommendation": "Proceed to planning/execution as designed. Implement as a single comment adjacent to the deterministic-API enforcement in plugin/src/temporal/workflow-bundle-boundary.test.ts using the EXACT literal IDs rq-temporalTsDeterminismDocs01 and rq-changeWorkflowSignalOnly01, with prose matching the spec scenario and official Temporal determinism behavior (patched Date.now()/new Date()/Math.random() allowed; wf.defineUpdate rejected). Prove via AC3 (targeted spec-citation-invariant), AC4 (targeted workflow-bundle-boundary), and AC5 (pnpm run check). No behavior, schema, workflow, telemetry, or bounded-read change."
+      },
+      "recommendation": "PASS — design is architecturally sound, minimal, and verified against spec law, all enforcement sites, and official Temporal docs. Approve the design gate. The comment-only enforcement-site citation is provably sufficient (literal token scan over plugin/src), accurate (matches spec scenario + Temporal SDK reality), and behavior-neutral (workflow-boundary unit test unchanged). Only implementation caveat: use exact requirement IDs verbatim; AC3 gates this.",
+      "follow_ups": [
+        "Optional post-merge hygiene (out of scope, do not expand this change): the paired rq-changeWorkflowSignalOnly01 now has two citations (_adapters.ts + boundary test) — harmless; no action required."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalCitationInvariant",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalCitationInvariant",
+      "task_id": "tk-49f4a44bf099",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-49f4a44bf099"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/workflow-bundle-boundary.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts --no-coverage",
+          "exit_code": 0,
+          "summary": "2/2 pass — citation invariant green with local anchor in place"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts --no-coverage",
+          "exit_code": 0,
+          "summary": "6/6 pass — workflow boundary behavior unchanged"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas, typecheck, isolation, lockfile, lint, format all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Placed JSDoc comment directly above the deterministic-API enforcement test inside the describe block",
+          "why": "Keeps citation adjacent to the enforcement site per AC1/AC2; JSDoc is versioned, scanned by spec-citation-invariant, and preserves locality of behavior"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added a comment-only citation anchor in plugin/src/temporal/workflow-bundle-boundary.test.ts containing exact rq-temporalTsDeterminismDocs01 and rq-changeWorkflowSignalOnly01. The comment describes Temporal TS deterministic Date/random allowance and signal-only defineUpdate rejection. AC3–AC5 all pass; no runtime or behavior change.",
+        "suggested_next_action": "Proceed to acceptance gate; the local citation repair is complete and verified."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts --no-coverage"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts --no-coverage"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalCitationInvariant",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalCitationInvariant",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Citation invariant: 2/2 passed; workflow boundary: 6/6 passed (8 total). Branch diff against merge-base trunk is a clean 9-line comment-only addition in plugin/src/temporal/workflow-bundle-boundary.test.ts; no behavior, bounded-read, or telemetry code changed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalCitationInvariant",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalCitationInvariant",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "CONFLICT",
+      "blocking_findings": [
+        {
+          "id": "deployment-readiness-1",
+          "label": "blocker",
+          "what": "AC3's exact required command fails: `bin/oc-test targeted -- plugin/src/__tests__/spec-citation-invariant.test.ts` produces “No test files found”.",
+          "why": "The repository's `bin/oc-test` executes Vitest from `plugin/`, so its documented target form is `src/...`; release cannot claim the literal AC3 command passes.",
+          "fix": "Amend AC3 through approved scope reentry to use `bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts`; no source-code fix is needed."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "production-readiness-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/workflow-bundle-boundary.test.ts",
+          "line": 90,
+          "what": "Citation comment is exact, local, and adjacent to the enforcement test.",
+          "why": "Both requirement IDs, deterministic Date/random allowance, and `defineUpdate` rejection are represented at the versioned enforcement boundary."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "`bin/oc-test` runs Vitest from `plugin/`; root-invoked targeted paths must be `src/...`, not `plugin/src/...`. Keep acceptance commands aligned with the wrapper's working directory."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git status --short && git diff --check && git diff --cached --check && git diff --no-ext-diff --unified=80 HEAD -- plugin/src/temporal/workflow-bundle-boundary.test.ts",
+          "bin/oc-test targeted -- plugin/src/__tests__/spec-citation-invariant.test.ts",
+          "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+          "bin/oc-test targeted -- src/temporal/workflow-bundle-boundary.test.ts",
+          "pnpm --dir plugin run check",
+          "git show --stat --format=fuller HEAD && git show --format= --unified=24 HEAD -- plugin/src/temporal/workflow-bundle-boundary.test.ts"
+        ],
+        "results": "fail",
+        "evidence": "Worktree is clean; HEAD 169ea392 changes only nine comment lines in plugin/src/temporal/workflow-bundle-boundary.test.ts. Exact citations and semantic wording verified at lines 90-96. The literal AC3 command failed because oc-test runs in plugin/. Corrected wrapper targets passed: citation invariant 2/2 and boundary suite 6/6. pnpm --dir plugin run check passed (schemas, typecheck, isolation, lockfile, lint, format)."
+      },
+      "scope_drift": {
+        "items": [
+          "AC3"
+        ],
+        "details": "AC3 prescribes `bin/oc-test targeted -- plugin/src/__tests__/spec-citation-invariant.test.ts`, but the project wrapper runs in plugin/ and only resolves `src/__tests__/spec-citation-invariant.test.ts`. Updating the acceptance command changes an agreement criterion; no code edit was applied.",
+        "recommendation": "stop_and_report"
+      },
+      "risks": [
+        "Release acceptance remains blocked until AC3 command text is corrected and its verification evidence is refreshed.",
+        "No runtime, workflow, schema, bounded-read, telemetry, or test-enforcement behavior changed; HEAD is a comment-only single-file diff."
+      ],
+      "required_main_agent_actions": [
+        "Present the AC3 scope-drift finding to the user via Tier A inline approval per docs/scope-discovery-protocol.md.",
+        "On approve: reenter from discovery, amend AC3 to `bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts`, then refresh acceptance evidence.",
+        "On split: create a fast-follow solely to align the wrapper invocation documented in the agreement.",
+        "On reject: record rejected_with_evidence for this finding; release must not claim literal AC3 proof passed."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-49f4a44bf099": [
+      {
+        "runId": "tr_mrjgevhf_e59ea1e8",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts --no-coverage",
+        "durationMs": 2313.662837997079,
+        "recordedAt": "2026-07-13T16:45:58.418Z"
+      },
+      {
+        "runId": "tr_mrjggps1_2f46ca40",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts --no-coverage",
+        "durationMs": 1187.7151059955359,
+        "recordedAt": "2026-07-13T16:47:24.366Z"
+      },
+      {
+        "runId": "tr_mrjggrkp_38a2a484",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts --no-coverage",
+        "durationMs": 1221.9034270048141,
+        "recordedAt": "2026-07-13T16:47:26.666Z"
+      },
+      {
+        "runId": "tr_mrjghqf5_d05712c2",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 37152.12188500166,
+        "recordedAt": "2026-07-13T16:48:11.839Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:12:59.116Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly authorized citation-invariant repair via “Repair and release”; focused problem statement and scope persisted.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "66c59e8c9133cccbca9ee1e0ba7fad430aeaa9632f12970a91893fca859a45c4",
+        "non_whitespace_chars": 531,
+        "checked_at": "2026-07-13T16:12:29.877Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:32:15.742Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved focused citation agreement: “approve”. Minimal contract minted; exact test/spec/enforcement anchors and no-behavior boundary recorded.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "32727436764ee58cbc1c8267f58c39c8f878fe265bf906ab85c28ccf369455ea",
+        "non_whitespace_chars": 2168,
+        "checked_at": "2026-07-13T16:12:29.878Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:35:18.013Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator PASS, high confidence, low risk. Comment-only local citation anchor is sufficient and behavior-neutral; exact IDs and targeted verification fixed by contract.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "51debfcf28aa31e991420629a5e23e51b2b6ee151d10a7877542b5ff58ffc52d",
+        "non_whitespace_chars": 781,
+        "checked_at": "2026-07-13T16:12:29.879Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:44:16.413Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved one-task citation repair graph: “approve”. Task has exact contract coverage, TDD intent, no-behavior boundary, and worktree."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:50:17.483Z",
+      "completed_by": "agent",
+      "approval_evidence": "Single task checkpointed. Citation invariant 2/2, workflow-boundary 6/6, and pnpm run check passed; comment-only diff."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T18:13:03.755Z",
+      "completed_by": "agent",
+      "approval_evidence": "User had accepted delivery; user approved corrected wrapper-relative AC3 path. Refreshed 5-row minimal review matrix all passing.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5a9758a3a328ac0f8622e564efd80daa4fa8caa3ce9a4e233ff0bae15db68838",
+        "non_whitespace_chars": 922,
+        "checked_at": "2026-07-13T16:12:29.881Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "acceptance",
+      "reason": "User-approved AC3 wrapper-relative path correction after harden conflict.",
+      "scope_delta": "Correct test command path only; implementation and behavior unchanged.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-13T18:12:46.193Z",
+      "gates_reset": [
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "fast_follow_of": {
+    "parent_change_id": "fixChangeListTimeouts",
+    "linked_at": "2026-07-13T16:12:28.754Z"
+  },
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "bc0696ca721ad830a2274a6771f52fd9fd099bd21221bd2ccc01ddf31413dad6",
+      "approvedAt": "2026-07-13T16:32:15.742Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/temporal/workflow-bundle-boundary.test.ts` contains `rq-temporalTsDeterminismDocs01` beside deterministic enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bc0696ca721ad830a2274a6771f52fd9fd099bd21221bd2ccc01ddf31413dad6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Same local block cites `rq-changeWorkflowSignalOnly01` and accurately describes Date/random allowance plus `defineUpdate` rejection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bc0696ca721ad830a2274a6771f52fd9fd099bd21221bd2ccc01ddf31413dad6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts` passes. Wrapper runs from `plugin/`; prior `plugin/` prefix was erroneous.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bc0696ca721ad830a2274a6771f52fd9fd099bd21221bd2ccc01ddf31413dad6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Focused workflow-boundary tests pass without behavior change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bc0696ca721ad830a2274a6771f52fd9fd099bd21221bd2ccc01ddf31413dad6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` passes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bc0696ca721ad830a2274a6771f52fd9fd099bd21221bd2ccc01ddf31413dad6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T18:20:11.204Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reviewer verified local citation."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reviewer verified paired citation wording."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Corrected wrapper-relative test command passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Boundary tests passed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Check passed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`plugin/src/temporal/workflow-bundle-boundary.test.ts` contains `rq-temporalTsDeterminismDocs01` beside deterministic enforcement.",
+    "Same local block cites `rq-changeWorkflowSignalOnly01` and accurately describes Date/random allowance plus `defineUpdate` rejection.",
+    "`bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts` passes. Wrapper runs from `plugin/`; prior `plugin/` prefix was erroneous.",
+    "Focused workflow-boundary tests pass without behavior change.",
+    "`pnpm run check` passes."
+  ],
+  "documents": {
+    "proposal": "## Proposal\nRepair the release-blocking `rq-temporalTsDeterminismDocs01` citation invariant as a fast follow-up to `fixChangeListTimeouts`. Make the owning documentation/spec/source citation authoritative and regression-tested, without reopening archived bounded-read behavior.\n\n## Scope\n- Citation invariant test and its cited documentation/spec/source anchor.\n- Focused regression test or asset lock needed to prevent drift.\n\n## Out of scope\n- Bounded-read behavior, telemetry, workflow redesign, or unrelated documentation cleanup.\n\nUser authorized this repair through the “Repair and release” decision.",
+    "problemStatement": "## Problem\nRelease hardening reproduced the repository citation-invariant failure `rq-temporalTsDeterminismDocs01`. The completed bounded-read change is already archived and merged; this follow-up must repair the cited documentation/spec/source anchor without reopening or altering bounded-read behavior.\n\n## Scope\n- Identify the exact broken citation invariant and owning source/spec/test contract.\n- Repair the smallest authoritative citation/documentation drift.\n- Add or update focused regression coverage.\n- Verify the invariant and affected repository checks.\n\n## Boundaries\n- No change to archived bounded-read behavior.\n- No telemetry, workflow redesign, or unrelated documentation sweep.\n- Preserve Temporal workflow-bundle and citation-asset boundaries.",
+    "agreement": "# Agreement — Fix Temporal citation invariant\n\n## Approved objective\nRepair `rq-temporalTsDeterminismDocs01` with a local citation beside its workflow-boundary enforcement; preserve existing guidance and bounded-read behavior.\n\n## Acceptance criteria\n- AC1: `plugin/src/temporal/workflow-bundle-boundary.test.ts` contains `rq-temporalTsDeterminismDocs01` beside deterministic enforcement.\n- AC2: Same local block cites `rq-changeWorkflowSignalOnly01` and accurately describes Date/random allowance plus `defineUpdate` rejection.\n- AC3: `bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts` passes. Wrapper runs from `plugin/`; prior `plugin/` prefix was erroneous.\n- AC4: Focused workflow-boundary tests pass without behavior change.\n- AC5: `pnpm run check` passes.\n\n## Constraints\nNo bounded-read change; no telemetry/workflow redesign/unrelated doc sweep; citation remains in scanned versioned enforcement source and AGENTS guidance remains.\n\n## Avoidances\nNo archive-only citation, guard weakening, or runtime behavior change.\n\nUser approved correction: “approve correction”.",
+    "design": "# Design — Local Temporal citation anchor\n\n## Implementation\nAdd a concise comment adjacent to `workflow-bundle-boundary.test.ts` deterministic-API enforcement. It contains exact literal IDs:\n- `rq-temporalTsDeterminismDocs01`\n- `rq-changeWorkflowSignalOnly01`\n\nThe comment states that the fixture permits `Date.now()`, `new Date()`, and `Math.random()` in Temporal TypeScript workflow code while rejecting `wf.defineUpdate`.\n\n## Why this location\nThe citation invariant scans `plugin/src`; this test is the versioned enforcement site for both requirements. `AGENTS.md` remains useful prose but is an insufficiently local/fragile sole anchor.\n\n## Verification\n1. Citation-invariant targeted test passes.\n2. Workflow-bundle-boundary targeted test passes.\n3. `pnpm run check` passes.\n\n## Boundaries\nComment-only repair. No runtime, schema, workflow, bounded-read, telemetry, or behavior change.",
+    "executiveSummary": "# Executive Summary — Temporal citation invariant\n\n## Outcome\nRepaired `rq-temporalTsDeterminismDocs01` with a local, durable citation anchor beside its workflow-boundary enforcement test.\n\n## Value\nThe repository citation invariant now sees the requirement in the same versioned `plugin/src` file that proves Temporal TypeScript deterministic Date/random APIs are allowed while `wf.defineUpdate` remains rejected. This removes reliance on fragile trailing AGENTS prose markup.\n\n## Delivered\n- Exact local citations for `rq-temporalTsDeterminismDocs01` and `rq-changeWorkflowSignalOnly01`.\n- Comment-only change in `plugin/src/temporal/workflow-bundle-boundary.test.ts`.\n- No runtime, schema, workflow, bounded-read, telemetry, or behavior change.\n\n## Verification\n- Citation invariant: 2/2 passed.\n- Workflow boundary: 6/6 passed.\n- `pnpm run check`: passed.\n- Independent review: READY.\n- Contract review matrix: 11/11 pass or respected.\n\n## Release readiness\nClean, one-file comment-only change. No migration, ops, frontend, data, or follow-up blocker.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T18:12:55.473Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `plugin/src/temporal/workflow-bundle-boundary.test.ts` contains `rq-temporalTsDeterminismDocs01` beside deterministic enforcement. | pass | Exact local citation verified by reviewer. |\n| AC2 | acceptance_criterion | Same local block cites `rq-changeWorkflowSignalOnly01` and accurately describes Date/random allowance plus `defineUpdate` rejection. | pass | Paired citation and wording verified by reviewer. |\n| AC3 | acceptance_criterion | `bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts` passes. Wrapper runs from `plugin/`; prior `plugin/` prefix was erroneous. | pass | Corrected wrapper-relative citation invariant command passed 2/2. |\n| AC4 | acceptance_criterion | Focused workflow-boundary tests pass without behavior change. | pass | Workflow-boundary test passed 6/6. |\n| AC5 | acceptance_criterion | `pnpm run check` passes. | pass | pnpm run check passed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T16:12:42.277Z",
+      "contentHash": "66c59e8c9133cccbca9ee1e0ba7fad430aeaa9632f12970a91893fca859a45c4",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T16:12:29.909Z",
+      "contentHash": "b700ef5a056991f57750037fda170cd06a6d8df2e459d585049f69f0f09b12da",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T18:12:30.413Z",
+      "contentHash": "bc0696ca721ad830a2274a6771f52fd9fd099bd21221bd2ccc01ddf31413dad6",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T16:32:25.701Z",
+      "contentHash": "51debfcf28aa31e991420629a5e23e51b2b6ee151d10a7877542b5ff58ffc52d",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T17:02:14.580Z",
+      "contentHash": "5a9758a3a328ac0f8622e564efd80daa4fa8caa3ce9a4e233ff0bae15db68838",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T18:20:11.252Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

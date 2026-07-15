@@ -378,8 +378,11 @@ describe("adv_change_status_repair", () => {
     expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
   });
 
-  test("is idempotent when already archived", async () => {
-    const store = createMockStore(wedgedChange({ status: "archived" }));
+  test("treats a bundle-dominant archived read as idempotently repaired without workflow access", async () => {
+    // The disk/target snapshot reader resolves this projection from a durable
+    // archive bundle even when no active workflow record can be queried.
+    const archivedBundleProjection = wedgedChange({ status: "archived" });
+    const store = createMockStore(archivedBundleProjection);
 
     const result = await changeTools.adv_change_status_repair.execute(
       {
@@ -394,6 +397,10 @@ describe("adv_change_status_repair", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.status).toBe("archived");
+    expect(parsed.message).toContain("already archived");
+    // The bundle-dominant read is already the durable terminal truth. Status
+    // repair must neither require another bundle lookup nor mutate it again.
+    expect(mocks.findArchiveBundle).not.toHaveBeenCalled();
     expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
   });
 

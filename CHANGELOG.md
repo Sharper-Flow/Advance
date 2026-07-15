@@ -4,6 +4,17 @@
 
 - **addWorkflowDirectives** — single-source-of-truth workflow directive projection. `deriveWorkflowDirective(state, epoch)` derives one authoritative next-action (phase, per-gate status, `Next:` orientation command, approval/recovery/blocked/archived routing, `canArchive`, bucket) straight from durable `ChangeWorkflowState`. The workflow's `getDirectiveQuery` is the sole producer; gate completion/status, change show/create, status enrichment, and compaction all consume the same `WorkflowDirective` and render an identical `Next:` line. Terminal statuses (`archived` and `closed`) collapse to a safe archived directive, and tool-layer callers use `deriveDirectiveSafe` so a derivation failure degrades gracefully instead of breaking the response.
 
+### Removed
+
+- **consolidateAdvToolSurface2 tool-surface consolidation** — five legacy or redundant agent-callable tools removed completely; no wrappers, aliases, or compatibility shims.
+  - `adv_backlog_state` → use `adv_roadmap`, the sole backlog reader. It preserves `source: "file" | "live"`, carries TTL-bounded annotation freshness, and performs O(1) active-change annotation via batched `queryActiveChangesByIssueNumbers` (≤100 issue numbers per call). When Temporal Visibility is unreachable it returns the requested roadmap data with a typed `annotations_unavailable` source-health state — never per-change fallback reads.
+  - `adv_project_wisdom_list` → use `adv_wisdom_list` with `project_only: true`; `maxEntries` bounds the project-only listing and is applied after type and product-visibility filtering. `project_only` is mutually exclusive with `changeId` and `query`.
+  - `adv_gate_criteria`, `adv_epic_update_scope`, `adv_epic_merge` → latent definitions removed (never registered, never reachable). No agent-callable replacement: gate criteria remain advisory checklists evaluated through the gate completion/status path (`adv_gate_status` / `adv_gate_complete`); audited Epic scope mutation and merge finalization remain Temporal storage/workflow behavior (`rq-epicMutableScope01`, `rq-epicMerge01`), not agent-callable tools.
+
+### Changed
+
+- **Strict role-scoped tool visibility** — agent ADV-tool allowlists are now governed by an exhaustive code-owned role policy (`plugin/src/tool-role-policy.ts`) that mirrors `docs/tool-ownership.md`. CI fails when an agent manifest grants an unregistered, removed, or role-irrelevant ADV tool, or when the documented ownership matrix and the code policy diverge — including action-level dual-tool distinctions (`adv_snapshot_health#repair`, `adv_conformance#override`, `adv_status forceRefresh`, `adv_project_metadata write`).
+
 ## 2026-05-28 (v1.0.0)
 
 First 1.x release. ADV graduates from 0.12.x with a coherent architectural milestone: artifact content lives in Temporal workflow state, gate readiness validates state (not disk), signal handlers no longer fail workflows on ordinary errors, and sub-agent contracts are structurally enforced.

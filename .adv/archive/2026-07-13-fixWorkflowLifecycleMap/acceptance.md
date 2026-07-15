@@ -1,0 +1,26 @@
+# Acceptance
+
+Reviewed at: 2026-07-13T20:46:13.078Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | **SC1** — One canonical per-gate line-item map exists in repo docs; "what happens at each gate, who writes what, who approves" answerable from one accurate source without re-derivation. | pass | Per-Gate Line-Item Map in docs/adv-gates.md:156-271 covers all 7 gates + Post-Release with artifacts, writer roles, approval types, sub-agents |
+| SC2 | success_criterion | **SC2** — Workflow docs no longer self-contradict on gate outputs. | pass | adv-workflow.md:20 now says 'problem-statement.md + proposal.md'; ownership table:65 lists both artifacts — consistent with adv-gates.md:13 |
+| SC3 | success_criterion | **SC3** — Command-contract edits that invalidate the map are caught by tests, not manual review. | pass | 16 presence-based assertions in adv-workflow-docs-assets.test.ts pin stable anchors; RED→GREEN verified |
+| AC1 | acceptance_criterion | **AC1** — `docs/adv-workflow.md` no longer claims proposal produces success criteria, and its ownership table lists both `problem-statement.md` + `proposal.md`, consistent with `docs/adv-gates.md`. | pass | Test asserts no 'success criteria' + both artifacts in ownership table; tr_mrjoffxd GREEN 3/3 pass |
+| AC2 | acceptance_criterion | **AC2** — Canonical map covers all 7 gates, each with ordered line items, artifact/durable output, writer role (narrative author / persisting tool / approver), approval type (machine-enforced / Tier A / Tier B), and sub-agent contributors; every row traces to a command contract, spec anchor (`rq-*`), or tool schema. | pass | Map covers 7 gates + Post-Release with ordered line items, artifacts, writer roles, approval types, sub-agent contributors; HTML source anchors per gate |
+| AC3 | acceptance_criterion | **AC3** — Map includes the trunk-verified previously-missing line items: worktree isolation at execution start, design-concern dispositions, ops follow-up `blocks` release blockers, advisory wisdom capture, archive-invoked non-blocking reflection — and excludes unreleased verification-evidence dispositions. | pass | Worktree Isolation (adv_worktree_create), adv_design_concern_disposition, checkOpsFollowupReleaseBlockers, Wisdom capture (advisory), adv_reflect all present; VERIFICATION_EVIDENCE_MISSING absent (negative assertion passes) |
+| AC4 | acceptance_criterion | **AC4** — New/extended drift test pins the map to stable anchors (stable phrases / `rq-*` IDs) in owning sources; a contradicting map fails tests. `docs/adv-workflow.md` gains test coverage (currently zero). | pass | New test file (previously zero coverage for adv-workflow.md); 16 assertions pin stable anchors; tr_mrjol9tj GREEN 16/16 pass |
+| AC5 | acceptance_criterion | **AC5** — `pnpm run check` and targeted asset tests exit 0. | pass | pnpm run check green (schemas, typecheck, isolation, lockfile, lint, format); 71/71 targeted tests pass |
+| C1 | constraint | **C1** — Docs + tests only; no runtime, tool, schema, or command-file changes. | respected | git diff: exactly 3 files changed (docs/adv-workflow.md, docs/adv-gates.md, plugin/src/adv-workflow-docs-assets.test.ts) — no runtime/tool/schema/command files |
+| C2 | constraint | **C2** — Single source of truth for gate ownership; map references `docs/adv-gates.md`, no competing table. | respected | Single ownership table remains in adv-gates.md; adv-workflow.md:75 cross-references it — no competing table |
+| C3 | constraint | **C3** — Drift anchors use stable phrases/rq-IDs, not brittle full-prose matches (`updateAgentGuide` is actively rewording 30 command files). | respected | Anchors are tool names (adv_worktree_create, adv_design_concern_disposition, adv_reflect), rq-IDs (rq-designQualityEvidence01), vocabulary tokens (userApproved: true, Tier B) — not prose |
+| DONT1 | avoidance | **DONT1** — No rows documenting unreleased behavior (verification-evidence dispositions stay out until `strengthenAgentEvidence` ships). | respected | Negative test assertions confirm VERIFICATION_EVIDENCE_MISSING and 'verification-evidence disposition' absent from map |
+| DONT2 | avoidance | **DONT2** — No memory-asserted rows; every line item source-verified. | respected | Every gate subsection has HTML source anchor (command file + phase, tool name, or rq-ID); all rows verified during discovery explore scan |
+| DONT3 | avoidance | **DONT3** — No incorrect restatement of approval tiers (must match `docs/command-voice-standard.md` + `rq-inlineApproval01`). | respected | Approval types match: planning=machine-enforced (userApproved: true), proposal/discovery/acceptance=Tier A inline, archive sign-off=Tier B whitelist-only — consistent with rq-inlineApproval01 |
+| OOS1 | out_of_scope | **OOS1** — Command-file (`.opencode/command/adv-*.md`) edits. | not_applicable | No command files edited; discovery proved command contracts correct at source |
+| OOS2 | out_of_scope | **OOS2** — `ADV_INSTRUCTIONS.md` restructuring. | not_applicable | ADV_INSTRUCTIONS.md not modified |
+| OOS3 | out_of_scope | **OOS3** — Runtime/tool/schema behavior changes and workflow redesign. | not_applicable | No runtime/tool/schema behavior changes |
+

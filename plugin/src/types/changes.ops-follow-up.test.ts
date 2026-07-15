@@ -238,7 +238,7 @@ describe("ops follow-up schemas", () => {
     const change = {
       id: "ops-change",
       title: "Ops change",
-      status: "active",
+      status: "draft",
       created_at: timestamp,
       ops_followup: {
         kind: "cleanup",

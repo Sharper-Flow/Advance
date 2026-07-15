@@ -1,0 +1,1582 @@
+{
+  "id": "addSpecDeltaWriter",
+  "title": "Add spec delta writer",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-14T02:29:24.463Z",
+  "tasks": [
+    {
+      "id": "tk-add0b451cb34",
+      "title": "Add spec-delta signal and durable state reducer",
+      "type": "code",
+      "section": "Durable write path",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-14T02:49:11.751Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C6",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-14T02:59:29.376Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addSpecDeltaWriter",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSpecDeltaWriter",
+          "task_id": "tk-add0b451cb34",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-add0b451cb34"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/specs.ts",
+            "plugin/src/types/index.ts",
+            "plugin/src/types/signals.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/messages.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/storage/store-types.ts",
+            "plugin/src/storage/store-temporal/spec-deltas.ts",
+            "plugin/src/storage/store-temporal/index.ts",
+            "plugin/src/storage/store-disk.ts",
+            "plugin/src/temporal/change-state.spec-delta.test.ts",
+            "plugin/src/storage/store-temporal/spec-deltas.test.ts",
+            "plugin/src/temporal/messages.test.ts",
+            "plugin/src/temporal/workflows.signal-handlers.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts",
+              "exit_code": 1,
+              "summary": "RED (runId tr_mrk31vxv_d93e4806): all new tests fail before implementation — missing schema, reducer, signal binding, store op; 50-vs-51 signal contract mismatch"
+            },
+            {
+              "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN (runId tr_mrk3hmbn_58a124df): all focused tests pass after implementation"
+            },
+            {
+              "command": "bunx vitest run <same 4 files> && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "VERIFY (runId tr_mrk3mtgh_8d735bbe): focused tests pass + tsc --noEmit clean"
+            },
+            {
+              "command": "bin/oc-test targeted -- <10 related files: change-state, signal-rejection, archive-activity, projection, bundle-boundary, disk-projection, store-disk, store-temporal index, signal-integration, queries>",
+              "exit_code": 0,
+              "summary": "116/116 related tests pass — reducer neighbors, archive delta consumer, projection, structural boundary, store backends"
+            },
+            {
+              "command": "bin/oc-test targeted -- <12 related files: workflows.epic/ops-follow-up/search-attrs, change-state crash-recovery/size-guard/ops-follow-up/worktree-auto-manage, store-temporal changes, no-disk-writes-invariant, store-types, memo, workflow-start>",
+              "exit_code": 0,
+              "summary": "99/99 second-ring neighbor tests pass"
+            },
+            {
+              "command": "bunx eslint <15 touched files>; bunx prettier --write <4 files>; pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "ESLint clean on all touched files; Prettier formatting applied; generated JSON schemas in sync"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Reducer rejects duplicate requirement ids across ALL capabilities in the change, not just the target capability",
+              "why": "Mirrors validator/conflicts.ts global seenIds semantics and archive fail-closed behavior; exact-identifier matching is deterministic, not heuristic"
+            },
+            {
+              "what": "Duplicate delta ids rejected across all capabilities too",
+              "why": "dl- ids are globally unique by construction; a duplicate would double-apply at archive time and fail closed — rejecting at write time is atomic and deterministic"
+            },
+            {
+              "what": "CAPABILITY_KEY_PATTERN exported from types/specs.ts, shared by zod CapabilityKeySchema, workflow reducer, and disk store",
+              "why": "Single source of truth (P33 structural correctness); reducer validates defensively because Temporal signal payloads arrive unvalidated on the wire"
+            },
+            {
+              "what": "No projectAfter on the workflow handler; store op owns cache refresh + persistStateToDisk",
+              "why": "Mirrors the adv_wisdom_add writer pattern exactly (wisdomAddedSignal handler has no projection either)"
+            },
+            {
+              "what": "Store op throws typed error (surfacing latest signal_rejection message) before any cache/disk refresh when the delta did not land",
+              "why": "AC2 atomic semantics: typed validation error with the change delta record unchanged; rejection evidence flows from workflow state"
+            },
+            {
+              "what": "Workflow-level test asserts monotonic lastSignalAt (truthy) rather than fixture timestamp; payload.addedAt behavior asserted in the pure reducer unit test",
+              "why": "setLastSignalAt is monotonic-max; intervening signal rejections stamp workflowNow() (real test-env clock), so older fixture timestamps cannot move it backwards"
+            },
+            {
+              "what": "Disk store gained a specDeltas.add fallback mirroring the reducer contract",
+              "why": "Store interface is shared; disk backend (P2.7 substrate) must implement the new group for type completeness and cold-start parity"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "tk-dbe87a62be7b: implement and register adv_delta_add MCP tool on top of store.specDeltas.add — mirror plugin/src/tools/wisdom.ts for target-path confirmation, recovery fields, tool-arg-preflight/title/banner surfaces",
+            "tk-35ad732df458: archive integration check — tool-written add delta consumed once by archive, new-capability spec creation, fail-closed on conflict"
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned all wisdomAddedSignal/createWisdomOps surfaces (tools/wisdom.ts, messages.ts, workflows.ts, store-temporal/index.ts, store-temporal/wisdom.ts): every non-tool surface mirrored; tools/wisdom.ts belongs to tk-dbe87a62be7b. Verified CHANGE_WORKFLOW_SIGNAL_NAMES consumers (messages.test.ts enumeration) updated; seedState/continue-as-new carries deltas unchanged. No other Store implementations exist beyond temporal + disk (both updated); test mocks use `as Store` casts (tsc clean).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "specDeltaAdded append-only write path is complete: typed add-only payload schema (SpecDeltaAddedSignalPayloadSchema, restricted to DeltaAdd via DeltaAddSchema export), 51st change-workflow signal name/binding/handler, deterministic applySpecDeltaAddedToState reducer (capability-keyed append into state.deltas, exact-identifier duplicate delta-id + requirement-id rejection via signal-rejection path, malformed capability refusal, no global spec file access), createSpecDeltaOps Temporal store op (schema-validated signal → state readback → typed rejection error or cache/summary/disk refresh), Store.specDeltas interface group with disk-store fallback. RED/GREEN/VERIFY evidence recorded on the task. Archive (activities.ts:624-642) remains the sole global-spec writer and consumes state.deltas unchanged.",
+            "suggested_next_action": "Checkpoint/commit this task's working tree, then start tk-dbe87a62be7b (adv_delta_add tool) on top of store.specDeltas.add using plugin/src/tools/wisdom.ts as the registration template"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run <same 4 files> && pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- <10 related files: change-state, signal-rejection, archive-activity, projection, bundle-boundary, disk-projection, store-disk, store-temporal index, signal-integration, queries>"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- <12 related files: workflows.epic/ops-follow-up/search-attrs, change-state crash-recovery/size-guard/ops-follow-up/worktree-auto-manage, store-temporal changes, no-disk-writes-invariant, store-types, memo, workflow-start>"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx eslint <15 touched files>; bunx prettier --write <4 files>; pnpm run schemas:check"
+            }
+          ]
+        }
+      ],
+      "verification": "TDD RED tr_mrk31vxv_d93e4806 → GREEN tr_mrk3hmbn_58a124df → VERIFY tr_mrk3mtgh_8d735bbe; related suites: 116/116 and 99/99 passed; ESLint, Prettier, schema check, and typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.spec-delta.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/types/specs.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.spec-delta.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/types/specs.ts"
+      ],
+      "checkpointSha": "7f9138f4fe74d0facfc31de0c134b9ed1dc90bb2",
+      "completedAt": "2026-07-14T03:43:14.026Z",
+      "completed_at": "2026-07-14T03:43:14.026Z"
+    },
+    {
+      "id": "tk-dbe87a62be7b",
+      "title": "Implement and register adv_delta_add",
+      "type": "code",
+      "section": "Agent tool surface",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-14T02:49:25.357Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-add0b451cb34"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-14T03:43:21.492Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addSpecDeltaWriter",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSpecDeltaWriter",
+          "task_id": "tk-dbe87a62be7b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dbe87a62be7b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/spec-delta.ts",
+            "plugin/src/tools/spec-delta.test.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/utils/tool-title.ts",
+            "plugin/src/utils/tool-arg-preflight.ts",
+            "plugin/src/utils/banner.ts",
+            "plugin/src/index.ts",
+            "plugin/src/cli-bridge-contract.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bun run test -- src/tools/spec-delta.test.ts (RED)",
+              "exit_code": 1,
+              "summary": "RED tr_mrk4g7vy_73a4c30d: module-not-found before implementation"
+            },
+            {
+              "command": "bun run test -- src/tools/spec-delta.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/tool-registry.surface.test.ts src/utils/tool-title.test.ts src/utils/banner.test.ts src/utils/tool-arg-preflight.test.ts src/tools/spec.test.ts src/tools/wisdom-derived-export.test.ts src/tools/contract.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts (GREEN)",
+              "exit_code": 0,
+              "summary": "GREEN tr_mrk4onuj_ed8283ce: 14 test files pass after implementing spec-delta.ts + 6 registration-surface edits"
+            },
+            {
+              "command": "bun run test -- <22 files> && bun run lint && bun run typecheck && bun run format:check (VERIFY)",
+              "exit_code": 0,
+              "summary": "VERIFY tr_mrk50trs_94528c30: 561/561 tests pass across 22 files (spec-delta, tool-registry, cli-bridge, surface, tool-title, banner, arg-preflight, spec, wisdom-derived-export, contract, change-state.spec-delta, store-temporal/spec-deltas, workflows.signal-handlers, messages, integration, adv-reviewer-asset, tool-name-assets, manifest, manifest-doc-drift, deploy-local, schema-registry, rq-backlogCoord09-spec-compliance, agent-tool-contracts-assets). ESLint, tsc --noEmit, prettier --check all clean."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Dedicated tools/spec-delta.ts module rather than extending tools/spec.ts",
+              "why": "Mirrors the adv_wisdom_add writer pattern (dedicated tools/wisdom.ts); keeps read-only spec.ts separate from the change-mutating writer; matches the design's 'mirror adv_wisdom_add writer pattern across ... MCP registry' directive."
+            },
+            {
+              "what": "Recovery mode refuses the disk-projection write even with valid poisoned-history evidence",
+              "why": "Task constraint explicitly forbids 'direct disk workaround'. A disk-projection delta write would bypass the workflow reducer's duplicate-detection invariants and the archive-as-sole-global-writer boundary, creating an unverifiable state fork. The tool returns a typed refusal with remediation hint (recover the workflow first via adv_temporal_diagnose / adv_change_status_repair, then retry). This satisfies AC5 'follows existing audited recovery semantics OR refuses without modifying state' via the refuse branch."
+            },
+            {
+              "what": "Tool enforces >=1 scenario beyond DeltaAddSchema's optional scenarios field",
+              "why": "AC1 requires 'at least one Given/When/Then scenario'; RequirementSchema has scenarios as optional, so the tool-level guard closes the gap without weakening the schema used by archive for legacy deltas."
+            },
+            {
+              "what": "Validated capability/delta captured into const locals before closure capture",
+              "why": "TypeScript narrowing of `{capability?, error?}` union does not survive closure capture; explicit locals preserve narrowing into withTargetPathStore and runAdd without re-assertion."
+            },
+            {
+              "what": "adv_delta_add added to activeChangeRepointTools in index.ts",
+              "why": "The tool is a change mutator carrying args.changeId; same category as adv_wisdom_add / adv_contract_mint. Cross-project calls are already exempt via args.target_path check in handleToolExecuteBefore."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned tools/change.ts, tools/contract.ts, tools/wisdom.ts, tools/_recovery-writers.ts, utils/tool-arg-preflight.ts, utils/tool-title.ts, utils/banner.ts, tool-registry.ts, index.ts, cli-bridge-contract.test.ts for all adv_* writer registration surfaces; applied the same pattern to adv_delta_add across every surface (no drift).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_delta_add (roadmap #64) is fully implemented and registered. TDD: RED tr_mrk4g7vy_73a4c30d → GREEN tr_mrk4onuj_ed8283ce → VERIFY tr_mrk50trs_94528c30. Tool delegates to store.specDeltas.add (predecessor checkpoint 7f9138f); accepts existing or valid new kebab-case capability slugs; enforces >=1 Given/When/Then scenario beyond DeltaAddSchema's optional scenarios; rejects malformed capability/delta and duplicate ids atomically (no state mutation on refusal). Target-path and recovery contracts mirror adv_contract_mint / adv_change_repair_origin, but the disk-projection recovery write is intentionally REFUSED (typed error with remediation hint) because a direct disk write would bypass the workflow reducer's duplicate-detection invariants and the archive-as-sole-global-writer boundary — satisfying the task constraint 'no direct disk workaround'. Registration: tool-registry (bindTool + ADV_TOOL_NAMES + getToolSurface), tool-title TITLE_BUILDERS, tool-arg-preflight FIELD_POLICIES (blank→omit for optional audit/target/recovery fields), banner emoji 📝, index.ts activeChangeRepointTools, cli-bridge-contract frozen ADV_TOOL_NAMES snapshot. 24 new tests cover happy path + 8 malformed capability shapes + 3 non-add operations + scenario enforcement + duplicate id/requirement + target_path confirmation refusal + recovery contract (3 cases). 561/561 tests pass across 22 related suites; lint, typecheck, prettier all clean.",
+            "suggested_next_action": "Proceed to next task in the addSpecDeltaWriter plan (likely tk covering durable spec-delta recording via the new tool during this change, or verification tasks). The tool is ready for use: `adv_delta_add` with `{ changeId, capability, delta }`."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun run test -- src/tools/spec-delta.test.ts (RED)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun run test -- src/tools/spec-delta.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/tool-registry.surface.test.ts src/utils/tool-title.test.ts src/utils/banner.test.ts src/utils/tool-arg-preflight.test.ts src/tools/spec.test.ts src/tools/wisdom-derived-export.test.ts src/tools/contract.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts (GREEN)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun run test -- <22 files> && bun run lint && bun run typecheck && bun run format:check (VERIFY)"
+            }
+          ]
+        }
+      ],
+      "verification": "TDD RED tr_mrk4g7vy_73a4c30d → GREEN tr_mrk4onuj_ed8283ce → VERIFY tr_mrk50trs_94528c30: 561/561 tests across 22 files; ESLint, TypeScript, and Prettier passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/index.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/spec-delta.test.ts",
+        "plugin/src/tools/spec-delta.ts",
+        "plugin/src/utils/banner.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/index.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/spec-delta.test.ts",
+        "plugin/src/tools/spec-delta.ts",
+        "plugin/src/utils/banner.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "0eb069f7410835fa7f19c24ab8a7680b657ff894",
+      "completedAt": "2026-07-14T04:16:45.598Z",
+      "completed_at": "2026-07-14T04:16:45.598Z"
+    },
+    {
+      "id": "tk-35ad732df458",
+      "title": "Verify archive and tool contracts",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-14T02:49:37.645Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dbe87a62be7b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-14T04:16:52.527Z",
+      "verification": "Release hardening READY. Corrected draft-only writer enforcement and scenario-parent ID validation. Targeted tool/Temporal suite 76/76, pnpm --dir plugin run check, pnpm --dir plugin run build, and git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/spec-delta.test.ts",
+        "plugin/src/tools/spec-delta.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/spec-delta.test.ts",
+        "plugin/src/tools/spec-delta.ts"
+      ],
+      "checkpointSha": "18b2d56bd032fe9614ec1ffcc7ef5e402f0d64f4",
+      "completedAt": "2026-07-14T05:15:11.494Z",
+      "completed_at": "2026-07-14T05:15:11.494Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addSpecDeltaWriter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:spec-delta-writer"
+      },
+      "agent": "adv-researcher",
+      "topic": "Change-scoped spec-delta writer architecture",
+      "sources": [
+        {
+          "label": "Delta schema and validation",
+          "locator": "plugin/src/types/specs.ts:110-166",
+          "summary": "DeltaSchema is a discriminated union; add carries a full RequirementSchema and IDs have deterministic prefixes."
+        },
+        {
+          "label": "Archive delta engine",
+          "locator": "plugin/src/archive/delta.ts:19-316",
+          "summary": "Add rejects duplicate requirement IDs; archive applies deterministic ordering and fails closed."
+        },
+        {
+          "label": "Change state shape",
+          "locator": "plugin/src/types/changes.ts:926; plugin/src/temporal/contracts.ts:378",
+          "summary": "Deltas are a capability-keyed record in durable change workflow state."
+        },
+        {
+          "label": "Archive persistence",
+          "locator": "plugin/src/temporal/activities.ts:624-642; plugin/src/utils/spec-deltas.ts:18-55",
+          "summary": "Archive applies each capability delta atomically to specs and fails archive on error."
+        },
+        {
+          "label": "Writer precedent",
+          "locator": "plugin/src/tools/wisdom.ts:98-217",
+          "summary": "adv_wisdom_add provides append-only signal-driven tool, target-path, recovery, cache refresh, and disk fallback pattern."
+        },
+        {
+          "label": "Conflict validation",
+          "locator": "plugin/src/validator/conflicts.ts:14-86",
+          "summary": "Duplicate requirement IDs can be structurally rejected before persistence."
+        },
+        {
+          "label": "Roadmap",
+          "locator": "ROADMAP.md:32",
+          "summary": "Existing roadmap item #64 explicitly calls for an adv_delta_add MCP tool."
+        }
+      ],
+      "architecture_assessment": "Deltas are already strongly typed and archive-safe, but no delta mutation signal or tool exists. The correct path is an add-only, signal-driven writer that updates the existing capability-keyed ChangeWorkflowState.deltas record and reuses archive application unchanged.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Local source confirms the missing write-path gap, archive compatibility, and a near-exact wisdom writer template. Original subagent report transport failed with WorkflowNotFoundError; target worker restart completed before this retry."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Ten-surface signal/tool wiring adds implementation cost but preserves Temporal durability, replay safety, target-path trust, and auditability.",
+          "Add-only defers modify/remove target-resolution complexity while satisfying roadmap #64 and archive compatibility.",
+          "Pre-write duplicate validation duplicates archive fail-closed enforcement but improves feedback and prevents invalid persistence."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Extend adv_change_update",
+            "disposition": "rejected",
+            "rationale": "That tool contract explicitly limits mutations to narrative artifacts and excludes deltas."
+          },
+          {
+            "option": "Direct disk write",
+            "disposition": "rejected",
+            "rationale": "Violates Temporal-first persistence and ADV state-access policy."
+          },
+          {
+            "option": "Full delta CRUD",
+            "disposition": "deferred",
+            "rationale": "Modify/remove require target-resolution semantics unnecessary for the minimal safe writer."
+          }
+        ],
+        "recommendation": "Implement an add-only adv_delta_add tool with a SpecDeltaAdded signal, deterministic add validation, capability-keyed append state reducer, target-path/recovery support, registrations matching adv_wisdom_add, and focused duplicate/archive tests."
+      },
+      "recommendation": "Implement a typed add-only writer via the existing Temporal signal/store pattern; preserve archive as the sole global-spec mutation path.",
+      "follow_ups": [
+        "Confirm exact GitHub issue #64 text during discovery.",
+        "Specify duplicate replay behavior as a hard conflict before persistence."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addSpecDeltaWriter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validator"
+      },
+      "agent": "adv-researcher",
+      "topic": "Independent design validation of add-only adv_delta_add spec-delta writer",
+      "sources": [
+        {
+          "label": "DeltaAddSchema + RequirementSchema (typed input contract)",
+          "locator": "/home/jon/dev/advance/plugin/src/types/specs.ts:33-166",
+          "summary": "DeltaSchema is a discriminatedUnion on operation; DeltaAddSchema carries operation:'add' literal + full RequirementSchema (id, title, body, PrioritySchema, optional scenarios). Requirement/Scenario are .passthrough(). ID prefixes rq-/dl- are constants. Confirms the design's 'existing typed delta and requirement schemas, restricted to add' claim is structurally backed."
+        },
+        {
+          "label": "Archive add-delta application (duplicate + fail-closed)",
+          "locator": "/home/jon/dev/advance/plugin/src/archive/delta.ts:44-70,242-316,352-383",
+          "summary": "applyAddDelta rejects duplicate requirement IDs. applyDeltasToSpec sorts rename->remove->modify->add, stops on first error, only updates version metadata when the whole batch succeeds (fail-closed). createSpecFromDeltas creates a brand-new capability spec from adds (version 1.0.0). Confirms archive compatibility AND that a not-yet-existing capability is supported at archive time."
+        },
+        {
+          "label": "Archive activity consumes state.deltas fail-closed",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/activities.ts:624-642; /home/jon/dev/advance/plugin/src/utils/spec-deltas.ts:18-55",
+          "summary": "On status==='archived', activities iterate Object.entries(state.deltas), call applySpecDelta per capability, and return {ok:false} on first failure (archive fails closed). applySpecDelta uses applyDeltasToSpec for existing specs and createSpecFromDeltas for missing ones. This is the sole global-spec writer, unchanged by the design."
+        },
+        {
+          "label": "Signal to reducer wiring pattern (mirror target)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/messages.ts:234-236; workflows.ts:1390-1395; change-state.ts:1216-1223; contracts.ts:70-96,378",
+          "summary": "wisdomAddedSignal defined in messages.ts, name adv.change.wisdomAdded in CHANGE_WORKFLOW_SIGNAL_NAMES, handled via wf.setHandler(...signalMutation('wisdomAdded', applyWisdomAddedToState)). applyWisdomAddedToState pushes entry + setLastSignalAt. ChangeWorkflowState.deltas is Change['deltas']. A specDeltaAdded reducer would mirror this exactly: append to state.deltas[capability]."
+        },
+        {
+          "label": "Change deltas state shape",
+          "locator": "/home/jon/dev/advance/plugin/src/types/changes.ts:926",
+          "summary": "deltas: z.record(z.string(), z.array(DeltaSchema)).optional().default({}). Capability-keyed array of deltas. Design's 'append the delta under state.deltas[capability]' matches the persisted shape; append (not replace) preserves multiple deltas per capability."
+        },
+        {
+          "label": "Structural duplicate-ID conflict validator (reusable pre-write check)",
+          "locator": "/home/jon/dev/advance/plugin/src/validator/conflicts.ts:14-86",
+          "summary": "checkDuplicateRequirementIds already detects add-delta requirement IDs colliding with existing spec IDs (context.existingRequirementIds) and with other in-change deltas, emitting typed DUPLICATE_REQUIREMENT_ID errors. Reusable to satisfy the design's pre-write duplicate rejection structurally rather than heuristically."
+        },
+        {
+          "label": "adv_wisdom_add writer template + 10-surface registration",
+          "locator": "wisdom.ts:97-225; tool-registry.ts:596-598,978; index.ts:566; tool-arg-preflight.ts:155; tool-title.ts:146; store-temporal/wisdom.ts:11-57; adv-reviewer-asset.test.ts:143; cli-bridge-contract.test.ts:175; benchmark-temporal.test.ts:71,278; tool-registry.test.ts:266-284",
+          "summary": "adv_wisdom_add uses fireSignalAndRefresh (rq-cacheRefresh01) with disk fallback, snapshot emission, typed error handling. Registration truly spans tool-registry (bind + op-adapter list), index.ts op list, tool-arg-preflight, tool-title, store-temporal op, plus asset/cli-bridge/benchmark/registry contract tests. The design's 'Registration Surface' mirror list is real and complete."
+        },
+        {
+          "label": "Target-path/recovery pattern location (precision check)",
+          "locator": "wisdom.ts:250-256 (list only); change.test.ts:1935-2970 (target_confirmed + recoveryMode='poisoned_history')",
+          "summary": "adv_wisdom_add's ADD path does NOT expose target_path/target_confirmed/recoveryMode on its tool arg schema; the richer untrusted-target-mutation (target_confirmed + confirmationEvidence) and poisoned_history recovery pattern lives in change.ts/epic.ts mutation tools. AC4 (target confirmation) and AC5 (poisoned-history recovery) therefore require the change.ts mutation-tool pattern, not the leaner wisdom.ts arg schema. This submission itself required target_confirmed for the untrusted target project, confirming the pattern."
+        },
+        {
+          "label": "Consumer capability exists (originating case)",
+          "locator": "adv_spec list (pokeedge-web project): collection-dashboard v1.2.0, 6 requirements",
+          "summary": "The originating PokeEdge consumer capability collection-dashboard already exists, so the writer's add delta targets an existing spec there; and even where a target capability is absent, createSpecFromDeltas covers new-capability creation at archive. The unblock path is viable end-to-end."
+        },
+        {
+          "label": "Roadmap provenance",
+          "locator": "ROADMAP.md item #64 (cited in proposal/agreement)",
+          "summary": "Roadmap #64 explicitly requests an adv_delta_add MCP tool; the design implements the defined gap rather than inventing a parallel mechanism. Exact issue text not re-read this pass - see caution."
+        }
+      ],
+      "architecture_assessment": "The add-only adv_delta_add design is architecturally sound and correctly maps onto the existing Temporal-first, signal-driven, capability-keyed delta model. Deltas are already strongly typed (DeltaAddSchema + RequirementSchema, discriminated union), the archive engine is the sole global-spec writer and is fail-closed (activities.ts:624 returns {ok:false} on first delta failure), and change workflow state carries deltas as record<capability, Delta[]>. A specDeltaAdded signal + applySpecDeltaAddedToState reducer that appends to state.deltas[capability] is an exact structural analog of the proven wisdomAddedSignal/applyWisdomAddedToState pair. Pre-write structural validation is available and should reuse existing conflicts.ts duplicate-ID detection rather than a bespoke heuristic (satisfies P33 structural-correctness). The 10-surface registration mirror list is real and complete. Two precision items keep this at caution rather than pass: (1) the design's 'validate capability existence' input rule conflicts with the archive engine's legitimate new-capability creation path (createSpecFromDeltas); rejecting unknown capabilities at tool time would block the exact new-capability delta the archive can apply, so the intended behavior must be decided explicitly. (2) AC4/AC5 (target confirmation + poisoned-history recovery) require the change.ts mutation-tool target_confirmed/confirmationEvidence/recoveryMode pattern; the design says 'mirror existing signal writers' but adv_wisdom_add's ADD arg schema does not carry those fields, so the mirror source must be change.ts, not wisdom.ts, or AC4/AC5 will be under-implemented.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No fail-level blockers: the core signal/reducer/store/archive architecture is verified correct and add-only scoping is safe. Two design-precision cautions must be resolved during prep before execution: (C1) capability-existence rejection vs. archive new-capability creation semantics, and (C2) target-confirmation/recovery mirror source (change.ts pattern, not wisdom.ts arg schema) needed to actually satisfy AC4/AC5. A third minor caution: append-vs-idempotency semantics for a re-submitted identical add delta within the same change need an explicit rule (AC2 'duplicate add delta' refusal) - conflicts.ts covers duplicate requirement IDs but the design should state that a duplicate delta by requirement.id is refused pre-persistence and append never silently double-writes."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Add-only first surface defers modify/remove/rename target-resolution and overwrite semantics, satisfying roadmap #64 and archive compatibility with minimal blast radius, at the cost of a second future change for full CRUD.",
+          "Reusing conflicts.ts + archive applyAddDelta duplicate detection duplicates the fail-closed check at two layers (pre-write feedback + archive enforcement), improving UX and defense-in-depth but must stay consistent to avoid a tool that accepts a delta archive later rejects.",
+          "The 10-surface signal/tool/registration wiring is real implementation cost but preserves Temporal durability, replay safety, cache-refresh correctness (rq-cacheRefresh01), and audit - the correct trade for a durable state mutation.",
+          "Mirroring change.ts (not wisdom.ts) for target_confirmed/recovery adds arg-schema surface but is required for AC4/AC5 and untrusted cross-project mutation safety."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Extend adv_change_update to accept deltas",
+            "disposition": "rejected",
+            "rationale": "adv_change_update's contract is intentionally narrative-artifact-only; overloading it would blur the mutation contract and break its explicit avoidance. Confirmed by agreement Avoidance #1."
+          },
+          {
+            "option": "Direct disk write of spec.json / change deltas",
+            "disposition": "rejected",
+            "rationale": "Violates Temporal-first persistence and the ADV state-access policy; bypasses reducer/replay and archive-as-sole-writer invariant."
+          },
+          {
+            "option": "Full add/modify/remove/rename CRUD now",
+            "disposition": "deferred",
+            "rationale": "modify/remove/rename need target-resolution, overwrite, and cross-delta ordering semantics beyond the minimal unblocker; the archive engine already supports them so they can be exposed in a follow-up without re-architecture."
+          },
+          {
+            "option": "Reject any delta whose capability spec does not yet exist",
+            "disposition": "rejected",
+            "rationale": "Would contradict the archive engine's createSpecFromDeltas new-capability path and could block the originating consumer's readiness-law-for-a-new-capability case; capability-existence handling must be an explicit design decision, not an implicit reject."
+          }
+        ],
+        "recommendation": "Proceed to design/prep with the add-only signal-driven writer. Resolve three precision items before execution: (1) define capability handling explicitly - either allow new-capability adds (aligning with createSpecFromDeltas) or gate them behind a documented rule, do not silently reject; (2) source the target_confirmed/confirmationEvidence/recoveryMode mirror from the change.ts mutation-tool pattern (not wisdom.ts) so AC4/AC5 are actually satisfied; (3) specify the duplicate-delta refusal rule (refuse a second add with the same requirement.id pre-persistence via conflicts.ts, guaranteeing append never double-writes)."
+      },
+      "recommendation": "CAUTION - architecture is correct and low-risk; approve the add-only signal/reducer/store design and its archive-unchanged boundary, but require prep to close three precision gaps: capability-existence-vs-new-capability semantics, change.ts-sourced target/recovery pattern for AC4/AC5, and an explicit duplicate-delta refusal rule. Implement specDeltaAdded as an exact analog of wisdomAddedSignal/applyWisdomAddedToState appending to state.deltas[capability], reuse conflicts.ts for structural duplicate detection, and add registrations + asset/contract tests across the same 10 surfaces as adv_wisdom_add.",
+      "follow_ups": [
+        "Confirm exact GitHub/ROADMAP issue #64 wording during prep to ensure add_delta scope alignment (not re-verified verbatim this pass).",
+        "Decide and document capability-existence policy: allow new-capability add (matches createSpecFromDeltas) vs. explicit gated reject.",
+        "Pin target-path/recovery mirror to the change.ts mutation-tool pattern (target_confirmed + confirmationEvidence + recoveryMode='poisoned_history'), not the leaner wisdom.ts arg schema, to satisfy AC4/AC5.",
+        "Add an explicit AC2 test: a second add delta with a duplicate requirement.id is refused pre-persistence and state.deltas is unchanged (append never double-writes).",
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided as a structured briefing packet; validation proceeded from persisted proposal/agreement/design and local source per existing prompt scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addSpecDeltaWriter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSpecDeltaWriter",
+      "task_id": "tk-add0b451cb34",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-add0b451cb34"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/specs.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/temporal/change-state.spec-delta.test.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts",
+          "exit_code": 1,
+          "summary": "RED (runId tr_mrk31vxv_d93e4806): all new tests fail before implementation — missing schema, reducer, signal binding, store op; 50-vs-51 signal contract mismatch"
+        },
+        {
+          "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN (runId tr_mrk3hmbn_58a124df): all focused tests pass after implementation"
+        },
+        {
+          "command": "bunx vitest run <same 4 files> && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "VERIFY (runId tr_mrk3mtgh_8d735bbe): focused tests pass + tsc --noEmit clean"
+        },
+        {
+          "command": "bin/oc-test targeted -- <10 related files: change-state, signal-rejection, archive-activity, projection, bundle-boundary, disk-projection, store-disk, store-temporal index, signal-integration, queries>",
+          "exit_code": 0,
+          "summary": "116/116 related tests pass — reducer neighbors, archive delta consumer, projection, structural boundary, store backends"
+        },
+        {
+          "command": "bin/oc-test targeted -- <12 related files: workflows.epic/ops-follow-up/search-attrs, change-state crash-recovery/size-guard/ops-follow-up/worktree-auto-manage, store-temporal changes, no-disk-writes-invariant, store-types, memo, workflow-start>",
+          "exit_code": 0,
+          "summary": "99/99 second-ring neighbor tests pass"
+        },
+        {
+          "command": "bunx eslint <15 touched files>; bunx prettier --write <4 files>; pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "ESLint clean on all touched files; Prettier formatting applied; generated JSON schemas in sync"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Reducer rejects duplicate requirement ids across ALL capabilities in the change, not just the target capability",
+          "why": "Mirrors validator/conflicts.ts global seenIds semantics and archive fail-closed behavior; exact-identifier matching is deterministic, not heuristic"
+        },
+        {
+          "what": "Duplicate delta ids rejected across all capabilities too",
+          "why": "dl- ids are globally unique by construction; a duplicate would double-apply at archive time and fail closed — rejecting at write time is atomic and deterministic"
+        },
+        {
+          "what": "CAPABILITY_KEY_PATTERN exported from types/specs.ts, shared by zod CapabilityKeySchema, workflow reducer, and disk store",
+          "why": "Single source of truth (P33 structural correctness); reducer validates defensively because Temporal signal payloads arrive unvalidated on the wire"
+        },
+        {
+          "what": "No projectAfter on the workflow handler; store op owns cache refresh + persistStateToDisk",
+          "why": "Mirrors the adv_wisdom_add writer pattern exactly (wisdomAddedSignal handler has no projection either)"
+        },
+        {
+          "what": "Store op throws typed error (surfacing latest signal_rejection message) before any cache/disk refresh when the delta did not land",
+          "why": "AC2 atomic semantics: typed validation error with the change delta record unchanged; rejection evidence flows from workflow state"
+        },
+        {
+          "what": "Workflow-level test asserts monotonic lastSignalAt (truthy) rather than fixture timestamp; payload.addedAt behavior asserted in the pure reducer unit test",
+          "why": "setLastSignalAt is monotonic-max; intervening signal rejections stamp workflowNow() (real test-env clock), so older fixture timestamps cannot move it backwards"
+        },
+        {
+          "what": "Disk store gained a specDeltas.add fallback mirroring the reducer contract",
+          "why": "Store interface is shared; disk backend (P2.7 substrate) must implement the new group for type completeness and cold-start parity"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "tk-dbe87a62be7b: implement and register adv_delta_add MCP tool on top of store.specDeltas.add — mirror plugin/src/tools/wisdom.ts for target-path confirmation, recovery fields, tool-arg-preflight/title/banner surfaces",
+        "tk-35ad732df458: archive integration check — tool-written add delta consumed once by archive, new-capability spec creation, fail-closed on conflict"
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all wisdomAddedSignal/createWisdomOps surfaces (tools/wisdom.ts, messages.ts, workflows.ts, store-temporal/index.ts, store-temporal/wisdom.ts): every non-tool surface mirrored; tools/wisdom.ts belongs to tk-dbe87a62be7b. Verified CHANGE_WORKFLOW_SIGNAL_NAMES consumers (messages.test.ts enumeration) updated; seedState/continue-as-new carries deltas unchanged. No other Store implementations exist beyond temporal + disk (both updated); test mocks use `as Store` casts (tsc clean).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "specDeltaAdded append-only write path is complete: typed add-only payload schema (SpecDeltaAddedSignalPayloadSchema, restricted to DeltaAdd via DeltaAddSchema export), 51st change-workflow signal name/binding/handler, deterministic applySpecDeltaAddedToState reducer (capability-keyed append into state.deltas, exact-identifier duplicate delta-id + requirement-id rejection via signal-rejection path, malformed capability refusal, no global spec file access), createSpecDeltaOps Temporal store op (schema-validated signal → state readback → typed rejection error or cache/summary/disk refresh), Store.specDeltas interface group with disk-store fallback. RED/GREEN/VERIFY evidence recorded on the task. Archive (activities.ts:624-642) remains the sole global-spec writer and consumes state.deltas unchanged.",
+        "suggested_next_action": "Checkpoint/commit this task's working tree, then start tk-dbe87a62be7b (adv_delta_add tool) on top of store.specDeltas.add using plugin/src/tools/wisdom.ts as the registration template"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run <same 4 files> && pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- <10 related files: change-state, signal-rejection, archive-activity, projection, bundle-boundary, disk-projection, store-disk, store-temporal index, signal-integration, queries>"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- <12 related files: workflows.epic/ops-follow-up/search-attrs, change-state crash-recovery/size-guard/ops-follow-up/worktree-auto-manage, store-temporal changes, no-disk-writes-invariant, store-types, memo, workflow-start>"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx eslint <15 touched files>; bunx prettier --write <4 files>; pnpm run schemas:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addSpecDeltaWriter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSpecDeltaWriter",
+      "task_id": "tk-dbe87a62be7b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dbe87a62be7b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/spec-delta.ts",
+        "plugin/src/tools/spec-delta.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/utils/tool-title.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/banner.ts",
+        "plugin/src/index.ts",
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bun run test -- src/tools/spec-delta.test.ts (RED)",
+          "exit_code": 1,
+          "summary": "RED tr_mrk4g7vy_73a4c30d: module-not-found before implementation"
+        },
+        {
+          "command": "bun run test -- src/tools/spec-delta.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/tool-registry.surface.test.ts src/utils/tool-title.test.ts src/utils/banner.test.ts src/utils/tool-arg-preflight.test.ts src/tools/spec.test.ts src/tools/wisdom-derived-export.test.ts src/tools/contract.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts (GREEN)",
+          "exit_code": 0,
+          "summary": "GREEN tr_mrk4onuj_ed8283ce: 14 test files pass after implementing spec-delta.ts + 6 registration-surface edits"
+        },
+        {
+          "command": "bun run test -- <22 files> && bun run lint && bun run typecheck && bun run format:check (VERIFY)",
+          "exit_code": 0,
+          "summary": "VERIFY tr_mrk50trs_94528c30: 561/561 tests pass across 22 files (spec-delta, tool-registry, cli-bridge, surface, tool-title, banner, arg-preflight, spec, wisdom-derived-export, contract, change-state.spec-delta, store-temporal/spec-deltas, workflows.signal-handlers, messages, integration, adv-reviewer-asset, tool-name-assets, manifest, manifest-doc-drift, deploy-local, schema-registry, rq-backlogCoord09-spec-compliance, agent-tool-contracts-assets). ESLint, tsc --noEmit, prettier --check all clean."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Dedicated tools/spec-delta.ts module rather than extending tools/spec.ts",
+          "why": "Mirrors the adv_wisdom_add writer pattern (dedicated tools/wisdom.ts); keeps read-only spec.ts separate from the change-mutating writer; matches the design's 'mirror adv_wisdom_add writer pattern across ... MCP registry' directive."
+        },
+        {
+          "what": "Recovery mode refuses the disk-projection write even with valid poisoned-history evidence",
+          "why": "Task constraint explicitly forbids 'direct disk workaround'. A disk-projection delta write would bypass the workflow reducer's duplicate-detection invariants and the archive-as-sole-global-writer boundary, creating an unverifiable state fork. The tool returns a typed refusal with remediation hint (recover the workflow first via adv_temporal_diagnose / adv_change_status_repair, then retry). This satisfies AC5 'follows existing audited recovery semantics OR refuses without modifying state' via the refuse branch."
+        },
+        {
+          "what": "Tool enforces >=1 scenario beyond DeltaAddSchema's optional scenarios field",
+          "why": "AC1 requires 'at least one Given/When/Then scenario'; RequirementSchema has scenarios as optional, so the tool-level guard closes the gap without weakening the schema used by archive for legacy deltas."
+        },
+        {
+          "what": "Validated capability/delta captured into const locals before closure capture",
+          "why": "TypeScript narrowing of `{capability?, error?}` union does not survive closure capture; explicit locals preserve narrowing into withTargetPathStore and runAdd without re-assertion."
+        },
+        {
+          "what": "adv_delta_add added to activeChangeRepointTools in index.ts",
+          "why": "The tool is a change mutator carrying args.changeId; same category as adv_wisdom_add / adv_contract_mint. Cross-project calls are already exempt via args.target_path check in handleToolExecuteBefore."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned tools/change.ts, tools/contract.ts, tools/wisdom.ts, tools/_recovery-writers.ts, utils/tool-arg-preflight.ts, utils/tool-title.ts, utils/banner.ts, tool-registry.ts, index.ts, cli-bridge-contract.test.ts for all adv_* writer registration surfaces; applied the same pattern to adv_delta_add across every surface (no drift).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_delta_add (roadmap #64) is fully implemented and registered. TDD: RED tr_mrk4g7vy_73a4c30d → GREEN tr_mrk4onuj_ed8283ce → VERIFY tr_mrk50trs_94528c30. Tool delegates to store.specDeltas.add (predecessor checkpoint 7f9138f); accepts existing or valid new kebab-case capability slugs; enforces >=1 Given/When/Then scenario beyond DeltaAddSchema's optional scenarios; rejects malformed capability/delta and duplicate ids atomically (no state mutation on refusal). Target-path and recovery contracts mirror adv_contract_mint / adv_change_repair_origin, but the disk-projection recovery write is intentionally REFUSED (typed error with remediation hint) because a direct disk write would bypass the workflow reducer's duplicate-detection invariants and the archive-as-sole-global-writer boundary — satisfying the task constraint 'no direct disk workaround'. Registration: tool-registry (bindTool + ADV_TOOL_NAMES + getToolSurface), tool-title TITLE_BUILDERS, tool-arg-preflight FIELD_POLICIES (blank→omit for optional audit/target/recovery fields), banner emoji 📝, index.ts activeChangeRepointTools, cli-bridge-contract frozen ADV_TOOL_NAMES snapshot. 24 new tests cover happy path + 8 malformed capability shapes + 3 non-add operations + scenario enforcement + duplicate id/requirement + target_path confirmation refusal + recovery contract (3 cases). 561/561 tests pass across 22 related suites; lint, typecheck, prettier all clean.",
+        "suggested_next_action": "Proceed to next task in the addSpecDeltaWriter plan (likely tk covering durable spec-delta recording via the new tool during this change, or verification tasks). The tool is ready for use: `adv_delta_add` with `{ changeId, capability, delta }`."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun run test -- src/tools/spec-delta.test.ts (RED)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun run test -- src/tools/spec-delta.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/tool-registry.surface.test.ts src/utils/tool-title.test.ts src/utils/banner.test.ts src/utils/tool-arg-preflight.test.ts src/tools/spec.test.ts src/tools/wisdom-derived-export.test.ts src/tools/contract.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts (GREEN)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun run test -- <22 files> && bun run lint && bun run typecheck && bun run format:check (VERIFY)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addSpecDeltaWriter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSpecDeltaWriter",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 1238,
+          "what": "Reducer provides deterministic, cross-capability duplicate rejection before durable append.",
+          "why": "Replay and duplicate signal attempts leave the change-owned delta record unchanged, while archive remains the sole global-spec writer."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/spec-delta.ts",
+          "summary": "Added structural dl-/rq-/scenario ID validation and target-spec duplicate requirement refusal before signaling, matching existing completeness validation and agreement requirement that invalid/conflicting adds never persist.",
+          "verification": "TDD RED then GREEN in src/tools/spec-delta.test.ts; plugin typecheck passed."
+        },
+        {
+          "file": "plugin/src/tools/spec-delta.test.ts",
+          "summary": "Added refusal coverage for malformed delta/requirement/scenario IDs and pre-signal duplicate requirement IDs already present in the target spec.",
+          "verification": "bin/oc-test targeted src/tools/spec-delta.test.ts: 28/28 passed; related writer/reducer/signal tests: 74/74 passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "Agent-callable delta writers must reuse the validator's canonical ID formats and read the target capability through the supported Store before signaling; archive stays the only global-spec writer."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted src/tools/spec-delta.test.ts",
+          "bin/oc-test targeted src/tools/spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/workflows.signal-handlers.test.ts",
+          "bin/oc-test targeted src/temporal/archive-activity.test.ts",
+          "bun --cwd=/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSpecDeltaWriter/plugin run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "TDD red run exposed four missing structural/pre-signal validation cases; scoped remediation made 28/28 tool tests pass. Related Temporal/store/reducer/signal suite passed 74/74. Archive activity suite passed 6/6, including new-spec delta application. TypeScript typecheck and git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addSpecDeltaWriter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSpecDeltaWriter",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [
+        {
+          "id": "release-state-1",
+          "label": "issue",
+          "file": "plugin/src/tools/spec-delta.ts",
+          "line": 196,
+          "what": "Writer previously did not enforce draft-only mutation.",
+          "why": "AC1 permits recording only for a draft change; terminal changes must not receive durable deltas.",
+          "fix": "applied"
+        },
+        {
+          "id": "release-schema-2",
+          "label": "issue",
+          "file": "plugin/src/tools/spec-delta.ts",
+          "line": 154,
+          "what": "Scenario IDs previously accepted a syntactically valid but unrelated requirement parent.",
+          "why": "A malformed hierarchy could persist despite deterministic ID validation.",
+          "fix": "applied"
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/spec-delta.ts",
+          "summary": "Require authoritative change readback with draft status before mutation; require every scenario ID to use its added requirement as parent.",
+          "verification": "Targeted tool/state/Temporal suite passed 76/76; plugin check and build passed."
+        },
+        {
+          "file": "plugin/src/tools/spec-delta.test.ts",
+          "summary": "Added regression coverage for archived-change refusal and scenario-parent mismatch refusal.",
+          "verification": "Targeted tool/state/Temporal suite passed 76/76."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For append-only workflow writers, validate terminal lifecycle state and cross-field identifier ownership at the tool boundary before signaling; schema-shaped IDs alone do not enforce the mutation contract."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted src/tools/spec-delta.test.ts",
+          "bin/oc-test targeted src/tools/spec-delta.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts",
+          "pnpm --dir plugin run check",
+          "pnpm --dir plugin run build",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Single tool suite: 30/30 passed. Release-focused tool/state/Temporal suite: 4 files, 76/76 passed. Plugin check completed schema/type/isolation/lockfile/lint/format checks successfully; plugin build and Temporal worker build succeeded. git diff --check passed. Acceptance evidence records pre-hardening full suite 347 files/5185 tests passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Deployment still requires Advance plugin deployment and plugin-host restart before adv_delta_add appears in fresh sessions.",
+        "Full 347-file suite was accepted before these two narrow validation fixes; post-fix targeted 76-test suite plus check/build passed."
+      ],
+      "required_main_agent_actions": [
+        "Deploy the Advance plugin and restart the plugin host before invoking adv_delta_add in a fresh session.",
+        "Do not revisit archive application, global spec writes, or modify/remove/rename surfaces; release hardening confirmed this change remains add-only and archive remains the sole global-spec writer."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-add0b451cb34": [
+      {
+        "runId": "tr_mrk31vxv_d93e4806",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 42963.82648999989,
+        "recordedAt": "2026-07-14T03:19:43.756Z"
+      },
+      {
+        "runId": "tr_mrk3fjfv_1b4fc0c0",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 36998.66475200094,
+        "recordedAt": "2026-07-14T03:30:20.706Z"
+      },
+      {
+        "runId": "tr_mrk3hmbn_58a124df",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 35731.70788200013,
+        "recordedAt": "2026-07-14T03:31:57.755Z"
+      },
+      {
+        "runId": "tr_mrk3mtgh_8d735bbe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.test.ts && pnpm run typecheck",
+        "durationMs": 46865.770221998915,
+        "recordedAt": "2026-07-14T03:36:00.253Z"
+      },
+      {
+        "runId": "tr_mrk3rjso_77226507",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/change-state.signal-rejection.test.ts src/temporal/archive-activity.test.ts src/temporal/workflows.projection.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/activities.disk-projection.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/__tests__/signal-integration.test.ts src/temporal/workflows.queries.test.ts",
+        "durationMs": 19646.470079999417,
+        "recordedAt": "2026-07-14T03:39:40.984Z"
+      },
+      {
+        "runId": "tr_mrk3saam_0105227a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/workflows.epic.test.ts src/temporal/workflows.ops-follow-up.test.ts src/temporal/workflows.search-attrs.test.ts src/temporal/change-state.crash-recovery.test.ts src/temporal/change-state.size-guard.test.ts src/temporal/change-state.ops-follow-up.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/storage/store-temporal/changes.test.ts src/storage/store-temporal/no-disk-writes-invariant.test.ts src/storage/store-types.test.ts src/storage/store-temporal-memo.test.ts src/temporal/workflow-start.test.ts",
+        "durationMs": 17251.816774001345,
+        "recordedAt": "2026-07-14T03:40:15.376Z"
+      },
+      {
+        "runId": "tr_mrk3svay_d85bfc30",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx eslint src/types/specs.ts src/types/signals.ts src/types/index.ts src/temporal/contracts.ts src/temporal/messages.ts src/temporal/change-state.ts src/temporal/change-state.spec-delta.test.ts src/temporal/workflows.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/storage/store-types.ts src/storage/store-temporal/spec-deltas.ts src/storage/store-temporal/spec-deltas.test.ts src/storage/store-temporal/index.ts src/storage/store-disk.ts && bunx prettier --check src/types/specs.ts src/types/signals.ts src/types/index.ts src/temporal/contracts.ts src/temporal/messages.ts src/temporal/change-state.ts src/temporal/change-state.spec-delta.test.ts src/temporal/workflows.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/storage/store-types.ts src/storage/store-temporal/spec-deltas.ts src/storage/store-temporal/spec-deltas.test.ts src/storage/store-temporal/index.ts src/storage/store-disk.ts && pnpm run schemas:check",
+        "durationMs": 7892.94414800033,
+        "recordedAt": "2026-07-14T03:40:42.589Z"
+      }
+    ],
+    "tk-dbe87a62be7b": [
+      {
+        "runId": "tr_mrk4g7vy_73a4c30d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun run test -- src/tools/spec-delta.test.ts",
+        "durationMs": 806.1562939994037,
+        "recordedAt": "2026-07-14T03:58:51.964Z"
+      },
+      {
+        "runId": "tr_mrk4onuj_ed8283ce",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun run test -- src/tools/spec-delta.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/tool-registry.surface.test.ts src/utils/tool-title.test.ts src/utils/banner.test.ts src/utils/tool-arg-preflight.test.ts src/tools/spec.test.ts src/tools/wisdom-derived-export.test.ts src/tools/contract.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts",
+        "durationMs": 38182.46019199863,
+        "recordedAt": "2026-07-14T04:05:25.931Z"
+      },
+      {
+        "runId": "tr_mrk4ykza_34e7a718",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/spec-delta.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/tool-registry.surface.test.ts src/utils/tool-title.test.ts src/utils/banner.test.ts src/utils/tool-arg-preflight.test.ts src/tools/spec.test.ts src/tools/wisdom-derived-export.test.ts src/tools/contract.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/integration.test.ts src/adv-reviewer-asset.test.ts src/tool-name-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/deploy-local.test.ts src/schema-registry.test.ts src/rq-backlogCoord09-spec-compliance.test.ts src/agent-tool-contracts-assets.test.ts && bun run lint && bun run typecheck && bun run format:check",
+        "durationMs": 36203.94861499965,
+        "recordedAt": "2026-07-14T04:13:08.743Z"
+      },
+      {
+        "runId": "tr_mrk50trs_94528c30",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun run test -- src/tools/spec-delta.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/tool-registry.surface.test.ts src/utils/tool-title.test.ts src/utils/banner.test.ts src/utils/tool-arg-preflight.test.ts src/tools/spec.test.ts src/tools/wisdom-derived-export.test.ts src/tools/contract.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/integration.test.ts src/adv-reviewer-asset.test.ts src/tool-name-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/deploy-local.test.ts src/schema-registry.test.ts src/rq-backlogCoord09-spec-compliance.test.ts src/agent-tool-contracts-assets.test.ts && bun run lint && bun run typecheck && bun run format:check",
+        "durationMs": 73733.2135729976,
+        "recordedAt": "2026-07-14T04:14:53.436Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-14T02:33:50.897Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved the completed proposal with `approve`. Proposal records the matching Advance roadmap item #64, supported write-path boundary, atomic invalid-input handling, and PokeEdge unblock context.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f9ff5b0a710eadd17cea467239e2217a78e67c5a01806f1cffdd1c41ad0a03fe",
+        "non_whitespace_chars": 3617,
+        "checked_at": "2026-07-14T02:29:24.494Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-14T02:40:45.838Z",
+      "completed_at": "2026-07-14T02:41:01.296Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the agreement with `approve`. Typed standard contract minted (20 items). Discovery confirmed roadmap #64, typed delta/archive support, missing writer signal/tool, and add-only safe scope; adv-researcher evidence persisted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "029d985ee4a7e9a89ccac7e984a19f4b28ee8ff98fa4535916818d10295dae68",
+        "non_whitespace_chars": 3515,
+        "checked_at": "2026-07-14T02:29:24.495Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-14T02:48:24.853Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent design validator returned caution, not conflict. User chose valid new-capability support; agreement/design and standard contract were updated accordingly. Design keeps add-only scope, Temporal signal/store persistence, atomic validation, and archive-as-sole-global-writer boundary.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "7d0babd37b298252b071486ac6dbea67b7947bfeff136ecf3e468e79a185ef2b",
+        "non_whitespace_chars": 2875,
+        "checked_at": "2026-07-14T02:29:24.496Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-14T02:59:16.294Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved the three-task dependency graph. Each standard-contract item maps to implementation or verification work; TDD is assigned to code tasks and separate verification covers archive/target/recovery integration."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-14T04:26:13.818Z",
+      "completed_by": "agent",
+      "approval_evidence": "All three planned tasks are checkpointed complete. Implementation added the signal/state/store path and registered adv_delta_add; verification remediated the required CLI matrix row. Targeted suite 76/76, pnpm check/build, and full suite 347/347 files with 5181/5181 tests passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-14T05:07:54.863Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly accepted delivery. Independent review verdict READY; contract review matrix has 21 passing rows; full suite 347/347 files and 5185/5185 tests passed after reviewer fixes; check and build passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "41cd53f94aed618fefbfe096b97549db118c74d40052989d8e3b6242c2be9ae0",
+        "non_whitespace_chars": 1143,
+        "checked_at": "2026-07-14T02:29:24.497Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge-web",
+    "source_path": "/home/jon/dev/pokeedge-web",
+    "source_change_id": "improveCollectionLatency",
+    "linked_at": "2026-07-14T02:29:20.977Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+      "approvedAt": "2026-07-14T02:41:01.296Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A change can append a valid add-operation delta for an existing or valid new capability through an agent-callable tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The writer rejects malformed capability identifiers, malformed requirement data, missing scenarios, invalid identifiers, and duplicate requirement IDs without changing existing deltas.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "The added delta survives the normal Temporal/store state path and appears in `adv_change_show` readback for that change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing archive delta application consumes the written add delta without a direct spec-file workaround, including creation of a valid new capability spec when applicable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Target-path trust and poisoned-history recovery conventions match other change-mutating tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a draft change and a valid existing or new capability plus add delta with a valid `rq-*` requirement and at least one Given/When/Then scenario, when `adv_delta_add` is called, then change readback contains exactly that delta under the capability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a malformed capability identifier, malformed requirement, duplicate requirement ID, or duplicate add delta, when `adv_delta_add` is called, then it returns a typed validation error and the change delta record is unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a valid delta recorded through the tool, when the existing archive delta application is invoked in its normal test path, then the target spec receives the requirement exactly once and archive validation remains fail-closed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given an explicitly approved cross-project target mutation, when `adv_delta_add` is called with that target, then it follows target confirmation and does not mutate an unconfirmed project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a completed or poisoned workflow where the normal signal path fails, when recovery is requested with documented evidence, then the tool follows existing audited recovery semantics or refuses without modifying state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use existing typed delta and requirement schemas; do not use heuristic matching.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Scope the first safe surface to `operation: 'add'` only. `modify`, `remove`, and `rename` remain deferred because they require target-resolution and conflict semantics beyond this unblocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Permit a valid new capability slug because existing archive application can create a spec from add deltas; do not require the capability to preexist.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Use the existing Temporal-first signal/store pattern; direct disk writes are prohibited.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep archive application behavior unchanged except for receiving the newly recorded delta in its existing input shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Preserve append-only auditability and deterministic duplicate detection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not extend `adv_change_update` beyond narrative artifacts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not allow partial persistence, silent overwrite, or cross-change delta leakage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not modify global specs at tool-call time.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not implement full CRUD merely because issue #64 lists modify/delete; add-only is the agreed first safe surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not bypass target-path confirmation, workflow recovery evidence, or archive validation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-14T04:36:47.015Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_delta_add tool tests cover valid add deltas for existing and valid-new capability keys; full suite 5185/5185 passed."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tool/reducer tests reject malformed capability, IDs, missing scenarios, duplicate delta IDs, duplicate requirement IDs, and existing-spec collisions before store mutation."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Temporal signal/store tests cover specDeltaAdded append, state.deltas readback, cache refresh, and deterministic signal rejection."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Archive activity and full-suite coverage verify existing archive delta application; implementation leaves archive writer unchanged and supports valid new capability add shape."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Tool mirrors target confirmation/recovery contract from change mutation tools; poisoned-history disk-projection write is explicitly refused with typed remediation."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "spec-delta tool tests prove valid structured add is delegated through store.specDeltas.add and persisted under capability."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused tool, reducer, and store tests prove invalid or duplicate input returns refusal before state mutation."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted archive/tool/state suite 76/76 and full suite 5185/5185 passed; archive remains fail-closed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tool contract tests cover target-path confirmation requirements and target routing."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tool tests cover recovery field requirements; normal poisoned-history recovery refuses disk-projection writes without mutating state."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "DeltaAddSchema, RequirementSchema, and CapabilityKeySchema are reused; no heuristic matching added."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Public tool accepts DeltaAdd only; modify/remove/rename remain unexposed."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "CapabilityKeySchema accepts valid existing or new kebab-case slugs; archive retains new-spec creation path."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tool uses Temporal store specDeltas.add and specDeltaAdded signal; no direct runtime file write path."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Archive activities and spec-delta application modules were not modified by this change."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reducer and disk fallback enforce exact duplicate delta and requirement ID rejection; payload has timestamp/actor audit fields."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv_change_update remains narrative-only; new standalone adv_delta_add owns mutation."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Validation occurs before store mutation; duplicate/replay signal rejections leave delta record unchanged."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Tool mutates change-owned deltas only; archive remains sole global spec writer."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Tool schema is restricted to add-only DeltaAdd; no full CRUD surface was added."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Target confirmation and recovery evidence are structurally required; direct disk recovery is refused."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a draft change and a valid existing or new capability plus add delta with a valid `rq-*` requirement and at least one Given/When/Then scenario, when `adv_delta_add` is called, then change readback contains exactly that delta under the capability.",
+    "Given a malformed capability identifier, malformed requirement, duplicate requirement ID, or duplicate add delta, when `adv_delta_add` is called, then it returns a typed validation error and the change delta record is unchanged.",
+    "Given a valid delta recorded through the tool, when the existing archive delta application is invoked in its normal test path, then the target spec receives the requirement exactly once and archive validation remains fail-closed.",
+    "Given an explicitly approved cross-project target mutation, when `adv_delta_add` is called with that target, then it follows target confirmation and does not mutate an unconfirmed project.",
+    "Given a completed or poisoned workflow where the normal signal path fails, when recovery is requested with documented evidence, then the tool follows existing audited recovery semantics or refuses without modifying state."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change unblocks `improveCollectionLatency` in **pokeedge-web**: that change requires a durable `collection-dashboard` readiness-law delta but has no supported tool to record one.\n\n# Add spec delta writer\n\n## Why\nADV archives apply change-scoped specification deltas, yet agents can only read specs through `adv_spec`. No typed mutation path records a delta before archive. This traps a valid PokeEdge readiness law behind a prohibited direct state edit.\n\nA matching Advance roadmap item already exists: **#64 — Add `adv_delta_add` MCP tool — agent-facing path to encode spec deltas**. This change implements that defined gap rather than inventing a parallel mechanism.\n\n## What Changes\nProvide one typed, agent-callable path for recording a change-scoped specification delta through the supported workflow/state boundary. It will reject malformed or invalid targets structurally and leave the existing archive flow responsible for applying approved deltas to durable specs.\n\n## User Outcomes\n- An ADV user can record a durable behavior change as part of the change that delivers it.\n- A valid spec-law update no longer requires direct edits to ADV state.\n- Invalid delta requests fail clearly without corrupting the change or global specification.\n- Archive continues to promote only change-owned, validated deltas into durable laws.\n\n## Scope\n\n### In Scope\n- Typed `adv_delta_add`-style tool contract for one change-scoped spec delta.\n- Structural validation of change, capability, requirement ID, requirement content, and at least one scenario.\n- Supported persistence/signaling path and readback through existing change details.\n- Error handling that rejects invalid input atomically and leaves existing deltas unchanged.\n- Tool, schema, workflow/store, manifest, command guidance, and focused tests necessary for the capability.\n\n### Out of Scope\n- Direct editing of global specifications outside a change.\n- Changing archive semantics beyond consuming the newly recorded delta through its existing application path.\n- Heuristic capability or requirement matching.\n- General spec-editor UX, bulk delta mutation, or bypassing discovery/prep/gate controls.\n\n### Must Not\n- Persist partial or invalid deltas.\n- Let a delta target an unknown capability or silently overwrite another delta.\n- Bypass archive, change ownership, audit history, or existing validation rules.\n- Add direct filesystem access to ADV state as a workaround.\n\n## Affected Code\nLikely Advance plugin tool registration, typed delta schema and workflow/store signal handling, change readback, manifest/command documentation, and focused tests. Exact modules and persistence conventions remain discovery items.\n\n## Related Repositories\n- `advance` — owns the missing tool and state contract.\n- `pokeedge-web` — originating consumer; validates that a readiness-law delta can be recorded without direct state access.\n\n## Constraints\n- Preserve archive as the only path that promotes a change delta into the durable spec.\n- Validate deterministic identifiers and structured scenario fields; no heuristic inference owns correctness.\n- Preserve target-project trust and cross-project mutation rules.\n- Keep each mutation atomic, auditable, and idempotency-safe.\n\n## Impact\nPrimary: Advance agent tool and workflow contract. Follow-up: PokeEdge can resume `improveCollectionLatency` once the tool is available.\n\n## Context\nStatic source evidence found explicit roadmap item #64 and existing archive support for `change.deltas`. The exposed agent tool surface lacks a corresponding write operation. `adv_change_update` explicitly cannot mutate deltas.\n\n## Discovery Agenda\n- Locate the canonical Delta schema, existing archive delta application path, and workflow signal conventions.\n- Confirm whether a delta must support add, modify, and remove operations in the first safe surface or whether add-only meets roadmap #64 without blocking archive compatibility.\n- Define deterministic duplicate, replay, and conflict behavior.\n- Confirm tool registration, target-path trust, Temporal recovery, and change readback requirements.\n- Draft the Advance spec delta for this capability with concrete `rq-*` IDs and Given/When/Then scenarios.",
+    "problemStatement": "ADV changes can require durable specification updates, but the current agent-callable surface only reads specs (`adv_spec` list/show/search) and exposes no typed operation to add a change-scoped spec delta. A blocked PokeEdge change therefore cannot record its required readiness law without violating the ADV state-access policy through a direct store edit.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Unblock durable spec-law updates without direct ADV-state edits.\n2. Add a supported, typed writer for one change-scoped specification delta.\n3. Preserve archive as the only operation that mutates durable global specifications.\n4. Reject invalid or conflicting deltas before durable change state is updated.\n\n## Success Criteria\n\n1. A change can append a valid add-operation delta for an existing or valid new capability through an agent-callable tool.\n2. The writer rejects malformed capability identifiers, malformed requirement data, missing scenarios, invalid identifiers, and duplicate requirement IDs without changing existing deltas.\n3. The added delta survives the normal Temporal/store state path and appears in `adv_change_show` readback for that change.\n4. Existing archive delta application consumes the written add delta without a direct spec-file workaround, including creation of a valid new capability spec when applicable.\n5. Target-path trust and poisoned-history recovery conventions match other change-mutating tools.\n\n## Acceptance Criteria\n\n1. Given a draft change and a valid existing or new capability plus add delta with a valid `rq-*` requirement and at least one Given/When/Then scenario, when `adv_delta_add` is called, then change readback contains exactly that delta under the capability.\n2. Given a malformed capability identifier, malformed requirement, duplicate requirement ID, or duplicate add delta, when `adv_delta_add` is called, then it returns a typed validation error and the change delta record is unchanged.\n3. Given a valid delta recorded through the tool, when the existing archive delta application is invoked in its normal test path, then the target spec receives the requirement exactly once and archive validation remains fail-closed.\n4. Given an explicitly approved cross-project target mutation, when `adv_delta_add` is called with that target, then it follows target confirmation and does not mutate an unconfirmed project.\n5. Given a completed or poisoned workflow where the normal signal path fails, when recovery is requested with documented evidence, then the tool follows existing audited recovery semantics or refuses without modifying state.\n\n## Constraints\n\n1. Use existing typed delta and requirement schemas; do not use heuristic matching.\n2. Scope the first safe surface to `operation: 'add'` only. `modify`, `remove`, and `rename` remain deferred because they require target-resolution and conflict semantics beyond this unblocker.\n3. Permit a valid new capability slug because existing archive application can create a spec from add deltas; do not require the capability to preexist.\n4. Use the existing Temporal-first signal/store pattern; direct disk writes are prohibited.\n5. Keep archive application behavior unchanged except for receiving the newly recorded delta in its existing input shape.\n6. Preserve append-only auditability and deterministic duplicate detection.\n\n## Avoidances\n\n1. Do not extend `adv_change_update` beyond narrative artifacts.\n2. Do not allow partial persistence, silent overwrite, or cross-change delta leakage.\n3. Do not modify global specs at tool-call time.\n4. Do not implement full CRUD merely because issue #64 lists modify/delete; add-only is the agreed first safe surface.\n5. Do not bypass target-path confirmation, workflow recovery evidence, or archive validation.\n\n## Draft Spec Delta Obligation\n\nThe implementation must add a durable Advance requirement for an agent-callable, validated, add-only change-spec-delta writer. Proposed requirement ID: `rq-advanceWorkflowSpecDeltaWriter01` (exact capability placement and canonical requirement ID validated during design). Scenario: Given a valid draft change and structured add delta, when the tool records it, then archive can apply that delta once; invalid or duplicate requests leave state unchanged.\n\n## Evidence\n\n- Roadmap issue #64 is open and explicitly requests `adv_delta_add`.\n- Existing `DeltaSchema` and archive engine support add/modify/remove/rename, but no delta mutation signal or tool exists.\n- `adv_wisdom_add` provides the established signal-driven append writer precedent.\n- Independent design validator confirmed that new-capability creation is already supported by archive and should be exposed by the add-only writer.\n\n## Decision\n\nAdd-only now with existing and valid-new capability support; full modify/remove/rename deferred. This delivers the blocked PokeEdge requirement with deterministic validation while preserving archive compatibility.",
+    "design": "# Design\n\n## Architecture\n\nAdd one append-only `adv_delta_add` tool. It accepts a change ID, capability, and an add-operation delta containing a complete requirement. The tool validates deterministic shape and conflicts before it signals the change workflow. The workflow appends the delta under `state.deltas[capability]`; existing change readback exposes it, and existing archive code remains the only global-spec writer.\n\n## Capability Scope\n\nAccept either an existing capability or a valid new capability slug. A new capability is not an error: the existing archive add-delta engine can create its first spec. Reject malformed capability identifiers, but do not require a preexisting spec.\n\n## Write Path\n\n1. Tool validates arguments with the existing delta and requirement schemas, restricted to `operation: 'add'`.\n2. Tool reads current change state through the supported store to validate change status, requirement ID, scenario presence, and duplicate IDs against current spec plus current change deltas.\n3. Tool emits a new `specDeltaAdded` signal payload containing capability, normalized add delta, timestamp, and audit metadata.\n4. Change workflow reducer appends the delta to the capability-keyed durable record.\n5. Store refresh returns the persisted state and context snapshot. Target-path confirmation and recovery fields mirror existing change mutation tools.\n\n## Failure Semantics\n\n- Invalid input, malformed capability, malformed requirement, or duplicate requirement ID: typed refusal before persistence.\n- Signal/workflow failure: normal tool error; poisoned-history fallback only with audited evidence and no partial write.\n- Archive remains fail-closed if a persisted delta later cannot apply.\n\n## Scope Boundary\n\nThis first surface supports add only. Existing delta engine support for modify/remove/rename stays unchanged but is not exposed until target-resolution, conflict, and overwrite semantics are separately designed.\n\n## Registration Surface\n\nMirror the established `adv_wisdom_add` writer pattern across signal schema/message contracts, workflow handler/reducer, Temporal store operation, MCP registry/export/argument preflight/title/banner surfaces, and tool/asset contract tests. Use the stronger target-path and recovery contract from existing change mutation tools.\n\n## Test Strategy\n\n- Unit: valid existing- and new-capability add persists under expected key; invalid shape/malformed capability/missing scenario/duplicate ID refuses with no state mutation.\n- Signal/store: workflow signal and cache refresh expose the exact persisted delta once.\n- Archive integration: existing archive delta engine consumes a tool-written add delta once, creates a new capability spec when valid, and stays fail-closed on conflict.\n- Target/recovery: target confirmation enforced; recovery behavior matches existing writer policy.\n\n## Durable Spec Delta\n\nUse the new writer during this change to record an Advance requirement for the validated add-only delta writer, after implementation proves its concrete capability location and canonical requirement ID.\n\n## Alternatives\n\n- Extend `adv_change_update`: rejected; its narrative-only contract is intentional.\n- Direct disk writes: rejected; violates Temporal-first workflow state.\n- Full CRUD now: rejected; modify/remove/rename need unresolved target semantics.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nAdded `adv_delta_add`, a typed add-only writer for change-scoped specification deltas. It records validated intent in durable change state; archive remains the only operation that promotes those deltas into global specifications.\n\n## Value\nADV changes can encode durable specification updates without prohibited direct state-file edits. This unblocks the PokeEdge collection-readiness law and Advance roadmap issue #64.\n\n## Verification\n- Acceptance reviewer: READY; corrected structured ID validation and target-spec duplicate precheck.\n- Hardening reviewer: READY; added draft-only writer enforcement and scenario parent-ID validation.\n- Targeted archive/tool/state suite: 76/76 passed.\n- Full Advance suite after hardening: 347 files, 5187 tests passed.\n- `pnpm run check` and `pnpm run build` passed.\n\n## Release Readiness Summary\n- Code quality: READY — full test suite, schemas, typecheck, lint, format, and plugin/worker builds pass.\n- Security and correctness: READY — typed add-only schema, deterministic duplicate checks, draft-only mutation, target confirmation, and no direct global-spec write path.\n- Operations: deploy the built Advance plugin and restart the OpenCode/plugin host before the new tool can be called in a fresh session.\n- Follow-up impact: after deployment, resume `improveCollectionLatency` and record its `collection-dashboard` readiness-law delta with `adv_delta_add`.\n\n## Safety Boundaries\n- Add-only surface; modify/remove/rename deferred.\n- Invalid, duplicate, or target-spec-conflicting requirements refuse before persistence.\n- Existing and valid new capability slugs supported.\n- Disk-projection recovery writes are refused; archive remains fail-closed and sole global-spec writer.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-14T04:36:47.015Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A change can append a valid add-operation delta for an existing or valid new capability through an agent-callable tool. | pass | adv_delta_add tool tests cover valid add deltas for existing and valid-new capability keys; full suite 5185/5185 passed. |\n| SC2 | success_criterion | The writer rejects malformed capability identifiers, malformed requirement data, missing scenarios, invalid identifiers, and duplicate requirement IDs without changing existing deltas. | pass | Tool/reducer tests reject malformed capability, IDs, missing scenarios, duplicate delta IDs, duplicate requirement IDs, and existing-spec collisions before store mutation. |\n| SC3 | success_criterion | The added delta survives the normal Temporal/store state path and appears in `adv_change_show` readback for that change. | pass | Temporal signal/store tests cover specDeltaAdded append, state.deltas readback, cache refresh, and deterministic signal rejection. |\n| SC4 | success_criterion | Existing archive delta application consumes the written add delta without a direct spec-file workaround, including creation of a valid new capability spec when applicable. | pass | Archive activity and full-suite coverage verify existing archive delta application; implementation leaves archive writer unchanged and supports valid new capability add shape. |\n| SC5 | success_criterion | Target-path trust and poisoned-history recovery conventions match other change-mutating tools. | pass | Tool mirrors target confirmation/recovery contract from change mutation tools; poisoned-history disk-projection write is explicitly refused with typed remediation. |\n| AC1 | acceptance_criterion | Given a draft change and a valid existing or new capability plus add delta with a valid `rq-*` requirement and at least one Given/When/Then scenario, when `adv_delta_add` is called, then change readback contains exactly that delta under the capability. | pass | spec-delta tool tests prove valid structured add is delegated through store.specDeltas.add and persisted under capability. |\n| AC2 | acceptance_criterion | Given a malformed capability identifier, malformed requirement, duplicate requirement ID, or duplicate add delta, when `adv_delta_add` is called, then it returns a typed validation error and the change delta record is unchanged. | pass | Focused tool, reducer, and store tests prove invalid or duplicate input returns refusal before state mutation. |\n| AC3 | acceptance_criterion | Given a valid delta recorded through the tool, when the existing archive delta application is invoked in its normal test path, then the target spec receives the requirement exactly once and archive validation remains fail-closed. | pass | Targeted archive/tool/state suite 76/76 and full suite 5185/5185 passed; archive remains fail-closed. |\n| AC4 | acceptance_criterion | Given an explicitly approved cross-project target mutation, when `adv_delta_add` is called with that target, then it follows target confirmation and does not mutate an unconfirmed project. | pass | Tool contract tests cover target-path confirmation requirements and target routing. |\n| AC5 | acceptance_criterion | Given a completed or poisoned workflow where the normal signal path fails, when recovery is requested with documented evidence, then the tool follows existing audited recovery semantics or refuses without modifying state. | pass | Tool tests cover recovery field requirements; normal poisoned-history recovery refuses disk-projection writes without mutating state. |\n| C1 | constraint | Use existing typed delta and requirement schemas; do not use heuristic matching. | respected | DeltaAddSchema, RequirementSchema, and CapabilityKeySchema are reused; no heuristic matching added. |\n| C2 | constraint | Scope the first safe surface to `operation: 'add'` only. `modify`, `remove`, and `rename` remain deferred because they require target-resolution and conflict semantics beyond this unblocker. | respected | Public tool accepts DeltaAdd only; modify/remove/rename remain unexposed. |\n| C3 | constraint | Permit a valid new capability slug because existing archive application can create a spec from add deltas; do not require the capability to preexist. | respected | CapabilityKeySchema accepts valid existing or new kebab-case slugs; archive retains new-spec creation path. |\n| C4 | constraint | Use the existing Temporal-first signal/store pattern; direct disk writes are prohibited. | respected | Tool uses Temporal store specDeltas.add and specDeltaAdded signal; no direct runtime file write path. |\n| C5 | constraint | Keep archive application behavior unchanged except for receiving the newly recorded delta in its existing input shape. | respected | Archive activities and spec-delta application modules were not modified by this change. |\n| C6 | constraint | Preserve append-only auditability and deterministic duplicate detection. | respected | Reducer and disk fallback enforce exact duplicate delta and requirement ID rejection; payload has timestamp/actor audit fields. |\n| DONT1 | avoidance | Do not extend `adv_change_update` beyond narrative artifacts. | respected | adv_change_update remains narrative-only; new standalone adv_delta_add owns mutation. |\n| DONT2 | avoidance | Do not allow partial persistence, silent overwrite, or cross-change delta leakage. | respected | Validation occurs before store mutation; duplicate/replay signal rejections leave delta record unchanged. |\n| DONT3 | avoidance | Do not modify global specs at tool-call time. | respected | Tool mutates change-owned deltas only; archive remains sole global spec writer. |\n| DONT4 | avoidance | Do not implement full CRUD merely because issue #64 lists modify/delete; add-only is the agreed first safe surface. | respected | Tool schema is restricted to add-only DeltaAdd; no full CRUD surface was added. |\n| DONT5 | avoidance | Do not bypass target-path confirmation, workflow recovery evidence, or archive validation. | respected | Target confirmation and recovery evidence are structurally required; direct disk recovery is refused. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-14T02:33:40.840Z",
+      "contentHash": "f9ff5b0a710eadd17cea467239e2217a78e67c5a01806f1cffdd1c41ad0a03fe",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-14T02:29:24.571Z",
+      "contentHash": "9dcc043ae4a35de8762839a40f28cd76152c8735c4798dfa5d0c4792beebeed6",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-14T02:48:05.506Z",
+      "contentHash": "72c9139f6bd9e2706f20058e23066f9112f03fb295a1a6705d15a4e0d299cda2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-14T02:48:05.506Z",
+      "contentHash": "7d0babd37b298252b071486ac6dbea67b7947bfeff136ecf3e468e79a185ef2b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-14T05:23:34.879Z",
+      "contentHash": "bfea7aa2c27c76c3d014c5348077c3bb63f26d427ebce180a26b76b7a80dccd4",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-14T05:23:34.879Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

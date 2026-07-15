@@ -7,10 +7,17 @@ import { buildChangeWorkflowId } from "../../temporal/client";
 import {
   classifyTemporalError,
   collectErrorText,
+  remainingDeadlineMs,
+  TemporalQueryTimeoutError,
   type TemporalErrorClass,
+  type TemporalReadDeadline,
   withTemporalRetry,
 } from "../../temporal/retry-wrapper";
-import { recoveryReasonFromError } from "../../temporal/recovery-classification";
+import {
+  recoveryReasonFromError,
+  type ProjectionRecoveryReason,
+  type RecoveryReason,
+} from "../../temporal/recovery-classification";
 import { reinitStsl } from "../../temporal/service";
 import { createLogger } from "../../utils/debug-log";
 import type { ChangeSummaryMemo, ChangeSummary } from "../store-temporal-memo";
@@ -201,6 +208,12 @@ export interface RunTemporalOptions {
   opType?: string;
   /** Per-attempt timeout in milliseconds. Omit for long-running ops. */
   timeoutMs?: number;
+  /**
+   * Request-scoped aggregate deadline (KD1). Attempt timeouts and
+   * retry/backoff admission are capped to its remaining budget.
+   * Read-only paths only — mutation callers omit this.
+   */
+  deadline?: TemporalReadDeadline;
 }
 
 export async function runTemporal<T>(
@@ -210,6 +223,7 @@ export async function runTemporal<T>(
   return withTemporalRetry(op, {
     opType: options?.opType,
     timeoutMs: options?.timeoutMs,
+    deadline: options?.deadline,
     onTransientFailure: makeReconnectingHook(),
   });
 }
@@ -226,12 +240,68 @@ export async function runTemporal<T>(
  */
 const QUERY_TIMEOUT_MS = 5_000;
 
+export interface RunTemporalQueryOptions {
+  /**
+   * Request-scoped aggregate deadline. The effective per-attempt
+   * timeout becomes `min(QUERY_TIMEOUT_MS, remaining budget)` and no
+   * retry/backoff begins after expiry.
+   */
+  deadline?: TemporalReadDeadline;
+}
+
 /**
  * Thin alias for query calls. Preserves backward compat with existing
  * shard callers. `runTemporal` is the single implementation entry point.
  */
-export async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
-  return runTemporal(op, { timeoutMs: QUERY_TIMEOUT_MS });
+export async function runTemporalQuery<T>(
+  op: () => Promise<T>,
+  options?: RunTemporalQueryOptions,
+): Promise<T> {
+  return runTemporal(op, {
+    timeoutMs: QUERY_TIMEOUT_MS,
+    deadline: options?.deadline,
+  });
+}
+
+export {
+  createTemporalReadDeadline,
+  remainingDeadlineMs,
+  TEMPORAL_READ_DEADLINE_BUDGET_MS,
+  TemporalQueryTimeoutError,
+  type TemporalReadDeadline,
+} from "../../temporal/retry-wrapper";
+
+/**
+ * Bound an arbitrary read promise (source enumeration, hydration call)
+ * by the remaining aggregate deadline budget. Unlike `runTemporalQuery`
+ * this performs no retry/backoff and no STSL reconnect — it is the
+ * admission gate for read stages that manage their own failure
+ * classification (KD1/KD5). On expiry it rejects with
+ * `TemporalQueryTimeoutError(deadline.budgetMs)` so callers can record
+ * typed incompleteness rather than re-entering a retry loop.
+ */
+export async function raceWithTemporalDeadline<T>(
+  op: Promise<T>,
+  deadline: TemporalReadDeadline,
+): Promise<T> {
+  const remaining = remainingDeadlineMs(deadline);
+  if (remaining <= 0) {
+    throw new TemporalQueryTimeoutError(deadline.budgetMs);
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      op,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new TemporalQueryTimeoutError(deadline.budgetMs)),
+          remaining,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 const GENERIC_QUERY_FAILURE_RE = /Failed to query Workflow|query Workflow/i;
@@ -251,12 +321,14 @@ function stringifyEvidence(value: unknown): string {
 async function hasPoisonedWorkflowDescription(
   input: TemporalStoreBackendInput,
   changeId: string,
+  deadline?: TemporalReadDeadline,
 ): Promise<boolean> {
   const handle = getChangeHandle(input, changeId);
   if (typeof handle.describe !== "function") return false;
   try {
     const description = await runTemporal(async () => handle.describe?.(), {
       timeoutMs: QUERY_TIMEOUT_MS,
+      deadline,
     });
     return POISONED_WORKFLOW_EVIDENCE_RE.test(stringifyEvidence(description));
   } catch (error) {
@@ -269,31 +341,36 @@ async function hasPoisonedWorkflowDescription(
 
 export interface TemporalReadFailureClassification {
   errorClass: TemporalErrorClass;
-  recoveryReason?: "missing_workflow" | "poisoned_history";
+  /**
+   * Typed reason for the read failure. `query_failed` means the workflow
+   * state is unknown — it NEVER authorizes mutation. Recovery paths that
+   * mutate (re-seed) or project must require BOTH `errorClass ===
+   * "fallback"` AND a `ProjectionRecoveryReason` (i.e. recoveryReason !==
+   * "query_failed").
+   */
+  recoveryReason?: RecoveryReason;
 }
 
 export async function classifyTemporalReadFailure(
   input: TemporalStoreBackendInput,
   changeId: string,
   error: unknown,
+  deadline?: TemporalReadDeadline,
 ): Promise<TemporalReadFailureClassification> {
   const errorClass = classifyTemporalError(error);
-  if (errorClass === "fallback") {
-    return {
-      errorClass,
-      recoveryReason: recoveryReasonFromError(error),
-    };
-  }
 
   if (
     errorClass === "fatal" &&
     GENERIC_QUERY_FAILURE_RE.test(collectErrorText(error)) &&
-    (await hasPoisonedWorkflowDescription(input, changeId))
+    (await hasPoisonedWorkflowDescription(input, changeId, deadline))
   ) {
     return { errorClass: "fallback", recoveryReason: "poisoned_history" };
   }
 
-  return { errorClass };
+  // Total three-way classification of every other reachable query failure:
+  // poisoned → poisoned_history, completed/not-found → missing_workflow,
+  // anything else → query_failed (never mutation-authorizing).
+  return { errorClass, recoveryReason: recoveryReasonFromError(error) };
 }
 
 export interface StoreDeps {
@@ -331,13 +408,18 @@ export interface StoreDeps {
   resolveChangeId: (taskId: string) => Promise<string | null>;
   getTemporalChange: (
     changeId: string,
+    opts?: { deadline?: TemporalReadDeadline },
   ) => Promise<ReturnType<Store["changes"]["get"]>>;
-  listResolvedChanges: (filter?: {
-    includeArchived?: boolean;
-    includeClosed?: boolean;
-  }) => Promise<import("../store-types").ResolvedChangeList>;
+  listResolvedChanges: (
+    filter?: {
+      includeArchived?: boolean;
+      includeClosed?: boolean;
+    },
+    deadline?: TemporalReadDeadline,
+    options?: { candidateLimit?: number },
+  ) => Promise<import("../store-types").ResolvedChangeList>;
   reseedChangeFromDisk: (
     changeId: string,
-    reason?: "missing_workflow" | "poisoned_history",
+    reason?: ProjectionRecoveryReason,
   ) => Promise<Change | null>;
 }

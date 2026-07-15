@@ -1605,9 +1605,9 @@ describe("change tools — signal-driven lifecycle", () => {
       store.changes.listSummary = vi.fn().mockResolvedValue({
         changes: [
           {
-            id: "activeA",
-            title: "Active A",
-            status: "active",
+            id: "draftA",
+            title: "Draft A",
+            status: "draft",
             created_at: "2026-01-01T00:00:00Z",
             lastActivityAt: "2026-01-01T01:00:00Z",
             taskCount: 0,
@@ -1644,7 +1644,7 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.changes.map((c: { id: string }) => c.id)).toEqual([
-        "activeA",
+        "draftA",
       ]);
       expect(store.changes.listSummary).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1656,6 +1656,205 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(store.changes.list).not.toHaveBeenCalled();
       expect(parsed.warnings).toBeUndefined();
       expect(parsed.hydrationStats).toBeUndefined();
+    });
+
+    describe("adv_change_list status filter rejection", () => {
+      const openChanges = [
+        {
+          id: "change-a",
+          title: "Change A",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          lastActivityAt: "2026-01-01T01:00:00Z",
+          taskCount: 0,
+          completedTasks: 0,
+        },
+        {
+          id: "change-b",
+          title: "Change B",
+          status: "draft",
+          created_at: "2026-01-02T00:00:00Z",
+          lastActivityAt: "2026-01-02T01:00:00Z",
+          taskCount: 0,
+          completedTasks: 0,
+        },
+      ];
+
+      function makeFilteringStore() {
+        const store = createMockStore();
+        store.changes.listSummary = vi
+          .fn()
+          .mockImplementation(async (filter) => {
+            let changes = [...openChanges];
+            if (filter?.status) {
+              changes = changes.filter((c) => c.status === filter.status);
+            }
+            return { changes };
+          });
+        return store;
+      }
+
+      test('rejects status: "active" with a hint to use in-flight', async () => {
+        const store = makeFilteringStore();
+        const result = await changeTools.adv_change_list.execute(
+          { status: "active" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed.error).toContain("active");
+        expect(parsed.error).toContain("in-flight");
+        expect(parsed.changes).toBeUndefined();
+      });
+
+      test('rejects status: "pending" with a hint to use in-flight', async () => {
+        const store = makeFilteringStore();
+        const result = await changeTools.adv_change_list.execute(
+          { status: "pending" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        expect(parsed.error).toContain("pending");
+        expect(parsed.error).toContain("in-flight");
+        expect(parsed.changes).toBeUndefined();
+      });
+
+      test("draft, in-flight, and default return the same open set", async () => {
+        const store = makeFilteringStore();
+
+        const defaultResult = await changeTools.adv_change_list.execute(
+          {},
+          store,
+        );
+        const defaultParsed = JSON.parse(defaultResult);
+        expect(defaultParsed.changes.map((c: { id: string }) => c.id)).toEqual([
+          "change-a",
+          "change-b",
+        ]);
+
+        const draftResult = await changeTools.adv_change_list.execute(
+          { status: "draft" },
+          store,
+        );
+        const draftParsed = JSON.parse(draftResult);
+        expect(draftParsed.changes.map((c: { id: string }) => c.id)).toEqual([
+          "change-a",
+          "change-b",
+        ]);
+
+        const inFlightResult = await changeTools.adv_change_list.execute(
+          { status: "in-flight" },
+          store,
+        );
+        const inFlightParsed = JSON.parse(inFlightResult);
+        expect(inFlightParsed.changes.map((c: { id: string }) => c.id)).toEqual(
+          ["change-a", "change-b"],
+        );
+      });
+    });
+
+    describe("adv_change_list phase projection", () => {
+      const phaseRow = (overrides: Record<string, unknown>) => ({
+        id: "row",
+        title: "Row",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00Z",
+        lastActivityAt: "2026-01-01T01:00:00Z",
+        taskCount: 0,
+        completedTasks: 0,
+        ...overrides,
+      });
+
+      test("renders distinct phase for never-started, mid-execution, and release-complete-but-open changes", async () => {
+        const store = createMockStore();
+        store.changes.listSummary = vi.fn().mockResolvedValue({
+          changes: [
+            phaseRow({
+              id: "fresh-change",
+              currentGate: "proposal",
+              lifecycleState: "open",
+            }),
+            phaseRow({
+              id: "mid-change",
+              currentGate: "execution",
+              lifecycleState: "open",
+            }),
+            phaseRow({
+              id: "wedged-change",
+              currentGate: "done",
+              lifecycleState: "open",
+            }),
+          ],
+        });
+
+        const result = await changeTools.adv_change_list.execute({}, store);
+        const parsed = JSON.parse(result);
+        expect(parsed.changes).toHaveLength(3);
+        const byId = Object.fromEntries(
+          parsed.changes.map((c: { id: string; phase?: string }) => [
+            c.id,
+            c.phase,
+          ]),
+        );
+        // All three rows share status "draft" (the permanent-draft wedge);
+        // phase is what distinguishes real progress. status is unchanged.
+        for (const c of parsed.changes) expect(c.status).toBe("draft");
+        expect(byId["fresh-change"]).toBe("proposal");
+        expect(byId["mid-change"]).toBe("execution");
+        expect(byId["wedged-change"]).toBe("released");
+        expect(new Set(Object.values(byId)).size).toBe(3);
+        // Gate/lifecycle hints are internal plumbing; only phase is exposed.
+        for (const c of parsed.changes) {
+          expect(c.currentGate).toBeUndefined();
+          expect(c.lifecycleState).toBeUndefined();
+        }
+      });
+
+      test("terminal lifecycle states render as their own phase", async () => {
+        const store = createMockStore();
+        store.changes.listSummary = vi.fn().mockResolvedValue({
+          changes: [
+            phaseRow({
+              id: "archived-change",
+              status: "archived",
+              currentGate: "done",
+              lifecycleState: "archived",
+            }),
+            phaseRow({
+              id: "closed-change",
+              status: "closed",
+              currentGate: "proposal",
+              lifecycleState: "closed",
+            }),
+          ],
+        });
+
+        const result = await changeTools.adv_change_list.execute(
+          { includeArchived: true, includeClosed: true },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        const byId = Object.fromEntries(
+          parsed.changes.map((c: { id: string; phase?: string }) => [
+            c.id,
+            c.phase,
+          ]),
+        );
+        expect(byId["archived-change"]).toBe("archived");
+        expect(byId["closed-change"]).toBe("closed");
+      });
+
+      test("omits phase rather than fabricating progress when the store row lacks a gate hint", async () => {
+        const store = createMockStore();
+        store.changes.listSummary = vi.fn().mockResolvedValue({
+          changes: [phaseRow({ id: "legacy-row", lifecycleState: "open" })],
+        });
+
+        const result = await changeTools.adv_change_list.execute({}, store);
+        const parsed = JSON.parse(result);
+        expect(parsed.changes).toHaveLength(1);
+        expect(parsed.changes[0].status).toBe("draft");
+        expect("phase" in parsed.changes[0]).toBe(false);
+      });
     });
   });
 
@@ -3655,7 +3854,7 @@ describe("change tools — signal-driven lifecycle", () => {
         release: { status: "pending" },
       };
       const store = createMockStore({ gates: staleStoreGates });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3663,7 +3862,7 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       const parsed = JSON.parse(result);
 
-      expect(mocks.querySignal).toHaveBeenCalledTimes(1);
+      expect(mocks.queryMock).toHaveBeenCalledTimes(1);
       expect(parsed.error ?? "").not.toContain("incomplete gates");
       expect(parsed.incompleteGates).toBeUndefined();
     });
@@ -3690,7 +3889,7 @@ describe("change tools — signal-driven lifecycle", () => {
         }
         return { success: true, data: target };
       });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3708,7 +3907,7 @@ describe("change tools — signal-driven lifecycle", () => {
         release: { status: "pending" },
       };
       const store = createMockStore({ gates: allDoneGates });
-      mocks.querySignal.mockResolvedValueOnce(liveIncompleteGates);
+      mocks.queryMock.mockResolvedValueOnce(liveIncompleteGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3742,7 +3941,7 @@ describe("change tools — signal-driven lifecycle", () => {
       vi.mocked(mocks.targetStore.specs.list).mockResolvedValue({
         specs: [],
       });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         {
@@ -3802,7 +4001,7 @@ describe("change tools — signal-driven lifecycle", () => {
       vi.mocked(mocks.targetStore.specs.list).mockResolvedValue({
         specs: [],
       });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       await changeTools.adv_change_archive.execute(
         {
@@ -3829,7 +4028,7 @@ describe("change tools — signal-driven lifecycle", () => {
         acceptance: { status: "pending" },
       };
       const store = createMockStore({ gates: allDoneGates });
-      mocks.querySignal.mockResolvedValueOnce(liveIncompleteGates);
+      mocks.queryMock.mockResolvedValueOnce(liveIncompleteGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3847,7 +4046,7 @@ describe("change tools — signal-driven lifecycle", () => {
     // rq-harden-archive-flow AC1/AC2
     test("refreshes the change from the workflow before reading for archive", async () => {
       const store = createMockStore({ gates: allDoneGates });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3867,7 +4066,7 @@ describe("change tools — signal-driven lifecycle", () => {
       const store = createMockStore({ gates: allDoneGates });
       const refreshMock = store.changes.refresh as ReturnType<typeof vi.fn>;
       refreshMock.mockRejectedValueOnce(new Error("Failed to query Workflow"));
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3894,7 +4093,7 @@ describe("change tools — signal-driven lifecycle", () => {
             name: "WorkflowNotFoundError",
           }),
         );
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           {
@@ -3931,7 +4130,7 @@ describe("change tools — signal-driven lifecycle", () => {
             name: "WorkflowNotFoundError",
           }),
         );
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           { changeId: "test-change", phase9: "skip" },
@@ -3967,7 +4166,7 @@ describe("change tools — signal-driven lifecycle", () => {
         ).describe = vi.fn(async () => ({
           rawDescription: "TMPRL1100 Nondeterminism error",
         }));
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           {
@@ -4005,7 +4204,7 @@ describe("change tools — signal-driven lifecycle", () => {
             describe: ReturnType<typeof vi.fn>;
           }
         ).describe = vi.fn(async () => ({ status: "RUNNING" }));
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           {

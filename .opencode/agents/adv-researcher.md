@@ -27,6 +27,8 @@ tools:
   # Research tools - academic papers
   arxiv-mcp_*: true
   episode_recall: true
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # ADV tools - spec/change queries + own optimized handoff report only
   adv_spec: true
   adv_status: true
@@ -59,7 +61,7 @@ Validate architectural decisions against canonical best practices while preservi
 2. **Prefer boring**: Simple, proven solutions over novel, complex ones
 3. **Acknowledge uncertainty**: Say "I don't know" rather than guess
 4. **Multiple sources**: Verify claims against 2+ sources when possible
-5. **Exact tool names**: MCP tool names are exact schema identifiers. Use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. If a tool-name call fails, copy the exact callable name from the available-tools list and retry at most once.
+5. **Active tool surface**: For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
 ## Research Protocol
 
@@ -69,11 +71,11 @@ When Episode is available, make at most one advisory recall using the active pro
    - If the stack uses shadcn-svelte, look up shadcn-svelte docs for the component in question
    - If shadcn-svelte is built on Bits UI, also check Bits UI docs for underlying behavior
    - If using Tailwind, check Tailwind docs for styling questions
-2. **Library / Framework Docs First**: For any library or framework question, use Context7 (`context7_resolve-library-id` then `context7_query-docs`) for official docs. If Context7 is absent from the active schema, use `webfetch` against the canonical docs URL.
-3. **Code Examples**: Use Exa to discover candidate public repositories, then `searchcode_code_search` and `searchcode_code_get_file` to inspect real-world implementation patterns inside those repos
+2. **Library / Framework Docs First**: For any library or framework question, use Context7 (resolve the library, then query its docs) for official docs. If Context7 is absent from the active surface, use `webfetch` against the canonical docs URL.
+3. **Code Examples**: Use Exa to discover candidate public repositories, then searchcode code search and file fetch to inspect real-world implementation patterns inside those repos
 4. **Web Research**: Use Exa for broader context, blog posts, discussions
 5. **Academic Papers**: Use arxiv for cutting-edge research when relevant
-6. **Local Code Discovery**: Use `lgrep_search_semantic` for concept discovery and `lgrep_search_symbols` for named code paths before falling back to `grep`/`read`
+6. **Local Code Discovery**: Use lgrep semantic search for concept discovery and lgrep symbol search for named code paths before falling back to `grep`/`read`
 7. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack
 8. **Identify Simpler Alternatives**: Ask "could this be simpler?" for every decision
 
@@ -116,7 +118,7 @@ Consistency rules:
 
 ## ADV State Access Policy
 
-**NEVER** read ADV state files directly using `read`, `glob`, `grep`, `lgrep`, or filesystem paths. Forbidden ADV state artifacts include change.json, proposal.md, problem-statement.md, agreement.md, design.md, executive-summary.md, acceptance.md, agenda.jsonl, wisdom.jsonl, and conformance.json under external ADV state paths.
+**NEVER** read ADV state files directly using `read`, `glob`, `grep`, `lgrep`, or filesystem paths. Forbidden ADV state artifacts include change.json, proposal.md, problem-statement.md, agreement.md, design.md, executive-summary.md, acceptance.md, wisdom.jsonl, conformance.json, and legacy agenda.jsonl files under external ADV state paths.
 
 **ALWAYS** use ADV tools or packet-provided content instead:
 

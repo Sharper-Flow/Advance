@@ -8,7 +8,10 @@
 import { z } from "zod";
 import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { DependencySchema } from "./specs";
-import { SubagentReportSchema } from "./subagent-reports";
+import {
+  ReportFollowUpRefSchema,
+  SubagentReportSchema,
+} from "./subagent-reports";
 import { TaskStructuredOutputSchema } from "./task-output";
 
 // =============================================================================
@@ -156,6 +159,15 @@ export const TaskContractRefsSchema = z.object({
 
 export type TaskContractRefs = z.infer<typeof TaskContractRefsSchema>;
 
+export const TaskApplyCycleSchema = z
+  .object({
+    implementation_cycle_id: z.string().trim().min(1),
+    started_at: z.string().trim().min(1),
+    kind: z.enum(["initial", "retry"]),
+  })
+  .strict();
+export type TaskApplyCycle = z.infer<typeof TaskApplyCycleSchema>;
+
 export const TaskSchema = z
   .object({
     id: z.string(), // tk-Hf7dK2mN
@@ -184,6 +196,8 @@ export const TaskSchema = z
     completedAt: z.string().optional(),
     /** Session/agent assigned through taskAssignedSignal. */
     assignedTo: z.string().optional(),
+    /** Orchestrator-minted implementation lifecycle anchor for delegated work. */
+    apply_cycle: TaskApplyCycleSchema.optional(),
     /** Human-readable block reason from taskBlockedSignal. */
     blockReason: z.string().optional(),
     /** Retry/block attempts captured when a task gets stuck. */
@@ -202,6 +216,12 @@ export const TaskSchema = z
     tdd_reclassification: TddReclassificationSchema.optional(),
     /** Structured links from task work back to approved change-contract items. */
     contract_refs: TaskContractRefsSchema.optional(),
+    /**
+     * Structural reference to the report follow-up that motivated this task.
+     * Present when a task was created as the pre-planning owner of a promoted
+     * report follow-up. Text matching is never authority — this ref is.
+     */
+    followup_ref: ReportFollowUpRefSchema.optional(),
     /**
      * Evidence policy that governs what kind of proof satisfies task completion.
      * Uses the shared contract evidence-policy vocabulary.

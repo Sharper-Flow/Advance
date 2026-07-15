@@ -60,7 +60,7 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 **ID:** `rq-designQualityEvidence01` | **Priority:** **[MUST]**
 
-Design-quality concerns raised by adv-designer reports MUST be enforced structurally, not by reviewer prose. A sandbox-safe gate-readiness evaluator MUST read persisted adv-designer reports from change state and block the acceptance and release gates while the latest designer report for any task carries an undispositioned design_dimensions concern or neighboring_recommendation. A concern clears only when (a) a later all-pass designer report supersedes it, or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via the designConcernDispositioned signal path (adv_design_concern_disposition). On report submission, each concern and neighboring recommendation MUST also be promoted to a durable required-obligation agenda item with an attempt-stable dedupe key; this agenda promotion is ADVISORY routing only and MUST NOT be the gate authority. No accepted_debt terminal state exists anywhere in specs, contract, commands, or agents. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
+Design-quality concerns raised by adv-designer reports MUST be enforced structurally, not by reviewer prose. A sandbox-safe gate-readiness evaluator MUST read persisted adv-designer reports from change state and block the acceptance and release gates while the latest designer report for any task carries an undispositioned design_dimensions concern or neighboring_recommendation. A concern clears only when (a) a later all-pass designer report supersedes it, or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via the designConcernDispositioned signal path (adv_design_concern_disposition). On report submission, each concern and neighboring recommendation MUST also surface an advisory design_concern_promoted consumer warning with an attempt-stable dedupe key; this consumer warning is ADVISORY routing only and MUST NOT be the gate authority. No accepted_debt terminal state exists anywhere in specs, contract, commands, or agents. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
 
 **Tags:** `workflow`, `review`, `acceptance`, `release`, `frontend`, `design-proof`, `adv-designer`, `structural`
 
@@ -79,7 +79,7 @@ Design-quality concerns raised by adv-designer reports MUST be enforced structur
 
 - The gate-readiness evaluator emits a DESIGN_CONCERN_UNRESOLVED blocker
 - The gate is blocked by code, not by reviewer judgment
-- The evaluator reads only change state (sandbox-safe; no agenda or storage access)
+- The evaluator reads only change state (sandbox-safe; no storage access)
 
 **Concerns and neighboring recommendations are advisably promoted, never silently dropped** (`rq-designQualityEvidence01.2`)
 
@@ -91,9 +91,9 @@ Design-quality concerns raised by adv-designer reports MUST be enforced structur
 
 **Then:**
 
-- Each concern/recommendation is promoted to a required-obligation agenda item with an attempt-stable dedupe key
-- Re-submission at a higher attempt does not duplicate the agenda item
-- The agenda promotion is advisory and is not the gate authority
+- Each concern/recommendation surfaces an advisory design_concern_promoted consumer warning with an attempt-stable dedupe key
+- Re-submission at a higher attempt does not duplicate the warning
+- The consumer warning is advisory and is not the gate authority
 
 **Typed disposition clears the block; no accepted_debt state** (`rq-designQualityEvidence01.3`)
 
@@ -684,7 +684,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 **ID:** `rq-archiveRecoveryConsistency01` | **Priority:** **[MUST]**
 
-Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. `adv_change_status_repair` success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly.
+Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. `adv_change_status_repair` success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery-path selection MUST stay explicit: `adv_archive_repair action=reconcile` is the batch terminal-projection repair over all release-stuck candidates, gated on branch-merge evidence; `adv_change_status_repair` is the single-change targeted status flip, gated on precise workflow evidence (no branch requirement) with target_path routing.
 
 **Tags:** `workflow`, `archive`, `repair`, `status`, `target-path`
 
@@ -916,7 +916,7 @@ ADV executive summaries MUST be written for non-technical release-approval reade
 
 **ID:** `rq-productLinking01` | **Priority:** **[MUST]**
 
-ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: repo_project_id for repo-local git/spec/worktree mechanics, and product_project_id for canonical product state (changes, agenda, wisdom, reflections, status aggregation). Product topology MUST be declared in project.json via product metadata plus related_repos entries; single-repo projects without product config MUST keep existing behavior unchanged. Missing or invalid primary repo resolution MUST fail structurally unless the explicit missing_primary_policy allows read_only or isolated degradation.
+ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: repo_project_id for repo-local git/spec/worktree mechanics, and product_project_id for canonical product state (changes, wisdom, reflections, status aggregation). Product topology MUST be declared in project.json via product metadata plus related_repos entries; single-repo projects without product config MUST keep existing behavior unchanged. Missing or invalid primary repo resolution MUST fail structurally unless the explicit missing_primary_policy allows read_only or isolated degradation.
 
 **Tags:** `workflow`, `product`, `multi-repo`, `state`
 
@@ -933,7 +933,7 @@ ADV MAY link separate repositories into one product state plane. Linked products
 **Then:**
 - product_project_id resolves to the primary repo ADV project id
 - repo_project_id remains the secondary repo ADV project id
-- Product changes, wisdom, reflections, agenda, and status queries use the product state plane
+- Product changes, wisdom, reflections, and status queries use the product state plane
 
 **Single repo remains unchanged** (`rq-productLinking01.2`)
 
@@ -2738,16 +2738,16 @@ experimental.session.compacting must use buildChangeContextSnapshot to produce i
 
 **ID:** `rq-changeLifecycleState01` | **Priority:** **[MUST]**
 
-Change workflow state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. Legacy compatibility status values such as draft, pending, and active MUST normalize to lifecycleState open on read/projection; archived and closed normalize to their matching lifecycle states. Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate search attributes.
+Change workflow state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. The stored ChangeStatus enum's lifecycle-reachable set is draft, archived, and closed; pending and active are NOT lifecycle-reachable for change workflows and are removed from the stored enum, surviving only as legacy disk values that MUST normalize to lifecycleState open on read/projection. Archived and closed normalize to their matching lifecycle states. AdvChangeStatus is compatibility/read-model metadata and MUST NOT be the open-claim authority; the sole open-claim authority is AdvLifecycleState = "open" AND ExecutionStatus = "Running". Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate search attributes.
 
 **Tags:** `workflow`, `lifecycle`, `visibility`
 
 #### Scenarios
 
-**Legacy open statuses normalize to open lifecycle** (`rq-changeLifecycleState01.1`)
+**Legacy and stored open statuses normalize to open lifecycle** (`rq-changeLifecycleState01.1`)
 
 **Given:**
-- A change workflow or local projection has legacy status draft, pending, or active
+- A change workflow or local projection has the stored open status draft or a legacy status pending or active (removed from the stored enum)
 
 **When:** The change is read or projected into search attributes
 
@@ -2767,6 +2767,18 @@ Change workflow state MUST persist lifecycleState as the canonical terminal/open
 - The change is excluded from open results
 - A stale AdvChangeStatus value cannot make the change appear open
 - ExecutionStatus = "Running" or an equivalent terminal guard protects Visibility reads from stale completed workflow attributes
+
+**Stored ChangeStatus reachable set excludes pending and active** (`rq-changeLifecycleState01.3`)
+
+**Given:**
+- The ChangeStatusSchema stored enum for change workflows
+
+**When:** A change workflow status is assigned, read, or validated
+
+**Then:**
+- The only lifecycle-reachable stored statuses are draft, archived, and closed
+- pending and active are not assignable stored statuses; they exist only as legacy disk values that normalize to draft/open on load
+- The open-claim authority is AdvLifecycleState = "open" AND ExecutionStatus = "Running", never AdvChangeStatus
 
 ---
 
@@ -3113,7 +3125,7 @@ ADV tool invocation preflight MUST centrally classify placeholder-sensitive argu
 **Required content placeholders fail before execution** (`rq-toolPlaceholderPolicy01.1`)
 
 **Given:**
-- An ADV tool receives a blank required content field such as task content, wisdom content, run-test command, agenda title, or worktree branch
+- An ADV tool receives a blank required content field such as task content, wisdom content, run-test command, or worktree branch
 
 **When:** Tool argument preflight runs
 
@@ -3894,7 +3906,7 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 
 **ID:** `rq-archiveBranchCleanup01` | **Priority:** **[MUST]**
 
-PR-mode ADV archives that survive through PR creation must be cleanable post-merge via an operator-explicit tool. Local deletion uses safe `git branch -d` semantics (refuses unmerged). The cleanup tool reuses the existing `adv_archive_repair` MCP tool surface with a new `cleanup_merged` action; it is operator-explicit (no background sweeps, no daemons, no session-start auto-cleanup per P37). Detection is squash-merge-safe via tree-SHA match (primary) with `git cherry` diff-equivalence fallback.
+PR-mode ADV archives that survive through PR creation must be cleanable post-merge via an operator-explicit tool. Local deletion uses safe `git branch -d` semantics (refuses unmerged). The cleanup tool is the `archived_branches` mode of the `adv_worktree_cleanup` MCP tool; merged-branch cleanup is git-branch hygiene, not ADV recovery state, so it does not live on `adv_archive_repair`. It is operator-explicit (no background sweeps, no daemons, no session-start auto-cleanup per P37). Detection is squash-merge-safe via tree-SHA match (primary) with `git cherry` diff-equivalence fallback.
 
 **Tags:** `workflow`, `archive`, `branch-cleanup`, `release-finalization`
 
@@ -3905,7 +3917,7 @@ PR-mode ADV archives that survive through PR creation must be cleanable post-mer
 **Given:**
 - An archived ADV change whose `change/{id}` branch was squash-merged into the default branch
 
-**When:** operator runs `adv_archive_repair action=cleanup_merged`
+**When:** operator runs `adv_worktree_cleanup mode=archived_branches`
 
 **Then:**
 - The branch is detected as `tree-identical` (tree-SHA match) OR `patch-equivalent` (git cherry)
@@ -3916,7 +3928,7 @@ PR-mode ADV archives that survive through PR creation must be cleanable post-mer
 **Given:**
 - An archived ADV change whose `change/{id}` branch is currently checked out in any active worktree
 
-**When:** operator runs `adv_archive_repair action=cleanup_merged`
+**When:** operator runs `adv_worktree_cleanup mode=archived_branches`
 
 **Then:**
 - The branch is excluded from deletion candidates
@@ -3927,7 +3939,7 @@ PR-mode ADV archives that survive through PR creation must be cleanable post-mer
 **Given:**
 - Operator wants to preview before deleting
 
-**When:** operator runs `adv_archive_repair action=cleanup_merged dryRun=true`
+**When:** operator runs `adv_worktree_cleanup mode=archived_branches dryRun=true`
 
 **Then:**
 - The tool returns the candidate list with per-branch merge proof
@@ -3952,8 +3964,8 @@ PR-mode ADV archives that survive through PR creation must be cleanable post-mer
 **When:** archive finalization completes
 
 **Then:**
-- The existing branch cleanup gate at `change.ts:4436-4441` continues to delete the branch at archive time
-- Direct-archive cleanup behavior is unchanged by the addition of cleanup_merged action
+- The existing direct-mode branch cleanup gate (`archiveMode === "direct"`) continues to delete the branch at archive time
+- Direct-archive cleanup behavior is unchanged by moving merged-branch cleanup to `adv_worktree_cleanup mode=archived_branches`
 
 ---
 
@@ -3961,7 +3973,7 @@ PR-mode ADV archives that survive through PR creation must be cleanable post-mer
 
 **ID:** `rq-opsFollowTrace01` | **Priority:** **[MUST]**
 
-Linked ops/enabler follow-up work MUST persist structural source provenance in authoritative workflow state. A follow-up change MUST record its source change, relationship kind, originating artifact/report/agenda source, and creation timestamp. The source/parent change MUST record an outbound ops_followup_link with matching relationship, target change, and linkage timestamp. Authoritative provenance MUST live in typed workflow state and query readbacks, not in free-text agenda descriptions.
+Linked ops/enabler follow-up work MUST persist structural source provenance in authoritative workflow state. A follow-up change MUST record its source change, relationship kind, originating artifact/report source, and creation timestamp. The source/parent change MUST record an outbound ops_followup_link with matching relationship, target change, and linkage timestamp. Authoritative provenance MUST live in typed workflow state and query readbacks, not in free-text descriptions. Legacy agenda-sourced records remain parseable but no new agenda provenance is accepted.
 
 **Tags:** `workflow`, `ops-follow-up`, `provenance`, `traceability`, `state`
 
@@ -3984,14 +3996,14 @@ Linked ops/enabler follow-up work MUST persist structural source provenance in a
 
 **Given:**
 - An agent creates an ops follow-up from a manual source with a parent change
-- No report or agenda artifact exists
+- No report artifact exists
 
 **When:** adv_followup_promote uses source kind manual
 
 **Then:**
 - The child source provenance records the parent change ID and manual rationale
 - The parent link records the relationship and linked_at
-- The manual rationale is preserved as typed provenance, not agenda text
+- The manual rationale is preserved as typed provenance, not free text
 
 **Cross-project ops link records target path** (`rq-opsFollowTrace01.3`)
 

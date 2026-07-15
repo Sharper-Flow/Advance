@@ -125,7 +125,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss009");
-    expect(command).toContain("<!-- rq-ss009 -->");
     expect(command).toContain("Structural Correctness Bypass (QUAL-012)");
     expect(command).toContain(
       "Heuristics used only for discovery/ranking/triage/advisory notes are not findings",
@@ -188,7 +187,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss010");
-    expect(command).toContain("<!-- rq-ss010 -->");
     expect(command).toContain("Deletion Candidate Taxonomy");
     for (const subtype of [
       "unused dependency",
@@ -216,7 +214,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss011");
-    expect(command).toContain("<!-- rq-ss011 -->");
     expect(command).toContain("Deletion Safety / Actionability Boundary");
     expect(command).toContain("low-confidence / user-review");
     expect(command).toContain(
@@ -235,13 +232,43 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss012");
-    expect(command).toContain("<!-- rq-ss012 -->");
     expect(command).toContain("Scanner Coverage Report");
     expect(command).toContain("coverage.detectors[]");
     expect(command).toContain("externally_covered");
     expect(command).toContain("coverage.falsePositiveProtections");
     expect(skill).toContain("coverage.detectors[]");
     expect(skill).toContain("externally_covered");
+  });
+
+  test("command and skill document evidence-backed rewrite assessment", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SLOP_SKILL_PATH, "utf8");
+
+    for (const content of [command, skill]) {
+      expect(content).toContain("Rewrite Assessment");
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what architecture would definitely change?",
+      );
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what would definitely not be carried over?",
+      );
+      expect(content).toContain("No definite conclusion from scan evidence");
+      expect(content).toContain("indeterminate");
+      expect(content).toContain("never a no-change conclusion");
+      expect(content).toContain("never authorize deletion");
+      expect(content).toContain("rewriteAssessment");
+    }
+    expect(command).toContain('"rewriteAssessment"');
+    expect(command).toContain('"complete" | "indeterminate"');
+    expect(command).toContain('"wouldChange": {');
+    expect(command).toContain('"wouldNotCarryOver": {');
+    expect(command).toContain('"confidence": "confirmed" | "tentative"');
+    expect(command).toContain("wouldChange");
+    expect(command).toContain("wouldNotCarryOver");
+    expect(command).toContain("tentative");
+    expect(command).toContain("command-level `rewriteAssessment`");
+    expect(command).toContain("does not extend `slop_scan_report.v1`");
+    expect(command).toContain("SLOP_SCAN_DEGRADED");
   });
 
   test("documents single-level scanner orchestration in shared ADV instructions", () => {

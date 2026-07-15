@@ -2,7 +2,6 @@
 name: adv-task
 description: Fast-track small changes: assess spec-law impact, prep, and hand off
 ---
-<!-- manifest: adv-task · requiresChangeId: false · scope: creates[change, proposal, tasks] reads[specs, codebase] modifies[proposal, design] gates[proposal, discovery, design, planning] -->
 # ADV Task — Fast-Track Small Changes
 Fast-track a small, well-understood durable change through proposal, discovery, design, and planning, then hand off to Build. Use when user and agent already agree on what needs doing and need tracked change/task state before implementation.
 ## Command Boundary
@@ -144,7 +143,7 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 |---------|------|
 | Create change | `adv_change_create` |
 | Research | Task tool (adv-researcher) |
-| Fallback | Context7 (`context7_resolve-library-id` + `context7_query-docs`) for library docs, `webfetch` if Context7 is absent, `exa_web_search_exa` |
+| Fallback | Context7 (resolve library + query docs) for library docs, `webfetch` if Context7 is absent, Exa web search |
 | Context | `adv_project_context` |
 | Conflicts | `adv_change_list` |
 | Add tasks | `adv_task_add` |

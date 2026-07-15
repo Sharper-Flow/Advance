@@ -10,13 +10,13 @@ Referenced by `/adv-improve`. Enforces rigor to prevent shallow analysis passes 
 
 Every `/adv-improve` invocation MUST execute each step and report results. Mark `[x]` when completed (even if no findings):
 
-- [ ] **Context Loading (Phase 0)** — Load `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec`. Detect worktree and tech stack. Verify source files exist before proceeding.
+- [ ] **Context Loading (Phase 0)** — Load `adv_project_context`, `adv_change_list`, `adv_epic_list`, `adv_spec`. Detect worktree and tech stack. Verify source files exist before proceeding.
 - [ ] **Source Verification** — Confirm at least one source directory (`src/`, `lib/`, `app/`, `packages/`) or source file exists. Stop cleanly if none.
 - [ ] **Current-State Scan (Phase 1)** — Analyze all 6 categories (security, reliability, testing, observability, DX, code quality). Cap at 5 findings per category. Every finding has evidence.
 - [ ] **LBP / Reference Comparison (Phase 2)** — Context7 lookup for canonical architecture. Build deviation table. Document corrections for DRIFTED/ANTI-PATTERN. Include greenfield perspective.
 - [ ] **External Landscape (Phase 3)** — Run 2 Exa queries. Extract top-3 competitors and 2 emerging patterns. Source URL required per entry.
 - [ ] **Evidence Validation** — Reject any finding that lacks a file path, searched path, or source citation before synthesis.
-- [ ] **Conflict / Dedup Scan** — Cross-reference findings against active changes and agenda items from Phase 0. Annotate overlapping items; do not suppress them.
+- [ ] **Conflict / Dedup Scan** — Cross-reference findings against active changes and Epic context from Phase 0. Annotate overlapping items; do not suppress them.
 - [ ] **Synthesis (Phase 4)** — Sort by severity, emit report, suggest next commands.
 - [ ] **Research Pack Persistence (Phase 5)** — Write or update a repo-local research pack at `docs/{target-slug}-prep.md` (or `docs/repo-improve-prep.md` for broad mode). Mirror Current State, LBP comparison, Competitors & Alternatives, Emerging Patterns, Applicability, Open Questions, and Sources so `/adv-discover` and related research phases can cite it.
 

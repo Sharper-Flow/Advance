@@ -1,0 +1,1123 @@
+{
+  "id": "fixWorkflowLifecycleMap",
+  "title": "Fix workflow lifecycle map",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T19:46:21.729Z",
+  "tasks": [
+    {
+      "id": "tk-59ad6979e13c",
+      "title": "Fix docs/adv-workflow.md defects + create drift test (RED→GREEN for AC1)",
+      "type": "docs",
+      "section": "Docs defect fixes",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T20:21:58.683Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-13T20:22:36.676Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:25:11.903Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWorkflowLifecycleMap",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkflowLifecycleMap",
+          "task_id": "tk-59ad6979e13c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-59ad6979e13c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "docs/adv-workflow.md",
+            "plugin/src/adv-workflow-docs-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: all 3 tests failed as expected — 'success criteria' present, proposal.md missing from ownership table, Per-Gate Line-Item Map cross-ref missing. lastRedRunId: tr_mrjoeiqm_e4c48974"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN phase: all 3 tests pass after fixing 3 defects in docs/adv-workflow.md. lastGreenRunId: tr_mrjoffxd_1e501fed"
+            },
+            {
+              "command": "grep -n 'success criteria' docs/adv-workflow.md",
+              "exit_code": 1,
+              "summary": "Confirmed 'success criteria' fully removed from adv-workflow.md (grep exit 1 = no matches)"
+            },
+            {
+              "command": "awk 'NR==20 {print length($0)}' docs/adv-workflow.md",
+              "exit_code": 0,
+              "summary": "Line 20 alignment preserved at 73 chars, matching all other diagram lines"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used native edit tool for all 3 docs edits instead of morph_edit",
+              "why": "All 3 edits are small, precise, single-line replacements — edit tool is faster and more reliable for exact string matches"
+            },
+            {
+              "what": "Used regex /^\\| proposal\\s+\\|.*$/m to extract the proposal row for the ownership table assertion",
+              "why": "More precise than a generic toContain — pins the assertion to the specific table row, preventing false positives from other file sections"
+            },
+            {
+              "what": "Added 5 trailing spaces when replacing 'success criteria' (16 chars) with 'proposal.md' (11 chars) in ASCII diagram",
+              "why": "Preserves the 73-char fixed-width column alignment of the diagram box borders"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed 'success criteria' appears nowhere else in adv-workflow.md after fix. No other files touched.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "T1 complete. Fixed 3 defects in docs/adv-workflow.md: (1) proposal box now says 'problem-statement.md + proposal.md' instead of 'success criteria', (2) ownership table proposal row lists both artifacts, (3) added cross-reference to Per-Gate Line-Item Map in docs/adv-gates.md. Created plugin/src/adv-workflow-docs-assets.test.ts with 3 presence-based assertions. RED→GREEN cycle confirmed.",
+            "suggested_next_action": "Proceed to T2 (docs/adv-gates.md fixes) or run broader test suite to confirm no regressions"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -n 'success criteria' docs/adv-workflow.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: awk 'NR==20 {print length($0)}' docs/adv-workflow.md"
+            }
+          ]
+        }
+      ],
+      "verification": "T1 complete. docs/adv-workflow.md 3 defects fixed (line 20 box: success criteria→proposal.md; ownership table: both artifacts; cross-reference line added). New test plugin/src/adv-workflow-docs-assets.test.ts: 3 presence-based assertions. RED tr_mrjoeiqm → GREEN tr_mrjoffxd → verify tr_mrjogxa8 (3/3 pass).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/adv-workflow.md",
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "touched_files": [
+        "docs/adv-workflow.md",
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "checkpointSha": "44bf3726366524ee400646f73e0d09b8e8cf8863",
+      "completedAt": "2026-07-13T20:31:43.006Z",
+      "completed_at": "2026-07-13T20:31:43.006Z"
+    },
+    {
+      "id": "tk-7688ebc8df77",
+      "title": "Add Per-Gate Line-Item Map to docs/adv-gates.md + extend drift test (RED→GREEN for AC2/AC3)",
+      "type": "docs",
+      "section": "Canonical map",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T20:22:14.392Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-59ad6979e13c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "SC1"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:32:17.900Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWorkflowLifecycleMap",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkflowLifecycleMap",
+          "task_id": "tk-7688ebc8df77",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-7688ebc8df77"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "docs/adv-gates.md",
+            "plugin/src/adv-workflow-docs-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase — 12/12 new map assertions failed (expected, map not yet in adv-gates.md). runId: tr_mrjokbr6_b5902f61. Existing AC1 tests passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN phase — 16/16 tests pass (3 existing AC1 + 13 new AC2/AC3 map assertions). runId: tr_mrjol9tj_899c4b0f. Duration 262ms."
+            },
+            {
+              "command": "wc -l docs/adv-gates.md && head -20 docs/adv-gates.md && sed -n '150,160p' docs/adv-gates.md",
+              "exit_code": 0,
+              "summary": "APPEND-ONLY verified: file grew from 152 → 271 lines; original header + first 152 lines byte-identical; new map section starts at line 154 with '## Per-Gate Line-Item Map'."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used edit tool with anchored oldString on last fenced block (adv_gate_complete example) instead of bash heredoc append",
+              "why": "Preserves whitespace exactly and avoids shell quoting issues with backticks and special characters in markdown tables"
+            },
+            {
+              "what": "Placed new describe block AFTER the existing AC1 describe block",
+              "why": "Matches pattern from T1; REPO_ROOT const is shared so no duplication needed"
+            },
+            {
+              "what": "Kept assertion 16 as positive 'Wisdom capture (advisory' string match instead of asserting adv_wisdom_add presence",
+              "why": "Matches packet directive; packet explicitly downgraded from tool-name assertion to advisory-wording assertion to honor AC3 (wisdom is advisory, not command-mandated)"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified docs/adv-gates.md original 152 lines byte-identical before/after append (head + tail inspection); no same-pattern edits needed in adv-workflow.md (T1 scope).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Per-Gate Line-Item Map appended to docs/adv-gates.md (APPEND ONLY — original 152 lines untouched, file now 271 lines). Map covers all 7 gates + Post-Release subsection with ordered tables containing: line items, artifacts, writer roles, and approval types. Each gate subsection carries an HTML source-comment anchor to the owning command/spec/tool. Test file extended with new describe block containing 13 assertions (12 positive anchors + 2 negative guards against VERIFICATION_EVIDENCE_MISSING). TDD cycle complete: RED runId tr_mrjokbr6_b5902f61 (12/12 new assertions failed), GREEN runId tr_mrjol9tj_899c4b0f (16/16 total pass: 3 existing AC1 + 13 new AC2/AC3).",
+            "suggested_next_action": "Proceed to next task. AC2/AC3 satisfied: canonical map is the single source of truth for per-gate line items, and the drift test pins 16 stable anchors."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: wc -l docs/adv-gates.md && head -20 docs/adv-gates.md && sed -n '150,160p' docs/adv-gates.md"
+            }
+          ]
+        }
+      ],
+      "verification": "T2 complete. docs/adv-gates.md appended with Per-Gate Line-Item Map section (271 lines total, append-only, original 152 lines byte-identical). 7 gate subsections + Post-Release, each with ordered line-item table. Legend defines writer-role + approval-type vocabularies. Source anchors (HTML comments) per gate. Negative assertions guard DONT1 (no VERIFICATION_EVIDENCE_MISSING). Test extended: 16/16 assertions pass. RED tr_mrjokbr6 → GREEN tr_mrjol9tj → verify tr_mrjon8vo.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/adv-gates.md",
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "touched_files": [
+        "docs/adv-gates.md",
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "checkpointSha": "d0a1cbdb4319a3870269483eb22ffe8298aae0a7",
+      "completedAt": "2026-07-13T20:36:33.793Z",
+      "completed_at": "2026-07-13T20:36:33.793Z"
+    },
+    {
+      "id": "tk-c78138fa6ff7",
+      "title": "Consolidated verification: full drift suite + guard test + repo checks (AC5)",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-13T20:22:26.667Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-59ad6979e13c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7688ebc8df77"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:36:54.184Z",
+      "verification": "T3 complete. Targeted tests: 71/71 pass (16 new + 55 existing guard, tr_mrjoou3u). pnpm run check: all green (schemas, typecheck, isolation, lockfile, lint, format). C1 scope audit: exactly 3 files changed (docs/adv-gates.md +119, docs/adv-workflow.md +6/-2, plugin/src/adv-workflow-docs-assets.test.ts +110). DD2 anchors all source-verified during discovery. Format fix (prettier) applied to test file.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "checkpointSha": "ffd52b6c878ad0c4f7aba8247d4c2280e36bf233",
+      "completedAt": "2026-07-13T20:41:12.992Z",
+      "completed_at": "2026-07-13T20:41:12.992Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkflowLifecycleMap",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — per-gate line-item map (docs+test change)",
+      "sources": [
+        {
+          "label": "docs/adv-gates.md (map-placement target)",
+          "locator": "/home/jon/dev/advance/docs/adv-gates.md:11-152",
+          "summary": "Existing home of gate contract: gate table, status values, enforcement rules, gate-specific behaviors. Confirms C2 single-source-of-truth placement is correct; append-only map section is compatible."
+        },
+        {
+          "label": "docs/adv-workflow.md (defects under fix)",
+          "locator": "/home/jon/dev/advance/docs/adv-workflow.md:20,65",
+          "summary": "Line 20 diagram box claims proposal produces 'success criteria' (AC1 defect confirmed). Line 65 ownership table proposal row lists only problem-statement.md, omitting proposal.md (AC1 defect confirmed). Both defects are real and precisely located."
+        },
+        {
+          "label": "adv-skill-backed-commands-assets.test.ts (idiom + adv-gates pinning)",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-skill-backed-commands-assets.test.ts:718-743",
+          "summary": "Confirms the presence-based .toContain/.toMatch idiom on docs/adv-gates.md that the design reuses. This is the single pre-existing adv-gates.md test the append-only edits must not break."
+        },
+        {
+          "label": ".adv/specs/advance-workflow/spec.json (cited spec IDs)",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json:384,2125,4786",
+          "summary": "rq-releaseFinalization01, rq-inlineApproval01, rq-designQualityEvidence01 all confirmed as real spec requirements. rq-autonomy01 confirmed via docs anchors. Cited anchor tokens are stable and updateAgentGuide-reword-resistant."
+        },
+        {
+          "label": "AC3 tool anchors in owning command files",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-review.md:448, adv-harden.md:480, adv-reflect.md:72, adv-apply.md:106",
+          "summary": "adv_design_concern_disposition (review/harden), adv_reflect (reflect/archive), and Phase 0.1 Worktree Isolation (apply) all confirmed present as stable anchors for AC3 rows."
+        },
+        {
+          "label": "VERIFICATION_EVIDENCE_MISSING absence (DONT1 negative assertion)",
+          "locator": "grep across /home/jon/dev/advance — 0 matches",
+          "summary": "Token absent from trunk. Confirms DONT1 negative assertion is safe and meaningful: map must not mention verification-evidence dispositions until strengthenAgentEvidence ships."
+        },
+        {
+          "label": "adv-apply.md Phase 0.1 worktree tool naming (anchor-precision caution)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-apply.md:106-125",
+          "summary": "Phase 0.1 uses adv_worktree_create / adv_worktree_delete literally; adv_worktree_resume does NOT appear in adv-apply.md. Design/AC3 warrant cites tool:adv_worktree_resume for the worktree row — imprecise provenance citation vs actual command-file idiom."
+        }
+      ],
+      "architecture_assessment": "The design is a bounded docs+test change that correctly solves all three objectives. Map placement in docs/adv-gates.md is the by-the-book choice: that file already owns gate-by-gate behavior, satisfies C2 by avoiding a competing table, and has an established presence-based test idiom (verified at adv-skill-backed-commands-assets.test.ts:718-743). The two adv-workflow.md defects are real and precisely located (line 20 success-criteria claim; line 65 incomplete proposal row). Drift-anchoring on stable identifiers (tool names, rq-IDs, fixed vocabulary tokens) rather than prose is the correct hedge against updateAgentGuide's in-flight 30-file reword — all four cited rq-IDs are confirmed real in spec.json, and all AC3 tool/phase anchors are confirmed present in owning command files. The DONT1 negative assertion is safe: VERIFICATION_EVIDENCE_MISSING has zero trunk matches. The design reuses the established repo idiom (23+ command-asset test files) rather than inventing a docs-lint/generated-doc pipeline — proportionate and LBP-consistent. One minor caution: the AC3 worktree row provenance cites tool:adv_worktree_resume, but adv-apply.md Phase 0.1 literally uses adv_worktree_create/adv_worktree_delete; the source-anchor citation should be reconciled to the actual command-file token (or anchor on the stable phrase 'Worktree Isolation' / 'Phase 0.1') at implementation to keep DD1/DD2 precise.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No blockers. One non-blocking caution: the worktree-isolation AC3 row's provenance anchor (tool:adv_worktree_resume) does not match the literal tool referenced in adv-apply.md Phase 0.1 (adv_worktree_create/adv_worktree_delete). Both tools are real ADV tools, so this is not a DONT2 memory-assertion violation — but the drift-test anchor for that specific row should pin to a token that actually appears in the owning source (the stable 'Worktree Isolation' / 'Phase 0.1' phrase, or adv_worktree_create) to keep DD1/DD2 deterministic. Recommend implementer verify each AC3 row's chosen anchor is literally grep-present in its cited source before writing the RED assertions."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Presence-based anchor tests catch contradiction/deletion of pinned tokens but do NOT prove semantic completeness of the map — a row could be present-but-wrong in unpinned prose and pass. Accepted: proportionate for a one-map docs change; full semantic validation would require a generated-doc pipeline (over-engineering, rejected in LBP analysis).",
+          "Inline HTML-comment source anchors add per-row maintenance weight, but they give the drift test deterministic anchors and structurally satisfy DONT2 (no memory-asserted rows). Net positive.",
+          "Anchoring on tool names/rq-IDs (not prose) survives updateAgentGuide's reword but couples the map's test to identifier stability; if a tool is renamed the map and test both need a conscious update. This is the intended, correct coupling."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New docs/adv-lifecycle-map.md as a third doc surface",
+            "disposition": "rejected",
+            "rationale": "Design rejected it correctly — a third gate surface to keep consistent violates C2 and worsens the exact self-contradiction problem SC2 targets. Placing the map beside the gate contract preserves locality (P04)."
+          },
+          {
+            "option": "Generated-doc / docs-lint pipeline that derives the map from command contracts + specs",
+            "disposition": "rejected",
+            "rationale": "Over-engineered for a single map; introduces a build surface and generator to maintain. Presence-based asset tests are the established repo idiom (23+ files). Correct proportionality call."
+          },
+          {
+            "option": "Full-prose drift matching (pin whole sentences)",
+            "disposition": "rejected",
+            "rationale": "Brittle against updateAgentGuide's active 30-file reword (C3). Stable-identifier anchoring is the right hedge; verified all cited anchors are real and grep-present."
+          }
+        ],
+        "recommendation": "Proceed to planning. Design is sound, C1/C2/C3 compliant, and all cited anchors are source-verified. The only implementer obligation before writing RED assertions: for each AC3 row, confirm the chosen drift anchor token is literally grep-present in the cited owning source — specifically reconcile the worktree-isolation row anchor to a token that appears in adv-apply.md Phase 0.1 (adv_worktree_create or the 'Worktree Isolation' phrase) rather than adv_worktree_resume."
+      },
+      "recommendation": "Advance the design gate with a caution note. The design correctly solves all objectives with a proportionate, LBP-consistent, spec-compliant approach; map placement, drift-anchoring strategy, DONT1 negative assertion, and all four cited rq-IDs are source-verified. Single non-blocking fix for the implementer: reconcile the AC3 worktree-isolation row's provenance/anchor (design cites tool:adv_worktree_resume, but adv-apply.md Phase 0.1 uses adv_worktree_create) so DD1/DD2 anchors are literally grep-present in their cited sources. No contract compromise, no security/release blocker, no C1/C2/C3 violation.",
+      "follow_ups": [
+        "Implementer: before RED assertions, grep-verify each AC3 row anchor is literally present in its cited owning source; reconcile the worktree-isolation row (adv_worktree_resume vs adv_worktree_create).",
+        "When strengthenAgentEvidence ships: flip the DONT1 negative assertion to a positive verification-evidence-disposition row and update the map (design already flags this)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkflowLifecycleMap",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkflowLifecycleMap",
+      "task_id": "tk-59ad6979e13c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-59ad6979e13c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "docs/adv-workflow.md",
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: all 3 tests failed as expected — 'success criteria' present, proposal.md missing from ownership table, Per-Gate Line-Item Map cross-ref missing. lastRedRunId: tr_mrjoeiqm_e4c48974"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN phase: all 3 tests pass after fixing 3 defects in docs/adv-workflow.md. lastGreenRunId: tr_mrjoffxd_1e501fed"
+        },
+        {
+          "command": "grep -n 'success criteria' docs/adv-workflow.md",
+          "exit_code": 1,
+          "summary": "Confirmed 'success criteria' fully removed from adv-workflow.md (grep exit 1 = no matches)"
+        },
+        {
+          "command": "awk 'NR==20 {print length($0)}' docs/adv-workflow.md",
+          "exit_code": 0,
+          "summary": "Line 20 alignment preserved at 73 chars, matching all other diagram lines"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used native edit tool for all 3 docs edits instead of morph_edit",
+          "why": "All 3 edits are small, precise, single-line replacements — edit tool is faster and more reliable for exact string matches"
+        },
+        {
+          "what": "Used regex /^\\| proposal\\s+\\|.*$/m to extract the proposal row for the ownership table assertion",
+          "why": "More precise than a generic toContain — pins the assertion to the specific table row, preventing false positives from other file sections"
+        },
+        {
+          "what": "Added 5 trailing spaces when replacing 'success criteria' (16 chars) with 'proposal.md' (11 chars) in ASCII diagram",
+          "why": "Preserves the 73-char fixed-width column alignment of the diagram box borders"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed 'success criteria' appears nowhere else in adv-workflow.md after fix. No other files touched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "T1 complete. Fixed 3 defects in docs/adv-workflow.md: (1) proposal box now says 'problem-statement.md + proposal.md' instead of 'success criteria', (2) ownership table proposal row lists both artifacts, (3) added cross-reference to Per-Gate Line-Item Map in docs/adv-gates.md. Created plugin/src/adv-workflow-docs-assets.test.ts with 3 presence-based assertions. RED→GREEN cycle confirmed.",
+        "suggested_next_action": "Proceed to T2 (docs/adv-gates.md fixes) or run broader test suite to confirm no regressions"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -n 'success criteria' docs/adv-workflow.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: awk 'NR==20 {print length($0)}' docs/adv-workflow.md"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkflowLifecycleMap",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkflowLifecycleMap",
+      "task_id": "tk-7688ebc8df77",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7688ebc8df77"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "docs/adv-gates.md",
+        "plugin/src/adv-workflow-docs-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase — 12/12 new map assertions failed (expected, map not yet in adv-gates.md). runId: tr_mrjokbr6_b5902f61. Existing AC1 tests passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN phase — 16/16 tests pass (3 existing AC1 + 13 new AC2/AC3 map assertions). runId: tr_mrjol9tj_899c4b0f. Duration 262ms."
+        },
+        {
+          "command": "wc -l docs/adv-gates.md && head -20 docs/adv-gates.md && sed -n '150,160p' docs/adv-gates.md",
+          "exit_code": 0,
+          "summary": "APPEND-ONLY verified: file grew from 152 → 271 lines; original header + first 152 lines byte-identical; new map section starts at line 154 with '## Per-Gate Line-Item Map'."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used edit tool with anchored oldString on last fenced block (adv_gate_complete example) instead of bash heredoc append",
+          "why": "Preserves whitespace exactly and avoids shell quoting issues with backticks and special characters in markdown tables"
+        },
+        {
+          "what": "Placed new describe block AFTER the existing AC1 describe block",
+          "why": "Matches pattern from T1; REPO_ROOT const is shared so no duplication needed"
+        },
+        {
+          "what": "Kept assertion 16 as positive 'Wisdom capture (advisory' string match instead of asserting adv_wisdom_add presence",
+          "why": "Matches packet directive; packet explicitly downgraded from tool-name assertion to advisory-wording assertion to honor AC3 (wisdom is advisory, not command-mandated)"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified docs/adv-gates.md original 152 lines byte-identical before/after append (head + tail inspection); no same-pattern edits needed in adv-workflow.md (T1 scope).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Per-Gate Line-Item Map appended to docs/adv-gates.md (APPEND ONLY — original 152 lines untouched, file now 271 lines). Map covers all 7 gates + Post-Release subsection with ordered tables containing: line items, artifacts, writer roles, and approval types. Each gate subsection carries an HTML source-comment anchor to the owning command/spec/tool. Test file extended with new describe block containing 13 assertions (12 positive anchors + 2 negative guards against VERIFICATION_EVIDENCE_MISSING). TDD cycle complete: RED runId tr_mrjokbr6_b5902f61 (12/12 new assertions failed), GREEN runId tr_mrjol9tj_899c4b0f (16/16 total pass: 3 existing AC1 + 13 new AC2/AC3).",
+        "suggested_next_action": "Proceed to next task. AC2/AC3 satisfied: canonical map is the single source of truth for per-gate line items, and the drift test pins 16 stable anchors."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: wc -l docs/adv-gates.md && head -20 docs/adv-gates.md && sed -n '150,160p' docs/adv-gates.md"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkflowLifecycleMap",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkflowLifecycleMap",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "non-code-evidence-policy"
+      ],
+      "summary": "Inline review of narrow docs+test change. All 12 dimensions checked inline (no risk triggers for worker scanners). 0 blockers, 0 issues, 0 suggestions. Clean evidence-backed verdict.",
+      "findings": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkflowLifecycleMap",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkflowLifecycleMap",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "Inline harden of narrow docs+test change. All 6 dimensions checked inline (no risk triggers). Test coverage: 1 test file covers both docs, TDD RED→GREEN evidence present. AI-slop: N/A (markdown tables, no generated code). Doc hygiene: this IS the doc fix; cross-references consistent. Cleanup: 0 candidates (no temp/debug/dead). Production readiness: N/A (no production code). Deployment readiness: N/A (no env/migration/service/CI). 0 blockers, 0 high, 0 medium.",
+      "findings": [],
+      "follow_ups": []
+    }
+  ],
+  "test_runs": {
+    "tk-59ad6979e13c": [
+      {
+        "runId": "tr_mrjoea0h_570ba271",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+        "durationMs": 17.182657999917865,
+        "recordedAt": "2026-07-13T20:29:27.547Z"
+      },
+      {
+        "runId": "tr_mrjoeiqm_e4c48974",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+        "durationMs": 2409.3642429998145,
+        "recordedAt": "2026-07-13T20:29:38.831Z"
+      },
+      {
+        "runId": "tr_mrjoffxd_1e501fed",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+        "durationMs": 1119.2409699996933,
+        "recordedAt": "2026-07-13T20:30:21.860Z"
+      },
+      {
+        "runId": "tr_mrjogxa8_057583cb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+        "durationMs": 1203.8140830001794,
+        "recordedAt": "2026-07-13T20:31:31.007Z"
+      }
+    ],
+    "tk-7688ebc8df77": [
+      {
+        "runId": "tr_mrjokbr6_b5902f61",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+        "durationMs": 1244.2742230002768,
+        "recordedAt": "2026-07-13T20:34:09.719Z"
+      },
+      {
+        "runId": "tr_mrjol9tj_899c4b0f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+        "durationMs": 1179.1571450000629,
+        "recordedAt": "2026-07-13T20:34:53.895Z"
+      },
+      {
+        "runId": "tr_mrjon8vo_f666c27c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts",
+        "durationMs": 1216.65147000039,
+        "recordedAt": "2026-07-13T20:36:25.970Z"
+      }
+    ],
+    "tk-c78138fa6ff7": [
+      {
+        "runId": "tr_mrjoou3u_9a0cd373",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-workflow-docs-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+        "durationMs": 1278.490686999634,
+        "recordedAt": "2026-07-13T20:37:40.138Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:50:47.005Z",
+      "completed_by": "user",
+      "approval_evidence": "User invoked /adv-discover fixWorkflowLifecycleMap while proposal checkpoint pending — command-as-approval (Tier A). Scope revision (conditional command-file/instructions/code fixes in scope) was user-directed prior to approval.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "310767c1ef0ebc6151f73e7335b34a74aea0429523c25c09e86b6509024811f0",
+        "non_whitespace_chars": 5665,
+        "checked_at": "2026-07-13T19:46:21.762Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T20:14:22.078Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved criteria via `approve` at Phase 4.5.1. Contract minted (17 items: SC1-3, AC1-5, C1-3, DONT1-3, OOS1-3). Scope narrowed to docs+tests after source verification proved command contracts correct; unreleased verification-evidence dispositions excluded; format = table + per-gate line items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "non_whitespace_chars": 4144,
+        "checked_at": "2026-07-13T19:46:21.763Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T20:21:33.963Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Independent adv-researcher validator: caution, 0 blockers, high confidence, low risk; all anchors source-verified; single finding (worktree-row anchor tool name) folded into design as Decision 7. No user-value tradeoff, no CONFLICT, no contract-compromise risk → auto-continue per straightforward-design rule.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "198090557939eec3e72a22e07f7a360e376cc076625b3b876b58d8342ffaf43b",
+        "non_whitespace_chars": 5620,
+        "checked_at": "2026-07-13T19:46:21.764Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T20:24:25.835Z",
+      "completed_by": "user",
+      "approval_evidence": "User invoked /adv-apply fixWorkflowLifecycleMap while planning gate pending — command-as-approval per rq-inlineApproval01.7. Task graph: 3 tasks (T1 docs defects+test, T2 canonical map+test, T3 verification), full contract coverage."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T20:42:10.075Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done. T1 (docs defects + test RED→GREEN), T2 (canonical map append + test extend RED→GREEN), T3 (verification: 71/71 targeted pass, pnpm run check green, C1 scope confirmed 3 files). Validation passed (NO_DELTAS expected — docs+tests only, no spec deltas)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T20:48:52.577Z",
+      "completed_by": "user",
+      "approval_evidence": "User invoked /adv-harden while acceptance checkpoint pending — command-as-approval (Tier A). Review verdict APPROVED, 0 findings. Contract matrix 17/17 pass. Executive summary persisted and workflow-visible.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "cf545fc1e9a757b8062387a6d0ddfd15401076070e71e30ae0b0df8e5536c326",
+        "non_whitespace_chars": 2908,
+        "checked_at": "2026-07-13T19:46:21.765Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session:workflow-table-review-2026-07-13"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+      "approvedAt": "2026-07-13T20:14:15.347Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** — One canonical per-gate line-item map exists in repo docs; \"what happens at each gate, who writes what, who approves\" answerable from one accurate source without re-derivation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2** — Workflow docs no longer self-contradict on gate outputs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3** — Command-contract edits that invalidate the map are caught by tests, not manual review.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — `docs/adv-workflow.md` no longer claims proposal produces success criteria, and its ownership table lists both `problem-statement.md` + `proposal.md`, consistent with `docs/adv-gates.md`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — Canonical map covers all 7 gates, each with ordered line items, artifact/durable output, writer role (narrative author / persisting tool / approver), approval type (machine-enforced / Tier A / Tier B), and sub-agent contributors; every row traces to a command contract, spec anchor (`rq-*`), or tool schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — Map includes the trunk-verified previously-missing line items: worktree isolation at execution start, design-concern dispositions, ops follow-up `blocks` release blockers, advisory wisdom capture, archive-invoked non-blocking reflection — and excludes unreleased verification-evidence dispositions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_resume",
+          "tool:adv_design_concern_disposition",
+          "tool:adv_reflect"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — New/extended drift test pins the map to stable anchors (stable phrases / `rq-*` IDs) in owning sources; a contradicting map fails tests. `docs/adv-workflow.md` gains test coverage (currently zero).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — `pnpm run check` and targeted asset tests exit 0.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — Docs + tests only; no runtime, tool, schema, or command-file changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — Single source of truth for gate ownership; map references `docs/adv-gates.md`, no competing table.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** — Drift anchors use stable phrases/rq-IDs, not brittle full-prose matches (`updateAgentGuide` is actively rewording 30 command files).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** — No rows documenting unreleased behavior (verification-evidence dispositions stay out until `strengthenAgentEvidence` ships).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** — No memory-asserted rows; every line item source-verified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** — No incorrect restatement of approval tiers (must match `docs/command-voice-standard.md` + `rq-inlineApproval01`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1** — Command-file (`.opencode/command/adv-*.md`) edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2** — `ADV_INSTRUCTIONS.md` restructuring.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3** — Runtime/tool/schema behavior changes and workflow redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T20:46:13.078Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Per-Gate Line-Item Map in docs/adv-gates.md:156-271 covers all 7 gates + Post-Release with artifacts, writer roles, approval types, sub-agents"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-workflow.md:20 now says 'problem-statement.md + proposal.md'; ownership table:65 lists both artifacts — consistent with adv-gates.md:13"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "16 presence-based assertions in adv-workflow-docs-assets.test.ts pin stable anchors; RED→GREEN verified"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test asserts no 'success criteria' + both artifacts in ownership table; tr_mrjoffxd GREEN 3/3 pass"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Map covers 7 gates + Post-Release with ordered line items, artifacts, writer roles, approval types, sub-agent contributors; HTML source anchors per gate"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Worktree Isolation (adv_worktree_create), adv_design_concern_disposition, checkOpsFollowupReleaseBlockers, Wisdom capture (advisory), adv_reflect all present; VERIFICATION_EVIDENCE_MISSING absent (negative assertion passes)"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New test file (previously zero coverage for adv-workflow.md); 16 assertions pin stable anchors; tr_mrjol9tj GREEN 16/16 pass"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check green (schemas, typecheck, isolation, lockfile, lint, format); 71/71 targeted tests pass"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff: exactly 3 files changed (docs/adv-workflow.md, docs/adv-gates.md, plugin/src/adv-workflow-docs-assets.test.ts) — no runtime/tool/schema/command files"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Single ownership table remains in adv-gates.md; adv-workflow.md:75 cross-references it — no competing table"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Anchors are tool names (adv_worktree_create, adv_design_concern_disposition, adv_reflect), rq-IDs (rq-designQualityEvidence01), vocabulary tokens (userApproved: true, Tier B) — not prose"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Negative test assertions confirm VERIFICATION_EVIDENCE_MISSING and 'verification-evidence disposition' absent from map"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Every gate subsection has HTML source anchor (command file + phase, tool name, or rq-ID); all rows verified during discovery explore scan"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Approval types match: planning=machine-enforced (userApproved: true), proposal/discovery/acceptance=Tier A inline, archive sign-off=Tier B whitelist-only — consistent with rq-inlineApproval01"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No command files edited; discovery proved command contracts correct at source"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "ADV_INSTRUCTIONS.md not modified"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No runtime/tool/schema behavior changes"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — `docs/adv-workflow.md` no longer claims proposal produces success criteria, and its ownership table lists both `problem-statement.md` + `proposal.md`, consistent with `docs/adv-gates.md`.",
+    "**AC2** — Canonical map covers all 7 gates, each with ordered line items, artifact/durable output, writer role (narrative author / persisting tool / approver), approval type (machine-enforced / Tier A / Tier B), and sub-agent contributors; every row traces to a command contract, spec anchor (`rq-*`), or tool schema.",
+    "**AC3** — Map includes the trunk-verified previously-missing line items: worktree isolation at execution start, design-concern dispositions, ops follow-up `blocks` release blockers, advisory wisdom capture, archive-invoked non-blocking reflection — and excludes unreleased verification-evidence dispositions.",
+    "**AC4** — New/extended drift test pins the map to stable anchors (stable phrases / `rq-*` IDs) in owning sources; a contradicting map fails tests. `docs/adv-workflow.md` gains test coverage (currently zero).",
+    "**AC5** — `pnpm run check` and targeted asset tests exit 0."
+  ],
+  "documents": {
+    "proposal": "# Fix workflow lifecycle map\n\n## Why\nAdvance has no canonical per-gate line-item map (tasks, artifacts, writers, approval types, ordering). Ad-hoc reconstructions produce wrong renderings, and a session review on 2026-07-13 surfaced both rendering hazards and direct doc defects.\n\n## What Changes\n1. **Fix defects in `docs/adv-workflow.md`:**\n   - Line 20: proposal box wrongly claims \"problem-statement.md + success criteria\" — proposal owns no success criteria (contradicts `docs/adv-gates.md` and `/adv-proposal` contract)\n   - Gate Ownership table: proposal row omits `proposal.md`\n2. **Add canonical per-gate line-item map** (in `docs/adv-workflow.md` or `docs/adv-gates.md` — placement decided in design) covering, per gate:\n   - Ordered line items (correct sequencing: RED test before implementation; worker report before task checkpoint; harden → sign-off → archive → CI/PR watch → release completion)\n   - Required artifacts and their writers, distinguishing three roles: narrative author (orchestrator), persisting tool (`adv_contract_mint`, `adv_task_checkpoint`, `adv_change_archive`, etc.), and approver (user)\n   - Sub-agent contributors per gate (`adv-researcher` mandatory design validation, `adv-engineer`/`adv-designer` implementation, `adv-reviewer` review/harden with scoped remediation authority, `adv-verifier`, `adv-ci-waiter`)\n   - Approval type per checkpoint: machine-enforced (planning `userApproved: true`) vs collaborative (Tier A) vs whitelist-only (Tier B sign-off)\n   - Currently-missing line items: worktree resume/create at execution start; design-concern + verification-evidence dispositions gating acceptance/release; ops follow-up `blocks` at release; wisdom capture; post-archive `adv_reflect`\n3. **Fix source defects wherever the review issues actually live** — if discovery proves an ordering/attribution/missing-item defect exists in a command contract (`.opencode/command/adv-*.md`), `ADV_INSTRUCTIONS.md`, or another instruction surface (not just the docs render), fix it at the source rather than papering over it in the map\n4. **Add drift-test anchoring** so the map stays consistent with the owning command contracts (same pattern as existing command-asset tests)\n\n## User Outcomes\n- A user or agent asking \"what happens at each gate, who writes what, who approves\" gets one accurate, current answer from repo docs\n- Doc statements about gate outputs no longer contradict each other\n- The reviewed defect classes (out-of-order, wrong attribution, missing line items) are fixed at their source, not merely documented around\n- Future edits to command contracts that invalidate the map are caught by tests, not by manual review\n\n## Scope\n\n### In Scope\n- `docs/adv-workflow.md` defect fixes\n- Canonical per-gate line-item map in `docs/` (placement per design)\n- Cross-reference consistency between `docs/adv-workflow.md`, `docs/adv-gates.md`, and the new map\n- Command-file (`.opencode/command/adv-*.md`) and `ADV_INSTRUCTIONS.md` fixes **where discovery proves a real defect** (out-of-order, wrong attribution, missing required line item) — coordinated with in-flight `updateAgentGuide` to avoid file collisions\n- Runtime/contract-adjacent fixes **only if** discovery proves a pointed-out issue is enforced wrongly in code (e.g., gate-readiness ordering) — surfaced explicitly at agreement/design before any such edit\n- Drift-test coverage anchoring the map to command contracts\n\n### Out of Scope\n- Speculative refactors of command files or instructions beyond proven defects\n- Workflow redesign (new gates, new approval tiers, new sub-agent roles)\n- `updateAgentGuide`'s owned compaction work — defects found in its touched files route through coordination, not duplicate edits\n\n### Must Not\n- Must not introduce a second competing gate-ownership table that can drift from `docs/adv-gates.md` — one source of truth, others reference it\n- Must not encode heuristic/asserted behavior as fact — every map line item and every source fix must trace to a command contract, spec, tool schema, or test\n- Must not weaken or restate approval boundaries incorrectly (Tier A vs Tier B vs machine-enforced distinctions must match `docs/command-voice-standard.md` and gate specs)\n- Must not silently change runtime behavior — any code-level fix requires explicit user approval at agreement/design\n\n## Affected Code\n- `docs/adv-workflow.md`, `docs/adv-gates.md` (edits)\n- Possibly one new docs file (design decision)\n- `.opencode/command/adv-*.md` / `ADV_INSTRUCTIONS.md` — conditional, defect-proven only\n- One new/extended test file under `plugin/src/` (docs-drift anchoring)\n\n## Constraints\n- Primarily docs + tests; source fixes gated on proven defects with explicit approval for anything behavior-affecting\n- `pnpm run check` and targeted asset tests must pass\n\n## Impact\nLow-to-medium risk. Documentation accuracy + drift protection; bounded source fixes where defects proven. Behavior changes only with explicit approval.\n\n## Context\nOrigin: 2026-07-13 session review of an ad-hoc gate/task/sub-agent table. Review surfaced ordering errors (TDD, report-vs-checkpoint, CI-vs-archive), attribution errors (reviewer remediation authority, machine-enforced planning readiness), and missing items (worktree isolation, dispositions, ops blockers, wisdom, reflection) — none of which any canonical doc currently prevents.\n\n## Discovery Agenda\n1. Verify each claimed line item against its owning command contract (`adv-apply.md`, `adv-review.md`, `adv-harden.md`, `adv-archive.md`) — the session table was partially memory-derived; discovery must source every row\n2. **Classify each reviewed issue: docs-render-only vs command-contract defect vs instructions defect vs code-enforced defect** — this classification drives the in-scope conditional fixes\n3. Placement decision input: does the map live in `adv-workflow.md`, `adv-gates.md`, or a new doc? Which existing tests already pin these files?\n4. Exact archive-phase ordering: confirm harden → sign-off → `adv_change_archive phase9` → `adv-ci-waiter` → release-gate completion against `adv-archive.md` and `archive-release-finalization` tests\n5. Overlap check with in-flight `updateAgentGuide` (command-file compaction) — enumerate file-set intersection and define coordination protocol for any shared file\n6. Which existing spec anchors (rq-*) cover gate artifact enforcement, and should map rows cite them\n7. Confirm dispositions (design-concern, verification-evidence) and ops-followup blocker semantics against `advance-workflow.md` spec and gate-readiness code",
+    "problemStatement": "Advance has no single canonical, reviewable artifact mapping the 7-gate lifecycle to its per-gate line items: required tasks, artifacts, writers (orchestrator / sub-agent / tool / user), approval types, and ordering. Agents and users reconstruct this map ad hoc from scattered command contracts, producing plausible-but-wrong renderings (wrong TDD ordering, wrong CI/archive sequence, misattributed remediation authority, missing dispositions/ops blockers/worktree isolation). Existing docs also carry direct defects: docs/adv-workflow.md claims proposal produces \"success criteria\" (contradicting adv-gates.md and the /adv-proposal contract) and its ownership table omits proposal.md. Desired outcome: fix the identified doc defects and add one durable, test-anchored per-gate workflow reference map that agents cite instead of re-deriving.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Fix the two verified defects in `docs/adv-workflow.md` (proposal \"success criteria\" claim; incomplete proposal-artifact row).\n2. Add one canonical per-gate line-item map (table + per-gate line items) covering all 7 gates: ordered line items, artifacts/durable outputs, writer roles, approval types, sub-agent contributors.\n3. Anchor the map with drift tests so command-contract edits that invalidate it fail CI.\n\n## Success Criteria\n\n- **SC1** — One canonical per-gate line-item map exists in repo docs; \"what happens at each gate, who writes what, who approves\" answerable from one accurate source without re-derivation.\n- **SC2** — Workflow docs no longer self-contradict on gate outputs.\n- **SC3** — Command-contract edits that invalidate the map are caught by tests, not manual review.\n\n## Acceptance Criteria\n\n- **AC1** — `docs/adv-workflow.md` no longer claims proposal produces success criteria, and its ownership table lists both `problem-statement.md` + `proposal.md`, consistent with `docs/adv-gates.md`.\n- **AC2** — Canonical map covers all 7 gates, each with ordered line items, artifact/durable output, writer role (narrative author / persisting tool / approver), approval type (machine-enforced / Tier A / Tier B), and sub-agent contributors; every row traces to a command contract, spec anchor (`rq-*`), or tool schema.\n- **AC3** — Map includes the trunk-verified previously-missing line items: worktree isolation at execution start, design-concern dispositions, ops follow-up `blocks` release blockers, advisory wisdom capture, archive-invoked non-blocking reflection — and excludes unreleased verification-evidence dispositions. [warrant: tool:adv_worktree_resume, tool:adv_design_concern_disposition, tool:adv_reflect]\n- **AC4** — New/extended drift test pins the map to stable anchors (stable phrases / `rq-*` IDs) in owning sources; a contradicting map fails tests. `docs/adv-workflow.md` gains test coverage (currently zero).\n- **AC5** — `pnpm run check` and targeted asset tests exit 0.\n\n## Constraints\n\n- **C1** — Docs + tests only; no runtime, tool, schema, or command-file changes.\n- **C2** — Single source of truth for gate ownership; map references `docs/adv-gates.md`, no competing table.\n- **C3** — Drift anchors use stable phrases/rq-IDs, not brittle full-prose matches (`updateAgentGuide` is actively rewording 30 command files).\n\n## Avoidances\n\n- **DONT1** — No rows documenting unreleased behavior (verification-evidence dispositions stay out until `strengthenAgentEvidence` ships).\n- **DONT2** — No memory-asserted rows; every line item source-verified.\n- **DONT3** — No incorrect restatement of approval tiers (must match `docs/command-voice-standard.md` + `rq-inlineApproval01`).\n\n## Out of Scope\n\n- **OOS1** — Command-file (`.opencode/command/adv-*.md`) edits.\n- **OOS2** — `ADV_INSTRUCTIONS.md` restructuring.\n- **OOS3** — Runtime/tool/schema behavior changes and workflow redesign.\n\n## Preview Applicability\n\n- `visual_surface: false` — markdown docs + test files only; no browser-visible or rendered UI output affected.\n- `preview_expectation`: `exact_route_required: not_applicable`, `data_state_expectation: not_applicable`, `viewport_expectation: not_applicable`. Rationale: non-visual change.\n\n## Decisions\n\n### User Decisions\n\n1. **Scope narrowed to docs + tests only** — discovery proved command contracts correct (all reviewed ordering/attribution claims CONFIRMED at source); conditional command/code fixes dropped. Why it matters: bounds blast radius, removes `updateAgentGuide` collision.\n2. **Unreleased verification-evidence dispositions omitted** — map documents trunk truth only; row added when `strengthenAgentEvidence` releases. Why it matters: docs must not describe capabilities that do not exist yet.\n3. **Format: table + per-gate line items** — multi-row per gate (ordered line items, artifact, writer role, approval type, sub-agents). Why it matters: the compact single-row form was what produced the original ambiguity.\n\n### Agent Decisions (LBP)\n\n1. **Drift anchoring via stable phrases/rq-* IDs** — matches existing command-asset test idiom; avoids brittle prose pinning while 30 command files are being reworded in-flight.\n2. **Spec deltas: none** — docs + tests, no behavior change; map rows cite existing anchors (`rq-gateArtifactEnforcement01`, `rq-acceptanceProjection01`, `rq-releaseFinalization01..04`, `rq-designQualityEvidence01`, `rq-requiredObligation01`, `rq-designval01-04`, `rq-inlineApproval01`, `rq-autonomy01`).\n3. **Wisdom capture documented as advisory** — enabled + named in archive phaseGoal but not command-mandated; map must not overstate it.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved criteria via `approve` at Phase 4.5.1 checkpoint (2026-07-13).",
+    "design": "# Design\n\n## Architecture Overview\n\nDocs-only change with test anchoring. The canonical per-gate line-item map lives as a new section **\"Per-Gate Line-Item Map\"** in `docs/adv-gates.md` — the existing home of the gate contract (gate table, status values, enforcement rules, gate-specific behaviors). `docs/adv-workflow.md` keeps its diagram role: its two defects are fixed and it gains a one-line reference to the map. No new doc file; no competing ownership table (C2).\n\nA new asset test `plugin/src/adv-workflow-docs-assets.test.ts` pins both docs using the existing presence-based command-asset idiom (content `includes`/regex on stable anchors), giving `docs/adv-workflow.md` its first test coverage (AC4).\n\n## Key Decisions\n\n1. **Map placement: `docs/adv-gates.md`** — it already owns gate-by-gate behavior and has existing test pinning (`adv-skill-backed-commands-assets.test.ts:718-743`). Adding a second gate doc would violate C2. `adv-workflow.md` references it. Alternative (new `docs/adv-lifecycle-map.md`) rejected: third surface to keep consistent.\n2. **Map shape: compact overview + per-gate line-item tables** (user decision, discovery). Per gate: ordered rows `| # | Line item | Artifact / durable output | Writer role | Approval |`. Writer-role vocabulary is fixed: `orchestrator (author)`, `tool (persist)`, `sub-agent: {name}`, `user (approve)`. Approval vocabulary fixed: `machine-enforced`, `Tier A inline`, `Tier B whitelist-only`, `none`.\n3. **Row provenance: every line item carries a source anchor** — an inline HTML comment citing the owning command file, tool name, or `rq-*` spec ID. Satisfies DONT2 structurally and gives the drift test deterministic anchors.\n4. **Drift-test anchoring on stable identifiers, not prose** (C3): tool names, spec IDs (`rq-releaseFinalization01`, `rq-designQualityEvidence01`, `rq-inlineApproval01`, ...), and approval-vocabulary tokens (`userApproved: true`, `Tier B`). These survive `updateAgentGuide`'s prose rewording because tool names/rq-IDs are already pinned by other census tests.\n5. **Negative assertion for DONT1**: test asserts the map does NOT mention verification-evidence dispositions (`VERIFICATION_EVIDENCE_MISSING`) — flips to a positive row when `strengthenAgentEvidence` ships and this test is deliberately updated.\n6. **Wisdom row wording: \"advisory — enabled for orchestrator + sub-agents; named in archive phaseGoal; not command-mandated\"** — prevents overstating (discovery Agent Decision 3).\n7. **Worktree-row anchor (validator fix folded in):** the execution worktree-isolation row anchors on `adv_worktree_create` and the literal phrase \"Worktree Isolation\" (both grep-present in `adv-apply.md` Phase 0.1). `adv_worktree_resume` is mentioned as resume path but is NOT the drift-test anchor — Phase 0.1's create-path tool is.\n\n## ADR Drafts\n\nNone — decisions are reversible, unsurprising, and low-tradeoff (rubric not met).\n\n## Implementation Strategy\n\n1. Fix `docs/adv-workflow.md`: line 20 box text → `problem-statement.md + proposal.md` (drop \"success criteria\"); ownership table proposal row → both artifacts; add map cross-reference line.\n2. Append \"Per-Gate Line-Item Map\" section to `docs/adv-gates.md`: 7 gate subsections + 1 post-release subsection (reflection), each a line-item table per Decision 2, rows source-anchored per Decision 3. Content sourced from discovery evidence (all rows already verified at file:line).\n3. Add `plugin/src/adv-workflow-docs-assets.test.ts`: RED first (assert corrected content + map anchors before docs edits exist), then GREEN after docs edits. Assertions: (a) adv-workflow.md defect fixes, (b) all 7 gate subsections present, (c) required stable anchors present per AC3 rows, (d) DONT1 negative assertion, (e) approval-type vocabulary present including planning `userApproved: true` machine-enforcement.\n4. Run targeted tests + existing `adv-skill-backed-commands-assets.test.ts` (guards the one pre-existing adv-gates.md test) + `pnpm run check`.\n\n## LBP Analysis\n\nPresence-based asset tests over docs are the established repo idiom (23+ command-asset test files); reusing it is the long-term-consistent choice vs inventing a docs-lint or generated-doc pipeline (over-engineering for one map; violates proportionality). Placing the map beside the gate contract keeps locality of behavior (P04).\n\n## Affected Components\n\n- `docs/adv-workflow.md` (defect fixes + reference)\n- `docs/adv-gates.md` (new map section)\n- `plugin/src/adv-workflow-docs-assets.test.ts` (new)\n- No runtime/tool/schema/command files (C1)\n\n## Design-Derived Criteria\n\n- **DD1** — Every map row carries an inline source anchor (command file + phase, tool name, or `rq-*` ID); the drift test asserts anchor presence for AC3 rows.\n- **DD2** — Drift test uses only stable identifiers (tool names, rq-IDs, fixed vocabulary tokens) as anchors, each literally grep-present in its owning source; no full-sentence prose matching.\n- **DD3** — Map contains exactly one writer-role vocabulary and one approval-type vocabulary, each defined once in a legend above the tables.\n\n## Risks / Mitigations\n\n- **Existing adv-gates.md test breaks on append** → run `adv-skill-backed-commands-assets.test.ts` targeted; append-only edits, no existing-line changes.\n- **updateAgentGuide merge reword collides with anchors** → anchors are tool names/rq-IDs (Decision 4), already census-pinned; zero file overlap on docs files (verified in discovery).\n- **Map drifts when strengthenAgentEvidence ships** → DONT1 negative assertion forces a conscious test+map update at that release.\n\n## Design Leverage Scout\n\nScout: skipped — bounded docs+test change; opportunity surface effectively zero; no external leverage viable.\n\n## Validation Result\n\nIndependent adv-researcher validator: **caution** (0 blockers, high confidence, low risk). All anchors source-verified: map placement correct per C2 (`adv-gates.md:11-152`), both adv-workflow.md defects confirmed real (`:20`, `:65`), test idiom confirmed (`adv-skill-backed-commands-assets.test.ts:718-743`), all cited rq-IDs real (`spec.json:384,2125,4786`), DONT1 safe (0 trunk matches for VERIFICATION_EVIDENCE_MISSING). One finding folded in as Decision 7: worktree-row anchor corrected from `adv_worktree_resume` to `adv_worktree_create` + \"Worktree Isolation\" (literal grep-presence in adv-apply.md Phase 0.1). Alternatives correctly dispositioned (third doc surface, generated-doc pipeline, full-prose matching — all rejected with rationale).",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nFixed two documentation defects and added a canonical per-gate lifecycle map so anyone asking \"what happens at each gate, who writes what, who approves\" gets one accurate answer from repo docs instead of reconstructing it ad hoc.\n\n## Why It Matters\nBefore this change, `docs/adv-workflow.md` contradicted `docs/adv-gates.md` on what the proposal gate produces (claiming \"success criteria\" when the proposal gate explicitly does not own those), and the ownership table omitted `proposal.md`. No canonical per-gate line-item map existed anywhere — agents and users reconstructed one from scattered command contracts, producing plausible-but-wrong renderings with incorrect TDD ordering, CI/archive sequencing, and misattributed remediation authority. A drift test now catches future contradictions automatically.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Fixed `docs/adv-workflow.md`: proposal box text corrected (success criteria → proposal.md), ownership table lists both artifacts, cross-reference to Per-Gate Line-Item Map added\n2. Added Per-Gate Line-Item Map to `docs/adv-gates.md` (append-only, 119 lines): legend (writer-role + approval-type vocabularies), 7 gate subsections + Post-Release, each with ordered line-item table sourced from verified command contracts and spec anchors\n3. Created `plugin/src/adv-workflow-docs-assets.test.ts`: 16 presence-based assertions pinning stable anchors (tool names, rq-IDs, vocabulary tokens) + 2 negative guards excluding unreleased behavior\n\n## What Was Verified\n- Verdict: APPROVED with 0 findings (0 blockers, 0 issues, 0 suggestions)\n- Tests: 71/71 targeted pass (16 new + 55 existing guard); pnpm run check green (schemas, typecheck, isolation, lockfile, lint, format)\n- Preview URL: not_applicable (docs+test change, no browser-visible output)\n- Contract matrix: 17/17 rows passed/respected, 0 failing\n\n## Remaining Concerns\nNone. Verification-evidence disposition row intentionally excluded (exists only on in-flight `strengthenAgentEvidence`); map update deferred to that change's release.\n\n## Supporting Evidence\n- Tasks: tk-59ad6979e13c (T1 RED tr_mrjoeiqm → GREEN tr_mrjoffxd), tk-7688ebc8df77 (T2 RED tr_mrjokbr6 → GREEN tr_mrjol9tj), tk-c78138fa6ff7 (T3 verify tr_mrjoou3u + pnpm run check)\n- Contract review matrix: 17 rows, 0 failing\n- Scanner bundle (review): inline 12-dimension review, 0 findings\n- Scanner bundle (harden): inline 6-dimension harden, 0 findings\n- Design validator: caution, 0 blockers, high confidence\n\n## Consequence Context\n1. **Delivered value:** Canonical per-gate lifecycle map + fixed doc contradictions + drift protection — anyone reading repo docs gets accurate workflow information\n2. **Enabling-only/follow-up dependency:** None blocking; verification-evidence disposition row deferred to strengthenAgentEvidence release\n3. **Ops readiness:** n/a — docs+test change, no production/ops impact (harden evidence: no env vars, no migrations, no external services, no CI/CD changes)\n4. **Migration/data impact:** n/a — no data, no migration (harden deployment-readiness scanner: clean)\n5. **Frontend/preview impact:** not_applicable — no browser-visible output (visual_surface: false per agreement)\n6. **Collision/release risk:** Low — merge compatibility clean (git merge --no-commit --no-ff origin/trunk: Already up to date); zero file overlap with in-flight updateAgentGuide (verified during discovery)\n7. **Open follow-ups:** None blocking release; strengthenAgentEvidence will need a map row added when it ships (advisory, non-blocking)\n8. **Next action:** Archive sign-off → /adv-archive fixWorkflowLifecycleMap\n\n## Release Readiness Summary\n- Status: READY (0 blockers, 0 high, 0 medium across all 6 harden dimensions)\n- Merge compatibility: clean (trunk up-to-date, no conflicts)\n- Review findings: 0 actionable (APPROVED with 0 findings)\n- Contract proof: 17/17 rows passed/respected\n- Cleanup: 0 candidates (no temp files, debug code, dead imports, or orphaned tests)\n- Test coverage: 1 test file covers both docs files; TDD RED→GREEN evidence on both implementation tasks\n- Production/deployment readiness: N/A (docs+test only, no runtime code)",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T20:46:13.078Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** — One canonical per-gate line-item map exists in repo docs; \"what happens at each gate, who writes what, who approves\" answerable from one accurate source without re-derivation. | pass | Per-Gate Line-Item Map in docs/adv-gates.md:156-271 covers all 7 gates + Post-Release with artifacts, writer roles, approval types, sub-agents |\n| SC2 | success_criterion | **SC2** — Workflow docs no longer self-contradict on gate outputs. | pass | adv-workflow.md:20 now says 'problem-statement.md + proposal.md'; ownership table:65 lists both artifacts — consistent with adv-gates.md:13 |\n| SC3 | success_criterion | **SC3** — Command-contract edits that invalidate the map are caught by tests, not manual review. | pass | 16 presence-based assertions in adv-workflow-docs-assets.test.ts pin stable anchors; RED→GREEN verified |\n| AC1 | acceptance_criterion | **AC1** — `docs/adv-workflow.md` no longer claims proposal produces success criteria, and its ownership table lists both `problem-statement.md` + `proposal.md`, consistent with `docs/adv-gates.md`. | pass | Test asserts no 'success criteria' + both artifacts in ownership table; tr_mrjoffxd GREEN 3/3 pass |\n| AC2 | acceptance_criterion | **AC2** — Canonical map covers all 7 gates, each with ordered line items, artifact/durable output, writer role (narrative author / persisting tool / approver), approval type (machine-enforced / Tier A / Tier B), and sub-agent contributors; every row traces to a command contract, spec anchor (`rq-*`), or tool schema. | pass | Map covers 7 gates + Post-Release with ordered line items, artifacts, writer roles, approval types, sub-agent contributors; HTML source anchors per gate |\n| AC3 | acceptance_criterion | **AC3** — Map includes the trunk-verified previously-missing line items: worktree isolation at execution start, design-concern dispositions, ops follow-up `blocks` release blockers, advisory wisdom capture, archive-invoked non-blocking reflection — and excludes unreleased verification-evidence dispositions. | pass | Worktree Isolation (adv_worktree_create), adv_design_concern_disposition, checkOpsFollowupReleaseBlockers, Wisdom capture (advisory), adv_reflect all present; VERIFICATION_EVIDENCE_MISSING absent (negative assertion passes) |\n| AC4 | acceptance_criterion | **AC4** — New/extended drift test pins the map to stable anchors (stable phrases / `rq-*` IDs) in owning sources; a contradicting map fails tests. `docs/adv-workflow.md` gains test coverage (currently zero). | pass | New test file (previously zero coverage for adv-workflow.md); 16 assertions pin stable anchors; tr_mrjol9tj GREEN 16/16 pass |\n| AC5 | acceptance_criterion | **AC5** — `pnpm run check` and targeted asset tests exit 0. | pass | pnpm run check green (schemas, typecheck, isolation, lockfile, lint, format); 71/71 targeted tests pass |\n| C1 | constraint | **C1** — Docs + tests only; no runtime, tool, schema, or command-file changes. | respected | git diff: exactly 3 files changed (docs/adv-workflow.md, docs/adv-gates.md, plugin/src/adv-workflow-docs-assets.test.ts) — no runtime/tool/schema/command files |\n| C2 | constraint | **C2** — Single source of truth for gate ownership; map references `docs/adv-gates.md`, no competing table. | respected | Single ownership table remains in adv-gates.md; adv-workflow.md:75 cross-references it — no competing table |\n| C3 | constraint | **C3** — Drift anchors use stable phrases/rq-IDs, not brittle full-prose matches (`updateAgentGuide` is actively rewording 30 command files). | respected | Anchors are tool names (adv_worktree_create, adv_design_concern_disposition, adv_reflect), rq-IDs (rq-designQualityEvidence01), vocabulary tokens (userApproved: true, Tier B) — not prose |\n| DONT1 | avoidance | **DONT1** — No rows documenting unreleased behavior (verification-evidence dispositions stay out until `strengthenAgentEvidence` ships). | respected | Negative test assertions confirm VERIFICATION_EVIDENCE_MISSING and 'verification-evidence disposition' absent from map |\n| DONT2 | avoidance | **DONT2** — No memory-asserted rows; every line item source-verified. | respected | Every gate subsection has HTML source anchor (command file + phase, tool name, or rq-ID); all rows verified during discovery explore scan |\n| DONT3 | avoidance | **DONT3** — No incorrect restatement of approval tiers (must match `docs/command-voice-standard.md` + `rq-inlineApproval01`). | respected | Approval types match: planning=machine-enforced (userApproved: true), proposal/discovery/acceptance=Tier A inline, archive sign-off=Tier B whitelist-only — consistent with rq-inlineApproval01 |\n| OOS1 | out_of_scope | **OOS1** — Command-file (`.opencode/command/adv-*.md`) edits. | not_applicable | No command files edited; discovery proved command contracts correct at source |\n| OOS2 | out_of_scope | **OOS2** — `ADV_INSTRUCTIONS.md` restructuring. | not_applicable | ADV_INSTRUCTIONS.md not modified |\n| OOS3 | out_of_scope | **OOS3** — Runtime/tool/schema behavior changes and workflow redesign. | not_applicable | No runtime/tool/schema behavior changes |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T19:49:23.813Z",
+      "contentHash": "310767c1ef0ebc6151f73e7335b34a74aea0429523c25c09e86b6509024811f0",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T19:46:21.779Z",
+      "contentHash": "08f4c522d802c60dd1a577e92ef68d698e7c7f435e4104e93eb33680a532d12a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T20:14:06.238Z",
+      "contentHash": "eef51972765aff49cdabc4d68798bf8a1e65a48123693dc0bb56c3d39f7f4951",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T20:21:26.180Z",
+      "contentHash": "198090557939eec3e72a22e07f7a360e376cc076625b3b876b58d8342ffaf43b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T20:49:35.018Z",
+      "contentHash": "9089f83d760e3bea56a468c41a37687cb67bcc2727bb0839e99d2423de6b213d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T20:49:35.018Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

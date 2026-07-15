@@ -8,9 +8,12 @@
  * Outcome taxonomy:
  *   - transient_prompt_context  → context_update_for_adv, recommendation,
  *                                 suggested_next_commands
- *   - agenda                    → follow_ups, required_follow_ups,
+ *   - report_follow_up          → follow_ups, required_follow_ups,
  *                                 designer design_dimensions concerns and
- *                                 neighboring_recommendations
+ *                                 neighboring_recommendations (retireAgendaWorkflow:
+ *                                 replaces the retired "agenda" label; these
+ *                                 remain source-attributed report metadata and
+ *                                 are promoted only via typed tools)
  *   - wisdom_candidate          → reviewer wisdom_candidates
  *   - spec_delta_candidate      → explicit typed facts only
  *   - epic_terminal_note        → supplied Epic membership context
@@ -143,17 +146,20 @@ function classifyTaskScopedReport(
     );
   }
 
-  // follow_ups are consumed into agenda items by the report consumer.
+  // follow_ups remain source-attributed report metadata (retireAgendaWorkflow
+  // AC3); they are not written into any queue by the report consumer.
   if ("follow_ups" in report && Array.isArray(report.follow_ups)) {
     for (const followUp of report.follow_ups) {
       const content = asString(followUp);
       if (content) {
-        addFact(facts, report, "agenda", "follow_ups", content);
+        addFact(facts, report, "report_follow_up", "follow_ups", content);
       }
     }
   }
 
-  // required_follow_ups become required-obligation agenda items.
+  // required_follow_ups are typed obligations routed via adv_report_followup_promote
+  // (task or fast-follow child) or adv_followup_promote (ops child). They are
+  // never written into an unowned queue (retireAgendaWorkflow AC2).
   if (
     "required_follow_ups" in report &&
     Array.isArray(report.required_follow_ups)
@@ -162,7 +168,7 @@ function classifyTaskScopedReport(
       addFact(
         facts,
         report,
-        "agenda",
+        "report_follow_up",
         "required_follow_ups",
         rf.text,
         rf.source_contract_id,
@@ -213,8 +219,9 @@ function classifyTaskScopedReport(
     }
   }
 
-  // designer design_dimensions concerns and neighboring_recommendations are
-  // promoted into required-obligation agenda items.
+  // designer design_dimensions concerns and neighboring_recommendations carry
+  // typed structural blockers via gate-readiness (retireAgendaWorkflow AC4);
+  // they surface as report follow-up facts but are not written into any queue.
   if (report.agent === "adv-designer") {
     const designerReport = report as DesignerSubagentReport;
     for (const dim of DESIGN_DIMENSION_KEYS) {
@@ -223,14 +230,20 @@ function classifyTaskScopedReport(
         addFact(
           facts,
           report,
-          "agenda",
+          "report_follow_up",
           "design_dimensions",
           `${dim}${notes ? ` — ${notes}` : ""}`,
         );
       }
     }
     for (const rec of designerReport.neighboring_recommendations) {
-      addFact(facts, report, "agenda", "neighboring_recommendations", rec.what);
+      addFact(
+        facts,
+        report,
+        "report_follow_up",
+        "neighboring_recommendations",
+        rec.what,
+      );
     }
 
     for (const decision of designerReport.decisions) {

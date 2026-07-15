@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
 import { SpecSchema } from "../types";
+import { REPAIR_ACTION_ENUM } from "../tools/snapshot";
 
 const REPO_ROOT = resolve(__dirname, "../../..");
 const SPEC_PATH = join(
@@ -98,6 +99,41 @@ describe("snapshot-health spec", () => {
     expect(wl?.body).toContain("filter-repo");
   });
 
+  // AC2 / DDC6 parity: the spec whitelist and the runtime REPAIR_ACTION_ENUM
+  // must name exactly the same closed repair-action set, in both directions.
+  test("rq-snapshotHealthRepairWhitelist01 names exactly the runtime REPAIR_ACTION_ENUM", () => {
+    const parsed = SpecSchema.parse(specRaw);
+    const wl = parsed.requirements.find(
+      (r) => r.id === "rq-snapshotHealthRepairWhitelist01",
+    );
+    expect(wl).toBeDefined();
+
+    // Extract backtick-quoted whitelist tokens from the requirement body.
+    // Prohibited ops (`gc`, `prune`, `filter-repo`, `repack`) never match the
+    // delete_* naming convention shared by every whitelisted action.
+    const specActions = new Set(
+      [...wl!.body.matchAll(/`([^`]+)`/g)]
+        .map((m) => m[1])
+        .filter((token) => token.startsWith("delete_")),
+    );
+
+    expect(
+      [...specActions].sort(),
+      "spec whitelist body must name exactly the runtime repair actions",
+    ).toEqual([...REPAIR_ACTION_ENUM].sort());
+
+    // The acceptance scenario must also name every runtime action so the
+    // closed set is pinned in scenario prose, not only the body.
+    const scenario = wl!.scenarios?.find(
+      (s) => s.id === "rq-snapshotHealthRepairWhitelist01.1",
+    );
+    expect(scenario).toBeDefined();
+    const scenarioText = JSON.stringify(scenario);
+    for (const action of REPAIR_ACTION_ENUM) {
+      expect(scenarioText).toContain(action);
+    }
+  });
+
   test("rq-snapshotHealthRaceGuard01 requires re-check before deletion", () => {
     const parsed = SpecSchema.parse(specRaw);
     const race = parsed.requirements.find(
@@ -107,5 +143,23 @@ describe("snapshot-health spec", () => {
     expect(race?.body).toContain("lsof");
     expect(race?.body).toContain("re-resolve");
     expect(race?.body).toContain("TOCTOU");
+  });
+
+  test("rq-snapshotHealthAuditTrail01 requires purpose-specific audit log", () => {
+    const parsed = SpecSchema.parse(specRaw);
+    const audit = parsed.requirements.find(
+      (r) => r.id === "rq-snapshotHealthAuditTrail01",
+    );
+    expect(audit).toBeDefined();
+    expect(audit?.body).toContain("snapshot-repair audit log");
+    expect(audit?.body).toContain("append-only");
+    expect(audit?.body).toContain("pattern");
+    expect(audit?.body).toContain("target_path");
+    expect(audit?.body).toContain("before_summary");
+    expect(audit?.body).toContain("after_summary");
+    expect(audit?.body).toContain("outcome");
+    expect(audit?.body).toContain("recorded_at");
+    expect(audit?.body).not.toContain("adv_agenda_add");
+    expect(audit?.body).not.toContain("agenda");
   });
 });

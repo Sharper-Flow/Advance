@@ -1829,4 +1829,124 @@ Vague in-flight work.
       });
     });
   });
+
+  describe("adv_status bounded summary + request-local reuse (task 3, AC3/AC4)", () => {
+    test("view:summary passes the recent bound into store.status before enrichment", async () => {
+      const statusSpy = vi.spyOn(store, "status");
+
+      const result = await statusTools.adv_status.execute(
+        { view: "summary" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.view).toBe("summary");
+      expect(statusSpy).toHaveBeenCalledWith({ recentLimit: 10 });
+    });
+
+    test("full views call store.status without a recent bound", async () => {
+      const statusSpy = vi.spyOn(store, "status");
+
+      const result = await statusTools.adv_status.execute(
+        { view: "changes" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.view).toBe("changes");
+      expect(statusSpy).toHaveBeenCalledWith(undefined);
+    });
+
+    test("enrichment reuses request-local resolved documents with no duplicate reads", async () => {
+      const makeDoc = (id: string) => ({
+        $schema: "https://advance.dev/schemas/change.v1.json",
+        id,
+        title: `Change ${id}`,
+        status: "draft" as const,
+        created_at: "2026-05-07T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        gates: createDefaultGates(),
+        reentry_history: [],
+        wisdom: [],
+        documents: { proposal: `# Proposal for ${id}` },
+      });
+      const docs = [makeDoc("change-a"), makeDoc("change-b")];
+      const now = new Date().toISOString();
+      store.status = vi.fn(async () => ({
+        specs: { count: 0, capabilities: [] },
+        changes: {
+          active: 2,
+          byStatus: { draft: 2, archived: 0, closed: 0 },
+          recent: docs.map((doc) => ({
+            id: doc.id,
+            title: doc.title,
+            status: doc.status,
+            completedTasks: 0,
+            taskCount: 0,
+            lastActivityAt: now,
+            minutesSinceActivity: 5,
+          })),
+        },
+        recommendations: [],
+        resolvedChanges: new Map(docs.map((doc) => [doc.id, doc])),
+      })) as unknown as Store["status"];
+      const getSpy = vi.spyOn(store.changes, "get");
+
+      const result = await statusTools.adv_status.execute(
+        { view: "changes" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      // AC4 regression: both rows resolved during status resolution, so
+      // enrichment must not re-read either change.
+      expect(getSpy).not.toHaveBeenCalled();
+      const recent = parsed.changes.recent as Array<Record<string, unknown>>;
+      expect(recent).toHaveLength(2);
+      for (const row of recent) {
+        expect(row._contextSnapshot).toBeDefined();
+      }
+      // The request-local map is transport-only and must never leak into
+      // the serialized tool output.
+      expect(parsed.resolvedChanges).toBeUndefined();
+    });
+
+    test("typed degradation warnings surface as recommendations in every view", async () => {
+      store.status = vi.fn(async () => ({
+        specs: { count: 0, capabilities: [] },
+        changes: {
+          active: 0,
+          byStatus: { draft: 0, archived: 0, closed: 0 },
+          recent: [],
+        },
+        recommendations: [],
+        warnings: [
+          {
+            code: "SOURCE_BOUND_EXCEEDED",
+            source: "workflow_query",
+            message:
+              "Read bound (10 candidate(s)) truncated 2 candidate(s); counts and recency are incomplete.",
+            omittedCount: 2,
+            omittedIds: ["change-x", "change-y"],
+          },
+        ],
+        hydrationStats: { boundedOmitted: 2 },
+      })) as unknown as Store["status"];
+
+      const result = await statusTools.adv_status.execute(
+        { view: "summary" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      const recommendations = parsed.recommendations as string[];
+      expect(
+        recommendations.find((r) => /Status read incomplete/.test(r)),
+      ).toBeDefined();
+      expect(
+        recommendations.find((r) => /truncated 2 candidate/.test(r)),
+      ).toBeDefined();
+    });
+  });
 });

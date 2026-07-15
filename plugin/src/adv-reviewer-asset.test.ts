@@ -166,12 +166,6 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_task_checkpoint",
   // Gate mutation
   "adv_gate_complete",
-  // Agenda mutations
-  "adv_agenda_add",
-  "adv_agenda_start",
-  "adv_agenda_complete",
-  "adv_agenda_cancel",
-  "adv_agenda_prioritize",
   // Temporal
   "adv_temporal_worker_restart",
   // Worktree mutations

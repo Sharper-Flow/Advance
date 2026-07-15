@@ -2,7 +2,6 @@
 name: adv-refactor
 description: Refresh a stale proposal or batch-refresh the oldest 30% of active changes
 ---
-<!-- manifest: adv-refactor · requiresChangeId: false · prereqs: [adv-proposal] -->
 # ADV Refactor — Refresh Stale Proposals
 
 Bidirectional reconciliation: update stale change proposals to match current codebase reality.
@@ -43,7 +42,7 @@ Spawn `explore` × 3:
 2. Obsolescence Detector — implemented-elsewhere requirements; tests as evidence.
 3. Conflict Scanner — overlaps with recent archived changes.
 
-Inline dependency check: Context7 (`context7_resolve-library-id` → `context7_query-docs`) against changelogs/release notes; `webfetch` fallback.
+Inline dependency check: Context7 (resolve library → query docs) against changelogs/release notes; `webfetch` fallback.
 
 ---
 
@@ -85,4 +84,4 @@ Emit REFACTOR REPORT: age, drift count, outdated deps, obsolete requirements. Dr
 | Analysis | Task tool (explore × 3) |
 | Add task | `adv_task_add` |
 | Validate | `adv_change_validate` |
-| Dep check | `context7_resolve-library-id`, `context7_query-docs`, `webfetch` |
+| Dep check | Context7 resolve + query docs, `webfetch` |

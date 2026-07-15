@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-Lhz_eo",
+      "type": "gotcha",
+      "content": "Single-file test loops in plugin/: `pnpm test -- src/foo.test.ts` behaved like a full-suite run (Temporal worker bundle builds, itest activity, 120s timeout), while `bin/oc-test targeted -- src/foo.test.ts` ran exactly one file in ~7s. Use `bin/oc-test targeted -- <file>` for tight iteration; reserve `pnpm test` for the full suite.",
+      "source_task": "tk-936177b08749",
+      "recorded_at": "2026-07-14T22:30:53.646Z"
+    }
+  ],
+  "count": 1
+}

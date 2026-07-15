@@ -107,11 +107,30 @@ type _Dependency = z.infer<typeof DependencySchema>;
 // Delta Operations
 // =============================================================================
 
-const DeltaAddSchema = z.object({
+/**
+ * Kebab-case capability key: spec directory name and spec.json `name`.
+ * Accepts new capability slugs; rejects malformed identifiers so capability
+ * keys stay filesystem- and URL-safe. Single source of truth for both the
+ * zod schema and non-zod validation sites (e.g. workflow reducers).
+ */
+export const CAPABILITY_KEY_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+
+export const CapabilityKeySchema = z
+  .string()
+  .regex(
+    CAPABILITY_KEY_PATTERN,
+    "Capability must be kebab-case (lowercase letters, digits, single dashes)",
+  );
+
+export type CapabilityKey = z.infer<typeof CapabilityKeySchema>;
+
+export const DeltaAddSchema = z.object({
   id: z.string(), // dl-Xt5zW3vB
   operation: z.literal("add"),
   requirement: RequirementSchema,
 });
+
+export type DeltaAdd = z.infer<typeof DeltaAddSchema>;
 
 /**
  * Typed partial of RequirementSchema for modify delta changes.

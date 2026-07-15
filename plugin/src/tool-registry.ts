@@ -18,7 +18,7 @@
 
 import { tool, type ToolContext, type ToolResult } from "@opencode-ai/plugin";
 import { z } from "zod";
-import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
+import { safeExecute } from "./utils/safe-execute";
 import {
   formatToolArgPreflightError,
   preflightToolArgs,
@@ -28,11 +28,13 @@ import type { Store } from "./storage/store-types";
 import type { OpencodeClient } from "./utils/opencode-types";
 
 import { specTools } from "./tools/spec";
+import { specDeltaTools } from "./tools/spec-delta";
 import { roadmapTools } from "./tools/roadmap";
 import { backlogTools } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
+import { reportFollowupTools } from "./tools/report-followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractTools } from "./tools/contract";
 import { designConcernTools } from "./tools/design-concern";
@@ -41,12 +43,13 @@ import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
-import { agendaTools } from "./tools/agenda";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { temporalOpsTools } from "./tools/temporal-ops";
 import { checkpointTools } from "./tools/checkpoint";
+import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
+import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
 import { reflectionTools } from "./tools/reflection";
 import { snapshotHealthTools } from "./tools/snapshot";
 import { projectMetadataTools } from "./tools/project-metadata";
@@ -55,6 +58,7 @@ import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
 import { storeConsolidateTools } from "./tools/store-consolidate";
+import { storeCleanupTools } from "./tools/store-cleanup";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -185,7 +189,7 @@ function namedExecute<TArgs>(
   return execute;
 }
 
-/** Tool definition shape expected by bindTool / bindToolSimple. */
+/** Tool definition shape expected by bindTool. */
 interface ToolDef<TArgs, TStore> {
   description: string;
   args: ToolArgsSchema;
@@ -200,13 +204,6 @@ interface ToolDefWithContext<TArgs> {
     args: TArgs,
     ctx: { store: Store; worktree?: string; directory?: string },
   ) => Promise<string>;
-}
-
-/** Tool definition shape for agenda-style tools (directory + optional path). */
-interface ToolDefSimple<TArgs> {
-  description: string;
-  args: ToolArgsSchema;
-  execute: (args: TArgs, dir: string, path?: string) => Promise<string>;
 }
 
 /**
@@ -261,40 +258,15 @@ function bindToolWithContext<TArgs>(
 }
 
 /**
- * Bind an agenda-style tool definition to a directory + optional path.
- * Usage: `adv_agenda_list: bindToolSimple(agendaTools.adv_agenda_list, "adv_agenda_list", directory, store.paths.agenda)`
- */
-function bindToolSimple<TArgs>(
-  def: ToolDefSimple<TArgs>,
-  name: string,
-  dir: string,
-  path?: string,
-) {
-  // Wrap with safeExecuteSimple but pass `dir` as the inner `extra` and
-  // surface `path` via the third "extraPath" slot so enrichment can
-  // include it in error responses.
-  const wrapped = safeExecuteSimple(
-    async (args) => def.execute(args as TArgs, dir, path),
-    name,
-  );
-  return registerTool(
-    def.description,
-    def.args,
-    namedExecute(name, async (args: unknown) => wrapped(args, dir, path)),
-  );
-}
-
-/**
  * Build the complete tool map for the ADV plugin.
  *
  * Encapsulates all 36+ tool registrations so index.ts stays under 500 lines.
- * Uses bindTool for store-based tools and bindToolSimple for agenda tools.
- * Special cases (type coercion, extra args) use registerTool directly.
+ * Uses bindTool for store-based tools. Special cases (type coercion, extra
+ * args) use registerTool directly.
  */
 export function createToolMap(
   store: Store,
   directory: string,
-  agendaPath: string | undefined,
   serverUrl?: URL,
   client?: OpencodeClient,
 ) {
@@ -302,16 +274,23 @@ export function createToolMap(
     // Spec Tools
     adv_spec: bindToolWithContext(specTools.adv_spec, "adv_spec", store),
 
-    // Roadmap Tool (legacy — delegates internally to adv_backlog_state via
-    // Visibility query when Temporal reachable; kept for backward compat)
-    adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
-
-    // Backlog Coordination Tools (rq-backlogCoord01..07)
-    adv_backlog_state: bindTool(
-      backlogTools.adv_backlog_state,
-      "adv_backlog_state",
+    // Spec Delta Writer (addSpecDeltaWriter / roadmap #64): append-only
+    // add-operation delta under change.deltas[capability]. Archive remains
+    // the sole global-spec writer; this tool only mutates the change-owned
+    // durable delta record.
+    adv_delta_add: bindTool(
+      specDeltaTools.adv_delta_add,
+      "adv_delta_add",
       store,
     ),
+
+    // Roadmap Tool — the sole backlog reader. Reads the backlog snapshot
+    // (or live GitHub Project) and queries Visibility directly for O(1)
+    // active-change annotation; adv_backlog_state was removed by
+    // consolidateAdvToolSurface2 (tk-f022bfadbd81).
+    adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
+
+    // Backlog Coordination Tools (rq-backlogCoord04)
     adv_wip_state: bindTool(backlogTools.adv_wip_state, "adv_wip_state", store),
 
     // Backlog Shell Tools
@@ -377,14 +356,61 @@ export function createToolMap(
       "adv_change_validate",
       store,
     ),
-    adv_change_archive: bindTool(
-      changeTools.adv_change_archive,
-      "adv_change_archive",
-      store,
+    // adv_change_archive — fixArchiveTerminalProjection SC3/AC4 +
+    // rq-toolTimeoutOverride01. Heavy-tier outer budget: the inner git
+    // push alone defaults to 300s (DEFAULT_GIT_PUSH_TIMEOUT_MS in
+    // archive-helpers/git-finalize.ts), plus fetch/merge/gh ops at 30s
+    // each, release-gate signals, durable-proof queries, worktree
+    // cleanup, and issue closure. 420s = 300s push + 120s headroom for
+    // the remaining terminal-step work; the inner git budgets remain the
+    // authoritative per-op bounds. If the outer net still fires after the
+    // bundle write, onToolTimeout returns a typed still-finalizing /
+    // re-run-to-reconcile result instead of a bare ToolExecutionTimeout
+    // (re-runs are idempotent — rq-archiveOrdering01).
+    adv_change_archive: registerTool(
+      changeTools.adv_change_archive.description,
+      changeTools.adv_change_archive.args,
+      namedExecute(
+        "adv_change_archive",
+        safeExecute(
+          async (args) =>
+            changeTools.adv_change_archive.execute(
+              args as Parameters<
+                typeof changeTools.adv_change_archive.execute
+              >[0],
+              store,
+            ),
+          "adv_change_archive",
+          undefined,
+          {
+            timeoutMs: 420_000,
+            onToolTimeout: (args, error) =>
+              formatArchiveTimeoutResult({
+                store,
+                args: args as {
+                  changeId?: unknown;
+                  worktreePath?: unknown;
+                  target_path?: unknown;
+                },
+                timeoutMs: error.timeoutMs,
+              }),
+          },
+        ),
+      ),
     ),
     adv_archive_repair: bindTool(
       changeTools.adv_archive_repair,
       "adv_archive_repair",
+      store,
+    ),
+    adv_archive_purge: bindTool(
+      changeTools.adv_archive_purge,
+      "adv_archive_purge",
+      store,
+    ),
+    adv_change_workflow_terminate: bindTool(
+      changeTools.adv_change_workflow_terminate,
+      "adv_change_workflow_terminate",
       store,
     ),
     adv_change_status_repair: bindTool(
@@ -471,6 +497,13 @@ export function createToolMap(
     adv_followup_promote: bindTool(
       followupTools.adv_followup_promote,
       "adv_followup_promote",
+      store,
+    ),
+
+    // Report Follow-Up Promotion Tool
+    adv_report_followup_promote: bindTool(
+      reportFollowupTools.adv_report_followup_promote,
+      "adv_report_followup_promote",
       store,
     ),
 
@@ -584,7 +617,9 @@ export function createToolMap(
       store,
     ),
 
-    // Wisdom Tools
+    // Wisdom Tools — adv_project_wisdom_list was removed by
+    // consolidateAdvToolSurface2 (tk-11d902254d63); its project-only listing
+    // folded into adv_wisdom_list behind project_only + bounded maxEntries.
     adv_wisdom_add: bindTool(
       wisdomTools.adv_wisdom_add,
       "adv_wisdom_add",
@@ -593,11 +628,6 @@ export function createToolMap(
     adv_wisdom_list: bindTool(
       wisdomTools.adv_wisdom_list,
       "adv_wisdom_list",
-      store,
-    ),
-    adv_project_wisdom_list: bindTool(
-      wisdomTools.adv_project_wisdom_list,
-      "adv_project_wisdom_list",
       store,
     ),
 
@@ -618,42 +648,11 @@ export function createToolMap(
       store,
     ),
 
-    // Agenda Tools
-    adv_agenda_list: bindToolSimple(
-      agendaTools.adv_agenda_list,
-      "adv_agenda_list",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_add: bindToolSimple(
-      agendaTools.adv_agenda_add,
-      "adv_agenda_add",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_start: bindToolSimple(
-      agendaTools.adv_agenda_start,
-      "adv_agenda_start",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_complete: bindToolSimple(
-      agendaTools.adv_agenda_complete,
-      "adv_agenda_complete",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_cancel: bindToolSimple(
-      agendaTools.adv_agenda_cancel,
-      "adv_agenda_cancel",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_prioritize: bindToolSimple(
-      agendaTools.adv_agenda_prioritize,
-      "adv_agenda_prioritize",
-      directory,
-      agendaPath,
+    // Store Cleanup Tool — legacy Agenda cleanup (scan/dry_run read-only; execute approval-gated)
+    adv_store_cleanup: bindTool(
+      storeCleanupTools.adv_store_cleanup,
+      "adv_store_cleanup",
+      store,
     ),
 
     // Project Metadata Tool
@@ -717,6 +716,15 @@ export function createToolMap(
       "adv_gate_status",
       store,
     ),
+    // adv_gate_complete — fixTemporalTimeoutsWorker AC1. The gate signal
+    // (gateCompletedSignal via fireSignalAndRefresh) is lighter than
+    // archive's git finalization, but under worker contention the default
+    // 10s safety-net is sometimes exceeded: the signal may have landed
+    // while the agent sees a bare ToolExecutionTimeout. 30s covers the
+    // Temporal signal + cache-refresh round trip with headroom, and the
+    // onToolTimeout classifier returns a typed "may have landed — verify
+    // via adv_gate_status" advisory instead of the generic timeout so
+    // the caller does not blindly re-fire the signal.
     adv_gate_complete: registerTool(
       gateTools.adv_gate_complete.description,
       gateTools.adv_gate_complete.args,
@@ -729,6 +737,15 @@ export function createToolMap(
               store,
             ),
           "adv_gate_complete",
+          undefined,
+          {
+            timeoutMs: 30_000,
+            onToolTimeout: (args, error) =>
+              formatGateCompleteTimeoutResult({
+                args: args as { changeId?: unknown; gateId?: unknown },
+                timeoutMs: error.timeoutMs,
+              }),
+          },
         ),
       ),
     ),
@@ -893,145 +910,139 @@ export function createToolMap(
 }
 
 /**
+ * Typed inventory of retained public tool groups
+ * (consolidateAdvToolSurface2 — SC1/SC2/AC5/C5, DDC1/DDC2/DDC3).
+ *
+ * This readonly, type-checked inventory is the single source of truth for the
+ * public ADV tool surface. Canonical names (ADV_TOOL_NAMES) and the
+ * warrant-visible argument surface (getToolSurface) are BOTH derived from it,
+ * so discovery metadata can no longer drift from the exported `*Tools`
+ * groups. `createToolMap` above stays explicit — runtime registration
+ * preserves special bind, timeout, and context behavior — and deterministic
+ * parity tests (tool-registry.inventory.test.ts) fail if the explicit map,
+ * the degraded map, or the warrant surface diverges from this inventory.
+ *
+ * The inventory includes the backlog-shell, store-consolidation, and
+ * store-cleanup groups so warrant visibility matches registration (the
+ * pre-consolidation surface omitted them).
+ */
+
+/** One retained public `*Tools` export group (data-only view). */
+export type PublicToolGroup = Readonly<
+  Record<string, { args?: Record<string, unknown> }>
+>;
+
+/** Derived inventory entry: canonical tool name + declared argument record. */
+export type PublicToolEntry = readonly [
+  name: string,
+  args: Record<string, unknown>,
+];
+
+/**
+ * Flatten retained public groups into ordered [name, args] entries.
+ *
+ * DDC2: a duplicate exported public name across groups is rejected BEFORE any
+ * Set/Map construction can collapse it — a collision throws instead of
+ * silently dropping one of the colliding tools.
+ */
+export function collectPublicToolEntries(
+  groups: readonly PublicToolGroup[],
+): PublicToolEntry[] {
+  const entries: PublicToolEntry[] = [];
+  const firstGroupIndex = new Map<string, number>();
+  groups.forEach((group, groupIndex) => {
+    for (const [name, def] of Object.entries(group)) {
+      const first = firstGroupIndex.get(name);
+      if (first !== undefined) {
+        throw new Error(
+          `Duplicate public tool name "${name}" exported by public tool inventory groups at index ${first} and ${groupIndex}. Public names must be unique across retained groups before any Set/Map construction (consolidateAdvToolSurface2 DDC2).`,
+        );
+      }
+      firstGroupIndex.set(name, groupIndex);
+      entries.push([name, def.args ?? {}] as const);
+    }
+  });
+  return entries;
+}
+
+const PUBLIC_TOOL_GROUPS = [
+  specTools,
+  specDeltaTools,
+  roadmapTools,
+  backlogTools,
+  backlogShellTools,
+  changeTools,
+  followupTools,
+  reportFollowupTools,
+  opsEvidenceTools,
+  contractTools,
+  designConcernTools,
+  verificationEvidenceTools,
+  taskTools,
+  subagentReportTools,
+  wisdomTools,
+  statusTools,
+  projectTools,
+  gateTools,
+  testTools,
+  temporalOpsTools,
+  checkpointTools,
+  reflectionTools,
+  snapshotHealthTools,
+  projectMetadataTools,
+  conformanceTools,
+  advWorktreeTools,
+  advSessionTools,
+  epicTools,
+  storeConsolidateTools,
+  storeCleanupTools,
+] as const satisfies readonly PublicToolGroup[];
+
+const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(
+  collectPublicToolEntries(PUBLIC_TOOL_GROUPS),
+);
+
+/**
  * Live tool-surface lookup (addAcWarrantGuard): tool name → set of declared
- * argument keys, read directly from each `*Tools` definition's `args` record
- * (data only — no `execute` invocation). This is the source of truth used to
- * verify capability warrants at contract mint. It is intentionally read from
- * the already-imported tool groups so the surface is always live (DDC3) with
- * zero generated-artifact drift.
+ * argument keys, derived from PUBLIC_TOOL_ENTRIES (data only — no `execute`
+ * invocation). This is the source of truth used to verify capability warrants
+ * at contract mint. Because it derives from the same typed inventory as
+ * ADV_TOOL_NAMES, the warrant surface cannot drift from the canonical list
+ * (DDC1), and per-tool argument keys always equal the declared definition
+ * keys (DDC3).
  *
  * Consumed by `adv_contract_mint` via a runtime dynamic import so the pure
  * `validator/contract-mint.ts` / `validator/warrant.ts` never statically import
- * the registry (DDC2, no cycle).
+ * the registry (no import cycle).
  */
 export function getToolSurface(): Map<string, Set<string>> {
-  const groups: Array<Record<string, { args?: Record<string, unknown> }>> = [
-    specTools,
-    roadmapTools,
-    backlogTools,
-    changeTools,
-    followupTools,
-    opsEvidenceTools,
-    contractTools,
-    designConcernTools,
-    verificationEvidenceTools,
-    taskTools,
-    subagentReportTools,
-    wisdomTools,
-    statusTools,
-    agendaTools,
-    projectTools,
-    gateTools,
-    testTools,
-    temporalOpsTools,
-    checkpointTools,
-    reflectionTools,
-    snapshotHealthTools,
-    projectMetadataTools,
-    conformanceTools,
-    advWorktreeTools,
-    advSessionTools,
-    epicTools,
-  ];
   const surface = new Map<string, Set<string>>();
-  for (const group of groups) {
-    for (const [name, def] of Object.entries(group)) {
-      surface.set(name, new Set(Object.keys(def.args ?? {})));
-    }
+  for (const [name, args] of PUBLIC_TOOL_ENTRIES) {
+    surface.set(name, new Set(Object.keys(args)));
   }
   return surface;
 }
 
 /**
- * Canonical list of all ADV tool names. Kept in sync with createToolMap so
- * that createDegradedToolMap can register a stub for every tool when plugin
- * init fails.
+ * SC1 source baseline: the number of registered public ADV tools recorded at
+ * the start of consolidateAdvToolSurface2 implementation (2026-07-15). The
+ * final canonical count must be strictly lower once this change's contracted
+ * public removals (adv_backlog_state, adv_project_wisdom_list) land; the
+ * baseline/final exact-accounting assertion lives in
+ * tool-registry.inventory.test.ts.
  */
-export const ADV_TOOL_NAMES: readonly string[] = [
-  "adv_spec",
-  "adv_roadmap",
-  "adv_backlog_state",
-  "adv_wip_state",
-  "adv_backlog_add",
-  "adv_backlog_list",
-  "adv_backlog_show",
-  "adv_backlog_promote",
-  "adv_backlog_archive",
-  "adv_change_list",
-  "adv_change_show",
-  "adv_change_create",
-  "adv_change_update",
-  "adv_change_close",
-  "adv_change_bulk_close",
-  "adv_change_validate",
-  "adv_change_archive",
-  "adv_archive_repair",
-  "adv_change_status_repair",
-  "adv_change_update_issues",
-  "adv_change_repair_origin",
-  "adv_change_reenter",
-  "adv_change_forget",
-  "adv_epic_create",
-  "adv_epic_show",
-  "adv_epic_list",
-  "adv_epic_update",
-  "adv_epic_add_shell",
-  "adv_epic_promote_shell",
-  "adv_epic_link_change",
-  "adv_epic_unlink_change",
-  "adv_epic_move_change",
-  "adv_epic_repair_membership",
-  "adv_epic_reorder",
-  "adv_epic_retire",
-  "adv_followup_promote",
-  "adv_ops_evidence_add",
-  "adv_ops_run_upsert",
-  "adv_ops_run_evidence_add",
-  "adv_contract_mint",
-  "adv_contract_review_matrix_set",
-  "adv_design_concern_disposition",
-  "adv_verification_evidence_disposition",
-  "adv_task_show",
-  "adv_task_list",
-  "adv_task_ready",
-  "adv_task_update",
-  "adv_task_add",
-  "adv_task_cancel",
-  "adv_task_reclassify_tdd",
-  "adv_subagent_report_submit",
-  "adv_wisdom_add",
-  "adv_wisdom_list",
-  "adv_project_wisdom_list",
-  "adv_status",
-  "adv_agenda_list",
-  "adv_agenda_add",
-  "adv_agenda_start",
-  "adv_agenda_complete",
-  "adv_agenda_cancel",
-  "adv_agenda_prioritize",
-  "adv_project_context",
-  "adv_project_metadata",
-  "adv_gate_status",
-  "adv_gate_complete",
-  "adv_run_test",
-  "adv_temporal_diagnose",
-  "adv_temporal_register_search_attributes",
-  "adv_temporal_reconnect",
-  "adv_temporal_worker_restart",
-  "adv_task_checkpoint",
-  "adv_reflection_list",
-  "adv_reflect",
-  "adv_conformance",
-  "adv_worktree_create",
-  "adv_worktree_resume",
-  "adv_worktree_delete",
-  "adv_worktree_cleanup",
-  "adv_worktree_triage",
-  "adv_session_list",
-  "adv_session_show",
-  "adv_snapshot_health",
-  "adv_store_consolidate",
-] as const;
+export const ADV_PUBLIC_TOOL_BASELINE_COUNT = 80;
+
+/**
+ * Canonical list of all ADV tool names, derived from PUBLIC_TOOL_GROUPS.
+ * Duplicates are rejected at module load by collectPublicToolEntries before
+ * this array is constructed (DDC2). createDegradedToolMap registers a stub
+ * for every name; exact-set parity with createToolMap and getToolSurface is
+ * enforced by deterministic tests (DDC1).
+ */
+export const ADV_TOOL_NAMES: readonly string[] = Object.freeze(
+  PUBLIC_TOOL_ENTRIES.map(([name]) => name),
+);
 
 /**
  * Build a degraded tool map for the case where plugin init fails

@@ -59,17 +59,19 @@ describe("wisdom target_path reads", () => {
     } as unknown as Store;
   });
 
-  test("project wisdom list reads target store and returns project context", async () => {
-    const output = await wisdomTools.adv_project_wisdom_list.execute(
-      { target_path: "/target/project" },
+  test("project_only wisdom list reads target store and returns project context", async () => {
+    const output = await wisdomTools.adv_wisdom_list.execute(
+      { project_only: true, maxEntries: 5, target_path: "/target/project" },
       { paths: { root: "/source/project" } } as unknown as Store,
     );
     const parsed = JSON.parse(output);
 
+    // DDC6: the bounded limit applies after project/visibility filtering and
+    // is never pushed into the storage read.
     expect(mocks.listProjectWisdom).toHaveBeenCalledWith("/target/project", {
       wisdomPath: "/target/wisdom.jsonl",
     });
-    expect(parsed.entries).toEqual([
+    expect(parsed.wisdom).toEqual([
       expect.objectContaining({ id: "pw-target", scope: "project" }),
     ]);
     expect(parsed._projectContext).toMatchObject({

@@ -5,7 +5,7 @@
  * Primary interface for AI agents to manage specs, changes, and tasks.
  *
  * Implements the @opencode-ai/plugin SDK interface with:
- * - tool: MCP tools for spec/change/task/wisdom/agenda/test management (see tool-registry.ts)
+ * - tool: MCP tools for spec/change/task/wisdom/test management (see tool-registry.ts)
  * - event: Session status tracking, terminal UI updates
  * - tool.execute.before/after: Active change tracking, task completion detection
  * - experimental.session.compacting: Change preservation during compaction
@@ -13,6 +13,7 @@
 
 import { type Plugin } from "@opencode-ai/plugin";
 import { isAbsolute, join, resolve } from "node:path";
+import { realpathSync } from "node:fs";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -76,6 +77,8 @@ import {
   type TodoWriteTaskState,
 } from "./utils/todowrite-guard";
 import { buildAdvWorktreeAdapter } from "./utils/workspace-adapter";
+import { authorizeMorphWorktree } from "./utils/morph-worktree-authorization";
+import { worktreeExistsForChange } from "./tools/worktree/state";
 
 export { resolveGitSessionContext } from "./utils/git-session";
 
@@ -569,6 +572,7 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_change_update",
     "adv_change_update_issues",
     "adv_change_repair_origin",
+    "adv_delta_add",
     "adv_contract_mint",
     "adv_contract_review_matrix_set",
     "adv_subagent_report_submit",
@@ -591,6 +595,25 @@ const advancePluginImpl: Plugin = async (input) => {
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
+    if (toolName === "morph_edit") {
+      const sessionID =
+        typeof input.sessionID === "string" ? input.sessionID : "";
+      if (!store || !worktreeStateAccess || !resolvedProjectId || !sessionID) {
+        if (args.workdir !== undefined || args.taskId !== undefined) {
+          throw new Error("Morph ADV workdir authorization is unavailable");
+        }
+      } else {
+        await authorizeMorphWorktree(args, sessionID, {
+          getTaskChangeId: async (taskId) =>
+            (await store.tasks.show(taskId))?.changeId ?? null,
+          getExpectedRoot: (changeId) =>
+            join(getWorktreeBase(resolvedProjectId), "change", changeId),
+          canonicalize: (path) => realpathSync(path),
+          isSetupReady: (changeId) =>
+            worktreeExistsForChange(worktreeStateAccess, changeId),
+        });
+      }
+    }
     // rq-activeChangePointer01.6: adv_change_forget early-return (KD6)
     // Also validates mismatch (refuse-with-hint per AC1/AD2)
     if (toolName === "adv_change_forget") {
@@ -828,23 +851,23 @@ const advancePluginImpl: Plugin = async (input) => {
   };
 
   /**
-   * Resolve change label and parent Epic title from the project store.
-   * Used at active-change pointer transitions to feed structured context to
-   * the terminal title renderer. Falls back gracefully — never blocks or
-   * fails the tool operation.
+   * Resolve the parent Epic ID for the active change from the project store.
+   *
+   * The pane identity contract renders stable IDs only — display titles
+   * never enter the title path. Returns `epicId` when the change has
+   * Epic membership; otherwise an empty object. Falls back gracefully —
+   * never blocks or fails the tool operation.
    */
   const resolveChangeContext = async (
     changeId: string,
-  ): Promise<{ label?: string; epicTitle?: string }> => {
+  ): Promise<{ epicId?: string }> => {
     if (!store) return {};
     try {
       const result = await store.changes.get(changeId);
       if (!result.success || !result.data) return {};
       const change = result.data;
-      return {
-        label: change.title,
-        epicTitle: change.epic_membership?.title,
-      };
+      const epicId = change.epic_membership?.epic_id;
+      return epicId ? { epicId } : {};
     } catch {
       return {};
     }
@@ -925,13 +948,7 @@ const advancePluginImpl: Plugin = async (input) => {
     // MCP Tools — degraded map on init failure so agents see ADV_PLUGIN_INIT_FAILED
     tool:
       store && !initError
-        ? createToolMap(
-            store,
-            directory,
-            store.paths.agenda,
-            input.serverUrl,
-            client,
-          )
+        ? createToolMap(store, directory, input.serverUrl, client)
         : createDegradedToolMap(
             initError ?? new Error("Plugin store unavailable"),
             effectiveDir,

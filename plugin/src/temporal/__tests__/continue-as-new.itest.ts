@@ -35,7 +35,7 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
     initializedAt: "2026-05-05T00:00:00.000Z",
     searchAttributesEnabled: false,
     seedState: {
-      status: "active",
+      status: "draft",
       tasks: [],
       wisdom: [],
       gates: createDefaultGates(),
@@ -150,6 +150,68 @@ describe("changeWorkflow continue-as-new", () => {
           expect(description.historyLength).toBeLessThan(
             DEFAULT_CHANGE_HISTORY_THRESHOLD,
           );
+        });
+      },
+    );
+  }, 120000);
+
+  it("preserves seenReportIds and seenReportIdsTotal across continue-as-new", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const taskQueue = `continue-as-new-seen-${Date.now()}`;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          const workflowId = `continue-as-new-seen-${Date.now()}`;
+          const handle: StartedChangeWorkflowHandle =
+            await env.client.workflow.start("changeWorkflow", {
+              workflowId,
+              taskQueue,
+              args: [
+                {
+                  ...makeChangeInput("can-seen-test"),
+                  seedState: {
+                    ...makeChangeInput("can-seen-test").seedState,
+                    seenReportIds: ["can-seen-test|tk-1|adv-engineer|1"],
+                    seenReportIdsTotal: 1,
+                  },
+                },
+              ],
+            });
+          const firstRunId = handle.firstExecutionRunId;
+
+          // Trigger continue-as-new with enough signals to cross threshold
+          const signalCount = 5_200;
+          await Promise.allSettled(
+            Array.from({ length: signalCount }, (_, i) =>
+              handle.signal(taskAddedSignal, {
+                task: makeTask(`can-seen-tk-${i}`),
+                addedAt: `2026-05-05T00:${String(Math.floor(i / 60)).padStart(2, "0")}:${String(i % 60).padStart(2, "0")}.000Z`,
+              }),
+            ),
+          );
+
+          const latestHandle =
+            env.client.workflow.getHandle<
+              typeof import("../workflows").changeWorkflow
+            >(workflowId);
+          const state = await pollForState(
+            latestHandle,
+            (s) => s.tasks.length === signalCount,
+            60000,
+          );
+          const description = await latestHandle.describe();
+
+          expect(description.runId).not.toBe(firstRunId);
+          expect(state.seenReportIds).toEqual([
+            "can-seen-test|tk-1|adv-engineer|1",
+          ]);
+          expect(state.seenReportIdsTotal).toBe(1);
         });
       },
     );

@@ -1,0 +1,698 @@
+{
+  "id": "reapOrphanAdvWorkers",
+  "title": "Reap orphan ADV workers",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-15T18:12:08.019Z",
+  "tasks": [
+    {
+      "id": "tk-e00865b27913",
+      "title": "Two-axis structural gRPC classification in retry-wrapper.ts",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-15T18:35:58.881Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T18:38:40.318Z",
+      "verification": "Two-axis structural gRPC classification implemented. RED tr_mrmfe5r7 → GREEN: retry-wrapper.test.ts 21/21 (tr_mrmfgqaq), service-reconnect + shared 18/18 (tr_mrmfink3). Added extractGrpcStatus (isGrpcServiceError-shaped, cause-cycle guard), code-based classifyTemporalError (4/8/10/14→transient, 5/6→fallback, other codes→fatal, precedence preserved), isReconnectableError (transport strings only), and gated withTemporalRetry reconnect on isReconnectableError. Updated shared.test.ts timeout test to new retryable-not-reconnectable semantics.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/shared.test.ts",
+        "plugin/src/temporal/retry-wrapper.test.ts",
+        "plugin/src/temporal/retry-wrapper.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/shared.test.ts",
+        "plugin/src/temporal/retry-wrapper.test.ts",
+        "plugin/src/temporal/retry-wrapper.ts"
+      ],
+      "checkpointSha": "787b67db0a211943a1d2402374aee4570390a0f6",
+      "completedAt": "2026-07-15T18:44:24.949Z",
+      "completed_at": "2026-07-15T18:44:24.949Z"
+    },
+    {
+      "id": "tk-a25de24644de",
+      "title": "Handle reacquisition + route archive finalization through the reconnecting wrapper",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-15T18:36:12.929Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e00865b27913"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T18:44:58.619Z",
+      "verification": "Handle reacquisition + archive read routing (delegated to adv-engineer, independently verified). RED→GREEN: archive-gate.test.ts 3 failed→9 passed; combined archive-gate + change.test.ts 123 passed (bash) and archive-gate green recorded tr_mrmg4suu. Added exported runReacquiringChangeQuery (rebuilds handle from getService() inside each runTemporalQuery attempt); rerouted preflight read, pre-signal read, and release-gate poll; waitForArchiveReleaseGateCompletion signature (projectId, changeId, opts) with its single call site updated. Validator #1 covered: attempt 2 provably uses swapped client after transport failure; DEADLINE_EXCEEDED retries without reconnect. Signal path left for T3. typecheck+lint clean; archive cluster 92 passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "18378131a4ae63370b78a5878b606f0b36a0e42f",
+      "completedAt": "2026-07-15T19:01:40.260Z",
+      "completed_at": "2026-07-15T19:01:40.260Z"
+    },
+    {
+      "id": "tk-2c0cdc23df1b",
+      "title": "Idempotent archive reconcile on ambiguous/exhausted signal failure",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-15T18:36:22.837Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a25de24644de"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T19:01:57.847Z",
+      "verification": "Idempotent archive signal reconcile (delegated to adv-engineer, independently verified). RED→GREEN: 2 new tests failed→12 passed (archive-gate green tr_mrmgy7uk); combined archive-gate+change+retry-wrapper+shared 159 passed (bash); engineer ran archive/change suite 178 + splitbrain itest + classifier/adapter 55 + recovery-adjacent 39, all green; typecheck+lint clean. gateCompletedSignal now fired in a single attempt (no blind retry); on ambiguous transient/reconnectable failure runs exactly ONE bounded reacquiring reconcile read → terminal returns already-done, non-terminal surfaces typed classified error, zero re-signals, no loop; completed-workflow path preserved (regression-guarded); pre-signal terminal pre-check preserved. Validator #4 covered. Surfaced follow-up: recordPhase9Status still blind-retries phase9StatusUpdatedSignal (out of scope).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "cff59615ea4284a23a1d3dbd44078c5d4de59573",
+      "completedAt": "2026-07-15T19:24:31.750Z",
+      "completed_at": "2026-07-15T19:24:31.750Z"
+    },
+    {
+      "id": "tk-4cfea9409c95",
+      "title": "Full verification: targeted suites, check, build, deploy parity",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-15T18:36:33.163Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2c0cdc23df1b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T19:24:47.409Z",
+      "verification": "AC5 full verification green. pnpm run check passed (schemas:check, typecheck, test-isolation, lockfile-policy, eslint, prettier). pnpm run build passed (plugin index + Temporal worker/workflows bundles). bin/oc-test targeted over all touched modules: 6 files, 195 passed (tr_mrmh20qs). No public schema surface changed (schemas:check clean). Deploy/restart intentionally NOT run mid-change (fixTaskCycleAnchoring replay-lag lesson); dist built only.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "cff59615ea4284a23a1d3dbd44078c5d4de59573",
+      "completedAt": "2026-07-15T19:27:27.903Z",
+      "completed_at": "2026-07-15T19:27:27.903Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-e00865b27913": [
+      {
+        "runId": "tr_mrmfe5r7_4463f0e8",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/retry-wrapper.test.ts",
+        "durationMs": 3083.515029999893,
+        "recordedAt": "2026-07-15T18:40:44.016Z"
+      },
+      {
+        "runId": "tr_mrmfgqaq_b80db4a2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/retry-wrapper.test.ts",
+        "durationMs": 1430.5003019999713,
+        "recordedAt": "2026-07-15T18:42:44.016Z"
+      },
+      {
+        "runId": "tr_mrmfink3_389fc11c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/service-reconnect.test.ts src/storage/store-temporal/shared.test.ts",
+        "durationMs": 2211.1511610001326,
+        "recordedAt": "2026-07-15T18:44:13.746Z"
+      }
+    ],
+    "tk-a25de24644de": [
+      {
+        "runId": "tr_mrmg4suu_52296235",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change/archive-gate.test.ts",
+        "durationMs": 3576.7336920001544,
+        "recordedAt": "2026-07-15T19:01:27.055Z"
+      }
+    ],
+    "tk-2c0cdc23df1b": [
+      {
+        "runId": "tr_mrmgy7uk_2cde95bd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change/archive-gate.test.ts",
+        "durationMs": 3724.300948000513,
+        "recordedAt": "2026-07-15T19:24:19.577Z"
+      }
+    ],
+    "tk-4cfea9409c95": [
+      {
+        "runId": "tr_mrmh20qs_44c9c4d3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/retry-wrapper.test.ts src/storage/store-temporal/shared.test.ts src/temporal/service-reconnect.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts src/tools/_adapters.test.ts",
+        "durationMs": 7209.344916000031,
+        "recordedAt": "2026-07-15T19:27:17.023Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:20:05.356Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the re-scoped Dir-3 proposal (STSL multi-worker resilience: auto reconnect-and-retry on transient saturation, per-op budget decoupled from worker count, idempotent-op saturation classification, contention tests). Reply: \"approve\". Reaping/visibility already shipped in fixTemporalTimeoutsWorker; per-session queue isolation deferred.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "b7bcedf2a508b1b0205d277d523dfe5bbc3359514a114300bcb8b4650bf70792",
+        "non_whitespace_chars": 1792,
+        "checked_at": "2026-07-15T18:12:08.175Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:23:34.780Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the agreement. Root cause verified in source: (1) classifyTemporalError omits gRPC saturation classes (RESOURCE_EXHAUSTED, ServiceError, \"Unexpected error while making gRPC request\"); (2) archive Phase 9 (archive-gate.ts) calls handle.signal/describe/result directly, bypassing runTemporal's reconnect-and-retry. Store query/signal paths already route through runTemporal/runTemporalQuery. Minted standard ChangeContract with 17 items (SC1-4, AC1-5, C1-5, DONT1-3).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "non_whitespace_chars": 3999,
+        "checked_at": "2026-07-15T18:12:08.176Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:35:13.022Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator (adv-researcher) ran twice: v1 FAIL (stale-handle, reconnect-conflation, blind-signal-retry, non-structural classification, SDK double-wrap) → design revised to v2 → re-validation CAUTION with zero remaining blockers, all five blockers resolved. v2: two-axis structural gRPC classification (retryable vs reconnectable, isGrpcServiceError-shaped, precedence-preserving, cause-cycle guard), handle reacquisition inside each retry closure so reinitStsl takes effect, idempotent archive reconcile (one bounded terminal read, no blind re-signal), SDK-aware (DEADLINE_EXCEEDED is ADV's primary add; no duplicate of Connection interceptor). Six validator-required tests folded into design §5. Non-blocking cautions (retry amplification under one aggregate budget + telemetry; connect-first atomic-swap as follow-up) carried to planning. No CONFLICT/contract-compromise → no user checkpoint.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "5448099e7c946c35085c17cc80aed3ad7dd8afb512219ee5d95ef3faa26008e8",
+        "non_whitespace_chars": 5083,
+        "checked_at": "2026-07-15T18:12:08.177Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:38:14.660Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the 4-task prep contract (reply: \"approve\"). T1 two-axis structural classification → T2 handle reacquisition + archive wrapper routing → T3 idempotent archive reconcile → T4 full verification. Full contract coverage; all 6 validator-required tests mapped. Inline TDD for code tasks. Execution runs in ADV worktree; no mid-change worker redeploy."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-15T19:27:44.568Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done. T1 (787b67db): two-axis structural gRPC classification + reconnect gating. T2 (18378131): archive read handle reacquisition. T3 (cff59615): idempotent archive signal reconcile. T4: full verification — pnpm run check + build green, bin/oc-test targeted 195 passed (tr_mrmh20qs). All 6 validator-required tests covered. Surfaced follow-up (not in scope): recordPhase9Status still blind-retries phase9StatusUpdatedSignal. dist built, worker NOT redeployed mid-change."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-15T19:36:15.039Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved acceptance (reply: \"approve\"). Independent reviewer READY (0 blocking); contract review matrix 17/17 passing; executive summary persisted; check+build green; targeted 195 passed. Review-phase hardening committed (fd04293c).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9b0ff11cbf56a9d160ce07af75cce47ebe28d6d8a51a27730ef84062aeb9dca3",
+        "non_whitespace_chars": 2611,
+        "checked_at": "2026-07-15T18:12:08.178Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "proposal",
+      "reason": "Discovery found the originally-proposed scope (orphan reaping + worker-count visibility) already shipped in archived change fixTemporalTimeoutsWorker. Re-scope to the actual unsolved #217 residual: STSL query/signal resilience under multi-worker contention.",
+      "scope_delta": "Replace scope A (reaping + visibility) with Dir 3: make STSL query/signal ops resilient to slow/contended workers (bounded retry/failover + auto reconnect-and-retry + idempotent-op saturation classification), decoupling effective per-op budget from worker count. Per-session queue isolation (Dir 2) remains out of scope.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T18:17:51.432Z",
+      "gates_reset": [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 217
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+      "approvedAt": "2026-07-15T18:23:27.109Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** gRPC saturation errors (`RESOURCE_EXHAUSTED`, gRPC status 8/14/4, `\"Unexpected error while making gRPC request\"`, `ServiceError`) are classified `transient` and drive bounded reconnect-and-retry within the existing aggregate deadline — not thrown on first failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** The archive-finalization gRPC operations that currently surface a raw first-failure `ServiceError` route through bounded reconnect-and-retry, so a transient saturation is retried rather than returned to the caller.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** For the idempotent archive path, a post-signal saturated response is treated as retry-safe: a reconciling retry/read confirms the terminal (already-archived/shipped) outcome instead of surfacing a hard failure indistinguishable from a real error.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4:** Effective per-op resilience is decoupled from worker count within one aggregate budget — no unbounded retry, no reliance on manual reconnect.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Given an op fails with each saturation class in SC1, when it runs under `withTemporalRetry` with a reconnecting hook, then it reconnects once and retries within budget and succeeds if a retry lands; genuinely `fatal` (nondeterminism/NOT_FOUND-class) errors still fail fast without retry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Given archive finalization encounters a transient saturation, when it runs, then it retries via the reconnecting wrapper and does not return a raw `ServiceError` for a merely-saturated response.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Given an idempotent archive whose signal already landed but whose response round-trip was lost to saturation, when the op reconciles, then it reports the terminal shipped/archived outcome (not a hard failure).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Regression tests simulate each saturation class and a slow/contended worker, asserting reconnect-and-retry success, fatal fast-fail, and idempotent reconcile.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** `bin/oc-test` targeted suites for the touched modules, `pnpm run check`, and `pnpm run build` pass; public schema artifacts stay generated/checked if any public surface changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Reuse `withTemporalRetry`, the aggregate `TemporalReadDeadline`, and `reinitStsl`; do not invent a parallel retry mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Classification stays structural/centralized in `classifyTemporalError` (extend the typed classifier), not ad-hoc string checks scattered across call sites.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Retry-and-reconnect is applied only to idempotent or signal-idempotent operations; non-idempotent mutations must not be blindly retried.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** Preserve aggregate-deadline semantics — bounded attempts, no unbounded growth, no raising tool timeout ceilings as the fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5:** Source changes in `/home/jon/dev/advance`; implementation runs in the ADV-managed change worktree; `dist/` is build output only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Do not broaden the `transient` class so far that genuinely fatal errors (nondeterminism, NOT_FOUND, already-completed) get retried.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Do not implement per-session task-queue isolation (#217 dir 2) or worker supervision changes here.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Do not \"fix\" saturation by increasing the 10s/8s tool timeout ceilings or by making manual `adv_temporal_reconnect` the expected workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-15T19:33:39.430Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY. Validated gRPC saturation codes (RESOURCE_EXHAUSTED/UNAVAILABLE/DEADLINE_EXCEEDED/ABORTED) classify transient→bounded retry; fatal fast-fails; arbitrary code & non-gRPC text not transient. retry-wrapper.test.ts 22/22."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Archive reads reacquire handle from getService() per attempt (runReacquiringChangeQuery); reviewer confirmed stale-handle fixed. archive-gate.test.ts 12/12."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "gateCompletedSignal fired once; ambiguous transient failure → exactly one reconcile read → terminal already-done / non-terminal typed error, zero re-signals. Reviewer READY."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "reinitStsl fires only on isReconnectableError (transport failures); saturation codes retry-not-reconnect (hardened fd04293c to ignore transport-looking details text on validated saturation codes). Bounded by aggregate deadline."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "retry-wrapper.test.ts asserts each saturation class→transient retry, fatal fast-fail, isGrpcServiceError shape gate, cycle guard. 22/22 (tr_mrmfgqaq + harden)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-gate.test.ts: attempt-2 handle provably from swapped client after transport failure; DEADLINE_EXCEEDED retries without reconnect. 12/12 (tr_mrmgy7uk)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-gate.test.ts: ambiguous signal → one reconcile read, zero re-signals; terminal→already-done; non-terminal→classified error; completed-workflow recovery preserved."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression coverage across allow/missing/mismatch(code vs text)/precedence/cycle/reacquire/reconcile paths. bin/oc-test targeted 195 passed (tr_mrmh20qs)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check passed (schemas/typecheck/isolation/lockfile/lint/format); pnpm run build passed (plugin+worker bundles); targeted 195 passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reused withTemporalRetry/createTemporalReadDeadline/reinitStsl/runTemporal(Query); no parallel retry mechanism added."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Classification centralized in retry-wrapper.ts classifyTemporalError/isReconnectableError/extractGrpcStatus; structural gRPC codes, not scattered string checks."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reads retried; the idempotent signal is NOT blindly retried — reconcile-instead-of-re-signal. No non-idempotent mutation blind-retried."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Retries bounded by existing aggregate deadline; no tool timeout ceilings raised."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Source-only edits in the ADV worktree (retry-wrapper.ts, shared.ts, archive-gate.ts + tests); dist built, not hand-edited."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "transient class did not capture fatal: nondeterminism/NOT_FOUND/already-exists still fallback/fatal; precedence test passes."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No per-session task-queue isolation or worker supervision changes; shared queue unchanged."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No tool-timeout ceiling raise; manual adv_temporal_reconnect not made the expected workflow (auto reconnect-and-retry on transport failures)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Given an op fails with each saturation class in SC1, when it runs under `withTemporalRetry` with a reconnecting hook, then it reconnects once and retries within budget and succeeds if a retry lands; genuinely `fatal` (nondeterminism/NOT_FOUND-class) errors still fail fast without retry.",
+    "**AC2:** Given archive finalization encounters a transient saturation, when it runs, then it retries via the reconnecting wrapper and does not return a raw `ServiceError` for a merely-saturated response.",
+    "**AC3:** Given an idempotent archive whose signal already landed but whose response round-trip was lost to saturation, when the op reconciles, then it reports the terminal shipped/archived outcome (not a hard failure).",
+    "**AC4:** Regression tests simulate each saturation class and a slow/contended worker, asserting reconnect-and-retry success, fatal fast-fail, and idempotent reconcile.",
+    "**AC5:** `bin/oc-test` targeted suites for the touched modules, `pnpm run check`, and `pnpm run build` pass; public schema artifacts stay generated/checked if any public surface changes."
+  ],
+  "documents": {
+    "proposal": "## Proposal\n\nMake ADV Temporal query/signal (and idempotent-mutation) operations resilient to a slow/contended shared worker, so multi-session contention no longer surfaces raw timeouts or requires manual reconnects. This is #217 direction 3.\n\n### Scope (this change)\n\n1. **Auto reconnect-and-retry on transient saturation.** When a query/signal op fails with a transient gRPC saturation class (`DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `UNAVAILABLE`, connection reset), transparently reconnect the STSL client once and retry within the aggregate deadline — instead of returning `ToolExecutionTimeout`/`ServiceError` to the caller. Reuse the existing `withTemporalRetry` / `createTemporalReadDeadline` infrastructure; extend coverage to the paths that currently bypass it.\n2. **Per-op budget decoupled from worker count.** Ensure the effective per-attempt timeout + bounded retry gives a contended op a fair chance to be serviced by any polling worker, within a single aggregate budget, without unbounded growth.\n3. **Idempotent-op saturation classification.** For idempotent mutations (archive finalization is the motivating case), classify a saturated response round-trip (`ServiceError` after the signal likely landed) as retry-safe: reconcile via a follow-up read/retry rather than surfacing a hard failure indistinguishable from a real error.\n4. **Structural tests** simulating multi-worker contention / a slow-responding worker: assert ops reconnect-and-retry to success within budget, fatal errors still fail fast, and idempotent ops reconcile instead of hard-failing.\n\n### Out of scope (follow-ups)\n\n- Per-session task-queue isolation (#217 dir 2) — larger routing redesign.\n- Orphan reaping and worker-count visibility (already shipped in `fixTemporalTimeoutsWorker`).\n- General worker supervision/restart redesign.\n\n### Recommended outcome\n\nA single ADV change lifecycle completes under 4–5 concurrent sessions without manual `adv_temporal_reconnect` or a session restart, and idempotent ops never report a hard failure for a merely-saturated response.",
+    "problemStatement": "## Problem\n\nThe ADV task queue is shared per project (`advance-<projectId>` via `buildProjectTaskQueue`). Every live OpenCode session spawns one worker that polls this single queue. Orphan reaping (parent-liveness watchdog, `startParentLivenessWatchdog`) and worker-count visibility (`adv_status view:health → worker_processes`) already shipped in archived change `fixTemporalTimeoutsWorker` — but those only address dead-session orphans, not **legitimate N-sessions-on-one-queue contention**.\n\nUnder that contention the shared STSL gRPC client saturates and caller operations fail even though the workflow is healthy:\n\n- 2026-07-15 (`fixTaskCycleAnchoring`): 5 live-parent workers on one queue. `adv_change_archive` → `ServiceError` (op shipped server-side; only the response round-trip lost), `adv_temporal_diagnose` → 10s `ToolExecutionTimeout`, `adv_worktree_delete` → 8s timeout, 2 manual `adv_temporal_reconnect` needed.\n- 2026-07-13 (`fixChangeStatusHonesty`): `adv_temporal_reconnect` invoked 16× in one session; gate signals timed out and did not land; required a session restart.\n\n## Root residual\n\nQuery/signal (and some idempotent mutation) paths surface a raw `ToolExecutionTimeout` / `ServiceError` to the caller instead of transparently retrying against the shared client after a transient saturation/`reconnect`. The effective per-op budget is coupled to how many workers are contending, and `adv_temporal_reconnect` is a recurring **manual** necessity. An idempotent op that saturated its response round-trip (archive) is indistinguishable from a genuine failure.\n\n## Impact\n\nRecurring wedges, forced manual reconnects/session restarts, and silent split-brain risk on idempotent ops during ordinary multi-session operation. Distinct from shipped reaping (#217 dir 1) and from per-session queue isolation (#217 dir 2); amplifies #216.",
+    "agreement": "## Agreement\n\n### Objective\n\nMake ADV Temporal query/signal/idempotent-mutation operations resilient to shared-worker gRPC saturation (#217 direction 3), so N-sessions-on-one-queue contention stops surfacing raw `ToolExecutionTimeout`/`ServiceError` and stops requiring manual `adv_temporal_reconnect`. Reuse the existing `withTemporalRetry` + `reinitStsl` harness; close the two gaps that let saturation through.\n\n### Grounded findings (discovery)\n\n- `runTemporal`/`runTemporalQuery` (`storage/store-temporal/shared.ts`) already wrap ops with `withTemporalRetry` + `makeReconnectingHook()` (onTransientFailure → `reinitStsl`), and most store query/signal paths use them.\n- **Gap 1 — classifier:** `classifyTemporalError` (`temporal/retry-wrapper.ts:46`) matches `ECONNREFUSED|Unavailable|Channel has been shut down|timeout|deadline` as transient but **omits gRPC saturation classes** — `RESOURCE_EXHAUSTED` and the archive-style `\"Unexpected error while making gRPC request\"`/`ServiceError`. Those classify `fatal` → thrown on first failure, no reconnect/retry.\n- **Gap 2 — coverage:** archive Phase 9 finalization (`tools/change/archive-gate.ts`) calls `handle.signal/describe/result` directly via `getChangeHandle(bundle.client,…)`, bypassing the wrapper — so it surfaces a raw `ServiceError` even though the operation is idempotent and often already landed server-side.\n\n### Success criteria\n\n- **SC1:** gRPC saturation errors (`RESOURCE_EXHAUSTED`, gRPC status 8/14/4, `\"Unexpected error while making gRPC request\"`, `ServiceError`) are classified `transient` and drive bounded reconnect-and-retry within the existing aggregate deadline — not thrown on first failure.\n- **SC2:** The archive-finalization gRPC operations that currently surface a raw first-failure `ServiceError` route through bounded reconnect-and-retry, so a transient saturation is retried rather than returned to the caller.\n- **SC3:** For the idempotent archive path, a post-signal saturated response is treated as retry-safe: a reconciling retry/read confirms the terminal (already-archived/shipped) outcome instead of surfacing a hard failure indistinguishable from a real error.\n- **SC4:** Effective per-op resilience is decoupled from worker count within one aggregate budget — no unbounded retry, no reliance on manual reconnect.\n\n### Acceptance criteria\n\n- **AC1:** Given an op fails with each saturation class in SC1, when it runs under `withTemporalRetry` with a reconnecting hook, then it reconnects once and retries within budget and succeeds if a retry lands; genuinely `fatal` (nondeterminism/NOT_FOUND-class) errors still fail fast without retry.\n- **AC2:** Given archive finalization encounters a transient saturation, when it runs, then it retries via the reconnecting wrapper and does not return a raw `ServiceError` for a merely-saturated response.\n- **AC3:** Given an idempotent archive whose signal already landed but whose response round-trip was lost to saturation, when the op reconciles, then it reports the terminal shipped/archived outcome (not a hard failure).\n- **AC4:** Regression tests simulate each saturation class and a slow/contended worker, asserting reconnect-and-retry success, fatal fast-fail, and idempotent reconcile.\n- **AC5:** `bin/oc-test` targeted suites for the touched modules, `pnpm run check`, and `pnpm run build` pass; public schema artifacts stay generated/checked if any public surface changes.\n\n### Constraints\n\n- **C1:** Reuse `withTemporalRetry`, the aggregate `TemporalReadDeadline`, and `reinitStsl`; do not invent a parallel retry mechanism.\n- **C2:** Classification stays structural/centralized in `classifyTemporalError` (extend the typed classifier), not ad-hoc string checks scattered across call sites.\n- **C3:** Retry-and-reconnect is applied only to idempotent or signal-idempotent operations; non-idempotent mutations must not be blindly retried.\n- **C4:** Preserve aggregate-deadline semantics — bounded attempts, no unbounded growth, no raising tool timeout ceilings as the fix.\n- **C5:** Source changes in `/home/jon/dev/advance`; implementation runs in the ADV-managed change worktree; `dist/` is build output only.\n\n### Avoidances\n\n- **DONT1:** Do not broaden the `transient` class so far that genuinely fatal errors (nondeterminism, NOT_FOUND, already-completed) get retried.\n- **DONT2:** Do not implement per-session task-queue isolation (#217 dir 2) or worker supervision changes here.\n- **DONT3:** Do not \"fix\" saturation by increasing the 10s/8s tool timeout ceilings or by making manual `adv_temporal_reconnect` the expected workflow.",
+    "design": "## Design (v2 — post independent validation, APPROVED with caution)\n\nIndependent validator verdict: **CAUTION, no remaining blockers** — all five v1 blockers resolved. v2 is approvable; the required tests and non-blocking cautions below are carried into planning.\n\nThe v1 design (broaden `transient` + wrap archive in `runTemporal`) was rejected (FAIL): stale handle (no real recovery), reconnect-on-every-saturation (disrupts concurrent ops), and blind non-idempotent signal retry. v2 corrects all five and is SDK-aware.\n\n### Guiding principle: narrow, two-axis, SDK-aware\n\n`@temporalio/client`'s `Connection` already retries `UNKNOWN/RESOURCE_EXHAUSTED/UNAVAILABLE/ABORTED/DATA_LOSS/OUT_OF_RANGE` (≤10 attempts; longer backoff for RESOURCE_EXHAUSTED) but **not** `DEADLINE_EXCEEDED`. ADV must not duplicate SDK retry. ADV's narrow value-add: (1) handle reacquisition so `reinitStsl` takes effect, (2) `DEADLINE_EXCEEDED` handling for reads under aggregate budget, (3) idempotent archive reconcile, (4) structural precedence-preserving classification + telemetry.\n\n### 1. Structural gRPC classification (two axis) — `temporal/retry-wrapper.ts`\n\n- `extractGrpcStatus(error)`: walk the `cause` chain (with a **cycle guard** — bounded depth / visited set), require an `isGrpcServiceError`-shaped node (numeric `code` + string `details` + record-like `metadata`, mirroring SDK `errors.ts`) before reading `code`. Reject arbitrary numeric `.code`. Do NOT treat `\"Unexpected error while making gRPC request\"` as transient (SDK emits it for non-gRPC errors).\n- Precedence FIRST: `WorkflowNotFoundError`, `TMPRL1100` → `fallback`; `NOT_FOUND(5)`/`ALREADY_EXISTS(6)` → `fallback`/`fatal`. Then transport classification.\n- Two axes:\n  - **retryable** (backoff, NO reconnect): `DEADLINE_EXCEEDED(4)` primary; bounded safety-net for `RESOURCE_EXHAUSTED(8)`/`UNAVAILABLE(14)`/`ABORTED(10)` only after SDK exhaustion, under one aggregate budget.\n  - **reconnectable** (retry AND `reinitStsl`): genuine transport failure only — `ECONNREFUSED`, `Channel has been shut down`, GOAWAY/broken pipe. `RESOURCE_EXHAUSTED` and plain `ABORTED` are NOT reconnectable.\n- `onTransientFailure` (reinit) fires ONLY for `reconnectable`. `fatal`/`fallback` unchanged. Back-compat: existing `\"transient\"` retry consumers keep retrying; only reconnect is narrowed.\n\n### 2. Handle/client reacquisition — the real archive fix — `tools/change/archive-gate.ts`\n\n- Root cause of persistent archive `ServiceError`: `handle` built from `bundle.client` before the retry loop; `reinitStsl` swaps `bundle.client` in place but the captured handle keeps the closed channel.\n- Fix: **every** retried/reconcile closure reacquires the handle from the current bundle each attempt — `runTemporalQuery(() => getChangeHandle(getService()!.client, projectId, changeId).describe())` — for reads, the finalization signal, AND the reconcile read. No handle constructed outside a retry closure.\n\n### 3. Idempotent archive reconcile (SC3/AC3)\n\n- Signals are async writes with no handler result; an RPC failure leaves terminal state ambiguous, and a blind re-`signal()` mints a new requestId. So on ambiguous/exhausted archive signal failure: NO blind re-signal; run exactly ONE bounded terminal-state reconcile read (describe/query or on-disk archive-bundle/status). Terminal → return `noOp: already archived`; else surface the classified error. A subsequent invocation must terminal-pre-check and return `noOp-already-archived` before any new signal. Reconcile also runs once after budget exhaustion.\n\n### 4. Shared-connection safety\n\n- Reconnect now fires only on true transport failure (channel already broken), so close-before-connect no longer cancels healthy concurrent ops on ordinary saturation. Connect-first/atomic-swap of the shared connection is a noted **follow-up** hardening (medium residual risk for genuine transport recovery), out of scope here.\n\n### 5. Tests (includes validator-required set — all must be covered in planning)\n\n- `extractGrpcStatus` requires `isGrpcServiceError` shape; arbitrary `{code:14}` and generic `\"Unexpected error…\"` remain fatal/non-transient. (validator #3)\n- Codes `4/8/10/14` classify retryable; transport strings classify reconnectable; `4`, `RESOURCE_EXHAUSTED`, and plain `ABORTED` are retryable-**not**-reconnectable — never call `reinitStsl`. (validator #2)\n- `TMPRL1100`/`NOT_FOUND`/`ALREADY_EXISTS`/`WorkflowNotFoundError` precedence preserved.\n- Cyclic `cause` chain terminates safely. (validator #6)\n- Reacquisition: after `reinitStsl` swaps the client, retry attempt 2 obtains a DIFFERENT client/handle via `getService()`/`getChangeHandle()`. (validator #1)\n- Archive read `DEADLINE_EXCEEDED` → retry succeeds; ambiguous archive signal performs exactly ONE reconcile read and ZERO automatic re-signals. (validator #4)\n- Aggregate budget caps combined SDK-plus-outer retry amplification. (validator #5)\n\n### Non-blocking cautions carried to planning\n\n- **Retry amplification:** outer retries of SDK-retried codes must sit under one aggregate attempt/deadline budget; add telemetry separating SDK exhaustion vs outer retry vs reconnect.\n- **Reconcile timing:** reconcile may read non-terminal just before an accepted-but-unprocessed signal finishes; surfacing a conservative error (vs re-signal) is the safe choice.\n\n### Locality / structural correctness\n\n- Classification is the single structural owner in `retry-wrapper.ts` (C2), now code-based not string-heuristic (P33). Reacquisition + reconcile local to `archive-gate.ts`.\n\n### Scope note\n\nThe pre-resolved-handle anti-pattern likely exists at other call sites (`_adapters.ts`, store paths). This change fixes the archive finalization path + classifier/reconcile; a broader reacquisition sweep is a surfaced **follow-up**, not silent scope expansion.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nADV Temporal operations now stay resilient under multi-session worker contention (#217 direction 3). The gRPC saturation that previously surfaced as raw `ToolExecutionTimeout`/`ServiceError` and forced manual `adv_temporal_reconnect` is now transparently retried, and the archive path recovers correctly instead of returning a hard failure for a merely-saturated response.\n\n## Delivered value\n- **Structural two-axis error classification** — validated gRPC status codes (via a shape-checked `cause`-chain walk with a cycle guard) drive a clean split: saturation/availability codes (RESOURCE_EXHAUSTED, UNAVAILABLE, DEADLINE_EXCEEDED, ABORTED) are *retryable*; only genuine transport failures (ECONNREFUSED, channel shutdown, GOAWAY, broken pipe) are *reconnectable*. Reconnecting the shared connection no longer fires on saturation, so one session's load can't cancel other sessions' in-flight ops (the #217 amplifier). A validated saturation code stays on the retry axis even if the error text contains transport-looking phrases.\n- **Archive stale-handle fix** — archive finalization reads now rebuild the workflow handle from the current STSL bundle inside every retry attempt, so a mid-op reconnect actually takes effect (the root cause of the persistent archive `ServiceError`).\n- **Idempotent archive reconcile** — the release-gate signal is fired once (no blind re-signal on ambiguous completion); a transient failure triggers exactly one bounded terminal-state reconcile read → already-done on success, a typed classified error otherwise. Completed-workflow recovery is preserved.\n- **SDK-aware** — leverages, rather than duplicates, the Temporal Connection's built-in retry interceptor; ADV's added value is DEADLINE_EXCEEDED handling (which the SDK does not retry), handle reacquisition, and reconcile.\n\n## Verification\n- `retry-wrapper` 22/22; archive-gate 12/12; combined touched suites 195 passed (`bin/oc-test targeted`, tr_mrmh20qs).\n- `pnpm run check` (schemas, typecheck, isolation, lockfile, lint, format) and `pnpm run build` (plugin + worker bundles) green.\n- Independent design validator: two rounds (v1 FAIL → v2 CAUTION, zero blockers). Independent acceptance reviewer: **READY**, zero blocking findings (and contributed the saturation-vs-transport-text hardening).\n\n## Risks and follow-ups\n- No release-blocking concerns. Deploy/worker-restart intentionally deferred (avoids the mid-change replay-lag hazard); the fix ships to `dist` on build and takes effect on the next operator-controlled restart.\n- **Surfaced follow-up (out of scope):** `recordPhase9Status` still fires `phase9StatusUpdatedSignal` through the blind-retry `fireSignalAndRefresh` — same class as the release-gate signal, on a different signal. Candidate for a fast-follow.\n- **Deferred (design-noted):** per-session task-queue isolation (#217 dir 2); connect-first/atomic-swap of the shared connection; a broader reacquisition sweep of other pre-resolved-handle call sites.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-15T19:33:39.430Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** gRPC saturation errors (`RESOURCE_EXHAUSTED`, gRPC status 8/14/4, `\"Unexpected error while making gRPC request\"`, `ServiceError`) are classified `transient` and drive bounded reconnect-and-retry within the existing aggregate deadline — not thrown on first failure. | pass | Reviewer READY. Validated gRPC saturation codes (RESOURCE_EXHAUSTED/UNAVAILABLE/DEADLINE_EXCEEDED/ABORTED) classify transient→bounded retry; fatal fast-fails; arbitrary code & non-gRPC text not transient. retry-wrapper.test.ts 22/22. |\n| SC2 | success_criterion | **SC2:** The archive-finalization gRPC operations that currently surface a raw first-failure `ServiceError` route through bounded reconnect-and-retry, so a transient saturation is retried rather than returned to the caller. | pass | Archive reads reacquire handle from getService() per attempt (runReacquiringChangeQuery); reviewer confirmed stale-handle fixed. archive-gate.test.ts 12/12. |\n| SC3 | success_criterion | **SC3:** For the idempotent archive path, a post-signal saturated response is treated as retry-safe: a reconciling retry/read confirms the terminal (already-archived/shipped) outcome instead of surfacing a hard failure indistinguishable from a real error. | pass | gateCompletedSignal fired once; ambiguous transient failure → exactly one reconcile read → terminal already-done / non-terminal typed error, zero re-signals. Reviewer READY. |\n| SC4 | success_criterion | **SC4:** Effective per-op resilience is decoupled from worker count within one aggregate budget — no unbounded retry, no reliance on manual reconnect. | pass | reinitStsl fires only on isReconnectableError (transport failures); saturation codes retry-not-reconnect (hardened fd04293c to ignore transport-looking details text on validated saturation codes). Bounded by aggregate deadline. |\n| AC1 | acceptance_criterion | **AC1:** Given an op fails with each saturation class in SC1, when it runs under `withTemporalRetry` with a reconnecting hook, then it reconnects once and retries within budget and succeeds if a retry lands; genuinely `fatal` (nondeterminism/NOT_FOUND-class) errors still fail fast without retry. | pass | retry-wrapper.test.ts asserts each saturation class→transient retry, fatal fast-fail, isGrpcServiceError shape gate, cycle guard. 22/22 (tr_mrmfgqaq + harden). |\n| AC2 | acceptance_criterion | **AC2:** Given archive finalization encounters a transient saturation, when it runs, then it retries via the reconnecting wrapper and does not return a raw `ServiceError` for a merely-saturated response. | pass | archive-gate.test.ts: attempt-2 handle provably from swapped client after transport failure; DEADLINE_EXCEEDED retries without reconnect. 12/12 (tr_mrmgy7uk). |\n| AC3 | acceptance_criterion | **AC3:** Given an idempotent archive whose signal already landed but whose response round-trip was lost to saturation, when the op reconciles, then it reports the terminal shipped/archived outcome (not a hard failure). | pass | archive-gate.test.ts: ambiguous signal → one reconcile read, zero re-signals; terminal→already-done; non-terminal→classified error; completed-workflow recovery preserved. |\n| AC4 | acceptance_criterion | **AC4:** Regression tests simulate each saturation class and a slow/contended worker, asserting reconnect-and-retry success, fatal fast-fail, and idempotent reconcile. | pass | Regression coverage across allow/missing/mismatch(code vs text)/precedence/cycle/reacquire/reconcile paths. bin/oc-test targeted 195 passed (tr_mrmh20qs). |\n| AC5 | acceptance_criterion | **AC5:** `bin/oc-test` targeted suites for the touched modules, `pnpm run check`, and `pnpm run build` pass; public schema artifacts stay generated/checked if any public surface changes. | pass | pnpm run check passed (schemas/typecheck/isolation/lockfile/lint/format); pnpm run build passed (plugin+worker bundles); targeted 195 passed. |\n| C1 | constraint | **C1:** Reuse `withTemporalRetry`, the aggregate `TemporalReadDeadline`, and `reinitStsl`; do not invent a parallel retry mechanism. | respected | Reused withTemporalRetry/createTemporalReadDeadline/reinitStsl/runTemporal(Query); no parallel retry mechanism added. |\n| C2 | constraint | **C2:** Classification stays structural/centralized in `classifyTemporalError` (extend the typed classifier), not ad-hoc string checks scattered across call sites. | respected | Classification centralized in retry-wrapper.ts classifyTemporalError/isReconnectableError/extractGrpcStatus; structural gRPC codes, not scattered string checks. |\n| C3 | constraint | **C3:** Retry-and-reconnect is applied only to idempotent or signal-idempotent operations; non-idempotent mutations must not be blindly retried. | respected | Reads retried; the idempotent signal is NOT blindly retried — reconcile-instead-of-re-signal. No non-idempotent mutation blind-retried. |\n| C4 | constraint | **C4:** Preserve aggregate-deadline semantics — bounded attempts, no unbounded growth, no raising tool timeout ceilings as the fix. | respected | Retries bounded by existing aggregate deadline; no tool timeout ceilings raised. |\n| C5 | constraint | **C5:** Source changes in `/home/jon/dev/advance`; implementation runs in the ADV-managed change worktree; `dist/` is build output only. | respected | Source-only edits in the ADV worktree (retry-wrapper.ts, shared.ts, archive-gate.ts + tests); dist built, not hand-edited. |\n| DONT1 | avoidance | **DONT1:** Do not broaden the `transient` class so far that genuinely fatal errors (nondeterminism, NOT_FOUND, already-completed) get retried. | respected | transient class did not capture fatal: nondeterminism/NOT_FOUND/already-exists still fallback/fatal; precedence test passes. |\n| DONT2 | avoidance | **DONT2:** Do not implement per-session task-queue isolation (#217 dir 2) or worker supervision changes here. | respected | No per-session task-queue isolation or worker supervision changes; shared queue unchanged. |\n| DONT3 | avoidance | **DONT3:** Do not \"fix\" saturation by increasing the 10s/8s tool timeout ceilings or by making manual `adv_temporal_reconnect` the expected workflow. | respected | No tool-timeout ceiling raise; manual adv_temporal_reconnect not made the expected workflow (auto reconnect-and-retry on transport failures). |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-15T18:18:31.296Z",
+      "contentHash": "b7bcedf2a508b1b0205d277d523dfe5bbc3359514a114300bcb8b4650bf70792",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-15T18:18:31.296Z",
+      "contentHash": "43475dd2893f50f47e2c923aae5d2d3138bd6efd53d07dd2d4c729700106a0d0",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-15T18:22:10.592Z",
+      "contentHash": "c579a4e78333f17a5afb8c234065325e1b2d3828eb009630d495325ce9e04155",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-15T18:34:58.931Z",
+      "contentHash": "5448099e7c946c35085c17cc80aed3ad7dd8afb512219ee5d95ef3faa26008e8",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-15T19:34:02.185Z",
+      "contentHash": "9b0ff11cbf56a9d160ce07af75cce47ebe28d6d8a51a27730ef84062aeb9dca3",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-15T19:36:15.039Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

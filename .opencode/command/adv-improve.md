@@ -2,7 +2,6 @@
 name: adv-improve
 description: Suggest targeted improvements to existing specs or implementation
 ---
-<!-- manifest: adv-improve · requiresChangeId: false -->
 
 # ADV Improve — Analyze Improvement Opportunities
 
@@ -37,7 +36,7 @@ Fallback: run phases in this file; cap findings; cite evidence; write only `docs
 | No args | broad repo-wide scan |
 | With target | scoped scan of file / directory / capability / symbol / concept |
 
-Resolve in order: file path → read; directory → outline; symbol → `lgrep_search_symbols`; concept → `lgrep_search_semantic`. Ask via `question` only when interpretations materially differ.
+Resolve in order: file path → read; directory → outline; symbol → lgrep symbol search; concept → lgrep semantic search. Ask via `question` only when interpretations materially differ.
 
 ## Exits
 
@@ -51,7 +50,7 @@ Resolve in order: file path → read; directory → outline; symbol → `lgrep_s
 
 ## Phase 1: Context Loading
 
-Load `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec action: "list"`. Detect worktree, stack files, and source roots (`src/`, `lib/`, `app/`, `packages/`, `*.ts/*.js/*.py/*.go`). Exit cleanly if no source files.
+Load `adv_project_context`, `adv_change_list`, `adv_spec action: "list"`. Detect worktree, stack files, and source roots (`src/`, `lib/`, `app/`, `packages/`, `*.ts/*.js/*.py/*.go`). Exit cleanly if no source files.
 
 ---
 
@@ -65,7 +64,7 @@ Every finding MUST have evidence: file path, searched path, or source citation.
 
 ## Phase 3: LBP / Reference Comparison
 
-Use `context7_resolve-library-id` then `context7_query-docs` for detected stack. Fallback to `webfetch` canonical docs. If unavailable, use local conventions and annotate `[Reference: local conventions — Context7/webfetch unavailable]`.
+Use Context7 (resolve library, then query docs) for detected stack. Fallback to `webfetch` canonical docs. If unavailable, use local conventions and annotate `[Reference: local conventions — Context7/webfetch unavailable]`.
 
 Build deviation table: `SOUND` / `DRIFTED` / `ANTI-PATTERN`, source citation, wrong path, correct pattern, minimum viable fix, greenfield note.
 
@@ -73,7 +72,7 @@ Build deviation table: `SOUND` / `DRIFTED` / `ANTI-PATTERN`, source citation, wr
 
 ## Phase 4: External Landscape
 
-Use `exa_web_search_exa` queries: `"{domain} alternatives comparison {current-year}"`, `"{domain} emerging tools trends {current-year}"`.
+Use Exa web-search queries: `"{domain} alternatives comparison {current-year}"`, `"{domain} emerging tools trends {current-year}"`.
 
 Extract top-3 competitors + 2 emerging patterns max. Each entry needs source URL, one-sentence summary, relevance. If unavailable/no relevant results, state reason; do not fabricate.
 
@@ -81,7 +80,7 @@ Extract top-3 competitors + 2 emerging patterns max. Each entry needs source URL
 
 ## Phase 5: Synthesis
 
-Deduplicate against active changes and agenda. Sort CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD.
+Deduplicate against active changes and existing follow-ups. Sort CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD.
 
 Emit **IMPROVEMENT ANALYSIS** with Current State, Architecture, External Landscape, Summary, top 3 recommendations, health signal, and next commands: `/adv-proposal <summary>`, `/adv-task`, `/adv-audit`, `/adv-tron`.
 
@@ -107,7 +106,7 @@ If section cannot refresh, mark `⚠ not refreshed ({reason})` and preserve prio
 
 - No ADV state mutation.
 - Only write: research pack under `docs/*-prep.md`.
-- No change/agenda creation; suggestions only.
+- No change/follow-up creation; suggestions only.
 - Bounded: 5 findings/category, 3 competitors + 2 patterns.
 - Evidence required; reject evidence-free findings.
 - Fallback/unavailability notes MUST appear in report and pack.
@@ -116,8 +115,8 @@ If section cannot refresh, mark `⚠ not refreshed ({reason})` and preserve prio
 
 | Purpose | Tool |
 |---|---|
-| Context | `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec` |
-| Code | `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_get_file_tree`, `read` |
-| Reference | `context7_resolve-library-id`, `context7_query-docs`, `webfetch` |
-| External | `exa_web_search_exa` |
+| Context | `adv_project_context`, `adv_change_list`, `adv_spec` |
+| Code | lgrep semantic search, lgrep symbol search, lgrep file tree, `read` |
+| Reference | Context7 resolve + query docs, `webfetch` |
+| External | Exa web search |
 | Persist | `write` / `morph_edit` under `docs/*-prep.md` |

@@ -1,5 +1,5 @@
 /**
- * Roadmap Tool — adv_roadmap
+ * Roadmap Tool — adv_roadmap (sole backlog reader)
  *
  * Read-only access to the prioritized backlog. Two modes:
  *   - source: 'file' (default) — reads `.adv/roadmap-snapshot.json` at repo
@@ -10,6 +10,14 @@
  *
  * Filters compose: kind ∈ {bug, feature, all}, top N (features only),
  * priority ∈ {critical, high, medium, low} (bugs only).
+ *
+ * consolidateAdvToolSurface2 (tk-f022bfadbd81): adv_roadmap absorbed the
+ * removed adv_backlog_state's behavior — TTL-bounded annotation freshness
+ * (rq-backlogCoord01/07) and O(1) active-change annotation per issue number
+ * (rq-backlogCoord05). Annotation uses `queryActiveChangesByIssueNumbers`
+ * (batches of ≤ 100 issue numbers) and NEVER falls back to per-change reads:
+ * when Temporal Visibility is unreachable the response carries the typed
+ * `annotation_status: "annotations_unavailable"` source-health state.
  *
  * Source of truth is always GitHub Project v2; the snapshot file is the
  * canonical mirror, mirrored to disk so that read access works without
@@ -223,9 +231,8 @@ export function assessAnnotationFreshness(
 /**
  * rq-backlogCoord01 — Build TTL metadata for a snapshot write.
  *
- * Helper consumed by the snapshot writer (currently `adv_backlog_state`
- * via task C1 when triggering a refresh; in the future also `/adv-triage`
- * Phase 5) to populate `last_refreshed`, `ttl_ms`, and the redundant
+ * Helper consumed by snapshot writers (e.g. `/adv-triage` refresh paths)
+ * to populate `last_refreshed`, `ttl_ms`, and the redundant
  * `next_refresh_after` consistently.
  */
 export interface RefreshMetadataInput {
@@ -647,7 +654,7 @@ function applyFilters(
 export const roadmapTools = {
   adv_roadmap: {
     description:
-      "Read the prioritized backlog (bugs by priority, features by issue number). Defaults to reading the file snapshot emitted by /adv-triage and reports freshness warnings after 2h; pass `source: 'live'` to query the GitHub Project directly. Filter via `kind`, `top` (features), `priority` (bugs).",
+      "Read the prioritized backlog (bugs by priority, features by issue number) — the sole backlog reader. Defaults to reading the file snapshot emitted by /adv-triage and reports freshness warnings after 2h; pass `source: 'live'` to query the GitHub Project directly. Filter via `kind`, `top` (features), `priority` (bugs). Responses include TTL-bounded annotation freshness and O(1) Visibility active-change annotation per issue number; when Temporal Visibility is unreachable the response carries typed `annotation_status: 'annotations_unavailable'` instead of per-change fallback reads.",
     args: {
       source: z
         .enum(["file", "live"])
@@ -684,6 +691,8 @@ export const roadmapTools = {
         priority?: "critical" | "high" | "medium" | "low";
       },
       store: Store,
+      _maybeOverridePath?: string,
+      providers: RoadmapAnnotationProviders = {},
     ): Promise<string> => {
       const source = args.source ?? "file";
       let snapshot: RoadmapSnapshot;
@@ -740,19 +749,34 @@ export const roadmapTools = {
       const filtered = applyFilters(snapshot, args);
       const freshness = assessRoadmapFreshness(source, snapshot.generated_at);
 
-      // rq-backlogCoord05 — Cross-reference active changes via a single
-      // Temporal Visibility query (O(1) Visibility call) rather than the
-      // legacy O(n×m) `buildActiveChangeIndex` (N × store.changes.get).
-      // Falls back to the store-loop helper only when Temporal Visibility is
-      // unreachable (offline / no service / no project ID).
+      // rq-backlogCoord07 — TTL-bounded annotation freshness (consolidated
+      // from the removed adv_backlog_state). File mode assesses the
+      // snapshot's TTL metadata; live mode just generated the snapshot, so
+      // its annotation window starts now.
+      const annotationFreshness =
+        source === "file"
+          ? assessAnnotationFreshness(snapshot)
+          : assessAnnotationFreshness({
+              last_refreshed: snapshot.generated_at,
+              ttl_ms: DEFAULT_ANNOTATION_TTL_MS,
+            });
+
+      // rq-backlogCoord05 — Cross-reference active changes via Temporal
+      // Visibility (O(1) per ≤100-issue batch, never per-change reads).
+      // When Visibility is unreachable the response carries the typed
+      // `annotations_unavailable` source-health state instead of any
+      // store-loop fallback.
       const allIssueNumbers = [
         ...snapshot.bugs.map((b) => b.number),
         ...snapshot.features.map((f) => f.number),
       ];
-      const activeByIssue = await resolveActiveChangeIndex(
+      const annotation = await resolveActiveChangeAnnotation(
         store,
         allIssueNumbers,
+        providers,
       );
+      const activeByIssue =
+        annotation.status === "ok" ? annotation.byIssue : new Map();
       const annotatedFeatures = filtered.features.map((f) =>
         activeByIssue.has(f.number)
           ? { ...f, active_change: activeByIssue.get(f.number) }
@@ -791,10 +815,16 @@ export const roadmapTools = {
           `Roadmap ${source} snapshot is ${freshness.status}; run /adv-roadmap --live before starting work and /adv-triage to refresh the mirror.`,
         );
       }
+      if (annotation.status === "annotations_unavailable") {
+        warnings.push(
+          "Active-change annotation unavailable (Temporal Visibility unreachable); active_change fields omitted — no per-change fallback is performed.",
+        );
+      }
       if (
         source === "file" &&
         freshness.needs_refresh &&
         snapshot.counts.bugs > 0 &&
+        annotation.status === "ok" &&
         activeByIssue.size === 0
       ) {
         warnings.push(
@@ -807,12 +837,15 @@ export const roadmapTools = {
         snapshot_path: snapshotPath,
         generated_at: snapshot.generated_at,
         freshness,
+        annotation_freshness: annotationFreshness,
+        annotation_status: annotation.status,
         warnings,
         project: snapshot.project,
         repository_filter: snapshot.repository_filter ?? null,
         counts: snapshot.counts,
         applied_filters: filtered.applied_filters,
-        active_changes_indexed: activeByIssue.size,
+        active_changes_indexed:
+          annotation.status === "ok" ? activeByIssue.size : null,
         bugs: annotatedBugs,
         features: annotatedFeatures,
         deferred: filtered.deferred,
@@ -822,96 +855,100 @@ export const roadmapTools = {
 };
 
 /**
- * rq-backlogCoord05 — Visibility-first active-change resolver.
+ * consolidateAdvToolSurface2 (tk-f022bfadbd81) — Typed annotation outcome.
  *
- * Tries a single Temporal Visibility query first (O(1) regardless of how
- * many active changes exist) using `AdvBacklogIssueNumber IN (...)`. Falls
- * back to the legacy store-loop only when Visibility is unreachable
- * (offline, no Temporal service, no project ID). Failures from EITHER path
- * are non-fatal: callers receive an empty map and the roadmap renders
- * without active-change annotations.
+ * `ok` carries the issue-number → changeId index. `annotations_unavailable`
+ * is the explicit source-health state returned when Temporal Visibility is
+ * unreachable: annotation data is NEVER inferred from disk state, an empty
+ * list, or per-change fallback reads (design DDC5; user-selected strict
+ * O(1) behavior over outage-time annotation availability).
  */
-async function resolveActiveChangeIndex(
-  store: Store,
-  issueNumbers: number[],
-): Promise<Map<number, string>> {
-  // Empty input short-circuits both paths.
-  if (issueNumbers.length === 0) return new Map();
+export type ActiveChangeAnnotation =
+  | { status: "ok"; byIssue: Map<number, string> }
+  | { status: "annotations_unavailable" };
 
-  // Path 1: Visibility-backed lookup.
-  try {
-    const bundle = getService();
-    if (bundle) {
-      const projectId = await getProjectId(store.paths.root);
-      if (projectId) {
-        const client = bundle.client as unknown as Parameters<
-          typeof queryActiveChangesByIssueNumbers
-        >[0];
-        const map = await queryActiveChangesByIssueNumbers(
-          client,
-          projectId,
-          issueNumbers,
-        );
-        const result = new Map<number, string>();
-        for (const [issue, info] of map) {
-          result.set(issue, info.changeId);
-        }
-        return result;
-      }
-    }
-  } catch {
-    // Fall through to store-loop fallback.
-  }
-
-  // Path 2: Legacy store-loop fallback (slower; works without Temporal).
-  return buildActiveChangeIndexFromStore(store);
+/**
+ * Injection seam for tests. Production wires to the Visibility-backed
+ * default annotator. The 4th execute parameter is omitted from the Zod
+ * schema so callers cannot pass it.
+ */
+export interface RoadmapAnnotationProviders {
+  /**
+   * Visibility-backed annotator. Receives all snapshot issue numbers in a
+   * single batch (rq-backlogCoord05); the production implementation chunks
+   * into ≤100-issue Visibility queries inside
+   * `queryActiveChangesByIssueNumbers`. Must throw (or reject) when
+   * Visibility is unreachable so the caller can emit the typed
+   * `annotations_unavailable` state.
+   */
+  activeChangesAnnotator?: (
+    projectId: string,
+    issueNumbers: number[],
+  ) => Promise<Map<number, { changeId: string }>>;
 }
 
 /**
- * Legacy fallback: build a map from GitHub issue number → active change ID
- * by walking the store's active-change list and reading each change's
- * `origin.issue_number`. O(n×m) on number of active changes. Preserved
- * only as fallback when Temporal Visibility is unreachable.
- *
- * Active = status ∈ {draft, pending, active}. Archived/closed changes are
- * intentionally excluded — they don't represent in-flight work.
- *
- * Failures are non-fatal: if the store list call fails, return an empty
- * map and let the caller render the roadmap without active-change
- * annotations. The roadmap surface MUST NOT block on side-channel reads.
+ * Production annotator: single batched Temporal Visibility query path.
+ * Throws when the service layer, client, or project id is unavailable —
+ * the resolver maps any failure to `annotations_unavailable`.
  */
-async function buildActiveChangeIndexFromStore(
+async function defaultActiveChangesAnnotator(
+  projectId: string,
+  issueNumbers: number[],
+): Promise<Map<number, { changeId: string }>> {
+  if (!projectId) {
+    throw new Error("ADV project id unresolved");
+  }
+  const bundle = getService();
+  if (!bundle) {
+    throw new Error("Temporal service unavailable");
+  }
+  const client = bundle.client as unknown as Parameters<
+    typeof queryActiveChangesByIssueNumbers
+  >[0];
+  if (!client?.workflow?.list) {
+    throw new Error("Temporal client unavailable");
+  }
+  const results = await queryActiveChangesByIssueNumbers(
+    client,
+    projectId,
+    issueNumbers,
+  );
+  // Strip non-changeId fields for a stable response shape.
+  const m = new Map<number, { changeId: string }>();
+  for (const [issue, info] of results) {
+    m.set(issue, { changeId: info.changeId });
+  }
+  return m;
+}
+
+/**
+ * rq-backlogCoord05 — Visibility-only active-change resolver.
+ *
+ * Uses `queryActiveChangesByIssueNumbers` (batches of ≤ 100 issue numbers)
+ * and NEVER falls back to per-change reads: any Visibility failure returns
+ * the typed `annotations_unavailable` state. An empty issue list
+ * short-circuits to `ok` with an empty index.
+ */
+async function resolveActiveChangeAnnotation(
   store: Store,
-): Promise<Map<number, string>> {
-  const index = new Map<number, string>();
-  // "in-flight" is a tool-layer filter, not a stored status enum value.
-  // Fetch the full list (excluding archived/closed by default) and filter
-  // here to {draft, pending, active}.
-  let listResult: Awaited<ReturnType<typeof store.changes.list>>;
+  issueNumbers: number[],
+  providers: RoadmapAnnotationProviders,
+): Promise<ActiveChangeAnnotation> {
+  if (issueNumbers.length === 0) {
+    return { status: "ok", byIssue: new Map() };
+  }
   try {
-    listResult = await store.changes.list({});
-  } catch {
-    return index;
-  }
-  const summaries = (
-    listResult as { changes?: Array<{ id: string; status: string }> }
-  ).changes;
-  if (!Array.isArray(summaries)) {
-    return index;
-  }
-  const inFlight = new Set(["draft", "pending", "active"]);
-  for (const summary of summaries) {
-    if (!inFlight.has(summary.status)) continue;
-    const changeResult = await store.changes.get(summary.id);
-    if (!changeResult.success || !changeResult.data) continue;
-    const origin = changeResult.data.origin;
-    if (origin?.issue_number !== undefined) {
-      // First-write wins: if multiple active changes claim the same issue,
-      // surface the earliest (by created_at) — extremely rare; UI can flag.
-      if (!index.has(origin.issue_number)) {
-        index.set(origin.issue_number, summary.id);
-      }
+    const projectId = (await getProjectId(store.paths.root)) ?? "";
+    const annotator =
+      providers.activeChangesAnnotator ?? defaultActiveChangesAnnotator;
+    const raw = await annotator(projectId, issueNumbers);
+    const byIssue = new Map<number, string>();
+    for (const [issue, info] of raw) {
+      byIssue.set(issue, info.changeId);
     }
+    return { status: "ok", byIssue };
+  } catch {
+    return { status: "annotations_unavailable" };
   }
-  return index;
 }

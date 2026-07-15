@@ -76,7 +76,7 @@ describe("Briefing packet type foundations", () => {
   it("classifies durable facts into the expected outcomes", () => {
     expect(BriefingFactOutcomeSchema.options).toEqual([
       "transient_prompt_context",
-      "agenda",
+      "report_follow_up",
       "wisdom_candidate",
       "spec_delta_candidate",
       "epic_terminal_note",

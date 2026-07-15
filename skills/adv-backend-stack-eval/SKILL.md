@@ -98,7 +98,7 @@ Before recommending, state tier, evidence present, missing evidence, and risks. 
 
 - Context7 — official docs, API references.
 - Exa — ecosystem sentiment, production case studies, CVE status.
-- Exa → searchcode — use Exa to find candidate repos, then `searchcode_code_search` / `searchcode_code_get_file` for real-world usage and adoption patterns.
+- Exa → searchcode — use Exa to find candidate repos, then searchcode code search / file fetch for real-world usage and adoption patterns.
 
 ## Hand-offs + Boundaries
 

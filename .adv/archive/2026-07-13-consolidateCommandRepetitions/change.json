@@ -1,0 +1,1052 @@
+{
+  "id": "consolidateCommandRepetitions",
+  "title": "Consolidate command repetitions",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T18:18:13.637Z",
+  "tasks": [
+    {
+      "id": "tk-f27b1905e422",
+      "title": "Consolidate standalone-safe command prose",
+      "type": "docs",
+      "section": "Standalone-safe consolidation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T18:59:27.323Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": "Command Markdown contract cleanup is proven by deterministic source/anchor checks and targeted asset tests, not runtime logic TDD."
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T19:01:12.886Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "consolidateCommandRepetitions",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+          "task_id": "tk-f27b1905e422",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f27b1905e422"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-review.md"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-review-assets.test.ts src/commands-spine-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+              "exit_code": 0,
+              "summary": "69 tests passed; token-budget warnings are pre-existing advisory baselines, not failures"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/briefing-packets-command-assets.test.ts src/command-requirement-citations.test.ts src/adv-reviewer-asset.test.ts",
+              "exit_code": 0,
+              "summary": "112 tests passed"
+            },
+            {
+              "command": "grep -c '12-Dimension Review Framework' .opencode/command/adv-review.md",
+              "exit_code": 0,
+              "summary": "0 matches — standalone duplicate removed"
+            },
+            {
+              "command": "grep -c '12-Dimension Framework' .opencode/command/adv-review.md",
+              "exit_code": 0,
+              "summary": "2 matches — Phase 0 heading and new same-file reference only"
+            },
+            {
+              "command": "grep -n 'preExecutionRebase' .opencode/command/adv-apply.md",
+              "exit_code": 0,
+              "summary": "2 matches at L166/L180 — live marker intact"
+            },
+            {
+              "command": "grep -n 'T28' .opencode/command/adv-archive.md",
+              "exit_code": 0,
+              "summary": "5 matches at L319/L320/L323/L327/L353 — live markers intact"
+            },
+            {
+              "command": "grep -n 'Gate Handoff Voice' .opencode/command/adv-review.md",
+              "exit_code": 0,
+              "summary": "1 match — protected spine intact"
+            },
+            {
+              "command": "grep -n 'SUB-AGENT CONTEXT' .opencode/command/adv-review.md",
+              "exit_code": 0,
+              "summary": "1 match — protected anchor intact"
+            },
+            {
+              "command": "git diff --stat .opencode/command/adv-review.md",
+              "exit_code": 0,
+              "summary": "1 insertion, 16 deletions — only the duplicate table removed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Skipped all optional compression edits",
+              "why": "Target Resolution, skill-load fallback, worktree context, auto-continue rationale, and sub-agent context each contain command-specific behavior or frozen tokens (different steps, skill names, next commands, JSON vs direct findings). Compressing them would violate the 'command-specific behavior and frozen tokens stay explicit' constraint."
+            },
+            {
+              "what": "Used a single-line same-file Markdown reference for the mandatory dedup",
+              "why": "Preserves the Phase 0 table as the single source of truth, keeps the reference precise and minimal, and avoids introducing new anchors or protected-token drift."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned all 29 adv-*.md command files for duplicate 12-dimension tables, Target Resolution, skill-load fallback, worktree context, auto-continue, and sub-agent context patterns. Confirmed no other standalone duplicates exist.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Mandatory dedup in adv-review.md is complete: standalone 12-dimension duplicate replaced with a same-file reference to the Phase 0 table. All 181 command-asset tests pass. Live markers (preExecutionRebase, T28) and protected tokens (Gate Handoff, SUB-AGENT CONTEXT, BRIEFING PACKET, MUST/NEVER, slash commands) verified intact. No optional compression performed because every candidate carried command-specific behavior or frozen tokens that would be lost.",
+            "suggested_next_action": "Review the diff, then proceed to next task or gate completion"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-review-assets.test.ts src/commands-spine-assets.test.ts src/adv-skill-backed-commands-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/briefing-packets-command-assets.test.ts src/command-requirement-citations.test.ts src/adv-reviewer-asset.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -c '12-Dimension Review Framework' .opencode/command/adv-review.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -c '12-Dimension Framework' .opencode/command/adv-review.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -n 'preExecutionRebase' .opencode/command/adv-apply.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -n 'T28' .opencode/command/adv-archive.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -n 'Gate Handoff Voice' .opencode/command/adv-review.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -n 'SUB-AGENT CONTEXT' .opencode/command/adv-review.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --stat .opencode/command/adv-review.md"
+            }
+          ]
+        }
+      ],
+      "verification": "181 targeted command-asset tests passed; git diff --check passed; clean checkpoint at 76cb2f7041b33943b1329c2c98cd249cf5da3548.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "76cb2f7041b33943b1329c2c98cd249cf5da3548",
+      "completedAt": "2026-07-13T19:12:26.313Z",
+      "completed_at": "2026-07-13T19:12:26.313Z"
+    },
+    {
+      "id": "tk-fac7da2a307d",
+      "title": "Verify command consolidation",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T18:59:36.180Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f27b1905e422"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T19:11:07.834Z",
+      "verification": "Focused command assets: 129 tests pass. pnpm run check passes. git diff --check passes; scoped two-file branch diff clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "76cb2f7041b33943b1329c2c98cd249cf5da3548",
+      "completedAt": "2026-07-13T19:16:18.410Z",
+      "completed_at": "2026-07-13T19:16:18.410Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "consolidateCommandRepetitions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:dedup-bloat-feasibility"
+      },
+      "agent": "adv-researcher",
+      "topic": "Command prompt bloat/dedup alternatives feasibility on current trunk",
+      "sources": [
+        {
+          "label": "commands-spine-assets.test.ts (gate handoff spine + banned retired headings)",
+          "locator": "plugin/src/commands-spine-assets.test.ts",
+          "summary": "Spine-bearing commands MUST keep exact ## Problem / ## Chosen direction / ## Delivered ordering, --- separator, and **{change-id}** footer. Nine named commands MUST retain a spine. Bans ## Next / ## Next stage. Dedup must not collapse these anchors."
+        },
+        {
+          "label": "briefing-packets-command-assets.test.ts (packet anchors + banned manual sections)",
+          "locator": "plugin/src/briefing-packets-command-assets.test.ts",
+          "summary": "adv-apply/adv-review/adv-harden/adv-design/adv-discover packets MUST contain BRIEFING PACKET: plus lane-specific identity anchors (WORKING DIRECTORY/CHANGE/ATTEMPT + warn-first anchors) and MUST NOT re-add manual AFFECTED FILES:/ACCEPTANCE CRITERIA:/EPIC CONTEXT:/CONTRACT ITEMS: sections. Agent files MUST reference _briefingPacket. This is the pre-existing dedup mechanism: packet slices replace duplicated correctness prose."
+        },
+        {
+          "label": "adv-skill-backed-commands-assets.test.ts (embedded methodology + forbidden pointers + baselines)",
+          "locator": "plugin/src/adv-skill-backed-commands-assets.test.ts",
+          "summary": "adv-discover/adv-prep/adv-apply/adv-review MUST keep inline ### *Methodology markers (folded, not skill-linked). adv-harden/adv-slop-scan MUST keep skill() load + inline fallback. Forbidden: pointing at docs/checklists/*.md or ~/.local/share/Advance paths. Many exact-substring assertions pin specific phrasing. Line baselines are ADVISORY warn-only (tests always pass)."
+        },
+        {
+          "label": "command-requirement-citations.test.ts (rq-tag ownership already migrated)",
+          "locator": "plugin/src/command-requirement-citations.test.ts",
+          "summary": "A prior removeCommandTraceTags change already stripped rq-{id} trace tags from command markdown and re-anchored 44 spec citations in plugin/src/. Command dedup does not need to preserve rq- tags in markdown; that ownership already lives in code/tests."
+        },
+        {
+          "label": "docs/command-voice-standard.md Prose-Load Reduction Rules + Caveman-full composition",
+          "locator": "docs/command-voice-standard.md:206-266",
+          "summary": "Canonical compression contract: classify each section fully-enforced / partially-enforced / inherently-prose, then apply matching template (pointer line + constraint table). Caveman-full is a wording-density layer on top, NOT a competing method. Contract tokens (tool names, gate IDs, statuses, slash commands, enums, quoted errors, MUST/NEVER, approval/cancellation/archive prose, JSON/code) stay unchanged. Governed by rq-proseReduction01-04."
+        },
+        {
+          "label": "manifest-doc-drift.test.ts (exact frontmatter equality + structural caps)",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:1-52,349-361",
+          "summary": "Command frontmatter description MUST exactly equal manifest.ts (single source of truth); MUST be single-line YAML scalar. Voice-standard Prose-Load Reduction section capped <=80 lines. Structural, not content-based."
+        },
+        {
+          "label": ".opencode/token-budgets.json (advisory baselines) vs measured current size",
+          "locator": ".opencode/token-budgets.json",
+          "summary": "adv-apply baseline 404 lines; current adv-apply.md measured 730 lines (~81% over). adv-review baseline 324, measured >=493. Files grew past baselines since last compression pass, confirming genuine bloat — but ceiling test is warn-only, so it alone does not block or force any change."
+        },
+        {
+          "label": "Concrete within-command duplication evidence",
+          "locator": ".opencode/command/adv-review.md:37-56,97-125",
+          "summary": "adv-review.md renders the full 12-dimension review table twice: once inside Phase 0 embedded methodology (#### 12-Dimension Framework, line 37) and again as standalone ## 12-Dimension Review Framework (line 97). Exactly the proven within-command repetition the proposal targets; safe to consolidate to one canonical instance."
+        },
+        {
+          "label": "Anthropic prompt-eng interactive tutorial (clear/direct/structured)",
+          "locator": "https://github.com/anthropics/prompt-eng-interactive-tutorial",
+          "summary": "Canonical guidance: be clear and direct, give each instruction element one organized place, skip preamble/filler. Supports removing duplicated instruction blocks while preserving structured anchors — consistent with the enforcement-class templates already in this repo."
+        }
+      ],
+      "architecture_assessment": "The repo already has a mature, code-enforced compression architecture: (1) briefing-packet consumption replaces duplicated correctness prose with generated _briefingPacket slices; (2) the Prose-Load Reduction enforcement-class model (fully/partially/inherently-prose) + Caveman-full wording layer defines HOW to compress with contract tokens frozen; (3) drift tests pin spine anchors, packet anchors, embedded-methodology markers, exact frontmatter equality, and many exact phrasings. Against this backdrop, the alternative that matches approved proposal scope (within-command repetition only) AND preserves standalone execution, sub-agent packets, approval semantics, and asset tests is a targeted within-command dedup pass classified through the existing enforcement-class templates. Concrete proof it is real and safe: adv-review.md carries the 12-dimension table twice (embedded methodology + standalone) — one canonical instance + a same-file pointer satisfies every asset assertion. Cross-command abstraction (shared includes/partials) is a genuine alternative but is out of scope per the proposal and structurally hostile to standalone-command execution: each adv-*.md must be self-contained because OpenCode loads a single command file as the prompt; extracting shared blocks would break self-containment and force a loader/runtime change the proposal excludes. Advisory line baselines confirm bloat is real (adv-apply 730 vs 404) but are warn-only, so they neither block work nor justify aggressive compression that risks contract-token or anchor loss.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. A within-command dedup pass is feasible and preserves all four required invariants IF it keeps every spine anchor (## Problem/## Chosen direction/## Delivered + --- + **{change-id}**), keeps briefing-packet anchors without re-adding banned manual sections, keeps inline ### *Methodology markers and skill+fallback pairs, keeps exact frontmatter=manifest equality, and freezes contract tokens. Run commands-spine-assets, briefing-packets-command-assets, adv-skill-backed-commands-assets, and manifest-doc-drift after edits. Caution (non-blocking): many exact-substring assertions pin phrasing, so mechanical caveman rewrite risks breaking them — dedup must remove duplicate INSTANCES, not reword surviving canonical text."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Targeted within-command dedup keeps each command self-contained (required for standalone load) but leaves cross-command similarity uncompressed — acceptable given proposal scope and loader constraints.",
+          "Consolidating a duplicated block to one canonical instance + pointer reduces tokens but adds small same-file indirection.",
+          "Enforcement-class templates preserve safety (frozen contract tokens) at the cost of not achieving maximal raw line reduction.",
+          "Advisory-only baselines allow compression but provide no machine gate proving the dedup happened, so verification leans on exact-substring asset tests plus a manual before/after line diff."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Targeted within-command dedup via existing enforcement-class templates (remove duplicate instances, keep one canonical block)",
+            "disposition": "preferred",
+            "rationale": "Matches approved proposal scope; preserves standalone execution, packets, approval semantics, and every asset test; proven-safe example (adv-review 12-dimension table duplicated) exists."
+          },
+          {
+            "option": "Cross-command shared includes/partials (extract common blocks to a shared file)",
+            "disposition": "rejected",
+            "rationale": "Out of scope per proposal AND structurally breaks standalone command self-containment; OpenCode loads one command file as the prompt, so shared partials require a loader/runtime change the proposal excludes."
+          },
+          {
+            "option": "Aggressive caveman-full reword of all surviving prose",
+            "disposition": "rejected",
+            "rationale": "High regression risk: many asset tests assert exact substrings and frontmatter must exactly equal manifest.ts; rewording survivors (vs deleting duplicate instances) would break drift tests and could drop contract tokens."
+          },
+          {
+            "option": "Tighten advisory line baselines into a hard failing gate",
+            "disposition": "deferred",
+            "rationale": "Baselines are intentionally warn-only; converting to a hard gate is a separate runtime/spec change beyond within-command repetition scope and risks blocking legitimate future growth."
+          }
+        ],
+        "recommendation": "Proceed with a scoped within-command dedup pass. For each large command (start adv-apply, adv-review, adv-prep, adv-discover, adv-harden), find blocks that appear twice within the same file, keep one canonical instance, replace the other with a same-file pointer, and classify surviving explanatory prose with the fully/partially/inherently-prose template. Freeze all contract tokens and delete duplicate instances rather than rewording survivors. Verify with commands-spine-assets, briefing-packets-command-assets, adv-skill-backed-commands-assets, and manifest-doc-drift tests, plus a before/after line-count diff against token-budgets.json baselines."
+      },
+      "recommendation": "Do targeted within-command dedup only (proposal scope): delete duplicate block instances, keep one canonical copy + same-file pointer, freeze contract tokens, re-run the 3 command-asset tests + manifest-doc-drift. Do NOT introduce cross-command shared includes (breaks standalone load) and do NOT aggressively reword surviving text (breaks exact-substring assertions). rq- trace-tag preservation is not required — prior removeCommandTraceTags change already moved that ownership into plugin/src/ tests.",
+      "follow_ups": [
+        "Confirm no command besides adv-review carries a fully duplicated table/section instance before editing (grep repeated headings per file).",
+        "After dedup, consider a separate out-of-scope change to refresh advisory line baselines in .opencode/token-budgets.json downward to reflect new sizes."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "consolidateCommandRepetitions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-local-consolidation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Standalone-safe command consolidation design validation (AC1-AC5)",
+      "sources": [
+        {
+          "label": "adv-review.md Phase 0 canonical 12-dim table (L37-56)",
+          "locator": ".opencode/command/adv-review.md#L37-L56",
+          "summary": "`#### 12-Dimension Framework` full table + 'All 12 must be checked' inside Phase 0 Embedded Methodology. Canonical local owner."
+        },
+        {
+          "label": "adv-review.md standalone duplicate table (L97-113)",
+          "locator": ".opencode/command/adv-review.md#L97-L113",
+          "summary": "`## 12-Dimension Review Framework` second full table, standalone, before Sub-Agent Resilience. Redundant duplicate — the AC1 removal target. Focus wording differs slightly but the 12 dimension names are identical (no behavioral loss)."
+        },
+        {
+          "label": "adv-review-assets.test.ts",
+          "locator": "plugin/src/adv-review-assets.test.ts",
+          "summary": "Pins TASK EVIDENCE SUMMARY, non-code evidence policy, designer-concern prose — does NOT pin either 12-dim table's exact heading/text. Duplicate removal is safe from this suite."
+        },
+        {
+          "label": "No test pins the duplicate/resilience tables",
+          "locator": "grep plugin/src/**/*.test.ts for '12-Dimension Review Framework'|'Sub-Agent Resilience'|'Inline Fallback' => 0 matches",
+          "summary": "Confirms AC1 same-file-reference replacement and AC2 resilience compaction will not break asset tests."
+        },
+        {
+          "label": "adv-apply rebase wiring is live, not stale",
+          "locator": "plugin/src/tools/apply-helpers/pre-rebase.ts (preExecutionRebase) + pre-rebase.test.ts",
+          "summary": "adv-apply.md L166 references preExecutionRebase from apply-helpers/pre-rebase.ts. Source symbol exists and is unit-tested on trunk => marker is CURRENT, not stale. AC3 => keep unchanged."
+        },
+        {
+          "label": "adv-archive T28 labels are live, not stale",
+          "locator": "plugin/src/tools/archive-helpers/{conflict-classify.ts,conflict-loop.ts,conflict-resolve.ts,skip-duplicate.ts}",
+          "summary": "T28d classifyConflict, T28c navigateConflicts, T28b applyResolveAction, T28 detectSkipDuplicate all exist and are test-backed. adv-archive.md L316-358 labels accurately describe live source => AC3 => keep unchanged."
+        },
+        {
+          "label": "AC4 anchors are structurally test-pinned",
+          "locator": "plugin/src/{commands-spine-assets.test.ts,briefing-packets-command-assets.test.ts,advance-epics-assets.test.ts,adv-reviewer-asset.test.ts:L487-517,approval-consequence-context-assets.test.ts,adv-skill-backed-commands-assets.test.ts}",
+          "summary": "Gate Handoff spine, briefing packet, EPIC CONTEXT, frontend 6-dimension inline fallback, approval consequence context, embedded methodology are each pinned. Removing them would fail CI — AC4 'remain intact' is enforced structurally, not by prose goodwill."
+        }
+      ],
+      "architecture_assessment": "The design is a coherent standalone-safe local-consolidation approach that matches every current asset anchor. AC1: adv-review.md genuinely renders the 12-dimension framework twice (canonical Phase 0 `#### 12-Dimension Framework` at L37-56, and a redundant standalone `## 12-Dimension Review Framework` at L97-113); no test pins the later duplicate or the Sub-Agent Resilience table, so replacing the later copy with a precise same-file reference to Phase 0 is safe and loses no behavioral content (identical dimension names). AC3 is the decisive validation: both suspected stale markers are in fact CURRENT — `preExecutionRebase`/`pre-rebase.ts` and all four T28 archive symbols (classifyConflict/navigateConflicts/applyResolveAction/detectSkipDuplicate) exist and are unit-tested on trunk, so the source/history-proof gate the design mandates correctly resolves to a NO-EDIT outcome for those markers. AC4 protected anchors are enforced by dedicated asset tests, so the design's 'preserve unchanged' is machine-checkable (P33-aligned). AC2 compaction targets carry no exact-text pins beyond the structural anchors AC4 already protects. The design's mitigations (freeze tokens, delete duplicates rather than reword survivors, same-file references only, no cross-command include) directly counter the real risks. The change extends an existing repo compression pattern (briefing packets + asset tests) without introducing shared-include architecture, honoring C3/OOS2.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is standalone-safe and consistent with all current trunk anchors. One execution note (non-blocking): AC1 same-file reference must point at the Phase 0 `#### 12-Dimension Framework` (L37-56) as canonical owner and preserve the 'All 12 must be checked' obligation. AC3 execution outcome for the adv-apply rebase note and adv-archive T28 labels must be NO EDIT — source proof confirms both are current, not stale; editing them would violate AC3 and DONT1 (frozen contract tokens like `preExecutionRebase`, `T28*`, `detectSkipDuplicate`). Execution must re-run the targeted asset suites named in AC5 plus adv-reviewer-asset.test.ts (frontend fallback) since adv-review.md is edited."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Same-file reference (vs. keeping the second full table) trades a small amount of local self-containment for reduced duplication; acceptable because Phase 0 is early in the same file and remains the single source of truth.",
+          "Retaining the live rebase/T28 markers unchanged keeps prose longer than a naive 'looks redundant, cut it' pass would, but preserves accuracy against test-backed source — correctness over brevity (P19: simplicity governs solution, not effort).",
+          "Manual per-command compaction (no shared include) keeps each command independently loadable at the cost of not eliminating cross-command boilerplate; this is a deliberate constraint (C3/OOS2), not an oversight."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Cross-command shared-template/include mechanism to dedupe boilerplate globally",
+            "disposition": "rejected",
+            "rationale": "Explicitly out of scope (OOS2) and violates C3 + the standalone-loadable requirement (SC2). Would couple command documents and break independent readability."
+          },
+          {
+            "option": "Delete the adv-apply rebase note and adv-archive T28 labels as presumed-stale",
+            "disposition": "rejected",
+            "rationale": "Source verification proves preExecutionRebase and all T28 symbols exist and are test-backed on trunk. Deleting/rewording would introduce documentation drift and violate AC3 + DONT1."
+          },
+          {
+            "option": "Keep the second 12-dimension table verbatim (no consolidation)",
+            "disposition": "rejected",
+            "rationale": "Defeats AC1/SC1 goal of reducing genuine within-command duplication. A same-file reference retains all behavior with less bloat and no test breakage."
+          },
+          {
+            "option": "Reword survivor tokens/tables to 'tidy' them while consolidating",
+            "disposition": "rejected",
+            "rationale": "Risks breaking exact asset anchors; design correctly mandates 'delete duplicates, not reword survivors' to protect frozen contract tokens (DONT1)."
+          }
+        ],
+        "recommendation": "Proceed to planning. Execute AC1 by replacing the L97-113 standalone table with a same-file reference to the Phase 0 canonical table; execute AC3 as a verified NO-EDIT for the rebase note and T28 labels (record the source-existence evidence as the AC3 proof); keep all AC4 anchors byte-stable. Gate acceptance on the AC5 targeted suites plus adv-reviewer-asset.test.ts and pnpm run check."
+      },
+      "recommendation": "PASS — design is standalone-safe and anchor-consistent. Plan tasks so AC3 records source-existence proof and performs NO EDIT on the live rebase/T28 markers; AC1 replaces only the unpinned duplicate table with a same-file reference to Phase 0; AC4 anchors stay byte-stable; verification includes adv-reviewer-asset.test.ts alongside the named suites.",
+      "follow_ups": [
+        "Minor internal inconsistency (out of scope, advisory): adv-review.md Phase 5.5 L394 says 'Do NOT re-run all 5 dimensions' while the review framework is 12-dimension; not part of this change's contract but worth a future cleanup note.",
+        "Episode recall returned only a global placeholder memory; no durable project wisdom was available to corroborate — findings rest entirely on direct tool verification."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "consolidateCommandRepetitions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+      "task_id": "tk-f27b1905e422",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f27b1905e422"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-review.md"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-review-assets.test.ts src/commands-spine-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+          "exit_code": 0,
+          "summary": "69 tests passed; token-budget warnings are pre-existing advisory baselines, not failures"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/briefing-packets-command-assets.test.ts src/command-requirement-citations.test.ts src/adv-reviewer-asset.test.ts",
+          "exit_code": 0,
+          "summary": "112 tests passed"
+        },
+        {
+          "command": "grep -c '12-Dimension Review Framework' .opencode/command/adv-review.md",
+          "exit_code": 0,
+          "summary": "0 matches — standalone duplicate removed"
+        },
+        {
+          "command": "grep -c '12-Dimension Framework' .opencode/command/adv-review.md",
+          "exit_code": 0,
+          "summary": "2 matches — Phase 0 heading and new same-file reference only"
+        },
+        {
+          "command": "grep -n 'preExecutionRebase' .opencode/command/adv-apply.md",
+          "exit_code": 0,
+          "summary": "2 matches at L166/L180 — live marker intact"
+        },
+        {
+          "command": "grep -n 'T28' .opencode/command/adv-archive.md",
+          "exit_code": 0,
+          "summary": "5 matches at L319/L320/L323/L327/L353 — live markers intact"
+        },
+        {
+          "command": "grep -n 'Gate Handoff Voice' .opencode/command/adv-review.md",
+          "exit_code": 0,
+          "summary": "1 match — protected spine intact"
+        },
+        {
+          "command": "grep -n 'SUB-AGENT CONTEXT' .opencode/command/adv-review.md",
+          "exit_code": 0,
+          "summary": "1 match — protected anchor intact"
+        },
+        {
+          "command": "git diff --stat .opencode/command/adv-review.md",
+          "exit_code": 0,
+          "summary": "1 insertion, 16 deletions — only the duplicate table removed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Skipped all optional compression edits",
+          "why": "Target Resolution, skill-load fallback, worktree context, auto-continue rationale, and sub-agent context each contain command-specific behavior or frozen tokens (different steps, skill names, next commands, JSON vs direct findings). Compressing them would violate the 'command-specific behavior and frozen tokens stay explicit' constraint."
+        },
+        {
+          "what": "Used a single-line same-file Markdown reference for the mandatory dedup",
+          "why": "Preserves the Phase 0 table as the single source of truth, keeps the reference precise and minimal, and avoids introducing new anchors or protected-token drift."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all 29 adv-*.md command files for duplicate 12-dimension tables, Target Resolution, skill-load fallback, worktree context, auto-continue, and sub-agent context patterns. Confirmed no other standalone duplicates exist.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Mandatory dedup in adv-review.md is complete: standalone 12-dimension duplicate replaced with a same-file reference to the Phase 0 table. All 181 command-asset tests pass. Live markers (preExecutionRebase, T28) and protected tokens (Gate Handoff, SUB-AGENT CONTEXT, BRIEFING PACKET, MUST/NEVER, slash commands) verified intact. No optional compression performed because every candidate carried command-specific behavior or frozen tokens that would be lost.",
+        "suggested_next_action": "Review the diff, then proceed to next task or gate completion"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-review-assets.test.ts src/commands-spine-assets.test.ts src/adv-skill-backed-commands-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/briefing-packets-command-assets.test.ts src/command-requirement-citations.test.ts src/adv-reviewer-asset.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -c '12-Dimension Review Framework' .opencode/command/adv-review.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -c '12-Dimension Framework' .opencode/command/adv-review.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -n 'preExecutionRebase' .opencode/command/adv-apply.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -n 'T28' .opencode/command/adv-archive.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -n 'Gate Handoff Voice' .opencode/command/adv-review.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -n 'SUB-AGENT CONTEXT' .opencode/command/adv-review.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --stat .opencode/command/adv-review.md"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "consolidateCommandRepetitions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- \"${files[@]#plugin/}\" (with files=(plugin/src/*assets.test.ts))",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Reviewed the complete two-file branch diff against origin/trunk: the duplicate 12-dimension table is removed and replaced with a same-file canonical reference; matrix anchors, OWASP Top 10 scope, all-12/explicit-justification requirement, and scanner fallback framing remain. No live status-marker text appears in the diff. `git diff --check` passed; worktree remained clean. Asset suite passed: 49 files, 591 tests (including adv-review-assets: 13); pnpm check passed schemas, typecheck, isolation, lockfile, ESLint, and Prettier. The suite emitted pre-existing advisory command-token-budget warnings only."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Asset suite reports advisory command-token-budget baseline overruns across command files, including adv-review.md; warnings are explicitly non-blocking and this change reduced rather than introduced review-command duplication."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "consolidateCommandRepetitions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "non-code-evidence-policy"
+      ],
+      "summary": "One orchestrator inline scanner assessment for narrow two-file command-prose change: contract-to-diff mapping complete; no runtime/input/persistence/security surface; deterministic asset coverage and static validation pass; scope matches agreement.",
+      "findings": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "consolidateCommandRepetitions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "For command-prose consolidation, retain one canonical definition and make later sections explicitly reference it; focused asset tests should protect both single-source count and retained mandatory semantics."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin run check",
+          "git diff --check 1faae6d7...HEAD",
+          "git merge-tree --messages 1faae6d7 HEAD"
+        ],
+        "results": "pass",
+        "evidence": "pnpm check passed schemas:check, typecheck, test-isolation, lockfile-policy, eslint, and Prettier. Diff hygiene passed with a bounded 34-insertion/15-deletion, two-file diff; final worktree status was clean. Non-destructive merge-tree compatibility against 1faae6d7 succeeded (tree d8e3bf919ca232b2a90889c907c301c2185c738d). Durable packet evidence states 129 focused assets already passed; no further targeted rerun needed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Production/deployment behavior is source-backed N/A: change only alters tracked command prose and its asset test; no runtime, schema, dependency, generated artifact, or external deployment surface changed.",
+        "Semantic lgrep query timed out; exact-text and direct diff/source inspection completed instead."
+      ],
+      "required_main_agent_actions": [
+        "No remediation required. Release may proceed using this harden evidence.",
+        "Leave unrelated pre-existing console/TODO occurrences outside the two-file diff unchanged."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "consolidateCommandRepetitions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/consolidateCommandRepetitions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "One orchestrator inline harden assessment for the accepted two-file command-prose change: no deployment, migration, external-service, production-code, or visual surface; documentation reference remains accurate; worktree clean; non-destructive merge compatibility and static checks pass.",
+      "findings": [],
+      "follow_ups": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T18:19:17.001Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed proposal with `approve`.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2f9814cf4692e602120d0db414c883067a18f76ab15f757a023e8f8702f60c77",
+        "non_whitespace_chars": 541,
+        "checked_at": "2026-07-13T18:18:13.673Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T18:55:16.447Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved agreement: safe local standalone cleanup; source-backed stale-marker correction; advisory-only budgets. Independent current-trunk research passed; contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "non_whitespace_chars": 1583,
+        "checked_at": "2026-07-13T18:18:13.674Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T18:59:11.592Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent design validator passed (high confidence). adv-review duplicate is safe; apply rebase and archive T28 markers are live and must remain; all structural anchors retained.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "f66dda6fbb522406342968287961550fb001bae96fc3345f79f77d3832b5ffce",
+        "non_whitespace_chars": 1586,
+        "checked_at": "2026-07-13T18:18:13.675Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:01:04.416Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph with `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:14:19.555Z",
+      "completed_by": "agent",
+      "approval_evidence": "Both tasks checkpointed. Scoped command asset tests (244) and pnpm run check passed; live stale markers retained after source proof."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:25:12.656Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance with `approve`. Reviewer READY, 0 findings; focused 129-test command suite and pnpm run check pass; 15-row contract matrix passes/respects all required items; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "0973038c5471b2d601ee5b564bbc4f5b65294a246863fbccc91b531edfc0e99a",
+        "non_whitespace_chars": 2543,
+        "checked_at": "2026-07-13T18:18:13.677Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+      "approvedAt": "2026-07-13T18:55:10.343Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** `adv-review.md` has one full 12-dimension framework definition; later usage is a local reference that retains required scanner behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Target-resolution, skill-wrapper, worktree-context, auto-continue, and sub-agent-context prose are compacted only where command-specific behavior and frozen contract tokens remain explicit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** `adv-apply` rebase wording and `adv-archive` T28 labels change only when source/history confirms they are stale; otherwise they remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Gate Handoff, approval, briefing-packet, embedded-methodology, and frontend-fallback anchors remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Targeted command asset tests and `pnpm run check` exit 0.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Current command bloat is reduced without cross-command include architecture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Each changed command remains independently readable and behaviorally complete.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No runtime, schema, spec, tool, or agent behavior changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Token budgets remain advisory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No cross-command shared-template/include mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not reword frozen contract tokens merely to reduce prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not delete phase-local worker schemas or test-pinned fallback content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Hard token-budget enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Shared command loader/include architecture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Recovery of stale `updateAgentGuide` work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T19:19:14.737Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused asset suite: adv-review-assets.test.ts 13/13 pass; canonical matrix/reference assertions cover one full matrix, OWASP scope, and explicit-justification reference."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused 129-test command asset suite passes; scoped diff shows only the review-matrix dedup and its direct asset test, with no unsafe wrapper rewrite."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Source audit retained live preExecutionRebase and T28 markers; focused command assets pass and branch diff does not touch adv-apply.md or adv-archive.md."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused command-asset suites pass; reviewer confirmed Gate Handoff, approval, briefing-packet, embedded-methodology, and scanner contracts remain intact."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused command asset suite: 129 tests pass. plugin pnpm run check exits 0. git diff --check exits 0."
+        },
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Independent reviewer READY: duplicate 12-row Phase 1 matrix removed; canonical same-file source retained without shared includes."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Independent reviewer READY: Phase 1 has a precise same-file reference preserving all-12, OWASP, and explicit-justification behavior."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Base-to-HEAD diff contains only .opencode/command/adv-review.md and plugin/src/adv-review-assets.test.ts; no runtime/schema/spec/tool/agent files changed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No token budget enforcement added; existing advisory wording and behavior retained."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff adds no shared template, loader, include mechanism, or cross-command abstraction."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer found frozen behavior preserved; implementation deletes duplicate rows and uses a local reference rather than rewording protected tokens."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer and focused assets confirm no phase-local worker schema, fallback content, or briefing-packet contract was deleted."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No hard token-budget enforcement was requested or changed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No shared command loader/include architecture was introduced."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No stale updateAgentGuide recovery work is included."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** `adv-review.md` has one full 12-dimension framework definition; later usage is a local reference that retains required scanner behavior.",
+    "**AC2:** Target-resolution, skill-wrapper, worktree-context, auto-continue, and sub-agent-context prose are compacted only where command-specific behavior and frozen contract tokens remain explicit.",
+    "**AC3:** `adv-apply` rebase wording and `adv-archive` T28 labels change only when source/history confirms they are stale; otherwise they remain unchanged.",
+    "**AC4:** Gate Handoff, approval, briefing-packet, embedded-methodology, and frontend-fallback anchors remain intact.",
+    "**AC5:** Targeted command asset tests and `pnpm run check` exit 0."
+  ],
+  "documents": {
+    "proposal": "# Consolidate command repetitions\n\n## Goal\nAudit current ADV command prompts and remove only proven within-command repetition while preserving phase-local contracts, worker schemas, tests, and standalone command behavior.\n\n## Scope\n- Current `.opencode/command/adv-*.md` content on trunk.\n- Directly affected command-asset tests.\n\n## Out of scope\n- Cross-command abstraction, runtime/schema/spec changes, and stale `updateAgentGuide` branch recovery.\n\n## Initial evidence\nThe prior `updateAgentGuide` branch is already merged and stale. This change starts from current trunk and re-audits actual command text before editing.\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Status | Result |\n|---|---|---|\n| Skills considered | PASS | Loaded `adv-instructions-audit`; applies to command-prose claims and test anchors. |\n| Prior research extension | PASS | `docs/*-prep.md` exists, but all packs concern latency, tests, slop scanning, or non-code rigor; none addresses command repetition. New finding: a literal within-command duplicate exists in `adv-review.md`. |\n| Conflict scan | PASS | Active stale `updateAgentGuide` is explicitly out of scope; no active change claims this narrow audit. Own `NO_TASKS`/`NO_DELTAS` warnings are expected before prep. |\n| Edge cases | PASS | Preserve embedded runtime methodology and phase-local standalone instructions; avoid deleting test-anchored cancellation/doom-loop text. |\n| Design questions | PASS | One technical consolidation choice remains: canonical matrix location with a local pointer; agent-resolved toward embedded methodology ownership. |\n| Draft spec deltas | PASS | No spec deltas required: current specs govern discovery/process, not this narrow document de-duplication. |\n| Related-pattern scan | PASS | `adv-apply.md` contains pointers/tail recaps, but only `adv-review.md` has a proven near-identical full matrix. |\n| LBP check | PASS | No external alternatives apply: internal command documentation change. Single-source-per-surface plus executable anchors is the durable direction. |\n| Completeness verification | PASS | Sole-entry claim is false: do not generalize one candidate into a cross-command rewrite. Secondary candidates remain explicit dispositions. |\n\n### Skills Considered\n- `adv-instructions-audit` — loaded; requires each retained load-bearing claim to map to a fidelity anchor.\n- No skill gap: this is a narrow internal command-prose audit.\n\n### Extends\nNo prior research found relevant to command repetition. Existing prep packs were inspected and excluded as unrelated.\n\n### Conflict Scan\n- `updateAgentGuide` is active but the proposal explicitly excludes stale-branch recovery.\n- `adv_change_validate` passed with no conflicts; its `NO_TASKS` and `NO_DELTAS` warnings are expected pre-prep state.\n- Agenda has no identified item that owns this exact audit.\n\n### Current State\n- `.opencode/command/adv-review.md:37-56` embeds a 12-row review matrix as its runtime methodology.\n- `.opencode/command/adv-review.md:97-111` repeats the same 12 rows in Phase 1. The only material wording loss is `OWASP top 10` in the later Security row.\n- `adv-reviewer-asset.test.ts` reads the command asset but does not anchor this duplicate matrix.\n- `adv-apply.md` contains related pointer/recap patterns, but its retry block, completion policy, and tail state-tool table carry phase-local or test-anchored behavior and are not proven safe to consolidate in this change.\n- `adv-archive.md` has two `Step 4` labels; this is a label-collision defect, not content repetition.\n\n### Edge Cases\n1. Deleting the Phase 1 matrix without a pointer can make a standalone phase read lose the 12-dimension requirement.\n2. Retaining a shortened canonical matrix can silently drop the `OWASP top 10` security scope.\n3. Consolidating `adv-apply.md` retry/cancellation text can break `human-checkpoints-assets.test.ts` anchors or bury workflow-critical exits.\n4. Treating the archive Step 4 label collision as duplicate prose would expand scope into release workflow sequencing.\n\n### Open Design Questions\n- **Canonical matrix location** — trust model: agent-only; blast radius: reviewer may miss a mandatory dimension if a pointer is unclear; alternatives: keep both (rejected: drift risk), retain only Phase 1 (rejected: violates embedded-methodology ownership), retain Phase 0 and add a precise Phase 1 pointer (recommended).\n\n### Draft Spec Deltas\nNo spec deltas required. This change removes document-level duplication without changing durable workflow behavior or a spec law.\n\n### Related Pattern Scan\n- `adv-apply.md:72-80` and `:300-338`: retry pointer plus canonical detail — intentional canonical-reference pattern; retain.\n- `adv-apply.md:715-730`: non-overlapping trivial-task and state-tool recaps; retain.\n- `adv-archive.md:275,312`: rename/relabel candidate only; no content consolidation in this scope.\n\n### Completeness Verification\n- Problem completeness: supported by exact duplicate 12-row matrix evidence and a one-word security-scope divergence.\n- Solution scope: bounded to one proven duplication and its direct regression anchor; no cross-command abstraction.\n- Confidence: high for the review-matrix duplication; low for broader candidate removals, which are excluded.\n\n### LBP Check\nNo external alternatives apply. Keep one canonical embedded matrix, preserve all twelve dimensions and security wording, and use a local Phase 1 reference. This follows command ownership while preventing duplicate drift.\n\n### Recommended Objectives\n1. Retain one canonical 12-dimension review matrix in `adv-review.md` embedded methodology.\n2. Replace the repeated Phase 1 matrix with a clear local reference that preserves its mandatory-use meaning.\n3. Add or update a direct asset assertion so future duplicate reintroduction or security-scope loss fails.\n4. Leave `adv-apply.md` and `adv-archive.md` behavior unchanged in this change.\n\n### AMBIGUITY ANALYSIS\nB1 LOW Boundaries — proposal says \"remove only proven within-command repetition\" but does not name the candidate.\n  Evidence: \"remove only proven within-command repetition\"\n  Reason: discovery resolves the candidate to the duplicated `adv-review.md` matrix and excludes adjacent patterns.\nF1 LOW Functional Scope — requested preservation of \"standalone command behavior\" lacks a test boundary.\n  Evidence: \"preserving phase-local contracts, worker schemas, tests, and standalone command behavior\"\n  Reason: discovery adds a direct command-asset regression obligation.\nS1 LOW Completion Signals — proposal names audit but not observable success.\n  Evidence: \"Audit current ADV command prompts\"\n  Reason: criteria will require one matrix, retained OWASP text, pointer, and passing direct asset test.\nM1 LOW Missing Information — user preference for narrow-only versus adjacent cleanup is not stated.\n  Evidence: \"Current `.opencode/command/adv-*.md` content on trunk.\"\n  Reason: resolve in the mandatory clarification round.\nCoverage: B:C F:C S:C M:P\n\n### Trigger Evaluation\nClean. No CRITICAL findings; no HIGH findings.",
+    "problemStatement": "Current trunk needs a fresh, evidence-based command repetition audit because the prior branch is already merged and cannot safely represent remaining work.",
+    "agreement": "# Agreement — Consolidate command repetitions\n\n## Objectives\n1. Remove true same-file duplicate blocks and preserve one canonical local owner.\n2. Compress standalone-safe local boilerplate without shared includes or runtime changes.\n3. Correct stale command markers only after source/history proof.\n\n## Acceptance Criteria\n- **AC1:** `adv-review.md` has one full 12-dimension framework definition; later usage is a local reference that retains required scanner behavior.\n- **AC2:** Target-resolution, skill-wrapper, worktree-context, auto-continue, and sub-agent-context prose are compacted only where command-specific behavior and frozen contract tokens remain explicit.\n- **AC3:** `adv-apply` rebase wording and `adv-archive` T28 labels change only when source/history confirms they are stale; otherwise they remain unchanged.\n- **AC4:** Gate Handoff, approval, briefing-packet, embedded-methodology, and frontend-fallback anchors remain intact.\n- **AC5:** Targeted command asset tests and `pnpm run check` exit 0.\n\n## Success Criteria\n- **SC1:** Current command bloat is reduced without cross-command include architecture.\n- **SC2:** Each changed command remains independently readable and behaviorally complete.\n\n## Constraints\n- No runtime, schema, spec, tool, or agent behavior changes.\n- Token budgets remain advisory.\n- No cross-command shared-template/include mechanism.\n\n## Avoidances\n- Do not reword frozen contract tokens merely to reduce prose.\n- Do not delete phase-local worker schemas or test-pinned fallback content.\n\n## Out of Scope\n- Hard token-budget enforcement.\n- Shared command loader/include architecture.\n- Recovery of stale `updateAgentGuide` work.\n\n## Approval Evidence\nUser approved safe local cleanup, source-backed stale-marker correction, advisory-only budgets, and this agreement on 2026-07-13.",
+    "design": "# Design — Consolidate command repetitions\n\n## Architecture\nKeep every ADV command independently loadable. Remove only duplicated instances within a command or shorten local explanatory wrappers. Never replace content with cross-command pointers or include mechanisms.\n\n## Implementation Strategy\n1. Inventory every targeted candidate before editing; classify frozen contract tokens and protected anchors.\n2. In `adv-review`, retain the Phase 0 12-dimension table and replace the later full duplicate with a precise same-file reference before the distinct Phase 2 scanner contract.\n3. Compact safe local wrapper prose for target resolution, skill loading, worktree propagation, auto-continue, and sub-agent context only when their per-command behavior remains explicit.\n4. Verify `adv-apply` rebase wording against actual pre-rebase call sites and `adv-archive` T28 labels against reachable source/history. Correct only proven stale text.\n5. Preserve Gate Handoff spine, inline approval text, briefing packet anchors, embedded methodology markers, and frontend fallback unchanged.\n\n## Verification\n- Deterministic before/after inventory and line diff.\n- Targeted command-asset suites: spine, briefing packet, skill-backed commands, manifest drift, review/archive/apply assets.\n- `pnpm run check`.\n\n## Risks\n- Local shortening can erase a command-specific condition. Mitigation: freeze tokens and use same-file references only.\n- Stale-looking text may describe intentionally deferred behavior. Mitigation: require source/history evidence before edit.\n- Exact asset anchors can break on rewrites. Mitigation: delete duplicates, not reword survivors.\n\n## LBP\nThe repository already uses briefing packets and asset tests as structural compression mechanisms. This change extends that pattern only inside individual command documents.",
+    "executiveSummary": "# Executive Summary — Consolidate command repetitions\n\n## Outcome\nRemoved the duplicate standalone 12-dimension framework from `adv-review` while retaining the canonical Phase 0 definition and a same-file reference.\n\n## Value\nReduces prompt bloat without weakening standalone command behavior or structural safety contracts.\n\n## Verification\n- Acceptance review: READY.\n- Harden review: READY.\n- 629 asset tests passed.\n- `pnpm --dir plugin run check` passed.\n- Worktree clean; only `adv-review.md` and `adv-review-assets.test.ts` changed.\n\n## Release Readiness Summary\nNo runtime, migration, data, frontend, or operational impact. Live rebase/T28 markers were source-verified and retained. No blockers or follow-ups.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T19:19:14.737Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1:** `adv-review.md` has one full 12-dimension framework definition; later usage is a local reference that retains required scanner behavior. | pass | Focused asset suite: adv-review-assets.test.ts 13/13 pass; canonical matrix/reference assertions cover one full matrix, OWASP scope, and explicit-justification reference. |\n| AC2 | acceptance_criterion | **AC2:** Target-resolution, skill-wrapper, worktree-context, auto-continue, and sub-agent-context prose are compacted only where command-specific behavior and frozen contract tokens remain explicit. | pass | Focused 129-test command asset suite passes; scoped diff shows only the review-matrix dedup and its direct asset test, with no unsafe wrapper rewrite. |\n| AC3 | acceptance_criterion | **AC3:** `adv-apply` rebase wording and `adv-archive` T28 labels change only when source/history confirms they are stale; otherwise they remain unchanged. | pass | Source audit retained live preExecutionRebase and T28 markers; focused command assets pass and branch diff does not touch adv-apply.md or adv-archive.md. |\n| AC4 | acceptance_criterion | **AC4:** Gate Handoff, approval, briefing-packet, embedded-methodology, and frontend-fallback anchors remain intact. | pass | Focused command-asset suites pass; reviewer confirmed Gate Handoff, approval, briefing-packet, embedded-methodology, and scanner contracts remain intact. |\n| AC5 | acceptance_criterion | **AC5:** Targeted command asset tests and `pnpm run check` exit 0. | pass | Focused command asset suite: 129 tests pass. plugin pnpm run check exits 0. git diff --check exits 0. |\n| SC1 | success_criterion | **SC1:** Current command bloat is reduced without cross-command include architecture. | pass | Independent reviewer READY: duplicate 12-row Phase 1 matrix removed; canonical same-file source retained without shared includes. |\n| SC2 | success_criterion | **SC2:** Each changed command remains independently readable and behaviorally complete. | pass | Independent reviewer READY: Phase 1 has a precise same-file reference preserving all-12, OWASP, and explicit-justification behavior. |\n| C1 | constraint | No runtime, schema, spec, tool, or agent behavior changes. | respected | Base-to-HEAD diff contains only .opencode/command/adv-review.md and plugin/src/adv-review-assets.test.ts; no runtime/schema/spec/tool/agent files changed. |\n| C2 | constraint | Token budgets remain advisory. | respected | No token budget enforcement added; existing advisory wording and behavior retained. |\n| C3 | constraint | No cross-command shared-template/include mechanism. | respected | Diff adds no shared template, loader, include mechanism, or cross-command abstraction. |\n| DONT1 | avoidance | Do not reword frozen contract tokens merely to reduce prose. | respected | Reviewer found frozen behavior preserved; implementation deletes duplicate rows and uses a local reference rather than rewording protected tokens. |\n| DONT2 | avoidance | Do not delete phase-local worker schemas or test-pinned fallback content. | respected | Reviewer and focused assets confirm no phase-local worker schema, fallback content, or briefing-packet contract was deleted. |\n| OOS1 | out_of_scope | Hard token-budget enforcement. | not_applicable | No hard token-budget enforcement was requested or changed. |\n| OOS2 | out_of_scope | Shared command loader/include architecture. | not_applicable | No shared command loader/include architecture was introduced. |\n| OOS3 | out_of_scope | Recovery of stale `updateAgentGuide` work. | not_applicable | No stale updateAgentGuide recovery work is included. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T18:56:04.997Z",
+      "contentHash": "6efcf98185a51b0af277a6e2ffe3c12a2f6386ecc0b0fc6d9f4718f836eb0e16",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T18:18:13.685Z",
+      "contentHash": "e6bdb24d71652f8f5ebbd0d72459ff7bf47688a979c82d6128341a86fab99833",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T18:55:02.561Z",
+      "contentHash": "135a96f804b178d04f8c8408c63df28b628cde756672da4f5284c66f9c3d6e31",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T18:55:28.772Z",
+      "contentHash": "f66dda6fbb522406342968287961550fb001bae96fc3345f79f77d3832b5ffce",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T19:29:10.633Z",
+      "contentHash": "1e380e5a9e2f8e6f9a7476e5f6698ad0f3af5de1f12d4477f6b2381ff7057071",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T19:29:10.633Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

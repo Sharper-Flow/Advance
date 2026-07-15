@@ -41,16 +41,14 @@ import {
 import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
 
 /**
- * Statuses included by default — `draft`, `pending`, `active`. Excludes
+ * Statuses included by default — `draft` (the open status). Excludes
  * `archived` and `closed` to mirror the legacy `changes.list({}).changes`
- * default. Pass `null` to disable status filtering entirely (for archive
- * sweeps and audit tooling).
+ * default. Open-change reads route through `AdvLifecycleState="open" AND
+ * ExecutionStatus="Running"` (the sole open-claim authority), never
+ * `AdvChangeStatus`. Pass `null` to disable status filtering entirely (for
+ * archive sweeps and audit tooling).
  */
-const DEFAULT_STATUSES: readonly ChangeStatus[] = [
-  "draft",
-  "pending",
-  "active",
-];
+const DEFAULT_STATUSES: readonly ChangeStatus[] = ["draft"];
 
 export interface ListChangeWorkflowIdsOptions {
   projectId: string;

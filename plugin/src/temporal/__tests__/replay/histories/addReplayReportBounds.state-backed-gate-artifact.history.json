@@ -1,0 +1,142 @@
+{
+  "events": [
+    {
+      "eventId": "1",
+      "eventTime": "2026-07-13T03:50:53.880289927Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId": "2104653",
+      "workflowExecutionStartedEventAttributes": {
+        "workflowType": { "name": "changeWorkflow" },
+        "taskQueue": {
+          "name": "replay-fixture-gen-state-backed-gate-artifact",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": { "encoding": "anNvbi9wbGFpbg==" },
+              "data": "eyJwcm9qZWN0SWQiOiJyZXBsYXktZml4dHVyZS1wcm9qZWN0IiwiY2hhbmdlSWQiOiJyZXBsYXlGaXh0dXJlU3RhdGVCYWNrZWRHYXRlQXJ0aWZhY3QiLCJ0aXRsZSI6IlJlcGxheSBmaXh0dXJlOiBTVEFURV9CQUNLRURfR0FURV9BUlRJRkFDVF9QUk9PRl9QQVRDSCIsImluaXRpYWxpemVkQXQiOiIyMDI2LTA3LTEzVDAwOjAwOjAwLjAwMFoiLCJzZWFyY2hBdHRyaWJ1dGVzRW5hYmxlZCI6ZmFsc2UsInNlZWRTdGF0ZSI6eyJzdGF0dXMiOiJhY3RpdmUiLCJ0YXNrcyI6W10sIndpc2RvbSI6W10sInJlZW50cnlfaGlzdG9yeSI6W10sImdhdGVzIjp7InByb3Bvc2FsIjp7InN0YXR1cyI6ImluX3Byb2dyZXNzIn0sImRpc2NvdmVyeSI6eyJzdGF0dXMiOiJwZW5kaW5nIn0sImRlc2lnbiI6eyJzdGF0dXMiOiJwZW5kaW5nIn0sInBsYW5uaW5nIjp7InN0YXR1cyI6InBlbmRpbmcifSwiZXhlY3V0aW9uIjp7InN0YXR1cyI6InBlbmRpbmcifSwiYWNjZXB0YW5jZSI6eyJzdGF0dXMiOiJwZW5kaW5nIn0sInJlbGVhc2UiOnsic3RhdHVzIjoicGVuZGluZyJ9fSwiZG9jdW1lbnRzIjp7InByb3Bvc2FsIjoiIyBTVEFURV9CQUNLRURfR0FURV9BUlRJRkFDVF9QUk9PRl9QQVRDSFxuXG5Db250cm9sbGVkIHN0YXRlLWJhY2tlZCBnYXRlIGFydGlmYWN0IGNvbnRlbnQgdGhhdCBjb21mb3J0YWJseSBleGNlZWRzIHRoZSBtaW5pbXVtIG5vbi13aGl0ZXNwYWNlIHRocmVzaG9sZCBmb3IgZ2F0ZSBldmlkZW5jZS5cbiJ9fX0="
+            }
+          ]
+        },
+        "workflowTaskTimeout": "10s",
+        "originalExecutionRunId": "019f5999-68b8-7467-837a-974fdac6ed20",
+        "identity": "temporal-cli@replay-host",
+        "firstExecutionRunId": "019f5999-68b8-7467-837a-974fdac6ed20",
+        "attempt": 1,
+        "firstWorkflowTaskBackoff": "0s",
+        "header": {},
+        "workflowId": "adv/change/replay-fixture-project/replayFixtureStateBackedGateArtifact"
+      }
+    },
+    {
+      "eventId": "2",
+      "eventTime": "2026-07-13T03:50:53.880411056Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "2104654",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "replay-fixture-gen-state-backed-gate-artifact",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "3",
+      "eventTime": "2026-07-13T03:50:53.977480277Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED",
+      "taskId": "2104659",
+      "workflowExecutionSignaledEventAttributes": {
+        "signalName": "adv.change.gateCompleted",
+        "input": {
+          "payloads": [
+            {
+              "metadata": { "encoding": "anNvbi9wbGFpbg==" },
+              "data": "eyJnYXRlSWQiOiJwcm9wb3NhbCIsImNvbXBsZXRlZEJ5IjoicmVwbGF5LWZpeHR1cmUtZ2VuZXJhdG9yIiwiY29tcGxldGVkQXQiOiIyMDI2LTA3LTEzVDAwOjAwOjAxLjAwMFoifQ=="
+            }
+          ]
+        },
+        "identity": "temporal-cli@replay-host",
+        "header": {}
+      }
+    },
+    {
+      "eventId": "4",
+      "eventTime": "2026-07-13T03:50:54.039941457Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "2104661",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "2",
+        "identity": "temporal-cli@replay-host",
+        "requestId": "32b1fad6-ef54-4fdb-a361-6e3d1e73ae4d",
+        "historySizeBytes": "1372",
+        "workerVersion": {
+          "buildId": "@temporalio/worker@1.17.2+9e694db440414839d79f1e3fe6ef30652035095c05516c1b93034edcb6f34bdb"
+        }
+      }
+    },
+    {
+      "eventId": "5",
+      "eventTime": "2026-07-13T03:50:54.261490685Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "2104665",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "2",
+        "startedEventId": "4",
+        "identity": "temporal-cli@replay-host",
+        "workerVersion": {
+          "buildId": "@temporalio/worker@1.17.2+9e694db440414839d79f1e3fe6ef30652035095c05516c1b93034edcb6f34bdb"
+        },
+        "sdkMetadata": {
+          "coreUsedFlags": [1, 3, 2],
+          "langUsedFlags": [2],
+          "sdkName": "temporal-typescript",
+          "sdkVersion": "1.17.2"
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "6",
+      "eventTime": "2026-07-13T03:50:54.261636724Z",
+      "eventType": "EVENT_TYPE_MARKER_RECORDED",
+      "taskId": "2104666",
+      "markerRecordedEventAttributes": {
+        "markerName": "core_patch",
+        "details": {
+          "patch-data": {
+            "payloads": [
+              {
+                "metadata": { "encoding": "anNvbi9wbGFpbg==" },
+                "data": "eyJpZCI6InN0YXRlLWJhY2tlZC1nYXRlLWFydGlmYWN0LXByb29mLXYxIiwiZGVwcmVjYXRlZCI6ZmFsc2V9"
+              }
+            ]
+          }
+        },
+        "workflowTaskCompletedEventId": "5"
+      }
+    },
+    {
+      "eventId": "7",
+      "eventTime": "2026-07-13T03:50:54.262355897Z",
+      "eventType": "EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES",
+      "taskId": "2104667",
+      "upsertWorkflowSearchAttributesEventAttributes": {
+        "workflowTaskCompletedEventId": "5",
+        "searchAttributes": {
+          "indexedFields": {
+            "TemporalChangeVersion": {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg==",
+                "type": "S2V5d29yZExpc3Q="
+              },
+              "data": "WyJzdGF0ZS1iYWNrZWQtZ2F0ZS1hcnRpZmFjdC1wcm9vZi12MSJd"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

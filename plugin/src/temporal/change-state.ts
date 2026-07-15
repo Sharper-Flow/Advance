@@ -37,6 +37,7 @@ import type {
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
+  SpecDeltaAddedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
@@ -57,8 +58,15 @@ import type {
   WorktreeSetupFailedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
-import { normalizePersistedSubagentReportState } from "../types";
-import { subagentReportKey } from "../types/subagent-reports";
+import { CAPABILITY_KEY_PATTERN } from "../types/specs";
+import {
+  normalizePersistedSubagentReportState,
+  normalizeLegacyChangeStatus,
+} from "../types";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
@@ -143,12 +151,14 @@ export function changeSeedStateFromChange(
 ): NonNullable<ChangeWorkflowInput["seedState"]> {
   const [normalizedChange] = normalizePersistedSubagentReportState(change);
   const safeChange = normalizedChange as Change;
+  // Legacy stored statuses ("active"/"pending") never reach workflow state:
+  // they normalize to "draft" (the open status) at the seed boundary.
+  const status = normalizeLegacyChangeStatus(safeChange.status) as ChangeStatus;
 
   return {
-    status: safeChange.status,
+    status,
     lifecycleState:
-      safeChange.lifecycleState ??
-      normalizeChangeLifecycleState(safeChange.status),
+      safeChange.lifecycleState ?? normalizeChangeLifecycleState(status),
     tasks: safeChange.tasks ?? [],
     subagent_reports: safeChange.subagent_reports ?? [],
     deltas: safeChange.deltas ?? {},
@@ -171,6 +181,7 @@ export function changeSeedStateFromChange(
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
     seenReportIds: safeChange.seenReportIds,
+    seenReportIdsTotal: safeChange.seenReportIdsTotal,
     design_concern_dispositions: safeChange.design_concern_dispositions,
     verification_evidence_dispositions:
       safeChange.verification_evidence_dispositions,
@@ -259,6 +270,7 @@ export function applyOriginRepairedToState(
 }
 
 export const SIGNAL_REJECTION_RING_BUFFER_LIMIT = 20;
+export const SEEN_REPORT_IDS_RING_BUFFER_LIMIT = 200;
 
 export function applySignalRejectionToState(
   state: ChangeWorkflowState,
@@ -836,6 +848,9 @@ export function applyTaskAssignedToState(
   task.status = "in_progress";
   task.assignedTo = payload.sessionId;
   task.started_at = task.started_at ?? payload.assignedAt;
+  if (payload.applyCycle) {
+    task.apply_cycle = payload.applyCycle;
+  }
   setLastSignalAt(state, payload.assignedAt);
   return state;
 }
@@ -880,6 +895,30 @@ export function applyTaskCompletedToState(
   if (incomingWouldWeakenCheckpoint) {
     setLastSignalAt(state, payload.completedAt);
     return state;
+  }
+
+  if (task.metadata?.frontend === "true") {
+    const implementationCycleId = task.apply_cycle?.implementation_cycle_id;
+    if (!implementationCycleId) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} has no active implementation cycle. Assign the task with an apply cycle and collect successful adv-designer evidence before completing it.`,
+      );
+    }
+    const reports = [
+      ...(state.subagent_reports ?? []),
+      ...(task.subagent_reports ?? []),
+    ];
+    if (
+      !hasMatchingDesignerApplyEvidence({
+        taskId: payload.taskId,
+        implementationCycleId,
+        reports,
+      })
+    ) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.`,
+      );
+    }
   }
 
   // rq-TDD009seq: red-then-green ordering enforcement for inline TDD tasks.
@@ -1009,6 +1048,21 @@ function taskIdFromReport(
   return "task_id" in report ? report.task_id : undefined;
 }
 
+function hasMatchingDesignerApplyEvidence(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): boolean {
+  return input.reports.some(
+    (report) =>
+      report.agent === "adv-designer" &&
+      report.status === "complete" &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+}
+
 function reportKey(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): string {
@@ -1018,6 +1072,7 @@ function reportKey(
     scope: typeof report.scope === "string" ? undefined : report.scope,
     agent: report.agent,
     attempt: report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(report),
   });
 }
 
@@ -1025,11 +1080,50 @@ export function applySubagentReportSubmittedToState(
   state: ChangeWorkflowState,
   payload: SubagentReportSubmittedSignalPayload,
 ): ChangeWorkflowState {
-  const taskId = payload.taskId ?? taskIdFromReport(payload.report);
-  const task = taskId ? getMutableTask(state, taskId) : undefined;
   const taskScoped =
     typeof payload.report.scope === "string" ||
     payload.report.scope.kind === "task";
+  const reportOwnerTaskId = taskIdFromReport(payload.report);
+  // Ownership boundary: for task-scoped reports the report itself is the
+  // authority on which task owns it. A signal-level taskId that disagrees
+  // with the report owner is rejected before any storage and before cycle
+  // validation — otherwise cycle validation could anchor to one task while
+  // the evidence persists under another. Payloads whose taskId matches (or
+  // omits) the owner are unaffected.
+  if (
+    taskScoped &&
+    reportOwnerTaskId &&
+    payload.taskId &&
+    payload.taskId !== reportOwnerTaskId
+  ) {
+    throw new Error(
+      `SUBAGENT_REPORT_OWNER_MISMATCH: signal taskId ${payload.taskId} conflicts with task-scoped report owner task ${reportOwnerTaskId} (agent: ${payload.report.agent}, attempt: ${payload.report.attempt}).`,
+    );
+  }
+  const taskId =
+    taskScoped && reportOwnerTaskId
+      ? reportOwnerTaskId
+      : (payload.taskId ?? reportOwnerTaskId);
+  const task = taskId ? getMutableTask(state, taskId) : undefined;
+
+  // An adv-designer report carrying apply_context is cycle-anchored evidence:
+  // it may only persist while the owning task has that exact apply cycle
+  // active. Persisting pre-anchor evidence would let it become valid later
+  // once a matching cycle starts. Never infer or backfill a cycle here —
+  // throw so the signal wrapper records a signal rejection instead.
+  // Legacy reports without apply_context claim no cycle and stay compatible.
+  if (payload.report.agent === "adv-designer") {
+    const claimedCycleId = subagentReportImplementationCycleId(payload.report);
+    if (claimedCycleId) {
+      const activeCycleId = task?.apply_cycle?.implementation_cycle_id;
+      if (activeCycleId !== claimedCycleId) {
+        throw new Error(
+          `SUBAGENT_REPORT_ANCHOR_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} claims implementation cycle ${claimedCycleId} but the task has no matching active implementation cycle${activeCycleId ? ` (active cycle: ${activeCycleId})` : ""}.`,
+        );
+      }
+    }
+  }
+
   const reportId = reportKey(payload.report);
   const seenReportIds = state.seenReportIds ?? [];
   const alreadyStoredInSidecar = (state.subagent_reports ?? []).some(
@@ -1040,9 +1134,7 @@ export function applySubagentReportSubmittedToState(
   );
 
   if (seenReportIds.includes(reportId) || alreadyStoredInSidecar) {
-    state.seenReportIds = seenReportIds.includes(reportId)
-      ? seenReportIds
-      : [...seenReportIds, reportId];
+    // Duplicate: leave retained IDs and cumulative total unchanged.
     if (task && taskScoped && !alreadyStoredOnTask) {
       task.subagent_reports = [
         ...(task.subagent_reports ?? []),
@@ -1060,7 +1152,10 @@ export function applySubagentReportSubmittedToState(
       payload.report as NonNullable<Task["subagent_reports"]>[number],
     ];
   }
-  state.seenReportIds = [...seenReportIds, reportId];
+  state.seenReportIds = [...seenReportIds, reportId].slice(
+    -SEEN_REPORT_IDS_RING_BUFFER_LIMIT,
+  );
+  state.seenReportIdsTotal = (state.seenReportIdsTotal ?? 0) + 1;
 
   const blockers = blockerSummary(payload.report);
   if (task && blockers) {
@@ -1213,6 +1308,55 @@ export function applyWisdomAddedToState(
   payload: WisdomAddedSignalPayload,
 ): ChangeWorkflowState {
   state.wisdom.push(payload.entry);
+  setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+/**
+ * addSpecDeltaWriter: append-only spec-delta reducer (DeltaAdd semantics only).
+ *
+ * Appends `payload.delta` under `state.deltas[payload.capability]`, accepting
+ * existing or valid new kebab-case capability keys. Duplicate delta ids and
+ * duplicate add-requirement ids are rejected deterministically (throw →
+ * signal-rejection path) so replays and duplicate submissions leave the
+ * capability-keyed delta record unchanged. Matching is exact-identifier only —
+ * no heuristic inference. The reducer never resolves or modifies global spec
+ * files: archive remains the sole global-spec writer.
+ */
+export function applySpecDeltaAddedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaAddedSignalPayload,
+): ChangeWorkflowState {
+  if (!CAPABILITY_KEY_PATTERN.test(payload.capability)) {
+    throw new Error(
+      `Malformed capability key: ${JSON.stringify(payload.capability)}`,
+    );
+  }
+  const deltas = state.deltas ?? {};
+  for (const [capability, entries] of Object.entries(deltas)) {
+    for (const entry of entries) {
+      if (entry.id === payload.delta.id) {
+        throw new Error(
+          `Duplicate spec delta id ${payload.delta.id} under capability ${capability}`,
+        );
+      }
+      if (
+        entry.operation === "add" &&
+        entry.requirement.id === payload.delta.requirement.id
+      ) {
+        throw new Error(
+          `Duplicate requirement id ${payload.delta.requirement.id} under capability ${capability}`,
+        );
+      }
+    }
+  }
+  state.deltas = {
+    ...deltas,
+    [payload.capability]: [
+      ...(deltas[payload.capability] ?? []),
+      payload.delta,
+    ],
+  };
   setLastSignalAt(state, payload.addedAt);
   return state;
 }

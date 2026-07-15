@@ -2,7 +2,6 @@
 name: adv-comp-scan
 description: Scan competitor capabilities against this project for competitive intelligence
 ---
-<!-- manifest: adv-comp-scan · requiresChangeId: false -->
 # ADV Competitive Intelligence Scan
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers.
 
@@ -46,7 +45,7 @@ All research MUST stay on public sources only.
 ## Phase 1: Source Mode (GitHub Repos)
 When mode is `source`:
 
-1. **Repo metadata** — Exa for candidate repos; `searchcode_code_file_tree`, `searchcode_code_get_file`, and `searchcode_code_analyze` for README, package manifests, main language
+1. **Repo metadata** — Exa for candidate repos; searchcode file-tree, file-fetch, and repo-analysis capabilities for README, package manifests, main language
 2. **Feature surface** — analyze source structure, API endpoints, key modules
 3. **Tech stack** — identify dependencies, frameworks, runtime
 
@@ -56,8 +55,8 @@ If repo is private or inaccessible → fallback to public mode with warning.
 ## Phase 1: Public Mode (Websites / Docs)
 When mode is `public`:
 
-1. **Firecrawl primary** — `firecrawl_firecrawl_scrape` for pricing, features, changelog pages
-2. **Exa fallback** — `exa_web_search_exa` for recent news, reviews, comparisons
+1. **Firecrawl primary** — Firecrawl scrape for pricing, features, changelog pages
+2. **Exa fallback** — Exa web search for recent news, reviews, comparisons
 3. **Structured extraction** — identify feature list, pricing tiers, target audience
 
 If Firecrawl fails → use Exa search results as primary source.

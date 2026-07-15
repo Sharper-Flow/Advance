@@ -162,7 +162,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-coordinate`           | Audit project changes, Epic alignment, sequencing, and membership health                             |
 | `/adv-triage`               | Triage backlog sources, reconcile into GH issues, apply bug priority labels, regenerate ROADMAP.md |
 | `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                                    |
-| `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
+| `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up candidates             |
 | `/adv-optimizer [target]`   | Analyze code simplification opportunities and propose optimizer changes                              |
 
 ## Command Boundaries
@@ -206,7 +206,7 @@ Emit at START of each response:
 | `[ADV:REFLECTION]`         | Reflection report emitted                                     | 🟪    |
 | `[ADV:PEER_SESSIONS]`      | Informational; peer sessions detected in same project         | ⬜    |
 
-Tab title: initial identity only, `advChange` when a change is active or `project` when idle. No dynamic status/progress retitles. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
+Tab title: active ADV change identity only. With an active change the title is exactly the change ID; with Epic membership it is `epicId | changeId`. With no reachable active change, ADV emits no title write and the pane retains its last intentional title. No project fallback, no dynamic status/progress retitles. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
 ### Context Snapshot
 
@@ -222,9 +222,7 @@ Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reente
 
 ### MCP Tool Name Contract
 
-MCP callable names are exact schema identifiers; never normalize, split, or recase them. Current examples: `context7_resolve-library-id`, `context7_query-docs`, `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa`, `searchcode_code_search`, `searchcode_code_get_file`, `firecrawl_firecrawl_scrape`, `vision_vision_list`, `lgrep_search_semantic`.
-Invalid examples: `code_search`, `context7_resolve_library_id`, `context7_query_docs`, `web_search_exa`, `firecrawl_scrape`, `vision_list`.
-If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+External MCP invocation follows the active-surface contract carried by each MCP-capable agent prompt: use only capabilities actually exposed in the session — through the generated catalog when `execute` is exposed, direct callables otherwise — and never normalize identifiers. Name providers and capabilities in workflow prose (Context7 for library docs, Exa for web discovery, searchcode for public-repo code, Firecrawl for page scrape/crawl, lgrep for local code intelligence, Vision for daemon status); take exact invocation spellings from the active schema or catalog at runtime.
 
 ### Structural Correctness (P33)
 
@@ -256,7 +254,7 @@ When artifacts conflict, later gates override earlier gates. Spec requirements o
 
 × NEVER read ADV state files directly (`read`, `cat`, `ls`). Use ADV MCP tools exclusively.
 
-Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,problem-statement.md,agenda.jsonl,wisdom.jsonl,conformance.json}`
+Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,problem-statement.md,wisdom.jsonl,conformance.json}` and legacy `agenda.jsonl` files.
 
 | Need                     | Tool                                                      |
 | ------------------------ | --------------------------------------------------------- |
@@ -267,7 +265,6 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 | All tasks                | `adv_task_list`                                           |
 | Active changes           | `adv_change_list`                                         |
 | Validate                 | `adv_change_validate`                                     |
-| Agenda                   | `adv_agenda_list`                                         |
 | Wisdom                   | `adv_wisdom_list`                                         |
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
@@ -578,7 +575,7 @@ Reads use `snapshot-ok` + `_projectContext`; mutations use `temporal-required` +
 
 - `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_validate`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
 - `temporal-required`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_epic_repair_membership`, `adv_gate_status`, `adv_gate_complete`, `adv_temporal_reconnect`, `adv_temporal_worker_restart`, `adv_run_test`. Epic membership tools treat `target_path` as child-change routing and also accept `epic_owner_target_path` for remote Epic owner routing; both require trust confirmation when untrusted.
-- Current-project only: `adv_temporal_register_search_attributes`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
+- Current-project only: `adv_temporal_register_search_attributes`, `adv_reflect`, `adv_conformance`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
 
 Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-project> && opencode`.
 
@@ -594,7 +591,7 @@ No direct non-LLM ADV tool-exec helper ships until OpenCode exposes stable tool 
 
 #### `status: "in-flight"` filter shorthand
 
-`adv_change_list status: "in-flight"` returns the union `draft + pending + active`. Use this when an agent prompt or human asks "what's in flight" without caring about the specific stored status. The filter is **input-only**; it never appears as a stored `status` value on a change. The plain `"active"` filter (and other status values) keeps its strict storage-enum meaning.
+`adv_change_list status: "in-flight"` returns the open stored status `draft` — the only lifecycle-open value in the stored `ChangeStatus` enum (`draft`/`archived`/`closed`). Use this when an agent prompt or human asks "what's in flight" without caring about the specific stored status. The filter is **input-only**; it never appears as a stored `status` value on a change. The plain `"active"` and `"pending"` filters are rejected with a hint to use `"in-flight"` (those values are never stored on changes); `"archived"` and `"closed"` select terminal changes.
 
 ### Cancellation Policy
 
@@ -964,7 +961,7 @@ Create `agent-{domain}/SKILL.md` with YAML `name`, `description`, `keywords`, `m
 
 ### Creation Flow
 
-1. **Research domain** — Context7, Exa, searchcode (`searchcode_code_search`) → gather domain-specific guidance. Use Exa to discover candidate repositories, then searchcode to inspect code inside each public repo.
+1. **Research domain** — Context7, Exa, searchcode → gather domain-specific guidance. Use Exa to discover candidate repositories, then searchcode to inspect code inside each public repo.
 2. **Assemble** — populate template with research findings, include source citations
 3. **Persist** — write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. **Skip if exists** — if file already exists, report "skill already exists" and skip
@@ -1036,7 +1033,7 @@ ADV uses external mutable state shared by worktrees. Specs stay in repo (`.adv/s
 
 ### External State
 
-State: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (`changes/`, `archive/`, `wisdom.jsonl`, `reflections.jsonl`, `agenda.jsonl`). Worktrees: `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Cleanup deletion requires approval.
+State: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (`changes/`, `archive/`, `wisdom.jsonl`, `reflections.jsonl`). Worktrees: `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Legacy Agenda cleanup deletion requires approval.
 
 ### Worktree Policy
 
@@ -1074,7 +1071,7 @@ Fallback modes: `mode: "terminal"` returns path; MUST use as `workdir` for all l
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 owns structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → prove no-remote local merge, post-fetch `origin/{default-branch}` reachability, or merged PR state. Remote-backed protected/policy routes include merge queue and PR + GitHub auto-merge: merge queue is supported as a route variant alongside `pr_auto_merge` and `pr_manual`; when queue rules apply, ADV pushes `change/{change-id}`, open/reuses one PR, and queues via documented GitHub `merge_group` semantics, skipping local reconciliation because the queue provides freshness via `merge_group`. `Pending auto-merge.` leaves release/archive incomplete until PR state is `MERGED`; `Blocked.` leaves the change active when PR/auto-merge, queue handoff, or origin proof is unavailable. Phase 9 assumes `gh` is authenticated with a local user token that has `write` repo access; CI-provided tokens (GitHub Actions `GITHUB_TOKEN`, App tokens) may lack merge-queue/auto-merge permissions (cli/cli #7213). `POLICY_DETECTION_FAILED` covers this case — archive blocks with remediation directing the user to authenticate `gh` with a local user token. `adv_gate_complete gateId: "release"`, `phase9:"skip"`, and release recovery all revalidate the same proof (`rq-releaseFinalization01`). `adv_archive_repair` scans/re-drives archived-but-unmerged remote `change/*` branches through idempotent PR auto-merge without force-push. × Never delete worktree with unmerged commits. Tools unavailable → `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 owns structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → prove no-remote local merge, post-fetch `origin/{default-branch}` reachability, or merged PR state. Remote-backed protected/policy routes include merge queue and PR + GitHub auto-merge: merge queue is supported as a route variant alongside `pr_auto_merge` and `pr_manual`; when queue rules apply, ADV pushes `change/{change-id}`, open/reuses one PR, and queues via documented GitHub `merge_group` semantics, skipping local reconciliation because the queue provides freshness via `merge_group`. `Pending auto-merge.` leaves release/archive incomplete until PR state is `MERGED`; `Blocked.` leaves the change active when PR/auto-merge, queue handoff, or origin proof is unavailable. Phase 9 assumes `gh` is authenticated with a local user token that has `write` repo access; CI-provided tokens (GitHub Actions `GITHUB_TOKEN`, App tokens) may lack merge-queue/auto-merge permissions (cli/cli #7213). `POLICY_DETECTION_FAILED` covers this case — archive blocks with remediation directing the user to authenticate `gh` with a local user token. `adv_gate_complete gateId: "release"`, `phase9:"skip"`, and release recovery all revalidate the same proof (`rq-releaseFinalization01`). `adv_archive_repair` scans/re-drives archived-but-unmerged remote `change/*` branches through idempotent PR auto-merge without force-push. Post-merge local `change/*` branch deletion is git hygiene, not recovery: `adv_worktree_cleanup mode=archived_branches` (operator-explicit; pass `dryRun=true` to preview). Repair decision matrix: `adv_archive_repair action=reconcile` is the batch terminal-projection repair over all release-stuck candidates, gated on branch-merge evidence; `adv_change_status_repair` is the single-change targeted status flip, gated on precise workflow evidence (no branch requirement, target_path routing). × Never delete worktree with unmerged commits. Tools unavailable → `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 

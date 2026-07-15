@@ -4,6 +4,11 @@
  * Tools for managing cross-task learning (wisdom) within changes.
  * Wisdom entries capture patterns, successes, failures, gotchas, and conventions
  * discovered during task execution for injection into subsequent task context.
+ *
+ * consolidateAdvToolSurface2 (tk-11d902254d63): `adv_project_wisdom_list` was
+ * removed; its project-only listing lives on as `adv_wisdom_list` with
+ * `project_only: true` and a bounded `maxEntries` limit applied AFTER type
+ * and product-visibility filtering (DDC6). No alias or wrapper remains.
  */
 
 import { z } from "zod";
@@ -226,7 +231,7 @@ export const wisdomTools = {
 
   adv_wisdom_list: {
     description:
-      "List or search wisdom entries. Optionally filter by type or search via FTS. Omit changeId to aggregate across all active changes and project-level wisdom.",
+      "List or search wisdom entries. Optionally filter by type or search via FTS. Omit changeId to aggregate across all active changes and project-level wisdom. Set project_only to list only durable project-level learnings (promoted across changes); maxEntries bounds the project_only listing after filtering.",
     args: {
       changeId: z
         .string()
@@ -253,6 +258,21 @@ export const wisdomTools = {
         .describe(
           "Optional absolute path to another ADV project. Reads a snapshot and returns _projectContext.",
         ),
+      project_only: z
+        .boolean()
+        .optional()
+        .describe(
+          "When true, list only project-level wisdom (durable learnings promoted across changes). Cannot be combined with changeId or query.",
+        ),
+      maxEntries: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe(
+          "Maximum entries to return for project_only listings (default: all). Applied after type and product-visibility filtering.",
+        ),
     },
     execute: async (
       {
@@ -261,15 +281,37 @@ export const wisdomTools = {
         query,
         scope,
         target_path,
+        project_only,
+        maxEntries,
       }: {
         changeId?: string;
         type?: string;
         query?: string;
         scope?: "repo" | "product";
         target_path?: string;
+        project_only?: boolean;
+        maxEntries?: number;
       },
       store: Store,
     ) => {
+      // Folded project-reader contract (consolidateAdvToolSurface2,
+      // tk-11d902254d63): project_only is mutually exclusive with
+      // changeId/query, and maxEntries bounds only the project_only listing.
+      if (project_only && changeId) {
+        return formatToolOutput({
+          error: "project_only cannot be combined with changeId",
+        });
+      }
+      if (project_only && query) {
+        return formatToolOutput({
+          error: "project_only cannot be combined with query",
+        });
+      }
+      if (maxEntries !== undefined && !project_only) {
+        return formatToolOutput({
+          error: "maxEntries requires project_only: true",
+        });
+      }
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
@@ -283,7 +325,26 @@ export const wisdomTools = {
               | "convention"
               | undefined;
 
-            if (query) {
+            if (project_only) {
+              // Project-wisdom branch folded in from the removed
+              // adv_project_wisdom_list. DDC6: read unbounded, then apply
+              // the type filter and the shared product-visibility filter
+              // BEFORE the bounded limit below so the limit never starves
+              // visible entries.
+              const entries = await listProjectWisdom(activeStore.paths.root, {
+                wisdomPath: activeStore.paths.wisdom,
+              });
+              let projectEntries = entries.map((entry) => ({
+                ...entry,
+                scope: "project",
+              }));
+              if (wisdomType) {
+                projectEntries = projectEntries.filter(
+                  (e) => e.type === wisdomType,
+                );
+              }
+              wisdom = projectEntries;
+            } else if (query) {
               // FTS search path — route through store.wisdom.search
               wisdom = await activeStore.wisdom.search(query, {
                 changeId,
@@ -333,6 +394,12 @@ export const wisdomTools = {
               ),
             );
 
+            // DDC6: the bounded limit applies only after project filtering
+            // and product visibility filtering.
+            if (project_only && maxEntries !== undefined) {
+              wisdom = wisdom.slice(0, maxEntries);
+            }
+
             // Calculate summary by type
             const byType: Record<string, number> = {};
             for (const entry of wisdom as { type: string }[]) {
@@ -354,98 +421,6 @@ export const wisdomTools = {
                 error instanceof Error
                   ? error.message
                   : "Failed to list wisdom",
-            });
-          }
-        },
-      );
-    },
-  },
-
-  adv_project_wisdom_list: {
-    description:
-      "List project-level wisdom entries (durable learnings promoted across changes). Returns entries with summary by type — mirrors adv_wisdom_list response shape. Use this to surface cross-change conventions and patterns before starting work.",
-    args: {
-      maxEntries: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .optional()
-        .describe("Maximum entries to return (default: all)"),
-      scope: z
-        .enum(["repo", "product"])
-        .optional()
-        .describe(
-          "For linked products: repo (default) returns promoted/global entries relevant to this product; product returns all product wisdom",
-        ),
-      target_path: z
-        .string()
-        .optional()
-        .describe(
-          "Optional absolute path to another ADV project. Reads a snapshot and returns _projectContext.",
-        ),
-    },
-    execute: async (
-      {
-        maxEntries,
-        scope,
-        target_path,
-      }: {
-        maxEntries?: number;
-        scope?: "repo" | "product";
-        target_path?: string;
-      },
-      store: Store,
-    ) => {
-      return withOptionalTargetPathStore(
-        { store, target_path },
-        async (activeStore, projectContext) => {
-          try {
-            let entries: Array<{
-              id: string;
-              type: string;
-              content: string;
-              source_change?: string;
-              source_task?: string;
-              promoted_at?: string;
-              product_id?: string;
-              origin_repo_id?: string;
-              origin_repo_project_id?: string;
-              origin_repo_path?: string;
-              scope?: string;
-            }> = [];
-
-            entries = await listProjectWisdom(activeStore.paths.root, {
-              maxEntries,
-              wisdomPath: activeStore.paths.wisdom,
-            });
-            entries = entries
-              .map((entry) => ({ ...entry, scope: "project" }))
-              .filter((entry) =>
-                isWisdomVisibleForProductScope(entry, activeStore, scope),
-              );
-
-            // Build byType summary — mirrors adv_wisdom_list shape (KD1)
-            const byType: Record<string, number> = {};
-            for (const entry of entries) {
-              byType[entry.type] = (byType[entry.type] || 0) + 1;
-            }
-
-            return formatToolOutput({
-              entries,
-              count: entries.length,
-              byType,
-              ...(productContextOutput(activeStore, scope)
-                ? { _productContext: productContextOutput(activeStore, scope) }
-                : {}),
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          } catch (error) {
-            return formatToolOutput({
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to list project wisdom",
             });
           }
         },

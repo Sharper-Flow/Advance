@@ -29,7 +29,7 @@ Before deep reads, establish baseline context in this order:
 
 1. **WORKING DIRECTORY / repo root** — preserve the active workdir and resolved target path.
 2. **Project context** — load `adv_project_context`.
-3. **active ADV state** — inspect active changes plus relevant agenda/wisdom/spec context with ADV read tools.
+3. **active ADV state** — inspect active changes plus relevant wisdom/spec context with ADV read tools.
 4. **repo tree/outline** — inspect repo tree/outline before target-local reads.
 5. **coverage gaps** — record unavailable tools, skipped dimensions, and unexamined areas.
 
@@ -37,10 +37,10 @@ Before deep reads, establish baseline context in this order:
 
 Scan the entire repository for structural understanding:
 
-1. **Broad Scan structure map** — use `lgrep_get_repo_outline` or `lgrep_get_file_tree` for top-level structure
+1. **Broad Scan structure map** — use lgrep repo outline or file tree for top-level structure
 2. **hotspot/risk scan** — identify files with high complexity, deep nesting, unclear ownership, missing tests, or many dependencies
 3. **related pattern/convention scan** — note recurring patterns, conventions, and deviations
-4. **active-change/spec overlap** — check active ADV state, specs, agenda, and wisdom for nearby work
+4. **active-change/spec overlap** — check active ADV state, specs, and wisdom for nearby work
 5. **coverage gaps** — list unavailable tools, skipped dimensions, and open questions
 
 ### Scoped (target provided)
@@ -49,14 +49,14 @@ Investigate a specific target — file path, module, symbol, feature area, or pr
 
 1. **Target normalization** — resolve the target to concrete files/symbols:
    - If it looks like a path → read it directly
-   - If it looks like a symbol → use `lgrep_search_symbols`
-   - If it looks like a concept/theme → use `lgrep_search_semantic`
+   - If it looks like a symbol → use lgrep symbol search
+   - If it looks like a concept/theme → use lgrep semantic search
    - If ambiguous → try all three, report what was found
 2. **Deep read** — read the target files, understand structure and behavior
 3. **Scoped Scan dependency/usage trace** — trace what the target depends on and what depends on it
 4. **Related code** — find similar patterns, sibling modules, or coupled components
 5. **Risk assessment** — run hotspot/risk scan signals for test coverage, complexity, and change risk
-6. **active-change/spec overlap** — check active ADV state, specs, agenda, and wisdom for nearby work
+6. **active-change/spec overlap** — check active ADV state, specs, and wisdom for nearby work
 7. **coverage gaps** — list unavailable tools, unexamined related code, and open questions
 
 ## Degraded Execution
@@ -69,12 +69,12 @@ Use tools in this priority order:
 
 | Step | Tool | When |
 |------|------|------|
-| 1 | `lgrep_search_semantic` | Concept/intent discovery |
-| 2 | `lgrep_search_symbols` | Named function/class/method lookup |
-| 3 | `lgrep_get_file_outline` | Understand a specific file's structure |
-| 4 | `lgrep_get_repo_outline` | Broad structural mapping |
-| 5 | `lgrep_get_file_tree` | Directory layout |
-| 6 | `lgrep_search_text` | Exact string/token matching |
+| 1 | lgrep semantic search | Concept/intent discovery |
+| 2 | lgrep symbol search | Named function/class/method lookup |
+| 3 | lgrep file outline | Understand a specific file's structure |
+| 4 | lgrep repo outline | Broad structural mapping |
+| 5 | lgrep file tree | Directory layout |
+| 6 | lgrep text search | Exact string/token matching |
 | 7 | `read` | Direct file inspection |
 | 8 | `grep` | Regex patterns across files |
 
@@ -134,14 +134,14 @@ RISKS:
 OPEN QUESTIONS:
   - {question that needs human input}
 
-POSSIBLE AGENDA ITEMS:
+POSSIBLE FOLLOW-UPS:
   These are suggestions only — not created automatically.
 
-  - {suggested agenda title}
+  - {suggested follow-up title}
     Why: {1 sentence rationale}
     Priority: {critical|high|medium|low|backlog}
 
-  - {suggested agenda title}
+  - {suggested follow-up title}
     Why: {1 sentence rationale}
     Priority: {critical|high|medium|low|backlog}
 
@@ -159,18 +159,18 @@ SUGGESTED NEXT COMMANDS:
 ## Constraints
 
 - **Read-only** — never write, edit, or create files
-- **No ADV mutations** — never call `adv_change_create`, `adv_task_add`, `adv_agenda_add`, or any state-modifying ADV tool
+- **No ADV mutations** — never call `adv_change_create`, `adv_task_add`, or any state-modifying ADV tool
 - **Report transport exception** — when an orchestrator packet requires typed handoff, `adv_subagent_report_submit` is the only allowed ADV mutation
 - **No shell commands** — use MCP tools only for code exploration
 - **Bounded output** — cap findings at 10 for broad scans, 15 for scoped scans
 - **Cite everything** — no finding without a file reference
-- **Suggest, don't act** — agenda items are human-readable suggestions, not tool calls
-- **Recommendations only** — must not invoke `/adv-*`, must not create agenda/change/task state, must not edit files
+- **Suggest, don't act** — findings are human-readable suggestions, not tool calls
+- **Recommendations only** — must not invoke `/adv-*`, must not create change/task state, must not edit files
 
 ## Anti-Patterns
 
 - Do NOT run builds, tests, or linters — Tron reads, it does not execute
-- Do NOT create changes, tasks, or agenda items — Tron suggests, it does not mutate
+- Do NOT create changes or tasks — Tron suggests, it does not mutate
 - Do NOT duplicate `adv-researcher` work — Tron maps what exists, not what should exist
 - Do NOT produce unbounded output — cap findings and prioritize by severity
 - Do NOT guess file contents — read them or say "not examined"

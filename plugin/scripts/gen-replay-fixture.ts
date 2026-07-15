@@ -1,0 +1,361 @@
+/**
+ * Replay-fixture generator (change addReplayReportBounds, task tk-86e9bd603c47).
+ *
+ * Drives CONTROLLED `changeWorkflow` executions against the local Temporal dev
+ * server so that each uncovered patch branch in `workflows.ts` is exercised,
+ * then prints the workflowId so the operator can export the history with:
+ *
+ *   temporal workflow show --address 127.0.0.1:7233 --namespace default \
+ *     --workflow-id <id> --output json --no-json-shorthand-payloads
+ *
+ * No event history is hand-authored: every history is produced by Temporal
+ * executing real workflow code. The `acceptance-executive-summary` branch is a
+ * LEGACY branch reachable only when the STATE_BACKED_ACCEPTANCE_PROOF_PATCH
+ * marker is absent, so it is generated with a controlled variant workflow
+ * (current code with the state-backed-acceptance else-if removed) that takes
+ * the preserved legacy disk-inspect path. See the committed fixture metadata
+ * for full provenance.
+ *
+ * Identifiers are STABLE (no timestamps) so the exported history is
+ * reproducible and needs only `identity` sanitization. Re-running terminates
+ * any in-flight execution of the same workflowId first.
+ *
+ * Usage:
+ *   pnpm exec tsx scripts/gen-replay-fixture.ts --branch <id>
+ *
+ * Branches:
+ *   state-backed-gate-artifact   -> STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH (proposal gate)
+ *   state-backed-acceptance      -> STATE_BACKED_ACCEPTANCE_PROOF_PATCH (acceptance gate)
+ *   acceptance-executive-summary -> ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH (legacy acceptance)
+ */
+
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { Connection, Client } from "@temporalio/client";
+import { NativeConnection, Worker } from "@temporalio/worker";
+
+import {
+  gateCompletedSignal,
+  getChangeStateQuery,
+} from "../src/temporal/messages";
+import type { ChangeWorkflowInput } from "../src/temporal/contracts";
+import { createDefaultGates } from "../src/types";
+import {
+  inspectArtifactActivity,
+  writeArtifactActivity,
+  writeChangeProjection,
+} from "../src/temporal/activities";
+
+const ADDRESS = "127.0.0.1:7233";
+const NAMESPACE = "default";
+const PROJECT_ID = "replay-fixture-project";
+const PROJECTION_ROOT = "/tmp/adv-replay-fixture";
+
+const workflowsPath = fileURLToPath(
+  new URL("../src/temporal/workflows.ts", import.meta.url),
+);
+
+type BranchId =
+  | "state-backed-gate-artifact"
+  | "state-backed-acceptance"
+  | "acceptance-executive-summary";
+
+interface BranchConfig {
+  gateId: "proposal" | "discovery" | "design" | "acceptance";
+  patchMarker: string;
+  label: string;
+  /** Stable changeId (doubles as the fixture workflowId suffix). */
+  changeId: string;
+  /** Whether this branch needs a projectionChangesDir (acceptance gates do). */
+  needsProjection: boolean;
+}
+
+const BRANCHES: Record<BranchId, BranchConfig> = {
+  "state-backed-gate-artifact": {
+    gateId: "proposal",
+    patchMarker: "state-backed-gate-artifact-proof-v1",
+    label: "STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH",
+    changeId: "replayFixtureStateBackedGateArtifact",
+    needsProjection: false,
+  },
+  "state-backed-acceptance": {
+    gateId: "acceptance",
+    patchMarker: "state-backed-acceptance-proof-v1",
+    label: "STATE_BACKED_ACCEPTANCE_PROOF_PATCH",
+    changeId: "replayFixtureStateBackedAcceptance",
+    needsProjection: true,
+  },
+  "acceptance-executive-summary": {
+    gateId: "acceptance",
+    patchMarker: "acceptance-executive-summary-proof-v1",
+    label: "ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH",
+    changeId: "replayFixtureLegacyAcceptanceExecSummary",
+    needsProjection: true,
+  },
+};
+
+const EXEC_SUMMARY_CONTENT =
+  "# Executive Summary\n\n" +
+  "All contract review-matrix rows pass. The controlled replay fixture " +
+  "exercises the acceptance gate proof branch deterministically. This body " +
+  "exceeds the minimum non-whitespace threshold for gate artifact evidence.\n";
+
+function sha256(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function parseArgs(): { branch: BranchId } {
+  const args = process.argv.slice(2);
+  let branch = "";
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--branch") branch = args[++i] ?? "";
+  }
+  if (!(branch in BRANCHES)) {
+    throw new Error(
+      `Invalid --branch "${branch}". Expected one of: ${Object.keys(BRANCHES).join(", ")}`,
+    );
+  }
+  return { branch: branch as BranchId };
+}
+
+function buildContract() {
+  const items = [
+    {
+      id: "AC1",
+      kind: "acceptance_criterion" as const,
+      text: "Controlled replay fixture exercises the target proof branch.",
+      sourceArtifact: "agreement" as const,
+      verificationRequired: true,
+      evidencePolicy: "test" as const,
+      status: "approved" as const,
+    },
+  ];
+  return {
+    version: 1 as const,
+    rigor: "standard" as const,
+    source: {
+      artifact: "agreement" as const,
+      approvedAt: "2026-07-13T00:00:00.000Z",
+    },
+    items,
+    reviewMatrix: {
+      reviewedAt: "2026-07-13T00:00:00.000Z",
+      rows: items.map((item) => ({
+        contractId: item.id,
+        kind: item.kind,
+        status: "pass" as const,
+        evidencePolicy: item.evidencePolicy,
+        evidence: "Controlled replay fixture verification passes.",
+      })),
+    },
+    amendments: [],
+  };
+}
+
+function buildInput(
+  config: BranchConfig,
+  projectionChangesDir: string | undefined,
+): ChangeWorkflowInput {
+  const gates = createDefaultGates();
+  const baseSeed: NonNullable<ChangeWorkflowInput["seedState"]> = {
+    status: "active",
+    tasks: [],
+    wisdom: [],
+    reentry_history: [],
+  };
+
+  if (config.gateId === "acceptance") {
+    for (const gid of [
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+    ] as const) {
+      gates[gid] = { status: "done" };
+    }
+    gates.acceptance = { status: "in_progress" };
+    baseSeed.gates = gates;
+    baseSeed.contract = buildContract();
+    baseSeed.documents = { executiveSummary: EXEC_SUMMARY_CONTENT };
+    baseSeed.artifacts = {
+      executiveSummary: {
+        contentHash: sha256(EXEC_SUMMARY_CONTENT),
+        source: "temporal",
+      },
+    };
+  } else {
+    gates[config.gateId] = { status: "in_progress" };
+    baseSeed.gates = gates;
+    baseSeed.documents = {
+      [config.gateId]:
+        `# ${config.label}\n\n` +
+        "Controlled state-backed gate artifact content that comfortably " +
+        "exceeds the minimum non-whitespace threshold for gate evidence.\n",
+    } as NonNullable<typeof baseSeed.documents>;
+  }
+
+  return {
+    projectId: PROJECT_ID,
+    changeId: config.changeId,
+    title: `Replay fixture: ${config.label}`,
+    initializedAt: "2026-07-13T00:00:00.000Z",
+    searchAttributesEnabled: false,
+    ...(projectionChangesDir ? { projectionChangesDir } : {}),
+    seedState: baseSeed,
+  };
+}
+
+async function buildLegacyAcceptanceVariant(): Promise<string> {
+  const src = await readFile(workflowsPath, "utf8");
+  const startMarker =
+    '      } else if (\n        artifactKind === "acceptance" &&\n        wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)\n      ) {\n';
+  const endMarker = "      } else if (state.projectionChangesDir) {\n";
+  const startIdx = src.indexOf(startMarker);
+  const endIdx = src.indexOf(endMarker);
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+    throw new Error(
+      `Variant surgery failed: startIdx=${startIdx} endIdx=${endIdx}`,
+    );
+  }
+  const variant = src.slice(0, startIdx) + src.slice(endIdx);
+  const variantPath = fileURLToPath(
+    new URL(
+      "../src/temporal/workflows.gen-legacy-acceptance.ts",
+      import.meta.url,
+    ),
+  );
+  await writeFile(variantPath, variant, "utf8");
+  return variantPath;
+}
+
+async function main(): Promise<void> {
+  const { branch } = parseArgs();
+  const config = BRANCHES[branch];
+  const workflowId = `adv/change/${PROJECT_ID}/${config.changeId}`;
+  const taskQueue = `replay-fixture-gen-${branch}`;
+
+  const projectionChangesDir = config.needsProjection
+    ? join(PROJECTION_ROOT, config.changeId)
+    : undefined;
+  if (projectionChangesDir) {
+    await rm(projectionChangesDir, { recursive: true, force: true });
+    await mkdir(join(projectionChangesDir, config.changeId), {
+      recursive: true,
+    });
+    if (branch === "acceptance-executive-summary") {
+      // Path C reads executive-summary.md from disk; pre-write with matching hash.
+      await writeFile(
+        join(projectionChangesDir, config.changeId, "executive-summary.md"),
+        EXEC_SUMMARY_CONTENT,
+        "utf8",
+      );
+    }
+  }
+
+  const input = buildInput(config, projectionChangesDir);
+
+  let activeWorkflowsPath = workflowsPath;
+  let variantPath: string | undefined;
+  if (branch === "acceptance-executive-summary") {
+    variantPath = await buildLegacyAcceptanceVariant();
+    activeWorkflowsPath = variantPath;
+  }
+
+  const connection = await Connection.connect({ address: ADDRESS });
+  const client = new Client({ connection, namespace: NAMESPACE });
+  const nativeConnection = await NativeConnection.connect({ address: ADDRESS });
+
+  // Terminate any in-flight execution of the same workflowId for repeatability.
+  try {
+    await client.workflow
+      .getHandle(workflowId)
+      .terminate("replay-fixture regeneration");
+  } catch {
+    // No prior execution; ignore.
+  }
+
+  const worker = await Worker.create({
+    connection: nativeConnection,
+    namespace: NAMESPACE,
+    taskQueue,
+    workflowsPath: activeWorkflowsPath,
+    activities: {
+      inspectArtifactActivity,
+      writeArtifactActivity,
+      writeChangeProjection,
+    },
+  });
+
+  let finalStatus = "unknown";
+  let gateEvidence: unknown = null;
+  try {
+    await worker.runUntil(async () => {
+      const handle = await client.workflow.start("changeWorkflow", {
+        workflowId,
+        taskQueue,
+        args: [input],
+      });
+
+      await handle.signal(gateCompletedSignal, {
+        gateId: config.gateId,
+        completedBy: "replay-fixture-generator",
+        completedAt: "2026-07-13T00:00:01.000Z",
+      });
+
+      const deadline = Date.now() + 30_000;
+      while (Date.now() < deadline) {
+        const state = (await handle.query(getChangeStateQuery)) as {
+          gates: Record<string, { status: string; artifactEvidence?: unknown }>;
+        };
+        const gate = state.gates[config.gateId];
+        if (gate?.status === "done" || gate?.status === "stuck") {
+          finalStatus = gate.status;
+          gateEvidence = gate.artifactEvidence ?? null;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      // Drain fire-and-forget projection activity so the history settles.
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    });
+  } finally {
+    if (variantPath) await rm(variantPath, { force: true });
+  }
+
+  const exportCmd =
+    `temporal workflow show --address ${ADDRESS} --namespace ${NAMESPACE} ` +
+    `--workflow-id ${workflowId} --output json --no-json-shorthand-payloads`;
+
+  console.log(
+    JSON.stringify(
+      {
+        branch,
+        label: config.label,
+        gateId: config.gateId,
+        patchMarker: config.patchMarker,
+        workflowId,
+        changeId: config.changeId,
+        projectionChangesDir: projectionChangesDir ?? null,
+        finalGateStatus: finalStatus,
+        gateEvidence,
+        exportCmd,
+      },
+      null,
+      2,
+    ),
+  );
+
+  if (finalStatus !== "done") {
+    throw new Error(
+      `Gate did not complete (status=${finalStatus}); refusing to emit a non-target history.`,
+    );
+  }
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

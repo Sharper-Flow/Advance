@@ -54,6 +54,7 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicRetiredListing01",
       "rq-epicRetiredHistory01",
       "rq-epicOpsPlanning01",
+      "rq-epicFastFollowLineage01",
     ]) {
       expect(doc).toContain(reqId);
     }
@@ -401,7 +402,7 @@ describe("/adv-epic command contract", () => {
     expect(content).toContain("adv_epic_list");
     expect(content).toContain("adv_epic_show");
     expect(content).toContain("adv_change_list");
-    expect(content).toContain("adv_backlog_state");
+    expect(content).toContain("adv_roadmap");
     expect(content).toMatch(/neutral/i);
     expect(content).toMatch(/update\/clarify existing/i);
     expect(content).toMatch(/create new/i);

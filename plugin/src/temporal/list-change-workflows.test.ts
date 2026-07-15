@@ -75,10 +75,10 @@ describe("buildVisibilityQuery", () => {
     expect(q).not.toContain("ExecutionStatus");
   });
 
-  it("adds a running execution guard for explicit active-status queries", () => {
+  it("adds a running execution guard for explicit draft-status queries", () => {
     const q = buildVisibilityQuery({
       projectId: "abc",
-      statuses: ["active"],
+      statuses: ["draft"],
     });
     expect(q).toContain('AdvLifecycleState = "open"');
     expect(q).toContain('ExecutionStatus = "Running"');
@@ -148,7 +148,7 @@ describe("listChangeWorkflowIds", () => {
     const fakeClient = makeFakeClient([]);
     await listChangeWorkflowIds(fakeClient, {
       projectId: "proj1",
-      statuses: ["active"],
+      statuses: ["draft"],
     });
     expect(fakeClient.lastQuery).toContain('AdvAffectedProjects = "proj1"');
     expect(fakeClient.lastQuery).toContain('AdvLifecycleState = "open"');

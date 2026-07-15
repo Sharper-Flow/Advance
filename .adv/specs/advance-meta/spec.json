@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.23.0",
-  "updated_at": "2026-07-11",
+  "version": "1.24.1",
+  "updated_at": "2026-07-15",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -491,7 +491,7 @@
     {
       "id": "rq-roadmapCliBridge01",
       "title": "Roadmap Slash Command Uses CLI Bridge",
-      "body": "The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.",
+      "body": "The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.",
       "priority": "must",
       "tags": [
         "roadmap",
@@ -522,7 +522,7 @@
           ],
           "when": "Its default body is evaluated for roadmap work instructions",
           "then": [
-            "It does not instruct the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, or adv_spec",
+            "It does not instruct the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, or adv_spec",
             "It does not instruct the agent to build active-change cross-reference, synthesize recommendations, or read freshness metadata",
             "It tells the agent to return the command output verbatim without analysis"
           ]
@@ -2064,7 +2064,7 @@
           "id": "rq-temporalConcurrentLoad01.1",
           "title": "Five or more concurrent clients complete state writes with no lost updates",
           "given": [
-            "At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, agenda adds, wisdom adds, worktree registers) against change workflows on the same project task queue"
+            "At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, wisdom adds, worktree registers) against change workflows on the same project task queue"
           ],
           "when": "The concurrent-clients benchmark mode runs for the configured duration",
           "then": [
@@ -2830,45 +2830,6 @@
       ]
     },
     {
-      "id": "rq-agendaDurableParse01",
-      "title": "Durable Agenda Parsing And Compaction",
-      "body": "Agenda JSONL persistence must preserve durability when a line cannot be parsed. When the agenda is loaded, any malformed or schema-invalid line must be logged via the debug-log diagnostic channel (mirroring project-wisdom and reflection loaders) rather than dropped silently. Automatic compaction, which rewrites the agenda from successfully parsed entries only, must not permanently discard unparsed content without surfacing it: when a load skipped one or more malformed lines, auto-compaction must be skipped (with a warning) so the corrupt content survives for manual inspection. This preserves the append-only durability guarantee.",
-      "priority": "must",
-      "tags": [
-        "agenda",
-        "storage",
-        "durability",
-        "observability"
-      ],
-      "scenarios": [
-        {
-          "id": "rq-agendaDurableParse01.1",
-          "title": "Malformed agenda line is logged on load",
-          "given": [
-            "An agenda JSONL file contains a malformed or schema-invalid line"
-          ],
-          "when": "The agenda is loaded",
-          "then": [
-            "The malformed line is skipped from the in-memory result",
-            "A diagnostic is logged identifying that a malformed line was skipped"
-          ]
-        },
-        {
-          "id": "rq-agendaDurableParse01.2",
-          "title": "Auto-compaction does not destroy unparsed content",
-          "given": [
-            "An agenda load skipped one or more malformed lines",
-            "The agenda would otherwise be eligible for automatic compaction"
-          ],
-          "when": "Automatic compaction is evaluated",
-          "then": [
-            "Compaction is skipped and a warning is surfaced",
-            "The malformed content is not permanently discarded"
-          ]
-        }
-      ]
-    },
-    {
       "id": "rq-projectIdentityStability01",
       "title": "Shallow-Repo Project Identity Refusal",
       "body": "ADV project identity is derived from the repository root commit. In a shallow clone, `git rev-list --max-parents=0 HEAD` returns the moving `.git/shallow` graft boundary as a fake root, and commit grafts rewrite parentage the same way. ADV MUST NOT mint external state or Temporal state under such an unstable pseudo-root identity: identity resolution must structurally detect shallow and grafted repositories and refuse with a typed, actionable error. Full clones, partial clones with complete root history (for example `--filter=blob:none`), and multi-root repositories must resolve exactly as before — the guard must never false-trip on stable histories.",
@@ -2927,6 +2888,56 @@
           "then": [
             "A multi-root repository resolves deterministically to the lexicographically first root commit",
             "A non-git directory resolves to a not-git outcome (legacy null/fallback behavior), never an unstable-identity refusal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolOwnership01",
+      "title": "Tool Ownership and Reachability Matrix",
+      "body": "Every registered ADV tool must have an explicit ownership/reachability classification — orchestrator, operator-only, or dual (read: agent, mutate: operator) — recorded in the git-tracked matrix at docs/tool-ownership.md. Operator-only maintenance and recovery tools (adv_archive_purge, adv_archive_repair, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_temporal_worker_restart, adv_conformance#override) remain discoverable but must never become routine autonomous agent actions: agents invoke them only on explicit operator instruction with the required approval evidence. Dual tools expose agent-reachable reads while their mutation or refresh surfaces remain operator-owned. The matrix is advisory guidance enforced by static-check tests against tool-registry.ts ADV_TOOL_NAMES; adding or renaming a registered tool without a matrix row must fail CI.",
+      "priority": "must",
+      "tags": [
+        "tool-surface",
+        "ownership",
+        "operator-only",
+        "docs"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-toolOwnership01.1",
+          "title": "Matrix document covers every registered tool",
+          "given": [
+            "The set of registered tool names in plugin/src/tool-registry.ts ADV_TOOL_NAMES"
+          ],
+          "when": "The tool-ownership static-check test runs",
+          "then": [
+            "docs/tool-ownership.md exists and contains a classification row for every ADV_TOOL_NAMES entry",
+            "A tool added to the registry without a matrix row fails CI"
+          ]
+        },
+        {
+          "id": "rq-toolOwnership01.2",
+          "title": "Operator-only maintenance tools are named and non-routine",
+          "given": [
+            "The operator-only maintenance set: adv_archive_purge, adv_archive_repair, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_temporal_worker_restart, adv_conformance#override"
+          ],
+          "when": "The matrix is consulted or an agent plans a maintenance or recovery action",
+          "then": [
+            "Each operator-only tool is classified in docs/tool-ownership.md with its approval/evidence gate",
+            "Agents treat these tools as discoverable but never routine autonomous actions; invocation requires explicit operator instruction"
+          ]
+        },
+        {
+          "id": "rq-toolOwnership01.3",
+          "title": "Dual tools split read and mutate reachability",
+          "given": [
+            "A dual-classified tool such as adv_status, adv_project_metadata, adv_wip_state, adv_session_list, adv_session_show, or adv_roadmap"
+          ],
+          "when": "An agent uses the tool",
+          "then": [
+            "Read actions are agent-reachable",
+            "Mutation or refresh surfaces remain operator-owned and are not invoked as routine autonomous agent actions"
           ]
         }
       ]

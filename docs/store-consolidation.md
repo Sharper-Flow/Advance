@@ -41,7 +41,7 @@ identity. Emits the full per-item plan:
 
 - Changes partitioned **live vs terminal**
 - Archive bundles, Epics (including retired Epics)
-- Wisdom / agenda / reflections row counts
+- Wisdom / reflections row counts
 - Per-item plan action: `recreate`, `import_projection`, `append_dedupe`,
   `skip_collision`, or `skip_ledgered`
 - Per-ID **collision report**
@@ -72,7 +72,7 @@ Execution applies the exact dry-run plan, terminal-first:
 2. **Live items** (active changes and Epics) are recreated under the true
    identity as **new Temporal workflows carrying prior state** (tasks, gates,
    artifacts, Epic membership). Histories are never rewritten.
-3. **Wisdom, agenda, and reflections** rows append with content-hash dedupe.
+3. **Wisdom and reflections** rows append with content-hash dedupe.
 4. An append-only **ledger** (`consolidation-ledger.jsonl` in the target
    store) records every applied item, keyed on
    `(sourceProjectId, targetProjectId, itemId)`.

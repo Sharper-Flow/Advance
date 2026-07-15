@@ -113,8 +113,8 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     const content = readCommand("adv-archive.md");
     // Phase 5.5 marker
     expect(content).toMatch(/Phase 5\.5.*Conformance/i);
-    // rq-extConfGate01 citation
-    expect(content).toContain("rq-extConfGate01");
+    // Run-only-if-conformance-required gate
+    expect(content).toMatch(/conformance_required:\s*true/);
     // DRIFT halt path
     expect(content).toMatch(/DRIFT.*HALT/i);
     // User options on drift

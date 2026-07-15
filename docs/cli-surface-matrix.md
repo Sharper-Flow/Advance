@@ -66,20 +66,21 @@
 | Tool | Disposition | Rationale |
 |---|---|---|
 | `adv_status` | `mcp+cli-additive` | CLI table shipped; MCP kept for `view:"health"` depth |
-| `adv_roadmap` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation |
-| `adv_backlog_state` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation |
+| `adv_roadmap` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation (typed `annotations_unavailable` on Visibility outage, never per-change fallback) |
 | `adv_backlog_add` | `no-cli-dangerous` | Backlog mutation |
 | `adv_backlog_list` | `keep-mcp-only` | Agent-facing backlog read |
 | `adv_backlog_show` | `keep-mcp-only` | Agent-facing backlog read |
 | `adv_backlog_promote` | `no-cli-dangerous` | Backlog promotion mutation |
 | `adv_backlog_archive` | `no-cli-dangerous` | Backlog archive mutation |
 | `adv_spec` | `mcp+cli-additive` | Agents query specs mid-workflow; CLI read additive |
+| `adv_delta_add` | `no-cli-dangerous` | Change-scoped spec-delta mutation; archive remains sole global-spec writer |
 | `adv_change_list` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_show` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_validate` | `mcp+cli-additive` | Gates/archive need MCP; CLI/CI verdict additive (C5 path) |
 | `adv_temporal_diagnose` | `mcp+cli-additive` | Add CLI `doctor`; MCP kept for in-recovery use |
 | `adv_snapshot_health` | `mcp+cli-additive` | CLI scan additive; repair remains approval-gated MCP-only |
 | `adv_store_consolidate` | `keep-mcp-only` | Ops recovery tool; scan/dry_run read-only, execute approval-gated |
+| `adv_store_cleanup` | `keep-mcp-only` | Maintenance-only legacy agenda cleanup; scan/dry_run read-only, execute approval-gated |
 | `adv_session_list` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_session_show` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_worktree_triage` | `mcp+cli-additive` | Human inventory/report; additive CLI output |
@@ -89,8 +90,6 @@
 | `adv_task_ready` | `keep-mcp-only` | Agent-workflow reads; low standalone CLI value |
 | `adv_gate_status` | `keep-mcp-only` | Agent reads constantly during workflow |
 | `adv_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
-| `adv_project_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
-| `adv_agenda_list` | `keep-mcp-only` | Agent-facing agenda surface |
 | `adv_project_context` | `keep-mcp-only` | Agent context read |
 | `adv_project_metadata` | `keep-mcp-only` | Agent context read |
 | `adv_wip_state` | `keep-mcp-only` | Temporal/session-dependent aggregation |
@@ -105,11 +104,14 @@
 | `adv_change_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_forget` | `keep-mcp-only` | Session pointer clear (in-memory only) |
 | `adv_followup_promote` | `no-cli-dangerous` | Promotes a linked ops follow-up change; mutation |
+| `adv_report_followup_promote` | `no-cli-dangerous` | Promotes a report follow-up into a task or fast-follow child; mutation |
 | `adv_ops_evidence_add` | `no-cli-dangerous` | Appends ops evidence and updates follow-up status; mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |
 | `adv_archive_repair` | `no-cli-dangerous` | Archive release repair mutation |
+| `adv_archive_purge` | `no-cli-dangerous` | Operator-only archived-change purge; terminates workflow, opt-in disk-bundle removal |
 | `adv_change_status_repair` | `no-cli-dangerous` | Change status repair mutation |
+| `adv_change_workflow_terminate` | `no-cli-dangerous` | Operator-only pinned wedged-workflow termination; run pinned via describe, shipped-gate eligibility |
 | `adv_change_update_issues` | `no-cli-dangerous` | Issue linkage mutation |
 | `adv_change_repair_origin` | `no-cli-dangerous` | Origin-linkage repair mutation |
 | `adv_change_reenter` | `no-cli-dangerous` | Change state mutation |
@@ -131,11 +133,6 @@
 | `adv_temporal_reconnect` | `no-cli-dangerous` | Runtime mutation |
 | `adv_temporal_worker_restart` | `no-cli-dangerous` | Runtime mutation |
 | `adv_wisdom_add` | `no-cli-dangerous` | Wisdom mutation |
-| `adv_agenda_add` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_start` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_complete` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_cancel` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_prioritize` | `no-cli-dangerous` | Agenda mutation |
 | `adv_epic_create` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_show` | `keep-mcp-only` | Agent-workflow read |
 | `adv_epic_list` | `mcp+cli-additive` | MCP remains the rich agent-workflow read; `bin/adv epic list --json` exposes reduced live ID-only Visibility enumeration |
@@ -154,3 +151,15 @@
 - `adv validate` and `adv doctor` are NOT implemented in this change (AC8).
   The validate disk-vs-Temporal architecture decision is deferred to a
   follow-up `/adv-design` research task.
+
+## Removed Tools
+
+`adv_backlog_state`, `adv_project_wisdom_list`, `adv_gate_criteria`,
+`adv_epic_update_scope`, and `adv_epic_merge` were removed completely by
+`consolidateAdvToolSurface2`; none has a CLI or MCP surface. Replacement
+paths: `adv_roadmap` for backlog state (sole backlog reader; TTL-bounded
+freshness, O(1) annotation, typed `annotations_unavailable` degradation) and
+`adv_wisdom_list` with `project_only: true` for project wisdom (bounded by
+`maxEntries` after filtering). The three latent tools have no agent-callable
+replacement. Full mapping: `docs/tool-ownership.md` → Removed Tools and
+Replacements.

@@ -208,7 +208,15 @@ describe("Roadmap Tool", () => {
         ...SAMPLE_SNAPSHOT,
         generated_at: "2026-01-01T00:00:00.000Z",
       });
-      const result = await roadmapTools.adv_roadmap.execute({}, store);
+      // Annotator reachable but empty: snapshot lists bugs while no in-flight
+      // changes exist → closure-drift warning fires. (When annotation is
+      // unavailable the typed state suppresses this inference.)
+      const result = await roadmapTools.adv_roadmap.execute(
+        {},
+        store,
+        undefined,
+        { activeChangesAnnotator: async () => new Map() },
+      );
       const parsed = JSON.parse(result);
 
       expect(parsed.freshness.status).toBe("stale");
@@ -494,61 +502,132 @@ describe("Roadmap Tool", () => {
     });
   });
 
-  describe("active-change cross-reference", () => {
-    test("annotates roadmap items that have an active change via origin.issue_number", async () => {
+  describe("active-change annotation (rq-backlogCoord05, consolidateAdvToolSurface2)", () => {
+    test("annotates roadmap items via a single Visibility annotator call", async () => {
       await writeSnapshot(SAMPLE_SNAPSHOT);
+      const calls: number[][] = [];
 
-      // Create an active change linked to roadmap issue #51
-      const { changeTools } = await import("./change");
-      const createOutput = await changeTools.adv_change_create.execute(
-        {
-          summary: "Implement top WSJF feature",
-          origin_kind: "roadmap",
-          origin_issue_number: 51,
-        },
+      const result = await roadmapTools.adv_roadmap.execute(
+        {},
         store,
+        undefined,
+        {
+          activeChangesAnnotator: async (_projectId, issueNumbers) => {
+            calls.push(issueNumbers);
+            return new Map([[51, { changeId: "implementTopFeature" }]]);
+          },
+        },
       );
-      const createParsed = JSON.parse(createOutput);
-      const createdChangeId = createParsed.changeId;
-      expect(typeof createdChangeId).toBe("string");
-
-      const result = await roadmapTools.adv_roadmap.execute({}, store);
       const parsed = JSON.parse(result);
 
+      expect(parsed.annotation_status).toBe("ok");
       expect(parsed.active_changes_indexed).toBe(1);
       const top = parsed.features.find(
         (f: { number: number }) => f.number === 51,
       );
-      expect(top.active_change).toBe(createdChangeId);
+      expect(top.active_change).toBe("implementTopFeature");
 
       // Issues without an active change have no active_change field
       const without = parsed.features.find(
         (f: { number: number }) => f.number === 79,
       );
       expect(without.active_change).toBeUndefined();
+
+      // O(1): exactly one annotator call carrying every snapshot issue
+      // number — NOT one call per issue or per change.
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toHaveLength(
+        SAMPLE_SNAPSHOT.bugs.length + SAMPLE_SNAPSHOT.features.length,
+      );
     });
 
-    test("does not surface origin links from changes pointing at other issues", async () => {
+    test("does not annotate snapshot items when the annotator maps only unknown issues", async () => {
       await writeSnapshot(SAMPLE_SNAPSHOT);
 
-      const { changeTools } = await import("./change");
-      await changeTools.adv_change_create.execute(
-        {
-          summary: "Different issue",
-          origin_kind: "roadmap",
-          origin_issue_number: 999, // not in snapshot
-        },
+      const result = await roadmapTools.adv_roadmap.execute(
+        {},
         store,
+        undefined,
+        {
+          activeChangesAnnotator: async () =>
+            new Map([[999, { changeId: "differentIssue" }]]),
+        },
       );
-
-      const result = await roadmapTools.adv_roadmap.execute({}, store);
       const parsed = JSON.parse(result);
 
+      expect(parsed.annotation_status).toBe("ok");
       expect(parsed.active_changes_indexed).toBe(1);
-      // None of the snapshot features should be annotated
       for (const f of parsed.features) {
         expect(f.active_change).toBeUndefined();
       }
+    });
+
+    test("returns typed annotations_unavailable when the annotator fails — never per-change fallback", async () => {
+      await writeSnapshot(SAMPLE_SNAPSHOT);
+
+      const result = await roadmapTools.adv_roadmap.execute(
+        {},
+        store,
+        undefined,
+        {
+          activeChangesAnnotator: async () => {
+            throw new Error("Temporal Visibility unreachable");
+          },
+        },
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.annotation_status).toBe("annotations_unavailable");
+      // Unavailability is typed — never inferred from an empty index.
+      expect(parsed.active_changes_indexed).toBeNull();
+      for (const f of parsed.features) {
+        expect(f.active_change).toBeUndefined();
+      }
+      for (const bucket of Object.values(parsed.bugs)) {
+        for (const b of bucket as Array<{ active_change?: unknown }>) {
+          expect(b.active_change).toBeUndefined();
+        }
+      }
+      expect(
+        (parsed.warnings as string[]).some((w) =>
+          /annotation unavailable/i.test(w),
+        ),
+      ).toBe(true);
+    });
+
+    test("surfaces TTL annotation freshness consolidated from adv_backlog_state", async () => {
+      await writeSnapshot({
+        ...SAMPLE_SNAPSHOT,
+        last_refreshed: new Date(Date.now() - 60_000).toISOString(),
+        ttl_ms: 300_000,
+      });
+
+      const result = await roadmapTools.adv_roadmap.execute(
+        {},
+        store,
+        undefined,
+        { activeChangesAnnotator: async () => new Map() },
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.annotation_freshness.needs_refresh).toBe(false);
+      expect(parsed.annotation_freshness.ttl_ms).toBe(300_000);
+      expect(parsed.annotation_freshness.last_refreshed).toBeTruthy();
+    });
+
+    test("legacy snapshot without TTL fields reports annotation needs_refresh", async () => {
+      await writeSnapshot(SAMPLE_SNAPSHOT); // no TTL metadata fields
+
+      const result = await roadmapTools.adv_roadmap.execute(
+        {},
+        store,
+        undefined,
+        { activeChangesAnnotator: async () => new Map() },
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.annotation_freshness.needs_refresh).toBe(true);
+      expect(parsed.annotation_freshness.age_ms).toBeNull();
     });
   });
 });

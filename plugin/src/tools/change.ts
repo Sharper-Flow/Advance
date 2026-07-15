@@ -6,8 +6,8 @@
  */
 import { z } from "zod";
 import { createHash } from "crypto";
+import { rm } from "fs/promises";
 import { join, resolve } from "path";
-import { execGit } from "../utils/git.js";
 import type { FastFollowOf, ChangeOrigin } from "../types";
 import {
   createDefaultGates,
@@ -22,6 +22,7 @@ import {
   type GateId,
   type ArtifactKind,
   type Change,
+  type ChangeLifecycleState,
   type ChangeRepoScope,
   type ScopedSubagentReport,
   type BriefingPacketLane,
@@ -31,7 +32,10 @@ import { getReflection } from "../storage/reflection";
 import { getProjectId } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import { projectLoopLedger } from "../utils/loop-ledger";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
@@ -101,6 +105,57 @@ const logger = createLogger("change");
 const STATUS_REPAIR_PHASE9_EVIDENCE_RE =
   /phase9_status\s*(?::|=|\.)\s*failed|phase9 status failed|phase9_status\.failed/i;
 
+// adv_change_workflow_terminate: shipped proof = acceptance AND release gates
+// done on the disk projection. Only a fully-shipped change may have its
+// wedged workflow terminated — the disk projection is authoritative for
+// everything the change still needs.
+const WORKFLOW_TERMINATE_SHIPPED_GATES = ["acceptance", "release"] as const;
+
+// Run statuses that are already terminal server-side: nothing left to
+// terminate, so the tool reports idempotent success (after eligibility).
+const TERMINAL_WORKFLOW_RUN_STATUSES: ReadonlySet<string> = new Set([
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+  "TERMINATED",
+  "CONTINUED_AS_NEW",
+  "TIMED_OUT",
+]);
+
+// Run statuses eligible for termination. Anything else (UNSPECIFIED,
+// UNKNOWN, absent) is refused — never act on an unclassifiable run.
+const TERMINABLE_WORKFLOW_RUN_STATUSES: ReadonlySet<string> = new Set([
+  "RUNNING",
+  "PAUSED",
+]);
+
+/**
+ * Structural narrowing of a `describe()` result into the exact run pin
+ * (runId + status name). Accepts both the SDK status object shape
+ * (`status.name`) and a plain string status; anything absent stays
+ * undefined so the caller can refuse instead of guessing.
+ */
+function workflowRunPinFromDescription(description: unknown): {
+  runId?: string;
+  statusName?: string;
+} {
+  if (typeof description !== "object" || description === null) return {};
+  const record = description as Record<string, unknown>;
+  const runId =
+    typeof record.runId === "string" && record.runId.length > 0
+      ? record.runId
+      : undefined;
+  let statusName: string | undefined;
+  const status = record.status;
+  if (typeof status === "object" && status !== null) {
+    const name = (status as Record<string, unknown>).name;
+    if (typeof name === "string" && name.length > 0) statusName = name;
+  } else if (typeof status === "string" && status.length > 0) {
+    statusName = status;
+  }
+  return { runId, statusName };
+}
+
 async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
   const { getService } = await import("../temporal/service");
   const service = getService();
@@ -143,6 +198,7 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
     scope: typeof report.scope === "string" ? undefined : report.scope,
     agent: report.agent,
     attempt: report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(report),
   });
 }
 const DEFAULT_BRIEFING_PACKET_LANE: BriefingPacketLane = "engineer";
@@ -298,7 +354,10 @@ import {
 } from "../utils/tool-formatters";
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
-import { changeToDirectiveState } from "../temporal/change-state";
+import {
+  changeToDirectiveState,
+  normalizeChangeLifecycleState,
+} from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
   renderBriefingPacket,
@@ -338,9 +397,40 @@ import {
   detectArchivedUnmergedBranches,
   redriveArchivedUnmergedBranch,
   detectArchivedMergedBranches,
-  getCheckedOutChangeBranches,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
+
+// =============================================================================
+// adv_change_list phase derivation
+// =============================================================================
+
+/**
+ * Progress phase rendered on adv_change_list rows. Open changes report the
+ * current gate; "released" marks the all-gates-done-but-still-open wedge
+ * (release gate complete, archive not yet finalized), kept distinct from the
+ * in-flight "release" gate; terminal lifecycle states report themselves.
+ */
+type ChangePhase = GateId | "released" | "archived" | "closed";
+
+/**
+ * Derive a row's progress phase from the store-supplied gate/lifecycle hints.
+ * Pure derivation over the list read model — no workflow state, no signals.
+ * Rows from legacy/mock stores that lack a gate hint omit `phase` entirely
+ * rather than fabricating progress from the permanently-"draft" status.
+ */
+function deriveChangePhase(row: {
+  status: Change["status"];
+  lifecycleState?: ChangeLifecycleState;
+  currentGate?: GateId | "done";
+}): ChangePhase | undefined {
+  const lifecycle =
+    row.lifecycleState ?? normalizeChangeLifecycleState(row.status);
+  if (lifecycle === "archived") return "archived";
+  if (lifecycle === "closed") return "closed";
+  if (row.currentGate === undefined) return undefined;
+  return row.currentGate === "done" ? "released" : row.currentGate;
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -364,7 +454,7 @@ export const changeTools = {
       "List active changes with optional filtering, recency enrichment, and sorting",
     args: {
       status: ChangeListStatusFilterSchema.optional().describe(
-        'Filter by status. Use "in-flight" for the union of draft + pending + active.',
+        'Filter by status. Use "in-flight" for open changes (draft).',
       ),
       includeArchived: z
         .boolean()
@@ -424,6 +514,15 @@ export const changeTools = {
       },
       store: Store,
     ) => {
+      // Reject "active"/"pending" at the boundary — they are never stored on
+      // changes and would silently return an empty list. The Zod schema also
+      // rejects them at parse time; this check is defense-in-depth for direct
+      // handler invocation (tests, internal callers).
+      if (status === "active" || status === "pending") {
+        return formatToolOutput({
+          error: `status: "${status}" is not a valid filter for adv_change_list. "active" and "pending" are never stored on changes. Use "in-flight" (or no status filter) for open changes; "archived"/"closed" for terminal changes.`,
+        });
+      }
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
@@ -448,13 +547,22 @@ export const changeTools = {
           // Enrich with last-activity data from the store-computed timestamp.
           const now = new Date();
           const withLastActivity = result.changes.map((change) => {
+            // currentGate/lifecycleState are internal derivation hints for
+            // `phase`; only the derived phase is exposed on the row.
+            const { currentGate, lifecycleState, ...row } = change;
+            const phase = deriveChangePhase({
+              status: change.status,
+              lifecycleState,
+              currentGate,
+            });
             const lastActivityAt = new Date(change.lastActivityAt);
             const minutesSince = Math.max(
               0,
               Math.floor((now.getTime() - lastActivityAt.getTime()) / 60000),
             );
             return {
-              ...change,
+              ...row,
+              ...(phase ? { phase } : {}),
               lastActivity: change.lastActivityAt,
               lastActivityAgeMinutes: minutesSince,
               ...(change.fast_follow_of
@@ -479,7 +587,7 @@ export const changeTools = {
             scope,
           );
           if (status === "in-flight") {
-            const inFlightStatuses = new Set(["draft", "pending", "active"]);
+            const inFlightStatuses = new Set(["draft"]);
             filtered = filtered.filter((c) => inFlightStatuses.has(c.status));
           }
           // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)
@@ -1148,7 +1256,7 @@ export const changeTools = {
         "Origin provenance kind. " +
           "'roadmap' = promoted from a GitHub Project / ROADMAP.md item (origin_issue_number required). " +
           "'discovery' = surfaced mid-session (bug found, drive-by improvement). " +
-          "'triage' = promoted by /adv-triage from agenda/wisdom/notes (origin_source_artifact recommended). " +
+          "'triage' = promoted by /adv-triage from wisdom/notes (origin_source_artifact recommended). " +
           "'adhoc' = explicit, no upstream artifact. " +
           "Omit to leave origin unset (legacy/backward-compatible).",
       ),
@@ -1166,7 +1274,8 @@ export const changeTools = {
         .optional()
         .describe(
           "Stable reference to the upstream artifact for kind=triage or kind=discovery. " +
-            "Examples: agenda-id ('ag-...'), wisdom-id, task-id, or note-line ref.",
+            "Examples: wisdom-id, task-id, or note-line ref. " +
+            "Parse-only legacy: agenda-id ('ag-...') values remain readable for historical records.",
         ),
     },
     execute: async (
@@ -2368,11 +2477,18 @@ export const changeTools = {
         return inputs.response;
       }
       const { change, context } = inputs;
-      const { specs, activeChanges, proposalText, changedSpecFiles } = context;
-      // Run full validation with active changes for conflict detection
+      const {
+        specs,
+        activeChanges,
+        conflictInventory,
+        proposalText,
+        changedSpecFiles,
+      } = context;
+      // Run full validation with typed conflict inventory for conflict detection
       const validationResult = await validateChange(change, {
         specs,
         activeChanges,
+        conflictInventory,
         proposalText,
         changedSpecFiles,
       });
@@ -2585,6 +2701,7 @@ export const changeTools = {
           validationResult = await validateChange(change, {
             specs: validationContext.specs,
             activeChanges: validationContext.activeChanges,
+            conflictInventory: validationContext.conflictInventory,
             proposalText: validationContext.proposalText,
             changedSpecFiles: validationContext.changedSpecFiles,
           });
@@ -2925,9 +3042,20 @@ export const changeTools = {
               ...openOpsObligationsPayload,
             });
           }
+          // rq-releaseFinalization01 / AC3 split-brain recovery: record Phase 9
+          // done whenever it is not already done — INCLUDING when unset. Same
+          // defect class as the reconcile path (archive-gate.ts): the prior
+          // guard (`phase9_status?.status && ...`) skipped the unset case, so a
+          // bundle-present re-run with an unset phase9_status never recorded the
+          // terminal status. `preservePhase9Evidence(undefined, next)` returns
+          // `next`, recording an unset status cleanly.
+          //
+          // Guard on `!releaseResult.recoveryMutation`: a disk-projection release
+          // recovery means the change workflow already completed and cannot
+          // accept the phase9 signal; skip there to preserve poisoned-recovery.
           if (
-            change.phase9_status?.status &&
-            change.phase9_status.status !== "done"
+            change.phase9_status?.status !== "done" &&
+            !releaseResult.recoveryMutation
           ) {
             await recordPhase9Status({
               store,
@@ -2935,7 +3063,7 @@ export const changeTools = {
               status: preservePhase9Evidence(change.phase9_status, {
                 status: "done",
                 startedAt:
-                  change.phase9_status.startedAt ?? new Date().toISOString(),
+                  change.phase9_status?.startedAt ?? new Date().toISOString(),
                 completedAt: new Date().toISOString(),
               }),
             });
@@ -3222,25 +3350,41 @@ export const changeTools = {
   },
   adv_archive_repair: {
     description:
-      "Scan for archived change branches not reachable from origin/default and re-drive PR auto-merge handoff; OR clean up local change/* branches left behind after PR-mode archive merges",
+      "Scan/redrive archived change branches, or reconcile bundle-present fully-shipped changes whose terminal archived projection is wedged. Branch cleanup is NOT here: post-merge local change/* branch deletion is git hygiene owned by adv_worktree_cleanup mode=archived_branches. Repair decision matrix: use action=reconcile for batch terminal-projection repair across all release-stuck candidates (branch-merge evidence gate); use adv_change_status_repair for a single wedged change (precise workflow-evidence gate, no branch requirement, target_path routing).",
     args: {
       action: z
-        .enum(["scan", "redrive", "cleanup_merged"])
+        .enum(["scan", "redrive", "reconcile"])
         .describe(
           "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change; " +
-            "cleanup_merged = scan local change/* branches tied to archived ADV changes, detect fully-merged ones (squash-merge-safe), and delete the safe ones",
+            "reconcile = audited repair of only bundle-present, fully-gated, merged changes stuck before archived status",
         ),
       changeId: z
         .string()
         .optional()
-        .describe(
-          "Archived change ID to re-drive when action='redrive' or restrict cleanup_merged to a single change",
-        ),
+        .describe("Archived change ID to re-drive when action='redrive'"),
       dryRun: z
         .boolean()
         .optional()
         .describe(
-          "Preview redrive or cleanup_merged without creating PRs, arming auto-merge, or deleting branches",
+          "Preview redrive or reconcile without creating PRs, arming auto-merge, or writing status repairs",
+        ),
+      approvedByUser: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for action='reconcile'. Confirms explicit operator approval for audited terminal-projection repair.",
+        ),
+      approvalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required for action='reconcile'. Cite explicit operator approval and terminal interruption evidence.",
+        ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe(
+          "Required for action='reconcile'. Explain why bundle-anchored terminal-projection recovery is appropriate.",
         ),
     },
     execute: async (
@@ -3248,133 +3392,238 @@ export const changeTools = {
         action,
         changeId,
         dryRun,
+        approvedByUser,
+        approvalEvidence,
+        recoveryReason,
       }: {
-        action: "scan" | "redrive" | "cleanup_merged";
+        action: "scan" | "redrive" | "reconcile";
         changeId?: string;
         dryRun?: boolean;
+        approvedByUser?: true;
+        approvalEvidence?: string;
+        recoveryReason?: string;
       },
       store: Store,
     ) => {
       const mainCheckout = resolveMainCheckout(store.paths.root);
       const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+      if (action === "reconcile") {
+        const evidence = approvalEvidence?.trim() ?? "";
+        const reason = recoveryReason?.trim() ?? "";
+        if (approvedByUser !== true) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: "approvedByUser must be true when action='reconcile'",
+            hint: "Bundle-anchored terminal-projection recovery requires explicit operator approval.",
+          });
+        }
+        if (!evidence) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: "approvalEvidence is required when action='reconcile'",
+            hint: "Cite the terminal interruption evidence and explicit operator approval.",
+          });
+        }
+        if (!reason) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: "recoveryReason is required when action='reconcile'",
+            hint: "Explain why the durable bundle proves this terminal-projection recovery is appropriate.",
+          });
+        }
+
+        // The default list is the release-stuck candidate set: changes still
+        // projected as in-flight. Archived changes are already terminal and
+        // intentionally excluded; this is a repair-only operation.
+        const inFlight = await store.changes.list({});
+        const candidateSummaries = inFlight.changes.filter(
+          (change) =>
+            change.status !== "archived" && change.status !== "closed",
+        );
+        const merged = detectArchivedMergedBranches({
+          mainCheckout,
+          defaultBranch,
+          archivedChangeIds: candidateSummaries.map((change) => change.id),
+        });
+        if (merged.status === "blocked") {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: `Archive reconcile scan blocked: ${merged.reason}`,
+            requirement: "rq-archiveRecoveryConsistency01",
+            details: merged.details,
+          });
+        }
+        const mergedByChangeId = new Map(
+          merged.branches.map((branch) => [branch.changeId, branch]),
+        );
+        const results: Array<Record<string, unknown>> = [];
+
+        for (const candidate of candidateSummaries) {
+          // List returns compact summaries by design. Fetch the full durable
+          // change before evaluating gates or writing recovery state; a stale
+          // or unavailable record is a non-mutating disposition, never a
+          // reason to infer shipment from the summary.
+          let loaded: Awaited<ReturnType<Store["changes"]["get"]>>;
+          try {
+            loaded = await store.changes.get(candidate.id);
+          } catch (error) {
+            results.push({
+              changeId: candidate.id,
+              fromStatus: candidate.status,
+              disposition: "skipped_unreadable_change",
+              detail: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+          if (!loaded.success || !loaded.data) {
+            results.push({
+              changeId: candidate.id,
+              fromStatus: candidate.status,
+              disposition: "skipped_unreadable_change",
+              detail: loaded.success
+                ? `Change not found: ${candidate.id}`
+                : loaded.error,
+            });
+            continue;
+          }
+          const change = loaded.data;
+          const incompleteGates = GATE_ORDER.filter(
+            (gateId) => change.gates?.[gateId]?.status !== "done",
+          );
+          if (incompleteGates.length > 0) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              disposition: "skipped_incomplete_gates",
+              incompleteGates,
+            });
+            continue;
+          }
+
+          let archivePath: string | null;
+          try {
+            archivePath = await findArchiveBundle(
+              store.paths.archive,
+              change.id,
+            );
+          } catch (error) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              disposition: "skipped_bundle_probe_failed",
+              detail: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+          if (!archivePath) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              disposition: "skipped_no_bundle",
+            });
+            continue;
+          }
+
+          const branch = mergedByChangeId.get(change.id);
+          if (!branch) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              archivePath,
+              disposition: "skipped_unmerged_branch",
+            });
+            continue;
+          }
+          if (dryRun) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              toStatus: "archived",
+              archivePath,
+              mergeProof: branch.mergeProof,
+              disposition: "would_repair",
+            });
+            continue;
+          }
+
+          try {
+            const { saveRecoveredChangeStatus } =
+              await import("./_recovery-writers");
+            await saveRecoveredChangeStatus({
+              store,
+              change,
+              authorization: { reason, evidence },
+              status: "archived",
+            });
+            const readback = await verifyStatusRepairReadAfterWrite({
+              store,
+              changeId: change.id,
+            });
+            if (!readback.ok) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "readback_failed",
+                detail: readback.error,
+                readback: readback.readback,
+              });
+              continue;
+            }
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              status: "archived",
+              archivePath,
+              mergeProof: branch.mergeProof,
+              disposition: "repaired",
+              readback: readback.readback,
+            });
+          } catch (error) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              archivePath,
+              mergeProof: branch.mergeProof,
+              disposition: "repair_failed",
+              detail: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        const summary = {
+          total: results.length,
+          repaired: results.filter((r) => r.disposition === "repaired").length,
+          skipped: results.filter((r) =>
+            String(r.disposition).startsWith("skipped_"),
+          ).length,
+          failed: results.filter(
+            (r) =>
+              r.disposition === "readback_failed" ||
+              r.disposition === "repair_failed",
+          ).length,
+        };
+        return formatToolOutput({
+          success: summary.failed === 0,
+          action,
+          dryRun: Boolean(dryRun),
+          mainCheckout,
+          defaultBranch,
+          recoveryReason: reason,
+          results,
+          summary,
+        });
+      }
       const archivedList = await store.changes.list({
         status: "archived",
         includeArchived: true,
       });
       const archivedChangeIds = archivedList.changes.map((change) => change.id);
-      if (action === "cleanup_merged") {
-        let targetArchivedChangeIds = archivedChangeIds;
-        if (changeId?.trim()) {
-          if (!archivedChangeIds.includes(changeId)) {
-            return formatToolOutput({
-              success: false,
-              action,
-              changeId,
-              error: `Change is not archived or was not found: ${changeId}`,
-            });
-          }
-          targetArchivedChangeIds = [changeId];
-        }
-        const fetchWarnings: string[] = [];
-        try {
-          await execGit(["fetch", "origin", defaultBranch], mainCheckout);
-        } catch (err) {
-          fetchWarnings.push(
-            `Best-effort default-branch fetch failed: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        }
-        const detect = detectArchivedMergedBranches({
-          mainCheckout,
-          defaultBranch,
-          archivedChangeIds: targetArchivedChangeIds,
-        });
-        if (detect.status === "blocked") {
-          return formatToolOutput({
-            success: false,
-            action,
-            error: `Cleanup scan blocked: ${detect.reason}`,
-            details: detect.details,
-          });
-        }
-        const checkedOut = getCheckedOutChangeBranches(mainCheckout);
-        if (checkedOut.status === "blocked") {
-          return formatToolOutput({
-            success: false,
-            action,
-            error: `Worktree safety check blocked: ${checkedOut.reason}`,
-            details: checkedOut.details,
-          });
-        }
-        const candidates = detect.branches.filter(
-          (b) => !checkedOut.branches.has(b.branch),
-        );
-        const skippedWorktree = detect.branches.filter((b) =>
-          checkedOut.branches.has(b.branch),
-        );
-        if (dryRun) {
-          return formatToolOutput({
-            success: true,
-            action,
-            dryRun: true,
-            mainCheckout,
-            defaultBranch,
-            candidates,
-            skipped: skippedWorktree.map((b) => ({
-              ...b,
-              reason: "WORKTREE_CHECKED_OUT",
-              worktreePath: checkedOut.worktreePaths[b.branch],
-            })),
-            count: candidates.length,
-            ...(fetchWarnings.length > 0 ? { warnings: fetchWarnings } : {}),
-          });
-        }
-        const results = candidates.map((b) => {
-          try {
-            const deletion = deleteChangeBranch(mainCheckout, b.changeId);
-            return {
-              changeId: b.changeId,
-              branch: b.branch,
-              mergeProof: b.mergeProof,
-              ...deletion,
-            };
-          } catch (error) {
-            return {
-              changeId: b.changeId,
-              branch: b.branch,
-              mergeProof: b.mergeProof,
-              localDeleted: false,
-              remoteDeleted: false,
-              blocked: {
-                reason: "DELETE_FAILED",
-                detail: error instanceof Error ? error.message : String(error),
-              },
-            };
-          }
-        });
-        const summary = {
-          total: detect.branches.length,
-          candidates: candidates.length,
-          deleted: results.filter((r) => r.localDeleted).length,
-          remoteDeleted: results.filter((r) => r.remoteDeleted).length,
-          failed: results.filter((r) => !r.localDeleted).length,
-          skippedWorktree: skippedWorktree.length,
-        };
-        return formatToolOutput({
-          success: true,
-          action,
-          dryRun: false,
-          mainCheckout,
-          defaultBranch,
-          results,
-          skipped: skippedWorktree.map((b) => ({
-            ...b,
-            reason: "WORKTREE_CHECKED_OUT",
-            worktreePath: checkedOut.worktreePaths[b.branch],
-          })),
-          summary,
-          ...(fetchWarnings.length > 0 ? { warnings: fetchWarnings } : {}),
-        });
-      }
       const scan = detectArchivedUnmergedBranches({
         mainCheckout,
         defaultBranch,
@@ -3459,6 +3708,452 @@ export const changeTools = {
         action,
         changeId,
         outcome,
+      });
+    },
+  },
+  adv_archive_purge: {
+    description:
+      "Operator-only maintenance tool (rq-archivePurge01): purge an archived change. Two escalation levels — default workflow-only purge terminates the archived change's Temporal workflow while preserving the on-disk archive bundle and disk projection (adv_change_show keeps returning content from disk); opt-in includeDiskBundle: true additionally removes the archive/<id>/ bundle directory and local disk projection recursively so subsequent adv_change_show returns the not-found path. Archived-only: refuses non-archived or unknown changeIds with a structured error and no mutations. Requires approvedByUser: true plus non-empty approvalEvidence; returns an audit result {changeId, workflowTerminated, bundleRemoved, archivedPath}. Not a routine autonomous agent action — invoke only on explicit operator instruction.",
+    args: {
+      changeId: z.string().describe("Archived change ID to purge"),
+      includeDiskBundle: z
+        .boolean()
+        .optional()
+        .describe(
+          "Opt-in destructive escalation: also recursively remove the archive/<id>/ bundle directory and local disk projection so adv_change_show returns not-found. Default false preserves the on-disk bundle.",
+        ),
+      approvedByUser: z
+        .literal(true)
+        .describe(
+          "Must be true — confirms the operator explicitly approved this purge",
+        ),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "Audited evidence of operator approval for this purge (e.g. operator instruction + reason).",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        includeDiskBundle,
+        approvedByUser,
+        approvalEvidence,
+      }: {
+        changeId: string;
+        includeDiskBundle?: boolean;
+        approvedByUser: true;
+        approvalEvidence: string;
+      },
+      store: Store,
+    ) => {
+      // Approval gates first — refuse before any read/mutation work so a
+      // misconfigured call can never become a partial purge (C3).
+      if (approvedByUser !== true) {
+        return formatToolOutput({
+          success: false,
+          error: "approvedByUser must be true for archive purge",
+          changeId,
+          hint: "Archive purge is operator-only and requires explicit operator approval.",
+        });
+      }
+      const evidence = approvalEvidence?.trim() ?? "";
+      if (evidence.length === 0) {
+        return formatToolOutput({
+          success: false,
+          error: "approvalEvidence is required for archive purge",
+          changeId,
+          hint: "Cite the operator approval and reason for this purge.",
+        });
+      }
+
+      // rq-archivePurge01.3 / DDC1: archived-only — refuse unknown or
+      // non-archived changes with a structured error and no mutations.
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return formatToolOutput({ success: false, error: result.error });
+      }
+      if (!result.data) {
+        return formatToolOutput({
+          success: false,
+          error: `Change not found: ${changeId}`,
+          changeId,
+        });
+      }
+      const change = result.data;
+      if (change.status !== "archived") {
+        return formatToolOutput({
+          success: false,
+          error: `Archive purge refused: change ${changeId} is not archived (status: ${change.status}).`,
+          changeId,
+          currentStatus: change.status,
+          hint: "Only archived changes can be purged. Archive the change first via adv_change_archive, or use adv_change_close for terminal non-archived changes.",
+        });
+      }
+
+      const removeDiskBundle = includeDiskBundle === true;
+      const archivedPath = await findArchiveBundle(
+        store.paths.archive,
+        changeId,
+      );
+
+      // Terminate the change workflow via the Temporal client. A missing
+      // workflow (already terminated/evicted) is idempotent success; any
+      // other failure aborts the purge before disk state is touched so the
+      // operator never gets a half-purged change (no live workflow serving
+      // reads while the bundle is gone).
+      const handle = await getChangeWorkflowHandleForStore(store, changeId);
+      if (!handle) {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Temporal service not available — cannot terminate the change workflow",
+          changeId,
+          hint: "Restore the Temporal service (adv_temporal_diagnose) and retry the purge.",
+        });
+      }
+      let alreadyTerminated = false;
+      try {
+        await (
+          handle as unknown as {
+            terminate: (reason?: string) => Promise<unknown>;
+          }
+        ).terminate(
+          `adv_archive_purge: operator-approved purge of archived change ${changeId}`,
+        );
+      } catch (error) {
+        const { isWorkflowCompletedError } =
+          await import("../temporal/recovery-classification");
+        if (isWorkflowCompletedError(error)) {
+          alreadyTerminated = true;
+        } else {
+          return formatToolOutput({
+            success: false,
+            error: `Failed to terminate change workflow: ${error instanceof Error ? error.message : String(error)}`,
+            changeId,
+            workflowTerminated: false,
+          });
+        }
+      }
+
+      // rq-archivePurge01.2: destructive escalation is strictly opt-in.
+      // Remove the archive bundle, the legacy changes/<id>/ snapshot, and
+      // the flat workflow projection file so no disk source can re-seed or
+      // answer reads after the workflow is gone.
+      if (removeDiskBundle) {
+        try {
+          if (archivedPath) {
+            await rm(archivedPath, { recursive: true, force: true });
+          }
+          await removeChangeDir(store.paths.changes, changeId);
+          await rm(join(store.paths.changes, `${changeId}.json`), {
+            force: true,
+          });
+        } catch (error) {
+          return formatToolOutput({
+            success: false,
+            error: `Workflow terminated but disk bundle removal failed: ${error instanceof Error ? error.message : String(error)}`,
+            changeId,
+            workflowTerminated: true,
+            ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
+            bundleRemoved: false,
+            archivedPath,
+          });
+        }
+      }
+
+      // Drop the local cache/memo entry so subsequent reads in this process
+      // fall through to the archive bundle (default) or the not-found path
+      // (includeDiskBundle). Best-effort: refresh never throws by contract.
+      try {
+        await store.changes.refresh(changeId);
+      } catch (error) {
+        logger.debug(
+          `Post-purge cache refresh failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+
+      return formatToolOutput({
+        success: true,
+        changeId,
+        workflowTerminated: true,
+        ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
+        bundleRemoved: removeDiskBundle,
+        archivedPath,
+        requirement: "rq-archivePurge01",
+      });
+    },
+  },
+  adv_change_workflow_terminate: {
+    description:
+      "Operator-only maintenance tool: terminate the EXACT wedged run of a shipped change's Temporal workflow, pinned by runId via describe() — NOT a Temporal Reset. Eligibility is strict and ordered: approval-first (approvedByUser + non-blank approvalEvidence before any read or mutation); the change must exist and NOT be archived (archived changes route to adv_archive_purge, the sole archived-change lever — rq-archivePurge01 semantics preserved); shipped proof required (acceptance AND release gates done on the disk projection). The workflow is then described once and the exact run pinned: a not-found/completed describe or an already-terminal run status is idempotent success ONLY after that eligibility has passed; a RUNNING/PAUSED run without poisoned-history describe evidence is refused (never terminate a healthy workflow); a run with no pin-able runId or an unclassifiable status is refused. dryRun returns the full structured pin assessment without terminating or touching the projection cache. Termination targets the pinned run via getHandle(workflowId, runId); a not-found terminate is idempotent success, and any other terminate failure returns a structured error BEFORE any projection-cache refresh (failure-before-projection-mutation). On success the projection cache is refreshed so subsequent reads fall through to the durable disk projection. Not a routine autonomous agent action — invoke only on explicit operator instruction.",
+    args: {
+      changeId: z
+        .string()
+        .describe("Change ID whose wedged workflow run should be terminated"),
+      approvedByUser: z
+        .literal(true)
+        .describe(
+          "Must be true — confirms the operator explicitly approved this workflow termination",
+        ),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "Audited evidence of operator approval for this termination (e.g. operator instruction + wedged-state reason).",
+        ),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe(
+          "Preview the eligibility + pin assessment (describe is performed) without terminating the run or refreshing the projection cache.",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        approvedByUser,
+        approvalEvidence,
+        dryRun,
+      }: {
+        changeId: string;
+        approvedByUser: true;
+        approvalEvidence: string;
+        dryRun?: boolean;
+      },
+      store: Store,
+    ) => {
+      // Approval gates first — refuse before any read/mutation work so a
+      // misconfigured call can never become a partial termination (purge C3).
+      if (approvedByUser !== true) {
+        return formatToolOutput({
+          success: false,
+          error: "approvedByUser must be true for change workflow termination",
+          changeId,
+          hint: "Workflow termination is operator-only and requires explicit operator approval.",
+        });
+      }
+      const evidence = approvalEvidence?.trim() ?? "";
+      if (evidence.length === 0) {
+        return formatToolOutput({
+          success: false,
+          error: "approvalEvidence is required for change workflow termination",
+          changeId,
+          hint: "Cite the operator approval and wedged-state reason for this termination.",
+        });
+      }
+
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return formatToolOutput({ success: false, error: result.error });
+      }
+      if (!result.data) {
+        return formatToolOutput({
+          success: false,
+          error: `Change not found: ${changeId}`,
+          changeId,
+        });
+      }
+      const change = result.data;
+
+      // Archived changes route to adv_archive_purge — the sole archived-change
+      // termination lever. This preserves rq-archivePurge01 semantics exactly.
+      if (change.status === "archived") {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} is archived.`,
+          changeId,
+          currentStatus: change.status,
+          hint: "Use adv_archive_purge for archived changes — it is the sole archived-change workflow termination lever.",
+        });
+      }
+
+      // Shipped proof: acceptance AND release gates done. This must pass
+      // BEFORE any idempotent completed/not-found handling — a gone workflow
+      // never masks an ineligible change.
+      const gates = change.gates ?? createDefaultGates();
+      const incompleteGates = WORKFLOW_TERMINATE_SHIPPED_GATES.filter(
+        (gateId) => gates[gateId]?.status !== "done",
+      );
+      if (incompleteGates.length > 0) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} has no shipped proof (gate(s) not done: ${incompleteGates.join(", ")}).`,
+          changeId,
+          incompleteGates,
+          hint: "Only shipped changes (acceptance AND release gates done) are eligible — their disk projection is fully authoritative. Complete the gates via the normal workflow.",
+        });
+      }
+
+      const { getService } = await import("../temporal/service");
+      const service = getService();
+      const projectId = service ? await getProjectId(store.paths.root) : null;
+      if (!service || !projectId) {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Temporal service not available — cannot describe or terminate the change workflow",
+          changeId,
+          hint: "Restore the Temporal service (adv_temporal_diagnose) and retry the termination.",
+        });
+      }
+      const { getChangeHandle } = await import("./_adapters");
+      const handle = getChangeHandle(service.client, projectId, changeId);
+      if (typeof handle.describe !== "function") {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Change workflow handle does not support describe() — cannot pin an exact run",
+          changeId,
+        });
+      }
+
+      // Idempotent completed/not-found handling — only reachable here, AFTER
+      // approval + existence + status + shipped-gate eligibility.
+      const refreshProjectionCache = async () => {
+        try {
+          await store.changes.refresh(changeId);
+        } catch (error) {
+          logger.debug(
+            `Post-termination cache refresh failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      };
+      const { isWorkflowCompletedError } =
+        await import("../temporal/recovery-classification");
+
+      let description: unknown;
+      try {
+        description = await handle.describe();
+      } catch (error) {
+        if (isWorkflowCompletedError(error)) {
+          await refreshProjectionCache();
+          return formatToolOutput({
+            success: true,
+            changeId,
+            workflowTerminated: true,
+            alreadyTerminated: true,
+            message: `Change ${changeId} workflow is already gone (completed/not-found); nothing to terminate.`,
+          });
+        }
+        return formatToolOutput({
+          success: false,
+          error: `Failed to describe change workflow: ${error instanceof Error ? error.message : String(error)}`,
+          changeId,
+          workflowTerminated: false,
+        });
+      }
+
+      const { runId, statusName } = workflowRunPinFromDescription(description);
+
+      // Already-terminal run → idempotent success (after eligibility).
+      if (statusName && TERMINAL_WORKFLOW_RUN_STATUSES.has(statusName)) {
+        await refreshProjectionCache();
+        return formatToolOutput({
+          success: true,
+          changeId,
+          workflowTerminated: true,
+          alreadyTerminated: true,
+          ...(runId ? { runId } : {}),
+          runStatus: statusName,
+          message: `Change ${changeId} workflow run is already ${statusName}; nothing to terminate.`,
+        });
+      }
+      if (!statusName || !TERMINABLE_WORKFLOW_RUN_STATUSES.has(statusName)) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: cannot classify run status${statusName ? ` "${statusName}"` : ""} for change ${changeId}.`,
+          changeId,
+          ...(runId ? { runId } : {}),
+          hint: "Only RUNNING/PAUSED runs are terminable; already-terminal runs are idempotent success. Refusing to act on an unclassifiable run.",
+        });
+      }
+
+      // Healthy guard: a live run must carry poisoned-history describe
+      // evidence. Never terminate a healthy workflow.
+      const { poisonedDescriptionEvidence } = await import("./recovery-probe");
+      const wedgedEvidence = poisonedDescriptionEvidence(description);
+      if (!wedgedEvidence) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} run is ${statusName} but not wedged — no poisoned-history evidence in describe output.`,
+          changeId,
+          ...(runId ? { runId } : {}),
+          runStatus: statusName,
+          hint: "This tool only terminates wedged (poisoned-history) runs. Refusing to terminate a healthy workflow.",
+        });
+      }
+      if (!runId) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: describe output for change ${changeId} carries no runId — cannot pin an exact run.`,
+          changeId,
+          runStatus: statusName,
+          hint: "Exact run pinning is mandatory; refusing to terminate an unpinned run.",
+        });
+      }
+
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          wouldTerminate: true,
+          changeId,
+          runId,
+          runStatus: statusName,
+          wedgedEvidence,
+          shippedProof: { acceptance: "done", release: "done" },
+          message: `Would terminate pinned run ${runId} (${statusName}, poisoned-history wedged) of shipped change ${changeId}.`,
+        });
+      }
+
+      // Terminate the EXACT pinned run: a handle bound to (workflowId, runId)
+      // can never kill a different run of the same workflow.
+      const pinnedHandle = getChangeHandle(
+        service.client,
+        projectId,
+        changeId,
+        runId,
+      );
+      try {
+        await (
+          pinnedHandle as unknown as {
+            terminate: (reason?: string) => Promise<unknown>;
+          }
+        ).terminate(
+          `adv_change_workflow_terminate: operator-approved termination of wedged shipped change workflow ${changeId} (run ${runId})`,
+        );
+      } catch (error) {
+        if (isWorkflowCompletedError(error)) {
+          await refreshProjectionCache();
+          return formatToolOutput({
+            success: true,
+            changeId,
+            workflowTerminated: true,
+            alreadyTerminated: true,
+            runId,
+            message: `Change ${changeId} run ${runId} ended before termination landed (completed/not-found); treated as already terminated.`,
+          });
+        }
+        // failure-before-projection-mutation: no refresh, no disk write.
+        return formatToolOutput({
+          success: false,
+          error: `Failed to terminate change workflow: ${error instanceof Error ? error.message : String(error)}`,
+          changeId,
+          runId,
+          workflowTerminated: false,
+        });
+      }
+
+      await refreshProjectionCache();
+      return formatToolOutput({
+        success: true,
+        changeId,
+        workflowTerminated: true,
+        runId,
+        runStatus: statusName,
+        wedgedEvidence,
+        shippedProof: { acceptance: "done", release: "done" },
+        message: `Terminated pinned run ${runId} of shipped change ${changeId}. Disk projection remains authoritative; subsequent reads fall through to disk.`,
       });
     },
   },
@@ -3993,7 +4688,7 @@ export const changeTools = {
   },
   adv_change_status_repair: {
     description:
-      "Repair a change whose archive bundle is written and whose gates are all done, but whose status field is wedged at non-archived because the terminating workflow signal could not be processed (completed/poisoned workflow → WorkflowNotFoundError) and the phase-9 PR-merged finalization cannot re-detect a squash-merged or deleted release branch. This is a targeted, audited disk-projection status flip (→ archived) gated on the real shipped invariant (all 7 gates done + archive bundle present on disk). It does NOT push branches, create PRs, or run phase-9 finalization. Use only after adv_change_archive has written the bundle but left status wedged. Unblocks adv_reflect.",
+      "Repair a change whose archive bundle is written and whose gates are all done, but whose status field is wedged at non-archived because the terminating workflow signal could not be processed (completed/poisoned workflow → WorkflowNotFoundError) and the phase-9 PR-merged finalization cannot re-detect a squash-merged or deleted release branch. This is a targeted, audited disk-projection status flip (→ archived) gated on the real shipped invariant (all 7 gates done + archive bundle present on disk). It does NOT push branches, create PRs, or run phase-9 finalization. Use only after adv_change_archive has written the bundle but left status wedged. Unblocks adv_reflect. Repair decision matrix: this tool is the single-change path (precise workflow-evidence gate, no branch requirement, target_path routing); for batch terminal-projection repair across all release-stuck candidates gated on branch-merge evidence, use adv_archive_repair action=reconcile instead.",
     args: {
       changeId: z.string().describe("Change ID whose status is wedged"),
       approvedByUser: z

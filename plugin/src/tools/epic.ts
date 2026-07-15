@@ -15,7 +15,7 @@ import type {
   Change,
   EpicEntry,
   EpicMembershipStatus,
-  EpicScope,
+  FastFollowOf,
   RetiredEpicProjection,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
@@ -33,14 +33,6 @@ const EPIC_ID_SCHEMA = z
   .string()
   .min(1)
   .describe("Epic ID using ADV change naming convention (camelCase title).");
-
-const EpicToolScopeRepoSchema = z.object({
-  repo_id: z.string().min(1),
-  repo_project_id: z.string().min(1),
-  path: z.string().min(1).optional(),
-  role: z.enum(["primary", "secondary"]),
-  required: z.boolean(),
-});
 
 function epicNotFound(epicId: string) {
   return formatToolOutput({
@@ -64,6 +56,153 @@ function epicError(err: unknown) {
     code,
     ...(blockers && { blockers }),
   });
+}
+
+// =============================================================================
+// Fast-Follow Lineage Projection (rq-epicFastFollowLineage01)
+// =============================================================================
+//
+// Advisory-only projection rendered on adv_epic_show entries when the child
+// change carries typed fast_follow_of metadata. Bounded by Epic entry count,
+// additive (never removes or reorders fields), and classification is a
+// constant — fast_follow_of is reserved for non-operational advisory children
+// per retireAgendaWorkflow design; operational work continues through
+// ops_followup_links and is not in scope here. The projection MUST NOT add
+// Epic task ownership, dependency enum, task readiness behavior, or release
+// gating.
+
+/**
+ * Compact fast-follow lineage rendered on Epic change entries.
+ *
+ * - `source_change_id`: parent change the child fast-follows from
+ * - `source_task_id`: task in the parent when known (derived from
+ *   followup_ref.report_key); null when the report scope is change-level or
+ *   unknown, or when followup_ref is absent
+ * - `classification`: always `"non_blocking_advisory"` for fast-follow
+ *   children; operational work uses ops_followup_links instead
+ * - `linked_at`: when the fast-follow link was established on the child
+ */
+export type EpicFastFollowLineage = {
+  source_change_id: string;
+  source_task_id: string | null;
+  classification: "non_blocking_advisory";
+  linked_at: string;
+};
+
+/**
+ * Derive the parent task ID from a subagentReportKey when the report scope
+ * is task-level. Returns null for change scope, unknown scope, malformed
+ * keys, or missing input.
+ *
+ * Report key formats (see subagent-reports.ts subagentReportKey):
+ * - taskId present:          `changeId|taskId|agent|attempt`
+ * - task scope (no taskId):  `changeId|task:<task_id>|agent|attempt`
+ * - change scope:            `changeId|change:<scope_key>|agent|attempt`
+ * - unknown:                 `changeId|unknown-scope|agent|attempt`
+ */
+function extractSourceTaskIdFromReportKey(
+  reportKey: string | undefined,
+): string | null {
+  if (!reportKey) return null;
+  const parts = reportKey.split("|");
+  if (parts.length < 2) return null;
+  const scopePart = parts[1];
+  if (!scopePart) return null;
+  if (scopePart.startsWith("task:")) {
+    const id = scopePart.slice("task:".length);
+    return id.length > 0 ? id : null;
+  }
+  if (scopePart.startsWith("change:")) return null;
+  if (scopePart === "unknown-scope") return null;
+  // Legacy taskId shape — second segment is the task id directly.
+  return scopePart;
+}
+
+/**
+ * Compute the advisory lineage for one child change, or null when the child
+ * has no fast_follow_of or cannot be loaded. Cached per change_id for the
+ * duration of a single render call so repeated entries referencing the same
+ * child issue exactly one store read.
+ */
+async function loadFastFollowLineage(
+  store: Store,
+  changeId: string,
+  cache: Map<string, EpicFastFollowLineage | null>,
+): Promise<EpicFastFollowLineage | null> {
+  if (cache.has(changeId)) return cache.get(changeId) ?? null;
+  let lineage: EpicFastFollowLineage | null = null;
+  try {
+    const loaded = await store.changes.get(changeId);
+    if (loaded.success && loaded.data) {
+      const ff: FastFollowOf | undefined = loaded.data.fast_follow_of;
+      if (ff) {
+        lineage = {
+          source_change_id: ff.parent_change_id,
+          source_task_id: extractSourceTaskIdFromReportKey(
+            ff.followup_ref?.report_key,
+          ),
+          classification: "non_blocking_advisory",
+          linked_at: ff.linked_at,
+        };
+      }
+    }
+  } catch {
+    lineage = null;
+  }
+  cache.set(changeId, lineage);
+  return lineage;
+}
+
+/**
+ * Build a per-entry-id map of fast-follow lineage for the given Epic entries.
+ * Shell entries and change entries without fast_follow_of produce no row.
+ * Bounded: at most one store read per unique child change_id.
+ */
+async function buildFastFollowLineageMap(
+  store: Store,
+  entries: readonly EpicEntry[],
+): Promise<Map<string, EpicFastFollowLineage>> {
+  const cache = new Map<string, EpicFastFollowLineage | null>();
+  const map = new Map<string, EpicFastFollowLineage>();
+  for (const entry of entries) {
+    if (entry.kind !== "change") continue;
+    const changeId = getEpicEntryChangeId(entry);
+    if (!changeId) continue;
+    const lineage = await loadFastFollowLineage(store, changeId, cache);
+    if (lineage) map.set(entry.entry_id, lineage);
+  }
+  return map;
+}
+
+/**
+ * Merge fast-follow lineage into a rendered Epic response. Additive only:
+ * preserves all existing keys on each entry and never adds fields to shell
+ * rows or entries whose child has no fast_follow_of. No-op when no lineage
+ * was discovered.
+ */
+async function enrichEpicRenderWithFastFollowLineage<
+  T extends {
+    entries?: ReadonlyArray<Record<string, unknown>>;
+    history?: ReadonlyArray<Record<string, unknown>>;
+    next_work?: ReadonlyArray<Record<string, unknown>>;
+  },
+>(rendered: T, store: Store, entries: readonly EpicEntry[]): Promise<T> {
+  const lineageMap = await buildFastFollowLineageMap(store, entries);
+  if (lineageMap.size === 0) return rendered;
+
+  const attach = <R extends Record<string, unknown>>(item: R): R => {
+    const entryId = item.entry_id;
+    if (typeof entryId !== "string") return item;
+    const lineage = lineageMap.get(entryId);
+    if (!lineage) return item;
+    return { ...item, fast_follow_lineage: lineage };
+  };
+
+  const out: Record<string, unknown> = { ...rendered };
+  if (rendered.entries) out.entries = rendered.entries.map(attach);
+  if (rendered.history) out.history = rendered.history.map(attach);
+  if (rendered.next_work) out.next_work = rendered.next_work.map(attach);
+  return out as T;
 }
 
 function mapEpicEntry(entry: EpicEntry) {
@@ -326,42 +465,6 @@ async function loadChange(
   const result = await store.changes.get(changeId);
   if (!result.success || !result.data) return null;
   return result.data;
-}
-
-function buildEpicScope(input: {
-  ownerProjectId: string;
-  ownerRepoId?: string;
-  repos: EpicScope["repos"];
-}): EpicScope {
-  return {
-    kind: input.repos.length > 1 ? "product" : "repo",
-    owner_project_id: input.ownerProjectId,
-    ...(input.ownerRepoId ? { owner_repo_id: input.ownerRepoId } : {}),
-    repos: input.repos,
-  };
-}
-
-function linkedEntriesForRemovedScopeRepos(
-  epic: import("../types").Epic,
-  nextRepos: EpicScope["repos"],
-) {
-  const currentRepos = epic.epic_scope?.repos ?? [];
-  if (currentRepos.length === 0) return [];
-  const nextRepoIds = new Set(nextRepos.map((repo) => repo.repo_id));
-  const removedRepoIds = new Set(
-    currentRepos
-      .map((repo) => repo.repo_id)
-      .filter((repoId) => !nextRepoIds.has(repoId)),
-  );
-  if (removedRepoIds.size === 0) return [];
-  return epic.entries.filter((entry) => {
-    if (entry.kind !== "change" || entry.membership_status === "unlinked") {
-      return false;
-    }
-    const repoId = entry.change_ref?.repo_id;
-    if (!repoId) return true;
-    return removedRepoIds.has(repoId);
-  });
 }
 
 function terminalSummaryStatusForChange(
@@ -788,119 +891,6 @@ const EpicRepairModeSchema = z.enum([
   "refresh_search_attributes",
 ]);
 
-const EpicMergeResolutionSchema = z.object({
-  source_entry_id: z.string().min(1),
-  action: z.enum(["skip"]),
-  evidence: z.string().min(1).optional(),
-});
-
-type EpicMergeResolution = z.infer<typeof EpicMergeResolutionSchema>;
-
-type ChangeEpicEntry = Extract<EpicEntry, { kind: "change" }>;
-type ShellEpicEntry = Extract<EpicEntry, { kind: "shell" }>;
-
-function buildEpicMergePlan(
-  sourceEpic: import("../types").Epic,
-  survivorEpic: import("../types").Epic,
-) {
-  const survivorChangeIds = new Map<string, ChangeEpicEntry>();
-  const survivorEntryIds = new Set(survivorEpic.entries.map((e) => e.entry_id));
-  for (const entry of survivorEpic.entries) {
-    if (entry.kind !== "change") continue;
-    const changeId = getEpicEntryChangeId(entry);
-    if (changeId) survivorChangeIds.set(changeId, entry);
-  }
-
-  const uniqueChanges: ChangeEpicEntry[] = [];
-  const uniqueShells: ShellEpicEntry[] = [];
-  const conflicts: Array<{
-    kind: "duplicate_change" | "duplicate_entry_id";
-    source_entry_id: string;
-    survivor_entry_id: string;
-    change_id?: string;
-  }> = [];
-  const targetConfirmationsRequired: Array<{
-    source_entry_id: string;
-    change_id: string;
-    target_path: string;
-  }> = [];
-
-  for (const entry of sourceEpic.entries) {
-    if (entry.kind === "change") {
-      const changeId = getEpicEntryChangeId(entry);
-      if (!changeId) continue;
-      const duplicate = survivorChangeIds.get(changeId);
-      if (duplicate) {
-        conflicts.push({
-          kind: "duplicate_change",
-          source_entry_id: entry.entry_id,
-          survivor_entry_id: duplicate.entry_id,
-          change_id: changeId,
-        });
-        continue;
-      }
-      if (survivorEntryIds.has(entry.entry_id)) {
-        conflicts.push({
-          kind: "duplicate_entry_id",
-          source_entry_id: entry.entry_id,
-          survivor_entry_id: entry.entry_id,
-          change_id: changeId,
-        });
-        continue;
-      }
-      uniqueChanges.push(entry);
-      if (entry.change_ref?.target_path) {
-        targetConfirmationsRequired.push({
-          source_entry_id: entry.entry_id,
-          change_id: changeId,
-          target_path: entry.change_ref.target_path,
-        });
-      }
-      continue;
-    }
-
-    if (survivorEntryIds.has(entry.entry_id)) {
-      conflicts.push({
-        kind: "duplicate_entry_id",
-        source_entry_id: entry.entry_id,
-        survivor_entry_id: entry.entry_id,
-      });
-      continue;
-    }
-    uniqueShells.push(entry);
-  }
-
-  return {
-    uniqueChanges,
-    uniqueShells,
-    conflicts,
-    targetConfirmationsRequired,
-  };
-}
-
-function renderEpicMergePlan(plan: ReturnType<typeof buildEpicMergePlan>) {
-  return {
-    unique_changes: plan.uniqueChanges.map(mapEpicEntry),
-    unique_shells: plan.uniqueShells.map(mapEpicEntry),
-    conflicts: plan.conflicts,
-    target_confirmations_required: plan.targetConfirmationsRequired,
-  };
-}
-
-function unresolvedMergeConflicts(
-  plan: ReturnType<typeof buildEpicMergePlan>,
-  resolutions: EpicMergeResolution[] | undefined,
-) {
-  const skipped = new Set(
-    (resolutions ?? [])
-      .filter((resolution) => resolution.action === "skip")
-      .map((resolution) => resolution.source_entry_id),
-  );
-  return plan.conflicts.filter(
-    (conflict) => !skipped.has(conflict.source_entry_id),
-  );
-}
-
 function repairModeStatus(
   mode: z.infer<typeof EpicRepairModeSchema>,
 ): EpicMembershipStatus {
@@ -1056,7 +1046,15 @@ export const epicTools = {
                   loaded.retiredProjection,
                 )
               : formatEpicCompact(loaded.epic);
-        const output = formatToolOutput({ success: true, epic: rendered });
+        // Advisory-only fast-follow lineage projection. Bounded by Epic entry
+        // count, additive (never reorders/removes fields), and best-effort:
+        // child-change load failures simply omit lineage for that entry.
+        const enriched = await enrichEpicRenderWithFastFollowLineage(
+          rendered,
+          owner.store,
+          loaded.epic.entries,
+        );
+        const output = formatToolOutput({ success: true, epic: enriched });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
@@ -1264,128 +1262,6 @@ export const epicTools = {
           epic: formatEpic(epic),
         });
         return formatEpicRoutingOutput(output, owner, owner);
-      } catch (err) {
-        return epicError(err);
-      }
-    },
-  },
-
-  // rq-epicMutableScope01: audited, versioned Epic scope mutation.
-  adv_epic_update_scope: {
-    description:
-      "Update an Epic's typed repo/project scope with audit evidence and optimistic-concurrency protection.",
-    args: {
-      epic_id: EPIC_ID_SCHEMA,
-      owner_project_id: z
-        .string()
-        .min(1)
-        .describe("ADV project ID that owns the Epic workflow."),
-      owner_repo_id: z
-        .string()
-        .min(1)
-        .optional()
-        .describe("Product config repo ID of the owner repo when known."),
-      scope_repos: z
-        .array(EpicToolScopeRepoSchema)
-        .describe("Repos covered by this Epic. Empty array clears scope."),
-      expected_version: z
-        .number()
-        .int()
-        .min(0)
-        .describe("Current Epic version from adv_epic_show."),
-      updated_by: z
-        .string()
-        .min(1)
-        .optional()
-        .describe("Identity updating scope. Defaults to agent."),
-      audit_evidence: z
-        .string()
-        .min(1)
-        .describe("Required audit evidence for the scope mutation."),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("Preview scope mutation without firing a workflow signal."),
-    },
-    execute: async (
-      {
-        epic_id,
-        owner_project_id,
-        owner_repo_id,
-        scope_repos,
-        expected_version,
-        updated_by,
-        audit_evidence,
-        dryRun,
-      }: {
-        epic_id: string;
-        owner_project_id: string;
-        owner_repo_id?: string;
-        scope_repos: EpicScope["repos"];
-        expected_version: number;
-        updated_by?: string;
-        audit_evidence: string;
-        dryRun?: boolean;
-      },
-      store: Store,
-    ) => {
-      try {
-        const epic = await loadEpic(store, epic_id);
-        if (!epic) return epicNotFound(epic_id);
-
-        if (epic.version !== expected_version) {
-          return formatToolOutput({
-            error: `Expected Epic version ${expected_version}, found ${epic.version}`,
-            code: "stale_version",
-          });
-        }
-
-        const blockedEntries = linkedEntriesForRemovedScopeRepos(
-          epic,
-          scope_repos,
-        );
-        if (blockedEntries.length > 0) {
-          return formatToolOutput({
-            error:
-              "Scope update would remove repos that still have linked Epic entries.",
-            code: "SCOPE_REMOVAL_HAS_LINKED_ENTRIES",
-            entries: blockedEntries.map(mapEpicEntry),
-          });
-        }
-
-        const epicScope =
-          scope_repos.length > 0
-            ? buildEpicScope({
-                ownerProjectId: owner_project_id,
-                ownerRepoId: owner_repo_id,
-                repos: scope_repos,
-              })
-            : undefined;
-        const scopeLabel = deriveEpicScopeLabel(epicScope);
-
-        if (dryRun) {
-          return formatToolOutput({
-            success: true,
-            dryRun: true,
-            epic_id,
-            epic_scope: epicScope,
-            scope_label: scopeLabel,
-            expected_version,
-          });
-        }
-
-        const updated = await store.epics.updateScope(epic_id, {
-          epicScope,
-          expectedVersion: expected_version,
-          updatedBy: updated_by ?? "agent",
-          auditEvidence: audit_evidence,
-        });
-
-        return formatToolOutput({
-          success: true,
-          scope_label: deriveEpicScopeLabel(updated.epic_scope),
-          epic: formatEpic(updated),
-        });
       } catch (err) {
         return epicError(err);
       }
@@ -2420,245 +2296,6 @@ export const epicTools = {
           moved: true,
         });
         return formatEpicRoutingOutput(output, routing.owner, routing.child);
-      } catch (err) {
-        return epicError(err);
-      }
-    },
-  },
-
-  adv_epic_merge: {
-    description:
-      "Plan or execute an audited merge of one active source Epic into a survivor Epic.",
-    args: {
-      source_epic_id: EPIC_ID_SCHEMA,
-      survivor_epic_id: EPIC_ID_SCHEMA,
-      expected_source_version: z.number().int().min(0),
-      expected_survivor_version: z.number().int().min(0),
-      merged_by: z.string().min(1).optional(),
-      evidence: z
-        .string()
-        .min(1)
-        .describe("Audit evidence for merging this source Epic."),
-      conflict_resolutions: z.array(EpicMergeResolutionSchema).optional(),
-      target_confirmed: targetPathSchema.shape.target_confirmed,
-      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
-      dryRun: z.boolean().optional(),
-    },
-    execute: async (
-      {
-        source_epic_id,
-        survivor_epic_id,
-        expected_source_version,
-        expected_survivor_version,
-        merged_by,
-        evidence,
-        conflict_resolutions,
-        target_confirmed,
-        confirmationEvidence,
-        dryRun,
-      }: {
-        source_epic_id: string;
-        survivor_epic_id: string;
-        expected_source_version: number;
-        expected_survivor_version: number;
-        merged_by?: string;
-        evidence: string;
-        conflict_resolutions?: EpicMergeResolution[];
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-        dryRun?: boolean;
-      },
-      store: Store,
-    ) => {
-      try {
-        if (source_epic_id === survivor_epic_id) {
-          return formatToolOutput({
-            error: "Source and survivor Epic must be different.",
-            code: "EPIC_MERGE_SELF",
-          });
-        }
-        const sourceEpic = await loadEpic(store, source_epic_id);
-        if (!sourceEpic) return epicNotFound(source_epic_id);
-        const survivorEpic = await loadEpic(store, survivor_epic_id);
-        if (!survivorEpic) return epicNotFound(survivor_epic_id);
-
-        if (sourceEpic.version !== expected_source_version) {
-          return formatToolOutput({
-            error: `Expected source Epic version ${expected_source_version}, found ${sourceEpic.version}`,
-            code: "STALE_VERSION",
-          });
-        }
-        if (survivorEpic.version !== expected_survivor_version) {
-          return formatToolOutput({
-            error: `Expected survivor Epic version ${expected_survivor_version}, found ${survivorEpic.version}`,
-            code: "STALE_VERSION",
-          });
-        }
-        if (
-          sourceEpic.merged_into ||
-          sourceEpic.progress.status === "merged" ||
-          sourceEpic.progress.status === "archived" ||
-          sourceEpic.progress.status === "completed"
-        ) {
-          return formatToolOutput({
-            error: "Only active source Epics can be merged.",
-            code: "SOURCE_EPIC_NOT_ACTIVE",
-            status: sourceEpic.progress.status,
-            merged_into: sourceEpic.merged_into,
-          });
-        }
-
-        const plan = buildEpicMergePlan(sourceEpic, survivorEpic);
-        const renderedPlan = renderEpicMergePlan(plan);
-
-        if (dryRun) {
-          return formatToolOutput({
-            success: true,
-            dryRun: true,
-            source_epic_id,
-            survivor_epic_id,
-            plan: renderedPlan,
-          });
-        }
-
-        const unresolved = unresolvedMergeConflicts(plan, conflict_resolutions);
-        if (unresolved.length > 0) {
-          return formatToolOutput({
-            error: "Merge conflicts require explicit dispositions.",
-            code: "MERGE_CONFLICTS_UNRESOLVED",
-            conflicts: unresolved,
-            plan: renderedPlan,
-          });
-        }
-
-        if (
-          plan.targetConfirmationsRequired.length > 0 &&
-          (!target_confirmed || !confirmationEvidence)
-        ) {
-          return formatToolOutput({
-            error:
-              "Cross-project merge entries require target confirmation evidence.",
-            code: "TARGET_CONFIRMATION_REQUIRED",
-            target_confirmations_required: plan.targetConfirmationsRequired,
-          });
-        }
-
-        const actor = merged_by ?? "agent";
-        const movedChanges: ReturnType<typeof mapEpicEntry>[] = [];
-        const copiedShells: ReturnType<typeof mapEpicEntry>[] = [];
-        const stagedMoves: Array<{
-          sourceEntry: ChangeEpicEntry;
-          changeId: string;
-          change: NonNullable<Awaited<ReturnType<typeof loadChange>>>;
-          childStore: Awaited<ReturnType<typeof resolveChildStore>>;
-        }> = [];
-
-        // Preflight every failure-prone child projection before mutating the
-        // survivor/source Epic workflows. This keeps merge execution all-or-none
-        // for projection mismatches and missing children in the common path.
-        for (const sourceEntry of plan.uniqueChanges) {
-          const changeId = getEpicEntryChangeId(sourceEntry);
-          if (!changeId) continue;
-          const childStore = await resolveChildStore(store, {
-            target_path: sourceEntry.change_ref?.target_path,
-            target_confirmed,
-            confirmationEvidence,
-          });
-          const change = await loadChange(childStore.store, changeId);
-          if (!change) {
-            return formatToolOutput({
-              error: `Change not found: ${changeId}`,
-              code: "CHANGE_NOT_FOUND",
-            });
-          }
-          if (
-            !change.epic_membership ||
-            change.epic_membership.epic_id !== source_epic_id ||
-            change.epic_membership.entry_id !== sourceEntry.entry_id
-          ) {
-            return formatToolOutput({
-              error: `Change projection does not match source Epic ${source_epic_id}`,
-              code: "PROJECTION_MISMATCH",
-              current_membership: change.epic_membership,
-            });
-          }
-          stagedMoves.push({ sourceEntry, changeId, change, childStore });
-        }
-
-        for (const shell of plan.uniqueShells) {
-          const copied = await store.epics.addShell(survivor_epic_id, {
-            entryId: shell.entry_id,
-            title: shell.title,
-            successHint: shell.success_hint,
-            order: shell.order,
-          });
-          copiedShells.push(mapEpicEntry(copied));
-        }
-
-        for (const {
-          sourceEntry,
-          changeId,
-          change,
-          childStore,
-        } of stagedMoves) {
-          const destEntry = requireChangeEntry(
-            await store.epics.linkChange(survivor_epic_id, {
-              changeId,
-              title: change.title,
-              order: sourceEntry.order,
-              linkedBy: actor,
-              linkEvidence: evidence,
-              changeProjectId:
-                sourceEntry.change_ref?.project_id ??
-                childStore.context?.projectId,
-              repoId: sourceEntry.change_ref?.repo_id,
-              targetPath:
-                sourceEntry.change_ref?.target_path ?? childStore.context?.root,
-            }),
-          );
-          const membership = membershipFromChangeEntry(
-            survivor_epic_id,
-            destEntry,
-            change.title,
-            "move",
-          );
-          await childStore.store.changes.setEpicMembership(changeId, {
-            expectedCurrent: {
-              epic_id: source_epic_id,
-              entry_id: sourceEntry.entry_id,
-            },
-            membership,
-            setAt: membership.linked_at,
-          });
-          await store.epics.unlinkChange(
-            source_epic_id,
-            sourceEntry.entry_id,
-            evidence,
-          );
-          movedChanges.push(mapEpicEntry(destEntry));
-        }
-
-        const movedEntryCount = movedChanges.length + copiedShells.length;
-        const mergedSource = await store.epics.markMerged(source_epic_id, {
-          expectedVersion: expected_source_version + movedChanges.length,
-          mergedInto: {
-            epic_id: survivor_epic_id,
-            merged_at: new Date().toISOString(),
-            merged_by: actor,
-            evidence,
-            moved_entry_count: movedEntryCount,
-          },
-        });
-
-        return formatToolOutput({
-          success: true,
-          source_epic_id,
-          survivor_epic_id,
-          moved_changes: movedChanges,
-          copied_shells: copiedShells,
-          skipped_conflicts: conflict_resolutions ?? [],
-          source: formatEpic(mergedSource),
-        });
       } catch (err) {
         return epicError(err);
       }

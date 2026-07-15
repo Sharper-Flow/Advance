@@ -4,11 +4,7 @@ description: "Detect low-quality code, verify test coverage, clean up; block arc
 phaseGoal: "Verify production-readiness. Auto-fix scoped issues. Stop on drift."
 ---
 
-<!-- manifest: adv-harden · requiresChangeId: true · prereqs: [adv-review] · scope: reads[specs, proposal, tasks, codebase] · modifies[codebase] -->
-
 # ADV Harden — Release-Stage Quality Analysis
-
-<!-- rq-requiredObligation01 rq-requiredObligation02 -->
 
 Orchestrate multi-dimensional hardening via sub-agents. Command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved.**
 
@@ -117,18 +113,18 @@ If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 
 > **Scope note:** `blocker:` and `issue:` findings are checked here (pre-flight). `suggestion:` and `question:` findings are validated and implemented in "Review Findings Ingestion" below. `nit:` findings are excluded from both.
 
-### Report-Created Agenda Audit
+### Report-Created Follow-Up Audit
 
-Inspect report-created agenda items before scanners run:
+Inspect report-created follow-ups (persisted as typed report metadata) before scanners run:
 
-1. Call `adv_agenda_list` and filter items with category `subagent-followup` or description/source metadata containing `Source: {change-id}/`.
-2. For each report-created agenda item, decide:
+1. Read `adv_change_show include:{ subagentReports: true }` and collect all `follow_ups` and `required_follow_ups` entries across task and change-scoped reports.
+2. For each report-created follow-up, decide:
    - **Safe + adjacent + campsite/touched-scope applicable** → fix during harden and record verification.
    - **Not applicable** → record rationale (`not adjacent`, `not campsite`, `outside touched scope`, `already covered`, or `requires separate change`).
    - **Would change agreement scope** → stop under the drift detection rule below.
-3. The harden summary must include `Report-created agenda audit: {fixed count} fixed, {rationale count} rationale recorded`.
+3. The harden summary must include `Report-created follow-up audit: {fixed count} fixed, {rationale count} rationale recorded`.
 
-Do not silently ignore report-created agenda items. Do not require harden to fix non-adjacent or unrelated agenda items.
+Do not silently ignore report-created follow-ups. Do not require harden to fix non-adjacent or unrelated follow-ups.
 
 ### Contract Proof Audit
 
@@ -407,7 +403,6 @@ If no blocker/high findings remain → require evidence-backed clean verdict wit
 ---
 
 ## Phase 3: Remediation
-<!-- rq-remediation01 -->
 
 If READY → skip to cleanup.
 
@@ -482,7 +477,7 @@ FRONTEND DESIGN REVIEW SKILL: when the change includes frontend/design implement
     - finer details — hover/focus/active/disabled states, empty/loading/error states, keyboard navigation, copy correctness
     - component correctness — props, state, events, behavior match the intended contract; no regressions in adjacent component behavior
 Review/harden ownership remains with `adv-reviewer`; `adv-designer` is apply-phase only and MUST NOT be spawned here.
-DESIGNER CONCERN ENFORCEMENT (structural): the gate-readiness evaluator `checkUnresolvedDesignConcerns` blocks the release gate with a `DESIGN_CONCERN_UNRESOLVED` blocker while a task's latest `adv-designer` report has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. Clear each by a fixed (higher-attempt all-pass) report or a typed disposition via `adv_design_concern_disposition` (`fixed | rejected_with_evidence | split | fast_follow`, non-blank evidence). No debt-acceptance disposition exists; agenda promotion of concerns is advisory only, not the gate authority.
+DESIGNER CONCERN ENFORCEMENT (structural): the gate-readiness evaluator `checkUnresolvedDesignConcerns` blocks the release gate with a `DESIGN_CONCERN_UNRESOLVED` blocker while a task's latest `adv-designer` report has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. Clear each by a fixed (higher-attempt all-pass) report or a typed disposition via `adv_design_concern_disposition` (`fixed | rejected_with_evidence | split | fast_follow`, non-blank evidence). No debt-acceptance disposition exists; consumer warnings for concerns are advisory only, not the gate authority.
 EXPECTED OUTPUT: fix scoped hardening finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
 ```
 
@@ -549,7 +544,6 @@ Aggregate cleanup candidates from scanner + session artifacts. Display preview l
 ---
 
 ## Final Report
-<!-- rq-touchedScope01 -->
 
 ### Mark Harden Gate
 

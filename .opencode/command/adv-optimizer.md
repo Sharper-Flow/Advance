@@ -3,8 +3,6 @@ name: adv-optimizer
 description: Analyze code simplification opportunities and propose optimizer changes
 ---
 
-<!-- manifest: adv-optimizer · requiresChangeId: false -->
-
 # ADV Optimizer — Simplification Proposal Scout
 
 Find bloated, overly verbose, overly complex, or under-optimized code and synthesize an evidence-backed simplification proposal. This command is read-only and does not replace `/adv-slop-scan`; slop-scan owns detector coverage and smell reporting, while optimizer owns proposal synthesis for long-term maintainability.

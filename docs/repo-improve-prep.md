@@ -11,7 +11,7 @@ Purpose: identify evidence-backed ways to improve performance, latency, and perc
 
 In scope:
 
-- `plugin/src/tools/**` ADV MCP tool read paths, especially `adv_status`, `adv_change_list`, `adv_change_show`, `adv_task_list`, `adv_backlog_state`, and WIP/status helpers.
+- `plugin/src/tools/**` ADV MCP tool read paths, especially `adv_status`, `adv_change_list`, `adv_change_show`, `adv_task_list`, `adv_roadmap`, and WIP/status helpers.
 - Temporal-backed store read paths in `plugin/src/storage/store-temporal/**`.
 - Existing latency instrumentation and benchmarks in `plugin/src/perf/**`, `plugin/scripts/bench-*.ts`, and `plugin/scripts/benchmark-*.ts`.
 - Reference comparison for Temporal Visibility, `lru-cache`, and Zod parsing behavior.
@@ -166,7 +166,7 @@ Overlap / dedupe notes:
 
 ## Open Questions for Research
 
-1. What are current p50/p95/p99 latencies for `adv_status`, `adv_change_list`, `adv_change_show`, `adv_task_list`, `adv_wip_state`, and `adv_backlog_state` on real project state with 10, 50, 250 changes?
+1. What are current p50/p95/p99 latencies for `adv_status`, `adv_change_list`, `adv_change_show`, `adv_task_list`, `adv_wip_state`, and `adv_roadmap` on real project state with 10, 50, 250 changes?
 2. Which `adv_status` substep dominates on live project state: Temporal health, listResolvedChanges, recent-change enrichment, worktree cleanup, snapshot health, session debt, plugin runtime provenance, or project metadata?
 3. Can `ChangeSummaryMemo` become a correctness-safe read model fed by workflow search attributes / signals, or does it need a dedicated query/projection contract?
 4. Which current callers rely on default `adv_change_show` artifact/clarify enrichment, and which can opt into lightweight shape without compatibility break?
@@ -175,7 +175,7 @@ Overlap / dedupe notes:
 ## Sources
 
 - Local: `project.md` via `adv_project_context`.
-- Local: active changes via `adv_change_list`, pending agenda via `adv_agenda_list`, specs via `adv_spec action:"list"`.
+- Local: active changes via `adv_change_list`, report follow-ups via `adv_change_show`, specs via `adv_spec action:"list"`.
 - Local: `plugin/package.json:17-32`.
 - Local: `plugin/scripts/bench-adv-latency.ts:63-98`.
 - Local: `plugin/scripts/benchmark-execute.ts:4-17`.

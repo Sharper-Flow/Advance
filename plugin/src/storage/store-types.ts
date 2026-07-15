@@ -19,11 +19,13 @@ import type {
   TaskReadyResponse,
   ProjectStatus,
   ChangeRecency,
+  DeltaAdd,
   WisdomEntry,
   WisdomType,
   Cancellation,
   TddReclassification,
   Gates,
+  GateCompletion,
   GateId,
   BulkCloseResult,
   Epic,
@@ -32,6 +34,7 @@ import type {
   EpicMembershipStatus,
   RetiredEpicProjection,
 } from "../types";
+import type { GateProgress } from "./store-temporal-memo";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
 
@@ -39,6 +42,27 @@ export interface ResolvedChangeList {
   changes: Change[];
   warnings?: import("../types").TerminalWarning[];
   hydrationStats?: import("../types").HydrationStats;
+}
+
+/**
+ * Bounded read options for `Store.status()` (fixChangeListTimeouts KD4).
+ *
+ * - `recentLimit` moves the summary bound upstream into the resolver so
+ *   deep per-change hydration stops at the limit instead of hydrating
+ *   every candidate and slicing afterwards. When the bound truncates
+ *   candidates the result carries typed degradation (warnings +
+ *   hydrationStats.boundedOmitted); counts/recency stay complete only
+ *   when every candidate resolves within the bound.
+ * - `deadline` lets a caller share one request-scoped aggregate deadline
+ *   across the status read. Stores create their own per-call deadline
+ *   when it is absent.
+ *
+ * Both fields are optional; stores that cannot honor them (disk
+ * fallback, target-path snapshots) ignore them safely.
+ */
+export interface StatusReadOptions {
+  recentLimit?: number;
+  deadline?: import("../temporal/retry-wrapper").TemporalReadDeadline;
 }
 
 export interface ProductOriginTags {
@@ -252,6 +276,12 @@ export interface Store {
           fromMemo: number;
           fromCache: number;
           fromHydration: number;
+          /**
+           * True when the request-scoped aggregate read deadline expired
+           * before all cold-miss hydrations resolved; the row set is
+           * explicitly degraded, never a complete-looking partial.
+           */
+          deadlineExceeded?: boolean;
         };
       }
     >;
@@ -314,6 +344,22 @@ export interface Store {
     }) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
   };
 
+  // Spec deltas (change-scoped, append-only writer).
+  //
+  // Records an add-operation delta under `change.deltas[capability]`.
+  // Existing and valid new kebab-case capability keys are accepted. Archive
+  // remains the sole writer of global spec files; this surface only mutates
+  // the change-owned durable delta record. Duplicate delta ids and duplicate
+  // add-requirement ids are rejected atomically with state left unchanged.
+  specDeltas: {
+    add: (
+      changeId: string,
+      capability: string,
+      delta: DeltaAdd,
+      options?: { addedBy?: string },
+    ) => Promise<DeltaAdd>;
+  };
+
   // Gates
   gates: {
     get: (changeId: string) => Promise<Gates | null>;
@@ -334,7 +380,7 @@ export interface Store {
   };
 
   // Status
-  status: () => Promise<ProjectStatus>;
+  status: (options?: StatusReadOptions) => Promise<ProjectStatus>;
 
   // Epics
   epics: {
@@ -498,6 +544,34 @@ export interface SearchResult {
   requirement: string;
   title: string;
   match: string;
+}
+
+/**
+ * First non-done gate in GATE_ORDER, or "done" when every gate is complete.
+ * Accepts both the full `Gates` map (object completions from hydrated
+ * changes) and the summary `GateProgress` projection (string status values
+ * from the ChangeSummaryMemo read model). Mirrors the `currentGate`
+ * derivation used for the AdvCurrentGate search attribute: only
+ * `status === "done"` advances. Missing gates data means nothing has
+ * completed, so the first gate is current.
+ */
+export function firstOpenGate(
+  gates: Gates | GateProgress | undefined,
+): GateId | "done" {
+  if (!gates) return GATE_ORDER[0];
+  // GateId is `string` at the type level (GATE_IDS is a string tuple), and
+  // GateProgress is a concrete interface without an index signature — so
+  // access goes through one contained, runtime-safe cast. Every GATE_ORDER
+  // key exists on both shapes by construction; missing keys read as
+  // undefined and count as not-done.
+  const byGate = gates as Record<string, GateCompletion | string | undefined>;
+  for (const gateId of GATE_ORDER) {
+    const gate = byGate[gateId];
+    const done =
+      typeof gate === "string" ? gate === "done" : gate?.status === "done";
+    if (!done) return gateId;
+  }
+  return "done";
 }
 
 export function computeLastActivity(change: Change): string {

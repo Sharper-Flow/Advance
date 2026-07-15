@@ -314,7 +314,7 @@ describe("ambiguity taxonomy spec assets", () => {
     expect(prepSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining(["rq-stagePrepNoCriteriaFirming01"]),
     );
-    expect(workflowSpec.version).toBe("1.28.0");
+    expect(workflowSpec.version).toBe("1.28.1");
     expect(workflowSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining([
         "rq-stageDesignCriteriaBoundary01",
@@ -367,7 +367,8 @@ describe("ambiguity taxonomy spec assets", () => {
     );
     expect(design).toContain("adv_change_reenter");
     expect(prep).toContain("does not firm criteria");
-    expect(prep).toContain("rq-stagePrepNoCriteriaFirming01");
+    expect(prep).toContain("prep does not firm criteria");
+    expect(prep).toContain("map approved criteria/design into tasks");
     expect(clarify).toContain("## Findings-Driven Mode");
     expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
     expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");

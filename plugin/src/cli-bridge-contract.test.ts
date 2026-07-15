@@ -43,7 +43,6 @@ const BRIDGES: BridgeCase[] = [
 const FORBIDDEN_FANOUT_TOKENS = [
   "adv_status",
   "adv_roadmap",
-  "adv_backlog_state",
   "adv_change_list",
   "adv_change_show",
   "adv_gate_status",
@@ -120,10 +119,14 @@ describe("CLI bridge command contracts", () => {
 
 describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
   test("ADV_TOOL_NAMES matches frozen snapshot", () => {
+    // consolidateAdvToolSurface2: canonical names are now derived from the
+    // typed public-group inventory (tool-registry.ts). This guard still pins
+    // the exact name SET — any silent addition or removal fails — but no
+    // longer couples to incidental inventory group ordering.
     const frozen: readonly string[] = [
       "adv_spec",
+      "adv_delta_add",
       "adv_roadmap",
-      "adv_backlog_state",
       "adv_wip_state",
       "adv_backlog_add",
       "adv_backlog_list",
@@ -139,7 +142,9 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_change_validate",
       "adv_change_archive",
       "adv_archive_repair",
+      "adv_archive_purge",
       "adv_change_status_repair",
+      "adv_change_workflow_terminate",
       "adv_change_update_issues",
       "adv_change_repair_origin",
       "adv_change_reenter",
@@ -157,6 +162,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_epic_reorder",
       "adv_epic_retire",
       "adv_followup_promote",
+      "adv_report_followup_promote",
       "adv_ops_evidence_add",
       "adv_ops_run_upsert",
       "adv_ops_run_evidence_add",
@@ -174,14 +180,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_subagent_report_submit",
       "adv_wisdom_add",
       "adv_wisdom_list",
-      "adv_project_wisdom_list",
       "adv_status",
-      "adv_agenda_list",
-      "adv_agenda_add",
-      "adv_agenda_start",
-      "adv_agenda_complete",
-      "adv_agenda_cancel",
-      "adv_agenda_prioritize",
       "adv_project_context",
       "adv_project_metadata",
       "adv_gate_status",
@@ -204,8 +203,10 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_session_show",
       "adv_snapshot_health",
       "adv_store_consolidate",
+      "adv_store_cleanup",
     ];
-    expect(ADV_TOOL_NAMES).toEqual(frozen);
+    const byName = (a: string, b: string) => a.localeCompare(b);
+    expect([...ADV_TOOL_NAMES].sort(byName)).toEqual([...frozen].sort(byName));
   });
 });
 

@@ -24,7 +24,7 @@ prompts:
       - "Consider"
       - "One approach"
     notes: |
-      Claude Sonnet 4 sometimes describes what it would do instead of
+      Claude Opus 4.8 sometimes describes what it would do instead of
       actually doing it. This is a direct "do X" request — the correct
       behavior is to call the tool immediately, not offer a description.
 
@@ -50,7 +50,7 @@ prompts:
       - "explore agent"
       - "adv-engineer"
     notes: |
-      Claude Sonnet 4 sometimes spawns sub-agents for tasks that should be
+      Claude Opus 4.8 sometimes spawns sub-agents for tasks that should be
       done inline. A single-file typo fix is well within single-agent
       capability — no delegation needed.
 
@@ -76,7 +76,7 @@ prompts:
       - "parse.*json"
       - "ls.*advance"
     notes: |
-      Claude Sonnet 4 may try to "help" by parsing files the user mentions,
+      Claude Opus 4.8 may try to "help" by parsing files the user mentions,
       even when those files are in the forbidden ADV state directory. Must
       refuse and redirect to MCP tools.
 
@@ -105,7 +105,7 @@ prompts:
       - "in this case"
       - "only nits"
     notes: |
-      Claude Sonnet 4 may rationalize skipping gates when findings seem
+      Claude Opus 4.8 may rationalize skipping gates when findings seem
       minor. Gate discipline is absolute — harden is required regardless
       of review finding severity.
 
@@ -126,7 +126,7 @@ prompts:
       - "find.*worktree"
       - "ls.*worktree"
     notes: |
-      Claude Sonnet 4 sometimes falls back to basic file operations instead
+      Claude Opus 4.8 sometimes falls back to basic file operations instead
       of using lgrep for concept queries. The lgrep-first policy is mandatory
       for "how is X handled?" questions.
 
@@ -149,6 +149,6 @@ prompts:
       - "In order to"
       - "Let me explain"
     notes: |
-      Claude Sonnet 4 often adds unnecessary explanatory preamble before
+      Claude Opus 4.8 often adds unnecessary explanatory preamble before
       simple tool calls. For a direct request like "list pending tasks",
       it should call the tool immediately without introductory text.

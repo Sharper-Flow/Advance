@@ -9,7 +9,7 @@
  *
  * The Temporal store still needs a few things from a non-Temporal source:
  *   - **Paths**: ProjectPaths is the canonical computation that maps repo
- *     root + config to changes/specs/agenda/wisdom directories.
+ *     root + config to changes/specs/wisdom directories.
  *   - **Disk artifact writes**: changes.create, changes.save,
  *     changes.updateArtifacts manipulate proposal.md / change.json on disk.
  *     These are the source-of-truth files that survive workflow eviction.
@@ -41,6 +41,7 @@ import type {
   Change,
   ChangeClosure,
   ChangeStatus,
+  DeltaAdd,
   Spec,
   Task,
   TddReclassification,
@@ -49,10 +50,11 @@ import type {
   WisdomType,
   ProjectConfig,
 } from "../types";
-import { WisdomEntrySchema } from "../types";
+import { CAPABILITY_KEY_PATTERN, WisdomEntrySchema } from "../types";
 import {
   createChangeScaffold,
   getProjectPaths,
+  hasArchiveBundle,
   listChangeDirs,
   listSpecDirs,
   loadChange,
@@ -72,6 +74,7 @@ import {
 import {
   buildChangeRecency,
   computeLastActivity,
+  firstOpenGate,
   type Store,
   type SearchResult,
 } from "./store-types";
@@ -321,6 +324,8 @@ export async function createDiskStore(
             id: c.id,
             title: c.title,
             status: c.status,
+            currentGate: firstOpenGate(c.gates),
+            lifecycleState: c.lifecycleState,
             created_at: c.created_at,
             lastActivityAt: computeLastActivity(c),
             taskCount: c.tasks.length,
@@ -335,21 +340,56 @@ export async function createDiskStore(
           paths.changes,
           changeId,
         );
-        if (!id) {
-          if (candidates.length > 1) {
+        if (id) {
+          const loaded = await loadChange(paths.changes, id);
+          // rq-terminalProjectionTruth01 bundle dominance: if an archive bundle
+          // exists, the shipped invariant holds and the change is `archived`
+          // regardless of the active record's (possibly stale) status — the
+          // terminal status signal may have been lost after the bundle write.
+          // Read-side dominance only; does not write/resurrect the active
+          // record (rq-archiveRetirement01.2, rq-fix-archive-terminal-proj).
+          if (
+            loaded.success &&
+            loaded.data &&
+            loaded.data.status !== "archived" &&
+            (await hasArchiveBundle(paths.archive, changeId))
+          ) {
             return {
-              success: false,
-              error: `Ambiguous change ID "${changeId}". Matches: ${candidates.join(", ")}`,
-              type: "not_found" as const,
+              success: true,
+              data: { ...loaded.data, status: "archived" as const },
             };
           }
+          return loaded;
+        }
+        // No active record resolves for this id. Before returning "not found",
+        // consult the archive bundle (self-heal): a terminal-step interruption
+        // may have written the bundle + removed nothing, leaving the change
+        // reachable only via the bundle. rq-terminalProjectionTruth01.
+        if (candidates.length <= 1) {
+          if (await hasArchiveBundle(paths.archive, changeId)) {
+            const archived = (await loadArchivedChanges()).find(
+              (c) => c.id === changeId,
+            );
+            if (archived) {
+              return {
+                success: true,
+                data: { ...archived, status: "archived" as const },
+              };
+            }
+          }
+        }
+        if (candidates.length > 1) {
           return {
             success: false,
-            error: `Change not found: ${changeId}`,
+            error: `Ambiguous change ID "${changeId}". Matches: ${candidates.join(", ")}`,
             type: "not_found" as const,
           };
         }
-        return loadChange(paths.changes, id);
+        return {
+          success: false,
+          error: `Change not found: ${changeId}`,
+          type: "not_found" as const,
+        };
       },
 
       create: async (summary, options) => {
@@ -487,10 +527,7 @@ export async function createDiskStore(
               message: `Bulk close aborted: change "${id}" not found.`,
             };
           }
-          if (
-            result.data.status !== "draft" &&
-            result.data.status !== "pending"
-          ) {
+          if (result.data.status !== "draft") {
             return {
               success: false,
               closed: 0,
@@ -877,6 +914,52 @@ export async function createDiskStore(
     },
 
     // -------------------------------------------------------------------
+    // Spec deltas (append-only, add-only)
+    //
+    // Disk fallback mirrors the Temporal reducer contract: accept existing
+    // or valid new kebab-case capability keys, reject duplicate delta ids
+    // and duplicate add-requirement ids atomically, and never touch global
+    // spec files (archive remains the sole global-spec writer).
+    // -------------------------------------------------------------------
+    specDeltas: {
+      add: async (changeId, capability, delta: DeltaAdd, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        for (const [existingCapability, entries] of Object.entries(deltas)) {
+          for (const entry of entries) {
+            if (entry.id === delta.id) {
+              throw new Error(
+                `Duplicate spec delta id ${delta.id} under capability ${existingCapability}`,
+              );
+            }
+            if (
+              entry.operation === "add" &&
+              entry.requirement.id === delta.requirement.id
+            ) {
+              throw new Error(
+                `Duplicate requirement id ${delta.requirement.id} under capability ${existingCapability}`,
+              );
+            }
+          }
+        }
+        result.data.deltas = {
+          ...deltas,
+          [capability]: [...(deltas[capability] ?? []), delta],
+        };
+        await saveChange(paths.changes, result.data);
+        return delta;
+      },
+    },
+
+    // -------------------------------------------------------------------
     // Gates
     // -------------------------------------------------------------------
     gates: {
@@ -1058,12 +1141,14 @@ export async function createDiskStore(
       }
       const byStatus: Record<ChangeStatus, number> = {
         draft: 0,
-        pending: 0,
-        active: 0,
         archived: 0,
         closed: 0,
       };
-      for (const change of changes) byStatus[change.status]++;
+      for (const change of changes) {
+        // Finite-accumulation guard: stay NaN-safe even if a status key is
+        // ever missing from the initializer above (e.g. enum narrowing).
+        byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
+      }
       const now = new Date();
       const recent = changes
         .filter(

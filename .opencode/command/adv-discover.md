@@ -3,8 +3,6 @@ name: adv-discover
 description: Gather context, analyze current state, identify objectives, and obtain user agreement
 ---
 
-<!-- manifest: adv-discover · gate: discovery · requiresChangeId: true · prereqs: [adv-proposal] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
-
 # ADV Discover — Establish Discovery Findings
 
 Gather current-state evidence needed to move from proposal into a shared agreement. Command completes the `discovery` gate and carries the full user-facing discovery + agreement flow. Discovery owns firming design-independent behavioral acceptance criteria and success criteria.
@@ -34,8 +32,6 @@ $ARGUMENTS
 
 #### Purpose
 
-<!-- rq-noSourceChecklistReads01 -->
-
 Embedded protocol below owns discovery step rules, edge cases, and output sections. This command owns orchestration.
 
 #### Discovery Protocol (9 Steps)
@@ -46,7 +42,7 @@ Every `/adv-discover` invocation must execute these 9 protocol steps and emit a 
 | --- | -------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Skill Discovery** (Phase 1.5)                    | Skills Considered         | Examined skills + match results (or "none available")                                                                            |
 | 2   | **Prior Research Extension**                       | Extends                   | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
-| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, `adv_agenda_list`                                       |
+| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, and typed change inventory with Epic/member context |
 | 4   | **Edge Case Investigation**                        | Edge Cases                | ≥2 edge cases per gap (or "N/A: structural" with rationale)                                                                      |
 | 5   | **Design Question Depth**                          | Open Design Questions     | Each question annotated with trust model, blast radius, alternatives                                                             |
 | 6   | **Draft Spec Delta Shapes**                        | Draft Spec Deltas         | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required")                                                                   |
@@ -55,8 +51,6 @@ Every `/adv-discover` invocation must execute these 9 protocol steps and emit a 
 | 9   | **Completeness Verification** (Phase 1.8)          | Completeness Verification | Always-on problem-completeness + solution-scope checks; sole-entry blocking; secondary-surface disposition                      |
 
 After all 9 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
-
-<!-- rq-disc01 -->
 
 #### Constraints
 
@@ -122,8 +116,6 @@ If `adv_change_show` reveals `epic_membership`:
 
 ## Phase 1.5: Skill Discovery + Gap-Triggered Creation
 
-<!-- rq-disc02 -->
-
 Execute skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`, then check for skill gaps and pending reviews.
 
 ### Step 1: Pending-Review Scan
@@ -142,21 +134,16 @@ Search trusted skill directories → match `keywords` against tech stack/domain 
 
 ### Step 3: Gap Detection + Creation
 
-<!-- rq-sc01 -->
-
 If no matching skill was found for a domain clearly relevant to change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for the full trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
 
-<!-- rq-sc02 -->
-
-1. Research domain using Context7, Exa, and searchcode. Use Exa for candidate repo discovery, then `searchcode_code_search` / `searchcode_code_get_file` for in-repo implementation evidence.
+1. Research domain using Context7, Exa, and searchcode. Use Exa for candidate repo discovery, then searchcode code search / file fetch for in-repo implementation evidence.
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
 5. Load via `skill("agent-{domain}")` and apply guidance in current workflow
 6. Emit `[ADV:SKILL_CREATED]` with skill name, domain, and brief description
-<!-- rq-sc03 -->
 
 **Output:** "Skills Considered" section listing each examined skill, match assessment, action taken, and any gap detection/creation results.
 
@@ -172,21 +159,21 @@ If no matching skill was found for a domain clearly relevant to change's **core 
 
 ## Phase 1.6: Conflict & Related-Work Scan
 
-<!-- rq-disc04 -->
+Execute the conflict scan using the typed change inventory and report findings in a "Conflict Scan" section:
 
-Execute all three tools and report findings in a "Conflict Scan" section:
-
-1. `adv_change_list includeArchived: true` → surface related active and archived changes
+1. `adv_change_list includeArchived: true` → enumerate all changes (active + archived) with Epic membership context
 2. `adv_change_validate` on target change → note that own-change pre-prep warnings (NO_TASKS, NO_DELTAS) are expected and should NOT be reported as conflicts
-3. `adv_agenda_list` → check for overlapping agenda items
+3. Build a complete paginated typed change inventory with explicit completeness state:
+   - **Active changes and Epic members** are authoritative for conflict detection
+   - **Archived changes** are related context only (inspect with `adv_change_show` for prior work that may inform or constrain the current proposal)
+   - The inventory must carry an explicit completeness state: `complete`, `degraded`, or `blocked`
+   - A clean "no conflicts" result is NOT permitted when the inventory has omissions, warnings, deadline issues, or source failures
 
 For relevant archived changes, use `adv_change_show` to inspect their tasks and decisions. Prior work may inform or constrain current proposal.
 
 ---
 
 ## Phase 1.7: P25 Related-Pattern Scan
-
-<!-- rq-disc08 -->
 
 Per rule P25 (related-scan): identify the class of bug/gap being addressed, then scan for similar patterns elsewhere in the codebase.
 
@@ -200,8 +187,6 @@ Per rule P25 (related-scan): identify the class of bug/gap being addressed, then
 
 ## Phase 1.8: Completeness Verification
 
-<!-- rq-disc13 rq-disc14 -->
-
 Always-on discipline ensuring discovery captured the **full problem** and **full intended solution scope**, not only a first-found symptom or single code path. This step runs in **every** discovery — it is not gated behind a trigger condition. Only the depth of any codebase surface scan scales to what the completeness question demands (preserving proportionality for narrow changes).
 
 ### Two always-on checks
@@ -211,7 +196,7 @@ Always-on discipline ensuring discovery captured the **full problem** and **full
 
 ### Scan-depth scaling (proportionality)
 
-The **check** always runs. A broad codebase surface scan (`lgrep_search_semantic` + `lgrep_search_symbols`) runs **only when the completeness question demands it** — i.e., when discovery relies on a sole-entry / single-control-surface claim for a cross-cutting operation, or when the problem spans an operation performed in multiple places. Narrow, localized changes record a lightweight rationale ("change is local to X; no cross-cutting operation claimed") and proceed without a broad scan.
+The **check** always runs. A broad codebase surface scan (lgrep semantic + symbol search) runs **only when the completeness question demands it** — i.e., when discovery relies on a sole-entry / single-control-surface claim for a cross-cutting operation, or when the problem spans an operation performed in multiple places. Narrow, localized changes record a lightweight rationale ("change is local to X; no cross-cutting operation claimed") and proceed without a broad scan.
 
 ### Sole-entry blocking (KD2 — reuses existing halt plumbing)
 
@@ -283,8 +268,6 @@ Build a compact discovery report. The output MUST contain these sections (order 
 | **Recommended Objectives** | Numbered list for the agreement phase                                                                                                  |
 | **AMBIGUITY ANALYSIS**     | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
 
-<!-- rq-disc07 -->
-
 ### Ambiguity Analysis
 
 Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
@@ -309,8 +292,6 @@ If scan is clean: emit `### AMBIGUITY ANALYSIS — no ambiguity findings. Covera
 
 ### Prior Research Extension
 
-<!-- rq-disc03 -->
-
 Search these locations for prior artifacts:
 
 - `temp/*.md` — brainstorm or prep documents
@@ -327,8 +308,6 @@ Search these locations for prior artifacts:
 
 ### Edge Case Investigation
 
-<!-- rq-disc05 -->
-
 For each gap identified:
 
 - Document ≥2 edge cases or failure modes
@@ -336,8 +315,6 @@ For each gap identified:
 - Structural gaps (no logic) may be marked "Edge cases: N/A — structural" with rationale
 
 ### Design Question Depth
-
-<!-- rq-disc06 -->
 
 Each open design question MUST include:
 
@@ -353,13 +330,11 @@ If 2+ viable approaches have user-value tradeoffs, run the inline Tradeoff Prior
 
 ### External-Solution Check (gated)
 
-<!-- rq-disc10 -->
-
 Required when proposal's Discovery Agenda contains ecosystem unknowns OR an open design question lists external tools / libraries / services as a realistic option.
 
 1. First consult any `docs/*-prep.md` research pack cited in the Extends section. If it already answers the question, summarise it in the LBP Check and cite the specific sections (`Competitors & Alternatives`, `Emerging Patterns`, `Applicability to This Repo`).
 2. If no relevant pack exists OR the cited pack is stale relative to current question:
-   - Run `exa_web_search_exa` queries: `["{domain} alternatives {year}", "{domain} emerging patterns {year}"]`
+   - Run Exa web-search queries: `["{domain} alternatives {year}", "{domain} emerging patterns {year}"]`
    - Record top-3 competitors/alternatives and up to 2 emerging patterns with source URLs
    - Evaluate applicability to this repo with file-path references
 3. Emit findings inline in the LBP Check section. Recommend `/adv-improve {target}` as a follow-up to persist the findings as a durable research pack when the discovery agenda will need them repeatedly.
@@ -399,8 +374,6 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 ---
 
 ## Phase 3.5: Discovery Opportunity Scout
-
-<!-- rq-discOpportunityScout01 -->
 
 Run a trigger-based Discovery Opportunity Scout pass after current-state research and before agreement formation when Trigger Conditions apply. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
 
@@ -463,8 +436,6 @@ EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit 
 ---
 
 ## Phase 4: Present Agreement Draft + Resolve Questions
-
-<!-- rq-disc11 -->
 
 - Load the refreshed discovery context from proposal findings
 - Extract objectives, constraints, avoidances, open questions, draft acceptance criteria, and success criteria. Proposal `## User Outcomes` may seed this work, but discovery owns making criteria design-independent, behavioral, and user-confirmed.

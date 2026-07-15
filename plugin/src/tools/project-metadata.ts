@@ -20,7 +20,7 @@ import { formatToolOutput } from "../utils/tool-output";
 export const projectMetadataTools = {
   adv_project_metadata: {
     description:
-      "Read, write, or list per-project metadata entries (scan results, external events, etc.)",
+      "Read, write, or list per-project metadata entries. Primary write consumers are scan commands (`/adv-slop-scan`, `/adv-comp-scan`, `/adv-audit`, `/adv-arch-scan`) recording scan-result summaries; also used for external events and ad-hoc per-project facts.",
     args: {
       action: z
         .enum(["read", "write", "list"])

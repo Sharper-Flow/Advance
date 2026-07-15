@@ -3,213 +3,26 @@
   "name": "delegation-defaults",
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
-  "version": "1.2.0",
-  "updated_at": "2026-07-04T00:00:00.000Z",
-  "delegation_matrix": [
-    {
-      "step": "proposal",
-      "gate_affinity": "proposal",
-      "mode": "inline_required",
-      "allowed_subagents": [],
-      "inline_boundaries": ["full"]
-    },
-    {
-      "step": "discovery",
-      "gate_affinity": "discovery",
-      "mode": "hybrid",
-      "allowed_subagents": ["adv-researcher", "explore"],
-      "inline_boundaries": ["problem synthesis", "agreement updates", "scope decisions", "gate completion"],
-      "delegated_substeps": [
-        { "name": "Prior Research Extension", "mode": "subagent_primary", "allowed_subagents": ["adv-researcher"] },
-        { "name": "P25 Related-Pattern Scan", "mode": "subagent_primary", "allowed_subagents": ["explore", "adv-researcher"] }
-      ]
-    },
-    {
-      "step": "design",
-      "gate_affinity": "design",
-      "mode": "hybrid",
-      "allowed_subagents": ["adv-researcher"],
-      "inline_boundaries": ["architecture decision ownership", "design artifact updates", "scope-drift decisions", "gate completion"],
-      "delegated_substeps": [
-        {
-          "name": "Independent Design Validator",
-          "mode": "subagent_primary",
-          "allowed_subagents": ["adv-researcher"],
-          "packet_contracts": [
-            {
-              "agent": "adv-researcher",
-              "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "SCOPE KEY", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "step": "prep",
-      "gate_affinity": "planning",
-      "mode": "inline_required",
-      "allowed_subagents": [],
-      "inline_boundaries": ["full"]
-    },
-    {
-      "step": "apply",
-      "gate_affinity": "execution",
-      "mode": "hybrid",
-      "allowed_subagents": ["adv-engineer", "adv-designer", "adv-verifier", "general"],
-      "inline_boundaries": ["task selection", "ADV state mutation", "scope-drift handling", "TDD evidence acceptance", "task completion"],
-      "delegated_substeps": [
-        {
-          "name": "Context-Shed Implementation",
-          "mode": "delegate_allowed",
-          "allowed_subagents": ["adv-engineer"],
-          "packet_contracts": [
-            {
-              "agent": "adv-engineer",
-              "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            }
-          ]
-        },
-        {
-          "name": "Frontend Implementation",
-          "mode": "delegate_allowed",
-          "allowed_subagents": ["adv-designer"],
-          "packet_contracts": [
-            {
-              "agent": "adv-designer",
-              "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            }
-          ]
-        },
-        {
-          "name": "Verify-Only Burst",
-          "mode": "delegate_allowed",
-          "allowed_subagents": ["adv-verifier", "general"],
-          "packet_contracts": [
-            {
-              "agent": "adv-verifier",
-              "report_transport": "orchestrator_submitted_verification_bundle",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "SCOPE KEY", "PHASE", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "step": "review",
-      "gate_affinity": "acceptance",
-      "mode": "hybrid",
-      "allowed_subagents": ["adv-reviewer", "adv-engineer", "adv-researcher", "explore"],
-      "inline_boundaries": ["finding verdict synthesis", "user acceptance", "ADV state mutation", "scope-drift handling"],
-      "delegated_substeps": [
-        { "name": "Independent Review Analysis", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer"] },
-        {
-          "name": "Scoped Evidence Scan",
-          "mode": "delegate_allowed",
-          "allowed_subagents": ["explore"],
-          "packet_contracts": [
-            {
-              "agent": "explore",
-              "report_transport": "non_persisted_scanner",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "ATTEMPT"]
-            }
-          ]
-        },
-        {
-          "name": "Review Remediation Fixes",
-          "mode": "delegate_allowed",
-          "allowed_subagents": ["adv-reviewer", "adv-engineer"],
-          "packet_contracts": [
-            {
-              "agent": "adv-reviewer",
-              "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            },
-            {
-              "agent": "adv-engineer",
-              "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            }
-          ]
-        },
-        { "name": "Non-Trivial Fix Research", "mode": "delegate_allowed", "allowed_subagents": ["adv-researcher"] }
-      ]
-    },
-    {
-      "step": "harden",
-      "gate_affinity": "release",
-      "mode": "subagent_primary",
-      "allowed_subagents": ["adv-reviewer", "adv-engineer", "explore"],
-      "inline_boundaries": ["readiness verdict synthesis", "release decision", "ADV state mutation", "scope-drift handling"],
-      "delegated_substeps": [
-        {
-          "name": "Six-Scanner Hardening Pass",
-          "mode": "subagent_primary",
-          "allowed_subagents": ["adv-reviewer", "explore"],
-          "packet_contracts": [
-            {
-              "agent": "explore",
-              "report_transport": "non_persisted_scanner",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "ATTEMPT"]
-            }
-          ]
-        },
-        {
-          "name": "Hardening Remediation Fixes",
-          "mode": "delegate_allowed",
-          "allowed_subagents": ["adv-reviewer", "adv-engineer"],
-          "packet_contracts": [
-            {
-              "agent": "adv-reviewer",
-              "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            },
-            {
-              "agent": "adv-engineer",
-              "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
-              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "step": "archive",
-      "gate_affinity": "release",
-      "mode": "inline_required",
-      "allowed_subagents": [],
-      "inline_boundaries": ["full"]
-    },
-    {
-      "step": "reflect",
-      "gate_affinity": "post-release",
-      "mode": "inline_required",
-      "allowed_subagents": [],
-      "inline_boundaries": ["full"]
-    }
-  ],
+  "version": "1.3.0",
+  "updated_at": "2026-07-15T18:38:37.930Z",
   "requirements": [
     {
       "id": "rq-delDefaults01",
       "title": "Matrix Coverage for All Workflow Steps",
       "body": "The delegation matrix MUST define a delegation default for each of the 9 workflow steps: proposal, discovery, design, prep, apply, review, harden, archive, reflect. Each step maps to exactly one gate-affinity phase in the 7-gate lifecycle (harden and reflect are post-gate phases). Utility commands (research, tron, slop-scan, audit, improve, etc.) have their own delegation rules specified in their command files and are out of scope for this matrix.",
       "priority": "must",
-      "tags": ["delegation", "matrix", "coverage"],
+      "tags": [
+        "delegation",
+        "matrix",
+        "coverage"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults01.1",
           "title": "All 9 workflow steps have delegation entries",
-          "given": ["The delegation-defaults spec is loaded"],
+          "given": [
+            "The delegation-defaults spec is loaded"
+          ],
           "when": "Matrix coverage is checked",
           "then": [
             "Entries exist for: proposal, discovery, design, prep, apply, review, harden, archive, reflect",
@@ -220,7 +33,9 @@
         {
           "id": "rq-delDefaults01.2",
           "title": "Utility commands excluded from matrix",
-          "given": ["The delegation matrix defines its 9 steps"],
+          "given": [
+            "The delegation matrix defines its 9 steps"
+          ],
           "when": "Matrix scope is evaluated",
           "then": [
             "research, tron, slop-scan, audit, improve, cleanup, clarify, status, validate, roadmap, task, idea, and problem are NOT in the matrix",
@@ -234,12 +49,18 @@
       "title": "Valid Mode Classification Per Step",
       "body": "Each workflow step MUST declare exactly one default delegation mode from the set: inline_required, subagent_primary, hybrid. inline_required means all work happens in the orchestrator context with no sub-agent delegation. subagent_primary means the primary work is delegated to sub-agents with only verdict synthesis remaining inline. hybrid means the step mixes delegable sub-steps with inline-required sub-steps; the spec enumerates delegated sub-steps and inline boundaries structurally.",
       "priority": "must",
-      "tags": ["delegation", "mode", "classification"],
+      "tags": [
+        "delegation",
+        "mode",
+        "classification"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults02.1",
           "title": "Each step has a valid mode",
-          "given": ["The delegation matrix is loaded"],
+          "given": [
+            "The delegation matrix is loaded"
+          ],
           "when": "Mode validation is checked",
           "then": [
             "proposal.mode == inline_required",
@@ -256,7 +77,9 @@
         {
           "id": "rq-delDefaults02.2",
           "title": "Mode values are from valid enum",
-          "given": ["A delegation matrix entry"],
+          "given": [
+            "A delegation matrix entry"
+          ],
           "when": "The mode value is validated",
           "then": [
             "mode is one of: inline_required, subagent_primary, hybrid",
@@ -270,12 +93,18 @@
       "title": "Agent and Boundary Specification Per Step",
       "body": "Each workflow step MUST name its allowed sub-agents and its inline-only safety boundaries. For inline_required steps, allowed sub-agents is empty and the boundary is 'full' (all work inline). For hybrid steps, the spec enumerates delegated sub-steps and the sub-agents allowed for each. Repo-local or bundled ADV agents MUST exist as .opencode/agents/*.md files and have mode: subagent; known OpenCode global workers (explore, general) are allowed even though they are not repo-local agent files. Primary agents (adv, plan, build) and phantom agents (librarian, mechanic, prioritizer) MUST NOT appear in any allowed sub-agents list.",
       "priority": "must",
-      "tags": ["delegation", "agents", "boundaries"],
+      "tags": [
+        "delegation",
+        "agents",
+        "boundaries"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults03.1",
           "title": "Inline steps have no sub-agents",
-          "given": ["A step with mode inline_required"],
+          "given": [
+            "A step with mode inline_required"
+          ],
           "when": "Agent specification is checked",
           "then": [
             "allowed_subagents is empty",
@@ -285,7 +114,9 @@
         {
           "id": "rq-delDefaults03.2",
           "title": "Hybrid steps name specific sub-agents per delegated sub-step",
-          "given": ["A step with mode hybrid"],
+          "given": [
+            "A step with mode hybrid"
+          ],
           "when": "Agent specification is checked",
           "then": [
             "allowed_subagents is non-empty",
@@ -299,7 +130,9 @@
         {
           "id": "rq-delDefaults03.3",
           "title": "No phantom or primary agents in sub-agents lists",
-          "given": ["Any step in the delegation matrix"],
+          "given": [
+            "Any step in the delegation matrix"
+          ],
           "when": "Sub-agent names are validated",
           "then": [
             "Phantom agents (librarian, mechanic, prioritizer) do not appear in allowed_subagents",
@@ -310,7 +143,9 @@
         {
           "id": "rq-delDefaults03.4",
           "title": "Specific agent assignments match design",
-          "given": ["The delegation matrix with all 9 steps"],
+          "given": [
+            "The delegation matrix with all 9 steps"
+          ],
           "when": "Agent assignments are checked",
           "then": [
             "discovery allows: adv-researcher, explore",
@@ -328,12 +163,18 @@
       "title": "Wide Scan Delegation Justification",
       "body": "Discovery wide scans (Prior Research Extension, P25 Related-Pattern Scan) MUST be delegated to sub-agents (adv-researcher, explore) within the hybrid step. Prep is classified as inline_required — no wide scan delegation is applicable. This requirement ensures that evidence-gathering scans that would consume significant orchestrator context are delegated, while synthesis and decision-making remain inline.",
       "priority": "must",
-      "tags": ["delegation", "scans", "discovery"],
+      "tags": [
+        "delegation",
+        "scans",
+        "discovery"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults04.1",
           "title": "Discovery wide scans delegate to sub-agents",
-          "given": ["The discovery step with mode hybrid"],
+          "given": [
+            "The discovery step with mode hybrid"
+          ],
           "when": "Wide scan sub-steps are evaluated",
           "then": [
             "Prior Research Extension is delegated to adv-researcher",
@@ -344,7 +185,9 @@
         {
           "id": "rq-delDefaults04.2",
           "title": "Prep wide scans remain inline",
-          "given": ["The prep step with mode inline_required"],
+          "given": [
+            "The prep step with mode inline_required"
+          ],
           "when": "Wide scan sub-steps are evaluated",
           "then": [
             "No sub-step delegation is allowed",
@@ -359,12 +202,18 @@
       "title": "Typed and Persisted Worker Reports",
       "body": "Delegated worker lanes that produce ADV evidence MUST provide typed, ingest-validated, durable reports through sidecar report persistence. adv-engineer, adv-reviewer, and adv-designer task-scoped reports MUST be submitted through adv_subagent_report_submit and remain backward-compatible with task.subagent_reports[] readers; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. adv-researcher and adv-tron change-scoped optimized handoff reports MUST use the same strict tool-call transport with source metadata. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport, without ADV tool access, and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Only an orchestrator-submitted scanner bundle MAY persist scanner findings. Verify-Only Burst uses adv-verifier as the authority-free primary executor and general only as an unavailable-runtime fallback, with an orchestrator_submitted_verification_bundle transport; the worker returns structured JSON and the orchestrator submits adv-verification-triage-bundle evidence. Worker packet contracts MUST pin schema-derived strict identity anchors: WORKING DIRECTORY, CHANGE, scope identity, and ATTEMPT, plus PHASE where required. Worker packet contracts MUST also define warn-first scope/done/stop/verification anchors: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. Future persisted worker additions MUST include these field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
       "priority": "must",
-      "tags": ["delegation", "reports", "structured-output"],
+      "tags": [
+        "delegation",
+        "reports",
+        "structured-output"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults05.1",
           "title": "Existing sub-agents satisfy report requirements",
-          "given": ["The 5 sub-agents with structured reports"],
+          "given": [
+            "The 5 sub-agents with structured reports"
+          ],
           "when": "Report field coverage is validated",
           "then": [
             "adv-engineer (ENGINEER_REPORT via adv_subagent_report_submit) includes verification (evidence), scope, blockers, context_update_for_adv.suggested_next_action (next action), and persists through sidecar report storage with task.subagent_reports[] compatibility",
@@ -377,7 +226,9 @@
         {
           "id": "rq-delDefaults05.2",
           "title": "Matrix pins scanner and worker packet contracts",
-          "given": ["A delegated sub-step uses a typed persisted worker or a scanner worker"],
+          "given": [
+            "A delegated sub-step uses a typed persisted worker or a scanner worker"
+          ],
           "when": "The delegation matrix row is evaluated",
           "then": [
             "task-scoped typed_persisted_worker packet contracts include strict identity anchors WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
@@ -392,7 +243,9 @@
         {
           "id": "rq-delDefaults05.3",
           "title": "Future agents must include structured reports",
-          "given": ["A new sub-agent is added to the ADV system"],
+          "given": [
+            "A new sub-agent is added to the ADV system"
+          ],
           "when": "The agent's report schema is evaluated",
           "then": [
             "The report includes an evidence references field",
@@ -409,12 +262,18 @@
       "title": "Test Coverage for Matrix and Agent Routing",
       "body": "Tests MUST validate: (1) all 9 matrix steps are present with valid modes and gate affinities, (2) sub-agent references exist as agent files or known global workers, (3) no phantom or primary agents appear in sub-agent routing, (4) matrix classifications are consistent with command contracts, (5) wide-scan delegated sub-steps are structurally represented, (6) structured report field coverage is represented, and (7) provider-specific runtime hints (for example the GPT provider hint) preserve the matrix roster and delegation cues for research/discovery, scans, implementation, and verify bursts. Provider-hint content and provider-eval prompt anchors MUST NOT introduce disallowed agents, duplicate the allowed sub-agent roster, or weaken the no-primary/no-phantom invariant. The phantom-subagent-roster test MUST also detect forbidden routing to primary agents (adv, plan, build) in addition to phantom agents (librarian, mechanic, prioritizer).",
       "priority": "must",
-      "tags": ["delegation", "tests", "coverage"],
+      "tags": [
+        "delegation",
+        "tests",
+        "coverage"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults06.1",
           "title": "Matrix coverage test validates all rows",
-          "given": ["The delegation-matrix.test.ts test suite"],
+          "given": [
+            "The delegation-matrix.test.ts test suite"
+          ],
           "when": "Tests run",
           "then": [
             "All 9 workflow steps have entries",
@@ -426,7 +285,9 @@
         {
           "id": "rq-delDefaults06.2",
           "title": "No phantom or primary agents in routing",
-          "given": ["The phantom-subagent-roster.test.ts with primary agent coverage"],
+          "given": [
+            "The phantom-subagent-roster.test.ts with primary agent coverage"
+          ],
           "when": "Tests run",
           "then": [
             "No active guidance surface routes to librarian, mechanic, or prioritizer",
@@ -437,7 +298,9 @@
         {
           "id": "rq-delDefaults06.3",
           "title": "Cross-reference consistency check",
-          "given": ["The delegation matrix spec and command files"],
+          "given": [
+            "The delegation matrix spec and command files"
+          ],
           "when": "Consistency is validated",
           "then": [
             "If a step is inline_required in the spec, its command file does not mandate sub-agent usage",
@@ -448,7 +311,9 @@
         {
           "id": "rq-delDefaults06.4",
           "title": "Provider-hint delegation cues preserve matrix roster",
-          "given": ["A provider-specific runtime hint (for example the GPT provider hint)"],
+          "given": [
+            "A provider-specific runtime hint (for example the GPT provider hint)"
+          ],
           "when": "The hint text and provider-eval prompt anchors are evaluated against the delegation-defaults matrix",
           "then": [
             "The hint names only sub-agents that appear in the matrix allowed_subagents lists",
@@ -464,12 +329,20 @@
       "title": "Browser Verification Access for Frontend-Capable Workers",
       "body": "Frontend-capable ADV worker agents MUST have browser verification capability when their assigned scope needs UI evidence. adv-designer and adv-reviewer MUST expose Playwright MCP tools through `playwright_*: true`, MUST expose skill loading through `skill: true`, and MUST instruct workers to load `skill(\"playwright-mcp\")` before browser-driven UI verification or visual review. Playwright MCP is for local app UI verification, accessibility snapshots, visual review, and interactive reproduction; it is not for web research, docs lookup, or page scraping.",
       "priority": "must",
-      "tags": ["delegation", "frontend", "playwright", "skills", "visual-review"],
+      "tags": [
+        "delegation",
+        "frontend",
+        "playwright",
+        "skills",
+        "visual-review"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults07.1",
           "title": "Frontend implementation worker can verify UI in browser",
-          "given": ["ADV delegates frontend/component implementation to adv-designer"],
+          "given": [
+            "ADV delegates frontend/component implementation to adv-designer"
+          ],
           "when": "The task benefits from browser-driven evidence",
           "then": [
             "adv-designer frontmatter includes playwright_*: true",
@@ -481,7 +354,9 @@
         {
           "id": "rq-delDefaults07.2",
           "title": "Reviewer can perform visual UI review when needed",
-          "given": ["ADV delegates review or harden analysis to adv-reviewer for frontend/design scope"],
+          "given": [
+            "ADV delegates review or harden analysis to adv-reviewer for frontend/design scope"
+          ],
           "when": "Visual review, accessibility snapshots, or interactive reproduction materially improves review confidence",
           "then": [
             "adv-reviewer frontmatter includes playwright_*: true",
@@ -497,12 +372,20 @@
       "title": "Designer Delegation Receives Visual Context",
       "body": "When ADV delegates frontend/component implementation to adv-designer, the Designer Apply Context Packet MUST include a VISUAL_CONTEXT block with surface_type, existing_patterns, tokens_and_style_rules, viewport_targets, forbidden_patterns, and evidence_expectation entries. Each entry MUST either carry sourced context from agreement, design, task scope, project files, or preview discovery, or an explicit unavailable marker with a reason. The packet MUST preserve the backend boundary and apply-only role boundary, and MUST NOT fabricate style context or require Storybook as an Advance dependency.",
       "priority": "must",
-      "tags": ["delegation", "frontend", "designer", "visual-context", "packets"],
+      "tags": [
+        "delegation",
+        "frontend",
+        "designer",
+        "visual-context",
+        "packets"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults08.1",
           "title": "Designer packet includes visual context anchors",
-          "given": ["ADV delegates a task to adv-designer because metadata.frontend is true"],
+          "given": [
+            "ADV delegates a task to adv-designer because metadata.frontend is true"
+          ],
           "when": "The Designer Apply Context Packet is prepared",
           "then": [
             "The packet includes a VISUAL_CONTEXT block",
@@ -513,7 +396,9 @@
         {
           "id": "rq-delDefaults08.2",
           "title": "Visual context preserves boundaries",
-          "given": ["A frontend task needs visual context but not backend behavior changes"],
+          "given": [
+            "A frontend task needs visual context but not backend behavior changes"
+          ],
           "when": "ADV prepares the designer packet",
           "then": [
             "The packet keeps backend logic, storage, APIs, Temporal behavior, business rules, review, and harden out of scope",
@@ -528,12 +413,20 @@
       "title": "Bounded Ready-Task Routing Metadata Projection",
       "body": "When ADV presents formatted ready-task output (for example via adv_task_ready), the formatted projection MUST include bounded routing metadata keys needed for delegation decisions, specifically `delegation_hint` and `frontend` when those keys are present in task metadata. The projection MUST remain backward compatible when metadata is absent: missing keys are omitted rather than emitted as empty placeholders, and the raw ready[] payload is unchanged. Only bounded, delegation-relevant metadata keys are projected; arbitrary metadata MUST NOT be surfaced in the formatted chat output.",
       "priority": "must",
-      "tags": ["delegation", "routing", "task-ready", "metadata", "bounded"],
+      "tags": [
+        "delegation",
+        "routing",
+        "task-ready",
+        "metadata",
+        "bounded"
+      ],
       "scenarios": [
         {
           "id": "rq-delDefaults09.1",
           "title": "Present routing metadata appears in formatted ready output",
-          "given": ["A ready task carries metadata.delegation_hint and metadata.frontend"],
+          "given": [
+            "A ready task carries metadata.delegation_hint and metadata.frontend"
+          ],
           "when": "ADV formats the ready-task projection",
           "then": [
             "The formatted output includes delegation_hint when metadata.delegation_hint is present",
@@ -544,7 +437,9 @@
         {
           "id": "rq-delDefaults09.2",
           "title": "Absent routing metadata is omitted without breaking compatibility",
-          "given": ["A ready task has no delegation_hint or frontend metadata"],
+          "given": [
+            "A ready task has no delegation_hint or frontend metadata"
+          ],
           "when": "ADV formats the ready-task projection",
           "then": [
             "The formatted output does not include placeholder delegation_hint or frontend keys",
@@ -555,7 +450,9 @@
         {
           "id": "rq-delDefaults09.3",
           "title": "Projection stays bounded to delegation-relevant keys",
-          "given": ["A ready task carries arbitrary additional metadata fields"],
+          "given": [
+            "A ready task carries arbitrary additional metadata fields"
+          ],
           "when": "ADV formats the ready-task projection",
           "then": [
             "Only delegation_hint and frontend are projected into the formatted output",
@@ -563,6 +460,456 @@
             "The bounded projection respects the default top-N ready-task slice limits"
           ]
         }
+      ]
+    },
+    {
+      "id": "rq-delDefaults10",
+      "title": "Engineer-First Frontend Dispatch",
+      "body": "For delegated code tasks, including tasks with metadata.frontend set to true, ADV MUST select adv-engineer for initial implementation. Frontend metadata structurally requires one matching-cycle adv-designer follow-up after successful engineer or safe inline implementation; the follow-up packet MUST include implementation cycle and typed engineer-report or inline provenance. adv-designer remains apply-phase only and MUST NOT own review or harden.",
+      "priority": "must",
+      "tags": [
+        "delegation",
+        "frontend",
+        "engineer-first",
+        "designer-follow-up"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults10.1",
+          "title": "Frontend task dispatches engineer before designer",
+          "given": [
+            "A delegated code task has metadata.frontend set to true"
+          ],
+          "when": "ADV applies the task",
+          "then": [
+            "ADV selects adv-engineer for initial implementation",
+            "ADV requires one matching-cycle adv-designer follow-up after successful implementation",
+            "The designer packet carries implementation-cycle and typed implementation provenance"
+          ]
+        },
+        {
+          "id": "rq-delDefaults10.2",
+          "title": "Inline frontend implementation still requires designer follow-up",
+          "given": [
+            "A code task has metadata.frontend set to true",
+            "Risk signals require initial implementation inline"
+          ],
+          "when": "The inline implementation succeeds",
+          "then": [
+            "ADV requires a matching-cycle adv-designer follow-up before task completion",
+            "adv-designer does not edit backend, API, storage, Temporal, or business-rule scope"
+          ]
+        },
+        {
+          "id": "rq-delDefaults10.3",
+          "title": "Reviewer retains review and harden ownership",
+          "given": [
+            "A change includes frontend scope"
+          ],
+          "when": "ADV enters review or harden",
+          "then": [
+            "adv-reviewer remains the review and harden owner",
+            "adv-designer is not routed as a review or harden worker"
+          ]
+        }
+      ]
+    }
+  ],
+  "delegation_matrix": [
+    {
+      "step": "proposal",
+      "gate_affinity": "proposal",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": [
+        "full"
+      ]
+    },
+    {
+      "step": "discovery",
+      "gate_affinity": "discovery",
+      "mode": "hybrid",
+      "allowed_subagents": [
+        "adv-researcher",
+        "explore"
+      ],
+      "inline_boundaries": [
+        "problem synthesis",
+        "agreement updates",
+        "scope decisions",
+        "gate completion"
+      ],
+      "delegated_substeps": [
+        {
+          "name": "Prior Research Extension",
+          "mode": "subagent_primary",
+          "allowed_subagents": [
+            "adv-researcher"
+          ]
+        },
+        {
+          "name": "P25 Related-Pattern Scan",
+          "mode": "subagent_primary",
+          "allowed_subagents": [
+            "explore",
+            "adv-researcher"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "design",
+      "gate_affinity": "design",
+      "mode": "hybrid",
+      "allowed_subagents": [
+        "adv-researcher"
+      ],
+      "inline_boundaries": [
+        "architecture decision ownership",
+        "design artifact updates",
+        "scope-drift decisions",
+        "gate completion"
+      ],
+      "delegated_substeps": [
+        {
+          "name": "Independent Design Validator",
+          "mode": "subagent_primary",
+          "allowed_subagents": [
+            "adv-researcher"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "adv-researcher",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "SCOPE KEY",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": "prep",
+      "gate_affinity": "planning",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": [
+        "full"
+      ]
+    },
+    {
+      "step": "apply",
+      "gate_affinity": "execution",
+      "mode": "hybrid",
+      "allowed_subagents": [
+        "adv-engineer",
+        "adv-designer",
+        "adv-verifier",
+        "general"
+      ],
+      "inline_boundaries": [
+        "task selection",
+        "ADV state mutation",
+        "scope-drift handling",
+        "TDD evidence acceptance",
+        "task completion"
+      ],
+      "delegated_substeps": [
+        {
+          "name": "Context-Shed Implementation",
+          "mode": "delegate_allowed",
+          "allowed_subagents": [
+            "adv-engineer"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "adv-engineer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "TASK",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Frontend Implementation",
+          "mode": "delegate_allowed",
+          "allowed_subagents": [
+            "adv-designer"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "adv-designer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "TASK",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Verify-Only Burst",
+          "mode": "delegate_allowed",
+          "allowed_subagents": [
+            "adv-verifier",
+            "general"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "adv-verifier",
+              "report_transport": "orchestrator_submitted_verification_bundle",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "SCOPE KEY",
+                "PHASE",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": "review",
+      "gate_affinity": "acceptance",
+      "mode": "hybrid",
+      "allowed_subagents": [
+        "adv-reviewer",
+        "adv-engineer",
+        "adv-researcher",
+        "explore"
+      ],
+      "inline_boundaries": [
+        "finding verdict synthesis",
+        "user acceptance",
+        "ADV state mutation",
+        "scope-drift handling"
+      ],
+      "delegated_substeps": [
+        {
+          "name": "Independent Review Analysis",
+          "mode": "subagent_primary",
+          "allowed_subagents": [
+            "adv-reviewer"
+          ]
+        },
+        {
+          "name": "Scoped Evidence Scan",
+          "mode": "delegate_allowed",
+          "allowed_subagents": [
+            "explore"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "explore",
+              "report_transport": "non_persisted_scanner",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "ATTEMPT"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Review Remediation Fixes",
+          "mode": "delegate_allowed",
+          "allowed_subagents": [
+            "adv-reviewer",
+            "adv-engineer"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "adv-reviewer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "TASK",
+                "PHASE",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            },
+            {
+              "agent": "adv-engineer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "TASK",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Non-Trivial Fix Research",
+          "mode": "delegate_allowed",
+          "allowed_subagents": [
+            "adv-researcher"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "harden",
+      "gate_affinity": "release",
+      "mode": "subagent_primary",
+      "allowed_subagents": [
+        "adv-reviewer",
+        "adv-engineer",
+        "explore"
+      ],
+      "inline_boundaries": [
+        "readiness verdict synthesis",
+        "release decision",
+        "ADV state mutation",
+        "scope-drift handling"
+      ],
+      "delegated_substeps": [
+        {
+          "name": "Six-Scanner Hardening Pass",
+          "mode": "subagent_primary",
+          "allowed_subagents": [
+            "adv-reviewer",
+            "explore"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "explore",
+              "report_transport": "non_persisted_scanner",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "ATTEMPT"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Hardening Remediation Fixes",
+          "mode": "delegate_allowed",
+          "allowed_subagents": [
+            "adv-reviewer",
+            "adv-engineer"
+          ],
+          "packet_contracts": [
+            {
+              "agent": "adv-reviewer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "TASK",
+                "PHASE",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            },
+            {
+              "agent": "adv-engineer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": [
+                "WORKING DIRECTORY",
+                "CHANGE",
+                "TASK",
+                "ATTEMPT"
+              ],
+              "warn_packet_anchors": [
+                "TASK_SCOPE",
+                "IN_SCOPE",
+                "OUT_OF_SCOPE",
+                "DONE_WHEN",
+                "STOP_WHEN",
+                "VERIFICATION"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": "archive",
+      "gate_affinity": "release",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": [
+        "full"
+      ]
+    },
+    {
+      "step": "reflect",
+      "gate_affinity": "post-release",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": [
+        "full"
       ]
     }
   ]

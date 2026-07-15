@@ -7,11 +7,13 @@
 
 import type { Task } from "./tasks";
 import type {
+  ChangeLifecycleState,
   ChangeStatus,
   FastFollowOf,
   OpsFollowupLink,
   OpsFollowupProfile,
 } from "./changes";
+import type { GateId } from "./gates";
 
 // =============================================================================
 // Tool Response Types
@@ -34,13 +36,22 @@ export type TerminalSource =
 
 export type TerminalWarningCode =
   | "TERMINAL_SOURCE_DEGRADED"
-  | "TERMINAL_CANDIDATE_OMITTED";
+  | "TERMINAL_CANDIDATE_OMITTED"
+  | "SOURCE_DEADLINE_EXCEEDED"
+  | "SOURCE_BOUND_EXCEEDED";
 
 export interface TerminalWarning {
   code: TerminalWarningCode;
   source: TerminalSource;
   message: string;
   omittedCount?: number;
+  /**
+   * Bounded list of candidate IDs omitted by this warning (max 20).
+   * Present when specific candidates could not be resolved — e.g. after
+   * the aggregate read deadline expired — so operators can re-query the
+   * named changes instead of inferring completeness from row counts.
+   */
+  omittedIds?: string[];
 }
 
 export interface TerminalHydrationStats {
@@ -61,6 +72,20 @@ export interface HydrationStats {
   terminalFromDisk?: number;
   terminalFromWorkflow?: number;
   omitted?: number;
+  /**
+   * True when the request-scoped aggregate read deadline
+   * (TEMPORAL_READ_DEADLINE_BUDGET_MS) expired before all required
+   * sources/candidates resolved. A result carrying this flag is
+   * explicitly degraded — never a complete-looking partial.
+   */
+  deadlineExceeded?: boolean;
+  /**
+   * Candidates truncated by a caller-supplied read bound (e.g. the
+   * summary recent limit) before hydration. Present only when the bound
+   * cut candidates; counts/recency derived from such a result are
+   * explicitly incomplete.
+   */
+  boundedOmitted?: number;
 }
 
 export interface ChangeListResponse {
@@ -68,6 +93,15 @@ export interface ChangeListResponse {
     id: string;
     title: string;
     status: ChangeStatus;
+    /**
+     * First non-done gate in gate order, or "done" when all gates are
+     * complete. Additive gate-progress hint used by adv_change_list to
+     * derive the per-row `phase` (legacy status stays "draft" for every
+     * open change, so it cannot convey progress).
+     */
+    currentGate: GateId | "done";
+    /** Lifecycle authority (open/archived/closed); optional on legacy rows. */
+    lifecycleState?: ChangeLifecycleState;
     created_at: string;
     lastActivityAt: string;
     taskCount: number;
@@ -142,4 +176,20 @@ export interface ProjectStatus {
     recent: ChangeRecency[];
   };
   recommendations: string[];
+  /**
+   * Request-local resolved change documents keyed by canonical id
+   * (fixChangeListTimeouts KD4). Transport-only: lets `adv_status`
+   * enrichment reuse already-hydrated documents/proposal projections
+   * instead of issuing duplicate per-change reads. Callers MUST strip
+   * this field before serializing tool output; it is never truth beyond
+   * the single status read that produced it.
+   */
+  resolvedChanges?: ReadonlyMap<string, import("./changes").Change>;
+  /**
+   * Typed degradation from bounded/deadline-limited status resolution
+   * (C2). Present only when the result is incomplete.
+   */
+  warnings?: TerminalWarning[];
+  /** Hydration/degradation statistics for the status read, when any. */
+  hydrationStats?: HydrationStats;
 }

@@ -5,6 +5,10 @@ import {
   type ChangeClosure,
   type BulkCloseResult,
   type Change,
+  type ChangeLifecycleState,
+  type GateId,
+  type TerminalSource,
+  type TerminalWarning,
 } from "../../types";
 import { createHash } from "crypto";
 import {
@@ -25,8 +29,16 @@ import {
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { hasArchiveBundle, listChangeDirs, removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
-import { computeLastActivity } from "../store-types";
-import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
+import { computeLastActivity, firstOpenGate } from "../store-types";
+import {
+  runTemporal,
+  getGuardedChangeHandle,
+  createTemporalReadDeadline,
+  raceWithTemporalDeadline,
+  remainingDeadlineMs,
+  TemporalQueryTimeoutError,
+  type StoreDeps,
+} from "./shared";
 import {
   validateAggregateSize,
   validatePerArtifactSize,
@@ -416,17 +428,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
 
-      const wantsTerminal =
-        effectiveIncludeArchived ||
-        effectiveIncludeClosed ||
-        filter?.status === "archived" ||
-        filter?.status === "closed";
-
       return {
         changes: filtered.map((change) => ({
           id: change.id,
           title: change.title,
           status: change.status,
+          currentGate: firstOpenGate(change.gates),
+          lifecycleState: change.lifecycleState,
           created_at: change.created_at,
           lastActivityAt: computeLastActivity(change),
           taskCount: change.tasks.length,
@@ -435,10 +443,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           fast_follow_of: change.fast_follow_of,
           epic_membership: change.epic_membership,
         })),
-        ...(wantsTerminal && resolved.warnings
-          ? { warnings: resolved.warnings }
-          : {}),
-        ...(wantsTerminal && resolved.hydrationStats
+        // Terminal degraded metadata is forwarded for terminal reads
+        // (existing semantics); deadline-triggered incompleteness is
+        // typed on every path so a truncated result never looks
+        // complete (C2).
+        ...(resolved.warnings ? { warnings: resolved.warnings } : {}),
+        ...(resolved.hydrationStats
           ? { hydrationStats: resolved.hydrationStats }
           : {}),
       };
@@ -603,10 +613,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             message: `Bulk close aborted: Change "${id}" not found.`,
           };
         }
-        if (
-          change.data.status !== "draft" &&
-          change.data.status !== "pending"
-        ) {
+        if (change.data.status !== "draft") {
           return {
             success: false,
             closed: 0,
@@ -618,7 +625,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
                   ? `Protected status "${change.data!.status}"`
                   : "Aborted due to sibling failure",
             })),
-            message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft or pending changes can be bulk-closed.`,
+            message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft changes can be bulk-closed.`,
           };
         }
       }
@@ -782,7 +789,25 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     // this summary/memo/cache path. Terminal reconciliation is only
     // invoked when the filter explicitly asks for archived/closed rows
     // or when content filters require full state.
+    //
+    // rq-readCacheAdvisory01: the memo/summary/cache fast path is advisory,
+    // never the primary list/status truth source for lifecycle/gate/task
+    // state; warm rows served after deadline expiry stay degraded, and
+    // completeness is never inferred from cache warmth or row count.
     listSummary: async (filter) => {
+      // Request-scoped aggregate deadline (KD1). One budget covers
+      // source enumeration, the archive-bundle pre-scan, and every
+      // cold-miss hydration below; expiry produces typed degradation
+      // instead of an unbounded read.
+      const deadline = createTemporalReadDeadline();
+      const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
+      let deadlineExceeded = false;
+      const deadlineSources = new Set<TerminalSource>();
+      const markDeadline = (source: TerminalSource): void => {
+        deadlineExceeded = true;
+        deadlineSources.add(source);
+      };
+
       const wantsArchived =
         filter?.includeArchived || filter?.status === "archived";
       const wantsClosed = filter?.includeClosed || filter?.status === "closed";
@@ -800,10 +825,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // `list` projection. The hydrationStats field is still returned so
       // telemetry callers can identify the fallback path.
       if (wantsTerminal || hasContentFilters) {
-        const fallback = await listResolvedChanges({
-          includeArchived: wantsArchived,
-          includeClosed: wantsClosed,
-        });
+        const fallback = await listResolvedChanges(
+          {
+            includeArchived: wantsArchived,
+            includeClosed: wantsClosed,
+          },
+          deadline,
+        );
         let filtered = fallback.changes;
         if (filter?.status) {
           filtered = filtered.filter((c) => c.status === filter.status);
@@ -835,6 +863,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             id: change.id,
             title: change.title,
             status: change.status,
+            currentGate: firstOpenGate(change.gates),
+            lifecycleState: change.lifecycleState,
             created_at: change.created_at,
             lastActivityAt: computeLastActivity(change),
             taskCount: change.tasks.length,
@@ -850,17 +880,20 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fromCache: 0,
             fromHydration: filtered.length,
             ...(wantsTerminal ? fallback.hydrationStats : {}),
+            ...(fallback.hydrationStats?.deadlineExceeded
+              ? { deadlineExceeded: true }
+              : {}),
           },
-          ...(wantsTerminal && fallback.warnings
-            ? { warnings: fallback.warnings }
-            : {}),
+          // Forward typed degradation on every path — terminal source
+          // warnings for terminal reads, deadline incompleteness always.
+          ...(fallback.warnings ? { warnings: fallback.warnings } : {}),
         };
       }
 
-      // Build candidate ID set from memo + Visibility + disk to avoid
-      // dropping orphan-on-disk changes the memo never observed. Memo
-      // is the warm-path source; Visibility/disk catch cold-start and
-      // orphan cases.
+      // Build candidate ID set from cache + memo + Visibility + disk to avoid
+      // dropping warm rows after a source deadline and orphan-on-disk changes
+      // the memo never observed. Cache/memo are warm-path sources;
+      // Visibility/disk catch cold-start and orphan cases.
       const memoSummaries = memo.getAll();
       const memoIds = memoSummaries.map((s) => s.id);
 
@@ -870,28 +903,58 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       let visibilityIds: string[] = [];
       if (typeof bundle.client?.workflow?.list === "function") {
         try {
-          visibilityIds = await listChangeWorkflowIds(
-            bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-            { projectId: input.projectId },
+          visibilityIds = await raceWithTemporalDeadline(
+            listChangeWorkflowIds(
+              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+              { projectId: input.projectId },
+            ),
+            deadline,
           );
         } catch (err) {
+          const hitDeadline =
+            err instanceof TemporalQueryTimeoutError || expired();
           logger.warn(
-            `[listSummary] Visibility list failed; falling back to disk only: ${err instanceof Error ? err.message : String(err)}`,
+            `[listSummary] Visibility list ${
+              hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+            }; falling back to disk only: ${err instanceof Error ? err.message : String(err)}`,
           );
+          if (hitDeadline) markDeadline("visibility");
         }
       }
 
+      // Disk enumeration is typically fast local I/O (one readdir per path)
+      // but can hang on slow network/FUSE/NFS-backed project roots or
+      // transiently-stalled filesystems. Route it through the same
+      // aggregate-deadline admission gate as visibility and the
+      // `listResolvedChanges` active-disk path (AC1/AC5/C2) so a slow
+      // readdir degrades with typed source-specific incompleteness
+      // rather than outliving the request budget. Disk still stays
+      // available as an omission-evidence source on Temporal-side
+      // degradation; the deadline gates the potentially-unbounded stages.
       let diskIds: string[] = [];
       try {
-        diskIds = await listChangeDirs(legacy.paths.changes);
-      } catch (err) {
-        logger.warn(
-          `[listSummary] Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
+        diskIds = await raceWithTemporalDeadline(
+          listChangeDirs(legacy.paths.changes),
+          deadline,
         );
+      } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
+        logger.warn(
+          `[listSummary] Disk listChangeDirs ${
+            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+          }: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        if (hitDeadline) markDeadline("active_disk");
       }
 
       const changeIds = Array.from(
-        new Set([...memoIds, ...visibilityIds, ...diskIds]),
+        new Set([
+          ...changeCache.keys(),
+          ...memoIds,
+          ...visibilityIds,
+          ...diskIds,
+        ]),
       );
 
       const memoIndex = new Map<string, ChangeSummary>();
@@ -917,6 +980,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         };
 
         for (const summary of memoSummaries) {
+          // Deadline admission: stop the archive-bundle pre-scan once the
+          // aggregate budget is gone and record typed incompleteness.
+          if (expired()) {
+            markDeadline("archive");
+            break;
+          }
           if (
             summary.status !== "archived" &&
             summary.status !== "closed" &&
@@ -928,6 +997,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         }
 
         for (const [id, cached] of changeCache.entries()) {
+          if (expired()) {
+            markDeadline("archive");
+            break;
+          }
           if (
             cached.status !== "archived" &&
             cached.status !== "closed" &&
@@ -946,6 +1019,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         id: string;
         title: string;
         status: Change["status"];
+        currentGate: GateId | "done";
+        lifecycleState?: ChangeLifecycleState;
         created_at: string;
         lastActivityAt: string;
         taskCount: number;
@@ -966,6 +1041,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             id: cached.id,
             title: cached.title,
             status: cached.status,
+            currentGate: firstOpenGate(cached.gates),
+            lifecycleState: cached.lifecycleState,
             created_at: cached.created_at,
             lastActivityAt: computeLastActivity(cached),
             taskCount: cached.tasks.length,
@@ -986,6 +1063,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             id: summary.id,
             title: summary.title,
             status: summary.status,
+            currentGate: firstOpenGate(summary.gateProgress),
+            lifecycleState: summary.lifecycleState,
             created_at: summary.lastActivityAt,
             lastActivityAt: summary.lastActivityAt,
             taskCount: summary.taskCounts.total,
@@ -1000,8 +1079,18 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
         // Miss: hydrate one change via the authoritative orphan-tolerant
         // path. Skip on hard failure rather than aborting the batch.
+        // Deadline admission: once the aggregate budget is gone, no new
+        // hydration begins — remaining misses become typed degradation
+        // while cache/memo rows for later ids are still served.
+        if (expired()) {
+          markDeadline("workflow_query");
+          continue;
+        }
         try {
-          const loaded = await getTemporalChange(id);
+          const loaded = await raceWithTemporalDeadline(
+            getTemporalChange(id, { deadline }),
+            deadline,
+          );
           if (loaded.success && loaded.data) {
             fromHydration += 1;
             const change = loaded.data;
@@ -1009,6 +1098,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
               id: change.id,
               title: change.title,
               status: change.status,
+              currentGate: firstOpenGate(change.gates),
+              lifecycleState: change.lifecycleState,
               created_at: change.created_at,
               lastActivityAt: computeLastActivity(change),
               taskCount: change.tasks.length,
@@ -1021,6 +1112,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             });
           }
         } catch (err) {
+          if (err instanceof TemporalQueryTimeoutError || expired()) {
+            markDeadline("workflow_query");
+          }
           logger.debug(
             `[listSummary] hydration miss for change ${id}: ${err instanceof Error ? err.message : String(err)}`,
           );
@@ -1042,6 +1136,21 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
 
+      const warnings: TerminalWarning[] = [];
+      if (deadlineExceeded) {
+        const sources =
+          deadlineSources.size > 0
+            ? Array.from(deadlineSources)
+            : (["workflow_query"] as TerminalSource[]);
+        for (const source of sources) {
+          warnings.push({
+            code: "SOURCE_DEADLINE_EXCEEDED",
+            source,
+            message: `Aggregate read deadline (${deadline.budgetMs}ms) exceeded while resolving ${source}; summary rows are incomplete.`,
+          });
+        }
+      }
+
       return {
         changes: filtered,
         hydrationStats: {
@@ -1049,7 +1158,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           fromMemo,
           fromCache,
           fromHydration,
+          ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
         },
+        ...(warnings.length > 0 ? { warnings } : {}),
       };
     },
   };

@@ -15,6 +15,7 @@ import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { TaskSchema } from "./tasks";
 import {
   DesignConcernDispositionSchema,
+  ReportFollowUpRefSchema,
   ScopedSubagentReportSchema,
   VerificationEvidenceDispositionSchema,
 } from "./subagent-reports";
@@ -62,14 +63,31 @@ type _ValidationResult = z.infer<typeof ValidationResultSchema>;
 // =============================================================================
 
 export const ChangeStatusSchema = z.enum([
-  "draft", // Being written
-  "pending", // Awaiting approval
-  "active", // In progress
+  "draft", // Open — being written or in progress (see AdvLifecycleState for open-claim authority)
   "archived", // Completed and promoted
   "closed", // Retired without completion
 ]);
 
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
+
+/**
+ * Normalize legacy stored change statuses to the modern draft-only open set.
+ *
+ * `active` and `pending` were historically stored on change records, but no
+ * code path writes them anymore — open changes are `draft` and open-claim
+ * authority lives in `AdvLifecycleState` (see fixChangeStatusHonesty design).
+ * Legacy or poisoned disk/seed state must still load (C4), so both values
+ * map to `"draft"`. Any other value passes through unchanged so schema
+ * validation can still reject genuine garbage.
+ *
+ * Applied at the change-record load path (storage/json.ts, before
+ * `ChangeSchema.parse`) and at workflow-seed boundaries
+ * (changeSeedStateFromChange + changeWorkflow seed application).
+ */
+export function normalizeLegacyChangeStatus(status: unknown): unknown {
+  if (status === "active" || status === "pending") return "draft";
+  return status;
+}
 
 export const ChangeLifecycleStateSchema = z.enum([
   "open",
@@ -81,12 +99,29 @@ export type ChangeLifecycleState = z.infer<typeof ChangeLifecycleStateSchema>;
 
 /**
  * Filter-only status value for adv_change_list.
- * "in-flight" is a union filter (draft + pending + active), not a stored status.
+ * "in-flight" is a union filter for open changes (draft), not a stored status.
+ * "active" and "pending" are never stored on changes; they are rejected with
+ * a hint to use "in-flight" (or no status filter) for open changes.
+ *
+ * The legacy open spellings ("active"/"pending") are union members only so the
+ * superRefine below can intercept them with an actionable hint — they always
+ * fail validation and are never valid output.
  */
-export const ChangeListStatusFilterSchema = z.union([
-  ChangeStatusSchema,
-  z.literal("in-flight"),
-]);
+export const ChangeListStatusFilterSchema = z
+  .union([
+    ChangeStatusSchema,
+    z.literal("in-flight"),
+    z.literal("active"),
+    z.literal("pending"),
+  ])
+  .superRefine((value, ctx) => {
+    if (value === "active" || value === "pending") {
+      ctx.addIssue({
+        code: "custom",
+        message: `"${value}" is never stored on changes. Use "in-flight" (or no status filter) for open changes; "archived"/"closed" for terminal changes.`,
+      });
+    }
+  });
 
 const ChangeClosureReasonSchema = z.enum([
   "cancelled",
@@ -214,7 +249,7 @@ export type ClarifyFindingSnapshot = z.infer<
  * backend creating a follow-up in example-web).
  *
  * rq-opsFollowTrace01: source project/path/change provenance belongs in typed
- * workflow state, not agenda text.
+ * workflow state, not free-text queue entries.
  */
 export const CrossProjectOriginSchema = z.object({
   /** Name of the source project that created this follow-up change */
@@ -326,6 +361,12 @@ export const FastFollowOfSchema = z.object({
   parent_change_id: z.string(),
   /** ISO8601 timestamp when the fast-follow link was established */
   linked_at: z.string(),
+  /**
+   * Structural reference to the report follow-up that motivated this
+   * fast-follow child. Present when the child was created as the
+   * post-planning owner of a promoted report follow-up.
+   */
+  followup_ref: ReportFollowUpRefSchema.optional(),
 });
 
 export type FastFollowOf = z.infer<typeof FastFollowOfSchema>;
@@ -381,9 +422,15 @@ export type OpsFollowupStatus = z.infer<typeof OpsFollowupStatusSchema>;
 
 /**
  * Source provenance for an ops follow-up. Mirrors the structural source of the
- * promotion (typed required follow-up, sub-agent report, agenda item, or manual
- * fallback), not agenda text. The source change/project/path is always recorded
- * so the link is repairable from the child context.
+ * promotion (typed required follow-up, sub-agent report, or manual fallback).
+ * The source change/project/path is always recorded so the link is repairable
+ * from the child context.
+ *
+ * retireAgendaWorkflow (AC8 parse-only): the `agenda` source_kind and
+ * `source_agenda_id` field are retained in the persisted schema so legacy
+ * changes and reports that already reference Agenda remain readable. No new
+ * tool or signal writes these fields; new promotions must use the typed
+ * report/manual source kinds.
  */
 export const OpsFollowupSourceSchema = z.object({
   /** The change that originated this follow-up. */
@@ -395,7 +442,7 @@ export const OpsFollowupSourceSchema = z.object({
     .optional(),
   /** Absolute path to the originating project repository, when known. */
   source_path: z.string().min(1).optional(),
-  /** Source artifact kind/reference (e.g. report key, agenda id, contract id). */
+  /** Source artifact kind/reference (e.g. report key, contract id). */
   source_artifact: z.string().min(1).optional(),
   /** Contract item ID that motivated the follow-up, when applicable. */
   source_contract_id: z.string().min(1).optional(),
@@ -403,9 +450,13 @@ export const OpsFollowupSourceSchema = z.object({
   source_task_id: z.string().min(1).optional(),
   /** Sidecar sub-agent report key, when promoted from a report. */
   source_report_key: z.string().min(1).optional(),
-  /** Agenda item ID, only used as a legacy/fallback source. */
+  /** Parse-only legacy Agenda item ID. No new writes (retireAgendaWorkflow). */
   source_agenda_id: z.string().min(1).optional(),
-  /** Promotion source kind — ordered from most to least structured. */
+  /**
+   * Promotion source kind — ordered from most to least structured.
+   * Parse-only: "agenda" is retained so legacy records validate; new writes
+   * must use the typed report/manual kinds (retireAgendaWorkflow AC8).
+   */
   source_kind: z.enum([
     "required_follow_up",
     "report_follow_up",
@@ -749,7 +800,7 @@ export type ChangeContract = z.infer<typeof ChangeContractSchema>;
  *   - `discovery` — surfaced mid-session (bug found, drive-by improvement);
  *                   may carry source_artifact, never issue_number
  *   - `triage`    — promoted by `/adv-triage` from a non-GH source artifact
- *                   (agenda, wisdom, notes); issue_number/source_artifact optional
+ *                   (wisdom, notes); issue_number/source_artifact optional
  *   - `adhoc`     — explicit, no upstream artifact (default for ad-hoc work)
  *
  * The schema is typed-state only at this layer; behavior automation
@@ -771,7 +822,9 @@ export const ChangeOriginSchema = z.object({
   issue_number: z.number().int().positive().optional(),
   /**
    * Stable reference to the upstream artifact that triggered this change.
-   * For kind=triage: agenda-id (`ag-...`), wisdom-id, or note-line ref.
+   * For kind=triage: wisdom-id or note-line ref.
+   * Parse-only legacy: agenda-id (`ag-...`) values remain readable for
+   * historical records (retireAgendaWorkflow AC8).
    * For kind=discovery: optional task-id or wisdom-id created at the same time.
    * For kind=adhoc: omitted.
    */
@@ -994,9 +1047,13 @@ export const ChangeSchema = z
     /**
      * Idempotency keys for sub-agent reports already folded into workflow
      * state. Workflow-state projection persisted on the change snapshot
-     * (referenced by subagent-reports spec).
+     * (referenced by subagent-reports spec). Bounded to the most recent 200
+     * distinct IDs in FIFO order.
      */
     seenReportIds: z.array(z.string()).optional(),
+
+    /** Cumulative count of every accepted distinct report ID. */
+    seenReportIdsTotal: z.number().optional(),
 
     /**
      * Typed dispositions for adv-designer design concerns. Persisted on the

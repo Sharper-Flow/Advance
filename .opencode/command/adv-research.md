@@ -3,7 +3,6 @@ name: adv-research
 description: "Produce a defined, fully-researched proposed plan ready for user approval"
 phaseGoal: "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how."
 ---
-<!-- manifest: adv-research · requiresChangeId: false · prereqs: [adv-proposal] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
 
 # ADV Research — Architectural Decision Validation
 
@@ -81,7 +80,7 @@ See ADV_INSTRUCTIONS.md §Skill Discovery Protocol. Load only trusted bundled sk
 If no matching skill was found for a domain clearly relevant to change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
-1. Research domain using Context7, Exa, and searchcode. Use Exa to discover candidate public repositories, then `searchcode_code_search` / `searchcode_code_get_file` to inspect implementation patterns inside those repos.
+1. Research domain using Context7, Exa, and searchcode. Use Exa to discover candidate public repositories, then searchcode code search / file fetch to inspect implementation patterns inside those repos.
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
@@ -126,9 +125,9 @@ Treat timeout/no-response same as failure.
 
 1. **Retry once** — re-spawn that specific sub-agent with same prompt
 2. **If retry also fails** — fall back to inline research for that question:
-   - For library/framework questions: prefer Context7 (`context7_resolve-library-id` then `context7_query-docs`) for official docs. If Context7 is absent from the active schema, fall back to `webfetch` against the canonical docs URL.
-   - Use `exa_web_search_exa` for community guidance and current best practices
-   - Use Exa to identify relevant public repos, then `searchcode_code_search` for real-world implementation patterns
+   - For library/framework questions: prefer Context7 (resolve the library, then query its docs) for official docs. If Context7 is absent from the active surface, fall back to `webfetch` against the canonical docs URL.
+   - Use Exa web search for community guidance and current best practices
+   - Use Exa to identify relevant public repos, then searchcode code search for real-world implementation patterns
    - Emit findings with same `VALIDATION:` / `RECOMMENDATION:` structure
    - Apply same redaction rules during manual research: strip secrets/internal-only details and keep external queries generic
 3. **If using `explore` as fallback and it fails** — retry `explore` once, then do manual inline research
@@ -228,16 +227,16 @@ EXISTING CODEBASE PATTERNS: {summary of patterns found in Phase 1 audit}
 
 RESEARCH PROTOCOL:
 - You MUST cite sources for every factual claim
-- For library/framework questions: prefer Context7 (`context7_resolve-library-id` then `context7_query-docs`) for official docs; use `webfetch` only if Context7 is absent from the active schema
-- Use Exa to find candidate public repositories, then `searchcode_code_search` to find real-world code examples inside those repositories
+- For library/framework questions: prefer Context7 (resolve the library, then query its docs) for official docs; use `webfetch` only if Context7 is absent from the active surface
+- Use Exa to find candidate public repositories, then searchcode code search to find real-world code examples inside those repositories
 - Prefer simple, boring solutions over complex ones
 - If unsure, say "I don't know" rather than guess
 - Every finding MUST include a source URL
 - Redact secrets/internal-only details before external queries
-- Use generic search terms only; never paste proprietary code, internal URLs, or customer data into `searchcode_code_search` or web search queries
+- Use generic search terms only; never paste proprietary code, internal URLs, or customer data into searchcode or web search queries
 
 TASK:
-1. Use Context7 (`context7_resolve-library-id` then `context7_query-docs`) against canonical library docs; fall back to `webfetch` if Context7 is absent
+1. Use Context7 (resolve the library, then query its docs) against canonical library docs; fall back to `webfetch` if Context7 is absent
 2. Look up the CANONICAL/REFERENCE architecture for this tech stack
 3. Web search for best practices
 4. Compare the PROPOSED architecture against the REFERENCE architecture
@@ -381,8 +380,6 @@ If **Request additional research**: collect specific areas → re-run relevant p
 
 Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 
-
-
 **Auto-continue:** After user approval, immediately begin `/adv-prep` (or `/adv-design` if design gate is incomplete) inline. Do not stop or ask "shall I proceed?" — user's approval is the go-ahead.
 
 ---
@@ -413,6 +410,6 @@ Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 | Update proposal | `adv_change_update` |
 | Ask user | `question` |
 | Mark gate | `adv_gate_complete` |
-| Library/framework docs | `context7_resolve-library-id` + `context7_query-docs` (`webfetch` fallback if absent) |
-| Web search / best practices | `exa_web_search_exa` |
-| Real-world code examples | Exa for repo discovery → `searchcode_code_search` / `searchcode_code_get_file` |
+| Library/framework docs | Context7 resolve + query docs (`webfetch` fallback if absent) |
+| Web search / best practices | Exa web search |
+| Real-world code examples | Exa for repo discovery → searchcode code search / file fetch |

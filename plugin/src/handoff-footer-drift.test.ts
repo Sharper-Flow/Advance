@@ -545,7 +545,7 @@ describe("chat-output-display drift contract", () => {
     const spec = JSON.parse(readFileSync(specPath, "utf8"));
 
     expect(spec.name).toBe("chat-output-display");
-    expect(spec.version).toBe("1.6.0");
+    expect(spec.version).toBe("1.7.0");
     expect(spec.supersedes).toContain("context-display");
 
     const requirementIds = spec.requirements.map((r: any) => r.id);
@@ -583,7 +583,8 @@ describe("chat-output-display drift contract", () => {
     );
     expect(titleIdentityRequirement).toBeTruthy();
     expect(titleIdentityRequirement.body).toContain("active ADV change id");
-    expect(titleIdentityRequirement.body).toContain("project name");
+    expect(titleIdentityRequirement.body).toContain("epicId | changeId");
+    expect(titleIdentityRequirement.body).toContain("MUST NOT write");
     expect(titleIdentityRequirement.body).not.toContain("Project: change-id");
   });
 

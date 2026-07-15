@@ -8,6 +8,9 @@ permission:
   question: deny
   todowrite: deny
   bash: allow
+tools:
+  # === ADV role policy: default-deny all ADV tools — CI polling uses the oc-ci-wait CLI, never ADV state (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
 ---
 
 You are `adv-ci-waiter`, a CI-only polling sub-agent.

@@ -1,25 +1,11 @@
 # Delegation Defaults
 
-> **Version:** 1.2.0
-> **Updated:** 2026-07-04
+> **Version:** 1.3.0
+> **Updated:** 2026-07-15
 
 ## Purpose
 
-Capability: canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.
-
-## Delegation Matrix
-
-| Step | Gate Affinity | Mode | Allowed Sub-agents | Inline Boundaries |
-|---|---|---|---|---|
-| proposal | proposal | inline_required | (none) | full |
-| discovery | discovery | hybrid | adv-researcher, explore | problem synthesis, agreement updates, scope decisions, gate completion |
-| design | design | hybrid | adv-researcher | architecture decision ownership, design artifact updates, scope-drift decisions, gate completion |
-| prep | planning | inline_required | (none) | full |
-| apply | execution | hybrid | adv-engineer, adv-designer, adv-verifier, general | task selection, ADV state mutation, scope-drift handling, TDD evidence acceptance, task completion |
-| review | acceptance | hybrid | adv-reviewer, adv-engineer, adv-researcher, explore | finding verdict synthesis, user acceptance, ADV state mutation, scope-drift handling |
-| harden | release | subagent_primary | adv-reviewer, adv-engineer, explore | readiness verdict synthesis, release decision, ADV state mutation, scope-drift handling |
-| archive | release | inline_required | (none) | full |
-| reflect | post-release | inline_required | (none) | full |
+Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.
 
 ## Requirements
 
@@ -437,3 +423,52 @@ When ADV presents formatted ready-task output (for example via adv_task_ready), 
 - Only delegation_hint and frontend are projected into the formatted output
 - Other arbitrary metadata fields are not surfaced in the chat-facing formatted projection
 - The bounded projection respects the default top-N ready-task slice limits
+
+---
+
+### Engineer-First Frontend Dispatch
+
+**ID:** `rq-delDefaults10` | **Priority:** **[MUST]**
+
+For delegated code tasks, including tasks with metadata.frontend set to true, ADV MUST select adv-engineer for initial implementation. Frontend metadata structurally requires one matching-cycle adv-designer follow-up after successful engineer or safe inline implementation; the follow-up packet MUST include implementation cycle and typed engineer-report or inline provenance. adv-designer remains apply-phase only and MUST NOT own review or harden.
+
+**Tags:** `delegation`, `frontend`, `engineer-first`, `designer-follow-up`
+
+#### Scenarios
+
+**Frontend task dispatches engineer before designer** (`rq-delDefaults10.1`)
+
+**Given:**
+- A delegated code task has metadata.frontend set to true
+
+**When:** ADV applies the task
+
+**Then:**
+- ADV selects adv-engineer for initial implementation
+- ADV requires one matching-cycle adv-designer follow-up after successful implementation
+- The designer packet carries implementation-cycle and typed implementation provenance
+
+**Inline frontend implementation still requires designer follow-up** (`rq-delDefaults10.2`)
+
+**Given:**
+- A code task has metadata.frontend set to true
+- Risk signals require initial implementation inline
+
+**When:** The inline implementation succeeds
+
+**Then:**
+- ADV requires a matching-cycle adv-designer follow-up before task completion
+- adv-designer does not edit backend, API, storage, Temporal, or business-rule scope
+
+**Reviewer retains review and harden ownership** (`rq-delDefaults10.3`)
+
+**Given:**
+- A change includes frontend scope
+
+**When:** ADV enters review or harden
+
+**Then:**
+- adv-reviewer remains the review and harden owner
+- adv-designer is not routed as a review or harden worker
+
+---

@@ -33,13 +33,13 @@ tools:
   # === ADV tools — full suite for 7-gate orchestration ===
   # Specs + project context
   adv_spec: true
+  adv_delta_add: true
   adv_status: true
   adv_session_list: true
   adv_session_show: true
   adv_project_context: true
   # Roadmap
   adv_roadmap: true
-  adv_backlog_state: true
   adv_backlog_add: true
   adv_backlog_archive: true
   adv_backlog_list: true
@@ -58,7 +58,9 @@ tools:
   adv_change_repair_origin: true
   adv_change_reenter: true
   adv_archive_repair: true
+  adv_archive_purge: true
   adv_change_status_repair: true
+  adv_change_workflow_terminate: true
   adv_change_forget: true
   adv_design_concern_disposition: true
   adv_verification_evidence_disposition: true
@@ -74,14 +76,6 @@ tools:
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true
-  adv_project_wisdom_list: true
-  # Agenda
-  adv_agenda_list: true
-  adv_agenda_add: true
-  adv_agenda_start: true
-  adv_agenda_complete: true
-  adv_agenda_cancel: true
-  adv_agenda_prioritize: true
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
@@ -92,6 +86,7 @@ tools:
   adv_subagent_report_submit: true
   # Ops follow-ups
   adv_followup_promote: true
+  adv_report_followup_promote: true
   adv_ops_evidence_add: true
   adv_ops_run_upsert: true
   adv_ops_run_evidence_add: true
@@ -100,6 +95,8 @@ tools:
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
   adv_temporal_worker_restart: true
+  # Store maintenance (operator-only)
+  adv_store_cleanup: true
   adv_store_consolidate: true
   # Snapshot health diagnostics
   adv_snapshot_health: true
@@ -245,7 +242,7 @@ No other pauses, "shall I proceed?" prompts, or "ready to start /adv-X?" questio
 
 ### MCP Tool Name Contract
 
-MCP callable names are exact schema identifiers. Never normalize, split, or recase them. `searchcode_code_search`, `context7_resolve-library-id`, and `exa_web_search_exa` are valid callable names; `code_search`, `context7_resolve_library_id`, and `web_search_exa` are not. If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
 ### Completion Bar
 For finish/ship/resume work, “done” means requested end-state verified. Red CI/test means inspect, classify, remediate, rerun. TDD Protocol evidence remains required per tasks.
@@ -384,7 +381,7 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 
 - `~/.local/share/opencode/plugins/advance/**/change.json`
 - `~/.local/share/opencode/plugins/advance/**/proposal.md`
-- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 
@@ -402,7 +399,6 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 | List all active changes        | `adv_change_list`     |
 | Validate a change              | `adv_change_validate` |
 | Wisdom / learnings             | `adv_wisdom_list`     |
-| Agenda items                   | `adv_agenda_list`     |
 | Conformance state              | `adv_conformance action: "status"` |
 
 If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead. Artifact content comes from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet inline content, not `artifacts.*.path` unless explicitly `readable:true`.

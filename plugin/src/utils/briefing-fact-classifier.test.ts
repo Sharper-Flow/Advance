@@ -162,20 +162,20 @@ describe("classifyBriefingFacts", () => {
     expect(fact?.content).toMatch(/Wire renderer into adv_change_show/);
   });
 
-  it("classifies plain follow_ups as agenda items", () => {
+  it("classifies plain follow_ups as report_follow_up items", () => {
     const facts = classifyBriefingFacts({
       report: engineerReport({ follow_ups: ["Add docs", "Update examples"] }),
     });
-    expect(outcomes(facts)).toContain("agenda");
-    const agenda = facts.filter((f) => f.outcome === "agenda");
-    expect(agenda.map((f) => f.content)).toEqual([
+    expect(outcomes(facts)).toContain("report_follow_up");
+    const followUps = facts.filter((f) => f.outcome === "report_follow_up");
+    expect(followUps.map((f) => f.content)).toEqual([
       "Add docs",
       "Update examples",
     ]);
-    expect(sourceLabels(agenda).every((l) => l === "follow_ups")).toBe(true);
+    expect(sourceLabels(followUps).every((l) => l === "follow_ups")).toBe(true);
   });
 
-  it("classifies required_follow_ups as agenda items and preserves source_contract_id", () => {
+  it("classifies required_follow_ups as report_follow_up items and preserves source_contract_id", () => {
     const facts = classifyBriefingFacts({
       report: engineerReport({
         required_follow_ups: [
@@ -190,7 +190,7 @@ describe("classifyBriefingFacts", () => {
     });
     const fact = facts.find((f) => f.source_label === "required_follow_ups");
     expect(fact).toBeDefined();
-    expect(fact?.outcome).toBe("agenda");
+    expect(fact?.outcome).toBe("report_follow_up");
     expect(fact?.content).toBe("Update AC2 wording");
     expect(fact?.source_ref).toBe("AC2");
   });
@@ -230,7 +230,7 @@ describe("classifyBriefingFacts", () => {
     );
   });
 
-  it("classifies scanner bundle follow_ups as agenda items", () => {
+  it("classifies scanner bundle follow_ups as report_follow_up items", () => {
     const facts = classifyBriefingFacts({
       report: scannerBundleReport({
         follow_ups: ["Schedule security re-scan"],
@@ -238,7 +238,7 @@ describe("classifyBriefingFacts", () => {
     });
     const fact = facts.find((f) => f.source_label === "follow_ups");
     expect(fact).toBeDefined();
-    expect(fact?.outcome).toBe("agenda");
+    expect(fact?.outcome).toBe("report_follow_up");
     expect(fact?.content).toBe("Schedule security re-scan");
   });
 
@@ -287,8 +287,8 @@ describe("classifyBriefingFacts", () => {
       }),
     });
     expect(outcomes(facts)).not.toContain("spec_delta_candidate");
-    const agenda = facts.filter((f) => f.outcome === "agenda");
-    expect(agenda).toHaveLength(2);
+    const followUps = facts.filter((f) => f.outcome === "report_follow_up");
+    expect(followUps).toHaveLength(2);
   });
 
   it("classifies blockers and scope drift as unresolved actions", () => {
@@ -344,9 +344,9 @@ describe("classifyBriefingFacts", () => {
     const facts = classifyBriefingFacts({
       report: engineerReport({ follow_ups: ["X", "Y"] }),
     });
-    const agenda = facts.filter((f) => f.outcome === "agenda");
-    expect(agenda[0].id).not.toBe(agenda[1].id);
-    expect(agenda[0].id).toMatch(/^follow_ups:/);
+    const followUps = facts.filter((f) => f.outcome === "report_follow_up");
+    expect(followUps[0].id).not.toBe(followUps[1].id);
+    expect(followUps[0].id).toMatch(/^follow_ups:/);
   });
 
   // ===========================================================================

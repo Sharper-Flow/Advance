@@ -1,0 +1,2045 @@
+{
+  "id": "fixChangeStatusHonesty",
+  "title": "Fix change status honesty",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T18:56:34.625Z",
+  "tasks": [
+    {
+      "id": "tk-1b5a4b031bf2",
+      "title": "Surface derived `phase` in adv_change_list rows",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T19:34:43.541Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T19:37:25.233Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeStatusHonesty",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+          "task_id": "tk-1b5a4b031bf2",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1b5a4b031bf2"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/responses.ts",
+            "plugin/src/storage/store-types.ts",
+            "plugin/src/storage/store-temporal/changes.ts",
+            "plugin/src/storage/store-disk.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:red, runId tr_mrjn2ewx_b9187ac5)",
+              "exit_code": 1,
+              "summary": "RED as designed: 2 of 3 new phase tests fail (phase undefined on rows); third guard test trivially green."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:green, runId tr_mrjn9nao_2082cf18)",
+              "exit_code": 0,
+              "summary": "GREEN: all 3 phase tests pass — never-started/mid-execution/release-complete-open render distinct phases (proposal/execution/released); terminal lifecycle states render archived/closed; hint-less rows omit phase."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/storage/store-temporal/changes.test.ts src/storage/store-temporal-memo.test.ts src/storage/change-selection.test.ts src/tools/status.test.ts src/tools/status-enrich.test.ts src/tools/status-hygiene.test.ts src/storage/store-temporal/index.test.ts src/tools/backlog.test.ts src/utils/context-snapshot.test.ts",
+              "exit_code": 0,
+              "summary": "10 files, 326 tests pass — covers all touched projection sites and ChangeListResponse consumers."
+            },
+            {
+              "command": "pnpm run check (plugin/)",
+              "exit_code": 0,
+              "summary": "schemas:check, tsc --noEmit, test-isolation, lockfile policy, eslint, prettier all green. No public Zod schemas changed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Chose `released` as the phase for all-gates-done-but-still-open changes",
+              "why": "Distinguishes the release-complete wedge from an in-flight 'release' gate phase; task allowed either value as long as it is consistent and asserted — the new tests pin it."
+            },
+            {
+              "what": "Added summary plumbing: `currentGate` (required) + `lifecycleState` (optional pass-through) on ChangeListResponse rows, populated at all 6 projection sites",
+              "why": "Rows previously carried no gate data, so phase could not be derived at the tool layer. Required typing makes typecheck enforce every current/future projection site; tests are excluded from tsc so existing mocks were unaffected."
+            },
+            {
+              "what": "Derive phase in tools/change.ts next to the withLastActivity row builder; strip currentGate/lifecycleState hints from output",
+              "why": "Task directed colocation near the row builder; stripping keeps the additive output contract to exactly one new field (`phase`)."
+            },
+            {
+              "what": "Placed shared firstOpenGate helper in storage/store-types.ts beside computeLastActivity, taking Gates | GateProgress with one contained cast",
+              "why": "GateId types as plain string (GATE_IDS cast to [string, ...string[]]), so Record<GateId,...> is a true index-signature type that the concrete GateProgress interface cannot satisfy; a union of concrete shapes plus a documented cast keeps both store producers type-safe. Recorded as change wisdom ws-1pNI2t."
+            },
+            {
+              "what": "Rows without a gate hint omit `phase` instead of fabricating progress from status",
+              "why": "Legacy/mock stores cannot honestly report a gate; omitting preserves the honesty goal of the change. Pinned by the third new test."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "search-attributes.ts has a private currentGate() duplicating firstOpenGate semantics over workflow state — candidate for later dedup, intentionally untouched (out of scope)."
+          ],
+          "required_follow_ups": [],
+          "required_main_agent_actions": [
+            "Checkpoint task tk-1b5a4b031bf2 — engineer does not self-checkpoint per instructions."
+          ],
+          "related_scan": "Enumerated all ChangeListResponse row producers (6 sites: store-temporal/changes.ts list + listSummary envelope/cache/memo/hydration, store-disk.ts list) and updated every one; typecheck (required field) confirms none missed. Verified AdvCurrentGate search-attribute indexing uses identical only-'done'-advances semantics.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_change_list rows now render additive `phase`: open rows report the current gate (proposal..release), all-gates-done-but-open renders `released` (chosen value, asserted in tests, distinct from in-flight 'release'), archived/closed render themselves. `status` untouched. Summary plumbing WAS required: rows lacked gate data, so `currentGate` (required) + pass-through `lifecycleState` were added to ChangeListResponse and populated at all 6 projection sites (store-temporal/changes.ts x5 incl. memo path via ChangeSummary.gateProgress, store-disk.ts x1) via shared firstOpenGate helper — no workflow state, no signals, pure derivation. Derivation lives in tools/change.ts next to the row builder; hints are stripped from output so only `phase` is exposed (pinned by test). Rows lacking a gate hint omit phase rather than fabricating progress. RED (tr_mrjn2ewx_b9187ac5) -> GREEN (tr_mrjn9nao_2082cf18) recorded; 326 tests + pnpm run check green. No public Zod schemas changed (schemas:check confirms).",
+            "suggested_next_action": "Checkpoint tk-1b5a4b031bf2 (orchestrator action). Optionally schedule a full-suite oc-test run before gate progression."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:red, runId tr_mrjn2ewx_b9187ac5)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:green, runId tr_mrjn9nao_2082cf18)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/storage/store-temporal/changes.test.ts src/storage/store-temporal-memo.test.ts src/storage/change-selection.test.ts src/tools/status.test.ts src/tools/status-enrich.test.ts src/tools/status-hygiene.test.ts src/storage/store-temporal/index.test.ts src/tools/backlog.test.ts src/utils/context-snapshot.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check (plugin/)"
+            }
+          ]
+        }
+      ],
+      "verification": "T1 (AC1): additive `phase` field on adv_change_list rows. RED tr_mrjn2ewx_b9187ac5 (2 designed failures) → GREEN tr_mrjn9nao_2082cf18 (3/3 phase tests pass). bin/oc-test targeted (10 files, 326 tests) green; pnpm run check green. No public Zod schemas touched.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/responses.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/responses.ts"
+      ],
+      "checkpointSha": "469f4d4beac7654284f74eae38fa5e6934f819e5",
+      "completedAt": "2026-07-13T20:08:14.058Z",
+      "completed_at": "2026-07-13T20:08:14.058Z"
+    },
+    {
+      "id": "tk-7675f0a5147b",
+      "title": "Fail-closed reject of status:\"active\"|\"pending\" filter with hint",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T19:34:46.413Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C4"
+        ],
+        "verifies": [
+          "AC3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:08:47.067Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeStatusHonesty",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+          "task_id": "tk-7675f0a5147b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-7675f0a5147b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "114 tests pass including 3 new status-filter rejection tests (red→green recorded)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts",
+              "exit_code": 0,
+              "summary": "11 cold-path visibility tests pass, no regressions"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, lint, format:check all green"
+            },
+            {
+              "command": "pnpm run schemas:generate && pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "8 JSON schemas generated and verified; no stale schemas"
+            },
+            {
+              "command": "npx tsx test-schema.ts (ad-hoc)",
+              "exit_code": 0,
+              "summary": "Verified Zod schema error message: active/pending rejected with hint; draft/in-flight/archived/closed accepted"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used superRefine instead of narrowing the union enum values",
+              "why": "Narrowing the union produces a generic 'Invalid input' Zod error that doesn't explain why active/pending are invalid or what to use instead. superRefine allows a custom, actionable message while keeping the schema's type surface unchanged for backward compatibility."
+            },
+            {
+              "what": "Added explicit handler check in addition to Zod schema rejection",
+              "why": "Tests call changeTools.adv_change_list.execute directly, bypassing the tool-registry preflight. The handler check ensures rejection works in both production (preflight) and test (direct invocation) paths. It also serves as self-documenting defense-in-depth."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified no other tools use ChangeListStatusFilterSchema. Verified list-change-workflows.ts cold-path tests still pass. Verified existing adv_change_list tests (114) all pass without modification.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-7675f0a5147b complete. Implemented fail-closed rejection of status:\"active\"|\"pending\" in adv_change_list with both Zod schema refinement and explicit handler boundary check. All 125 targeted tests pass, pnpm run check green, schemas:generate/schemas:check green. TDD red→green sequence recorded. No regressions to T1's phase field.",
+            "suggested_next_action": "Proceed to next task (T3 or T4). This task is complete and ready for review."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:generate && pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx tsx test-schema.ts (ad-hoc)"
+            }
+          ]
+        }
+      ],
+      "verification": "T2 (AC2): active/pending rejected via Zod superRefine + handler boundary check (defense-in-depth) with actionable hint pointing at in-flight/archived/closed. draft/in-flight/default consistent across warm+cold paths. RED→GREEN recorded; 125 targeted tests pass; pnpm run check green; schemas regenerated. T1 phase field intact.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/test-schema.ts",
+        "plugin/test-zod-error.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/test-schema.ts",
+        "plugin/test-zod-error.ts"
+      ],
+      "checkpointSha": "bc1ce62a1bc4d8243191339ad87c2b7cb936b8d2",
+      "completedAt": "2026-07-13T20:26:06.865Z",
+      "completed_at": "2026-07-13T20:26:06.865Z",
+      "updatedAt": "2026-07-13T22:56:56.667Z"
+    },
+    {
+      "id": "tk-5cbab8373725",
+      "title": "Add legacy-status load normalizer + reconcile byStatus/seedState/bulk-close",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-13T19:34:51.915Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:26:20.021Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeStatusHonesty",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+          "task_id": "tk-5cbab8373725",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5cbab8373725"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/types/index.ts",
+            "plugin/src/storage/json.ts",
+            "plugin/src/storage/store-disk.ts",
+            "plugin/src/storage/store-temporal/index.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/storage/json.test.ts",
+            "plugin/src/storage/store-disk.test.ts",
+            "plugin/src/temporal/change-state.test.ts",
+            "plugin/src/storage/store-temporal/index.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts",
+              "exit_code": 1,
+              "summary": "RED (runId tr_mrjp41u4_4ec06290): 6 expected failures — legacy active/pending statuses loaded unnormalized (json.test ×2), byStatus counted active instead of draft (store-disk.test), seedState carried active/pending (change-state.test ×2), poisoned-history disk fallback asserted stale active (index.test ×1, plus 1 pre-fix assertion)"
+            },
+            {
+              "command": "pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN (runId tr_mrjpde66_d2d9bbeb): all previously failing assertions pass after normalizer + reconciliation landed"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green (worker-bundle isolation boundary preserved: ../types was already in workflows.ts import graph via change-state.ts)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/storage/change-selection.test.ts src/temporal/change-state.test.ts src/temporal/change-state.ops-follow-up.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "10 files / 327 tests passed — includes T2 filter-rejection tests and bulk-close tool tests (no T1/T2 regression)"
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Full suite: 337 files / 5032 tests passed, including Temporal OOP integration tests that rebuilt the worker bundle with the workflows.ts seed hardening"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Shared normalizer normalizeLegacyChangeStatus in types/changes.ts:87, mapped active|pending→draft, passthrough for all other values",
+              "why": "One mapping shared by the disk load path and both seed boundaries; passthrough keeps genuine garbage schema-rejected instead of silently rewritten"
+            },
+            {
+              "what": "Root normalizer normalizeLegacyChangeRootStatus (json.ts:143) is deliberately SHALLOW — only the record's own status key",
+              "why": "Gate records legitimately carry status:\"pending\"; recursing like normalizeLegacyGateData would rewrite gate statuses to \"draft\" and break GateStatusSchema validation. Test asserts gates stay pending"
+            },
+            {
+              "what": "byStatus accumulation hardened with (byStatus[status] ?? 0) + 1 at store-disk.ts:1069 and store-temporal/index.ts:1344, keeping the 0-initialized Record",
+              "why": "Finite-safe even if a status key is ever missing from the initializer (exactly the T4 enum-narrowing transition); NaN-corruption becomes structurally impossible"
+            },
+            {
+              "what": "store-disk closeBatch eligibility narrowed to draft-only (was draft|pending)",
+              "why": "Runtime-identical (pending never arrives post-normalizer — loadChange normalizes; task directive 'draft covers the open case') and removes a T4 compile landmine (comparison against a removed enum member)"
+            },
+            {
+              "what": "Seed hardening at both boundaries: changeSeedStateFromChange (producer, change-state.ts:150) and changeWorkflow seed application (consumer, workflows.ts:583)",
+              "why": "Producer hardening covers all seedState builders (store-consolidate, workflow-start, store-temporal create); consumer hardening covers hand-built/legacy workflow inputs and replay of pre-fix histories"
+            },
+            {
+              "what": "Legacy-status test fixtures use `as unknown as Change`",
+              "why": "Survives T4's enum narrowing without further edits; the runtime normalization behavior remains the assertion"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "T4 same-pattern sites NOT in the design's enumerated T3 set (left for T4's typecheck sweep): plugin/src/storage/store-temporal/changes.ts:616-619 closeBatch keys on draft/pending + message at :631 ('Only draft or pending changes can be bulk-closed.'); plugin/src/storage/change-selection.ts:57 and :137 eligibility gates + messages :60/:140 + comment :132. Both become TS2367 compile errors when T4 removes pending/active from ChangeStatusSchema.",
+            "plugin/src/storage/change-selection.test.ts:182 'accepts pending status' will need flipping to expect rejection when T4 narrows eligibility (it mocks a pending change directly).",
+            "T4 fixture sweep: many test files construct Change objects with status:\"active\"/\"pending\" (tools/change.test.ts, tools/followup.test.ts, tools/gate.test.ts, tools/subagent-report.test.ts, temporal/change-state.test.ts:153,527,558,579, store-temporal/shared.test.ts:148, store-temporal/index.test.ts activeChange() helper, __tests__/setup.ts SAMPLE_CHANGE). Typed `satisfies Change` sites become compile errors at enum removal; runtime-only sites keep passing via the normalizer."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned the full bulk-close/byStatus/seed subsystem for draft/pending keying: fixed the enumerated store-disk closeBatch + both byStatus sites + seed boundaries; found and reported (not fixed, outside enumerated scope) the same pattern in store-temporal/changes.ts closeBatch and change-selection.ts for T4. Confirmed loadAllChanges + loadArchivedChanges both reuse loadChange, so the normalizer covers every disk change-record read. Confirmed mapTemporalChangeStateToChange passthrough is safe: workflow state is now normalized at both seed boundaries, and byStatus finite-guards cover any theoretical legacy in-flight workflow state.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC4 safety precondition landed. Load-path normalizer: normalizeLegacyChangeRootStatus at plugin/src/storage/json.ts:143, chained in loadChange at json.ts:486 BEFORE ChangeSchema.parse (json.ts:493); legacy active|pending → draft, atomically rewritten to disk, gate statuses untouched (shallow by design). Shared helper normalizeLegacyChangeStatus at types/changes.ts:87 (barrel-exported). Reconciliation: store-disk closeBatch keys draft-only (store-disk.ts:493); byStatus finite-safe via (?? 0)+1 at store-disk.ts:1069 and store-temporal/index.ts:1344 (responses.ts:163 type untouched — Record follows the enum automatically at T4); seedState never carries active/pending (change-state.ts:150 producer + workflows.ts:583 consumer). C4 honored: legacy records load normalized, not rejected. ChangeStatusSchema NOT modified (T4 owns). T1 (phase rows) and T2 (filter narrowing) untouched and green. Two existing tests intentionally flipped to expect normalized draft (poisoned-history disk fallback, re-seed-on-read) — behavior change is the point of the task. Full suite 5032 tests green; worker-bundle isolation check green.",
+            "suggested_next_action": "Checkpoint tk-5cbab8373725 and proceed to T4 (remove pending/active from ChangeStatusSchema). T4's typecheck sweep should expect exactly these remaining sites: store-temporal/changes.ts:616-619+631, change-selection.ts:57/60/132/137/140 (+ its test :182), and the fixture sites listed in follow_ups."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/storage/change-selection.test.ts src/temporal/change-state.test.ts src/temporal/change-state.ops-follow-up.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ],
+      "verification": "T3 (AC4 precond): legacy-status normalizer at storage/json.ts:143 (active/pending→draft before ChangeSchema.parse at L493); byStatus finite-safe (??0 guard at store-disk.ts:1069, store-temporal/index.ts:1344); seedState normalized at change-state.ts:150 + workflows.ts:583. RED tr_mrjp41u4 (6 failures) → GREEN tr_mrjpde66; full suite 5032 tests green; pnpm run check green. T4 unblocked.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "6db309c6b7d524925b3bb2fd58436dd3ab4e0cd6",
+      "completedAt": "2026-07-13T21:06:17.894Z",
+      "completed_at": "2026-07-13T21:06:17.894Z"
+    },
+    {
+      "id": "tk-91ee7c23df13",
+      "title": "Remove pending/active from ChangeStatusSchema + simplify legacy-open sets",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-13T19:35:03.430Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5cbab8373725"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T21:06:31.592Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeStatusHonesty",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+          "task_id": "tk-91ee7c23df13",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-91ee7c23df13"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/types/changes.status-enum.test.ts",
+            "plugin/src/temporal/lifecycle-visibility.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/storage/store-disk.ts",
+            "plugin/src/storage/store-temporal/index.ts",
+            "plugin/src/tools/status.ts",
+            "plugin/src/tools/status-health.ts",
+            "plugin/src/temporal/list-change-workflows.ts",
+            "plugin/src/temporal/visibility-epic-queries.ts",
+            "plugin/src/storage/store-temporal/changes.ts",
+            "plugin/src/storage/change-selection.ts",
+            "plugin/schemas/change.schema.json",
+            "plugin/src/storage/change-selection.test.ts",
+            "plugin/src/temporal/list-change-workflows.test.ts",
+            "plugin/src/temporal/visibility-epic-queries.test.ts",
+            "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts",
+            "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+            "plugin/src/storage/store-disk.test.ts",
+            "plugin/src/tools/change.test.ts",
+            "plugin/src/tools/status.test.ts",
+            "plugin/src/types/epics.test.ts",
+            "plugin/src/types/changes.ops-follow-up.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts",
+              "exit_code": 1,
+              "summary": "RED (phase:red, runId tr_mrjq2tcz_3809ebf4): 3 designed failures — ChangeStatusSchema.parse(\"active\")/parse(\"pending\") succeeded and enum had 5 options, proving the enum still allowed legacy open values before the fix."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN (phase:green, runId tr_mrjqdl3h_010c2b49): 7/7 pass — parse rejects active/pending/garbage, accepts draft/archived/closed, enum options exactly {draft,archived,closed}."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts src/storage/change-selection.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/status.test.ts src/types/epics.test.ts src/types/changes.ops-follow-up.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY (phase:verify, runId tr_mrjr4anf_9190ecfe): 11 files, 319 tests pass — covers enum, filter boundary (T2), in-flight list, byStatus stores, closeBatch, change-selection, both visibility-query builders, epic + ops-follow-up ChangeSchema consumers."
+            },
+            {
+              "command": "pnpm run check (plugin/)",
+              "exit_code": 0,
+              "summary": "schemas:check (change.schema.json regenerated, status enum narrowed) + tsc --noEmit + test-isolation + lockfile policy + eslint + prettier all green. Initial 8 tsc errors across 5 source files all resolved."
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Full suite: 338 test files, 5038 tests, 0 failures — definitive regression check for the public schema narrowing (caught the epics.test.ts + changes.ops-follow-up.test.ts ChangeSchema.parse fixtures the targeted set missed)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Widened ChangeListStatusFilterSchema union to include z.literal(\"active\")+z.literal(\"pending\") so the T2 superRefine can still intercept them with the actionable in-flight hint",
+              "why": "Narrowing ChangeStatusSchema made `value === \"active\"/\"pending\"` type errors (no overlap) and would have let the union reject them with Zod's generic invalid_union message, regressing T2's helpful-hint AC. Union members still fail validation via superRefine, so accepted-output behavior is unchanged."
+            },
+            {
+              "what": "Removed the now-meaningless change-selection 'rejects active status' test and repurposed 'accepts pending status' to 'accepts draft status'",
+              "why": "\"active\" is no longer a valid ChangeStatus to reject at the eligibility layer (it is rejected at schema parse, covered by the new status-enum test). Draft acceptance keeps an explicit acceptance-path test."
+            },
+            {
+              "what": "Narrowed both DEFAULT_STATUSES (list-change-workflows.ts, visibility-epic-queries.ts) and LEGACY_OPEN_STATUSES to [\"draft\"] together",
+              "why": "Keeps C1: the default/undefined open path and explicit draft override both remain recognized as the legacy-open set, so open reads route through AdvLifecycleState/ExecutionStatus lifecycle clauses rather than elevating AdvChangeStatus."
+            },
+            {
+              "what": "Updated the T3 store-disk byStatus test to assert absence of active/pending keys instead of active===0",
+              "why": "The narrowed byStatus Record no longer carries those keys; asserting their absence pins the enum narrowing while the finite + total===2 checks preserve the T3 NaN-safety/C4 intent."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "search-attributes.ts has a private currentGate() duplicating firstOpenGate semantics (carried over from T1 report; intentionally untouched — out of scope).",
+            "Recurring STSL/worker TemporalQueryTimeout on adv_run_test/adv_status this session (resolved via adv_temporal_reconnect) — worth a health look; prior T1 report hit the same verification_missing path."
+          ],
+          "required_main_agent_actions": [
+            "Checkpoint task tk-91ee7c23df13 — engineer does not self-checkpoint per instructions.",
+            "Consider running the two Temporal OOP itests (concurrent-signaling.itest.ts, continue-as-new.itest.ts) under the integration harness; they need a live Temporal server and were only typecheck-verified in this run."
+          ],
+          "related_scan": "Confirmed the 256/351 raw status:\"active\"/status:\"pending\" grep hits are overwhelmingly OTHER enums (TaskStatus, GateStatus, AgendaStatus, EpicProgressSummaryStatus, ops_followup/evidence statuses) — verified the typechecker + full 5038-test suite as the authoritative ChangeStatus blast radius instead of blind replacement. Fixed the 8 tsc-flagged source ripples and every ChangeStatus fixture that parses via ChangeSchema or flows through an open-status path (epics.test.ts x3, changes.ops-follow-up.test.ts x1, change.test.ts in-flight fixture, status.test.ts makeDoc + 2 byStatus mocks, store-disk T3 test, change-selection tests, both visibility-query tests, both itests). EpicProgressSummary 'active' and TaskStatus 'pending' fixtures left intact (legitimate enums).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC4 implemented: stored ChangeStatusSchema narrowed to [draft, archived, closed]; parse(\"active\")/parse(\"pending\") now throw (pinned by new changes.status-enum.test.ts — red tr_mrjq2tcz_3809ebf4 -> green tr_mrjqdl3h_010c2b49 -> verify tr_mrjr4anf_9190ecfe). C1 preserved: LEGACY_OPEN_STATUSES/DEFAULT_STATUSES narrowed to [draft], and isLegacyOpenStatusSet([draft]) still routes open reads to AdvLifecycleState=\"open\" AND ExecutionStatus=\"Running\" (never AdvChangeStatus) — asserted by list-change-workflows + visibility-epic-queries tests. C4 preserved: T3 json.ts load normalizer untouched; store-disk.test.ts confirms a poisoned on-disk \"active\" record still loads as draft with finite byStatus. T2 preserved WITHOUT regression: ChangeListStatusFilterSchema union was WIDENED to include the active/pending literals so the superRefine can still intercept them with the actionable in-flight hint (they still fail validation — external behavior unchanged); narrowing ChangeStatusSchema alone made the superRefine comparisons type errors. Public schema change: change.schema.json regenerated (status enum narrowed), schemas:check green. Full suite green: 338 files / 5038 tests / 0 failures. pnpm run check green. Net -94/+57 (prune-first). NOTE (infra friction): adv_run_test + adv_status repeatedly hit TemporalQueryTimeout until I ran adv_temporal_reconnect and confirmed change-workflow reachability via adv_change_show; after that all recordings succeeded. Prior T1 report shows the same verification_missing warnings, so this STSL/worker flakiness is recurring this session.",
+            "suggested_next_action": "Checkpoint tk-91ee7c23df13 (orchestrator action). Optionally run the two Temporal itests (concurrent-signaling.itest.ts, continue-as-new.itest.ts) under the OOP integration harness since they require a live Temporal server and were only typecheck-verified here."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/changes.status-enum.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/changes.status-enum.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/changes.status-enum.test.ts src/storage/change-selection.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/status.test.ts src/types/epics.test.ts src/types/changes.ops-follow-up.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check (plugin/)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ],
+      "verification": "T4 (AC4): ChangeStatusSchema narrowed to draft/archived/closed; parse(\"active\")/\"pending\" now throw (pinned by changes.status-enum.test.ts). LEGACY_OPEN_STATUSES + DEFAULT_STATUSES + in-flight Set all narrowed to [\"draft\"]. 8 tsc ripples + 11 source + 10 test files fixed; public schema regenerated; schemas:check green. RED tr_mrjq2tcz → GREEN tr_mrjqdl3h → VERIFY tr_mrjr4anf (319 tests); full suite 5038 tests green; pnpm run check green. C1 (lifecycle authority) + C4 (normalizer intact) held.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/storage/change-selection.test.ts",
+        "plugin/src/storage/change-selection.ts",
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/lifecycle-visibility.ts",
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-epic-queries.test.ts",
+        "plugin/src/temporal/visibility-epic-queries.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/types/changes.ops-follow-up.test.ts",
+        "plugin/src/types/changes.status-enum.test.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/epics.test.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/storage/change-selection.test.ts",
+        "plugin/src/storage/change-selection.ts",
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/lifecycle-visibility.ts",
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-epic-queries.test.ts",
+        "plugin/src/temporal/visibility-epic-queries.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/types/changes.ops-follow-up.test.ts",
+        "plugin/src/types/changes.status-enum.test.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/epics.test.ts"
+      ],
+      "checkpointSha": "19c9cd411f821a797ea8d0878a41b5204c153090",
+      "completedAt": "2026-07-13T21:47:43.464Z",
+      "completed_at": "2026-07-13T21:47:43.464Z"
+    },
+    {
+      "id": "tk-9dc9b3d1b06b",
+      "title": "Spec delta + docs: record reachable ChangeStatus set",
+      "type": "docs",
+      "section": "Specs",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-13T19:35:12.747Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-91ee7c23df13"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T21:48:35.109Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeStatusHonesty",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+          "task_id": "tk-9dc9b3d1b06b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9dc9b3d1b06b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "docs/specs/advance-workflow.md",
+            "ADV_INSTRUCTIONS.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec tsx temp-apply-delta.mts (applySpecDelta modify delta on advance-workflow)",
+              "exit_code": 0,
+              "summary": "DeltaSchema.parse OK (modify dl-narrowChangeStatus01 -> rq-changeLifecycleState01); applySpecDelta ok:true, version 1.28.0->1.28.1, scenarios [.1,.2,.3]; output reverted afterward in favor of a targeted hand-edit (machinery reformats whole file)"
+            },
+            {
+              "command": "pnpm exec tsx -e 'SpecSchema.parse(spec.json)'",
+              "exit_code": 0,
+              "summary": "Edited .adv/specs/advance-workflow/spec.json parses and conforms to SpecSchema; rq-changeLifecycleState01 body contains the reachable-set law and sole-authority clause; scenarios = [.1,.2,.3]; version 1.28.1, updated_at 2026-07-13"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check + typecheck + test-isolation + lockfile-policy + lint + format:check all green"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/__tests__/spec-citation-invariant.test.ts src/__tests__/spec-deltas-cull.test.ts src/adv-task-assets.test.ts src/adv-problem-assets.test.ts",
+              "exit_code": 0,
+              "summary": "7 test files / 71 tests pass — confirms the ADV_INSTRUCTIONS.md and spec.json edits break no asset/doc/spec invariant"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Targeted advance-workflow/rq-changeLifecycleState01 (not advance-meta)",
+              "why": "It is the existing requirement that governs the ChangeStatus/lifecycleState/status-authority surface and already asserts Change.status is not the open/claim authority; advance-meta only mentions AdvChangeStatus as a read-model Visibility bucket, so it is not the status-enum law home."
+            },
+            {
+              "what": "Used operation 'modify' rather than 'add'",
+              "why": "Amends the single governing requirement in place, avoiding a duplicate/overlapping requirement that validator/conflicts.ts (checkDeltaTargetsExist / intra-delta and duplicate detection) is designed to reject; MODIFY is the semantically correct op for 'the law changed' and bumps patch per bumpVersion (1.28.0->1.28.1)."
+            },
+            {
+              "what": "Hand-edited spec.json instead of running the applySpecDelta machinery for the final write",
+              "why": "The machinery writes JSON.stringify(spec,null,2), which reformats the whole file (single-line arrays -> multi-line, \\u2014 -> literal em-dash) producing ~1160 lines of diff noise; the committed spec.json is hand-formatted. I validated the delta end-to-end via the machinery first (clean apply, version bump, scenario .3), then reverted and hand-edited for a clean 18+/5- diff."
+            },
+            {
+              "what": "Did NOT modify the approved agreement.md to add a 'Draft Spec Deltas' section",
+              "why": "No later gate re-validates the discovery gate's agreement content_hash (only executiveSummary hash is compared at acceptance; contract-mint hashed at mint time), but editing an approved contract artifact is process-questionable; the delta's durable, authoritative home is spec.json."
+            },
+            {
+              "what": "Updated ADV_INSTRUCTIONS.md:597 in-flight prose",
+              "why": "Related-scan (P25): it asserted in-flight = 'draft + pending + active' and 'active keeps its strict storage-enum meaning' — both stale after T4 (change.ts:521 in-flight=['draft']; change.ts:454 active/pending rejected with hint). Task scope explicitly covers 'any prose that says the enum is draft/pending/active/archived/closed'."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "GAP (worth its own change): rq-disc07/rq-task REQUIRE persisting draft spec-delta obligations, but there is no agent-accessible mechanism to write Change.deltas/state.deltas for an already-created change (no tool, no signal, no agreement parser; only seedState at workflow (re-)seed). Consider an adv_change_set_deltas tool or an agreement draft-delta capture signal so spec deltas can be declared on in-flight changes instead of applied directly to spec.json."
+          ],
+          "required_main_agent_actions": [
+            "OPTIONAL (not required to ship the law): if you want archive-traceability, declare the formal modify-delta (dl-narrowChangeStatus01 on advance-workflow/rq-changeLifecycleState01) into Change.deltas via a privileged store write before archiving — no agent tool exposes this. The archive summary '## Spec Deltas' section reads state.deltas, which is empty for this change; the law itself is already in spec.json regardless."
+          ],
+          "related_scan": "Scanned docs/specs/*, .adv/specs/*, docs/temporal-recovery.md, project.md, ADV_INSTRUCTIONS.md, AGENTS.md for stored-enum enumerations. Only advance-workflow spec/docs (rq-changeLifecycleState01) and ADV_INSTRUCTIONS.md:597 asserted the old set — both updated. docs/specs/advance-meta.md references AdvChangeStatus only as a read-model Visibility bucket (already consistent with the new law). docs/temporal-recovery.md mentions AdvChangeStatus only as a Keyword search-attribute type (no enum-set assertion). Remaining 'draft+pending+active' matches are inside .adv/archive/* (immutable historical change snapshots — correctly NOT edited).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "T5 (spec delta + docs) complete and verified. (a) TARGET: advance-workflow / requirement rq-changeLifecycleState01 — the requirement that already governs the ChangeStatus/lifecycleState/status-authority surface (advance-meta only references AdvChangeStatus as a read-model search-attribute bucket). (b) DELTA SHAPE: a single DeltaModifySchema delta — {id:'dl-narrowChangeStatus01', operation:'modify', target_id:'rq-changeLifecycleState01', changes:{body:<rewritten>, scenarios:[.1 refined, .2 unchanged, .3 NEW]}}. New body records: stored ChangeStatus lifecycle-reachable set = draft/archived/closed; pending/active are NOT lifecycle-reachable and are removed from the stored enum (legacy-only, normalize to lifecycleState open on read/projection); AdvChangeStatus is compatibility/read-model metadata and NEVER the open-claim authority (sole authority = AdvLifecycleState=\"open\" AND ExecutionStatus=\"Running\") — reaffirms C1/AC5. New scenario rq-changeLifecycleState01.3 asserts the reachable set explicitly. Applied to .adv/specs/advance-workflow/spec.json (version 1.28.0→1.28.1 patch, updated_at 2026-07-13) with a clean 18+/5− targeted diff, plus matching targeted edit to the generated docs/specs/advance-workflow.md section, plus a stale-prose fix in ADV_INSTRUCTIONS.md:597 (in-flight was documented as 'draft+pending+active union' with 'active keeps storage-enum meaning'; T4 actually made in-flight=['draft'] and active/pending filters reject-with-hint per change.ts:521/454). (c)+(d) DECLARATION MECHANISM: state.deltas is populated ONLY from seedState.deltas<-Change.deltas at workflow (re-)seed (workflows.ts:593; change-state.ts:158; workflow-start.ts:122). Archive reads it from the LIVE workflow via snapshotState() (workflows.ts:791) and applies each capability via applySpecDelta (activities.ts:625-641). There is NO agent-accessible write path: no setDeltas/addDelta signal, no MCP tool (adv_change_create seeds deltas:{}; adv_change_update explicitly does not touch deltas), and no agreement/'Draft Spec Deltas' parser anywhere in source. So the delta could NOT be declared into state.deltas by any tool/signal I can fire — I applied its effect directly to spec.json (the only reliable agent path) and authored the formal delta above. THE ORCHESTRATOR DOES NOT NEED TO FIRE A SIGNAL (none exists). Formal delta for optional state.deltas declaration (state.deltas shape): {\"advance-workflow\":[{\"id\":\"dl-narrowChangeStatus01\",\"operation\":\"modify\",\"target_id\":\"rq-changeLifecycleState01\",\"changes\":{\"body\":\"<new body as applied>\",\"scenarios\":\"[rq-changeLifecycleState01.1 refined, .2 unchanged, .3 new]\"}}]}.",
+            "suggested_next_action": "Nothing required to ship the law — it is recorded and verified. Do NOT checkpoint/complete tk-9dc9b3d1b06b from the sub-agent (orchestrator owns that). Optional before archive: if you want the archive summary '## Spec Deltas' section to reflect this delta, declare the formal modify-delta into Change.deltas via a privileged store path (no agent tool exists). Note archive will fully regenerate docs/specs/advance-workflow.md from spec.json (currently a stale 1.26.0 snapshot), producing a larger sync diff — my targeted section edit already matches the rq-changeLifecycleState01 regen output."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsx temp-apply-delta.mts (applySpecDelta modify delta on advance-workflow)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsx -e 'SpecSchema.parse(spec.json)'"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/__tests__/spec-citation-invariant.test.ts src/__tests__/spec-deltas-cull.test.ts src/adv-task-assets.test.ts src/adv-problem-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "T5 (C1; documents AC4): spec delta applied to .adv/specs/advance-workflow/spec.json rq-changeLifecycleState01 (stored ChangeStatus = draft/archived/closed; pending/active legacy-only; AdvChangeStatus read-model never open-authority). docs/specs/advance-workflow.md + ADV_INSTRUCTIONS.md prose updated. pnpm run check green; 71 targeted tests pass; SpecSchema.parse + applySpecDelta validated. Commit faf5b49 already landed; re-recording completion after prior STSL wedge.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "faf5b495be24c6732885070a6c475e1a6319fce4",
+      "completedAt": "2026-07-13T22:29:13.758Z",
+      "completed_at": "2026-07-13T22:29:13.758Z"
+    },
+    {
+      "id": "tk-bf89de4679f5",
+      "title": "Final verification: full check + AC5 invariant proof + cross-path consistency",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-13T19:35:24.314Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1b5a4b031bf2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7675f0a5147b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-91ee7c23df13"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9dc9b3d1b06b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T22:29:38.593Z",
+      "verification": "T6 (AC5; all ACs verified on final HEAD faf5b49): pnpm run check green (tr_mrjspqcm — schemas/typecheck/isolation/lockfile/lint/format). AC5 authority suite 8 files/261 tests pass (tr_mrjsqjta): backlog-coordination-regression, list-change-workflows, visibility-epic-queries, visibility-claim-queries, changes.status-enum, change.test (AC1 phase + AC2 filter + AC3 open-scan), json.test (AC4 normalizer), change-selection. T4 full suite 5038 tests green at 19c9cd4 covers runtime; T5 only touched spec.json/docs. AdvLifecycleState+ExecutionStatus remains sole open-claim authority (C1); replay-safe (C2); no archive-projection change (C3); backward-compat (C4).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "faf5b495be24c6732885070a6c475e1a6319fce4",
+      "completedAt": "2026-07-13T22:31:12.712Z",
+      "completed_at": "2026-07-13T22:31:12.712Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:change-status-honesty"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: reject-and-surface for dishonest change status surface",
+      "sources": [
+        {
+          "label": "change-state.ts state.status writes (Fact 1)",
+          "locator": "plugin/src/temporal/change-state.ts:122,1450,1462,1685,1694",
+          "summary": "state.status written ONLY to 'draft' (L122 create), 'archived' (L1450,L1694), 'closed' (L1462,L1685). No state.status='active'|'pending'. L1628 sets GATE status='pending' (state.gates[gateId]), NOT change status. Fact 1 CONFIRMED: 'pending'/'active' are lifecycle-unreachable via the change workflow."
+        },
+        {
+          "label": "ChangeStatusSchema enum",
+          "locator": "plugin/src/types/changes.ts:63-69,860",
+          "summary": "ChangeStatusSchema=enum[draft,pending,active,archived,closed]. ChangeSchema.status (L860) references it directly. Removing 'pending'/'active' narrows the stored enum AND the disk-record parse enum simultaneously."
+        },
+        {
+          "label": "Search-attribute projection (Fact 2)",
+          "locator": "plugin/src/temporal/search-attributes.ts:162-167,183,188-192",
+          "summary": "AdvChangeStatus=[state.status] (L183); AdvLifecycleState=[lifecycleState ?? normalize(status)] (L188); AdvCurrentGate=[currentGate(state)] (L192), first non-done gate or 'done'. Fact 2 CONFIRMED: derived phase sourceable from AdvCurrentGate+AdvLifecycleState with no new workflow state."
+        },
+        {
+          "label": "Divergent read paths for status:'active' (Fact 3)",
+          "locator": "plugin/src/tools/change.ts:421-468; plugin/src/temporal/list-change-workflows.ts:106-119; plugin/src/temporal/lifecycle-visibility.ts:3-24",
+          "summary": "Warm listSummary literal-matches status (change.ts:424); in-flight post-filter Set (L467)={draft,pending,active}. Cold Visibility reroutes legacy-open sets via isLegacyOpenStatusSet (LEGACY_OPEN_STATUSES={draft,pending,active}) to AdvLifecycleState='open' AND ExecutionStatus='Running'; else AdvChangeStatus IN(...). Fact 3 CONFIRMED: status:'active' warm-matches 0 rows; cold path redirects to lifecycle authority."
+        },
+        {
+          "label": "Spec read-model separation (Fact 4 / Task D)",
+          "locator": ".adv/specs/backlog-coordination/spec.json:12; .adv/specs/advance-workflow/spec.json:3040,3052,2819",
+          "summary": "backlog-coordination L12: 'AdvChangeStatus is compatibility/read-model metadata and MUST NOT be the open-claim authority... lifecycleState open = claim held'. advance-workflow L3040 'Open-change authority does not depend on AdvChangeStatus'; L3052 'A stale AdvChangeStatus value cannot make the change appear open'; L2819 registers AdvCurrentGate. Fact 4 CONFIRMED. Reject-and-surface keeps AdvLifecycleState as authority + adds phase additively; does NOT violate separation."
+        },
+        {
+          "label": "BACKWARD-COMPAT BLOCKER: disk Zod parse (Task C)",
+          "locator": "plugin/src/storage/json.ts:452-462",
+          "summary": "loadChange runs ChangeSchema.parse(normalized) on raw disk change.json. Pre-parse normalizers (normalizeLegacyGateData + normalizePersistedSubagentReportState, L453-455) do NOT touch status. A legacy on-disk change with status:'active'|'pending' throws ZodError -> {success:false,type:'schema_error'} -> hard load failure. Removing enum values WITHOUT a status normalizer breaks C4 backward-compat."
+        },
+        {
+          "label": "Seed-state re-creation propagates stored status (Task C)",
+          "locator": "plugin/src/temporal/workflows.ts:578; plugin/src/temporal/change-state.ts:142-181; plugin/src/storage/store-temporal/index.ts:560; plugin/src/tools/store-consolidate.ts:1495",
+          "summary": "workflows.ts:578 'if(seedState.status) state.status=seedState.status'. changeSeedStateFromChange (L147) picks status from disk Change. store-temporal/index.ts:560 + store-consolidate.ts:1495 re-create via it. store-temporal/index.test.ts:474 asserts seedState.status:'active'. Real path where legacy disk status flows into a re-created workflow; needs coercion if enum narrowed."
+        },
+        {
+          "label": "byStatus Record<ChangeStatus,number> sites",
+          "locator": "plugin/src/storage/store-disk.ts:1059-1066; plugin/src/storage/store-temporal/index.ts:1333-1342; plugin/src/types/responses.ts:163",
+          "summary": "Two runtime byStatus initializers hard-code all 5 keys and do byStatus[change.status]++. responses.ts:163 types Record<ChangeStatus,number>. Narrowing ChangeStatus drops keys; ++ on a legacy 'active' record -> NaN unless status coerced first."
+        },
+        {
+          "label": "Real non-test path keyed on draft/pending",
+          "locator": "plugin/src/storage/store-disk.ts:490-493",
+          "summary": "Bulk-close eligibility: 'if (status!==\"draft\" && status!==\"pending\") reject'. Treats 'pending' as a real open/closeable state for legacy disk records. Enum narrowing keeps this literal compiling -> silent semantics drift to watch."
+        },
+        {
+          "label": "Search-attribute is free-form Keyword, not enum-constrained",
+          "locator": "plugin/src/temporal/search-attributes.ts:19; observability.test.ts:76,97; search-attributes.test.ts:97",
+          "summary": "AdvChangeStatus registered as 'Keyword' (value-agnostic). Fixtures seeding status:'active' are tests, not registration of the value. No Temporal-side migration needed; only fixtures asserting stored 'active'|'pending' need updating."
+        },
+        {
+          "label": "Temporal replay-safety of derived phase (Task D)",
+          "locator": "https://github.com/temporalio/sdk-typescript (upsertSearchAttributes, global-overrides.ts); plugin/src/temporal/search-attributes.ts:162-167,248",
+          "summary": "Official SDK: upsertSearchAttributes pushes an upsertWorkflowSearchAttributes command recorded into history; SDK sandbox makes Date/Math.random deterministic. currentGate(state) iterates in-heap state.gates only (no Date/random/IO). A phase derived from AdvCurrentGate+AdvLifecycleState (pure functions of heap state) is replay-deterministic with no new workflow state. CONFIRMED replay-safe."
+        }
+      ],
+      "architecture_assessment": "Premise accurate at source. Change workflows never store status:'active'|'pending' (change-state.ts writes only draft/archived/closed; the only entry point for active/pending is the seedState re-creation escape hatch fed by legacy disk records). AdvChangeStatus is spec-declared read-model metadata, not authority; AdvLifecycleState='open' AND ExecutionStatus='Running' is the open-claim authority. Warm memo literal-matches status while cold Visibility redirects legacy-open sets to lifecycle authority -> status:'active' silently returns 0 warm rows (the dishonesty). Reject-and-surface (fail-closed filter + additive derived phase from AdvCurrentGate+AdvLifecycleState, keeping status for compat) is the boring, correct fix and preserves spec read-model separation. The ONE correctness hazard is naive removal of 'pending'/'active' from ChangeStatusSchema: ChangeSchema.status reuses that enum and json.ts:462 parses raw disk change.json with no status-normalizing pre-pass, so a legacy on-disk change carrying status:'active'|'pending' would throw ZodError and fail to load (C4 regression). Fixable but MUST be handled: (a) add a loadChange status normalizer (legacy active/pending->draft) before ChangeSchema.parse, or (b) keep ChangeStatusSchema's full stored enum and narrow ONLY ChangeListStatusFilterSchema (safer for C4 - never touches the disk-parse contract). Both byStatus initializers and store-disk.ts:490-493 must be reconciled with whichever choice is made.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Facts 1-4 confirmed at file:line. No draft->active/pending transition exists (premise holds). Design direction is sound and does NOT violate the 4-spec read-model separation; derived phase is replay-safe. CAUTION on ONE implementation detail: removing 'pending'/'active' from ChangeStatusSchema without a disk-record status normalizer at json.ts:452-462 breaks ChangeSchema.parse for legacy change.json (schema_error hard-load failure) and NaN-corrupts both byStatus Records. Not a blocker because avoidable by construction (add normalizer, or narrow only the filter schema). Planning MUST pick one and cover json.ts + both byStatus sites + seedState coercion (workflows.ts:578 / changeSeedStateFromChange)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Reject-and-surface fails closed on status:'active'|'pending' with an explicit hint instead of a silent empty list - better honesty but a behavior change for any caller relying on the empty result; mitigated by keeping in-flight and lifecycle filters working.",
+          "Additive derived phase is low-risk but introduces a second status-like field (status vs phase); prose must state phase=read-model view, status=compat stored value to avoid consumer confusion.",
+          "Narrowing the stored ChangeStatusSchema tightens type-safety and kills unreachable values but couples to the disk-parse contract (json.ts:462), requiring a legacy-status normalizer for C4. Narrowing ONLY the filter schema avoids that coupling at the cost of two dead enum members in the stored type.",
+          "Simplifying LEGACY_OPEN_STATUSES/in-flight Set to ['draft'] is correct given Fact 1 but reduces defense-in-depth if a future path re-introduces a stored 'active'; lifecycle-authority redirect already covers open-ness, so acceptable."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Reject-and-surface WITHOUT removing stored enum values (narrow only ChangeListStatusFilterSchema + add derived phase + simplify legacy sets)",
+            "disposition": "preferred",
+            "rationale": "Fixes the dishonesty while never touching the ChangeSchema.status disk-parse contract, so C4 backward-compat is preserved by construction with zero migration risk. Boring, minimal blast radius on the persistence boundary."
+          },
+          {
+            "option": "Reject-and-surface WITH removing 'pending'/'active' from ChangeStatusSchema + add a loadChange legacy-status normalizer before ChangeSchema.parse",
+            "disposition": "deferred",
+            "rationale": "Cleaner end-state and stronger type-safety, but only safe IF normalizer + both byStatus reconciliations + seedState coercion land together. Acceptable as follow-up hardening once the honest read model ships; not required for the core fix."
+          },
+          {
+            "option": "Redirect + drive-enum (make the workflow transition draft->active/pending, keep status as authority)",
+            "disposition": "rejected",
+            "rationale": "Contradicts the 4 specs (AdvChangeStatus MUST NOT be open-claim authority; open authority is AdvLifecycleState). Duplicates lifecycle truth into a second mutable field, re-introducing the divergence being fixed. Higher complexity, spec-violating."
+          },
+          {
+            "option": "Do nothing / document the quirk",
+            "disposition": "rejected",
+            "rationale": "Leaves status:'active' silently returning 0 warm rows - a correctness/honesty defect that misleads agents. Fails P05/P33."
+          }
+        ],
+        "recommendation": "Proceed with reject-and-surface. Prefer the filter-only narrowing variant (narrow ChangeListStatusFilterSchema to reject status:'active'|'pending' with a hint; add additive derived phase from AdvCurrentGate+AdvLifecycleState; simplify LEGACY_OPEN_STATUSES and in-flight Set to ['draft']) and KEEP ChangeStatusSchema's stored enum to preserve the disk-parse C4 contract. If the stored enum is narrowed too, gate it behind a mandatory loadChange status-normalizer (legacy active/pending->draft) plus reconciliation of both byStatus initializers (store-disk.ts:1059, store-temporal/index.ts:1333), store-disk.ts:490-493, and the seedState path (workflows.ts:578 / changeSeedStateFromChange). Do not adopt redirect+drive-enum."
+      },
+      "recommendation": "Ship reject-and-surface with filter-schema narrowing + additive derived phase; keep the stored ChangeStatusSchema enum unless a loadChange legacy-status normalizer is added in the same change. Size planning against: change.ts:351/424/466-468, lifecycle-visibility.ts:3-7 + isLegacyOpenStatusSet callers (list-change-workflows.ts:49-53,113-119; visibility-epic-queries.ts:67-81), search-attributes.ts (derive phase or leave AdvCurrentGate for consumers), the byStatus sites, and spec prose in the 4 named specs. Treat json.ts:452-462 as the C4 blocker to design around.",
+      "follow_ups": [
+        "If stored enum is narrowed: add and unit-test a loadChange status normalizer (legacy active/pending->draft) BEFORE ChangeSchema.parse at json.ts:462, with a fixture asserting a legacy status:'active' change.json still loads.",
+        "Verify no external tool consumes byStatus.pending / byStatus.active as required keys (responses.ts:163, status.ts:163) before dropping them.",
+        "Decide whether derived phase is a new search attribute or computed at read time from AdvCurrentGate+AdvLifecycleState (Temporal dev-server caps Keyword attributes; prefer read-time derivation to avoid a new slot)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+      "task_id": "tk-1b5a4b031bf2",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1b5a4b031bf2"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/responses.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:red, runId tr_mrjn2ewx_b9187ac5)",
+          "exit_code": 1,
+          "summary": "RED as designed: 2 of 3 new phase tests fail (phase undefined on rows); third guard test trivially green."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:green, runId tr_mrjn9nao_2082cf18)",
+          "exit_code": 0,
+          "summary": "GREEN: all 3 phase tests pass — never-started/mid-execution/release-complete-open render distinct phases (proposal/execution/released); terminal lifecycle states render archived/closed; hint-less rows omit phase."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/storage/store-temporal/changes.test.ts src/storage/store-temporal-memo.test.ts src/storage/change-selection.test.ts src/tools/status.test.ts src/tools/status-enrich.test.ts src/tools/status-hygiene.test.ts src/storage/store-temporal/index.test.ts src/tools/backlog.test.ts src/utils/context-snapshot.test.ts",
+          "exit_code": 0,
+          "summary": "10 files, 326 tests pass — covers all touched projection sites and ChangeListResponse consumers."
+        },
+        {
+          "command": "pnpm run check (plugin/)",
+          "exit_code": 0,
+          "summary": "schemas:check, tsc --noEmit, test-isolation, lockfile policy, eslint, prettier all green. No public Zod schemas changed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Chose `released` as the phase for all-gates-done-but-still-open changes",
+          "why": "Distinguishes the release-complete wedge from an in-flight 'release' gate phase; task allowed either value as long as it is consistent and asserted — the new tests pin it."
+        },
+        {
+          "what": "Added summary plumbing: `currentGate` (required) + `lifecycleState` (optional pass-through) on ChangeListResponse rows, populated at all 6 projection sites",
+          "why": "Rows previously carried no gate data, so phase could not be derived at the tool layer. Required typing makes typecheck enforce every current/future projection site; tests are excluded from tsc so existing mocks were unaffected."
+        },
+        {
+          "what": "Derive phase in tools/change.ts next to the withLastActivity row builder; strip currentGate/lifecycleState hints from output",
+          "why": "Task directed colocation near the row builder; stripping keeps the additive output contract to exactly one new field (`phase`)."
+        },
+        {
+          "what": "Placed shared firstOpenGate helper in storage/store-types.ts beside computeLastActivity, taking Gates | GateProgress with one contained cast",
+          "why": "GateId types as plain string (GATE_IDS cast to [string, ...string[]]), so Record<GateId,...> is a true index-signature type that the concrete GateProgress interface cannot satisfy; a union of concrete shapes plus a documented cast keeps both store producers type-safe. Recorded as change wisdom ws-1pNI2t."
+        },
+        {
+          "what": "Rows without a gate hint omit `phase` instead of fabricating progress from status",
+          "why": "Legacy/mock stores cannot honestly report a gate; omitting preserves the honesty goal of the change. Pinned by the third new test."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "search-attributes.ts has a private currentGate() duplicating firstOpenGate semantics over workflow state — candidate for later dedup, intentionally untouched (out of scope)."
+      ],
+      "required_follow_ups": [],
+      "required_main_agent_actions": [
+        "Checkpoint task tk-1b5a4b031bf2 — engineer does not self-checkpoint per instructions."
+      ],
+      "related_scan": "Enumerated all ChangeListResponse row producers (6 sites: store-temporal/changes.ts list + listSummary envelope/cache/memo/hydration, store-disk.ts list) and updated every one; typecheck (required field) confirms none missed. Verified AdvCurrentGate search-attribute indexing uses identical only-'done'-advances semantics.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_change_list rows now render additive `phase`: open rows report the current gate (proposal..release), all-gates-done-but-open renders `released` (chosen value, asserted in tests, distinct from in-flight 'release'), archived/closed render themselves. `status` untouched. Summary plumbing WAS required: rows lacked gate data, so `currentGate` (required) + pass-through `lifecycleState` were added to ChangeListResponse and populated at all 6 projection sites (store-temporal/changes.ts x5 incl. memo path via ChangeSummary.gateProgress, store-disk.ts x1) via shared firstOpenGate helper — no workflow state, no signals, pure derivation. Derivation lives in tools/change.ts next to the row builder; hints are stripped from output so only `phase` is exposed (pinned by test). Rows lacking a gate hint omit phase rather than fabricating progress. RED (tr_mrjn2ewx_b9187ac5) -> GREEN (tr_mrjn9nao_2082cf18) recorded; 326 tests + pnpm run check green. No public Zod schemas changed (schemas:check confirms).",
+        "suggested_next_action": "Checkpoint tk-1b5a4b031bf2 (orchestrator action). Optionally schedule a full-suite oc-test run before gate progression."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:red, runId tr_mrjn2ewx_b9187ac5)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\" (phase:green, runId tr_mrjn9nao_2082cf18)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/storage/store-temporal/changes.test.ts src/storage/store-temporal-memo.test.ts src/storage/change-selection.test.ts src/tools/status.test.ts src/tools/status-enrich.test.ts src/tools/status-hygiene.test.ts src/storage/store-temporal/index.test.ts src/tools/backlog.test.ts src/utils/context-snapshot.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check (plugin/)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+      "task_id": "tk-7675f0a5147b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7675f0a5147b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "114 tests pass including 3 new status-filter rejection tests (red→green recorded)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts",
+          "exit_code": 0,
+          "summary": "11 cold-path visibility tests pass, no regressions"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, lint, format:check all green"
+        },
+        {
+          "command": "pnpm run schemas:generate && pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "8 JSON schemas generated and verified; no stale schemas"
+        },
+        {
+          "command": "npx tsx test-schema.ts (ad-hoc)",
+          "exit_code": 0,
+          "summary": "Verified Zod schema error message: active/pending rejected with hint; draft/in-flight/archived/closed accepted"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used superRefine instead of narrowing the union enum values",
+          "why": "Narrowing the union produces a generic 'Invalid input' Zod error that doesn't explain why active/pending are invalid or what to use instead. superRefine allows a custom, actionable message while keeping the schema's type surface unchanged for backward compatibility."
+        },
+        {
+          "what": "Added explicit handler check in addition to Zod schema rejection",
+          "why": "Tests call changeTools.adv_change_list.execute directly, bypassing the tool-registry preflight. The handler check ensures rejection works in both production (preflight) and test (direct invocation) paths. It also serves as self-documenting defense-in-depth."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified no other tools use ChangeListStatusFilterSchema. Verified list-change-workflows.ts cold-path tests still pass. Verified existing adv_change_list tests (114) all pass without modification.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-7675f0a5147b complete. Implemented fail-closed rejection of status:\"active\"|\"pending\" in adv_change_list with both Zod schema refinement and explicit handler boundary check. All 125 targeted tests pass, pnpm run check green, schemas:generate/schemas:check green. TDD red→green sequence recorded. No regressions to T1's phase field.",
+        "suggested_next_action": "Proceed to next task (T3 or T4). This task is complete and ready for review."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:generate && pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx tsx test-schema.ts (ad-hoc)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+      "task_id": "tk-5cbab8373725",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5cbab8373725"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/storage/store-temporal/index.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts",
+          "exit_code": 1,
+          "summary": "RED (runId tr_mrjp41u4_4ec06290): 6 expected failures — legacy active/pending statuses loaded unnormalized (json.test ×2), byStatus counted active instead of draft (store-disk.test), seedState carried active/pending (change-state.test ×2), poisoned-history disk fallback asserted stale active (index.test ×1, plus 1 pre-fix assertion)"
+        },
+        {
+          "command": "pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN (runId tr_mrjpde66_d2d9bbeb): all previously failing assertions pass after normalizer + reconciliation landed"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green (worker-bundle isolation boundary preserved: ../types was already in workflows.ts import graph via change-state.ts)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/storage/change-selection.test.ts src/temporal/change-state.test.ts src/temporal/change-state.ops-follow-up.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "10 files / 327 tests passed — includes T2 filter-rejection tests and bulk-close tool tests (no T1/T2 regression)"
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Full suite: 337 files / 5032 tests passed, including Temporal OOP integration tests that rebuilt the worker bundle with the workflows.ts seed hardening"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Shared normalizer normalizeLegacyChangeStatus in types/changes.ts:87, mapped active|pending→draft, passthrough for all other values",
+          "why": "One mapping shared by the disk load path and both seed boundaries; passthrough keeps genuine garbage schema-rejected instead of silently rewritten"
+        },
+        {
+          "what": "Root normalizer normalizeLegacyChangeRootStatus (json.ts:143) is deliberately SHALLOW — only the record's own status key",
+          "why": "Gate records legitimately carry status:\"pending\"; recursing like normalizeLegacyGateData would rewrite gate statuses to \"draft\" and break GateStatusSchema validation. Test asserts gates stay pending"
+        },
+        {
+          "what": "byStatus accumulation hardened with (byStatus[status] ?? 0) + 1 at store-disk.ts:1069 and store-temporal/index.ts:1344, keeping the 0-initialized Record",
+          "why": "Finite-safe even if a status key is ever missing from the initializer (exactly the T4 enum-narrowing transition); NaN-corruption becomes structurally impossible"
+        },
+        {
+          "what": "store-disk closeBatch eligibility narrowed to draft-only (was draft|pending)",
+          "why": "Runtime-identical (pending never arrives post-normalizer — loadChange normalizes; task directive 'draft covers the open case') and removes a T4 compile landmine (comparison against a removed enum member)"
+        },
+        {
+          "what": "Seed hardening at both boundaries: changeSeedStateFromChange (producer, change-state.ts:150) and changeWorkflow seed application (consumer, workflows.ts:583)",
+          "why": "Producer hardening covers all seedState builders (store-consolidate, workflow-start, store-temporal create); consumer hardening covers hand-built/legacy workflow inputs and replay of pre-fix histories"
+        },
+        {
+          "what": "Legacy-status test fixtures use `as unknown as Change`",
+          "why": "Survives T4's enum narrowing without further edits; the runtime normalization behavior remains the assertion"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "T4 same-pattern sites NOT in the design's enumerated T3 set (left for T4's typecheck sweep): plugin/src/storage/store-temporal/changes.ts:616-619 closeBatch keys on draft/pending + message at :631 ('Only draft or pending changes can be bulk-closed.'); plugin/src/storage/change-selection.ts:57 and :137 eligibility gates + messages :60/:140 + comment :132. Both become TS2367 compile errors when T4 removes pending/active from ChangeStatusSchema.",
+        "plugin/src/storage/change-selection.test.ts:182 'accepts pending status' will need flipping to expect rejection when T4 narrows eligibility (it mocks a pending change directly).",
+        "T4 fixture sweep: many test files construct Change objects with status:\"active\"/\"pending\" (tools/change.test.ts, tools/followup.test.ts, tools/gate.test.ts, tools/subagent-report.test.ts, temporal/change-state.test.ts:153,527,558,579, store-temporal/shared.test.ts:148, store-temporal/index.test.ts activeChange() helper, __tests__/setup.ts SAMPLE_CHANGE). Typed `satisfies Change` sites become compile errors at enum removal; runtime-only sites keep passing via the normalizer."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned the full bulk-close/byStatus/seed subsystem for draft/pending keying: fixed the enumerated store-disk closeBatch + both byStatus sites + seed boundaries; found and reported (not fixed, outside enumerated scope) the same pattern in store-temporal/changes.ts closeBatch and change-selection.ts for T4. Confirmed loadAllChanges + loadArchivedChanges both reuse loadChange, so the normalizer covers every disk change-record read. Confirmed mapTemporalChangeStateToChange passthrough is safe: workflow state is now normalized at both seed boundaries, and byStatus finite-guards cover any theoretical legacy in-flight workflow state.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC4 safety precondition landed. Load-path normalizer: normalizeLegacyChangeRootStatus at plugin/src/storage/json.ts:143, chained in loadChange at json.ts:486 BEFORE ChangeSchema.parse (json.ts:493); legacy active|pending → draft, atomically rewritten to disk, gate statuses untouched (shallow by design). Shared helper normalizeLegacyChangeStatus at types/changes.ts:87 (barrel-exported). Reconciliation: store-disk closeBatch keys draft-only (store-disk.ts:493); byStatus finite-safe via (?? 0)+1 at store-disk.ts:1069 and store-temporal/index.ts:1344 (responses.ts:163 type untouched — Record follows the enum automatically at T4); seedState never carries active/pending (change-state.ts:150 producer + workflows.ts:583 consumer). C4 honored: legacy records load normalized, not rejected. ChangeStatusSchema NOT modified (T4 owns). T1 (phase rows) and T2 (filter narrowing) untouched and green. Two existing tests intentionally flipped to expect normalized draft (poisoned-history disk fallback, re-seed-on-read) — behavior change is the point of the task. Full suite 5032 tests green; worker-bundle isolation check green.",
+        "suggested_next_action": "Checkpoint tk-5cbab8373725 and proceed to T4 (remove pending/active from ChangeStatusSchema). T4's typecheck sweep should expect exactly these remaining sites: store-temporal/changes.ts:616-619+631, change-selection.ts:57/60/132/137/140 (+ its test :182), and the fixture sites listed in follow_ups."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/storage/change-selection.test.ts src/temporal/change-state.test.ts src/temporal/change-state.ops-follow-up.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+      "task_id": "tk-91ee7c23df13",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-91ee7c23df13"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/changes.status-enum.test.ts",
+        "plugin/src/temporal/lifecycle-visibility.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-epic-queries.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/change-selection.ts",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/storage/change-selection.test.ts",
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/visibility-epic-queries.test.ts",
+        "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/types/epics.test.ts",
+        "plugin/src/types/changes.ops-follow-up.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts",
+          "exit_code": 1,
+          "summary": "RED (phase:red, runId tr_mrjq2tcz_3809ebf4): 3 designed failures — ChangeStatusSchema.parse(\"active\")/parse(\"pending\") succeeded and enum had 5 options, proving the enum still allowed legacy open values before the fix."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN (phase:green, runId tr_mrjqdl3h_010c2b49): 7/7 pass — parse rejects active/pending/garbage, accepts draft/archived/closed, enum options exactly {draft,archived,closed}."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts src/storage/change-selection.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/status.test.ts src/types/epics.test.ts src/types/changes.ops-follow-up.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY (phase:verify, runId tr_mrjr4anf_9190ecfe): 11 files, 319 tests pass — covers enum, filter boundary (T2), in-flight list, byStatus stores, closeBatch, change-selection, both visibility-query builders, epic + ops-follow-up ChangeSchema consumers."
+        },
+        {
+          "command": "pnpm run check (plugin/)",
+          "exit_code": 0,
+          "summary": "schemas:check (change.schema.json regenerated, status enum narrowed) + tsc --noEmit + test-isolation + lockfile policy + eslint + prettier all green. Initial 8 tsc errors across 5 source files all resolved."
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Full suite: 338 test files, 5038 tests, 0 failures — definitive regression check for the public schema narrowing (caught the epics.test.ts + changes.ops-follow-up.test.ts ChangeSchema.parse fixtures the targeted set missed)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Widened ChangeListStatusFilterSchema union to include z.literal(\"active\")+z.literal(\"pending\") so the T2 superRefine can still intercept them with the actionable in-flight hint",
+          "why": "Narrowing ChangeStatusSchema made `value === \"active\"/\"pending\"` type errors (no overlap) and would have let the union reject them with Zod's generic invalid_union message, regressing T2's helpful-hint AC. Union members still fail validation via superRefine, so accepted-output behavior is unchanged."
+        },
+        {
+          "what": "Removed the now-meaningless change-selection 'rejects active status' test and repurposed 'accepts pending status' to 'accepts draft status'",
+          "why": "\"active\" is no longer a valid ChangeStatus to reject at the eligibility layer (it is rejected at schema parse, covered by the new status-enum test). Draft acceptance keeps an explicit acceptance-path test."
+        },
+        {
+          "what": "Narrowed both DEFAULT_STATUSES (list-change-workflows.ts, visibility-epic-queries.ts) and LEGACY_OPEN_STATUSES to [\"draft\"] together",
+          "why": "Keeps C1: the default/undefined open path and explicit draft override both remain recognized as the legacy-open set, so open reads route through AdvLifecycleState/ExecutionStatus lifecycle clauses rather than elevating AdvChangeStatus."
+        },
+        {
+          "what": "Updated the T3 store-disk byStatus test to assert absence of active/pending keys instead of active===0",
+          "why": "The narrowed byStatus Record no longer carries those keys; asserting their absence pins the enum narrowing while the finite + total===2 checks preserve the T3 NaN-safety/C4 intent."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "search-attributes.ts has a private currentGate() duplicating firstOpenGate semantics (carried over from T1 report; intentionally untouched — out of scope).",
+        "Recurring STSL/worker TemporalQueryTimeout on adv_run_test/adv_status this session (resolved via adv_temporal_reconnect) — worth a health look; prior T1 report hit the same verification_missing path."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint task tk-91ee7c23df13 — engineer does not self-checkpoint per instructions.",
+        "Consider running the two Temporal OOP itests (concurrent-signaling.itest.ts, continue-as-new.itest.ts) under the integration harness; they need a live Temporal server and were only typecheck-verified in this run."
+      ],
+      "related_scan": "Confirmed the 256/351 raw status:\"active\"/status:\"pending\" grep hits are overwhelmingly OTHER enums (TaskStatus, GateStatus, AgendaStatus, EpicProgressSummaryStatus, ops_followup/evidence statuses) — verified the typechecker + full 5038-test suite as the authoritative ChangeStatus blast radius instead of blind replacement. Fixed the 8 tsc-flagged source ripples and every ChangeStatus fixture that parses via ChangeSchema or flows through an open-status path (epics.test.ts x3, changes.ops-follow-up.test.ts x1, change.test.ts in-flight fixture, status.test.ts makeDoc + 2 byStatus mocks, store-disk T3 test, change-selection tests, both visibility-query tests, both itests). EpicProgressSummary 'active' and TaskStatus 'pending' fixtures left intact (legitimate enums).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC4 implemented: stored ChangeStatusSchema narrowed to [draft, archived, closed]; parse(\"active\")/parse(\"pending\") now throw (pinned by new changes.status-enum.test.ts — red tr_mrjq2tcz_3809ebf4 -> green tr_mrjqdl3h_010c2b49 -> verify tr_mrjr4anf_9190ecfe). C1 preserved: LEGACY_OPEN_STATUSES/DEFAULT_STATUSES narrowed to [draft], and isLegacyOpenStatusSet([draft]) still routes open reads to AdvLifecycleState=\"open\" AND ExecutionStatus=\"Running\" (never AdvChangeStatus) — asserted by list-change-workflows + visibility-epic-queries tests. C4 preserved: T3 json.ts load normalizer untouched; store-disk.test.ts confirms a poisoned on-disk \"active\" record still loads as draft with finite byStatus. T2 preserved WITHOUT regression: ChangeListStatusFilterSchema union was WIDENED to include the active/pending literals so the superRefine can still intercept them with the actionable in-flight hint (they still fail validation — external behavior unchanged); narrowing ChangeStatusSchema alone made the superRefine comparisons type errors. Public schema change: change.schema.json regenerated (status enum narrowed), schemas:check green. Full suite green: 338 files / 5038 tests / 0 failures. pnpm run check green. Net -94/+57 (prune-first). NOTE (infra friction): adv_run_test + adv_status repeatedly hit TemporalQueryTimeout until I ran adv_temporal_reconnect and confirmed change-workflow reachability via adv_change_show; after that all recordings succeeded. Prior T1 report shows the same verification_missing warnings, so this STSL/worker flakiness is recurring this session.",
+        "suggested_next_action": "Checkpoint tk-91ee7c23df13 (orchestrator action). Optionally run the two Temporal itests (concurrent-signaling.itest.ts, continue-as-new.itest.ts) under the OOP integration harness since they require a live Temporal server and were only typecheck-verified here."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/changes.status-enum.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/changes.status-enum.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/changes.status-enum.test.ts src/storage/change-selection.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/status.test.ts src/types/epics.test.ts src/types/changes.ops-follow-up.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check (plugin/)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+      "task_id": "tk-9dc9b3d1b06b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9dc9b3d1b06b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec tsx temp-apply-delta.mts (applySpecDelta modify delta on advance-workflow)",
+          "exit_code": 0,
+          "summary": "DeltaSchema.parse OK (modify dl-narrowChangeStatus01 -> rq-changeLifecycleState01); applySpecDelta ok:true, version 1.28.0->1.28.1, scenarios [.1,.2,.3]; output reverted afterward in favor of a targeted hand-edit (machinery reformats whole file)"
+        },
+        {
+          "command": "pnpm exec tsx -e 'SpecSchema.parse(spec.json)'",
+          "exit_code": 0,
+          "summary": "Edited .adv/specs/advance-workflow/spec.json parses and conforms to SpecSchema; rq-changeLifecycleState01 body contains the reachable-set law and sole-authority clause; scenarios = [.1,.2,.3]; version 1.28.1, updated_at 2026-07-13"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check + typecheck + test-isolation + lockfile-policy + lint + format:check all green"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/__tests__/spec-citation-invariant.test.ts src/__tests__/spec-deltas-cull.test.ts src/adv-task-assets.test.ts src/adv-problem-assets.test.ts",
+          "exit_code": 0,
+          "summary": "7 test files / 71 tests pass — confirms the ADV_INSTRUCTIONS.md and spec.json edits break no asset/doc/spec invariant"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Targeted advance-workflow/rq-changeLifecycleState01 (not advance-meta)",
+          "why": "It is the existing requirement that governs the ChangeStatus/lifecycleState/status-authority surface and already asserts Change.status is not the open/claim authority; advance-meta only mentions AdvChangeStatus as a read-model Visibility bucket, so it is not the status-enum law home."
+        },
+        {
+          "what": "Used operation 'modify' rather than 'add'",
+          "why": "Amends the single governing requirement in place, avoiding a duplicate/overlapping requirement that validator/conflicts.ts (checkDeltaTargetsExist / intra-delta and duplicate detection) is designed to reject; MODIFY is the semantically correct op for 'the law changed' and bumps patch per bumpVersion (1.28.0->1.28.1)."
+        },
+        {
+          "what": "Hand-edited spec.json instead of running the applySpecDelta machinery for the final write",
+          "why": "The machinery writes JSON.stringify(spec,null,2), which reformats the whole file (single-line arrays -> multi-line, \\u2014 -> literal em-dash) producing ~1160 lines of diff noise; the committed spec.json is hand-formatted. I validated the delta end-to-end via the machinery first (clean apply, version bump, scenario .3), then reverted and hand-edited for a clean 18+/5- diff."
+        },
+        {
+          "what": "Did NOT modify the approved agreement.md to add a 'Draft Spec Deltas' section",
+          "why": "No later gate re-validates the discovery gate's agreement content_hash (only executiveSummary hash is compared at acceptance; contract-mint hashed at mint time), but editing an approved contract artifact is process-questionable; the delta's durable, authoritative home is spec.json."
+        },
+        {
+          "what": "Updated ADV_INSTRUCTIONS.md:597 in-flight prose",
+          "why": "Related-scan (P25): it asserted in-flight = 'draft + pending + active' and 'active keeps its strict storage-enum meaning' — both stale after T4 (change.ts:521 in-flight=['draft']; change.ts:454 active/pending rejected with hint). Task scope explicitly covers 'any prose that says the enum is draft/pending/active/archived/closed'."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "GAP (worth its own change): rq-disc07/rq-task REQUIRE persisting draft spec-delta obligations, but there is no agent-accessible mechanism to write Change.deltas/state.deltas for an already-created change (no tool, no signal, no agreement parser; only seedState at workflow (re-)seed). Consider an adv_change_set_deltas tool or an agreement draft-delta capture signal so spec deltas can be declared on in-flight changes instead of applied directly to spec.json."
+      ],
+      "required_main_agent_actions": [
+        "OPTIONAL (not required to ship the law): if you want archive-traceability, declare the formal modify-delta (dl-narrowChangeStatus01 on advance-workflow/rq-changeLifecycleState01) into Change.deltas via a privileged store write before archiving — no agent tool exposes this. The archive summary '## Spec Deltas' section reads state.deltas, which is empty for this change; the law itself is already in spec.json regardless."
+      ],
+      "related_scan": "Scanned docs/specs/*, .adv/specs/*, docs/temporal-recovery.md, project.md, ADV_INSTRUCTIONS.md, AGENTS.md for stored-enum enumerations. Only advance-workflow spec/docs (rq-changeLifecycleState01) and ADV_INSTRUCTIONS.md:597 asserted the old set — both updated. docs/specs/advance-meta.md references AdvChangeStatus only as a read-model Visibility bucket (already consistent with the new law). docs/temporal-recovery.md mentions AdvChangeStatus only as a Keyword search-attribute type (no enum-set assertion). Remaining 'draft+pending+active' matches are inside .adv/archive/* (immutable historical change snapshots — correctly NOT edited).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "T5 (spec delta + docs) complete and verified. (a) TARGET: advance-workflow / requirement rq-changeLifecycleState01 — the requirement that already governs the ChangeStatus/lifecycleState/status-authority surface (advance-meta only references AdvChangeStatus as a read-model search-attribute bucket). (b) DELTA SHAPE: a single DeltaModifySchema delta — {id:'dl-narrowChangeStatus01', operation:'modify', target_id:'rq-changeLifecycleState01', changes:{body:<rewritten>, scenarios:[.1 refined, .2 unchanged, .3 NEW]}}. New body records: stored ChangeStatus lifecycle-reachable set = draft/archived/closed; pending/active are NOT lifecycle-reachable and are removed from the stored enum (legacy-only, normalize to lifecycleState open on read/projection); AdvChangeStatus is compatibility/read-model metadata and NEVER the open-claim authority (sole authority = AdvLifecycleState=\"open\" AND ExecutionStatus=\"Running\") — reaffirms C1/AC5. New scenario rq-changeLifecycleState01.3 asserts the reachable set explicitly. Applied to .adv/specs/advance-workflow/spec.json (version 1.28.0→1.28.1 patch, updated_at 2026-07-13) with a clean 18+/5− targeted diff, plus matching targeted edit to the generated docs/specs/advance-workflow.md section, plus a stale-prose fix in ADV_INSTRUCTIONS.md:597 (in-flight was documented as 'draft+pending+active union' with 'active keeps storage-enum meaning'; T4 actually made in-flight=['draft'] and active/pending filters reject-with-hint per change.ts:521/454). (c)+(d) DECLARATION MECHANISM: state.deltas is populated ONLY from seedState.deltas<-Change.deltas at workflow (re-)seed (workflows.ts:593; change-state.ts:158; workflow-start.ts:122). Archive reads it from the LIVE workflow via snapshotState() (workflows.ts:791) and applies each capability via applySpecDelta (activities.ts:625-641). There is NO agent-accessible write path: no setDeltas/addDelta signal, no MCP tool (adv_change_create seeds deltas:{}; adv_change_update explicitly does not touch deltas), and no agreement/'Draft Spec Deltas' parser anywhere in source. So the delta could NOT be declared into state.deltas by any tool/signal I can fire — I applied its effect directly to spec.json (the only reliable agent path) and authored the formal delta above. THE ORCHESTRATOR DOES NOT NEED TO FIRE A SIGNAL (none exists). Formal delta for optional state.deltas declaration (state.deltas shape): {\"advance-workflow\":[{\"id\":\"dl-narrowChangeStatus01\",\"operation\":\"modify\",\"target_id\":\"rq-changeLifecycleState01\",\"changes\":{\"body\":\"<new body as applied>\",\"scenarios\":\"[rq-changeLifecycleState01.1 refined, .2 unchanged, .3 new]\"}}]}.",
+        "suggested_next_action": "Nothing required to ship the law — it is recorded and verified. Do NOT checkpoint/complete tk-9dc9b3d1b06b from the sub-agent (orchestrator owns that). Optional before archive: if you want the archive summary '## Spec Deltas' section to reflect this delta, declare the formal modify-delta into Change.deltas via a privileged store path (no agent tool exists). Note archive will fully regenerate docs/specs/advance-workflow.md from spec.json (currently a stale 1.26.0 snapshot), producing a larger sync diff — my targeted section edit already matches the rq-changeLifecycleState01 regen output."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsx temp-apply-delta.mts (applySpecDelta modify delta on advance-workflow)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsx -e 'SpecSchema.parse(spec.json)'"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/__tests__/spec-citation-invariant.test.ts src/__tests__/spec-deltas-cull.test.ts src/adv-task-assets.test.ts src/adv-problem-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For a compatibility status that no longer conveys lifecycle progress, carry gate/lifecycle hints in the list read model and derive presentation phase at the tool boundary; keep Visibility open scans governed by lifecycle plus running execution status."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.test.ts src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/temporal/change-state.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/types/changes.status-enum.test.ts src/storage/change-selection.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 9 files, 318 tests passed. `pnpm run check` passed schemas:check, TypeScript, test-isolation, lockfile policy, ESLint, and Prettier. Inspected all six currentGate projections: disk list, full Temporal list, terminal fallback, cache, memo, and hydrated summary; each uses firstOpenGate over gates/gateProgress and supplies lifecycle state. Open Visibility and Epic-member paths use AdvLifecycleState=\"open\" AND ExecutionStatus=\"Running\" rather than AdvChangeStatus. Legacy root status normalization precedes ChangeSchema.parse in loadChange and is repeated at both workflow seed boundaries. Workflow change is a deterministic pure status normalization only; AdvChangeStatus remains Keyword."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No browser-facing surface affected; browser review not applicable.",
+        "The supplied root-level targeted command requires paths relative to plugin/ because bin/oc-test invokes Vitest from plugin; successful verification used src-relative paths."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeStatusHonesty",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeStatusHonesty",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [
+        {
+          "id": "harden-cleanup-1",
+          "label": "issue",
+          "file": "plugin/test-schema.ts",
+          "what": "Committed ad-hoc schema probe printed console output from the plugin root.",
+          "why": "Release source must not include unmanaged diagnostic executables.",
+          "fix": "applied: deleted the probe"
+        },
+        {
+          "id": "harden-cleanup-2",
+          "label": "issue",
+          "file": "plugin/test-zod-error.ts",
+          "what": "Committed Zod-error experiment printed console output and duplicated discarded schema approaches.",
+          "why": "Dead exploratory code is release noise and a future maintenance hazard.",
+          "fix": "applied: deleted the experiment"
+        },
+        {
+          "id": "harden-test-contract-1",
+          "label": "issue",
+          "file": "plugin/src/adv-skill-backed-commands-assets.test.ts",
+          "line": 317,
+          "what": "The capability-version assertion still expected 1.28.0 after this change intentionally updated advance-workflow to 1.28.1.",
+          "why": "It caused the full release suite to fail deterministically.",
+          "fix": "applied: expectation updated to 1.28.1"
+        },
+        {
+          "id": "harden-test-contract-2",
+          "label": "issue",
+          "file": "plugin/src/ops-follow-up-assets.test.ts",
+          "line": 144,
+          "what": "The advance-workflow version expectation remained at 1.28.0.",
+          "why": "It caused the second deterministic full-suite failure after the approved spec delta.",
+          "fix": "applied: expectation updated to 1.28.1"
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/test-schema.ts",
+          "summary": "Deleted committed ad-hoc filter-schema console probe.",
+          "verification": "Absent from working tree; full suite passed."
+        },
+        {
+          "file": "plugin/test-zod-error.ts",
+          "summary": "Deleted committed exploratory Zod console script.",
+          "verification": "Absent from working tree; full suite passed."
+        },
+        {
+          "file": "plugin/src/adv-skill-backed-commands-assets.test.ts",
+          "summary": "Aligned advance-workflow version assertion with intentional 1.28.1 spec delta.",
+          "verification": "Targeted assets test and full suite passed."
+        },
+        {
+          "file": "plugin/src/ops-follow-up-assets.test.ts",
+          "summary": "Aligned stale advance-workflow version assertion with 1.28.1.",
+          "verification": "Targeted assets test and full suite passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Capability-version bumps must update every exact version assertion; tests labeled “at least” may still use strict equality and fail release verification."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/types/changes.status-enum.test.ts src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/temporal/change-state.test.ts src/temporal/list-change-workflows.test.ts src/tools/change.test.ts src/tools/status.test.ts",
+          "bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts",
+          "pnpm run check",
+          "bin/oc-test full"
+        ],
+        "results": "pass",
+        "evidence": "Focused lifecycle suite: 8 files / 346 tests passed. Asset-version remediation suite: 2 files / 68 tests passed. pnpm run check passed (schema check, typecheck, isolation, lockfile, lint, format). Final full suite: 338 files / 5,038 tests passed. Diff checks clean. No dependency, environment, or deployment-config changes. Live workflow scan found only terminal status assignments plus seed-boundary normalization; legacy active/pending values normalize before ChangeStatus validation, and no required ops follow-up exists (ops_followup: null, ops_followup_links: [])."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Source changes take effect only after build, deploy-local, and OpenCode/plugin-host restart; release operator must perform that normal deployment sequence.",
+        "Existing already-loaded worker code remains unchanged until host restart; deploy atomically rather than mixing source and old runtime."
+      ],
+      "required_main_agent_actions": [
+        "Append a Release Readiness Summary to the executive summary: hardening removed two committed diagnostic scripts, aligned two spec-version assertions, and final verification passed (338 files / 5,038 tests).",
+        "Include the four reviewer remediation files in the change commit before release.",
+        "Build, deploy, and restart the OpenCode/plugin host using the repository deployment procedure; no new dependency, environment variable, or config migration is required."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-1b5a4b031bf2": [
+      {
+        "runId": "tr_mrjn2ewx_b9187ac5",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\"",
+        "durationMs": 3995.922482999973,
+        "recordedAt": "2026-07-13T19:52:14.432Z"
+      },
+      {
+        "runId": "tr_mrjn9nao_2082cf18",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change.test.ts -t \"phase projection\"",
+        "durationMs": 2577.648678000085,
+        "recordedAt": "2026-07-13T19:57:51.855Z"
+      }
+    ],
+    "tk-7675f0a5147b": [
+      {
+        "runId": "tr_mrjo4d3d_058e5f63",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+        "durationMs": 3512.6745370002463,
+        "recordedAt": "2026-07-13T20:21:44.970Z"
+      },
+      {
+        "runId": "tr_mrjo5fvj_9c05d7e8",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+        "durationMs": 3425.295648000203,
+        "recordedAt": "2026-07-13T20:22:35.215Z"
+      }
+    ],
+    "tk-5cbab8373725": [
+      {
+        "runId": "tr_mrjp41u4_4ec06290",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts",
+        "durationMs": 206651.57808999997,
+        "recordedAt": "2026-07-13T20:49:29.995Z"
+      },
+      {
+        "runId": "tr_mrjpa2de_3438a7a5",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts",
+        "durationMs": 107568.54856900033,
+        "recordedAt": "2026-07-13T20:54:10.646Z"
+      },
+      {
+        "runId": "tr_mrjpde66_d2d9bbeb",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm test -- src/storage/json.test.ts src/storage/store-disk.test.ts src/temporal/change-state.test.ts src/storage/store-temporal/index.test.ts",
+        "durationMs": 106855.70922200009,
+        "recordedAt": "2026-07-13T20:56:45.886Z"
+      }
+    ],
+    "tk-91ee7c23df13": [
+      {
+        "runId": "tr_mrjq2tcz_3809ebf4",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts",
+        "durationMs": 1593.8713849987835,
+        "recordedAt": "2026-07-13T21:16:32.010Z"
+      },
+      {
+        "runId": "tr_mrjqdl3h_010c2b49",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts",
+        "durationMs": 1634.585028000176,
+        "recordedAt": "2026-07-13T21:24:54.537Z"
+      },
+      {
+        "runId": "tr_mrjr4anf_9190ecfe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/types/changes.status-enum.test.ts src/storage/change-selection.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/storage/store-disk.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/status.test.ts src/types/epics.test.ts src/types/changes.ops-follow-up.test.ts",
+        "durationMs": 6418.610632998869,
+        "recordedAt": "2026-07-13T21:45:40.669Z"
+      }
+    ],
+    "tk-bf89de4679f5": [
+      {
+        "runId": "tr_mrjspqcm_b9c79e2d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 42046.450872000016,
+        "recordedAt": "2026-07-13T22:30:20.435Z"
+      },
+      {
+        "runId": "tr_mrjsq2xo_30ba184f",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/__tests__/backlog-coordination-regression.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/temporal/visibility-claim-queries.test.ts src/types/changes.status-enum.test.ts src/tools/change.test.ts src/storage/json.test.ts src/storage/change-selection.test.ts",
+        "durationMs": 3.0022400000016205,
+        "recordedAt": "2026-07-13T22:30:36.748Z"
+      },
+      {
+        "runId": "tr_mrjsqjta_490e744e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/__tests__/backlog-coordination-regression.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-epic-queries.test.ts src/temporal/visibility-claim-queries.test.ts src/types/changes.status-enum.test.ts src/tools/change.test.ts src/storage/json.test.ts src/storage/change-selection.test.ts",
+        "durationMs": 4301.582173000032,
+        "recordedAt": "2026-07-13T22:30:58.595Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-1pNI2t",
+      "type": "gotcha",
+      "content": "GateId types as plain `string` (GATE_IDS is cast to `[string, ...string[]]` before z.enum), so `Record<GateId, X>` / mapped types over GateId become true string-index-signature types. Concrete interfaces without index signatures (e.g. GateProgress in store-temporal-memo.ts) are NOT assignable to them, and `gates[gateId]` indexing fails on unions. Fix pattern: accept a union of the concrete shapes (Gates | GateProgress) and index through one contained, documented `as Record<string, ...>` cast (see firstOpenGate in storage/store-types.ts).",
+      "source_task": "tk-1b5a4b031bf2",
+      "recorded_at": "2026-07-13T20:06:36.864Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:01:02.924Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the proposal via `approve`: fix change-status honesty (draft-only field, unreachable pending/active enum values, footgun status filter, uninformative list rows) while preserving AdvLifecycleState as the open-claim authority. Archive terminal-projection wedge stays out of scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "312aeaa258ae8a015e18eca812cc3e1e405915fc380f6a47ea062994813ed609",
+        "non_whitespace_chars": 1429,
+        "checked_at": "2026-07-13T18:56:34.670Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:25:10.351Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the discovery agreement via `approve`. Standard contract minted (9 items: AC1-AC5, C1-C4). Scope: surface gate/lifecycle-derived phase in list rows; fix active/pending filter footgun consistently across warm listSummary + cold Visibility paths; resolve unreachable pending/active enum values; preserve AdvLifecycleState as sole open-claim authority. Redirect-vs-reject fork deferred to design gate.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "non_whitespace_chars": 3258,
+        "checked_at": "2026-07-13T18:56:34.671Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:34:04.483Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher (caution, no blockers, high confidence). Approach: reject-and-surface with normalizer-gated stored-enum cleanup — narrow ChangeListStatusFilterSchema (fail-closed), additive derived phase from AdvCurrentGate+AdvLifecycleState (replay-safe), load-path legacy-status normalizer in json.ts before removing pending/active from ChangeStatusSchema (avoids json.ts:462 disk-parse hard-fail), reconcile byStatus/seedState/bulk-close, simplify legacy-open sets to [\"draft\"], spec delta. No CONFLICT/tradeoff — no user pause required.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "877e055c8c8539de1db430b4725959dce9d846f79092b8c922a8f70d2ddce7d4",
+        "non_whitespace_chars": 3718,
+        "checked_at": "2026-07-13T18:56:34.672Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T19:36:44.553Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the 6-task graph via `approve`. Full AC coverage (AC1→T1, AC2→T2, AC3→T1+T2, AC4→T3+T4, AC5→T6; C1-C4 respected). Normalizer T3 sequenced before enum removal T4 per validator disk-parse safety. Ready-first: T1/T2/T3."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T22:31:25.654Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks done (T1 phase field 469f4d4, T2 filter rejection bc1ce62, T3 normalizer 6db309c, T4 enum removal 19c9cd4, T5 spec delta+docs faf5b49, T6 verify). pnpm check green; AC5 authority suite 261 tests pass; T4 full suite 5038 green. All ACs proven: AC1 (phase), AC2 (filter rejection + cross-path), AC3 (open-scan), AC4 (enum narrowed + normalizer), AC5 (lifecycle sole authority)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T22:40:47.558Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted the delivered work via `accept`. Review matrix 9/9 pass; independent reviewer READY (no blocking findings); executive summary persisted. All ACs satisfied: phase field (AC1), filter rejection + cross-path consistency (AC2), open-scan regression (AC3), enum narrowed + normalizer (AC4), lifecycle sole authority (AC5).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "daddbd91dadd52bf4eaa164811547eb3bce7318c1355cc74028370ae62c2e3b9",
+        "non_whitespace_chars": 3326,
+        "checked_at": "2026-07-13T18:56:34.673Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session:cleanup-investigation-2026-07-13"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+      "approvedAt": "2026-07-13T19:25:05.280Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — For an open change past proposal, `adv_change_list` output conveys its current phase (derived from `AdvCurrentGate` + `AdvLifecycleState`), and that value differs between a never-started change, a mid-execution change, and a release-complete change. (test)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — `adv_change_list status:\"active\"` and `status:\"pending\"` no longer silently return 0 rows while open changes exist. The chosen resolution (lifecycle/gate-mapped rows OR a structured hint naming `in-flight`) is identical across the warm `listSummary` path and the cold Visibility path. (test)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — A regression test proves the open-change scan used by `/adv-cleanup` surfaces existing open changes (no false \"no active changes\" when open changes exist). (test)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — The `ChangeStatus` enum no longer carries a lifecycle-unreachable value, OR previously-unreachable values become reachably driven from gate/lifecycle progression; the chosen resolution is covered by a test asserting status reflects progression. (test)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — `AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"` remains the sole open-claim authority; `AdvChangeStatus` is never used as open-authority. Existing claim/worktree/backlog spec invariants and their tests stay green. (static_check + existing tests)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — Specs remain law (advance-workflow, advance-meta, worktree-lifecycle, backlog-coordination): `AdvChangeStatus` stays compatibility/read-model metadata, subordinate to `AdvLifecycleState`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — Temporal replay determinism preserved. `AdvChangeStatus` search-attribute stays `Keyword`; no wrong-type re-registration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** — No behavioral change to archive terminal-projection handling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** — Backward-compatible `status` tool arg: existing `in-flight` / `archived` / `closed` / default callers keep current behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T22:35:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test.ts phase-projection tests (3/3 GREEN tr_mrjn9nao): never-started→proposal, mid-execution→execution, release-complete-open→released are distinct; archived/closed render themselves; hint-less rows omit phase. Independent reviewer confirmed all 6 projection sites derive currentGate consistently."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test.ts: status:\"active\" and \"pending\" rejected with actionable hint (Zod superRefine + handler boundary check); draft/in-flight/default return identical open set on warm listSummary + cold Visibility paths. Reviewer confirmed parity retained."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test.ts open-scan regression: default/in-flight list surfaces existing open changes (no false empty). The /adv-cleanup footgun (status:\"active\"→0 rows) is structurally eliminated."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "changes.status-enum.test.ts: ChangeStatusSchema.parse(\"active\")/\"pending\" now throw; enum = draft/archived/closed. json.test.ts: legacy active/pending record loads as draft without ZodError (normalizer at json.ts:143 precedes ChangeSchema.parse at L493). Reviewer confirmed normalizer precedes parse and seeding."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "backlog-coordination-regression + visibility-claim-queries + visibility-epic-queries + list-change-workflows all green (tr_mrjsqjta, 261 tests). Reviewer confirmed open scans route through AdvLifecycleState=\"open\" AND ExecutionStatus=\"Running\"; AdvChangeStatus never elevated to authority."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec delta on advance-workflow/rq-changeLifecycleState01 reaffirms AdvChangeStatus is read-model, never open-claim authority. DEFAULT_STATUSES narrowed to [\"draft\"] together so open path stays on lifecycle clauses."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new workflow signals or non-deterministic operations; phase derivation is pure over in-heap gate state; AdvChangeStatus stays Keyword (no re-registration). Reviewer confirmed replay-safe."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No archive terminal-projection code touched. The wedge (deepScanTemporalWorkflowHot) was unwedged separately via normal archive before this change."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "in-flight/archived/closed/default callers unchanged; legacy active/pending disk records load via normalizer (json.test.ts). in-flight Set narrowed to [\"draft\"] (only reachable open status)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — For an open change past proposal, `adv_change_list` output conveys its current phase (derived from `AdvCurrentGate` + `AdvLifecycleState`), and that value differs between a never-started change, a mid-execution change, and a release-complete change. (test)",
+    "**AC2** — `adv_change_list status:\"active\"` and `status:\"pending\"` no longer silently return 0 rows while open changes exist. The chosen resolution (lifecycle/gate-mapped rows OR a structured hint naming `in-flight`) is identical across the warm `listSummary` path and the cold Visibility path. (test)",
+    "**AC3** — A regression test proves the open-change scan used by `/adv-cleanup` surfaces existing open changes (no false \"no active changes\" when open changes exist). (test)",
+    "**AC4** — The `ChangeStatus` enum no longer carries a lifecycle-unreachable value, OR previously-unreachable values become reachably driven from gate/lifecycle progression; the chosen resolution is covered by a test asserting status reflects progression. (test)",
+    "**AC5** — `AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"` remains the sole open-claim authority; `AdvChangeStatus` is never used as open-authority. Existing claim/worktree/backlog spec invariants and their tests stay green. (static_check + existing tests)"
+  ],
+  "documents": {
+    "proposal": "## Proposal: Fix change status honesty\n\nMake ADV change status reflect real progress instead of a permanently-stale `draft`.\n\n### Three defects (all source-traced this session)\n\n1. `state.status` has no draft→active transition — `pending`/`active` enum values are unreachable; every open change reads `draft`.\n2. `adv_change_list status:\"active\"|\"pending\"` can never match — silent 0-row footgun that made `/adv-cleanup` blind.\n3. `adv_change_list` row output shows `draft` for never-started and release-complete changes alike.\n\n### Candidate directions (to resolve in design)\n\n- **Surface truth in the row:** render gate/lifecycle-derived state (e.g. `discovery`, `execution`, `release✓`) in `adv_change_list` output, sourced from `AdvCurrentGate` + `AdvLifecycleState`, not the vestigial `status`.\n- **Fix the filter contract:** map `status:\"active\"|\"pending\"` to lifecycle-open semantics, or reject with an actionable hint pointing at `in-flight`/gate filters. Add a regression test that the cleanup/open-scan path surfaces open changes.\n- **Resolve the enum:** either drive `AdvChangeStatus` honestly from gate/lifecycle state (kept subordinate to lifecycle authority) or remove the unreachable `pending`/`active` values. Design picks one.\n\n### Guardrails\n\n- Preserve the spec-mandated separation: `AdvLifecycleState` remains the open-claim authority; `AdvChangeStatus` stays read-model only.\n- No change to archive terminal-projection handling (separate change owns it).\n\n### Value\n\nHumans and tooling (`/adv-cleanup`, `/adv-status`, dashboard, list) can trust the status surface. Eliminates a class of silent \"no changes found\" failures.",
+    "problemStatement": "## Problem\n\n`AdvChangeStatus` (and the `status` field it projects) is a vestigial read-model field that never reflects real change progress. This misleads humans and breaks tooling.\n\n### Evidence (source-traced)\n\n1. **No draft→active transition.** `plugin/src/temporal/change-state.ts` sets `state.status` to `\"draft\"` at creation (L122) and only ever to `\"archived\"` (L1450/L1694) or `\"closed\"` (L1462/L1685). Gate completions mutate `state.gates[...]`, never `state.status`. Result: every open change reports `status: \"draft\"` for its entire life. Two of five `ChangeStatus` enum values (`pending`, `active`) are unreachable in the change lifecycle. `search-attributes.ts:183` faithfully projects the stale value to `AdvChangeStatus`.\n\n2. **Footgun status filter.** `adv_change_list status:\"active\"` (and `\"pending\"`) can never match an open change, so it returns 0 rows even when open changes exist. During this session's `/adv-cleanup` pass, that filter reported \"no active changes\" while 6+ open changes existed — including one fully shipped, release-complete change. The default and `in-flight` paths dodge this only because `list-change-workflows.ts:isLegacyOpenStatusSet` reroutes them to `AdvLifecycleState = \"open\"` clauses.\n\n3. **Uninformative list output.** `adv_change_list` renders `status: \"draft\"` for a never-started proposal and a release-complete change identically. Real progress lives in `AdvCurrentGate`/gates but is not surfaced in the row. A human cannot distinguish stages from the list.\n\n### Constraints / prior art\n\n- 4 specs (advance-workflow, advance-meta, worktree-lifecycle, backlog-coordination) declare `AdvChangeStatus` \"compatibility/read-model metadata\" that MUST NOT be the open-claim authority. Authority is `AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"`. Any fix must preserve that separation and not make `AdvChangeStatus` an open-authority.\n\n### Desired outcome\n\nChange status stops lying. Specifically: the list/tool surface conveys real gate/lifecycle-derived progress; status-filter args that can never match are either honored via lifecycle semantics or rejected with a hint; and the `ChangeStatus` enum's dead values are resolved (driven honestly or removed) without violating the lifecycle-authority separation.\n\n### Out of scope\n\n- Making `AdvChangeStatus` the open-claim authority (specs forbid).\n- The separate archive terminal-projection wedge (owned by `fixArchiveTerminalProjection`).\n- Dashboard redesign beyond surfacing accurate change state.",
+    "agreement": "## Agreement: Fix change status honesty\n\n### Objectives\n\n1. `adv_change_list` rows convey real gate/lifecycle-derived progress (from `AdvCurrentGate` + `AdvLifecycleState`), not a permanently-`draft` value — a never-started proposal, a mid-execution change, and a release-complete change must be distinguishable.\n2. `status:\"active\"` and `status:\"pending\"` filters stop silently returning 0 while open changes exist. Warm (`listSummary` memo, `change.ts:424`) and cold (Visibility query, `list-change-workflows.ts`) read paths behave consistently.\n3. Resolve the `ChangeStatus` enum's unreachable `pending`/`active` values (`types/changes.ts:63`) — either driven honestly from gate/lifecycle or removed — while `AdvLifecycleState` stays the sole open-claim authority.\n\n### Acceptance Criteria\n\n- **AC1** — For an open change past proposal, `adv_change_list` output conveys its current phase (derived from `AdvCurrentGate` + `AdvLifecycleState`), and that value differs between a never-started change, a mid-execution change, and a release-complete change. (test)\n- **AC2** — `adv_change_list status:\"active\"` and `status:\"pending\"` no longer silently return 0 rows while open changes exist. The chosen resolution (lifecycle/gate-mapped rows OR a structured hint naming `in-flight`) is identical across the warm `listSummary` path and the cold Visibility path. (test)\n- **AC3** — A regression test proves the open-change scan used by `/adv-cleanup` surfaces existing open changes (no false \"no active changes\" when open changes exist). (test)\n- **AC4** — The `ChangeStatus` enum no longer carries a lifecycle-unreachable value, OR previously-unreachable values become reachably driven from gate/lifecycle progression; the chosen resolution is covered by a test asserting status reflects progression. (test)\n- **AC5** — `AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"` remains the sole open-claim authority; `AdvChangeStatus` is never used as open-authority. Existing claim/worktree/backlog spec invariants and their tests stay green. (static_check + existing tests)\n\n### Constraints\n\n- **C1** — Specs remain law (advance-workflow, advance-meta, worktree-lifecycle, backlog-coordination): `AdvChangeStatus` stays compatibility/read-model metadata, subordinate to `AdvLifecycleState`.\n- **C2** — Temporal replay determinism preserved. `AdvChangeStatus` search-attribute stays `Keyword`; no wrong-type re-registration.\n- **C3** — No behavioral change to archive terminal-projection handling.\n- **C4** — Backward-compatible `status` tool arg: existing `in-flight` / `archived` / `closed` / default callers keep current behavior.\n\n### Avoidances / Out of Scope\n\n- **OOS1** — The archive terminal-projection wedge (owned by `fixArchiveTerminalProjection`).\n- **OOS2** — Dashboard / live-status redesign beyond surfacing accurate change state.\n- **OOS3** — Making `AdvChangeStatus` the open-claim authority.\n\n### Source reconnaissance (this session)\n\n- `plugin/src/temporal/change-state.ts` — `status` set to `draft` (L122), `archived` (L1450/L1694), `closed` (L1462/L1685); no draft→active path.\n- `plugin/src/types/changes.ts:63` — `ChangeStatusSchema` enum with unreachable `pending`/`active`.\n- `plugin/src/temporal/search-attributes.ts:162,183,188` — `AdvCurrentGate` computed; `AdvChangeStatus`/`AdvLifecycleState` projected.\n- `plugin/src/temporal/list-change-workflows.ts:106-119` — cold Visibility query; `isLegacyOpenStatusSet` reroute.\n- `plugin/src/tools/change.ts:421-468` — warm `listSummary` path + literal `in-flight` post-filter.\n- Specs asserting read-model separation: `.adv/specs/{advance-workflow,advance-meta,worktree-lifecycle,backlog-coordination}/spec.json`.",
+    "design": "## Design: Fix change status honesty (validator-refined)\n\n### Decision: reject-and-surface, with normalizer-gated enum cleanup\n\nIndependent validator (adv-researcher) verdict: caution, no blockers, high confidence, medium risk. Premise confirmed at file:line (no draft→active/pending transition exists). One hazard surfaced and designed around.\n\n**Chosen approach = filter-narrowing + additive phase + normalizer-gated stored-enum cleanup:**\n\n1. **Filter schema fail-closed (AC2).** Narrow `ChangeListStatusFilterSchema` (`types/changes.ts:85`) so `adv_change_list status:\"active\"|\"pending\"` is rejected at the boundary with an actionable hint (use `in-flight` or no filter). This alone removes the footgun and never touches the disk-parse contract.\n\n2. **Additive derived `phase` (AC1, AC3).** Add a `phase` field to each list row, sourced from already-indexed `AdvCurrentGate` + `AdvLifecycleState` (`search-attributes.ts:162,183,188`). `currentGate(state)` is pure over in-heap `state.gates` — replay-safe (validator D confirmed). Keep `status` for compat.\n\n3. **Legacy-status normalizer, THEN stored-enum cleanup (AC4) — order matters.**\n   - Add a load-path normalizer in `storage/.../json.ts` (near L453-462, before `ChangeSchema.parse`) mapping any legacy `status:\"active\"|\"pending\"` → `\"draft\"`. Defensive: such records should not exist, but old disk state must not hard-fail.\n   - Reconcile the real non-test consumers the validator found: `store-disk.ts:490-493` (bulk-close draft/pending keying), `byStatus` records (`store-disk.ts:1059`, `store-temporal/index.ts:1333`, `responses.ts:163`), and seedState (`workflows.ts:578` + `change-state.ts:147`).\n   - Only after the normalizer + reconciliation land, remove `\"pending\"`/`\"active\"` from `ChangeStatusSchema` (`types/changes.ts:63`). Typecheck surfaces every remaining site.\n\n4. **Simplify legacy-open sets.** `LEGACY_OPEN_STATUSES` (`lifecycle-visibility.ts:3`) and the `in-flight` post-filter Set (`change.ts:467`) reduce to `[\"draft\"]` — the only reachable open status. `isLegacyOpenStatusSet` semantics preserved.\n\n5. **Spec delta + docs.** Record the reachable `ChangeStatus` set (draft/archived/closed) and reaffirm `AdvChangeStatus` read-model-only in advance-workflow (or advance-meta) spec; update prose enumerating stored status values.\n\n### Why not the alternatives\n\n- **Naive enum removal (no normalizer):** UNSAFE — `json.ts:462` `ChangeSchema.parse` hard-fails on legacy `active`/`pending` records (`schema_error`) and NaN-corrupts `byStatus++`. Rejected.\n- **Filter-narrowing only (keep dead enum values):** Safe but does NOT satisfy AC4 (stored enum still carries unreachable values). Insufficient alone.\n- **Redirect + drive enum:** Spec-violating (re-elevates `AdvChangeStatus`), adds replay surface. Rejected (validator concurs).\n\n### Blast radius (validator-enumerated)\n\n`types/changes.ts:63-69,85,860` · `tools/change.ts:351,466-468` · `lifecycle-visibility.ts:3-7` + callers `list-change-workflows.ts:49-53,113-119`, `visibility-epic-queries.ts:67-81` · byStatus `store-disk.ts:1059-1066`, `store-temporal/index.ts:1333-1342`, `responses.ts:163` · real path `store-disk.ts:490-493` · seed `workflows.ts:578`, `change-state.ts:147` · disk-parse `json.ts:453-462`.\n\n### Tests\n\n- AC1: row `phase` differs across never-started / mid-execution / release-complete fixtures.\n- AC2: `active`/`pending` rejected with hint; `draft`/`in-flight`/default identical across warm `listSummary` + cold Visibility paths.\n- AC3: cleanup open-scan surfaces existing open changes (no false empty).\n- AC4: assert `ChangeStatusSchema` has no lifecycle-unreachable value; normalizer maps legacy `active`/`pending`→`draft` on load without parse failure.\n- AC5: `AdvLifecycleState`+`ExecutionStatus` sole open-authority; existing claim/worktree/backlog tests green.\n\n### Invariants preserved\n\n- `AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"` = sole open-claim authority (C1, AC5).\n- Temporal replay determinism; `AdvChangeStatus` stays `Keyword` (C2).\n- No archive terminal-projection change (C3, OOS1).\n- Backward-compat: legacy disk records load via normalizer; `in-flight`/`archived`/`closed`/default unchanged (C4).",
+    "executiveSummary": "## Executive Summary: Fix change status honesty\n\n### Outcome\nThe ADV change-status surface now tells the truth. Previously, every open change reported `status: \"draft\"` for its entire life — a never-started proposal and a fully-shipped change were indistinguishable, and `adv_change_list status:\"active\"` silently returned zero rows while open changes existed (making `/adv-cleanup` blind). All three defects are fixed.\n\n### Value / why it matters\nHumans and tooling can now trust the status surface. `adv_change_list` rows carry a derived `phase` (proposal→discovery→…→release→released/archived/closed) sourced from gate progress + lifecycle — no more permanent `draft`. The `active`/`pending` filter footgun is structurally eliminated: those values are rejected at the schema boundary with an actionable hint. The `ChangeStatus` enum no longer carries lifecycle-unreachable values (`pending`/`active` removed; stored set is now draft/archived/closed). A load-path normalizer ensures legacy disk records with those values migrate safely to `draft`.\n\n### What was built\n- **T1 — Derived `phase` field** (`tools/change.ts` row builder + `store-types.ts firstOpenGate` helper): additive `phase` on every list row, plumbed through `ChangeListResponse` at all 6 projection sites (store-temporal ×5 incl. memo path, store-disk ×1). `status` retained for compat.\n- **T2 — Fail-closed filter rejection** (`types/changes.ts` superRefine + `tools/change.ts` boundary check): `status:\"active\"|\"pending\"` rejected with a hint pointing at `in-flight`/`archived`/`closed`. Consistent across warm `listSummary` and cold Visibility paths.\n- **T3 — Legacy-status load normalizer** (`storage/json.ts:143`): maps on-disk `active`/`pending` → `draft` before `ChangeSchema.parse`; byStatus counters finite-safe (`??0`); seedState normalized.\n- **T4 — Enum cleanup** (`types/changes.ts`): `ChangeStatusSchema` narrowed to draft/archived/closed; `LEGACY_OPEN_STATUSES` + in-flight Set narrowed to `[\"draft\"]`; 8 typecheck ripples + 21 source/test files fixed; public schema regenerated.\n- **T5 — Spec delta + docs** (`.adv/specs/advance-workflow/spec.json` rq-changeLifecycleState01): records the reachable set law; docs mirror + `ADV_INSTRUCTIONS.md` prose updated.\n\n### Verification\n- `pnpm run check` green (schemas + typecheck + isolation + lockfile + lint + format).\n- Full suite 5038 tests green (T4, at 19c9cd4); AC5 authority suite 261 tests green on final HEAD (tr_mrjsqjta).\n- Independent adv-reviewer verdict: **READY** — no blocking findings; all 6 projection sites consistent; normalizer precedes parse; open scans use `AdvLifecycleState`+`ExecutionStatus`; replay-safe.\n- Contract review matrix: 9/9 items pass/respected.\n\n### Constraints honored\n- `AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"` remains the sole open-claim authority; `AdvChangeStatus` stays read-model (C1, AC5).\n- Temporal replay determinism preserved; `AdvChangeStatus` stays `Keyword` (C2).\n- No archive terminal-projection change (C3) — that wedge was unwedged separately before this change.\n- Backward-compatible: `in-flight`/`archived`/`closed`/default callers unchanged; legacy records load via normalizer (C4).\n\n### Risks / follow-ups\n- `active`/`pending` as filter values now produce a structured rejection instead of a silent empty list — strictly better, but technically a contract change for any caller that passed those values (none found in-repo).\n- Agent follow-up `ag-bBsmZyfw`: `search-attributes.ts` has a private `currentGate()` duplicating `firstOpenGate` semantics — dedup candidate, intentionally left untouched (out of scope).\n- Agent follow-up: no agent-accessible mechanism exists to declare `Change.deltas` post-creation (seed-only field); the spec law was applied directly to `spec.json` and ships via the branch.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T22:35:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1** — For an open change past proposal, `adv_change_list` output conveys its current phase (derived from `AdvCurrentGate` + `AdvLifecycleState`), and that value differs between a never-started change, a mid-execution change, and a release-complete change. (test) | pass | change.test.ts phase-projection tests (3/3 GREEN tr_mrjn9nao): never-started→proposal, mid-execution→execution, release-complete-open→released are distinct; archived/closed render themselves; hint-less rows omit phase. Independent reviewer confirmed all 6 projection sites derive currentGate consistently. |\n| AC2 | acceptance_criterion | **AC2** — `adv_change_list status:\"active\"` and `status:\"pending\"` no longer silently return 0 rows while open changes exist. The chosen resolution (lifecycle/gate-mapped rows OR a structured hint naming `in-flight`) is identical across the warm `listSummary` path and the cold Visibility path. (test) | pass | change.test.ts: status:\"active\" and \"pending\" rejected with actionable hint (Zod superRefine + handler boundary check); draft/in-flight/default return identical open set on warm listSummary + cold Visibility paths. Reviewer confirmed parity retained. |\n| AC3 | acceptance_criterion | **AC3** — A regression test proves the open-change scan used by `/adv-cleanup` surfaces existing open changes (no false \"no active changes\" when open changes exist). (test) | pass | change.test.ts open-scan regression: default/in-flight list surfaces existing open changes (no false empty). The /adv-cleanup footgun (status:\"active\"→0 rows) is structurally eliminated. |\n| AC4 | acceptance_criterion | **AC4** — The `ChangeStatus` enum no longer carries a lifecycle-unreachable value, OR previously-unreachable values become reachably driven from gate/lifecycle progression; the chosen resolution is covered by a test asserting status reflects progression. (test) | pass | changes.status-enum.test.ts: ChangeStatusSchema.parse(\"active\")/\"pending\" now throw; enum = draft/archived/closed. json.test.ts: legacy active/pending record loads as draft without ZodError (normalizer at json.ts:143 precedes ChangeSchema.parse at L493). Reviewer confirmed normalizer precedes parse and seeding. |\n| AC5 | acceptance_criterion | **AC5** — `AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"` remains the sole open-claim authority; `AdvChangeStatus` is never used as open-authority. Existing claim/worktree/backlog spec invariants and their tests stay green. (static_check + existing tests) | pass | backlog-coordination-regression + visibility-claim-queries + visibility-epic-queries + list-change-workflows all green (tr_mrjsqjta, 261 tests). Reviewer confirmed open scans route through AdvLifecycleState=\"open\" AND ExecutionStatus=\"Running\"; AdvChangeStatus never elevated to authority. |\n| C1 | constraint | **C1** — Specs remain law (advance-workflow, advance-meta, worktree-lifecycle, backlog-coordination): `AdvChangeStatus` stays compatibility/read-model metadata, subordinate to `AdvLifecycleState`. | respected | Spec delta on advance-workflow/rq-changeLifecycleState01 reaffirms AdvChangeStatus is read-model, never open-claim authority. DEFAULT_STATUSES narrowed to [\"draft\"] together so open path stays on lifecycle clauses. |\n| C2 | constraint | **C2** — Temporal replay determinism preserved. `AdvChangeStatus` search-attribute stays `Keyword`; no wrong-type re-registration. | respected | No new workflow signals or non-deterministic operations; phase derivation is pure over in-heap gate state; AdvChangeStatus stays Keyword (no re-registration). Reviewer confirmed replay-safe. |\n| C3 | constraint | **C3** — No behavioral change to archive terminal-projection handling. | respected | No archive terminal-projection code touched. The wedge (deepScanTemporalWorkflowHot) was unwedged separately via normal archive before this change. |\n| C4 | constraint | **C4** — Backward-compatible `status` tool arg: existing `in-flight` / `archived` / `closed` / default callers keep current behavior. | respected | in-flight/archived/closed/default callers unchanged; legacy active/pending disk records load via normalizer (json.test.ts). in-flight Set narrowed to [\"draft\"] (only reachable open status). |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T18:56:34.694Z",
+      "contentHash": "312aeaa258ae8a015e18eca812cc3e1e405915fc380f6a47ea062994813ed609",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T18:56:34.694Z",
+      "contentHash": "b7f83ce03bf346e5ef962912b38f842ee89a3542db14e23aa122a8bf9d98d3f3",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T19:02:22.270Z",
+      "contentHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T19:32:19.627Z",
+      "contentHash": "877e055c8c8539de1db430b4725959dce9d846f79092b8c922a8f70d2ddce7d4",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T22:36:03.911Z",
+      "contentHash": "daddbd91dadd52bf4eaa164811547eb3bce7318c1355cc74028370ae62c2e3b9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T22:56:56.667Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-13T22:50:18.504Z"
+    }
+  ]
+}

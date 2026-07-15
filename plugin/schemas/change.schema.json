@@ -851,6 +851,33 @@
     "fast_follow_of": {
       "additionalProperties": false,
       "properties": {
+        "followup_ref": {
+          "additionalProperties": false,
+          "properties": {
+            "index": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "follow_ups",
+                "required_follow_ups"
+              ],
+              "type": "string"
+            },
+            "report_key": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "report_key",
+            "kind",
+            "index"
+          ],
+          "type": "object"
+        },
         "linked_at": {
           "type": "string"
         },
@@ -3159,6 +3186,9 @@
       },
       "type": "array"
     },
+    "seenReportIdsTotal": {
+      "type": "number"
+    },
     "signal_rejections": {
       "items": {
         "additionalProperties": false,
@@ -3213,8 +3243,6 @@
     "status": {
       "enum": [
         "draft",
-        "pending",
-        "active",
         "archived",
         "closed"
       ],
@@ -3231,6 +3259,83 @@
                   "agent": {
                     "const": "adv-engineer",
                     "type": "string"
+                  },
+                  "apply_context": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "implementation_cycle_id": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "implementation_provenance": {
+                        "oneOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "baseline_head_sha": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "engineer",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "baseline_head_sha"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "const": "engineer_report",
+                                "type": "string"
+                              },
+                              "report_key": {
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "report_key"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "baseline_head_sha": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "diff_ref": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "inline",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "baseline_head_sha",
+                              "diff_ref"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "implementation_cycle_id",
+                      "implementation_provenance"
+                    ],
+                    "type": "object"
                   },
                   "attempt": {
                     "maximum": 9007199254740991,
@@ -3928,6 +4033,83 @@
                   "agent": {
                     "const": "adv-designer",
                     "type": "string"
+                  },
+                  "apply_context": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "implementation_cycle_id": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "implementation_provenance": {
+                        "oneOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "baseline_head_sha": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "engineer",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "baseline_head_sha"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "const": "engineer_report",
+                                "type": "string"
+                              },
+                              "report_key": {
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "report_key"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "baseline_head_sha": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "diff_ref": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "inline",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "baseline_head_sha",
+                              "diff_ref"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "implementation_cycle_id",
+                      "implementation_provenance"
+                    ],
+                    "type": "object"
                   },
                   "attempt": {
                     "maximum": 9007199254740991,
@@ -5848,6 +6030,32 @@
       "items": {
         "additionalProperties": {},
         "properties": {
+          "apply_cycle": {
+            "additionalProperties": false,
+            "properties": {
+              "implementation_cycle_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "initial",
+                  "retry"
+                ],
+                "type": "string"
+              },
+              "started_at": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "implementation_cycle_id",
+              "started_at",
+              "kind"
+            ],
+            "type": "object"
+          },
           "assignedTo": {
             "type": "string"
           },
@@ -6115,6 +6323,33 @@
             },
             "type": "array"
           },
+          "followup_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "index": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "kind": {
+                "enum": [
+                  "follow_ups",
+                  "required_follow_ups"
+                ],
+                "type": "string"
+              },
+              "report_key": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "report_key",
+              "kind",
+              "index"
+            ],
+            "type": "object"
+          },
           "id": {
             "type": "string"
           },
@@ -6244,6 +6479,83 @@
                     "agent": {
                       "const": "adv-engineer",
                       "type": "string"
+                    },
+                    "apply_context": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "implementation_cycle_id": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "implementation_provenance": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "baseline_head_sha": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "const": "engineer",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "baseline_head_sha"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "engineer_report",
+                                  "type": "string"
+                                },
+                                "report_key": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "report_key"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "baseline_head_sha": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "diff_ref": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "const": "inline",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "baseline_head_sha",
+                                "diff_ref"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "implementation_cycle_id",
+                        "implementation_provenance"
+                      ],
+                      "type": "object"
                     },
                     "attempt": {
                       "maximum": 9007199254740991,
@@ -6941,6 +7253,83 @@
                     "agent": {
                       "const": "adv-designer",
                       "type": "string"
+                    },
+                    "apply_context": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "implementation_cycle_id": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "implementation_provenance": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "baseline_head_sha": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "const": "engineer",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "baseline_head_sha"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "engineer_report",
+                                  "type": "string"
+                                },
+                                "report_key": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "report_key"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "baseline_head_sha": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "diff_ref": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "const": "inline",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "baseline_head_sha",
+                                "diff_ref"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "implementation_cycle_id",
+                        "implementation_provenance"
+                      ],
+                      "type": "object"
                     },
                     "attempt": {
                       "maximum": 9007199254740991,

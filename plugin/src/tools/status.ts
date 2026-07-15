@@ -7,6 +7,7 @@
  */
 import { basename } from "path";
 import type { Store } from "../storage/store";
+import type { StatusReadOptions } from "../storage/store-types";
 import { getTemporalWorkerRole } from "../plugin-init";
 import {
   classifyTemporalError,
@@ -42,6 +43,7 @@ import {
   fetchStatusSnapshotHealth,
   fetchStatusTemporalHealth,
   fetchStatusQueueServiceability,
+  fetchStatusWorkerProcesses,
   buildTemporalHealthFallback,
   STATUS_PROBE_TTL_MS,
   pushQueueServiceabilityRecommendations,
@@ -55,6 +57,7 @@ import {
   type SnapshotHealthSnapshot,
   type StatusQueueServiceabilitySnapshot,
   type TemporalHealthSnapshot,
+  type WorkerProcessesSnapshot,
   type WorktreeCensusSnapshot,
 } from "./status-health";
 import {
@@ -112,7 +115,10 @@ async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function loadStatusWithBootstrapRetry(store: Store): Promise<{
+async function loadStatusWithBootstrapRetry(
+  store: Store,
+  options?: StatusReadOptions,
+): Promise<{
   status: ProjectStatus;
   bootstrapDiagnostic?: {
     recovered: boolean;
@@ -124,7 +130,7 @@ async function loadStatusWithBootstrapRetry(store: Store): Promise<{
 
   for (let attempt = 1; attempt <= STATUS_BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
     try {
-      const status = await store.status();
+      const status = await store.status(options);
       return lastBootstrapError
         ? {
             status,
@@ -158,8 +164,6 @@ async function loadStatusWithBootstrapRetry(store: Store): Promise<{
         active: 0,
         byStatus: {
           draft: 0,
-          pending: 0,
-          active: 0,
           archived: 0,
           closed: 0,
         },
@@ -249,11 +253,44 @@ export const statusTools = {
             recentChanges: 0,
             recommendations: 0,
           };
+          // fixChangeListTimeouts KD4 / AC3: the summary bound travels
+          // into the status read BEFORE deep per-change hydration, not
+          // only as an output slice afterwards. Full views pass no bound
+          // and keep complete resolution semantics under the shared
+          // per-call aggregate deadline.
+          // rq-summaryReadBound01: summary applies STATUS_SUMMARY_RECENT_LIMIT
+          // before non-required deep hydration/artifact reads/enrichment and
+          // reuses request-local resolved documents instead of re-reading them.
+          const statusReadOptions: StatusReadOptions | undefined =
+            view === "summary"
+              ? { recentLimit: STATUS_SUMMARY_RECENT_LIMIT }
+              : undefined;
           const { status, bootstrapDiagnostic } = await withRecordedPhase(
             "adv_status",
             "statusLoad",
-            () => loadStatusWithBootstrapRetry(activeStore),
+            () => loadStatusWithBootstrapRetry(activeStore, statusReadOptions),
           );
+          // Request-local resolved documents (AC4): extracted for
+          // enrichment reuse and stripped before output serialization —
+          // the map is transport-only, never response payload.
+          const resolvedChanges = status.resolvedChanges;
+          if (resolvedChanges !== undefined) {
+            delete status.resolvedChanges;
+          }
+          // Typed degradation must be visible in every view (C2): surface
+          // resolver warnings as recommendations so a bounded/deadline-
+          // truncated status can never look complete.
+          for (const warning of status.warnings ?? []) {
+            pushStatusRecommendation(status, {
+              kind: "health",
+              priority: "high",
+              title: "Status read incomplete",
+              detail: warning.message,
+              action: "retry `adv_status` or query the named changes directly",
+              source: "health",
+              message: `⚠️ Status read incomplete — ${warning.message}`,
+            });
+          }
           const migrationStatus =
             view === "health" || view === "hygiene"
               ? await withRecordedPhase("adv_status", "migrationStatus", () =>
@@ -308,6 +345,49 @@ export const statusTools = {
               temporalHealth,
               queueServiceability,
             });
+          }
+
+          let workerProcesses: WorkerProcessesSnapshot | undefined;
+          if (plan.workerProcesses) {
+            try {
+              const workerProcessesProbe = await fetchStatusWorkerProcesses({
+                forceRefresh,
+              });
+              workerProcesses = workerProcessesProbe.value;
+              probeFreshness.worker_processes = workerProcessesProbe.freshness;
+            } catch (err) {
+              // Advisory section — enumeration failure (or a slow /proc
+              // scan hitting the probe timeout) must never fail the health
+              // probe. Omit the section.
+              workerProcesses = undefined;
+              probeFreshness.worker_processes = {
+                cached_at: new Date().toISOString(),
+                stale: true,
+                age_ms: 0,
+                ttl_ms: STATUS_PROBE_TTL_MS,
+                error: err instanceof Error ? err.message : String(err),
+              };
+            }
+
+            if (workerProcesses && workerProcesses.orphanCount > 0) {
+              const orphanPids = workerProcesses.processes
+                .filter((p) => p.orphan)
+                .map((p) => p.pid)
+                .slice(0, 5);
+              const message =
+                `⚠️ ${workerProcesses.orphanCount} orphaned ADV Temporal worker process(es) detected ` +
+                `(pid ${orphanPids.join(", ")}${workerProcesses.orphanCount > orphanPids.length ? ", …" : ""}) — ` +
+                "parent plugin-host is gone; kill them to stop task-queue saturation.";
+              pushStatusRecommendation(status, {
+                kind: "health",
+                priority: "high",
+                title: "Orphaned ADV worker process(es)",
+                detail: `${workerProcesses.orphanCount} worker process(es) whose parent is dead`,
+                action: `kill ${orphanPids.join(" ")} — or see docs/temporal-recovery.md`,
+                source: "health",
+                message,
+              });
+            }
           }
 
           let searchAttributes: SearchAttributesSnapshot | undefined;
@@ -393,6 +473,7 @@ export const statusTools = {
                   status.changes.recent ?? [],
                   activeStore,
                   scope,
+                  resolvedChanges,
                 ),
             );
             if (
@@ -418,11 +499,7 @@ export const statusTools = {
               async () => {
                 let primaryAssigned = false;
                 for (const rc of recentChanges) {
-                  const isPrimary =
-                    !primaryAssigned &&
-                    (rc.status === "active" ||
-                      rc.status === "draft" ||
-                      rc.status === "pending");
+                  const isPrimary = !primaryAssigned && rc.status === "draft";
                   if (isPrimary) primaryAssigned = true;
                   await enrichRecentChangeStatus(
                     rc,
@@ -430,6 +507,10 @@ export const statusTools = {
                     activeStore,
                     clarifyMode,
                     isPrimary,
+                    {
+                      change: resolvedChanges?.get(String(rc.id)),
+                      resolvedChanges,
+                    },
                   );
                 }
               },
@@ -762,6 +843,7 @@ export const statusTools = {
                 }
               : {}),
             search_attributes: searchAttributes,
+            worker_processes: workerProcesses,
             opencode_session_debt: opencodeSessionDebt,
             migration_status: migrationStatus,
             project_metadata: projectMetadata,

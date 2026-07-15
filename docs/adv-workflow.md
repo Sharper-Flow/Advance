@@ -17,7 +17,7 @@ See also:
 │       │                                                               │
 │       ▼                                                               │
 │  ┌─────────────┐                                                      │
-│  │ 1. proposal │  problem-statement.md + success criteria             │
+│  │ 1. proposal │  problem-statement.md + proposal.md                  │
 │  └──────┬──────┘                                                      │
 │         │ /adv-discover                                               │
 │         ▼                                                             │
@@ -62,7 +62,7 @@ See also:
 
 | Gate       | Owning command        | Produces                     |
 |------------|-----------------------|------------------------------|
-| proposal   | `/adv-proposal`         | `problem-statement.md`         |
+| proposal   | `/adv-proposal`         | `problem-statement.md`, `proposal.md` |
 | discovery  | `/adv-discover`         | `agreement.md`                 |
 | design     | `/adv-design`           | `design.md`                    |
 | planning   | `/adv-prep`             | Task graph in `change.json`    |
@@ -71,6 +71,8 @@ See also:
 | release    | `/adv-harden` + `/adv-archive`| Spec deltas applied, git finalized |
 
 Gates are sequential — `/adv-harden` is blocked until `acceptance` is done, `/adv-archive` is blocked until all 7 are satisfied. See [docs/adv-gates.md](adv-gates.md) for the full gate contract.
+
+See [Per-Gate Line-Item Map](#per-gate-line-item-map) in [docs/adv-gates.md](adv-gates.md) for the canonical per-gate task/artifact/writer/approval map.
 
 ## Re-Entry Flow (Scope Expansion)
 

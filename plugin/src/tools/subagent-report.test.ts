@@ -20,12 +20,6 @@ import {
 const mocks = vi.hoisted(() => {
   const fireSignalAndRefresh = vi.fn(async () => undefined);
   const workflowHandle = { signal: vi.fn(), query: vi.fn() };
-  const addAgendaItem = vi.fn(async (_root: string, title: string) => ({
-    id: `ag-${title.length}`,
-    title,
-    status: "pending",
-  }));
-  const loadAgenda = vi.fn(async () => ({ meta: null, items: [] }));
   const withTargetPathStore = vi.fn(async (_input, fn) =>
     fn({
       context: {
@@ -43,8 +37,6 @@ const mocks = vi.hoisted(() => {
   return {
     fireSignalAndRefresh,
     workflowHandle,
-    addAgendaItem,
-    loadAgenda,
     withTargetPathStore,
   };
 });
@@ -63,12 +55,6 @@ vi.mock("../utils/project-id", () => ({
   getProjectId: async () => "project-1",
 }));
 
-vi.mock("../storage/agenda", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../storage/agenda")>()),
-  addAgendaItem: mocks.addAgendaItem,
-  loadAgenda: mocks.loadAgenda,
-}));
-
 vi.mock("./target-project", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./target-project")>()),
   withTargetPathStore: mocks.withTargetPathStore,
@@ -80,15 +66,12 @@ function parse(output: string): Record<string, any> {
   return JSON.parse(output) as Record<string, any>;
 }
 
-describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory promotion)", () => {
+describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory surfacing)", () => {
   beforeEach(() => {
     mocks.fireSignalAndRefresh.mockClear();
-    mocks.addAgendaItem.mockClear();
-    mocks.loadAgenda.mockClear();
-    mocks.loadAgenda.mockResolvedValue({ meta: null, items: [] });
   });
 
-  test("promotes a design_dimensions concern to a required-obligation agenda item", async () => {
+  test("surfaces a design_dimensions concern as a design_concern_promoted warning (no queue write)", async () => {
     const store = storeFor(change());
     const report = designerReport({
       dimensions: { site_design_consistency: "concern" },
@@ -103,26 +86,24 @@ describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      expect.stringContaining("site_design_consistency"),
-      expect.objectContaining({
-        category: "required-obligation",
-        agendaPath: "/state/agenda.jsonl",
-        description: expect.stringContaining(
-          "design-concern:change-1:tk-1:dimension:site_design_consistency",
-        ),
-      }),
-    );
+    // retireAgendaWorkflow AC4: no agenda write. Concern surfaces as a
+    // design_concern_promoted warning carrying the stable dedupe key; the
+    // structural acceptance/release block lives in gate-readiness.
     expect(output.consumerResults.designConcerns.previewCount).toBe(1);
+    expect(output.consumerResults.designConcerns.created).toEqual([]);
     expect(output.consumerResults.verification.warnings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ kind: "design_concern_promoted" }),
+        expect.objectContaining({
+          kind: "design_concern_promoted",
+          message: expect.stringContaining(
+            "design-concern:change-1:tk-1:dimension:site_design_consistency",
+          ),
+        }),
       ]),
     );
   });
 
-  test("promotes each neighboring_recommendation", async () => {
+  test("surfaces each neighboring_recommendation as a design_concern_promoted warning", async () => {
     const store = storeFor(change());
     const report = designerReport({
       neighbors: [
@@ -138,19 +119,21 @@ describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      expect.stringContaining("IconButton lacks focus ring"),
-      expect.objectContaining({
-        category: "required-obligation",
-        description: expect.stringContaining(
-          "design-concern:change-1:tk-1:neighbor:0",
-        ),
-      }),
+    expect(output.consumerResults.designConcerns.previewCount).toBe(1);
+    expect(output.consumerResults.designConcerns.created).toEqual([]);
+    expect(output.consumerResults.verification.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "design_concern_promoted",
+          message: expect.stringContaining(
+            "design-concern:change-1:tk-1:neighbor:0",
+          ),
+        }),
+      ]),
     );
   });
 
-  test("all-pass designer report with no neighbors promotes nothing", async () => {
+  test("all-pass designer report with no neighbors surfaces nothing", async () => {
     const store = storeFor(change());
     const output = parse(
       await subagentReportTools.adv_subagent_report_submit.execute(
@@ -160,26 +143,17 @@ describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
     expect(output.consumerResults.designConcerns.previewCount).toBe(0);
+    expect(output.consumerResults.designConcerns.created).toEqual([]);
   });
 
-  test("dedupes against an existing agenda item with the same dedupe-key", async () => {
-    mocks.loadAgenda.mockResolvedValue({
-      meta: null,
-      items: [
-        {
-          id: "ag-existing",
-          title: "Resolve design concern",
-          status: "pending",
-          created_at: "2026-06-25T00:00:00.000Z",
-          description:
-            "design-concern:change-1:tk-1:dimension:site_design_consistency",
-        },
-      ],
-    });
+  test("higher-attempt resubmits emit the same stable dedupe key in the warning", async () => {
+    // retireAgendaWorkflow: the dedupe key is emitted in the warning so
+    // downstream consumers can correlate concerns across attempts without
+    // consulting any queue state.
     const store = storeFor(change());
     const report = designerReport({
+      attempt: 2,
       dimensions: { site_design_consistency: "concern" },
       notes: "concern",
     });
@@ -192,10 +166,19 @@ describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+    expect(output.consumerResults.verification.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "design_concern_promoted",
+          message: expect.stringContaining(
+            "design-concern:change-1:tk-1:dimension:site_design_consistency",
+          ),
+        }),
+      ]),
+    );
   });
 
-  test("dryRun previews concerns without writing agenda items", async () => {
+  test("dryRun previews concerns with the same warning shape", async () => {
     const store = storeFor(change());
     const report = designerReport({
       dimensions: { visual_polish: "concern" },
@@ -210,8 +193,8 @@ describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
     expect(output.consumerResults.designConcerns.previewCount).toBe(1);
+    expect(output.consumerResults.designConcerns.created).toEqual([]);
   });
 });
 
@@ -473,7 +456,6 @@ function storeFor(baseChange: Change): Store {
   return {
     paths: {
       root: "/repo",
-      agenda: "/state/agenda.jsonl",
     } as Store["paths"],
     config: null,
     init: vi.fn(),
@@ -490,9 +472,6 @@ function storeFor(baseChange: Change): Store {
 describe("subagentReportTools", () => {
   beforeEach(() => {
     mocks.fireSignalAndRefresh.mockClear();
-    mocks.addAgendaItem.mockClear();
-    mocks.loadAgenda.mockClear();
-    mocks.loadAgenda.mockResolvedValue({ meta: null, items: [] });
     mocks.withTargetPathStore.mockClear();
   });
 
@@ -526,21 +505,11 @@ describe("subagentReportTools", () => {
         }),
       }),
     );
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(2);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Add docs",
-      expect.objectContaining({
-        category: "subagent-followup",
-        description: expect.stringContaining(
-          "change-1/task:tk-1/adv-engineer/attempt-1/task-tk-1",
-        ),
-        agendaPath: "/state/agenda.jsonl",
-      }),
-    );
-    expect(mocks.fireSignalAndRefresh.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.addAgendaItem.mock.invocationCallOrder[0],
-    );
+    // retireAgendaWorkflow AC3: plain follow_ups remain source-attributed
+    // report metadata; no queue is written. The consumer result carries the
+    // preview count and an empty `created` list.
+    expect(output.consumerResults.followUps.previewCount).toBe(2);
+    expect(output.consumerResults.followUps.created).toEqual([]);
   });
 
   test("structured adv_run_test evidence satisfies engineer verification", async () => {
@@ -633,7 +602,7 @@ describe("subagentReportTools", () => {
     );
   });
 
-  test("dryRun validates and previews without signal or agenda writes", async () => {
+  test("dryRun validates and previews without signal", async () => {
     const store = storeFor(change());
 
     const output = parse(
@@ -646,8 +615,8 @@ describe("subagentReportTools", () => {
     expect(output.success).toBe(true);
     expect(output.dryRun).toBe(true);
     expect(output.consumerResults.followUps.previewCount).toBe(2);
+    expect(output.consumerResults.followUps.created).toEqual([]);
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("dedupes repeated report keys from existing task reports", async () => {
@@ -677,7 +646,6 @@ describe("subagentReportTools", () => {
     expect(output.success).toBe(true);
     expect(output.duplicate).toBe(true);
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("dedupes repeated report keys from existing sidecar reports", async () => {
@@ -698,7 +666,6 @@ describe("subagentReportTools", () => {
     expect(output.success).toBe(true);
     expect(output.duplicate).toBe(true);
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("accepts change-scoped researcher reports before signaling", async () => {
@@ -728,16 +695,10 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).not.toHaveProperty(
       "taskId",
     );
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Review sidecar readback",
-      expect.objectContaining({
-        category: "subagent-followup",
-        description: expect.stringContaining(
-          "change-1/change:researcher:temporal-docs/adv-researcher/attempt-1",
-        ),
-      }),
-    );
+    // retireAgendaWorkflow: researcher follow_ups are surfaced as report
+    // metadata only — no queue write occurs.
+    expect(output.consumerResults.followUps.previewCount).toBe(1);
+    expect(output.consumerResults.followUps.created).toEqual([]);
   });
 
   test("accepts change-scoped independent reviewer reports before signaling", async () => {
@@ -800,19 +761,11 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).not.toHaveProperty(
       "taskId",
     );
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Document triage packet shape",
-      expect.objectContaining({
-        category: "subagent-followup",
-        description: expect.stringContaining(
-          "change-1/change:verifier:local-verify/adv-verification-triage-bundle/attempt-1",
-        ),
-      }),
-    );
+    expect(output.consumerResults.followUps.previewCount).toBe(1);
+    expect(output.consumerResults.followUps.created).toEqual([]);
   });
 
-  test("dryRun previews verification triage bundles without signal or agenda writes", async () => {
+  test("dryRun previews verification triage bundles without signal", async () => {
     const store = storeFor(change());
 
     const output = parse(
@@ -826,7 +779,6 @@ describe("subagentReportTools", () => {
     expect(output.dryRun).toBe(true);
     expect(output.consumerResults.followUps.previewCount).toBe(1);
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("invalid task anchors return typed actionable diagnostics without signaling", async () => {
@@ -855,10 +807,9 @@ describe("subagentReportTools", () => {
       expect.stringContaining("change-scoped reviewer"),
     );
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
-  test("bounds scanner bundle follow-up agenda creation", async () => {
+  test("scanner bundle follow-up preview is bounded to 10 items", async () => {
     const store = storeFor(change());
     const followUps = Array.from(
       { length: 12 },
@@ -876,7 +827,7 @@ describe("subagentReportTools", () => {
 
     expect(output.success).toBe(true);
     expect(output.consumerResults.followUps.previewCount).toBe(10);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(10);
+    expect(output.consumerResults.followUps.created).toEqual([]);
     expect(output.consumerResults.verification.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -887,7 +838,11 @@ describe("subagentReportTools", () => {
     );
   });
 
-  test("required_follow_ups with obligation_class required_critical creates agenda item with priority critical", async () => {
+  test("required_follow_ups are surfaced as report metadata only (no queue write)", async () => {
+    // retireAgendaWorkflow AC4: required_follow_ups remain typed on the
+    // report and are still consumed structurally by required-obligation
+    // release-safety + gate-readiness evaluators. The submission path no
+    // longer writes to a queue.
     const store = storeFor(change());
     const report = engineerReport({
       follow_ups: [],
@@ -909,55 +864,24 @@ describe("subagentReportTools", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Fix security vulnerability",
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
+    expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
+    // Required follow_ups still ride on the report payload so the signal
+    // carries the typed obligation_class to downstream evaluators.
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    expect(signalPayload.report.required_follow_ups).toEqual([
       expect.objectContaining({
-        priority: "critical",
-        category: "required-obligation",
-        description: expect.stringContaining("Obligation: required_critical"),
-        agendaPath: "/state/agenda.jsonl",
+        text: "Fix security vulnerability",
+        obligation_class: "required_critical",
+        severity: "critical",
+        source_contract_id: "contract-sec-1",
       }),
-    );
-    expect(mocks.addAgendaItem.mock.calls[0][2].description).toContain(
-      "Contract: contract-sec-1",
-    );
+    ]);
   });
 
-  test("required_follow_ups with severity high creates agenda item with priority high", async () => {
-    const store = storeFor(change());
-    const report = engineerReport({
-      follow_ups: [],
-      required_follow_ups: [
-        {
-          text: "Update documentation",
-          obligation_class: "required_standard",
-          severity: "high",
-        },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Update documentation",
-      expect.objectContaining({
-        priority: "high",
-        category: "required-obligation",
-      }),
-    );
-  });
-
-  test("report without required_follow_ups creates no required agenda items", async () => {
+  test("report without required_follow_ups surfaces only plain follow_ups as metadata", async () => {
     const store = storeFor(change());
     const report = engineerReport({ follow_ups: ["Regular follow-up"] });
 
@@ -969,40 +893,10 @@ describe("subagentReportTools", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Regular follow-up",
-      expect.objectContaining({
-        category: "subagent-followup",
-      }),
-    );
-  });
-
-  test("existing follow_ups still get priority medium (backward compat)", async () => {
-    const store = storeFor(change());
-    const report = engineerReport({
-      follow_ups: ["Backward compat follow-up"],
-      required_follow_ups: [],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Backward compat follow-up",
-      expect.objectContaining({
-        priority: "medium",
-        category: "subagent-followup",
-      }),
-    );
+    expect(output.consumerResults.followUps.previewCount).toBe(1);
+    expect(output.consumerResults.followUps.created).toEqual([]);
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(0);
+    expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
   });
 
   test("rejects malformed reports at the Zod boundary and records task error_recovery", async () => {
@@ -1048,7 +942,6 @@ describe("subagentReportTools", () => {
         },
       }),
     );
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("rejects malformed caller-supplied consumer_warnings before signaling", async () => {
@@ -1104,12 +997,14 @@ describe("subagentReportTools", () => {
       reason: "report identity unavailable",
     });
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("consumer warnings emitted by tool consumers keep schema shape", async () => {
+    // retireAgendaWorkflow: with the agenda queue retired, consumer warnings
+    // come from verification checks + design-concern promotion only. This
+    // test constructs a report that yields a verification warning and
+    // confirms the schema shape holds.
     const store = storeFor(change());
-    mocks.addAgendaItem.mockRejectedValueOnce(new Error("agenda down"));
 
     const output = parse(
       await subagentReportTools.adv_subagent_report_submit.execute(
@@ -1132,12 +1027,11 @@ describe("subagentReportTools", () => {
         true,
       );
     }
+    // The default engineerReport() verification fails the structured
+    // adv_run_test.v1 evidence policy and yields a verification warning.
     expect(output.consumerResults.verification.warnings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          kind: "consumer_failure",
-          message: expect.stringContaining("agenda down"),
-        }),
+        expect.objectContaining({ kind: "verification_missing" }),
       ]),
     );
   });
@@ -1179,7 +1073,6 @@ describe("subagentReportTools", () => {
         },
       }),
     ]);
-    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("routes target_path mutations through target store", async () => {
@@ -1222,7 +1115,10 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh.mock.calls[0][1]).toBe(targetStore);
   });
 
-  test("required_follow_ups with obligation_class required_critical creates agenda item with priority critical", async () => {
+  test("required_follow_ups severity ordering is preserved in metadata (critical then high)", async () => {
+    // retireAgendaWorkflow: required_follow_ups are surfaced in submission
+    // order. The report payload carries the typed obligation_class to
+    // downstream release-safety / gate-readiness evaluators.
     const store = storeFor(change());
     const report = engineerReport({
       follow_ups: [],
@@ -1233,42 +1129,6 @@ describe("subagentReportTools", () => {
           severity: "critical",
           source_contract_id: "contract-1",
         },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Fix contract coverage",
-      expect.objectContaining({
-        priority: "critical",
-        category: "required-obligation",
-        description: expect.stringContaining("Obligation: required_critical"),
-      }),
-    );
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Fix contract coverage",
-      expect.objectContaining({
-        description: expect.stringContaining("Contract: contract-1"),
-      }),
-    );
-  });
-
-  test("required_follow_ups with severity high creates agenda item with priority high", async () => {
-    const store = storeFor(change());
-    const report = engineerReport({
-      follow_ups: [],
-      required_follow_ups: [
         {
           text: "Update tests",
           obligation_class: "required_standard",
@@ -1285,67 +1145,14 @@ describe("subagentReportTools", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Update tests",
-      expect.objectContaining({
-        priority: "high",
-        category: "required-obligation",
-      }),
-    );
-  });
-
-  test("report without required_follow_ups produces no required agenda items", async () => {
-    const store = storeFor(change());
-    const report = engineerReport({
-      follow_ups: ["Regular follow-up"],
-      required_follow_ups: undefined,
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(0);
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(2);
     expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Regular follow-up",
-      expect.objectContaining({
-        category: "subagent-followup",
-      }),
-    );
-  });
-
-  test("existing follow_ups still get priority medium", async () => {
-    const store = storeFor(change());
-    const report = engineerReport({
-      follow_ups: ["Regular follow-up"],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Regular follow-up",
-      expect.objectContaining({
-        priority: "medium",
-        category: "subagent-followup",
-      }),
-    );
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    expect(
+      signalPayload.report.required_follow_ups?.map((r) => r.text),
+    ).toEqual(["Fix contract coverage", "Update tests"]);
   });
 });
 
@@ -1356,9 +1163,6 @@ describe("adv_subagent_report_submit — terminal-workflow disk-projection fallb
 
   beforeEach(async () => {
     mocks.fireSignalAndRefresh.mockClear();
-    mocks.addAgendaItem.mockClear();
-    mocks.loadAgenda.mockClear();
-    mocks.loadAgenda.mockResolvedValue({ meta: null, items: [] });
     tempRoot = await mkdtemp(join(tmpdir(), "adv-terminal-report-"));
   });
 
@@ -1381,7 +1185,6 @@ describe("adv_subagent_report_submit — terminal-workflow disk-projection fallb
     const store = {
       paths: {
         root: tempRoot,
-        agenda: join(tempRoot, "agenda.jsonl"),
         archive: archiveDir,
         changes: join(tempRoot, "changes"),
       },
@@ -1479,7 +1282,7 @@ describe("adv_subagent_report_submit — terminal-workflow disk-projection fallb
     expect(reRead.subagent_reports).toHaveLength(1);
   });
 
-  test("consumers run after post-archive persistence — follow_ups create agenda items (AC5)", async () => {
+  test("consumers run after post-archive persistence — follow_ups surfaced as metadata (AC5)", async () => {
     const { store } = await archivedStoreWithBundle();
     const report = engineerReport();
 
@@ -1491,14 +1294,10 @@ describe("adv_subagent_report_submit — terminal-workflow disk-projection fallb
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      tempRoot,
-      "Add docs",
-      expect.objectContaining({
-        priority: "medium",
-        category: "subagent-followup",
-      }),
-    );
+    // retireAgendaWorkflow: consumers no longer write to a queue. Follow-ups
+    // surface only as preview metadata on the consumer result.
+    expect(output.consumerResults.followUps.previewCount).toBe(2);
+    expect(output.consumerResults.followUps.created).toEqual([]);
   });
 
   test("active (in-progress) change still uses the signal path — no regression (AC7)", async () => {

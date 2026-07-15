@@ -3,8 +3,6 @@ name: adv-coordinate
 description: Audit project changes, Epic alignment, sequencing, and membership health
 ---
 
-<!-- manifest: adv-coordinate · requiresChangeId: false · scope: reads[specs, epics, changes] -->
-
 # ADV Coordinate — Project Change and Epic Alignment Audit
 
 Run a read-first coordination pass across each participating project's in-flight changes, active Epics, and current repository evidence. Produce a repository freshness, project-change inventory, overlap, alignment, sequencing, dependency, and membership-health report; apply durable Epic actions only after explicit approval through typed Epic tools.

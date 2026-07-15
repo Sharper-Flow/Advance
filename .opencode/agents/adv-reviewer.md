@@ -37,6 +37,8 @@ tools:
   firecrawl_firecrawl_check_crawl_status: true
   # Browser/UI verification
   playwright_*: true
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # === ADV reads (narrow, read-only) ===
   adv_spec: true
   adv_status: true
@@ -69,11 +71,6 @@ tools:
   adv_task_reclassify_tdd: false
   adv_task_checkpoint: false
   adv_gate_complete: false
-  adv_agenda_add: false
-  adv_agenda_start: false
-  adv_agenda_complete: false
-  adv_agenda_cancel: false
-  adv_agenda_prioritize: false
   adv_temporal_worker_restart: false
   adv_worktree_create: false
   adv_worktree_delete: false
@@ -89,7 +86,7 @@ You have repo write capability (read, write, edit, bash, tests). The constraint 
 × NEVER perform ADV orchestration mutations (no task add/update/cancel/checkpoint, no gate completion, no change create/update/archive/reenter, no worktree mutations, no agenda mutations) — your boundary is **repo writes only, no ADV orchestration mutations**. Report what needs to happen; let the main agent execute it.
 × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
-Tool names are exact schema identifiers. Never normalize MCP names: use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
+For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
 ## Phase-Aware Operating Modes
 
@@ -130,7 +127,7 @@ You may not begin analysis until scope is locked AND path preflight is complete.
 
 Every tool call you make MUST target the working directory specified in the Context Packet. This ensures your reads, edits, and test runs land in the correct worktree (typically a per-change worktree, NOT the default project root).
 
-**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as the `workdir` parameter to **every** call to: `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test`.
+**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as `workdir` to `bash`, `read`, `write`, `edit`, and `adv_run_test`. For `morph_edit`, pass both `workdir: WORKING DIRECTORY` and `taskId: TASK`; ADV authorizes this pair before Morph can use the external root.
 
 **If WORKING DIRECTORY is missing or empty:** Refuse to begin. Return a structured packet-defect failure to the orchestrator with `packet_defect: missing WORKING DIRECTORY`. Do NOT call `question` and do NOT ask the user for packet identity values.
 
@@ -205,9 +202,9 @@ Single declarative drift rule. Applies to every finding, fix, auto-remediation.
 
 ## Local Code Exploration Priority
 
-1. **Intent/concept discovery** — `lgrep_search_semantic`
-2. **Symbol lookup** — `lgrep_search_symbols`
-3. **Exact text/regex lookup** — `lgrep_search_text` or `grep`
+1. **Intent/concept discovery** — lgrep semantic search
+2. **Symbol lookup** — lgrep symbol search
+3. **Exact text/regex lookup** — lgrep text search or `grep`
 4. **Known file inspection** — `read`
 
 If `lgrep` fails or times out once, fall back immediately to `glob`/`grep`/`read` for that turn.
@@ -228,7 +225,7 @@ If `lgrep` fails or times out once, fall back immediately to `glob`/`grep`/`read
 - `~/.local/share/opencode/plugins/advance/**/design.md`
 - `~/.local/share/opencode/plugins/advance/**/executive-summary.md`
 - `~/.local/share/opencode/plugins/advance/**/acceptance.md`
-- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 

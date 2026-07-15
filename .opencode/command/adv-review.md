@@ -3,7 +3,6 @@ name: adv-review
 description: "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS"
 phaseGoal: "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift."
 ---
-<!-- manifest: adv-review · gate: acceptance · requiresChangeId: true · prereqs: [adv-apply] · scope: reads[specs, proposal, tasks, codebase] · modifies[proposal] -->
 # ADV Review — Acceptance-Stage Deliverable Review
 Orchestrate multi-dimensional review of the delivered work. Command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and now carries the post-execution acceptance/sign-off flow directly.
 ## Exits
@@ -22,7 +21,6 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 2. If empty → `adv_change_list` → auto-select or `question` tool
 
 ## Phase 0: Embedded Methodology
-<!-- rq-R3v13wR1 -->
 
 ### Review Methodology
 
@@ -97,21 +95,7 @@ From change data: affected files, spec scenarios, task completion evidence, `cha
 
 ---
 ## 12-Dimension Review Framework
-| # | Dimension | Focus |
-|---|-----------|-------|
-| 1 | Design | Architecture, system integration, timing |
-| 2 | Functionality | Does it work? Edge cases? Concurrency? |
-| 3 | Complexity | Understandable quickly? Over-engineered? |
-| 4 | Tests | Coverage, tests fail when code breaks |
-| 5 | Naming | Clear, communicative, appropriate length |
-| 6 | Comments | Explain "why" not "what" |
-| 7 | Style | Style guide conformance |
-| 8 | Documentation | READMEs, API docs updated |
-| 9 | Security | Auth, validation, secrets |
-| 10 | Performance | Degradation risks, optimization |
-| 11 | Error Handling | Correct, user-friendly, debuggable |
-| 12 | Consistency | Matches existing patterns |
-
+Apply the 12-dimension matrix defined once in the embedded methodology above (Phase 0 → Review Methodology → 12-Dimension Framework). Every review must assess all 12 dimensions — including Security's OWASP top 10 scope; skipping any dimension requires explicit justification. The scanner fan-out, dimension contracts, and inline fallbacks below execute this framework; they do not replace it.
 ---
 ## Sub-Agent Resilience
 Empty/failed result = transient failure (empty string, missing `"dimension"` key, error-only).
@@ -279,7 +263,6 @@ Example shape:
 
 ---
 ## Phase 5: Remediation (if issues found)
-<!-- rq-remediation01 -->
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
@@ -398,7 +381,6 @@ After remediation fixes are applied, re-verify affected dimensions before recomp
 
 ---
 ## Phase 6: Final Report
-<!-- rq-touchedScope01 -->
 ### Report
 Emit a structured final report using ordered and nested lists:
 
@@ -420,8 +402,6 @@ Group findings by severity tier. Within each tier, order by file path for scanab
 
 ### Contract Review Matrix
 
-<!-- rq-acceptanceEvidenceTiming01 rq-acceptanceRecovery01 -->
-
 If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path. This is the first required proof write in the no-late-homework sequence: proof required for acceptance must exist before the approval prompt, not after.
 
 Rules:
@@ -436,8 +416,6 @@ Rules:
 - For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence`, then complete the gate with `compatibilityReason: "..."`, `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
 
 #### Non-Code Evidence Policy in the Review Matrix
-
-<!-- rq-subagentNonCodeEvidence01 -->
 
 For each non-code task, create or verify `contract.reviewMatrix` rows using the task's `evidence_policy`:
 
@@ -462,8 +440,6 @@ For ops/enabler changes, acceptance proof must inspect `ops_followup` source sta
 
 #### Designer Concern Enforcement (structural)
 
-<!-- rq-designQualityEvidence01 -->
-
 Design-quality enforcement is STRUCTURAL, not reviewer-prose. The gate-readiness evaluator (`checkUnresolvedDesignConcerns`) reads persisted `adv-designer` reports from change state and emits a `DESIGN_CONCERN_UNRESOLVED` blocker that blocks the acceptance and release gates while the latest designer report for any task has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. You cannot complete acceptance while that blocker is present — this is enforced by code, not by remembering to look.
 
 To clear a blocked concern, do exactly one of:
@@ -471,7 +447,7 @@ To clear a blocked concern, do exactly one of:
 - Fix it and have `adv-designer` submit an updated (higher-attempt) all-pass report for the task.
 - Record a typed disposition via `adv_design_concern_disposition` (`changeId`, `taskId`, `concernKey`, `disposition` ∈ `fixed | rejected_with_evidence | split | fast_follow`, non-blank `evidence`). There is no debt-acceptance disposition.
 
-Advisory only: on report submit, each concern and `neighboring_recommendation` is auto-promoted to a `required-obligation` agenda item (deduped) so it is never silently lost — but the agenda item is routing, not the gate authority.
+Advisory only: on report submit, each concern and `neighboring_recommendation` surfaces a `design_concern_promoted` consumer warning (deduped) so it is never silently lost — but the warning is routing, not the gate authority.
 
 When synthesizing acceptance proof, additionally map relevant `DESIGNER_REPORT.design_dimensions` / `required_main_agent_actions` into `contract.reviewMatrix` rows using `design_proof`, `rubric_review`, `review`, `static_check`, or `test` evidence policies. Browser/design proof for runnable visual surfaces must include viewport context; a missing runnable surface requires explicit fallback rationale. Review/harden ownership remains with `adv-reviewer`; `adv-designer` remains apply-phase only.
 

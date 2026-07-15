@@ -1,7 +1,8 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
-import type { GateReadinessBlocker } from "../types";
+import type { ChangeStatus, GateReadinessBlocker } from "../types";
+import { normalizeLegacyChangeStatus } from "../types";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
@@ -72,6 +73,7 @@ import {
   applyTaskUpdatedToState,
   applyTestRunRecordedToState,
   applyWisdomAddedToState,
+  applySpecDeltaAddedToState,
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
@@ -351,6 +353,9 @@ const gateReenteredSignal = wf.defineSignal<
 const wisdomAddedSignal = wf.defineSignal<
   [import("../types").WisdomAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.wisdomAdded);
+const specDeltaAddedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaAddedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAdded);
 const reflectionRecordedSignal = wf.defineSignal<
   [import("../types").ReflectionRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
@@ -579,7 +584,13 @@ export async function changeWorkflow(
   state.projectionChangesDir = input.projectionChangesDir;
   state.archiveProjects = input.archiveProjects;
   if (input.seedState) {
-    if (input.seedState.status) state.status = input.seedState.status;
+    // Legacy stored statuses ("active"/"pending") never enter workflow
+    // state — they normalize to "draft" at the seed boundary, matching the
+    // disk load path (storage/json.ts) and changeSeedStateFromChange.
+    if (input.seedState.status)
+      state.status = normalizeLegacyChangeStatus(
+        input.seedState.status,
+      ) as ChangeStatus;
     state.lifecycleState =
       input.seedState.lifecycleState ??
       normalizeChangeLifecycleState(state.status);
@@ -652,6 +663,12 @@ export async function changeWorkflow(
     }
     if (input.seedState.scope_worktrees) {
       state.scope_worktrees = { ...input.seedState.scope_worktrees };
+    }
+    if (input.seedState.seenReportIds) {
+      state.seenReportIds = [...input.seedState.seenReportIds];
+    }
+    if (typeof input.seedState.seenReportIdsTotal === "number") {
+      state.seenReportIdsTotal = input.seedState.seenReportIdsTotal;
     }
     if (input.seedState.design_concern_dispositions) {
       state.design_concern_dispositions = [
@@ -1396,6 +1413,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    specDeltaAddedSignal,
+    signalMutation("specDeltaAdded", (payload) =>
+      applySpecDeltaAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     reflectionRecordedSignal,
     signalMutation("reflectionRecorded", (payload) =>
       applyReflectionRecordedToState(state, payload),
@@ -1736,6 +1759,7 @@ export async function changeWorkflow(
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,
       seenReportIds: state.seenReportIds,
+      seenReportIdsTotal: state.seenReportIdsTotal,
       design_concern_dispositions: state.design_concern_dispositions,
       // Continue-as-new seed must persist every seedState Pick key as a
       // single-line `key: state.key` entry (workflows.signal-handlers structural

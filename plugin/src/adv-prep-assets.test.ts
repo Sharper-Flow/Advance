@@ -17,7 +17,7 @@ describe("adv-prep non-code evidence policy surface", () => {
 
   test("declares a non-code deliverable evidence policy section", () => {
     expect(command).toContain("Non-Code Deliverable Evidence Policy");
-    expect(command).toContain("rq-prepNonCodeEvidence01");
+    expect(command).toContain("For tasks whose deliverable is non-code");
   });
 
   test("requires evidence_policy on non-code tasks", () => {

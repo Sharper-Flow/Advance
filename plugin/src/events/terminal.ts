@@ -226,14 +226,6 @@ const setTitle = (title: string): boolean => {
  */
 export const _setTitle = setTitle;
 
-/**
- * Reset terminal title.
- */
-const resetTitle = (): void => {
-  log("resetTitle");
-  setTitle("");
-};
-
 // =============================================================================
 // Public API
 // =============================================================================
@@ -259,25 +251,27 @@ const cleanTitlePart = (value: string | undefined): string =>
   (value ?? "").trim();
 
 /**
- * Build tab title from project name, change label, and optional epic title.
+ * Build the pane title from the active change ID and optional Epic ID.
  *
- * Title priority:
- *   - Active change with Epic: "Epic title | change label"
- *   - Active change without Epic: "change label"
- *   - No active change: project name
+ * Identity rules (rq-titleIdentity01):
+ *   - No active change        → null (no write)
+ *   - Active change           → changeId
+ *   - Active change + Epic    → "epicId | changeId"
  *
- * Deliberately avoids semantic normalization, shortname generation, acronym
- * generation, verb stripping, or AI/agent-driven naming.
+ * The title never falls back to a project name, worktree path, branch,
+ * status marker, progress text, or emoji. Returning null is the
+ * structural representation of "no reachable active change"; callers
+ * must skip the title write rather than substituting a fallback.
+ *
+ * Deliberately avoids semantic normalization, shortname generation,
+ * acronym generation, verb stripping, or AI/agent-driven naming.
  */
 export const buildTabTitle = (
-  _emoji: string,
-  projectName: string,
-  changeLabel: string | undefined,
-  epicTitle?: string,
-): string => {
-  const projectPart = cleanTitlePart(projectName);
-  const changePart = cleanTitlePart(changeLabel);
-  const epicPart = cleanTitlePart(epicTitle);
+  changeId?: string,
+  epicId?: string,
+): string | null => {
+  const changePart = cleanTitlePart(changeId);
+  const epicPart = cleanTitlePart(epicId);
 
   if (changePart && epicPart) {
     return `${epicPart} | ${changePart}`;
@@ -285,34 +279,33 @@ export const buildTabTitle = (
   if (changePart) {
     return changePart;
   }
-  if (projectPart) {
-    return projectPart;
-  }
-  return "";
+  return null;
 };
 
 let lastTitle: string | null = null;
 
 /**
  * Update terminal based on status.
- * Title format:
- *   - Active change with Epic: "Epic title | change label"
- *   - Active change without Epic: "change label"
- *   - No active change: "<project>"
+ *
+ * Title format (rq-titleIdentity01):
+ *   - Active change with Epic: "epicId | changeId"
+ *   - Active change without Epic: "changeId"
+ *   - No active change: no write (pane keeps its last intentional title)
+ *
+ * `status` is accepted for API compatibility but does not influence the
+ * title — status markers, progress, and emojis are not pane identity.
  */
 export const updateTerminalStatus = (
-  status: StatusMarker,
-  projectName: string,
-  changeLabel?: string,
-  epicTitle?: string,
-  _progress?: string,
+  _status: StatusMarker,
+  changeId?: string,
+  epicId?: string,
 ): void => {
-  const title = buildTabTitle(
-    getStatusEmoji(status),
-    projectName,
-    changeLabel,
-    epicTitle,
-  );
+  const title = buildTabTitle(changeId, epicId);
+  if (title === null) {
+    // No reachable active change — skip the title write so terminal
+    // transitions never clear the pane (AC1, AC4).
+    return;
+  }
 
   if (title !== lastTitle) {
     if (setTitle(title)) {
@@ -323,8 +316,12 @@ export const updateTerminalStatus = (
 
 /**
  * Get emoji for status marker.
+ *
+ * Retained for the chat-output-display drift contract (rq-idleMarker02)
+ * which scans this source for the IDLE/ATTN switch cases. Not referenced
+ * by runtime pane identity — status emojis are not pane identity.
  */
-const getStatusEmoji = (status: StatusMarker): string => {
+const _getStatusEmoji = (status: StatusMarker): string => {
   switch (status) {
     case "WORK":
       return "🟩";
@@ -342,10 +339,14 @@ const getStatusEmoji = (status: StatusMarker): string => {
 };
 
 /**
- * Full cleanup - reset title and all module-level state.
+ * Full cleanup - reset module-level state without touching the pane.
+ *
+ * The pane identity contract (fixAdvPanelTitles, AC4 / DONT2) preserves
+ * the last intentional ADV title across cleanup. Closing or archiving a
+ * change must not clear or replace the existing pane title, so this
+ * cleanup does NOT call `resetTitle` / `setTitle("")`.
  */
 export const cleanupTerminal = (): void => {
-  resetTitle();
   lastTitle = null;
   invalidateTtyCache();
 };

@@ -150,3 +150,122 @@ adv_gate_status({ changeId: "my-change" })
 # Complete a gate
 adv_gate_complete({ changeId: "my-change", gateId: "proposal" })
 ```
+
+---
+
+## Per-Gate Line-Item Map
+
+> Canonical reference for per-gate tasks, artifacts, writers, and approval types. Every row is source-verified against the owning command contract, spec anchor, or tool schema.
+
+### Legend
+
+**Writer roles:**
+- `orchestrator` — ADV orchestrator authors narrative artifacts and drives gate completion
+- `tool` — ADV tool persists typed state (`adv_contract_mint`, `adv_task_checkpoint`, `adv_change_archive`, etc.)
+- `sub-agent` — spawned worker contributes findings or implementation (`adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-verifier`, `adv-ci-waiter`)
+- `user` — human approves at collaborative checkpoints
+
+**Approval types:**
+- `machine-enforced` — schema/code hard-requires explicit approval or readiness check
+- `Tier A inline` — collaborative checkpoint; whitelist reply advances gate inline
+- `Tier B whitelist-only` — strict regex parse; no LLM fallback (archive sign-off, cancellation)
+- `none` — no approval needed; auto-continues
+
+### 1. Proposal
+
+<!-- src: .opencode/command/adv-proposal.md -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Define problem, scope, User Outcomes | `problem-statement.md`, `proposal.md` | orchestrator | Tier A inline |
+| 2 | B/F/S ambiguity scan | Findings inline in proposal output | orchestrator | none |
+| 3 | Confirm proposal | Proposal gate evidence | user | Tier A inline |
+
+### 2. Discovery
+
+<!-- src: .opencode/command/adv-discover.md Phase 4-4.6 / tool:adv_contract_mint -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Inspect specs and current implementation | Research findings | sub-agent: adv-researcher / adv-tron | none |
+| 2 | Define objectives, AC, success criteria | `agreement.md` | orchestrator | Tier A inline |
+| 3 | Define constraints, avoidances, out-of-scope | `agreement.md` | orchestrator | Tier A inline |
+| 4 | Open question resolution (min 1 round of 3) | User decisions recorded | user | Tier A inline |
+| 5 | Criteria checkpoint (AC/SC approval) | Approved criteria | user | Tier A inline |
+| 6 | Convert agreement to typed contract | `ChangeContract` | tool: `adv_contract_mint` | none |
+
+### 3. Design
+
+<!-- src: .opencode/command/adv-design.md / rq-designval01-04 -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Choose architecture and boundaries | `design.md` | orchestrator | none |
+| 2 | Record decisions, alternatives, risks | `design.md` | orchestrator | none |
+| 3 | Design Leverage Scout (trigger-based) | Scout candidates | sub-agent: adv-researcher | advisory |
+| 4 | Validate design independently (mandatory to run) | Validation report | sub-agent: adv-researcher | advisory |
+| 5 | Resolve CONFLICT or contract-compromise risk | Revised `design.md` | orchestrator + user | Tier A (if tradeoff) |
+
+### 4. Planning
+
+<!-- src: .opencode/command/adv-prep.md / tool:gate.ts userApproved enforcement -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Build task graph from agreement/design | Tasks in `change.json` | orchestrator | none |
+| 2 | Link tasks to contract obligations | Task `contract_refs` | orchestrator | none |
+| 3 | Set dependencies, TDD intent, evidence policies | Task metadata | orchestrator | none |
+| 4 | Machine-enforced readiness check | Prep readiness result | tool: `runPrepReadinessChecks` | machine-enforced |
+| 5 | Approve task graph (only schema-enforced HITL gate) | Planning gate evidence | user | machine-enforced (`userApproved: true`) |
+
+### 5. Execution
+
+<!-- src: .opencode/command/adv-apply.md Phase 0.1-3 / rq-TDD009seq / tool:adv_worktree_create / tool:adv_task_checkpoint -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Worktree Isolation (resume or create) | `change/{id}` worktree | tool: `adv_worktree_create` | none |
+| 2 | Write failing test (RED) | Failing test evidence | sub-agent: adv-engineer / adv-designer / orchestrator | none |
+| 3 | Implement (GREEN) | Source changes | sub-agent: adv-engineer / adv-designer / orchestrator | none |
+| 4 | Run verification | Test evidence | tool: `adv_run_test` | none |
+| 5 | Submit implementation report | `ENGINEER_REPORT` / `DESIGNER_REPORT` | sub-agent: adv-engineer / adv-designer | none |
+| 6 | Checkpoint task (fires taskCompletedSignal) | Git checkpoint + task done | tool: `adv_task_checkpoint` | none |
+| 7 | Global final loop (full build + tests + lint) | Verification evidence | orchestrator | none |
+
+### 6. Acceptance
+
+<!-- src: .opencode/command/adv-review.md / rq-designQualityEvidence01 / rq-acceptanceProjection01 / tool:adv_design_concern_disposition / tool:adv_contract_review_matrix_set -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Review implementation against contract | `REVIEW_FINDINGS` block | sub-agent: adv-reviewer (scoped remediation) | none |
+| 2 | Resolve blocking findings | Source changes + evidence | sub-agent: adv-reviewer / adv-engineer | none |
+| 3 | Design-concern disposition check (structural) | `DESIGN_CONCERN_UNRESOLVED` blocker | tool: `checkUnresolvedDesignConcerns` | machine-enforced |
+| 4 | Clear design concerns via typed disposition | Disposition recorded | tool: `adv_design_concern_disposition` | none |
+| 5 | Complete contract review matrix | Typed review matrix | tool: `adv_contract_review_matrix_set` | none |
+| 6 | Persist executive summary | `executive-summary.md` | orchestrator | none |
+| 7 | Confirm acceptance | Acceptance gate evidence | user | Tier A inline |
+
+### 7. Release
+
+<!-- src: .opencode/command/adv-harden.md + adv-archive.md / rq-releaseFinalization01-04 / rq-designQualityEvidence01 / tool:adv_change_archive / rq-inlineApproval01 -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Harden pre-flight checks | Readiness result | orchestrator | none |
+| 2 | Quality scanners + scoped remediation | Harden report | sub-agent: adv-reviewer (scoped remediation) | none |
+| 3 | Append Release Readiness Summary | `executive-summary.md` (appended) | orchestrator | none |
+| 4 | Present Change Report + sign-off | Tier B inline prompt | orchestrator | Tier B whitelist-only |
+| 5 | Archive (Phase 9 git finalization) | Archive bundle + spec deltas | tool: `adv_change_archive phase9:"run"` | none |
+| 6 | CI/PR watch to MERGED | Merge proof | sub-agent: adv-ci-waiter | none |
+| 7 | Ops follow-up `blocks` check | `OPS_FOLLOWUP_BLOCKS_INCOMPLETE` blocker | tool: `checkOpsFollowupReleaseBlockers` | machine-enforced |
+| 8 | Record release | Release gate done | orchestrator | none |
+
+### Post-Release
+
+<!-- src: .opencode/command/adv-archive.md / .opencode/command/adv-reflect.md / tool:adv_reflect -->
+
+| # | Line item | Artifact / durable output | Writer role | Approval |
+|---|---|---|---|---|
+| 1 | Wisdom capture (advisory — not command-mandated) | Wisdom entries | orchestrator / sub-agents | none |
+| 2 | Post-archive reflection (non-blocking) | Reflection report | tool: `adv_reflect` | none |

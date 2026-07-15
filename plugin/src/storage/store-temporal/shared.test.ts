@@ -1,13 +1,24 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Store } from "../store-types";
 import {
   AdvProjectContextMismatchError,
+  classifyTemporalReadFailure,
   getGuardedChangeHandle,
   mapTemporalChangeStateToChange,
+  runTemporalQuery,
   type TemporalStoreBackendInput,
   type WorkflowHandleLike,
 } from "./shared";
+import {
+  createTemporalReadDeadline,
+  TemporalQueryTimeoutError,
+} from "../../temporal/retry-wrapper";
+import { reinitStsl } from "../../temporal/service";
 import { createChangeWorkflowState } from "../../temporal/change-state";
+
+vi.mock("../../temporal/service", () => ({
+  reinitStsl: vi.fn(async () => undefined),
+}));
 
 function createInput(args: {
   projectId?: string;
@@ -254,5 +265,178 @@ describe("mapTemporalChangeStateToChange", () => {
     const change = mapTemporalChangeStateToChange(state);
 
     expect(change.epic_membership).toBeUndefined();
+  });
+});
+
+describe("runTemporalQuery aggregate deadline", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
+    vi.mocked(reinitStsl).mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test("caps the per-attempt query timeout at the remaining aggregate budget", async () => {
+    const deadline = createTemporalReadDeadline(500);
+    const op = vi.fn(() => new Promise<never>(() => {}));
+
+    const promise = runTemporalQuery(op, { deadline });
+    const assertion = expect(promise).rejects.toBeInstanceOf(
+      TemporalQueryTimeoutError,
+    );
+
+    // The default query ceiling is 5s, but the aggregate deadline caps the
+    // attempt at 500ms and no retry/backoff begins after expiry.
+    await vi.advanceTimersByTimeAsync(500);
+    await assertion;
+
+    expect(op).toHaveBeenCalledTimes(1);
+    expect(reinitStsl).not.toHaveBeenCalled();
+  });
+
+  test("retries on the default 5s query ceiling WITHOUT reconnecting (timeout is retryable, not reconnectable)", async () => {
+    let calls = 0;
+    const op = vi.fn(() => {
+      calls += 1;
+      if (calls === 1) return new Promise<never>(() => {});
+      return Promise.resolve("ok");
+    });
+
+    const promise = runTemporalQuery(op);
+    const assertion = expect(promise).resolves.toBe("ok");
+
+    // First attempt hangs until the default 5s per-attempt ceiling.
+    await vi.advanceTimersByTimeAsync(4_999);
+    expect(op).toHaveBeenCalledTimes(1);
+    expect(reinitStsl).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    // Two-axis semantics (#217): a bare query timeout is a slow/contended
+    // worker, not a broken transport channel — it is retryable but NOT
+    // reconnectable. The retry proceeds after backoff with NO reconnect, so
+    // one op's timeout never closes the shared connection under other
+    // sessions' in-flight ops (avoids reconnect churn).
+    expect(reinitStsl).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(250);
+    await assertion;
+
+    expect(op).toHaveBeenCalledTimes(2);
+    expect(reinitStsl).not.toHaveBeenCalled();
+  });
+});
+
+describe("classifyTemporalReadFailure", () => {
+  function createClassifyInput(args: {
+    describe?: () => Promise<unknown>;
+  }): TemporalStoreBackendInput {
+    const handle: WorkflowHandleLike = {
+      query: vi.fn(),
+      executeUpdate: vi.fn(),
+      signal: vi.fn(),
+      ...(args.describe ? { describe: args.describe } : {}),
+    };
+    return {
+      projectId: "project-a",
+      legacy: {
+        changes: { get: vi.fn() },
+      } as unknown as Store,
+      temporal: {
+        client: {
+          workflow: {
+            getHandle: () => handle,
+          },
+        },
+      },
+    };
+  }
+
+  test("not-found query failure → fallback + missing_workflow", async () => {
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Workflow execution not found for workflowId: change-p-a"),
+    );
+    expect(failure).toEqual({
+      errorClass: "fallback",
+      recoveryReason: "missing_workflow",
+    });
+  });
+
+  test("poisoned query failure → fallback + poisoned_history", async () => {
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error(
+        "[TMPRL1100] Nondeterminism error: No command scheduled for event X",
+      ),
+    );
+    expect(failure).toEqual({
+      errorClass: "fallback",
+      recoveryReason: "poisoned_history",
+    });
+  });
+
+  test("fatal generic query failure + poisoned describe → fallback + poisoned_history", async () => {
+    const input = createClassifyInput({
+      describe: async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "category=WorkflowTaskFailed cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }),
+    });
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Failed to query Workflow"),
+    );
+    expect(failure).toEqual({
+      errorClass: "fallback",
+      recoveryReason: "poisoned_history",
+    });
+  });
+
+  test("fatal generic query failure without poisoned evidence → fatal + query_failed", async () => {
+    const input = createClassifyInput({
+      describe: async () => ({ searchAttributes: {} }),
+    });
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Failed to query Workflow"),
+    );
+    expect(failure.errorClass).toBe("fatal");
+    expect(failure.recoveryReason).toBe("query_failed");
+  });
+
+  test("fatal non-generic query failure → fatal + query_failed", async () => {
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("permission denied"),
+    );
+    expect(failure.errorClass).toBe("fatal");
+    expect(failure.recoveryReason).toBe("query_failed");
+  });
+
+  test("fallback-class but neither poisoned nor missing → query_failed (never mutation-authorizing)", async () => {
+    // "not registered" matches the retry-wrapper fallback family, but the
+    // workflow exists and cannot answer the query — re-seed mutation must
+    // NOT be authorized for it.
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Query type 'changeStateQuery' not registered"),
+    );
+    expect(failure.recoveryReason).toBe("query_failed");
   });
 });

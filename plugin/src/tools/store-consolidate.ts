@@ -12,8 +12,14 @@
  *    checks only (C3).
  *  - `dry_run`: emit the full per-item consolidation plan — changes
  *    partitioned live vs terminal, archive bundles, Epics (incl.
- *    retired-epics), wisdom/agenda/reflections row counts, per-ID collision
+ *    retired-epics), wisdom/reflections row counts, per-ID collision
  *    report (AC5, DONT2) — with ZERO mutations (AC3, C2).
+ *
+ * retireAgendaWorkflow: consolidation no longer reads or writes
+ * `agenda.jsonl`. Legacy Agenda data is the responsibility of
+ * `adv_store_cleanup`, which is mutually serialized with consolidation
+ * via the shared ledger/lock primitives. Consolidation skips the file;
+ * cleanup handles its deletion and audit manifest.
  *
  * The `execute` action (task tk-9e02f3b6015f) applies the exact dry-run
  * plan: approval-gated (C2), terminal-first disk-projection imports, live
@@ -140,6 +146,11 @@ export type ConsolidationAppendPlan = z.infer<
  * (source_project_id, target_project_id, item_id); content-hashed so
  * re-runs are structurally idempotent (AC6). Exported for the execute
  * task (tk-9e02f3b6015f).
+ *
+ * Parse-only legacy: `agenda_row` is retained so existing ledgers with
+ * agenda_row entries continue to parse (retireAgendaWorkflow AC8). New
+ * consolidations do not write agenda_row items; legacy Agenda data is
+ * cleaned up by adv_store_cleanup.
  */
 export const ConsolidationLedgerRowSchema = z
   .object({
@@ -219,7 +230,6 @@ export const ConsolidationReportSchema = z
     appends: z
       .object({
         wisdom: ConsolidationAppendPlanSchema,
-        agenda: ConsolidationAppendPlanSchema,
         reflections: ConsolidationAppendPlanSchema,
       })
       .strict(),
@@ -285,7 +295,6 @@ export const ConsolidationScanStoreSchema = z
         archive_bundles: z.number().int().nonnegative(),
         retired_epics: z.number().int().nonnegative(),
         wisdom_rows: z.number().int().nonnegative(),
-        agenda_rows: z.number().int().nonnegative(),
         reflections_rows: z.number().int().nonnegative(),
       })
       .strict(),
@@ -703,7 +712,6 @@ export async function scanStoresForRepo(
         retired_epics: (await readdirSafe(join(ref.path, "retired-epics")))
           .length,
         wisdom_rows: await countJsonlRows(join(ref.path, "wisdom.jsonl")),
-        agenda_rows: await countJsonlRows(join(ref.path, "agenda.jsonl")),
         reflections_rows: await countJsonlRows(
           join(ref.path, "reflections.jsonl"),
         ),
@@ -750,7 +758,7 @@ async function defaultListLiveEpicIds(projectId: string): Promise<string[]> {
     });
     return entries.map((e) => e.id);
   } finally {
-    bundle.connection.close();
+    await bundle.connection.close();
   }
 }
 
@@ -812,7 +820,6 @@ export async function buildConsolidationPlan(
     sourceRetiredEpics,
     sourceLock,
     sourceWisdom,
-    sourceAgenda,
     sourceReflections,
   ] = await Promise.all([
     readStoreChanges(source.path),
@@ -820,7 +827,6 @@ export async function buildConsolidationPlan(
     readStoreRetiredEpics(source.path),
     probeWorkerLock(source.path),
     readJsonlHashed(join(source.path, "wisdom.jsonl")),
-    readJsonlHashed(join(source.path, "agenda.jsonl")),
     readJsonlHashed(join(source.path, "reflections.jsonl")),
   ]);
 
@@ -834,9 +840,6 @@ export async function buildConsolidationPlan(
     : [];
   const targetWisdom = target
     ? await readJsonlHashed(join(target.path, "wisdom.jsonl"))
-    : { rows: 0, malformed: 0, hashes: new Set<string>() };
-  const targetAgenda = target
-    ? await readJsonlHashed(join(target.path, "agenda.jsonl"))
     : { rows: 0, malformed: 0, hashes: new Set<string>() };
   const targetReflections = target
     ? await readJsonlHashed(join(target.path, "reflections.jsonl"))
@@ -1090,7 +1093,6 @@ export async function buildConsolidationPlan(
     },
     appends: {
       wisdom: appendPlan(sourceWisdom, targetWisdom),
-      agenda: appendPlan(sourceAgenda, targetAgenda),
       reflections: appendPlan(sourceReflections, targetReflections),
     },
     collisions,
@@ -1139,6 +1141,71 @@ export class ConsolidationError extends Error {
 }
 
 /**
+ * Default host-side bound for a single live-Epic state query. The Temporal
+ * TypeScript `WorkflowHandle.query` exposes no per-call deadline, so the bound
+ * lives here on the host side — comfortably below the 10s tool-execution
+ * boundary (rq-storeConsolidation bounded-query).
+ */
+export const DEFAULT_EPIC_QUERY_TIMEOUT_MS = 7_000;
+
+/**
+ * Typed, actionable timeout for a live-Epic state query. Kept distinct from a
+ * genuine "not found" so a hung query can never be coerced to a null (skip)
+ * state: it always surfaces as a per-item `failed` outcome carrying the Epic
+ * ID and remediation guidance.
+ */
+export class EpicQueryTimeoutError extends Error {
+  readonly epicId: string;
+  readonly timeoutMs: number;
+  constructor(epicId: string, timeoutMs: number) {
+    super(
+      `live Epic state query for "${epicId}" timed out after ${timeoutMs}ms ` +
+        `(host-side bound below the 10s tool boundary); the source Epic ` +
+        `workflow did not answer in time — restore or restart the source ` +
+        `workflow and re-run consolidation`,
+    );
+    this.name = "EpicQueryTimeoutError";
+    this.epicId = epicId;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+/**
+ * Race a live-Epic state query against a host-side deadline and observe the
+ * losing query's rejection, so a late-settling Temporal query cannot surface
+ * as an unhandled promise rejection after the deadline has already failed the
+ * item. When the query settles first the timer is cleared and its value (or
+ * error) is passed through unchanged.
+ */
+function boundLiveEpicQuery(
+  query: Promise<EpicWorkflowState | null>,
+  epicId: string,
+  timeoutMs: number,
+): Promise<EpicWorkflowState | null> {
+  return new Promise<EpicWorkflowState | null>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      // Deadline won: attach a no-op observer to the still-pending query so
+      // its eventual rejection is never reported as unhandled.
+      void query.then(
+        () => {},
+        () => {},
+      );
+      reject(new EpicQueryTimeoutError(epicId, timeoutMs));
+    }, timeoutMs);
+    query.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
  * Injectable recreation backends. Defaults use the existing Temporal
  * creation/signal path (`ensureChangeWorkflowStarted` /
  * `ensureEpicWorkflowStarted`) under the true identity — new workflows with
@@ -1152,6 +1219,11 @@ export interface ConsolidationExecuteDeps {
     epicId: string,
   ) => Promise<EpicWorkflowState | null>;
   recreateLiveEpic?: (input: EpicWorkflowInput) => Promise<void>;
+  /**
+   * Host-side bound (ms) applied to each `queryLiveEpicState` call. Defaults
+   * to {@link DEFAULT_EPIC_QUERY_TIMEOUT_MS}; tests inject a tiny value.
+   */
+  epicQueryTimeoutMs?: number;
 }
 
 export interface ExecuteConsolidationOptions extends BuildPlanOptions {
@@ -1343,6 +1415,8 @@ export async function executeConsolidation(
   };
 
   const deps = options.deps ?? {};
+  const epicQueryTimeoutMs =
+    deps.epicQueryTimeoutMs ?? DEFAULT_EPIC_QUERY_TIMEOUT_MS;
   const recreateLiveChange =
     deps.recreateLiveChange ??
     (async (input: ChangeWorkflowInput): Promise<void> => {
@@ -1459,13 +1533,14 @@ export async function executeConsolidation(
         continue;
       }
       try {
-        const state = await queryLiveEpicState(
-          options.sourceProjectId,
+        const state = await boundLiveEpicQuery(
+          queryLiveEpicState(options.sourceProjectId, item.id),
           item.id,
+          epicQueryTimeoutMs,
         );
         if (!state) {
           throw new Error(
-            `source epic workflow state unavailable for ${item.id}; cannot carry Epic state — recreate manually or restore the source workflow`,
+            `source epic workflow state unavailable for ${item.id}; cannot carry Epic state — restore the source workflow and re-run consolidation`,
           );
         }
         await recreateLiveEpic({
@@ -1504,16 +1579,17 @@ export async function executeConsolidation(
     // Cast defeats TS closure-narrowing (`bundle` is assigned inside the
     // getClient closure, which the control-flow analysis cannot see).
     const opened = bundle as TemporalBundle | null;
-    opened?.connection.close();
+    await opened?.connection.close();
   }
 
   // --- Phase 3: jsonl appends with content-hash dedupe ---------------------
+  // retireAgendaWorkflow: agenda.jsonl is intentionally absent. Legacy
+  // Agenda data is deleted by adv_store_cleanup, not consolidated.
   const appendTargets: Array<{
     file: string;
     itemKind: ConsolidationLedgerRow["item_kind"];
   }> = [
     { file: "wisdom.jsonl", itemKind: "wisdom_row" },
-    { file: "agenda.jsonl", itemKind: "agenda_row" },
     { file: "reflections.jsonl", itemKind: "reflection_row" },
   ];
   for (const { file, itemKind } of appendTargets) {
@@ -1642,9 +1718,9 @@ export const storeConsolidateTools = {
     description:
       "Consolidate an orphaned ADV identity store (minted under a shallow-boundary / unstable SHA) into the true-root store. " +
       "action 'scan' (default, read-only) enumerates candidate orphan stores for the current repo across XDG shard layouts and flags dirs minted under unstable SHAs. " +
-      "action 'dry_run' emits the full per-item plan (changes live vs terminal, archive bundles, Epics, wisdom/agenda/reflections, per-ID collision report) with zero mutations. " +
+      "action 'dry_run' emits the full per-item plan (changes live vs terminal, archive bundles, Epics, wisdom/reflections, per-ID collision report) with zero mutations. " +
       "Colliding item IDs halt with a per-ID report — nothing is overwritten. " +
-      "action 'execute' applies the exact dry-run plan: approval-gated (approvedByUser + approvalEvidence), refuses on a live source worker.lock or collisions, imports terminal items as disk projections first, recreates live changes/Epics under the true identity, appends wisdom/agenda/reflections with content-hash dedupe, and writes an append-only ledger so re-runs are idempotent no-ops.",
+      "action 'execute' applies the exact dry-run plan: approval-gated (approvedByUser + approvalEvidence), refuses on a live source worker.lock or collisions, imports terminal items as disk projections first, recreates live changes/Epics under the true identity, appends wisdom/reflections with content-hash dedupe, and writes an append-only ledger so re-runs are idempotent no-ops.",
     args: {
       action: z
         .enum(["scan", "dry_run", "execute"])

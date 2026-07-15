@@ -2,7 +2,6 @@
 name: adv-arch-scan
 description: Scan architecture stack packs, coverage, and heuristic fallbacks
 ---
-<!-- manifest: adv-arch-scan · requiresChangeId: false -->
 # ADV Architecture Scan
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers.
 
@@ -35,9 +34,6 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 1: Stack Packs (Known Stacks)
-<!-- rq-archp33 -->
-<!-- rq-archstack01 -->
-<!-- rq-archstack02 -->
 
 Run stack-specific tools when stack is in the Stack Packs matrix before research fallback or generic AI heuristic fallback:
 
@@ -94,7 +90,37 @@ Timeout or heuristic failure → keep deterministic/research findings, record th
 
 ---
 ## Phase 4: Report Generation
-<!-- rq-archcov01 -->
+
+### Rewrite Assessment (mandatory, derived)
+
+After all scan evidence (findings + coverage) is final and before report assembly, derive a rewrite assessment that explicitly labels and answers two questions:
+
+1. If the project/app were completely rewritten, what architecture would definitely change?
+2. If the project/app were completely rewritten, what would definitely not be carried over?
+
+Evidence rules:
+
+- Every definite answer MUST cite source/tool evidence or stable finding references (finding category + location) collected during the scan.
+- Heuristic-only content is tentative: label it tentative and keep it out of the definite answers.
+- A question with no evidence-backed answer yields the literal `No definite conclusion from scan evidence`.
+- Any degraded detector coverage sets `status: "indeterminate"`. Indeterminate is never a no-change conclusion; do not claim nothing would change.
+
+Advisory boundary: the assessment must not alter severity, confidence, coverage, or phase results, and must never authorize deletion or remediation by itself.
+
+Text output: a `REWRITE ASSESSMENT` section that answers both labeled questions, each definite entry followed by its evidence references.
+
+JSON output (command-level `rewriteAssessment`, when `--json`):
+
+```json
+"rewriteAssessment": {
+  "status": "complete" | "indeterminate",
+  "wouldChange": { "answer": "...", "evidence": ["..."], "confidence": "confirmed" | "tentative" },
+  "wouldNotCarryOver": { "answer": "...", "evidence": ["..."], "confidence": "confirmed" | "tentative" },
+  "tentative": [{ "statement": "...", "evidence": ["..."] }]
+}
+```
+
+`wouldChange` answers question 1; `wouldNotCarryOver` answers question 2. Each is one evidence-cited answer object. When no evidence-backed answer exists, use the literal `No definite conclusion from scan evidence` as `answer`, an empty `evidence` array, and `confidence: "tentative"`.
 
 ### Architecture Scanner Coverage Report
 
@@ -106,7 +132,7 @@ No findings → `[OK] No architecture issues detected.`
 
 ### JSON Format (if `--json`)
 
-Output JSON: `stack`, `phases`, `summary` (`bySeverity`, `byCategory`), `findings[]`, `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, `coverage.degradedDetectors`. Severity: `blocker|major|minor|nit`. Heuristic-only findings stay low-confidence and non-blocking unless source/tool evidence corroborates.
+Output JSON: `stack`, `phases`, `summary` (`bySeverity`, `byCategory`), `findings[]`, `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, `coverage.degradedDetectors`, plus command-level `rewriteAssessment`. Severity: `blocker|major|minor|nit`. Heuristic-only findings stay low-confidence and non-blocking unless source/tool evidence corroborates.
 
 ---
 ## Phase 5: Write Metadata
@@ -122,4 +148,4 @@ Persists the scan result for display in `/adv-status`.
 
 ---
 ## Execution
-1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Phase 3 (if enabled) → 6. Report → 7. Write Metadata
+1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Phase 3 (if enabled) → 6. Rewrite Assessment → 7. Report → 8. Write Metadata

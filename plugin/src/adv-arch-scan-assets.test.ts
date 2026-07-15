@@ -27,10 +27,9 @@ describe("adv-arch-scan structural correctness assets", () => {
     );
   });
 
-  test("command cites rq-archp33 and scans structural correctness boundaries", () => {
+  test("command scans structural correctness boundaries (P33)", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
 
-    expect(content).toContain("<!-- rq-archp33 -->");
     expect(content).toContain("Structural Correctness Boundary Checks (P33)");
     expect(content).toContain("parser/schema/allowlist recognition");
     expect(content).toContain("Gate/spec/compliance boundaries");
@@ -86,8 +85,6 @@ describe("adv-arch-scan structural correctness assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-archstack02");
-    expect(command).toContain("<!-- rq-archstack01 -->");
-    expect(command).toContain("<!-- rq-archstack02 -->");
     expect(command).toContain("Stack Packs");
     expect(command).toContain("ADV stack pack");
     expect(command).toContain("TypeScript/Bun/OpenCode plugin/Temporal");
@@ -107,7 +104,6 @@ describe("adv-arch-scan structural correctness assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-archcov01");
-    expect(command).toContain("<!-- rq-archcov01 -->");
     expect(command).toContain("Architecture Scanner Coverage Report");
     expect(command).toContain("coverage.detectedStacks");
     expect(command).toContain("coverage.appliedPacks");
@@ -129,6 +125,35 @@ describe("adv-arch-scan structural correctness assets", () => {
     expect(command).toContain("single-phase heuristic scan");
     expect(skill).toContain("when the user requests `--phase 3`");
     expect(skill).toContain("produce no findings");
+  });
+
+  test("command and skill document evidence-backed rewrite assessment", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SKILL_PATH, "utf8");
+
+    for (const content of [command, skill]) {
+      expect(content).toContain("Rewrite Assessment");
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what architecture would definitely change?",
+      );
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what would definitely not be carried over?",
+      );
+      expect(content).toContain("No definite conclusion from scan evidence");
+      expect(content).toContain("indeterminate");
+      expect(content).toContain("never a no-change conclusion");
+      expect(content).toContain("never authorize deletion");
+      expect(content).toContain("rewriteAssessment");
+    }
+    expect(command).toContain('"rewriteAssessment"');
+    expect(command).toContain('"complete" | "indeterminate"');
+    expect(command).toContain('"wouldChange": {');
+    expect(command).toContain('"wouldNotCarryOver": {');
+    expect(command).toContain('"confidence": "confirmed" | "tentative"');
+    expect(command).toContain("wouldChange");
+    expect(command).toContain("wouldNotCarryOver");
+    expect(command).toContain("tentative");
+    expect(command).toContain("command-level `rewriteAssessment`");
   });
 
   test("ADV instructions classify arch-scan as inline with dedicated skill", () => {

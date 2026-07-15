@@ -2,7 +2,7 @@
  * File System Utilities
  *
  * Shared atomic write and file locking primitives.
- * Used by json.ts, agenda.ts, and project-wisdom.ts.
+ * Used by json.ts and project-wisdom.ts.
  */
 
 import { writeFile, mkdir, rename, unlink, readFile, open } from "fs/promises";

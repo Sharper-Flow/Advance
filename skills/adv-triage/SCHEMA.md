@@ -25,7 +25,7 @@ If `unrepresented[]` empty and represented issues have required fields, skip iss
 
 ```jsonc
 {
-  "source": "adv-change | github-issue | agenda | wisdom | note | todo",
+  "source": "adv-change | github-issue | legacy-agenda | wisdom | note | todo",
   "ref": "<stable-source-ref>",
   "title": "<short-title>",
   "classification": "relevant | stale/already-addressed | duplicate/superseded | should-merge | unclear",

@@ -535,6 +535,50 @@ describe("safeExecute timeout overrides for slow-subprocess tools", () => {
     const value = Number(valueMatch![1].replace(/_/g, ""));
     expect(value).toBeGreaterThanOrEqual(15_000);
   });
+
+  // fixArchiveTerminalProjection SC3/AC4 + fixTemporalTimeoutsWorker AC2:
+  // adv_change_archive must declare a heavy-tier timeoutMs override (its
+  // inner git push budget alone defaults to 300s) plus an onToolTimeout
+  // classifier so an interruption past the durable bundle write returns a
+  // typed still-finalizing/reconcile result instead of a bare
+  // ToolExecutionTimeout. AC2 regression guard: the > 300s assertion also
+  // covers the > 10s default-floor requirement — dropping the override
+  // back to the 10s default (the #216 bug) fails this test.
+  test("adv_change_archive registers safeExecute with heavy-tier timeoutMs override + onToolTimeout classifier (AC2)", () => {
+    const block = extractRegistrationBlock(registrySrc, "adv_change_archive");
+    expect(
+      block,
+      "adv_change_archive registration block not found",
+    ).not.toBeNull();
+    expect(block!).toMatch(/timeoutMs:\s*\d/);
+    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
+    expect(valueMatch).toBeTruthy();
+    const value = Number(valueMatch![1].replace(/_/g, ""));
+    // Must exceed the 300s inner git push budget (DEFAULT_GIT_PUSH_TIMEOUT_MS).
+    expect(value).toBeGreaterThan(300_000);
+    expect(block!).toContain("onToolTimeout");
+  });
+
+  // fixTemporalTimeoutsWorker AC1: adv_gate_complete must declare a
+  // moderate-tier timeoutMs override (Temporal signal under worker
+  // contention sometimes exceeds the default 10s) plus an onToolTimeout
+  // classifier so the caller sees an advisory "may have landed — verify
+  // via adv_gate_status" result instead of a bare ToolExecutionTimeout.
+  test("adv_gate_complete registers safeExecute with timeoutMs override > 10s + onToolTimeout classifier", () => {
+    const block = extractRegistrationBlock(registrySrc, "adv_gate_complete");
+    expect(
+      block,
+      "adv_gate_complete registration block not found",
+    ).not.toBeNull();
+    expect(block!).toMatch(/timeoutMs:\s*\d/);
+    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
+    expect(valueMatch).toBeTruthy();
+    const value = Number(valueMatch![1].replace(/_/g, ""));
+    // Must exceed the 10s default (gate signal is lighter than archive's
+    // git finalization, so the ceiling stays moderate).
+    expect(value).toBeGreaterThan(10_000);
+    expect(block!).toContain("onToolTimeout");
+  });
 });
 
 describe("rq-zodParseValidation01 — runtime Zod schema validation at SDK boundary", () => {

@@ -266,6 +266,7 @@ async function createGenericQueryPoisonedReseedFailureStore(root: string) {
 
 async function createGenericQueryUnprovenStore(root: string) {
   const legacy = await createDiskStore(root);
+  let startCallCount = 0;
   const handle = {
     query: async () => {
       throw genericWorkflowQueryError();
@@ -277,17 +278,55 @@ async function createGenericQueryUnprovenStore(root: string) {
       workflow: {
         getHandle: () => handle,
         start: async () => {
+          startCallCount += 1;
           throw new Error("Temporal start should not be called");
         },
       },
     },
   };
 
-  return createTemporalStoreBackend({
+  const store = createTemporalStoreBackend({
     legacy,
     temporal,
     projectId: "project-1",
   });
+  return { store, startCallCount: () => startCallCount };
+}
+
+/**
+ * query_failed guard fixture: the query fails with a fallback-class error
+ * that is neither poisoned nor completed/not-found ("query type not
+ * registered" — the workflow exists but cannot answer). The typed
+ * `query_failed` reason must never authorize re-seed mutation, even though
+ * the retry-wrapper error class is `fallback`.
+ */
+async function createUnregisteredQueryStore(root: string) {
+  const legacy = await createDiskStore(root);
+  let startCallCount = 0;
+  const handle = {
+    query: async () => {
+      throw new Error("Query type 'changeStateQuery' not registered");
+    },
+    describe: async () => ({ searchAttributes: {} }),
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => {
+          startCallCount += 1;
+          return handle;
+        },
+      },
+    },
+  };
+
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return { store, startCallCount: () => startCallCount };
 }
 
 async function createMissingWorkflowSuccessfulReseedStore(
@@ -430,7 +469,9 @@ describe("createTemporalStoreBackend change projection fallback", () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("activePoisonedReseedFail");
-    expect(result.data?.status).toBe("active");
+    // Legacy stored "active" normalizes to "draft" at the disk load path
+    // (loadChange); the poisoned-history disk fallback inherits it.
+    expect(result.data?.status).toBe("draft");
     const recovered = result.data as Change & {
       _source?: string;
       _recovery?: { mode?: string; reason?: string };
@@ -463,15 +504,18 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const result = await store.changes.get("activeDiskOnlyRead");
 
     expect(result.success).toBe(true);
+    // Legacy stored "active" normalizes to "draft" at the disk load path
+    // (loadChange) and the seed boundary (changeSeedStateFromChange) — the
+    // re-seeded workflow state never carries the legacy status.
     expect(result.data).toMatchObject({
       id: "activeDiskOnlyRead",
-      status: "active",
+      status: "draft",
     });
     expect(startInputs()).toHaveLength(1);
     expect(startInputs()[0]).toEqual(
       expect.objectContaining({
         changeId: "activeDiskOnlyRead",
-        seedState: expect.objectContaining({ status: "active" }),
+        seedState: expect.objectContaining({ status: "draft" }),
       }),
     );
   });
@@ -591,11 +635,28 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("genericUnproven"));
 
-    const store = await createGenericQueryUnprovenStore(tempDir);
+    const { store, startCallCount } =
+      await createGenericQueryUnprovenStore(tempDir);
 
     await expect(store.changes.get("genericUnproven")).rejects.toThrow(
       /Failed to query Workflow/,
     );
+    // query_failed never authorizes re-seed mutation.
+    expect(startCallCount()).toBe(0);
+  });
+
+  it("does NOT re-seed for fallback-class query failures typed query_failed", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("unregisteredQuery"));
+
+    const { store, startCallCount } =
+      await createUnregisteredQueryStore(tempDir);
+
+    await expect(store.changes.get("unregisteredQuery")).rejects.toThrow(
+      /not registered/,
+    );
+    expect(startCallCount()).toBe(0);
   });
 });
 

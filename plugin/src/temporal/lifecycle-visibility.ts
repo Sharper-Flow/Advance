@@ -1,10 +1,6 @@
 import type { ChangeStatus } from "../types";
 
-const LEGACY_OPEN_STATUSES = new Set<ChangeStatus>([
-  "draft",
-  "pending",
-  "active",
-]);
+const LEGACY_OPEN_STATUSES = new Set<ChangeStatus>(["draft"]);
 
 export function escapeVisibilityValue(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');

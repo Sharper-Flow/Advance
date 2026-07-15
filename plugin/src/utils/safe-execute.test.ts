@@ -16,6 +16,7 @@ import {
   truncateOutput,
   deriveErrorClass,
   deriveContextFromArgs,
+  ToolExecutionTimeoutError,
   type ErrorContext,
 } from "./safe-execute";
 
@@ -308,6 +309,97 @@ describe("safe-execute", () => {
         const raw = await wrapped({}, {} as any);
         const result = JSON.parse(raw);
         expect(result.ok).toBe(1);
+      });
+    });
+
+    // fixArchiveTerminalProjection SC3/AC4: a tool may install a typed
+    // timeout classifier. When the safety-net timeout fires but the tool's
+    // durable work already landed (e.g. adv_change_archive's bundle write),
+    // the classifier replaces the bare ToolExecutionTimeout with a typed,
+    // actionable result. The hook is best-effort: returning undefined or
+    // throwing preserves the generic response.
+    describe("onToolTimeout classifier hook", () => {
+      const hangingFn = async (): Promise<string> =>
+        new Promise(() => {
+          /* never resolves */
+        });
+
+      it("returns the typed classifier result instead of the generic timeout", async () => {
+        const typed = JSON.stringify({
+          success: false,
+          errorClass: "ToolExecutionTimeout",
+          archiveStatus: "still_finalizing",
+          retrySafe: true,
+        });
+        const wrapped = safeExecute(
+          hangingFn,
+          "typed_timeout_tool",
+          undefined,
+          {
+            timeoutMs: 100,
+            onToolTimeout: async () => typed,
+          },
+        );
+
+        const raw = await wrapped({ changeId: "example" }, {} as any);
+        const result = JSON.parse(raw);
+        expect(result.archiveStatus).toBe("still_finalizing");
+        expect(result.retrySafe).toBe(true);
+      });
+
+      it("passes the original args and the timeout error to the classifier", async () => {
+        let seenArgs: unknown;
+        let seenError: unknown;
+        const wrapped = safeExecute(
+          hangingFn,
+          "typed_timeout_tool",
+          undefined,
+          {
+            timeoutMs: 100,
+            onToolTimeout: async (args, error) => {
+              seenArgs = args;
+              seenError = error;
+              return undefined;
+            },
+          },
+        );
+
+        await wrapped({ changeId: "example" }, {} as any);
+        expect(seenArgs).toEqual({ changeId: "example" });
+        expect(seenError).toBeInstanceOf(ToolExecutionTimeoutError);
+        expect((seenError as ToolExecutionTimeoutError).timeoutMs).toBe(100);
+      });
+
+      it("falls back to the generic timeout response when the classifier returns undefined", async () => {
+        const wrapped = safeExecute(hangingFn, "fallback_tool", undefined, {
+          timeoutMs: 100,
+          onToolTimeout: async () => undefined,
+        });
+
+        const raw = await wrapped({}, {} as any);
+        const result = JSON.parse(raw);
+        expect(result.errorClass).toBe("ToolExecutionTimeout");
+        expect(result.tool).toBe("fallback_tool");
+        expect(result.hint).toMatch(/required args|missing|hang/i);
+      });
+
+      it("falls back to the generic timeout response when the classifier throws", async () => {
+        const wrapped = safeExecute(
+          hangingFn,
+          "throwing_classifier_tool",
+          undefined,
+          {
+            timeoutMs: 100,
+            onToolTimeout: async () => {
+              throw new Error("classifier probe failed");
+            },
+          },
+        );
+
+        const raw = await wrapped({}, {} as any);
+        const result = JSON.parse(raw);
+        expect(result.errorClass).toBe("ToolExecutionTimeout");
+        expect(result.tool).toBe("throwing_classifier_tool");
       });
     });
   });

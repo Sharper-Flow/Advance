@@ -54,9 +54,12 @@ describe("getProjectPaths", () => {
     expect(paths.archive).toBe("/project/.adv/archive");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/project/.adv/wisdom.jsonl");
-    expect(paths.agenda).toBe("/project/.adv/agenda.jsonl");
+    expect("agenda" in paths).toBe(false);
     expect(paths.reflections).toBe("/project/.adv/reflections.jsonl");
     expect(paths.projectMetadata).toBe("/project/.adv/project-metadata.json");
+    expect(paths.snapshotRepairAudit).toBe(
+      "/project/.adv/snapshot-repair-audit.jsonl",
+    );
     expect("handoff" in paths).toBe(false);
     expect(paths.external).toBeNull();
   });
@@ -85,10 +88,13 @@ describe("getProjectPaths", () => {
     expect(paths.archive).toBe("/ext/data/abc123/archive");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
-    expect(paths.agenda).toBe("/ext/data/abc123/agenda.jsonl");
+    expect("agenda" in paths).toBe(false);
     expect(paths.reflections).toBe("/ext/data/abc123/reflections.jsonl");
     expect(paths.projectMetadata).toBe(
       "/ext/data/abc123/project-metadata.json",
+    );
+    expect(paths.snapshotRepairAudit).toBe(
+      "/ext/data/abc123/snapshot-repair-audit.jsonl",
     );
     expect("handoff" in paths).toBe(false);
     expect(paths.external).toBe("/ext/data/abc123");
@@ -407,6 +413,57 @@ describe("Change Operations", () => {
     expect(rewritten.gates.proposal.status).toBe("done");
     expect(rewritten.gates.proposal.migrated_from).toBeUndefined();
     expect(rewritten.gates.proposal.absorbed_completions).toBeUndefined();
+  });
+
+  test('loadChange normalizes legacy root status "active" to "draft" before validation', async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const raw = JSON.parse(await readFile(changePath, "utf-8"));
+
+    // Legacy/poisoned disk state: root status "active" is no longer written
+    // by any code path but must still load (C4). Gates legitimately carry
+    // status "pending" — the normalizer must NOT recurse into them.
+    raw.status = "active";
+    raw.gates = {
+      proposal: { status: "pending" },
+      discovery: { status: "pending" },
+      design: { status: "pending" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    };
+    await writeFile(changePath, JSON.stringify(raw, null, 2));
+
+    const result = await loadChange(changesDir, "addFeature");
+
+    expect(result.success).toBe(true);
+    expect(result.data!.status).toBe("draft");
+    // Gate statuses are a different domain — untouched by root normalization.
+    expect(result.data!.gates.proposal.status).toBe("pending");
+    expect(result.data!.gates.release.status).toBe("pending");
+
+    // The normalized form is persisted so subsequent loads are no-ops.
+    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
+    expect(rewritten.status).toBe("draft");
+    expect(rewritten.gates.proposal.status).toBe("pending");
+  });
+
+  test('loadChange normalizes legacy root status "pending" to "draft" before validation', async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const raw = JSON.parse(await readFile(changePath, "utf-8"));
+
+    raw.status = "pending";
+    await writeFile(changePath, JSON.stringify(raw, null, 2));
+
+    const result = await loadChange(changesDir, "addFeature");
+
+    expect(result.success).toBe(true);
+    expect(result.data!.status).toBe("draft");
+
+    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
+    expect(rewritten.status).toBe("draft");
   });
 
   test("loadChange normalizes legacy task sub-agent reports before validation", async () => {

@@ -4,8 +4,6 @@ description: Archive completed change: apply spec deltas and finalize git
 phaseGoal: "Promote change from contract to law: apply spec deltas, capture wisdom, clean up."
 ---
 
-<!-- manifest: adv-archive · gate: release · requiresChangeId: true · prereqs: [adv-harden] · scope: reads[specs, proposal, tasks, codebase] · modifies[specs] -->
-
 # ADV Archive — Finalize Completed Change
 
 Archive change → apply deltas to specs → canonical ship/finalize path via mandatory Phase 9 Git Finalization (commit, merge+push or PR auto-merge handoff, local deploy when available, verify, cleanup). Archive is not complete after `adv_change_archive`; it is complete only after Phase 9 proves either no-remote local merge, post-fetch `origin/{default-branch}` reachability, or merged PR state. Pending auto-merge and blocked remote-backed outcomes leave the change active.
@@ -75,8 +73,6 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ## Phase 5: User Signoff (Inline — Tier B)
 
-<!-- rq-approvalConsequenceContext01 rq-hardenReadinessCarryForward01 rq-approvalConsequenceRenderer01 -->
-
 Present change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes archive workflow inline in same response (no separate confirmation-echo turn).
 
 Before the Tier B prompt, render archive-time `Approval Consequence Context` from the current executive summary, harden `Release Readiness Summary`, `adv_change_show include:{subagentReports:true}`, archive preflight results, and follow-up blockers. Preserve the improved summary context at approval time: outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence remain visible before sign-off. Reuse the shared renderer/model contract (`buildApprovalConsequenceContext`) for all 8 categories. Use `checkOpsFollowupReleaseBlockers` and `getOpenOpsFollowupObligations` semantics for follow-up rows: blocking obligations block release; non-blocking obligations are shown as coming next / needs done after closure.
@@ -125,8 +121,6 @@ or `cancel` / `stop` / `abort` to halt.
 ---
 
 ## Phase 5.5: Conformance Verdict Gate
-
-<!-- rq-extConfGate01 -->
 
 Run only if the spec being archived has `conformance_required: true` in the conformance state. Skip entirely for specs with `conformance_required: false` or no conformance state.
 
@@ -239,11 +233,6 @@ What shipped, merged locally, waits on PR auto-merge, or blocked release complet
 ```
 
 ## Phase 9: Git Finalization (Mandatory)
-
-<!-- rq-releaseFinalization01 -->
-<!-- rq-releaseFinalization01.5 -->
-<!-- rq-releaseFinalization01.6 -->
-<!-- rq-releaseProjectionDurability01 -->
 
 Runtime enforcement lives in `plugin/src/tools/archive-helpers/git-finalize.ts`
 and the archive-owned release-gate recording/projection-proof path. This
@@ -477,8 +466,6 @@ Successful cleanup report includes `Continue from: {mainCheckout} ({default-bran
 
 Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
-<!-- rq-issueChangeLinkage02 -->
-
 ### Step 8.5: Linked GitHub Issue Close (rq-issueChangeLinkage02)
 
 `adv_change_archive` defaults to closing linked GH issues after durable archive transition. Agent does not run `gh issue close` manually.
@@ -513,8 +500,6 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit SHA, release proof source (`no_remote`, `origin/{default-branch}`, or merged PR), merge target (`$MAIN` default-branch HEAD when applicable), push/PR status, local deploy status, verification status, reflection status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, final `git -C "$MAIN" status --short --branch`. If PR auto-merge is pending, emit `Pending auto-merge.` with the PR URL and exact retry command; do not emit final completion. If remote-backed proof is missing, emit `Blocked.` with reason. If deploy or reflection failed without structural release-safety failure, keep release complete and surface the advisory line.
 
 ### Phase 9.5: Auto-Drive Pending-PR Archive Completion
-
-<!-- rq-releaseFinalization02 rq-releaseFinalization04 -->
 
 > **When archive finalization returns `phase9: "pending_merge"`, the archive tool has armed GitHub auto-merge but the PR has not yet reached `MERGED`. Instead of handing back `Pending auto-merge.` and stopping, this phase orchestrates the remaining completion in one continuous flow.**
 

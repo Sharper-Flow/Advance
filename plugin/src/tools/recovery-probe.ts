@@ -92,6 +92,20 @@ export async function classifyCompletedOrPoisonedRecovery(
 }
 
 /**
+ * Value-level poisoned-history evidence predicate over an already-fetched
+ * `describe()` result. Shares the same probe regex as the handle-level
+ * wrappers so callers that need the raw description for other reasons
+ * (e.g. run pinning in `adv_change_workflow_terminate`) do not invent a
+ * second classification path or pay for a second describe RPC.
+ */
+export function poisonedDescriptionEvidence(
+  description: unknown,
+): string | null {
+  const text = stringifyDescription(description);
+  return POISONED_DESCRIPTION_RE.test(text) ? summarizeEvidence(text) : null;
+}
+
+/**
  * Returns a bounded evidence summary when `describe()` carries poisoned-history
  * markers, otherwise null. Shares the same probe regex as
  * `workflowHasPoisonedDescription` so callers do not invent another
@@ -102,9 +116,7 @@ export async function workflowPoisonedDescriptionEvidence(
 ): Promise<string | null> {
   if (typeof handle.describe !== "function") return null;
   try {
-    const description = await handle.describe();
-    const text = stringifyDescription(description);
-    return POISONED_DESCRIPTION_RE.test(text) ? summarizeEvidence(text) : null;
+    return poisonedDescriptionEvidence(await handle.describe());
   } catch {
     return null;
   }

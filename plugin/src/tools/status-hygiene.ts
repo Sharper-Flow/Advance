@@ -296,15 +296,16 @@ export async function appendArchivedBranchHygieneRecommendations(
   const count = cleanupReadyBranches.length;
   const recommendation =
     `cleanup-ready: ${count} archived-change local branch(es) safely deletable\n` +
-    `  Preview: adv_archive_repair action=cleanup_merged dryRun=true\n` +
-    `  Delete:  adv_archive_repair action=cleanup_merged`;
+    `  Preview: adv_worktree_cleanup mode=archived_branches dryRun=true reason="archived branch cleanup"\n` +
+    `  Delete:  adv_worktree_cleanup mode=archived_branches reason="archived branch cleanup"`;
 
   pushStatusRecommendation(status, {
     kind: "cleanup",
     priority: "medium",
     title: "Archived branch cleanup ready",
     detail: `${count} archived-change local branch(es) safely deletable`,
-    action: "adv_archive_repair action=cleanup_merged dryRun=true",
+    action:
+      'adv_worktree_cleanup mode=archived_branches dryRun=true reason="archived branch cleanup"',
     source: "branch_hygiene",
     message: recommendation,
   });

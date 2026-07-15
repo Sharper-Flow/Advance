@@ -54,10 +54,10 @@ async function resolveExplicit(
     }
 
     const change = result.data;
-    if (change.status !== "draft" && change.status !== "pending") {
+    if (change.status !== "draft") {
       return {
         ok: false,
-        error: `SELECTION_ERROR: Change "${change.id}" has protected status "${change.status}". Only draft or pending changes can be bulk-closed.`,
+        error: `SELECTION_ERROR: Change "${change.id}" has protected status "${change.status}". Only draft changes can be bulk-closed.`,
       };
     }
 
@@ -129,15 +129,15 @@ async function resolveFilter(
     }
   }
 
-  // Eligibility gating: all must be draft or pending
+  // Eligibility gating: all must be draft
   for (const id of changeIds) {
     const result = await deps.get(id);
     if (result.success && result.data) {
       const status = result.data.status;
-      if (status !== "draft" && status !== "pending") {
+      if (status !== "draft") {
         return {
           ok: false,
-          error: `SELECTION_ERROR: Change "${id}" has protected status "${status}". Only draft or pending changes can be bulk-closed.`,
+          error: `SELECTION_ERROR: Change "${id}" has protected status "${status}". Only draft changes can be bulk-closed.`,
         };
       }
     }

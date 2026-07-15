@@ -59,7 +59,7 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
     initializedAt: "2026-05-05T00:00:00.000Z",
     searchAttributesEnabled: false,
     seedState: {
-      status: "active",
+      status: "draft",
       tasks: [],
       wisdom: [],
       gates: createDefaultGates(),

@@ -72,7 +72,7 @@ interface ScoutCandidate {
 | `adopt_now` | contract_tied AND low risk AND no user-value tradeoff | Auto-adopt: integrate into agreement (discovery) or design (design) without user pause |
 | `design_around` | Contract-tied AND low risk but needs design adjustment | Auto-adopt with note: adjust design to accommodate; integrate and proceed |
 | `surface_to_user` | Untied OR medium+ risk OR involves user-value tradeoff | Present to user inline; do not auto-adopt |
-| `follow_up` | Valuable but not blocking | Record as wisdom or agenda item; proceed without adoption |
+| `follow_up` | Valuable but not blocking | Record as wisdom or typed follow-up; proceed without adoption |
 | `reject` | Conflicts with constraints/avoidances or insufficient evidence | Skip; record rationale in phase output |
 
 ### Auto-Adopt Policy (Narrow Only)

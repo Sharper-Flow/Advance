@@ -27,7 +27,7 @@ Storage of truth = GH Projects v2 typed fields for issue/project membership; bug
 ## Core Flow
 
 1. **Bootstrap** — ensure labels + GH Projects v2 board + custom fields. Persist typed config; never overwrite existing `repository_filter`.
-2. **Inventory** — gather GH issues, project items, active ADV changes, agenda, wisdom, notes, TODO/FIXME. Cap each source at 100; surface overflow.
+2. **Inventory** — gather GH issues, project items, active ADV changes, wisdom, notes, TODO/FIXME. Cap each source at 100; surface overflow.
 3. **Match** — structural first: stable ref, exact body excerpt, then title-similarity candidate duplicate. Only exact ref/body matches auto-suppress creation.
 4. **Source cleanup validation** — classify the whole source pool before issue creation or bug priority assignment. Build `cleanup_decisions[]`; batch destructive/suppressive approvals by source/reason.
 5. **Confirm issue creation** — Tier B inline prompt for cleanup-surviving unrepresented items. Create only approved issues, label `bug|feature`, add to project, record source trailer.

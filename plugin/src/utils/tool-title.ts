@@ -41,10 +41,6 @@ const STATIC_TITLES: Record<
   adv_wip_state: { title: "Show WIP state", titleKind: "read" },
   adv_status: { title: "Show ADV status", titleKind: "read" },
   adv_project_context: { title: "Show project context", titleKind: "read" },
-  adv_project_wisdom_list: {
-    title: "List project wisdom",
-    titleKind: "read",
-  },
   adv_task_ready: { title: "Show ready tasks", titleKind: "read" },
   adv_temporal_register_search_attributes: {
     title: "Register Temporal search attributes",
@@ -70,8 +66,9 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
       show: `Show spec${suffix(args, "capability")}`,
       search: `Search specs${suffix(args, "query")}`,
     }),
+  adv_delta_add: (args) =>
+    write(`Add spec delta${suffix(args, "changeId", "capability")}`),
   adv_roadmap: (args) => read(`Show roadmap${suffix(args, "kind")}`),
-  adv_backlog_state: (args) => read(`Show backlog${suffix(args, "kind")}`),
   adv_backlog_add: (args) => write(`Add backlog item${suffix(args, "title")}`),
   adv_backlog_list: () => read("List backlog"),
   adv_backlog_show: (args) => read(`Show backlog item${suffix(args, "id")}`),
@@ -91,8 +88,12 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Archive change${suffix(args, "changeId")}`),
   adv_archive_repair: (args) =>
     operator(`Repair archive${suffix(args, "changeId", "action")}`),
+  adv_archive_purge: (args) =>
+    operator(`Purge archived change${suffix(args, "changeId")}`),
   adv_change_status_repair: (args) =>
     operator(`Repair change status${suffix(args, "changeId")}`),
+  adv_change_workflow_terminate: (args) =>
+    operator(`Terminate change workflow${suffix(args, "changeId")}`),
   adv_change_update_issues: (args) =>
     write(`Update change issues${suffix(args, "changeId")}`),
   adv_change_repair_origin: (args) =>
@@ -121,6 +122,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_epic_retire: (args) => write(`Retire Epic${suffix(args, "epic_id")}`),
   adv_followup_promote: (args) =>
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
+  adv_report_followup_promote: (args) =>
+    write(`Promote report follow-up${suffix(args, "source_change_id")}`),
   adv_ops_evidence_add: (args) =>
     write(`Add ops evidence${suffix(args, "changeId")}`),
   adv_ops_run_upsert: (args) =>
@@ -156,16 +159,15 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
         : "Scan orphan stores",
     );
   },
-  adv_agenda_list: () => read("List agenda"),
-  adv_agenda_add: (args) => write(`Add agenda item${suffix(args, "title")}`),
-  adv_agenda_start: (args) =>
-    write(`Start agenda item${suffix(args, "itemId")}`),
-  adv_agenda_complete: (args) =>
-    write(`Complete agenda item${suffix(args, "itemId")}`),
-  adv_agenda_cancel: (args) =>
-    write(`Cancel agenda item${suffix(args, "itemId")}`),
-  adv_agenda_prioritize: (args) =>
-    write(`Prioritize agenda item${suffix(args, "itemId")}`),
+  adv_store_cleanup: (args) => {
+    const action = typeof args.action === "string" ? args.action : "scan";
+    if (action === "execute") return operator("Execute legacy agenda cleanup");
+    return read(
+      action === "dry_run"
+        ? "Dry-run legacy agenda cleanup"
+        : "Scan stores for legacy agenda",
+    );
+  },
   adv_project_metadata: (args) =>
     byAction(args, "Project metadata", {
       read: `Read project metadata${suffix(args, "key")}`,

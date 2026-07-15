@@ -1,12 +1,14 @@
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
-import { addAgendaItem, loadAgenda } from "../storage/agenda";
 import { getService } from "../temporal/service";
 import {
   subagentReportSubmittedSignal,
   taskUpdatedSignal,
 } from "../temporal/messages";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import {
   SUBAGENT_REPORT_SCHEMA_VERSION,
   SubagentAgentSchema,
@@ -295,6 +297,7 @@ function reportId(report: ScopedSubagentReport): string {
     scope: typeof report.scope === "string" ? undefined : report.scope,
     agent: report.agent,
     attempt: report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(report),
   });
 }
 
@@ -320,18 +323,6 @@ function reportRequiredFollowUps(
   return "required_follow_ups" in report
     ? (report.required_follow_ups ?? [])
     : [];
-}
-
-/** Build the human-readable source token used on report-created agenda items. */
-function reportSourceDescription(report: ScopedSubagentReport): string {
-  const taskId = reportTaskId(report);
-  const scopeId =
-    typeof report.scope === "string"
-      ? report.scope
-      : report.scope.kind === "task"
-        ? `task:${report.scope.task_id}`
-        : `change:${report.scope.scope_key}`;
-  return `Source: ${report.change_id}/${scopeId}/${report.agent}/attempt-${report.attempt}${taskId ? `/task-${taskId}` : ""}`;
 }
 
 function extractRecordedExitCode(text: string): number | undefined {
@@ -471,17 +462,17 @@ function withConsumerWarnings(
   return { ...report, consumer_warnings: merged } as ScopedSubagentReport;
 }
 
-// rq-opsFollowPromotion01: plain follow-ups are promotion candidates for typed
-// ops follow-up links; agenda remains the readable fallback, not the authority.
-async function consumeFollowUps(input: {
-  store: Store;
+// retireAgendaWorkflow: report follow_ups remain source-attributed report
+// metadata. No queue is written by the consumer; promotion happens only via
+// adv_report_followup_promote / adv_followup_promote (AC2/AC3).
+function consumeFollowUps(input: {
   report: ScopedSubagentReport;
   dryRun?: boolean;
-}): Promise<{
+}): {
   previewCount: number;
   created: unknown[];
   warnings: ConsumerWarning[];
-}> {
+} {
   const allFollowUps = reportFollowUps(input.report);
   const followUps = allFollowUps.slice(0, MAX_REPORT_FOLLOW_UPS);
   const truncationWarnings: ConsumerWarning[] =
@@ -493,110 +484,45 @@ async function consumeFollowUps(input: {
           },
         ]
       : [];
-  if (input.dryRun) {
-    return {
-      previewCount: followUps.length,
-      created: [],
-      warnings: validateConsumerWarnings(truncationWarnings),
-    };
-  }
-
-  const created: unknown[] = [];
-  const warnings: ConsumerWarning[] = [...truncationWarnings];
-  for (const followUp of followUps) {
-    try {
-      created.push(
-        await addAgendaItem(input.store.paths.root, followUp, {
-          description: reportSourceDescription(input.report),
-          priority: "medium",
-          category: "subagent-followup",
-          agendaPath: input.store.paths.agenda,
-        }),
-      );
-    } catch (error) {
-      warnings.push({
-        kind: "consumer_failure",
-        message:
-          error instanceof Error
-            ? `Failed to add follow-up agenda item: ${error.message}`
-            : "Failed to add follow-up agenda item",
-      });
-    }
-  }
-
+  void input.dryRun;
   return {
     previewCount: followUps.length,
-    created,
-    warnings: validateConsumerWarnings(warnings),
+    created: [],
+    warnings: validateConsumerWarnings(truncationWarnings),
   };
 }
 
 // rq-subagentReports14: Required Follow-Up Preservation
 // rq-opsFollowPromotion01: required follow-ups carry obligation_class,
 // severity, and source_contract_id into typed ops follow-up promotion.
-async function consumeRequiredFollowUps(input: {
-  store: Store;
+// retireAgendaWorkflow AC2: no agenda write; typed owner comes from
+// adv_report_followup_promote (task / fast-follow child) or
+// adv_followup_promote (ops child).
+function consumeRequiredFollowUps(input: {
   report: ScopedSubagentReport;
   dryRun?: boolean;
-}): Promise<{
+}): {
   previewCount: number;
   created: unknown[];
   warnings: ConsumerWarning[];
-}> {
+} {
   const requiredFollowUps = reportRequiredFollowUps(input.report);
-  if (input.dryRun) {
-    return {
-      previewCount: requiredFollowUps.length,
-      created: [],
-      warnings: [],
-    };
-  }
-
-  const created: unknown[] = [];
-  const warnings: ConsumerWarning[] = [];
-  for (const followUp of requiredFollowUps) {
-    try {
-      const description = [
-        reportSourceDescription(input.report),
-        `Obligation: ${followUp.obligation_class}`,
-        ...(followUp.source_contract_id
-          ? [`Contract: ${followUp.source_contract_id}`]
-          : []),
-      ].join("\n");
-      created.push(
-        await addAgendaItem(input.store.paths.root, followUp.text, {
-          description,
-          priority: followUp.severity,
-          category: "required-obligation",
-          agendaPath: input.store.paths.agenda,
-        }),
-      );
-    } catch (error) {
-      warnings.push({
-        kind: "consumer_failure",
-        message:
-          error instanceof Error
-            ? `Failed to add required-obligation agenda item: ${error.message}`
-            : "Failed to add required-obligation agenda item",
-      });
-    }
-  }
-
+  void input.dryRun;
   return {
     previewCount: requiredFollowUps.length,
-    created,
-    warnings: validateConsumerWarnings(warnings),
+    created: [],
+    warnings: [],
   };
 }
 
 // rq-designQualityEvidence01: advisory promotion of design-quality concerns.
-//
-// For adv-designer reports, surface each design_dimensions `concern` and each
-// neighboring_recommendation into a durable `required-obligation` agenda item.
-// This is ADVISORY routing only — the structural acceptance/release block is
-// owned by the gate-readiness evaluator (checkUnresolvedDesignConcerns), not by
-// agenda state. Dedupe is attempt-stable via a `design-concern:<change>:<task>:
-// <concernKey>` marker so a higher-attempt resubmit does not duplicate items.
+// retireAgendaWorkflow AC4: designer concerns retain typed disposition and
+// release-blocking behavior via state.design_concern_dispositions + the
+// gate-readiness evaluator. The consumer no longer writes an agenda item;
+// instead it surfaces an advisory `design_concern_promoted` consumer warning
+// so the report reflects that structural blockers now apply. Dedupe-key logic
+// is retained in `designConcernDedupeKey` for callers that need a stable
+// reference to the (change, task, concern) tuple.
 const DESIGN_DIMENSION_KEYS = [
   "component_correctness",
   "semantic_html_a11y",
@@ -614,15 +540,14 @@ function designConcernDedupeKey(
   return `design-concern:${changeId}:${taskId}:${concernKey}`;
 }
 
-async function consumeDesignerDesignConcerns(input: {
-  store: Store;
+function consumeDesignerDesignConcerns(input: {
   report: ScopedSubagentReport;
   dryRun?: boolean;
-}): Promise<{
+}): {
   previewCount: number;
   created: unknown[];
   warnings: ConsumerWarning[];
-}> {
+} {
   const { report } = input;
   if (report.agent !== "adv-designer") {
     return { previewCount: 0, created: [], warnings: [] };
@@ -650,60 +575,19 @@ async function consumeDesignerDesignConcerns(input: {
     return { previewCount: concerns.length, created: [], warnings: [] };
   }
 
-  if (input.dryRun) {
-    return { previewCount: concerns.length, created: [], warnings: [] };
-  }
-
-  const { items: existing } = await loadAgenda(input.store.paths.root, {
-    agendaPath: input.store.paths.agenda,
-  });
-
-  const created: unknown[] = [];
-  const warnings: ConsumerWarning[] = [];
-  for (const concern of concerns) {
-    const dedupeKey = designConcernDedupeKey(
-      report.change_id,
-      taskId,
-      concern.concernKey,
-    );
-    const alreadyPromoted = existing.some((item) =>
-      item.description?.includes(dedupeKey),
-    );
-    if (alreadyPromoted) continue;
-
-    try {
-      const description = [
-        reportSourceDescription(report),
-        dedupeKey,
-        `ConcernKey: ${concern.concernKey}`,
-        `Disposition via adv_design_concern_disposition (taskId=${taskId}, concernKey=${concern.concernKey}).`,
-      ].join("\n");
-      created.push(
-        await addAgendaItem(input.store.paths.root, concern.title, {
-          description,
-          priority: "high",
-          category: "required-obligation",
-          agendaPath: input.store.paths.agenda,
-        }),
-      );
-      warnings.push({
-        kind: "design_concern_promoted",
-        message: `Promoted design concern ${concern.concernKey} on task ${taskId} to a durable obligation (advisory; acceptance is blocked structurally until disposed).`,
-      });
-    } catch (error) {
-      warnings.push({
-        kind: "consumer_failure",
-        message:
-          error instanceof Error
-            ? `Failed to promote design concern: ${error.message}`
-            : "Failed to promote design concern",
-      });
-    }
-  }
+  void input.dryRun;
+  const warnings: ConsumerWarning[] = concerns.map((concern) => ({
+    kind: "design_concern_promoted" as const,
+    message:
+      `Design concern ${concern.concernKey} on task ${taskId} ` +
+      `(dedupe ${designConcernDedupeKey(report.change_id, taskId, concern.concernKey)}) ` +
+      `is a structural acceptance/release blocker until disposed via ` +
+      `adv_design_concern_disposition.`,
+  }));
 
   return {
     previewCount: concerns.length,
-    created,
+    created: [],
     warnings: validateConsumerWarnings(warnings),
   };
 }
@@ -896,18 +780,15 @@ async function executeSubmit(
     }
   }
 
-  const followUps = await consumeFollowUps({
-    store,
+  const followUps = consumeFollowUps({
     report,
     dryRun: args.dryRun,
   });
-  const requiredFollowUps = await consumeRequiredFollowUps({
-    store,
+  const requiredFollowUps = consumeRequiredFollowUps({
     report,
     dryRun: args.dryRun,
   });
-  const designConcerns = await consumeDesignerDesignConcerns({
-    store,
+  const designConcerns = consumeDesignerDesignConcerns({
     report,
     dryRun: args.dryRun,
   });
@@ -957,7 +838,7 @@ export const subagentReportTools = {
         .boolean()
         .optional()
         .describe(
-          "Preview validation, dedupe, and consumers without signaling or writing agenda items.",
+          "Preview validation, dedupe, and consumers without signaling or writing state.",
         ),
       ...targetArgs,
     },

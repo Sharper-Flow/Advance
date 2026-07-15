@@ -163,6 +163,22 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "reject",
   },
   {
+    // audit_history page limit: 0 placeholder fills normalize to omitted so
+    // the handler default (20) applies; bounded read, no safety impact.
+    toolName: "adv_snapshot_health",
+    field: "limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    // dry_run page limit: 0 placeholder fills normalize to omitted so the
+    // handler default (20) applies; bounded read, no safety impact.
+    toolName: "adv_store_cleanup",
+    field: "limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
     toolName: "adv_task_update",
     field: "recoveryEvidence",
     policy: "blank",
@@ -261,6 +277,521 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
     toolName: "adv_ops_evidence_add",
     field: "batch",
+    policy: "blank",
+    action: "omit",
+  },
+  // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
+  // Zero omission only for the two positive-int optionals; blank omission
+  // for adv_ops_run_evidence_add optional evidence fields and the twelve
+  // registered Epic tools' optional string / target-routing fields.
+  {
+    toolName: "adv_change_repair_origin",
+    field: "origin_issue_number",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_roadmap",
+    field: "top",
+    policy: "zero",
+    action: "omit",
+  },
+  // tk-6ff82311335f: read-tool page-limit fields surfaced by the coverage guard.
+  {
+    toolName: "adv_backlog_list",
+    field: "tail_limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_list",
+    field: "limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_wisdom_list",
+    field: "maxEntries",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_reflection_list",
+    field: "maxEntries",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_ops_run_evidence_add",
+    field: "step_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_ops_run_evidence_add",
+    field: "batch",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_ops_run_evidence_add",
+    field: "completion_signal",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_ops_run_evidence_add",
+    field: "health_verification",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_ops_run_evidence_add",
+    field: "rollback_or_cleanup_disposition",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_create",
+    field: "owner_project_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_create",
+    field: "owner_repo_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_create",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_create",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_create",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_show",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_show",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_show",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_list",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_list",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_list",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_update",
+    field: "title",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_update",
+    field: "narrative",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_update",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_update",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_update",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_add_shell",
+    field: "backlog_ref",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_add_shell",
+    field: "title",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_add_shell",
+    field: "success_hint",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_add_shell",
+    field: "entry_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_add_shell",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_add_shell",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_add_shell",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_promote_shell",
+    field: "change_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_promote_shell",
+    field: "promoted_by",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_promote_shell",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_promote_shell",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_promote_shell",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "title",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "entry_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "repo_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "linked_by",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_link_change",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "entry_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "change_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_unlink_change",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "from_entry_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "to_entry_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "repo_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "moved_by",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_move_change",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "epic_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "entry_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "change_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "new_change_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "new_title",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_repair_membership",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_reorder",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_reorder",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_reorder",
+    field: "epic_owner_confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_retire",
+    field: "retired_by",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_retire",
+    field: "epic_owner_target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_retire",
+    field: "epic_owner_target_confirmed",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_retire",
+    field: "epic_owner_confirmationEvidence",
     policy: "blank",
     action: "omit",
   },
@@ -583,20 +1114,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["reason"],
   },
   {
-    label: "blank agenda title rejected",
-    toolName: "adv_agenda_add",
-    rawArgs: { title: " " },
-    ok: false,
-    fields: ["title"],
-  },
-  {
-    label: "blank agenda cancellation reason rejected",
-    toolName: "adv_agenda_cancel",
-    rawArgs: { reason: " " },
-    ok: false,
-    fields: ["reason"],
-  },
-  {
     // rq-toolPlaceholderPolicy01.6: recoveryEvidence is contextually validated
     // by the handler (only when recoveryMode=poisoned_history), so blank
     // normalizes to omitted at preflight.
@@ -631,6 +1148,412 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     ok: true,
     normalizedArgs: { changeId: "c", proposal: "real" },
   },
+  // tk-2b89b9cf3042: minimal valid payload cases for the new verified
+  // top-level omission policy groups. Each case simulates a strict-mode
+  // provider filling optional fields with placeholders ("" or 0) and
+  // asserts normalization produces the minimal payload.
+  {
+    label: "zero origin issue number normalizes on repair-origin",
+    toolName: "adv_change_repair_origin",
+    rawArgs: {
+      changeId: "c",
+      origin_kind: "adhoc",
+      origin_issue_number: 0,
+      approvalEvidence: "ok",
+      approvedByUser: true,
+      reason: "real rationale",
+    },
+    ok: true,
+    normalizedArgs: {
+      changeId: "c",
+      origin_kind: "adhoc",
+      approvalEvidence: "ok",
+      approvedByUser: true,
+      reason: "real rationale",
+    },
+  },
+  {
+    label: "non-zero origin issue number is preserved on repair-origin",
+    toolName: "adv_change_repair_origin",
+    rawArgs: {
+      changeId: "c",
+      origin_kind: "roadmap",
+      origin_issue_number: 42,
+      approvalEvidence: "ok",
+      approvedByUser: true,
+      reason: "real rationale",
+    },
+    ok: true,
+    normalizedArgs: {
+      changeId: "c",
+      origin_kind: "roadmap",
+      origin_issue_number: 42,
+      approvalEvidence: "ok",
+      approvedByUser: true,
+      reason: "real rationale",
+    },
+  },
+  {
+    label: "zero roadmap top normalizes to omitted",
+    toolName: "adv_roadmap",
+    rawArgs: { top: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero roadmap top is preserved",
+    toolName: "adv_roadmap",
+    rawArgs: { top: 5 },
+    ok: true,
+    normalizedArgs: { top: 5 },
+  },
+  {
+    label: "blank ops-run-evidence optional fields normalize to omitted",
+    toolName: "adv_ops_run_evidence_add",
+    rawArgs: {
+      changeId: "c",
+      runId: "r",
+      step_kind: "execute",
+      env: "staging",
+      status: "pass",
+      summary: "ok",
+      artifact: { kind: "none", rationale: "none needed" },
+      next_status: "complete",
+      step_id: " ",
+      batch: " ",
+      completion_signal: " ",
+      health_verification: " ",
+      rollback_or_cleanup_disposition: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      changeId: "c",
+      runId: "r",
+      step_kind: "execute",
+      env: "staging",
+      status: "pass",
+      summary: "ok",
+      artifact: { kind: "none", rationale: "none needed" },
+      next_status: "complete",
+    },
+  },
+  {
+    label: "non-blank ops-run-evidence optional fields are preserved",
+    toolName: "adv_ops_run_evidence_add",
+    rawArgs: {
+      changeId: "c",
+      runId: "r",
+      step_kind: "execute",
+      env: "staging",
+      status: "pass",
+      summary: "ok",
+      artifact: { kind: "none", rationale: "none needed" },
+      next_status: "complete",
+      step_id: "step-1",
+      batch: "b-1",
+      completion_signal: "sig",
+      health_verification: "ok",
+      rollback_or_cleanup_disposition: "none",
+    },
+    ok: true,
+    normalizedArgs: {
+      changeId: "c",
+      runId: "r",
+      step_kind: "execute",
+      env: "staging",
+      status: "pass",
+      summary: "ok",
+      artifact: { kind: "none", rationale: "none needed" },
+      next_status: "complete",
+      step_id: "step-1",
+      batch: "b-1",
+      completion_signal: "sig",
+      health_verification: "ok",
+      rollback_or_cleanup_disposition: "none",
+    },
+  },
+  {
+    label: "blank epic create optional fields normalize to omitted",
+    toolName: "adv_epic_create",
+    rawArgs: {
+      epic_id: "myEpic",
+      title: "My Epic",
+      narrative: "Long narrative",
+      owner_project_id: " ",
+      owner_repo_id: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      epic_id: "myEpic",
+      title: "My Epic",
+      narrative: "Long narrative",
+    },
+  },
+  {
+    label: "blank epic show owner-routing fields normalize to omitted",
+    toolName: "adv_epic_show",
+    rawArgs: {
+      epic_id: "myEpic",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: { epic_id: "myEpic" },
+  },
+  {
+    label: "blank epic list owner-routing fields normalize to omitted",
+    toolName: "adv_epic_list",
+    rawArgs: {
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "blank epic update title and narrative normalize to omitted",
+    toolName: "adv_epic_update",
+    rawArgs: {
+      epic_id: "myEpic",
+      expected_version: 3,
+      title: " ",
+      narrative: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: { epic_id: "myEpic", expected_version: 3 },
+  },
+  {
+    label: "blank epic add-shell optional fields normalize to omitted",
+    toolName: "adv_epic_add_shell",
+    rawArgs: {
+      epic_id: "myEpic",
+      title: "Real shell title",
+      success_hint: "Real hint",
+      backlog_ref: " ",
+      entry_id: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      epic_id: "myEpic",
+      title: "Real shell title",
+      success_hint: "Real hint",
+    },
+  },
+  {
+    label: "blank epic promote-shell optional fields normalize to omitted",
+    toolName: "adv_epic_promote_shell",
+    rawArgs: {
+      epic_id: "myEpic",
+      entry_id: "entry-1",
+      change_id: " ",
+      promoted_by: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: { epic_id: "myEpic", entry_id: "entry-1" },
+  },
+  {
+    label: "blank epic link-change optional fields normalize to omitted",
+    toolName: "adv_epic_link_change",
+    rawArgs: {
+      epic_id: "myEpic",
+      change_id: "c",
+      link_evidence: "real evidence",
+      title: " ",
+      entry_id: " ",
+      repo_id: " ",
+      linked_by: " ",
+      target_path: " ",
+      target_confirmed: " ",
+      confirmationEvidence: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      epic_id: "myEpic",
+      change_id: "c",
+      link_evidence: "real evidence",
+    },
+  },
+  {
+    label: "blank epic unlink-change optional fields normalize to omitted",
+    toolName: "adv_epic_unlink_change",
+    rawArgs: {
+      epic_id: "myEpic",
+      unlink_evidence: "real evidence",
+      entry_id: " ",
+      change_id: " ",
+      target_path: " ",
+      target_confirmed: " ",
+      confirmationEvidence: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: { epic_id: "myEpic", unlink_evidence: "real evidence" },
+  },
+  {
+    label: "blank epic move-change optional fields normalize to omitted",
+    toolName: "adv_epic_move_change",
+    rawArgs: {
+      from_epic_id: "epicA",
+      to_epic_id: "epicB",
+      change_id: "c",
+      move_evidence: "real evidence",
+      from_entry_id: " ",
+      to_entry_id: " ",
+      repo_id: " ",
+      moved_by: " ",
+      target_path: " ",
+      target_confirmed: " ",
+      confirmationEvidence: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      from_epic_id: "epicA",
+      to_epic_id: "epicB",
+      change_id: "c",
+      move_evidence: "real evidence",
+    },
+  },
+  {
+    label: "blank epic repair-membership optional fields normalize to omitted",
+    toolName: "adv_epic_repair_membership",
+    rawArgs: {
+      mode: "refresh_search_attributes",
+      evidence: "real evidence",
+      epic_id: " ",
+      entry_id: " ",
+      change_id: " ",
+      new_change_id: " ",
+      new_title: " ",
+      target_path: " ",
+      target_confirmed: " ",
+      confirmationEvidence: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      mode: "refresh_search_attributes",
+      evidence: "real evidence",
+    },
+  },
+  {
+    label: "blank epic reorder owner-routing fields normalize to omitted",
+    toolName: "adv_epic_reorder",
+    rawArgs: {
+      epic_id: "myEpic",
+      entry_ids: ["e1"],
+      expected_version: 1,
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      epic_id: "myEpic",
+      entry_ids: ["e1"],
+      expected_version: 1,
+    },
+  },
+  {
+    label: "blank epic retire optional fields normalize to omitted",
+    toolName: "adv_epic_retire",
+    rawArgs: {
+      epic_id: "myEpic",
+      expected_version: 4,
+      evidence: "real evidence",
+      retired_by: " ",
+      epic_owner_target_path: " ",
+      epic_owner_target_confirmed: " ",
+      epic_owner_confirmationEvidence: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      epic_id: "myEpic",
+      expected_version: 4,
+      evidence: "real evidence",
+    },
+  },
+  // tk-6ff82311335f: read-tool page-limit fields — zero placeholder omits,
+  // non-zero value preserved (AC3/AC4).
+  {
+    label: "zero backlog-list tail limit normalizes to omitted",
+    toolName: "adv_backlog_list",
+    rawArgs: { tail_limit: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero backlog-list tail limit preserved",
+    toolName: "adv_backlog_list",
+    rawArgs: { tail_limit: 500 },
+    ok: true,
+    normalizedArgs: { tail_limit: 500 },
+  },
+  {
+    label: "zero epic-list limit normalizes to omitted",
+    toolName: "adv_epic_list",
+    rawArgs: { limit: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero epic-list limit preserved",
+    toolName: "adv_epic_list",
+    rawArgs: { limit: 25 },
+    ok: true,
+    normalizedArgs: { limit: 25 },
+  },
+  {
+    label: "zero wisdom-list maxEntries normalizes to omitted",
+    toolName: "adv_wisdom_list",
+    rawArgs: { maxEntries: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero wisdom-list maxEntries preserved",
+    toolName: "adv_wisdom_list",
+    rawArgs: { maxEntries: 10 },
+    ok: true,
+    normalizedArgs: { maxEntries: 10 },
+  },
+  {
+    label: "zero reflection-list maxEntries normalizes to omitted",
+    toolName: "adv_reflection_list",
+    rawArgs: { maxEntries: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero reflection-list maxEntries preserved",
+    toolName: "adv_reflection_list",
+    rawArgs: { maxEntries: 8 },
+    ok: true,
+    normalizedArgs: { maxEntries: 8 },
+  },
 ];
 
 describe("tool arg preflight", () => {
@@ -655,7 +1578,7 @@ describe("tool arg preflight", () => {
       await store.init();
 
       try {
-        const map = createToolMap(store, mapTempDir, store.paths.agenda);
+        const map = createToolMap(store, mapTempDir);
         const policies = listToolArgFieldPolicies();
 
         for (const [toolName, fields] of Object.entries(policies)) {
@@ -675,6 +1598,74 @@ describe("tool arg preflight", () => {
             ).toBe(true);
           }
         }
+      } finally {
+        store.close();
+        await cleanupTempDir(mapTempDir);
+        await cleanupTempDir(storeTempDir);
+      }
+    });
+
+    test("optional top-level strict-mode placeholders have reviewed omission coverage", async () => {
+      const storeTempDir = await createTempDir();
+      const mapTempDir = await createTempDir();
+      const store = await createLegacyStore(storeTempDir);
+      await store.init();
+
+      try {
+        const map = createToolMap(
+          store,
+          mapTempDir,
+          store.paths.agenda,
+        ) as Record<
+          string,
+          {
+            args?: Record<
+              string,
+              { safeParse?: (value: unknown) => { success: boolean } }
+            >;
+          }
+        >;
+        const policies = listToolArgFieldPolicies();
+        const reviewed = new Set(
+          AUDITED_PREFLIGHT_POLICY_REQUIREMENTS.filter(
+            (requirement) => requirement.action === "omit",
+          ).map(
+            (requirement) =>
+              `${requirement.toolName}.${requirement.field}.${requirement.policy}`,
+          ),
+        );
+        const reviewedExceptions = new Set<string>();
+        const uncovered: string[] = [];
+
+        for (const [toolName, tool] of Object.entries(map)) {
+          for (const [field, schema] of Object.entries(tool.args ?? {})) {
+            const parse = schema.safeParse;
+            if (!parse || !parse(undefined).success) continue;
+
+            const blankCandidate = parse("x").success && !parse(" ").success;
+            const zeroCandidate = parse(1).success && !parse(0).success;
+            for (const policy of [
+              ...(blankCandidate ? ["blank"] : []),
+              ...(zeroCandidate ? ["zero"] : []),
+            ] as const) {
+              const key = `${toolName}.${field}.${policy}`;
+              if (reviewedExceptions.has(key)) continue;
+              if (
+                !(
+                  reviewed.has(key) &&
+                  policies[toolName]?.[field]?.[policy] === "omit"
+                )
+              ) {
+                uncovered.push(key);
+              }
+            }
+          }
+        }
+
+        expect(
+          uncovered.sort(),
+          `optional top-level blank/zero-rejecting fields without a reviewed omission policy or exception:\n${uncovered.join("\n")}`,
+        ).toEqual([]);
       } finally {
         store.close();
         await cleanupTempDir(mapTempDir);
@@ -822,8 +1813,6 @@ describe("tool arg preflight", () => {
     ["adv_worktree_delete", { branch: " " }, "branch"],
     ["adv_worktree_cleanup", { reason: " " }, "reason"],
     ["adv_conformance", { action: "unlock", user: " " }, "user"],
-    ["adv_agenda_add", { title: " " }, "title"],
-    ["adv_agenda_cancel", { itemId: "ag-1", reason: " " }, "reason"],
     [
       "adv_temporal_register_search_attributes",
       { approvedByUser: true, approvalEvidence: " " },
@@ -1001,8 +1990,6 @@ describe("tool arg preflight", () => {
       "confirmationEvidence",
     ],
     ["adv_status", { target_path: " " }, "target_path"],
-    ["adv_agenda_add", { title: "real", description: " " }, "description"],
-    ["adv_agenda_add", { title: "real", category: " " }, "category"],
     [
       "adv_change_close",
       {
@@ -1046,6 +2033,16 @@ describe("tool arg preflight", () => {
         recoveryEvidence: " ",
       },
       "recoveryEvidence",
+    ],
+    [
+      "adv_worktree_cleanup",
+      { reason: "archived branch cleanup", mode: " " },
+      "mode",
+    ],
+    [
+      "adv_worktree_cleanup",
+      { reason: "archived branch cleanup", changeId: " " },
+      "changeId",
     ],
   ])(
     "normalizes blank placeholder to omitted for %s.%s",
@@ -1589,8 +2586,6 @@ describe("tool arg preflight", () => {
       ["adv_worktree_cleanup", { reason: " " }, "reason"],
       ["adv_conformance", { action: "unlock", user: " " }, "user"],
       ["adv_conformance", { action: "unlock", reason: " " }, "reason"],
-      ["adv_agenda_add", { title: " " }, "title"],
-      ["adv_agenda_cancel", { itemId: "a", reason: " " }, "reason"],
       [
         "adv_temporal_register_search_attributes",
         { approvedByUser: true, approvalEvidence: " " },
@@ -1635,6 +2630,22 @@ describe("tool arg preflight", () => {
         summary: "Add rate limiting",
         origin_kind: "adhoc",
       });
+      expect(result.invalid).toEqual([]);
+    });
+
+    test("zero: 'omit' normalizes adv_store_cleanup.limit 0 to omitted (handler default applies)", () => {
+      // adv_store_cleanup.limit has { zero: "omit" } so strict-mode 0 fills
+      // become omitted and the dry_run default page size (20) applies.
+      const result = preflightToolArgs(
+        "adv_store_cleanup",
+        {
+          action: z.enum(["scan", "dry_run", "execute"]).default("scan"),
+          limit: z.number().int().min(1).max(100).optional(),
+        },
+        { action: "dry_run", limit: 0 },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({ action: "dry_run" });
       expect(result.invalid).toEqual([]);
     });
 
