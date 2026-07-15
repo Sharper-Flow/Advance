@@ -1,0 +1,2345 @@
+{
+  "id": "updateCodemodeMcpContracts",
+  "title": "Update CodeMode MCP contracts",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-15T03:59:33.106Z",
+  "tasks": [
+    {
+      "id": "tk-f8ef0c8aef3b",
+      "title": "Implement mode-neutral MCP prompt contract with structural corpus tests",
+      "type": "code",
+      "section": "Advance implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-15T12:46:56.108Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "cross_repo_role": "advance-primary"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "SC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T13:38:37.076Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateCodemodeMcpContracts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+          "task_id": "tk-f8ef0c8aef3b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f8ef0c8aef3b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/prompt-corpus.ts",
+            "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json",
+            "plugin/src/tool-name-assets.test.ts",
+            ".opencode/agents/adv.md",
+            ".opencode/agents/adv-designer.md",
+            ".opencode/agents/adv-engineer.md",
+            ".opencode/agents/adv-researcher.md",
+            ".opencode/agents/adv-reviewer.md",
+            ".opencode/agents/adv-temporal-repair.md",
+            ".opencode/agents/adv-tron.md",
+            ".opencode/agents/adv-verifier.md",
+            ".opencode/agents/adv-visual-review.md",
+            ".opencode/agents/build.md",
+            ".opencode/agents/plan.md",
+            ".opencode/overlays/build.overlay.md",
+            ".opencode/overlays/general.overlay.md",
+            ".opencode/overlays/plan.overlay.md",
+            ".opencode/command/adv-comp-scan.md",
+            ".opencode/command/adv-discover.md",
+            ".opencode/command/adv-idea.md",
+            ".opencode/command/adv-improve.md",
+            ".opencode/command/adv-problem.md",
+            ".opencode/command/adv-refactor.md",
+            ".opencode/command/adv-research.md",
+            ".opencode/command/adv-task.md",
+            ".opencode/command/adv-triage.md",
+            ".opencode/command/adv-tron.md",
+            "skills/adv-backend-stack-eval/SKILL.md",
+            "skills/adv-comp-research/SKILL.md",
+            "skills/adv-improve/SKILL.md",
+            "skills/adv-triage/BOOTSTRAP.md",
+            "skills/adv-tron/SKILL.md",
+            "ADV_INSTRUCTIONS.md",
+            "SETUP.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=red, runId tr_mrm576um_f1c2a925)",
+              "exit_code": 1,
+              "summary": "RED: 3 intended failures — contract missing from applicable effective prompts, 173 one-mode/concrete-spelling offenders, build/plan overlay drift; 10 passed"
+            },
+            {
+              "command": "pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=green, runId tr_mrm5gguv_8fb049d1)",
+              "exit_code": 0,
+              "summary": "GREEN: 13/13 pass — corpus ownership, frontmatter separation, frozen baseline, exactly-one contract, 400-byte budget, no one-mode claims, no catalog duplication, exact permission keys, overlay parity"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts",
+              "exit_code": 0,
+              "summary": "13/13 pass through repo test throttle (oc-test-gate). Note: plugin-relative path required; literal 'plugin/src/...' form matches no files under plugin cwd"
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Full plugin suite 5273/5273 pass (356 files) on two consecutive runs; first run had 3 timing-flaky worktree-delete failures that pass standalone and on rerun — unrelated to prompt prose"
+            },
+            {
+              "command": "pnpm exec tsc --noEmit && pnpm exec eslint src/prompt-corpus.ts src/tool-name-assets.test.ts && pnpm exec prettier --check src/",
+              "exit_code": 0,
+              "summary": "Typecheck, lint, and format checks all clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Canonical contract text (305 UTF-8 bytes) defined once in plugin/src/prompt-corpus.ts and carried verbatim by prompt assets; tests count exact occurrences",
+              "why": "Single source of truth lets structural tests enforce exactly-once-per-effective-prompt without duplicating the string in test logic"
+            },
+            {
+              "what": "Effective-prompt model mirrors deploy apply_overlay_block semantics: build/plan = base file with ADV_SYNC region replaced by overlay source; general = overlay-only surface (host agent not repo-controlled) so the contract rides the overlay; adv-ci-waiter (no external MCP grants) carries zero contracts",
+              "why": "Tests must assert against what deploy actually assembles, not repo file bytes; overlay-only surfaces are the sole Advance-authored surface for shared agents"
+            },
+            {
+              "what": "Frozen baseline stores per-prompt byte counts + sorted frontmatter grant sets, not full prompt content",
+              "why": "Deterministic byte-budget (AC6) and permission-key-exact (DONE_WHEN) checks without 180KB of brittle full-text fixtures that would fail on any legitimate future prose edit"
+            },
+            {
+              "what": "Concrete spellings replaced with provider/capability wording across commands/skills/references; config citations preserved structurally as `key: true` backtick spans (SETUP.md Firecrawl grant list normalized to that shape)",
+              "why": "DDC4 allows naming providers/capabilities but not unconditional concrete callable syntax; frontmatter/config keys must remain exact and structurally distinguishable from invocation prose"
+            },
+            {
+              "what": "Synced stale inline ADV_SYNC blocks in build.md/plan.md to canonical overlay sources (pre-existing drift) and added a parity test",
+              "why": "AC7 requires canonical prompts and overlays synchronized; deploy replaces the region anyway, so effective-prompt byte deltas stayed within budget (build +135, plan +133)"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "First `bin/oc-test full` run showed 3 timing-flaky failures in src/tools/worktree/index-delete.test.ts (delete time budget exhausted under throttle load); passed on two full-suite reruns and standalone. Unrelated to this change (no worktree code touched) but worth tracking if it recurs.",
+            "Literal DONE_WHEN command form `bin/oc-test targeted -- plugin/src/tool-name-assets.test.ts` matches no files because oc-test runs vitest with plugin cwd; plugin-relative form `bin/oc-test targeted -- src/tool-name-assets.test.ts` is required. Runtime-matrix task tk-28cdd4fde0c4 should use the plugin-relative form."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Same-pattern one-mode claims and concrete spellings fixed corpus-wide in one pass: 11 agents, 3 overlays, 10 commands, 5 skill files, ADV_INSTRUCTIONS.md, SETUP.md. Residual sweep confirms zero one-mode phrases and zero concrete external MCP spellings in active corpus bodies. ship.md intentionally untouched (not deploy-owned: adv-*.md glob). .adv/** untouched (DONT4).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Mode-neutral MCP contract shipped structurally: 305-byte canonical contract appears exactly once in each of 11 MCP-capable effective agent prompts + general overlay (adv-ci-waiter intentionally contract-free). All one-mode invocation claims and concrete external MCP spellings removed from active corpus bodies; frontmatter permission keys byte-exact vs frozen baseline. RED tr_mrm576um_f1c2a925 (3 intended failures), GREEN tr_mrm5gguv_8fb049d1 (13/13). Full suite 5273/5273; tsc/eslint/prettier clean. Byte deltas vs frozen baseline: max +334 (budget 400). Packet note: _briefingPacket was unavailable (adv_change_show truncation + WorkflowNotFoundError on default store); proceeded with packet-provided identity/contract via target_path reads.",
+            "suggested_next_action": "Review diff, then proceed to dependent runtime-matrix task tk-28cdd4fde0c4; when invoking bin/oc-test from repo root use plugin-relative test paths."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=red, runId tr_mrm576um_f1c2a925)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=green, runId tr_mrm5gguv_8fb049d1)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tool-name-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit && pnpm exec eslint src/prompt-corpus.ts src/tool-name-assets.test.ts && pnpm exec prettier --check src/"
+            }
+          ]
+        }
+      ],
+      "verification": "RED tr_mrm576um_f1c2a925 (3 intended failures) → GREEN tr_mrm5gguv_8fb049d1 (13/13); bin/oc-test targeted passed; bin/oc-test full passed twice at 5273/5273; tsc/eslint/prettier clean; max effective-prompt delta +334 bytes under 400-byte budget.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv-temporal-repair.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv-verifier.md",
+        ".opencode/agents/adv-visual-review.md",
+        ".opencode/agents/adv.md",
+        ".opencode/agents/build.md",
+        ".opencode/agents/plan.md",
+        ".opencode/command/adv-comp-scan.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-idea.md",
+        ".opencode/command/adv-improve.md",
+        ".opencode/command/adv-problem.md",
+        ".opencode/command/adv-refactor.md",
+        ".opencode/command/adv-research.md",
+        ".opencode/command/adv-task.md",
+        ".opencode/command/adv-triage.md",
+        ".opencode/command/adv-tron.md",
+        ".opencode/overlays/build.overlay.md",
+        ".opencode/overlays/general.overlay.md",
+        ".opencode/overlays/plan.overlay.md",
+        "ADV_INSTRUCTIONS.md",
+        "SETUP.md",
+        "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json",
+        "plugin/src/prompt-corpus.ts",
+        "plugin/src/tool-name-assets.test.ts",
+        "skills/adv-backend-stack-eval/SKILL.md",
+        "skills/adv-comp-research/SKILL.md",
+        "skills/adv-improve/SKILL.md",
+        "skills/adv-triage/BOOTSTRAP.md",
+        "skills/adv-tron/SKILL.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv-temporal-repair.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv-verifier.md",
+        ".opencode/agents/adv-visual-review.md",
+        ".opencode/agents/adv.md",
+        ".opencode/agents/build.md",
+        ".opencode/agents/plan.md",
+        ".opencode/command/adv-comp-scan.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-idea.md",
+        ".opencode/command/adv-improve.md",
+        ".opencode/command/adv-problem.md",
+        ".opencode/command/adv-refactor.md",
+        ".opencode/command/adv-research.md",
+        ".opencode/command/adv-task.md",
+        ".opencode/command/adv-triage.md",
+        ".opencode/command/adv-tron.md",
+        ".opencode/overlays/build.overlay.md",
+        ".opencode/overlays/general.overlay.md",
+        ".opencode/overlays/plan.overlay.md",
+        "ADV_INSTRUCTIONS.md",
+        "SETUP.md",
+        "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json",
+        "plugin/src/prompt-corpus.ts",
+        "plugin/src/tool-name-assets.test.ts",
+        "skills/adv-backend-stack-eval/SKILL.md",
+        "skills/adv-comp-research/SKILL.md",
+        "skills/adv-improve/SKILL.md",
+        "skills/adv-triage/BOOTSTRAP.md",
+        "skills/adv-tron/SKILL.md"
+      ],
+      "checkpointSha": "55e00dddb9e36de42a98744074a357dc3dd0abe1",
+      "completedAt": "2026-07-15T14:23:46.020Z",
+      "completed_at": "2026-07-15T14:23:46.020Z"
+    },
+    {
+      "id": "tk-28cdd4fde0c4",
+      "title": "Build and run explicit MCP invocation runtime matrix",
+      "type": "code",
+      "section": "Runtime verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-15T12:47:27.285Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f8ef0c8aef3b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "cross_repo_role": "advance-runtime"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T14:24:05.141Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateCodemodeMcpContracts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+          "task_id": "tk-28cdd4fde0c4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-28cdd4fde0c4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/mcp-runtime-matrix.ts",
+            "plugin/src/mcp-runtime-matrix.test.ts",
+            "plugin/src/__fixtures__/mcp-runtime-matrix.json",
+            "plugin/src/__fixtures__/mcp-runtime-live-evidence.json",
+            "plugin/scripts/mcp-runtime-probe.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/mcp-runtime-matrix.test.ts src/tool-name-assets.test.ts (adv_run_test phase=verify, runId tr_mrm72wmv_5f493066)",
+              "exit_code": 0,
+              "summary": "23/23 pass — 10 runtime-matrix tests (row presence/no escape, byte-exact routing per case, unavailable never fabricates, no-normalization invariants, discovery-evidence binding, corpus binding, live-fixture schema + pass consistency) + 13 existing contract tests still green"
+            },
+            {
+              "command": "bin/oc-test full (adv_run_test phase=verify, runId tr_mrm76axx_5015ec26)",
+              "exit_code": 0,
+              "summary": "Full plugin suite 5283/5283 pass (357 files), no flakes; baseline 5273 + 10 new matrix tests"
+            },
+            {
+              "command": "pnpm exec tsx scripts/mcp-runtime-probe.ts --timeout 240 (adv_run_test phase=verify, runId tr_mrm7943c_297a3177)",
+              "exit_code": 0,
+              "summary": "Live probe 7/7 pass: codemode-primary tools.context7[\"resolve-library-id\"] + tools.lgrep.search_semantic; codemode-spawned-researcher same catalog paths; direct-primary context7_resolve-library-id + lgrep_search_semantic; codemode-no-mcp zero context7 attempts, agent reported unavailable citing the contract. Third consecutive all-pass run (also ran clean twice during harness shakedown)."
+            },
+            {
+              "command": "pnpm exec tsc --noEmit && pnpm exec eslint src/mcp-runtime-matrix.ts src/mcp-runtime-matrix.test.ts scripts/mcp-runtime-probe.ts && pnpm exec prettier --check (same files + fixtures)",
+              "exit_code": 0,
+              "summary": "Typecheck, lint, and format checks all clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Pure routing model (resolveInvocation) keyed on machine-observed surface {executeExposed, catalog, directCallables} with unavailable verdict when neither exposes the capability",
+              "why": "C3: correctness follows actually exposed capabilities, never environment flags or prose; gives every mandatory row deterministic row-selection proof without model-output heuristics"
+            },
+            {
+              "what": "Live evidence committed as bounded supplemental fixture (500-char excerpt cap); deterministic suite validates schema, exact observed invocations on pass, non-empty reason on skip, and FAILS the suite on any committed fail entry",
+              "why": "Requirements: live probes are supplemental evidence, CI must not depend on network/model; fail-loud semantics prevent silently committing a real contract violation"
+            },
+            {
+              "what": "Row 2 (adv-researcher is hidden subagent) probed via verbatim worktree artifact with only the frontmatter mode bit promoted to primary; contract prose byte-identical",
+              "why": "opencode run --agent refuses hidden subagents; the true spawned path was already observed in discovery and is structuralized verbatim in the static fixture, so the live probe confirms the researcher artifact's invocation behavior without orchestration variance"
+            },
+            {
+              "what": "Row 3 probe uses `env -u OPENCODE_EXPERIMENTAL_CODE_MODE OC_DISABLE_CODE_MODE=1 oc run`",
+              "why": "Known toolbox defect: OC_DISABLE_CODE_MODE=1 alone cannot clear inherited CodeMode state until fixCodemodeDisableOverride ships (AC8, owned by tk-7bd956c74bf5); explicit unset is the documented discovery workaround and proves direct-mode routing today"
+            },
+            {
+              "what": "Row 4 isolation via XDG_CONFIG_HOME sandbox (no MCP servers) while keeping XDG_DATA_HOME for provider auth; verbatim worktree adv.md copied into isolated config",
+              "why": "Faithful AC3 test of the real agent artifact with zero MCP exposure; opencode tolerates the adv_* frontmatter tool keys without the ADV plugin (verified empirically)"
+            },
+            {
+              "what": "All probes pinned to --model kimi-for-coding/k2p7 with --auto and 240s per-run timeout, sandboxes under /tmp/opencode",
+              "why": "Credentials proven in shakedowns; invocation-path behavior is model-agnostic for contract compliance; bounds keep the harness operator-safe"
+            },
+            {
+              "what": "ESM-safe module root via fileURLToPath(import.meta.url) instead of __dirname",
+              "why": "__dirname is undefined when tsx executes scripts importing src modules (probe harness); import.meta.url works under both vitest and tsx"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Optional future evidence layer: a true orchestrator-spawned researcher probe (adv -> task tool -> adv-researcher) once a bounded way to capture child-session JSON events exists; current row-2 evidence is researcher-artifact live run + structuralized discovery observation.",
+            "Infrastructure note (not this change): adv_task_show/adv_run_test on the default store cannot resolve this worktree's change/tasks (WorkflowNotFoundError); target_path routing with target_confirmed works. Same symptom prior engineer hit on tk-f8ef0c8aef3b."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none — no same-pattern defects found; matrix module reuses EXTERNAL_MCP_PREFIXES and CONCRETE_MCP_SPELLING from prompt-corpus.ts as the single source for provider classification, and a dedicated test ties fixture direct spellings to the corpus scan regex.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Explicit MCP invocation runtime matrix shipped and verified. Deterministic layer: plugin/src/mcp-runtime-matrix.ts (pure active-surface routing model) + static fixture + 10 tests proving all 5 mandatory rows with byte-exact invocation forms and no applicability escape; rows bind to real corpus (adv/adv-researcher mcpCapable, context7_* granted, exactly-one contract). Live layer: plugin/scripts/mcp-runtime-probe.ts ran bounded oc run/opencode run probes THREE times, 7/7 pass each run: codemode-primary tools.context7[\"resolve-library-id\"], researcher artifact same path, direct-primary context7_resolve-library-id (via env -u workaround), no-MCP row zero callables attempted + agent cited the contract (\"report it as unavailable rather than simulate\"), identifier-safe tools.lgrep.search_semantic / lgrep_search_semantic exact in both modes. Evidence runs recorded: targeted tr_mrm72wmv_5f493066 (23/23), full tr_mrm76axx_5015ec26 (5283/5283), live probe tr_mrm7943c_297a3177 (7/7). tsc/eslint/prettier clean. No OpenCode or toolbox edits; only 5 new files, zero modifications. Row-3 note: OC_DISABLE_CODE_MODE=1 override still cannot clear inherited CodeMode state — probe used documented env -u workaround; AC8 evidence remains gated on linked toolbox task tk-7bd956c74bf5 as planned.",
+            "suggested_next_action": "Checkpoint/commit the 5 new files, then proceed to dependent task tk-7bd956c74bf5 (toolbox fixCodemodeDisableOverride evidence link). AC1-AC4 runtime evidence is ready for acceptance."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/mcp-runtime-matrix.test.ts src/tool-name-assets.test.ts (adv_run_test phase=verify, runId tr_mrm72wmv_5f493066)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full (adv_run_test phase=verify, runId tr_mrm76axx_5015ec26)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsx scripts/mcp-runtime-probe.ts --timeout 240 (adv_run_test phase=verify, runId tr_mrm7943c_297a3177)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit && pnpm exec eslint src/mcp-runtime-matrix.ts src/mcp-runtime-matrix.test.ts scripts/mcp-runtime-probe.ts && pnpm exec prettier --check (same files + fixtures)"
+            }
+          ]
+        }
+      ],
+      "verification": "Runtime matrix: targeted tr_mrm72wmv_5f493066 23/23; full tr_mrm76axx_5015ec26 5283/5283; live tr_mrm7943c_297a3177 7/7 across all five mandatory rows; tsc/eslint/prettier clean; no OpenCode/toolbox edits.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/scripts/mcp-runtime-probe.ts",
+        "plugin/src/__fixtures__/mcp-runtime-live-evidence.json",
+        "plugin/src/__fixtures__/mcp-runtime-matrix.json",
+        "plugin/src/mcp-runtime-matrix.test.ts",
+        "plugin/src/mcp-runtime-matrix.ts"
+      ],
+      "touched_files": [
+        "plugin/scripts/mcp-runtime-probe.ts",
+        "plugin/src/__fixtures__/mcp-runtime-live-evidence.json",
+        "plugin/src/__fixtures__/mcp-runtime-matrix.json",
+        "plugin/src/mcp-runtime-matrix.test.ts",
+        "plugin/src/mcp-runtime-matrix.ts"
+      ],
+      "checkpointSha": "7f1d70a776710add2f4cd9a72e1fbf3e8ce954e0",
+      "completedAt": "2026-07-15T14:55:03.662Z",
+      "completed_at": "2026-07-15T14:55:03.662Z"
+    },
+    {
+      "id": "tk-7bd956c74bf5",
+      "title": "Integrate linked toolbox CodeMode-disable evidence",
+      "type": "verification",
+      "section": "Cross-repository integration",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-15T12:47:44.422Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-28cdd4fde0c4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline",
+        "frontend": "false",
+        "cross_repo_role": "toolbox-link",
+        "linked_change_id": "fixCodemodeDisableOverride"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5"
+        ],
+        "verifies": [
+          "AC8",
+          "AC10"
+        ],
+        "respects": [
+          "C6",
+          "C7",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T15:36:27.684Z",
+      "verification": "Linked toolbox change fixCodemodeDisableOverride is archived in target disk snapshot. It supplies separate tracked-work evidence for AC8/AC10: focused precedence suite 6/6; wrapper suite 16/16; disabled live probe exposes direct external MCP schema; normal live probe exposes execute catalog; canonical source/install/backup/.prev parity verified. Target artifact-inclusive Temporal read was unavailable because target queue was not serviceable; read-only disk snapshot returned archived terminal projection.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7f1d70a776710add2f4cd9a72e1fbf3e8ce954e0",
+      "completedAt": "2026-07-15T17:19:51.462Z",
+      "completed_at": "2026-07-15T17:19:51.462Z"
+    },
+    {
+      "id": "tk-edda3d10b529",
+      "title": "Reconcile peer prompt assets and run final cross-repository validation",
+      "type": "verification",
+      "section": "Final integration",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-15T12:47:59.016Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7bd956c74bf5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "cross_repo_role": "final-integration",
+        "peer_change_id": "consolidateAdvToolSurface2"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T17:20:10.091Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateCodemodeMcpContracts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+          "task_id": "tk-edda3d10b529",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-edda3d10b529"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts",
+              "exit_code": 0,
+              "summary": "Pass: 23/23 on branch after baseline migration."
+            },
+            {
+              "command": "git merge-tree --write-tree HEAD trunk",
+              "exit_code": 0,
+              "summary": "Clean tree; no textual conflicts with trunk, which contains archived consolidateAdvToolSurface2."
+            },
+            {
+              "command": "vitest run src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts in scratch merged tree",
+              "exit_code": 0,
+              "summary": "Pass: 23/23 after migrated fixture."
+            },
+            {
+              "command": "vitest run 12 peer-guard test files in scratch merged tree",
+              "exit_code": 0,
+              "summary": "Pass: 428/428."
+            },
+            {
+              "command": "Mandatory runtime-matrix coverage check",
+              "exit_code": 0,
+              "summary": "All 5 required rows have committed pass evidence; no skipped rows."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Re-freeze the CodeMode MCP contract baseline from trunk after consolidateAdvToolSurface2",
+              "why": "The pre-peer baseline incorrectly charged peer role-policy frontmatter bytes to this change's 400-byte mode-guidance budget. External MCP grants are unchanged; merged deltas now peak at 334 bytes."
+            },
+            {
+              "what": "Validate using a scratch merge-tree rather than rebase",
+              "why": "Non-destructive proof of branch/trunk composition; rebase is orchestrator-owned."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Re-run live oc runtime probes only after this change is deployed; existing probes measure deployed rather than worktree state.",
+            "Run bin/oc-test full before acceptance."
+          ],
+          "required_main_agent_actions": [
+            "Checkpoint the uncommitted baseline fixture remediation.",
+            "Run bin/oc-test full on the branch before acceptance."
+          ],
+          "related_scan": "Merged-tree corpus checks passed: no one-mode claims, concrete external-MCP spellings, catalog-signature duplication, or obsolete peer tool references. The 13 overlapping prompt files modify disjoint planes: peer frontmatter keys and this change's body prose.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Peer consolidateAdvToolSurface2 is archived in trunk. A single semantic byte-budget conflict was found, fixed by migrating the frozen baseline fixture to true merge-base trunk. Branch targeted tests passed 23/23; merged contract tests passed 23/23; merged peer guards passed 428/428. Live probes deliberately not rerun because they target deployed state.",
+            "suggested_next_action": "Inspect and checkpoint the fixture remediation, run bin/oc-test full, then proceed to acceptance."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Live external-runtime probes were not rerun because this worktree is not deployed; committed matrix evidence remains the available proof."
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git merge-tree --write-tree HEAD trunk"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: vitest run src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts in scratch merged tree"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: vitest run 12 peer-guard test files in scratch merged tree"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: Mandatory runtime-matrix coverage check"
+            }
+          ]
+        }
+      ],
+      "verification": "Release hardening remediation: runtime probe now derives lgrep path from checked-out repository root; stale MCP protocol coverage row updated to the active-surface contract and structural gate. Targeted matrix/corpus suite passed 24/24; pnpm run check passed schemas, typecheck, isolation/lockfile checks, lint, and Prettier.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/adv-runtime-protocol-coverage.md",
+        "plugin/scripts/mcp-runtime-probe.ts"
+      ],
+      "touched_files": [
+        "docs/adv-runtime-protocol-coverage.md",
+        "plugin/scripts/mcp-runtime-probe.ts"
+      ],
+      "checkpointSha": "ee7ec13c3f4f2c8e784e7bb37446169b7c763282",
+      "completedAt": "2026-07-15T17:56:11.293Z",
+      "completed_at": "2026-07-15T17:56:11.293Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:codemode-mcp-contract-research"
+      },
+      "agent": "adv-researcher",
+      "topic": "Best Advance-specific CodeMode MCP guidance shape",
+      "sources": [
+        {
+          "label": "OpenCode session tool resolver",
+          "locator": "https://github.com/anomalyco/opencode/blob/9976269ab1accfc9f9dc98a4a688c516934de422/packages/opencode/src/session/tools.ts#L388-L419",
+          "summary": "CodeMode substitutes execute for directly exposed MCP tools."
+        },
+        {
+          "label": "OpenCode CodeMode adapter",
+          "locator": "https://github.com/anomalyco/opencode/blob/9976269ab1accfc9f9dc98a4a688c516934de422/packages/opencode/src/tool/code-mode.ts#L39-L64",
+          "summary": "Flat MCP keys map to namespace/tool paths with bracket notation for non-identifiers."
+        },
+        {
+          "label": "OpenCode generated catalog instructions",
+          "locator": "https://github.com/anomalyco/opencode/blob/9976269ab1accfc9f9dc98a4a688c516934de422/packages/codemode/src/tool-runtime.ts#L548-L639",
+          "summary": "OpenCode already owns exact signatures, discovery guidance, and bracket-notation rules."
+        },
+        {
+          "label": "OpenCode runtime flags",
+          "locator": "https://github.com/anomalyco/opencode/blob/9976269ab1accfc9f9dc98a4a688c516934de422/packages/opencode/src/effect/runtime-flags.ts#L42-L49",
+          "summary": "CodeMode remains experimental and process-flag controlled."
+        },
+        {
+          "label": "Advance direct-name contract",
+          "locator": "/home/jon/dev/advance/.opencode/agents/adv.md:240-242",
+          "summary": "Advance currently hard-codes direct-schema MCP names."
+        },
+        {
+          "label": "Advance tool-name asset test",
+          "locator": "/home/jon/dev/advance/plugin/src/tool-name-assets.test.ts:72-81",
+          "summary": "Current tests reinforce concrete direct names without a mode matrix."
+        }
+      ],
+      "architecture_assessment": "Advance duplicates exact external MCP invocation syntax in durable prompts, while OpenCode CodeMode generates the authoritative permission-filtered catalog at runtime. Exact CodeMode syntax should remain OpenCode-owned. Advance should describe capability selection and active-schema/catalog obedience, using runtime capability-derived guidance where a stable hook exists; otherwise use a thin concrete-name-free dual-mode bridge.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          "Unknown whether Advance has a stable public hook to inspect final permission-filtered tool visibility before prompt assembly.",
+          "Representative on/off, primary/spawned, and allowed/denied MCP experiments have not yet run."
+        ],
+        "notes": "No-change is unsafe under CodeMode; broad static duplication is also risky. Exa was unavailable due missing EXA_API_KEY, but conclusions are backed by OpenCode source and tests."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Runtime-derived guidance maximizes correctness but may couple Advance to prompt-assembly hooks.",
+          "A generic static bridge is simpler and mode-safe but less concrete.",
+          "Removing concrete examples reduces local specificity while eliminating duplicated stale truth."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "No Advance change",
+            "disposition": "rejected",
+            "rationale": "Direct top-level MCP names are unavailable when CodeMode owns MCP exposure."
+          },
+          {
+            "option": "Dual-mode static guidance",
+            "disposition": "deferred",
+            "rationale": "Viable fallback if capability-derived runtime guidance lacks a stable hook."
+          },
+          {
+            "option": "CodeMode-first with direct fallback",
+            "disposition": "rejected",
+            "rationale": "execute may be absent when permissions expose no MCP tools, despite CodeMode being enabled."
+          },
+          {
+            "option": "Runtime/generated mode-specific guidance",
+            "disposition": "preferred",
+            "rationale": "Can follow actual exposed capability rather than inferred environment state, if stable integration exists."
+          }
+        ],
+        "recommendation": "Run a representative correctness and prompt-overhead matrix. Prefer a runtime capability-derived bridge if Advance can use a stable exposed-capability hook; otherwise adopt one thin concrete-name-free dual-mode sentence and let OpenCode remain sole exact CodeMode naming authority."
+      },
+      "recommendation": "Do not broadly rewrite instructions yet. Test actual Advance runtime combinations, then choose capability-derived runtime guidance or the minimal static bridge.",
+      "follow_ups": [
+        "Inspect Advance prompt/deploy assembly for a stable final-tool-visibility hook.",
+        "Test CodeMode on/off across primary/spawned agents and MCP allowed/denied states.",
+        "Measure prompt overhead and verify generated/deployed parity."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Worker-side report persistence failed with WorkflowNotFoundError; orchestrator resubmitted through target_path."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 3,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage and simplification opportunities for mode-neutral CodeMode MCP contracts",
+      "sources": [
+        {
+          "label": "OpenCode CodeMode runtime README",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/codemode/README.md",
+          "summary": "CodeMode owns catalog(), instructions(), and execute() over the supplied tool set; supports keeping generated callable syntax outside Advance-authored prose."
+        },
+        {
+          "label": "OpenCode MCP server docs",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/web/src/content/docs/mcp-servers.mdx",
+          "summary": "Per-agent MCP enablement uses exact/wildcard tool keys in configuration, so executable frontmatter must not be treated as invocation prose."
+        },
+        {
+          "label": "OpenCode agent customization docs",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/core/src/plugin/skill/customize-opencode.md",
+          "summary": "Markdown frontmatter is metadata/configuration while the Markdown body becomes the agent prompt, supporting structural frontmatter/body separation in tests."
+        },
+        {
+          "label": "OpenCode command customization docs",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/core/src/plugin/skill/customize-opencode.md",
+          "summary": "Command Markdown body is the prompt OpenCode runs, making command bodies independent guidance surfaces that need capability wording or inherited contract coverage."
+        },
+        {
+          "label": "Advance tool-name asset test",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tool-name-assets.test.ts#L39-L81",
+          "summary": "Current structural test scans prompt assets and positively requires concrete external callable examples, the behavior this change replaces."
+        },
+        {
+          "label": "Advance researcher agent asset",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.opencode/agents/adv-researcher.md#L1-L76",
+          "summary": "Current file mixes exact external-tool permission keys in frontmatter with concrete imperative callable guidance in the prompt body."
+        },
+        {
+          "label": "Advance deployment and overlay ownership",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/scripts/deploy-local.sh#L1358-L1451",
+          "summary": "Advance fully deploys bundled agents but applies managed blocks to shared build/general/plan agents, enabling parity checks against deployment ownership."
+        }
+      ],
+      "architecture_assessment": "Draft direction is sound but needs two structural refinements. Tests must parse Markdown frontmatter separately from prompt bodies: exact MCP permission keys are executable OpenCode configuration, while concrete invocation syntax in prose is the portability defect. Contract coverage and token-budget checks should follow deployed/assembled prompt ownership rather than require duplicate text in every raw command/agent/overlay file. OpenCode's CodeMode runtime already owns catalog and instruction generation, so Advance should remove the speculative runtime-hook/OpenCode-patch branch from the baseline design and reopen it only on reproducible validation failure. Candidates, sorted by payoff/risk: (1) auto-adopt — frontmatter/body-aware scanner; payoff high, risk low, ties dual-mode operation and no false availability, fate design_around; (2) auto-adopt — test deployment-owned effective prompt surfaces and <=100-token Advance guidance once per assembled surface, not raw-file duplication; payoff high, risk low, ties overhead and overlay/deploy parity, fate design_around; (3) auto-adopt — make no runtime hook/patch the closed baseline and require explicit failing dual-mode fixture before scope re-entry; payoff medium, risk low, ties OpenCode catalog ownership and avoidance, fate adopt_now; (4) surface — run toolbox wrapper fix in parallel and keep Advance acceptance evidence independent through clean-environment direct-schema and CodeMode fixtures, then add wrapper evidence when linked change lands; payoff medium, risk medium, ties cross-repo tracking and both modes, fate surface_to_user. Candidate 2 remains partly uncertain because official command documentation confirms command-body prompt ownership but does not explicitly document full agent-plus-command prompt composition; I don't know whether one agent-level contract is always inherited by every command path.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No design blocker. Caution: an unconditional raw-text ban can break legitimate exact tool permission keys, and per-file contract requirements can violate the <=100-token assembled-prompt constraint through duplication."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "medium",
+        "risk": "medium",
+        "tradeoffs": [
+          "Frontmatter/body-aware checks are slightly more code than a repository-wide regex but prevent false positives against executable OpenCode permission keys.",
+          "Effective-prompt parity tests reduce duplicate guidance but require a small, explicit model of deploy/overlay ownership.",
+          "Keeping wrapper work parallel preserves cross-repo boundaries but requires acceptance evidence to distinguish Advance correctness from toolbox launch-environment correctness."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Repository-wide ban on concrete external MCP identifiers",
+            "disposition": "rejected",
+            "rationale": "Conflates imperative prompt prose with exact OpenCode tool permission keys and tool inventories."
+          },
+          {
+            "option": "Repeat full mode-neutral contract in every agent, command, overlay, and skill",
+            "disposition": "rejected",
+            "rationale": "Creates drift and threatens the <=100-token assembled-prompt budget."
+          },
+          {
+            "option": "Add an Advance runtime hook translating calls by mode",
+            "disposition": "rejected",
+            "rationale": "OpenCode CodeMode already owns catalog/instruction generation; no evidence justifies a second translation layer."
+          },
+          {
+            "option": "Parse frontmatter separately and test effective deployment-owned prompt surfaces",
+            "disposition": "preferred",
+            "rationale": "Preserves exact configuration, removes mode-specific prose, and aligns tests with deployed assets."
+          },
+          {
+            "option": "Make toolbox wrapper completion a hard prerequisite for all Advance implementation",
+            "disposition": "deferred",
+            "rationale": "Clean-environment mode fixtures can validate Advance while separately tracked wrapper work proceeds in parallel."
+          }
+        ],
+        "recommendation": "Revise design before implementation: specify frontmatter/body-aware scanning; define one compact mode-neutral prose contract per effective deployed agent/overlay surface with assembled-token measurement; remove speculative runtime-hook/OpenCode-patch work from baseline; keep toolbox wrapper change parallel and link its evidence at acceptance."
+      },
+      "recommendation": "Auto-adopt candidates 1-3. Surface candidate 4 for sequencing/acceptance ownership. Do not implement a raw-file global identifier ban or duplicate the contract across every asset.",
+      "follow_ups": [
+        "Packet omitted IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; research followed provided TASK_SCOPE and durable agreement anchors without inferring missing identity fields.",
+        "Episode recall returned no relevant project decision; it was advisory only.",
+        "Exa was unavailable because EXA_API_KEY was not configured; official OpenCode documentation was retrieved through Context7 instead.",
+        "Confirm OpenCode agent-plus-command prompt composition before relying on agent-only contract inheritance; official command docs confirm command-body prompt ownership but not complete composition."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 4,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation",
+      "sources": [
+        {
+          "label": "Approved agreement and strict typed contract",
+          "locator": "adv://updateCodemodeMcpContracts/agreement",
+          "summary": "SC1-SC5, AC1-AC10, C1-C7, DONT1-DONT6, and OOS1-OOS4 establish equal CodeMode/direct compatibility, active-surface authority, 100-token overhead, parity, external-change tracking, and no catalog duplication."
+        },
+        {
+          "label": "OpenCode CodeMode registry source",
+          "locator": "https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/tool/registry.ts#L108-L304",
+          "summary": "CodeMode is feature-flagged; execute is only retained when a permission-filtered visible MCP catalog exists; catalog description is generated by OpenCode."
+        },
+        {
+          "label": "OpenCode direct-schema switch source",
+          "locator": "https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/session/tools.ts#L387-L439",
+          "summary": "When experimental CodeMode is active, session tool assembly returns before adding direct MCP tools; when inactive, MCP tools are added directly under exact keys."
+        },
+        {
+          "label": "OpenCode catalog/runtime source",
+          "locator": "https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/tool/code-mode.ts#L39-L65",
+          "summary": "OpenCode derives namespaced CodeMode paths from exact MCP keys and renders instructions from the generated tool tree."
+        },
+        {
+          "label": "OpenCode MCP and agent docs",
+          "locator": "https://opencode.ai/docs/mcp-servers",
+          "summary": "Official docs describe server-prefixed MCP tool names and glob-based enable/disable controls; agent docs document wildcard permission matching."
+        },
+        {
+          "label": "Advance current exact-name test",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tool-name-assets.test.ts#L39-L81",
+          "summary": "Current coverage scans only selected top-level Markdown sets and positively requires concrete direct-schema names in ADV_INSTRUCTIONS and adv-researcher."
+        },
+        {
+          "label": "Advance deployment source",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L1400-L1515",
+          "summary": "Agents are copied or overlay-assembled; skills are copied as entire directories, including sibling reference docs and subdirectories."
+        },
+        {
+          "label": "Advance current budget test",
+          "locator": "file:///home/jon/dev/advance/plugin/src/adv-skill-backed-commands-assets.test.ts#L797-L858",
+          "summary": "Current budget enforcement measures advisory line ceilings only, not model-token deltas on assembled prompts."
+        }
+      ],
+      "architecture_assessment": "Core architecture is correct and least-coupled: OpenCode source proves CodeMode owns generated paths/catalog text, suppresses execute when no permission-visible MCP tools exist, and omits direct MCP tools when CodeMode is active; direct mode exposes exact MCP keys. Advance should therefore remove unconditional callable spellings and add one mode-neutral active-surface rule, without a translation hook or OpenCode patch (https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/tool/registry.ts#L277-L304; https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/session/tools.ts#L387-L439). Three design details need tightening: AC6 needs a deterministic assembled-prompt baseline and tokenizer/model-token policy because current Advance tests count lines only (file:///home/jon/dev/advance/plugin/src/adv-skill-backed-commands-assets.test.ts#L797-L858); active-prose scanning must recurse through all deployed prompt-bearing skill files because deployment copies whole skill directories (file:///home/jon/dev/advance/scripts/deploy-local.sh#L1488-L1515); and DDC5 must enumerate mandatory primary plus spawned researcher cases rather than qualify them as 'where applicable' (adv://updateCodemodeMcpContracts/agreement#AC1).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No architectural blocker. Before design completion, specify (1) exact pre-change assembled-prompt fixtures and deterministic token counting for AC6, (2) a manifest-driven recursive active prompt corpus including skill sibling/reference files while excluding archive, and (3) an explicit required runtime matrix preserving AC1 primary and spawned-researcher cases. Target spec-law review is limited to the approved strict contract because the target-routed spec tool is unavailable."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "One compact policy reduces stale syntax and catalog duplication, but still requires deliberate placement across independently assembled agent surfaces (file:///home/jon/dev/advance/scripts/deploy-local.sh#L1400-L1450).",
+          "Capability-oriented prose is durable across modes, but loses copy-paste callable examples; OpenCode's generated catalog/direct schema must supply exact syntax (https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/tool/code-mode.ts#L39-L65).",
+          "Manifest-driven recursive scanning gives stronger coverage, but needs explicit classification for configuration/frontmatter, executable prompt prose, documentation, fixtures, and archives (file:///home/jon/dev/advance/plugin/src/tool-name-assets.test.ts#L39-L81).",
+          "Strict token-delta enforcement satisfies AC6, but requires maintaining frozen pre-change assembled fixtures and a declared tokenizer rather than existing cheap line-count warnings (file:///home/jon/dev/advance/plugin/src/adv-skill-backed-commands-assets.test.ts#L797-L858)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Selected mode-neutral active-surface contract",
+            "disposition": "preferred",
+            "rationale": "Matches OpenCode's permission-filtered runtime split without duplicating catalog syntax or adding runtime coupling (https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/tool/registry.ts#L277-L304)."
+          },
+          {
+            "option": "Rely only on OpenCode-generated descriptions; add no Advance contract",
+            "disposition": "rejected",
+            "rationale": "Does not neutralize existing unconditional direct-schema prose shown in current active Advance agents and tests (file:///home/jon/dev/advance/.opencode/agents/adv-researcher.md#L58-L76; file:///home/jon/dev/advance/plugin/src/tool-name-assets.test.ts#L72-L81)."
+          },
+          {
+            "option": "Advance runtime translation hook or OpenCode patch",
+            "disposition": "rejected",
+            "rationale": "Current OpenCode already performs the required permission-filtered mode switch and catalog generation; another layer would duplicate authority without a reproduced blocker (https://github.com/anomalyco/opencode/blob/05c3e40a4e641732b991499000ca479e5dad4b02/packages/opencode/src/session/tools.ts#L387-L439)."
+          },
+          {
+            "option": "Single canonical contract only in ADV_INSTRUCTIONS.md",
+            "disposition": "rejected",
+            "rationale": "Deployment uses copied agents and overlays, while synced adv.md deliberately does not append full ADV_INSTRUCTIONS; one source file would not guarantee one effective contract per agent (file:///home/jon/dev/advance/plugin/src/overlay-sync-assets.test.ts#L736-L770)."
+          },
+          {
+            "option": "Raw repository-wide callable-name ban",
+            "disposition": "rejected",
+            "rationale": "Official OpenCode configuration uses server-prefixed names and glob permission keys, so frontmatter/configuration must remain structurally distinct from prompt-body prose (https://opencode.ai/docs/mcp-servers; https://opencode.ai/docs/agents)."
+          }
+        ],
+        "recommendation": "Approve architecture after amending design criteria: define a deploy-manifest-derived recursive prompt corpus; freeze pre-change assembled prompts and declare deterministic tokenizer/model-token counting for per-prompt delta; enumerate all required matrix rows without 'where applicable'; then implement RED tests before prompt migration."
+      },
+      "recommendation": "Proceed with selected architecture after three bounded design amendments: manifest-driven recursive scan coverage, deterministic AC6 token-delta measurement, and explicit mandatory runtime matrix rows. Keep toolbox repair separate and acceptance-gating; do not patch OpenCode absent new reproduced evidence.",
+      "follow_ups": [
+        "Packet warning: explicit OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchor sections were absent. Validation followed the user's bounded four-item scope and did not infer missing anchors.",
+        "Exa research was unavailable because EXA_API_KEY was not configured; official OpenCode docs and pinned official repository source were used instead.",
+        "lgrep semantic search was unavailable because VOYAGE_API_KEY was not configured; exact lgrep text search, grep, and direct reads of known active source files were used instead.",
+        "Target-routed adv_spec is not exposed by the available tool schema; spec-law assessment therefore uses the approved strict ChangeContract and persisted agreement returned by adv_change_show."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 5,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-revalidation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Focused design revalidation of amended CodeMode MCP contracts",
+      "sources": [
+        {
+          "label": "Approved agreement and strict ChangeContract",
+          "locator": "adv://change/updateCodemodeMcpContracts/agreement",
+          "summary": "AC6 now binds prompt growth to frozen pre-change effective assembled-prompt fixtures, a 400 UTF-8-byte ceiling, one-copy rule, and no catalog-signature duplication; AC7 requires recursively deployed skill/reference coverage with separate frontmatter parsing; AC1-AC4 require explicit primary, spawned-researcher, direct-mode, no-MCP, and name-shape behavior."
+        },
+        {
+          "label": "Amended design",
+          "locator": "adv://change/updateCodemodeMcpContracts/design",
+          "summary": "DDC1-DDC7 and implementation strategy make the byte baseline per applicable effective prompt, derive corpus from recursive deployment ownership, exclude archives, and list all mandatory runtime rows without a where-applicable escape."
+        },
+        {
+          "label": "Advance deployment ownership",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L1289-L1538",
+          "summary": "Deployment copies adv-* commands, selectively owns/assembles agents and overlays, and recursively copies each complete adv-* skill directory including sibling reference files and subdirectories."
+        },
+        {
+          "label": "Existing Advance tool-name coverage",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tool-name-assets.test.ts#L39-L81",
+          "summary": "Current test coverage scans only top-level prompt groups and hard-codes direct MCP identifiers, confirming why deployment-derived recursive prompt-body coverage is needed."
+        },
+        {
+          "label": "Existing frontmatter/body parser precedent",
+          "locator": "file:///home/jon/dev/advance/plugin/src/adv-reviewer-asset.test.ts#L32-L73",
+          "summary": "Repository tests already separate YAML frontmatter from Markdown body and inspect tool-grant keys structurally."
+        },
+        {
+          "label": "Existing archive exclusion precedent",
+          "locator": "file:///home/jon/dev/advance/plugin/src/phantom-subagent-roster.test.ts#L125-L137",
+          "summary": "Repository coverage already distinguishes active surfaces from historical/archive paths."
+        },
+        {
+          "label": "Official OpenCode CodeMode design",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/codemode/codemode.md",
+          "summary": "OpenCode documents generated catalog/search paths, exact-path invocation, deferred grouped MCP tools behind execute, and direct Core tools remaining direct."
+        }
+      ],
+      "architecture_assessment": "All three prior cautions are resolved. (1) AC6 plus DDC1 supplies frozen pre-change effective assembled-prompt fixtures, a deterministic per-prompt UTF-8-byte ceiling, one-copy enforcement, and catalog-signature non-duplication; tokenizer counts are explicitly advisory (adv://change/updateCodemodeMcpContracts/agreement#AC6; adv://change/updateCodemodeMcpContracts/design#DDC1). (2) AC7/DDC2-DDC3 derive active corpus from deployment ownership, include recursively copied skill sibling/reference prose, parse frontmatter separately, and exclude archives; this matches actual whole-directory skill deployment and existing parser/archive precedents (file:///home/jon/dev/advance/scripts/deploy-local.sh#L1488-L1538; file:///home/jon/dev/advance/plugin/src/adv-reviewer-asset.test.ts#L32-L73; file:///home/jon/dev/advance/plugin/src/phantom-subagent-roster.test.ts#L125-L137). (3) AC1-AC4 and design runtime strategy enumerate mandatory primary, spawned researcher, direct-mode, no-MCP, identifier-safe, and punctuated-name coverage without a where-applicable escape (adv://change/updateCodemodeMcpContracts/agreement#AC1-AC4; adv://change/updateCodemodeMcpContracts/design#Implementation-Strategy). Mode-neutral active-surface guidance aligns with OpenCode ownership: CodeMode generates exact paths/signatures for deferred grouped MCP tools while direct Core tools remain direct (https://github.com/anomalyco/opencode/blob/dev/packages/codemode/codemode.md). No new approved-contract/spec conflict found: no runtime translation layer satisfies SC4/C2/DONT2, archive exclusion satisfies DONT4, and separately tracked toolbox acceptance evidence satisfies AC8/AC10/C6 (adv://change/updateCodemodeMcpContracts/agreement).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Amendments resolve all three prior cautions. No new conflict appears between amended design and approved strict ChangeContract. Implementation must preserve exact deployment-derived inclusion logic and per-effective-prompt byte accounting."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Frozen assembled-prompt fixtures and recursive corpus discovery add fixture/coverage maintenance, but make prompt overhead and omission regressions deterministic.",
+          "One mode-neutral contract avoids duplicated host syntax and translation code, but relies on runtime surfaces/catalogs being accurately exposed and therefore requires mandatory runtime matrix tests.",
+          "Separately tracked toolbox repair preserves repository ownership, but acceptance remains gated on cross-repository evidence."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Universal tokenizer-count acceptance criterion",
+            "disposition": "rejected",
+            "rationale": "Tokenizer counts vary by tokenizer/provider; frozen UTF-8-byte deltas provide deterministic repository evidence while token counts remain advisory (adv://change/updateCodemodeMcpContracts/agreement#AC6)."
+          },
+          {
+            "option": "Top-level-only prompt scan",
+            "disposition": "rejected",
+            "rationale": "Advance recursively deploys complete skill directories, including sibling references and subdirectories (file:///home/jon/dev/advance/scripts/deploy-local.sh#L1488-L1538)."
+          },
+          {
+            "option": "Conditional where-applicable runtime matrix",
+            "disposition": "rejected",
+            "rationale": "Approved AC1-AC4 require concrete primary, spawned-researcher, direct, absent-MCP, and name-shape outcomes (adv://change/updateCodemodeMcpContracts/agreement#AC1-AC4)."
+          },
+          {
+            "option": "Advance runtime translation layer or OpenCode patch",
+            "disposition": "rejected",
+            "rationale": "OpenCode already owns generated CodeMode paths/signatures and direct-tool exposure; duplicating that syntax would conflict with SC4/C2/DONT2 (https://github.com/anomalyco/opencode/blob/dev/packages/codemode/codemode.md; adv://change/updateCodemodeMcpContracts/agreement)."
+          },
+          {
+            "option": "Mode-neutral active-surface contract with deterministic corpus/runtime tests",
+            "disposition": "preferred",
+            "rationale": "Smallest architecture satisfying both exposure modes, absent capabilities, exact identifiers, and OpenCode syntax ownership (adv://change/updateCodemodeMcpContracts/design)."
+          }
+        ],
+        "recommendation": "Approve design gate. During planning, make AC6 accounting explicitly per effective assembled prompt using UTF-8 byte length against immutable frozen fixtures; generate corpus from deploy ownership rather than a hand-maintained top-level list; preserve all explicit runtime rows; keep toolbox disable repair as acceptance-gating linked work."
+      },
+      "recommendation": "Approve amended design. Planning should trace tests to AC1-AC10/DDC1-DDC7 and retain acceptance gates for recursive deployment parity, per-prompt byte deltas, all mandatory runtime rows, concurrent prompt-asset reconciliation, and linked toolbox release evidence.",
+      "follow_ups": [
+        "Packet omitted TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; review remained bounded to user's explicit focused objective and this omission is recorded rather than inferred.",
+        "ADV spec search could not be routed to target_path by available adv_spec schema; strict ChangeContract and amended design were validated through adv_change_show target-path reads. No spec conflict was visible in those authoritative change artifacts."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+      "task_id": "tk-f8ef0c8aef3b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f8ef0c8aef3b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/prompt-corpus.ts",
+        "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json",
+        "plugin/src/tool-name-assets.test.ts",
+        ".opencode/agents/adv.md",
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv-temporal-repair.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv-verifier.md",
+        ".opencode/agents/adv-visual-review.md",
+        ".opencode/agents/build.md",
+        ".opencode/agents/plan.md",
+        ".opencode/overlays/build.overlay.md",
+        ".opencode/overlays/general.overlay.md",
+        ".opencode/overlays/plan.overlay.md",
+        ".opencode/command/adv-comp-scan.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-idea.md",
+        ".opencode/command/adv-improve.md",
+        ".opencode/command/adv-problem.md",
+        ".opencode/command/adv-refactor.md",
+        ".opencode/command/adv-research.md",
+        ".opencode/command/adv-task.md",
+        ".opencode/command/adv-triage.md",
+        ".opencode/command/adv-tron.md",
+        "skills/adv-backend-stack-eval/SKILL.md",
+        "skills/adv-comp-research/SKILL.md",
+        "skills/adv-improve/SKILL.md",
+        "skills/adv-triage/BOOTSTRAP.md",
+        "skills/adv-tron/SKILL.md",
+        "ADV_INSTRUCTIONS.md",
+        "SETUP.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=red, runId tr_mrm576um_f1c2a925)",
+          "exit_code": 1,
+          "summary": "RED: 3 intended failures — contract missing from applicable effective prompts, 173 one-mode/concrete-spelling offenders, build/plan overlay drift; 10 passed"
+        },
+        {
+          "command": "pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=green, runId tr_mrm5gguv_8fb049d1)",
+          "exit_code": 0,
+          "summary": "GREEN: 13/13 pass — corpus ownership, frontmatter separation, frozen baseline, exactly-one contract, 400-byte budget, no one-mode claims, no catalog duplication, exact permission keys, overlay parity"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts",
+          "exit_code": 0,
+          "summary": "13/13 pass through repo test throttle (oc-test-gate). Note: plugin-relative path required; literal 'plugin/src/...' form matches no files under plugin cwd"
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Full plugin suite 5273/5273 pass (356 files) on two consecutive runs; first run had 3 timing-flaky worktree-delete failures that pass standalone and on rerun — unrelated to prompt prose"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit && pnpm exec eslint src/prompt-corpus.ts src/tool-name-assets.test.ts && pnpm exec prettier --check src/",
+          "exit_code": 0,
+          "summary": "Typecheck, lint, and format checks all clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Canonical contract text (305 UTF-8 bytes) defined once in plugin/src/prompt-corpus.ts and carried verbatim by prompt assets; tests count exact occurrences",
+          "why": "Single source of truth lets structural tests enforce exactly-once-per-effective-prompt without duplicating the string in test logic"
+        },
+        {
+          "what": "Effective-prompt model mirrors deploy apply_overlay_block semantics: build/plan = base file with ADV_SYNC region replaced by overlay source; general = overlay-only surface (host agent not repo-controlled) so the contract rides the overlay; adv-ci-waiter (no external MCP grants) carries zero contracts",
+          "why": "Tests must assert against what deploy actually assembles, not repo file bytes; overlay-only surfaces are the sole Advance-authored surface for shared agents"
+        },
+        {
+          "what": "Frozen baseline stores per-prompt byte counts + sorted frontmatter grant sets, not full prompt content",
+          "why": "Deterministic byte-budget (AC6) and permission-key-exact (DONE_WHEN) checks without 180KB of brittle full-text fixtures that would fail on any legitimate future prose edit"
+        },
+        {
+          "what": "Concrete spellings replaced with provider/capability wording across commands/skills/references; config citations preserved structurally as `key: true` backtick spans (SETUP.md Firecrawl grant list normalized to that shape)",
+          "why": "DDC4 allows naming providers/capabilities but not unconditional concrete callable syntax; frontmatter/config keys must remain exact and structurally distinguishable from invocation prose"
+        },
+        {
+          "what": "Synced stale inline ADV_SYNC blocks in build.md/plan.md to canonical overlay sources (pre-existing drift) and added a parity test",
+          "why": "AC7 requires canonical prompts and overlays synchronized; deploy replaces the region anyway, so effective-prompt byte deltas stayed within budget (build +135, plan +133)"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "First `bin/oc-test full` run showed 3 timing-flaky failures in src/tools/worktree/index-delete.test.ts (delete time budget exhausted under throttle load); passed on two full-suite reruns and standalone. Unrelated to this change (no worktree code touched) but worth tracking if it recurs.",
+        "Literal DONE_WHEN command form `bin/oc-test targeted -- plugin/src/tool-name-assets.test.ts` matches no files because oc-test runs vitest with plugin cwd; plugin-relative form `bin/oc-test targeted -- src/tool-name-assets.test.ts` is required. Runtime-matrix task tk-28cdd4fde0c4 should use the plugin-relative form."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Same-pattern one-mode claims and concrete spellings fixed corpus-wide in one pass: 11 agents, 3 overlays, 10 commands, 5 skill files, ADV_INSTRUCTIONS.md, SETUP.md. Residual sweep confirms zero one-mode phrases and zero concrete external MCP spellings in active corpus bodies. ship.md intentionally untouched (not deploy-owned: adv-*.md glob). .adv/** untouched (DONT4).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Mode-neutral MCP contract shipped structurally: 305-byte canonical contract appears exactly once in each of 11 MCP-capable effective agent prompts + general overlay (adv-ci-waiter intentionally contract-free). All one-mode invocation claims and concrete external MCP spellings removed from active corpus bodies; frontmatter permission keys byte-exact vs frozen baseline. RED tr_mrm576um_f1c2a925 (3 intended failures), GREEN tr_mrm5gguv_8fb049d1 (13/13). Full suite 5273/5273; tsc/eslint/prettier clean. Byte deltas vs frozen baseline: max +334 (budget 400). Packet note: _briefingPacket was unavailable (adv_change_show truncation + WorkflowNotFoundError on default store); proceeded with packet-provided identity/contract via target_path reads.",
+        "suggested_next_action": "Review diff, then proceed to dependent runtime-matrix task tk-28cdd4fde0c4; when invoking bin/oc-test from repo root use plugin-relative test paths."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=red, runId tr_mrm576um_f1c2a925)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tool-name-assets.test.ts (adv_run_test phase=green, runId tr_mrm5gguv_8fb049d1)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tool-name-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit && pnpm exec eslint src/prompt-corpus.ts src/tool-name-assets.test.ts && pnpm exec prettier --check src/"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+      "task_id": "tk-28cdd4fde0c4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-28cdd4fde0c4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/mcp-runtime-matrix.ts",
+        "plugin/src/mcp-runtime-matrix.test.ts",
+        "plugin/src/__fixtures__/mcp-runtime-matrix.json",
+        "plugin/src/__fixtures__/mcp-runtime-live-evidence.json",
+        "plugin/scripts/mcp-runtime-probe.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/mcp-runtime-matrix.test.ts src/tool-name-assets.test.ts (adv_run_test phase=verify, runId tr_mrm72wmv_5f493066)",
+          "exit_code": 0,
+          "summary": "23/23 pass — 10 runtime-matrix tests (row presence/no escape, byte-exact routing per case, unavailable never fabricates, no-normalization invariants, discovery-evidence binding, corpus binding, live-fixture schema + pass consistency) + 13 existing contract tests still green"
+        },
+        {
+          "command": "bin/oc-test full (adv_run_test phase=verify, runId tr_mrm76axx_5015ec26)",
+          "exit_code": 0,
+          "summary": "Full plugin suite 5283/5283 pass (357 files), no flakes; baseline 5273 + 10 new matrix tests"
+        },
+        {
+          "command": "pnpm exec tsx scripts/mcp-runtime-probe.ts --timeout 240 (adv_run_test phase=verify, runId tr_mrm7943c_297a3177)",
+          "exit_code": 0,
+          "summary": "Live probe 7/7 pass: codemode-primary tools.context7[\"resolve-library-id\"] + tools.lgrep.search_semantic; codemode-spawned-researcher same catalog paths; direct-primary context7_resolve-library-id + lgrep_search_semantic; codemode-no-mcp zero context7 attempts, agent reported unavailable citing the contract. Third consecutive all-pass run (also ran clean twice during harness shakedown)."
+        },
+        {
+          "command": "pnpm exec tsc --noEmit && pnpm exec eslint src/mcp-runtime-matrix.ts src/mcp-runtime-matrix.test.ts scripts/mcp-runtime-probe.ts && pnpm exec prettier --check (same files + fixtures)",
+          "exit_code": 0,
+          "summary": "Typecheck, lint, and format checks all clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Pure routing model (resolveInvocation) keyed on machine-observed surface {executeExposed, catalog, directCallables} with unavailable verdict when neither exposes the capability",
+          "why": "C3: correctness follows actually exposed capabilities, never environment flags or prose; gives every mandatory row deterministic row-selection proof without model-output heuristics"
+        },
+        {
+          "what": "Live evidence committed as bounded supplemental fixture (500-char excerpt cap); deterministic suite validates schema, exact observed invocations on pass, non-empty reason on skip, and FAILS the suite on any committed fail entry",
+          "why": "Requirements: live probes are supplemental evidence, CI must not depend on network/model; fail-loud semantics prevent silently committing a real contract violation"
+        },
+        {
+          "what": "Row 2 (adv-researcher is hidden subagent) probed via verbatim worktree artifact with only the frontmatter mode bit promoted to primary; contract prose byte-identical",
+          "why": "opencode run --agent refuses hidden subagents; the true spawned path was already observed in discovery and is structuralized verbatim in the static fixture, so the live probe confirms the researcher artifact's invocation behavior without orchestration variance"
+        },
+        {
+          "what": "Row 3 probe uses `env -u OPENCODE_EXPERIMENTAL_CODE_MODE OC_DISABLE_CODE_MODE=1 oc run`",
+          "why": "Known toolbox defect: OC_DISABLE_CODE_MODE=1 alone cannot clear inherited CodeMode state until fixCodemodeDisableOverride ships (AC8, owned by tk-7bd956c74bf5); explicit unset is the documented discovery workaround and proves direct-mode routing today"
+        },
+        {
+          "what": "Row 4 isolation via XDG_CONFIG_HOME sandbox (no MCP servers) while keeping XDG_DATA_HOME for provider auth; verbatim worktree adv.md copied into isolated config",
+          "why": "Faithful AC3 test of the real agent artifact with zero MCP exposure; opencode tolerates the adv_* frontmatter tool keys without the ADV plugin (verified empirically)"
+        },
+        {
+          "what": "All probes pinned to --model kimi-for-coding/k2p7 with --auto and 240s per-run timeout, sandboxes under /tmp/opencode",
+          "why": "Credentials proven in shakedowns; invocation-path behavior is model-agnostic for contract compliance; bounds keep the harness operator-safe"
+        },
+        {
+          "what": "ESM-safe module root via fileURLToPath(import.meta.url) instead of __dirname",
+          "why": "__dirname is undefined when tsx executes scripts importing src modules (probe harness); import.meta.url works under both vitest and tsx"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Optional future evidence layer: a true orchestrator-spawned researcher probe (adv -> task tool -> adv-researcher) once a bounded way to capture child-session JSON events exists; current row-2 evidence is researcher-artifact live run + structuralized discovery observation.",
+        "Infrastructure note (not this change): adv_task_show/adv_run_test on the default store cannot resolve this worktree's change/tasks (WorkflowNotFoundError); target_path routing with target_confirmed works. Same symptom prior engineer hit on tk-f8ef0c8aef3b."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none — no same-pattern defects found; matrix module reuses EXTERNAL_MCP_PREFIXES and CONCRETE_MCP_SPELLING from prompt-corpus.ts as the single source for provider classification, and a dedicated test ties fixture direct spellings to the corpus scan regex.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Explicit MCP invocation runtime matrix shipped and verified. Deterministic layer: plugin/src/mcp-runtime-matrix.ts (pure active-surface routing model) + static fixture + 10 tests proving all 5 mandatory rows with byte-exact invocation forms and no applicability escape; rows bind to real corpus (adv/adv-researcher mcpCapable, context7_* granted, exactly-one contract). Live layer: plugin/scripts/mcp-runtime-probe.ts ran bounded oc run/opencode run probes THREE times, 7/7 pass each run: codemode-primary tools.context7[\"resolve-library-id\"], researcher artifact same path, direct-primary context7_resolve-library-id (via env -u workaround), no-MCP row zero callables attempted + agent cited the contract (\"report it as unavailable rather than simulate\"), identifier-safe tools.lgrep.search_semantic / lgrep_search_semantic exact in both modes. Evidence runs recorded: targeted tr_mrm72wmv_5f493066 (23/23), full tr_mrm76axx_5015ec26 (5283/5283), live probe tr_mrm7943c_297a3177 (7/7). tsc/eslint/prettier clean. No OpenCode or toolbox edits; only 5 new files, zero modifications. Row-3 note: OC_DISABLE_CODE_MODE=1 override still cannot clear inherited CodeMode state — probe used documented env -u workaround; AC8 evidence remains gated on linked toolbox task tk-7bd956c74bf5 as planned.",
+        "suggested_next_action": "Checkpoint/commit the 5 new files, then proceed to dependent task tk-7bd956c74bf5 (toolbox fixCodemodeDisableOverride evidence link). AC1-AC4 runtime evidence is ready for acceptance."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/mcp-runtime-matrix.test.ts src/tool-name-assets.test.ts (adv_run_test phase=verify, runId tr_mrm72wmv_5f493066)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full (adv_run_test phase=verify, runId tr_mrm76axx_5015ec26)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsx scripts/mcp-runtime-probe.ts --timeout 240 (adv_run_test phase=verify, runId tr_mrm7943c_297a3177)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit && pnpm exec eslint src/mcp-runtime-matrix.ts src/mcp-runtime-matrix.test.ts scripts/mcp-runtime-probe.ts && pnpm exec prettier --check (same files + fixtures)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+      "task_id": "tk-edda3d10b529",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-edda3d10b529"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts",
+          "exit_code": 0,
+          "summary": "Pass: 23/23 on branch after baseline migration."
+        },
+        {
+          "command": "git merge-tree --write-tree HEAD trunk",
+          "exit_code": 0,
+          "summary": "Clean tree; no textual conflicts with trunk, which contains archived consolidateAdvToolSurface2."
+        },
+        {
+          "command": "vitest run src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts in scratch merged tree",
+          "exit_code": 0,
+          "summary": "Pass: 23/23 after migrated fixture."
+        },
+        {
+          "command": "vitest run 12 peer-guard test files in scratch merged tree",
+          "exit_code": 0,
+          "summary": "Pass: 428/428."
+        },
+        {
+          "command": "Mandatory runtime-matrix coverage check",
+          "exit_code": 0,
+          "summary": "All 5 required rows have committed pass evidence; no skipped rows."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Re-freeze the CodeMode MCP contract baseline from trunk after consolidateAdvToolSurface2",
+          "why": "The pre-peer baseline incorrectly charged peer role-policy frontmatter bytes to this change's 400-byte mode-guidance budget. External MCP grants are unchanged; merged deltas now peak at 334 bytes."
+        },
+        {
+          "what": "Validate using a scratch merge-tree rather than rebase",
+          "why": "Non-destructive proof of branch/trunk composition; rebase is orchestrator-owned."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Re-run live oc runtime probes only after this change is deployed; existing probes measure deployed rather than worktree state.",
+        "Run bin/oc-test full before acceptance."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint the uncommitted baseline fixture remediation.",
+        "Run bin/oc-test full on the branch before acceptance."
+      ],
+      "related_scan": "Merged-tree corpus checks passed: no one-mode claims, concrete external-MCP spellings, catalog-signature duplication, or obsolete peer tool references. The 13 overlapping prompt files modify disjoint planes: peer frontmatter keys and this change's body prose.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Peer consolidateAdvToolSurface2 is archived in trunk. A single semantic byte-budget conflict was found, fixed by migrating the frozen baseline fixture to true merge-base trunk. Branch targeted tests passed 23/23; merged contract tests passed 23/23; merged peer guards passed 428/428. Live probes deliberately not rerun because they target deployed state.",
+        "suggested_next_action": "Inspect and checkpoint the fixture remediation, run bin/oc-test full, then proceed to acceptance."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Live external-runtime probes were not rerun because this worktree is not deployed; committed matrix evidence remains the available proof."
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git merge-tree --write-tree HEAD trunk"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: vitest run src/tool-name-assets.test.ts src/mcp-runtime-matrix.test.ts in scratch merged tree"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: vitest run 12 peer-guard test files in scratch merged tree"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: Mandatory runtime-matrix coverage check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [
+        {
+          "id": "provenance-1",
+          "label": "issue",
+          "file": "plugin/src/mcp-runtime-matrix.ts",
+          "line": 165,
+          "what": "Malformed committed live-evidence JSON was silently treated as absent.",
+          "why": "A corrupt provenance fixture could bypass validation.",
+          "fix": "Applied: only missing optional evidence is tolerated; malformed or unreadable present evidence fails loudly."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/mcp-runtime-matrix.ts",
+          "summary": "Only missing live evidence is optional; malformed or unreadable present evidence now fails loudly.",
+          "verification": "Targeted tests and plugin check passed."
+        },
+        {
+          "file": "plugin/src/mcp-runtime-matrix.test.ts",
+          "summary": "Added missing-versus-malformed live-evidence regression coverage.",
+          "verification": "24 targeted tests passed."
+        },
+        {
+          "file": "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json",
+          "summary": "Applied Prettier formatting required by plugin check.",
+          "verification": "pnpm --dir plugin run check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Supplemental provenance fixtures may be absent, but malformed committed evidence must fail rather than be treated as absent."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/mcp-runtime-matrix.test.ts src/tool-name-assets.test.ts",
+          "pnpm --dir plugin run check",
+          "git diff --check a5898ce5..HEAD"
+        ],
+        "results": "pass",
+        "evidence": "24 targeted tests passed; schemas, typecheck, isolation, lockfile policy, lint, and format checks passed; no whitespace errors. Reviewed live cross-repository probe evidence, exact CodeMode/direct invocation forms, byte-budget baseline, and consolidateAdvToolSurface2 ancestry."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Checkpoint review remediation and submit this report.",
+        "Leave unrelated archived/tool-surface work unchanged."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/scripts/mcp-runtime-probe.ts",
+          "summary": "Replaced machine-specific `/home/jon/toolbox` lgrep probe path with checked-out repository root.",
+          "verification": "Targeted matrix/corpus tests, plugin check, formatting, and diff checks passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Runtime probe prompts must not embed developer-machine absolute paths; derive probe targets from the checked-out repository root."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/mcp-runtime-matrix.test.ts src/tool-name-assets.test.ts",
+          "pnpm --dir plugin run check",
+          "pnpm --dir plugin exec prettier --check scripts/mcp-runtime-probe.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "24/24 targeted tests passed. Schema check, TypeScript, isolation/lockfile checks, ESLint, Prettier, script formatting, and diff checks passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Committed live-evidence fixture remains a dated supplemental snapshot; accurately labeled and CI-independent."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "docs/adv-runtime-protocol-coverage.md",
+          "summary": "Updated MCP contract row to describe MCP_ACTIVE_SURFACE_CONTRACT behavior and cite tool-name-assets structural gate.",
+          "verification": "bin/oc-test targeted -- src/tool-name-assets.test.ts passed; git diff --check passed."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tool-name-assets.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "13 focused tests passed; diff has no whitespace errors."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCodemodeMcpContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCodemodeMcpContracts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "Harden scanners and reviewer assessed release/deploy, production, documentation, cleanup, maintainability, and test coverage. One stale protocol-document row and one machine-specific probe path were remediated and reverified. No blocker or high findings remain.",
+      "findings": [
+        {
+          "scanner": "cleanup-readiness",
+          "severity": "info",
+          "summary": "Runtime probe intentionally retains sandbox directories for operator inspection; raw probe outputs are outside the repository and fixture excerpts are bounded. This is non-blocking but warrants an explicit retention decision outside this change.",
+          "evidence": [
+            {
+              "label": "probe retention path",
+              "locator": "plugin/scripts/mcp-runtime-probe.ts:481",
+              "summary": "Probe retains sandboxes by intentional opt-in operator-tooling design; no repo cleanup artifact found."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Non-blocking: decide future retention/cleanup policy for opt-in runtime-probe sandbox directories; regenerate live probe evidence after deployment."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "test_runs": {
+    "tk-f8ef0c8aef3b": [
+      {
+        "runId": "tr_mrm576um_f1c2a925",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tool-name-assets.test.ts",
+        "durationMs": 6867.082561999559,
+        "recordedAt": "2026-07-15T13:55:22.709Z"
+      },
+      {
+        "runId": "tr_mrm5gguv_8fb049d1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tool-name-assets.test.ts",
+        "durationMs": 7840.803663998842,
+        "recordedAt": "2026-07-15T14:02:35.603Z"
+      }
+    ],
+    "tk-28cdd4fde0c4": [
+      {
+        "runId": "tr_mrm72wmv_5f493066",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/mcp-runtime-matrix.test.ts src/tool-name-assets.test.ts",
+        "durationMs": 5606.221032999456,
+        "recordedAt": "2026-07-15T14:48:02.112Z"
+      },
+      {
+        "runId": "tr_mrm76axx_5015ec26",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test full",
+        "durationMs": 148137.26367200166,
+        "recordedAt": "2026-07-15T14:50:40.590Z"
+      },
+      {
+        "runId": "tr_mrm7943c_297a3177",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec tsx scripts/mcp-runtime-probe.ts --timeout 240",
+        "durationMs": 120749.820257999,
+        "recordedAt": "2026-07-15T14:52:51.694Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-15T05:48:39.017Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal re-entered and updated to include conditional, separately tracked OpenCode/toolbox implementation. User explicitly reconfirmed lineage, both-mode compatibility, and cross-repository expansion.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "672351513d251e33d7852bb2a73444f67ebb9a05a3cc13951d070b54dc6aa7c4",
+        "non_whitespace_chars": 6820,
+        "checked_at": "2026-07-15T03:59:33.205Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-15T12:38:52.110Z",
+      "completed_by": "agent",
+      "approval_evidence": "Revised AC6/AC7 approved after validator caution. Strict contract re-minted with deterministic byte budget, recursive deployed corpus, frontmatter separation, and explicit runtime rows.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "non_whitespace_chars": 4972,
+        "checked_at": "2026-07-15T03:59:33.207Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-15T12:43:23.997Z",
+      "completed_by": "agent",
+      "approval_evidence": "Mode-neutral active-surface design independently revalidated: pass, high confidence, low risk, no blockers. No OpenCode patch planned; linked toolbox disable fix gates acceptance.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "97b521ec72fc8d72eef8ba38dc8253028ab07e0ccaca8a292a064ab021407ec3",
+        "non_whitespace_chars": 5827,
+        "checked_at": "2026-07-15T03:59:33.208Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-15T13:37:54.544Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved four-task dependency graph: Advance structural migration, explicit runtime matrix, linked toolbox evidence, final peer reconciliation/full validation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-15T17:35:43.232Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 planned tasks complete and checkpointed. Final fixture migration resolves peer baseline provenance; contract and runtime-matrix targeted checks passed, clean merge-tree reconciliation with archived consolidateAdvToolSurface2 passed, and ../bin/oc-test full passed (357 files, 5283 tests). Linked toolbox change fixCodemodeDisableOverride has archived disk projection with separate direct-schema/CodeMode evidence."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-15T17:46:03.061Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved acceptance in this session: “approve”. Contract review matrix contains 32 rows with zero failures; executive summary persisted and verified; acceptance reviewer READY after remediation.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "0b2b91d1cab5ce12bc41468c3302846907a996fdf812c3787eaabef346fb6e2e",
+        "non_whitespace_chars": 3206,
+        "checked_at": "2026-07-15T03:59:33.209Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "proposal",
+      "reason": "Discovery clarification explicitly expanded conditional implementation scope beyond Advance when evidence proves an OpenCode or toolbox change is required.",
+      "scope_delta": "Allow coordinated cross-repository implementation in OpenCode and/or toolbox when required by the selected evidence-backed shape. Avoid speculative external edits; each repository retains its own tracked change and verification.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T05:47:54.320Z",
+      "gates_reset": [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "discovery",
+      "reason": "Independent design validator found AC6 under-specified: model-token counts are provider/tokenizer dependent and no deterministic repository policy exists.",
+      "scope_delta": "Replace AC6's universal `100 model tokens` criterion with a model-neutral deterministic assembled-prompt byte budget and frozen baseline; retain token measurements as advisory evidence. Preserve all other approved criteria.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T06:03:42.042Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "source_change_id": "updateMcpDefaults",
+    "linked_at": "2026-07-15T03:59:27.079Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+      "approvedAt": "2026-07-15T06:04:00.000Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Every tested Advance agent uses only invocation surfaces actually exposed in its session.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "CodeMode and direct-schema sessions both complete representative MCP operations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Sessions without external MCP tools report unavailability without false exposure claims.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "OpenCode remains sole authority for generated CodeMode catalog syntax.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Required Advance, OpenCode, and toolbox changes ship with linked evidence and no unresolved parity drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A CodeMode-enabled primary Advance agent and a CodeMode-enabled spawned Advance research agent each complete a representative MCP lookup when external MCP is available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A CodeMode-disabled Advance agent completes the same representative MCP lookup through the directly exposed schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "A CodeMode-enabled session with all external MCP servers disabled exposes no executable MCP catalog and reports the representative lookup unavailable without attempting a nonexistent callable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Representative identifier-safe and punctuated MCP names are invoked exactly as exposed by the active schema or catalog.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Active Advance guidance contains no unconditional claim that external MCP tools use one invocation mode.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Against frozen pre-change effective assembled-prompt fixtures, Advance-authored mode guidance adds at most 400 UTF-8 bytes, appears at most once per effective prompt, and does not duplicate OpenCode-generated catalog signatures. Tokenizer-specific counts may be recorded only as advisory evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Canonical prompts, overlays, recursively deployed skill/reference assets, generated/deployed assets, and coverage tests remain synchronized and their targeted parity tests pass; YAML frontmatter is parsed separately from prompt-body prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`OC_DISABLE_CODE_MODE=1` disables CodeMode even when the parent environment already exports `OPENCODE_EXPERIMENTAL_CODE_MODE=true`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Integration with `consolidateAdvToolSurface2` has no unresolved prompt-asset conflict and combined targeted tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Every required cross-repository edit has separate tracked change, verification, and release evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Investigation and representative tests precede broad prompt edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "OpenCode remains authoritative for exact generated CodeMode catalog syntax.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Correctness follows actually exposed capabilities, not environment-flag inference alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "CodeMode and direct-schema operation are equal compatibility requirements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Built-in and Advance plugin tools are not classified as external MCP tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Cross-repository changes require direct evidence and separate tracked work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Canonical source owns deployed output; live deployed artifacts are never edited as independent sources.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not assume CodeMode is always enabled or that `execute` is always exposed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not duplicate OpenCode’s generated MCP catalog or signature block in Advance prompts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not perform a broad concrete-name rewrite before design selects the least-coupled correct mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not edit archived ADV bundles.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not make untracked cross-repository edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not silently absorb prompt-asset conflicts with `consolidateAdvToolSurface2`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "General MCP inventory reduction unrelated to invocation correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Redesigning Advance plugin tool registration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Unrelated OpenCode or toolbox improvements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Editing historical archive evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-15T17:44:00.504Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance reviewer READY; corpus and runtime-matrix coverage verify exposed-surface-only invocation guidance."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Runtime matrix committed evidence covers CodeMode primary/spawned and direct-primary rows; targeted matrix suite passed 24/24."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Required codemode-no-mcp matrix row has committed pass evidence; matrix suite passed 24/24."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer found no duplicated generated catalog signatures; exact invocation tests pass."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Peer merge-tree clean; toolbox tracked change has archived projection; no unresolved parity drift."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Committed runtime matrix covers codemode-primary and codemode-spawned-researcher; coverage check found all 5 mandatory rows passing."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Committed direct-primary matrix row and linked toolbox disabled live probe prove direct schema route."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Committed codemode-no-mcp row proves unavailable external MCP is handled without false catalog exposure."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Committed exact-path-forms row and targeted matrix suite verify identifier-safe and punctuated forms."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-name-assets plus runtime-matrix targeted suite passed 24/24; no one-mode invocation claims remain."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Baseline migrated to trunk a5898ce5; merged maximum delta 334 bytes under 400-byte budget; exactly-once corpus checks pass."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Corpus parity/frontmatter tests pass; full suite passed 357 files and 5283 tests."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Archived toolbox fixCodemodeDisableOverride recorded focused precedence 6/6 and disabled direct-schema live probe."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "git merge-tree clean with trunk peer archive; merged contract checks 23/23 and peer guards 428/428 passed."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Advance checkpoints e35bb003/d3cb0f4e plus archived toolbox change fixCodemodeDisableOverride provide separate tracked evidence."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Discovery/design and initial red→green corpus task preceded broad prompt migration."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompts instruct catalog discovery without copying OpenCode-generated callable signatures."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Runtime matrix validates actual exposed routes; no environment-flag-only correctness inference."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Matrix includes CodeMode and direct-schema mandatory rows; targeted suite passed 24/24."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "External MCP contract tests distinguish MCP catalog surfaces from built-in and Advance tools."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Separate toolbox change fixCodemodeDisableOverride archived with its own execution and acceptance evidence."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Fixture and prompt sources changed in canonical worktree; deployed artifacts were not edited directly."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Mode-neutral guidance and runtime rows cover absent execute/direct surfaces."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Corpus review found no OpenCode-generated catalog/signature duplication."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Design-selected capability wording and structural corpus test preceded concrete spelling replacement."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No archived ADV bundle changed in this branch diff."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Required toolbox work is represented by separately tracked archived change, not untracked edits."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Peer semantic byte-budget collision was surfaced, fixed by deliberate baseline migration, and merged-tree validated."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "General MCP inventory reduction intentionally excluded by agreement."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Advance plugin tool-registration redesign intentionally excluded by agreement."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Unrelated OpenCode/toolbox improvements intentionally excluded by agreement."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Historical archive evidence was read-only and not changed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A CodeMode-enabled primary Advance agent and a CodeMode-enabled spawned Advance research agent each complete a representative MCP lookup when external MCP is available.",
+    "A CodeMode-disabled Advance agent completes the same representative MCP lookup through the directly exposed schema.",
+    "A CodeMode-enabled session with all external MCP servers disabled exposes no executable MCP catalog and reports the representative lookup unavailable without attempting a nonexistent callable.",
+    "Representative identifier-safe and punctuated MCP names are invoked exactly as exposed by the active schema or catalog.",
+    "Active Advance guidance contains no unconditional claim that external MCP tools use one invocation mode.",
+    "Against frozen pre-change effective assembled-prompt fixtures, Advance-authored mode guidance adds at most 400 UTF-8 bytes, appears at most once per effective prompt, and does not duplicate OpenCode-generated catalog signatures. Tokenizer-specific counts may be recorded only as advisory evidence.",
+    "Canonical prompts, overlays, recursively deployed skill/reference assets, generated/deployed assets, and coverage tests remain synchronized and their targeted parity tests pass; YAML frontmatter is parsed separately from prompt-body prose.",
+    "`OC_DISABLE_CODE_MODE=1` disables CodeMode even when the parent environment already exports `OPENCODE_EXPERIMENTAL_CODE_MODE=true`.",
+    "Integration with `consolidateAdvToolSurface2` has no unresolved prompt-asset conflict and combined targeted tests pass.",
+    "Every required cross-repository edit has separate tracked change, verification, and release evidence."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox** change `updateMcpDefaults` after CodeMode was enabled by default in the `oc` wrapper. User reconfirmed this lineage during discovery.\n\n# Update CodeMode MCP contracts\n\n## Why\n\nAdvance’s MCP invocation guidance may conflict with OpenCode CodeMode, but the best ecosystem-wide response is unknown. Advance currently embeds direct MCP-call examples and exact-name constraints in durable prompts. CodeMode replaces direct MCP exposure with an `execute` catalog, while Advance plugin tools and built-ins remain top-level. A broad rewrite could restore compatibility but also duplicate OpenCode-owned runtime knowledge, increase prompt complexity, and create another synchronization burden.\n\nThis change must establish the best shape through source-backed investigation and representative runtime tests before changing active guidance. If evidence proves the correct solution requires coordinated OpenCode or toolbox work, that work is included through separately tracked repository changes.\n\n## What Changes\n\n- Investigate how Advance authors, generates, deploys, and tests MCP-related instruction prose.\n- Test representative runtime combinations with CodeMode enabled and disabled.\n- Compare no change, a thin dual-mode bridge, CodeMode-first guidance with fallback, and runtime/generated capability-specific guidance.\n- Measure correctness, prompt overhead, maintainability, fallback behavior, and generated/deployed parity.\n- Implement only the evidence-supported shape across Advance and any demonstrably required OpenCode/toolbox surfaces.\n- Track each affected repository through its own ADV change, branch, verification, and release evidence.\n\n## User Outcomes\n\n- Advance agents invoke available MCP capabilities correctly with CodeMode enabled and disabled.\n- Advance guidance does not contradict the active tool surface.\n- Exact callable/catalog paths remain protected from normalization errors.\n- Advance avoids carrying duplicated runtime syntax that OpenCode already generates authoritatively.\n- Maintainers can verify instruction and deployment parity after future tool-surface changes.\n- Required cross-repository fixes ship coherently rather than leaving one mode partially broken.\n\n## Affected Code\n\nPrimary Advance investigation surfaces:\n\n- `.opencode/agents/*.md`, especially `adv.md` and `adv-researcher.md`\n- `.opencode/overlays/*.overlay.md`\n- active `.opencode/command/*.md` and `skills/*/SKILL.md` references\n- `ADV_INSTRUCTIONS.md` and `SETUP.md`\n- `scripts/deploy-local.sh` prompt/overlay generation paths\n- `plugin/src/tool-name-assets.test.ts` and related deploy/asset coverage tests\n\nConditional external surfaces:\n\n- OpenCode CodeMode/tool-registry or plugin-hook surfaces, only if design evidence proves an upstream change is required.\n- toolbox `oc` wrapper and backed-up runtime instructions, including any verified mode-toggle defect.\n\nThe exact edit set remains a discovery/design outcome. Archived `.adv/archive/**` evidence is read-only historical state and is not an implementation target.\n\n## Related Repositories\n\n- **Advance** — primary owner of guidance, deployment generation, and coverage tests.\n- **OpenCode** — owns CodeMode exposure, catalog generation, and exact invocation syntax; changes allowed only when evidence proves a required platform fix.\n- **toolbox** — owns the `oc` wrapper and global instruction backups; changes allowed when required for correct mode selection or rollout.\n\nEach repository keeps separate tracked change state and verification while this change coordinates the shared outcome.\n\n## Constraints\n\n- Investigation and representative tests precede broad instruction edits.\n- OpenCode remains the authority for exact CodeMode catalog syntax.\n- The solution must follow actual exposed capabilities, not infer correctness solely from an environment flag.\n- CodeMode and direct-schema operation must both pass acceptance tests.\n- Built-in and Advance plugin tool invocation must not be reclassified as MCP behavior.\n- Canonical sources, overlays, generated/deployed assets, and tests must remain aligned.\n- Cross-repository edits require direct evidence and separate tracked changes; no speculative platform work.\n\n## Impact\n\nPotential impact spans primary and spawned Advance agent prompts plus any required OpenCode/toolbox integration surface. Incorrect guidance can produce unavailable-tool calls; over-correcting can add persistent prompt overhead and fragile coupling to experimental internals. The selected shape therefore affects correctness, context cost, maintainability, compatibility, and rollback across repositories.\n\nRollback must restore each repository’s prior canonical source and regenerate deployed assets from that source. No live deployed artifact may become an independent source of truth.\n\n## Context\n\nInitial source research and runtime probes found:\n\n- CodeMode substitutes `execute` for directly exposed MCP tools.\n- OpenCode already generates exact catalog signatures, discovery instructions, and bracket-notation guidance.\n- `execute` availability depends on the final MCP catalog, not only the CodeMode flag.\n- CodeMode-on primary and spawned Advance agents successfully invoked `tools.context7[\"resolve-library-id\"]`.\n- CodeMode-off Advance successfully invoked direct `context7_resolve-library-id`.\n- With all external MCP servers disabled, `execute` was absent; stale Advance prose initially caused a false claim that disabled tools were exposed, while actual invocation correctly reported unavailable.\n- Advance’s current system-transform hook receives session ID and system text but not final permission-filtered tool inventory.\n- The toolbox mode-disable escape hatch does not clear an already inherited CodeMode variable, a verified conditional external defect.\n- `consolidateAdvToolSurface2` may edit overlapping prompt assets and creates a coordination/rebase risk, not a semantic scope conflict.\n\nThese findings narrow the options but do not authorize broad implementation before design selects the least-coupled correct mechanism.\n\n## Discovery Agenda\n\n1. Complete the correctness matrix across CodeMode on/off, primary/spawned agent, MCP available/unavailable, and identifier/punctuated tool names.\n2. Measure Advance-contributed prompt overhead for viable guidance shapes.\n3. Verify canonical, overlay-generated, provider/deployed, and test-fixture parity.\n4. Define evidence-based selection criteria for static bridge versus runtime/platform integration.\n5. Coordinate with `consolidateAdvToolSurface2` for overlapping prompt assets.\n6. Route any required OpenCode/toolbox implementation through separate linked changes.\n\n## Scope\n\n### In Scope\n\n- Advance-specific research, experiments, architecture decision, and evidence-supported instruction/generation/test changes.\n- Active source and generated/deployed parity surfaces.\n- Verified compatibility with CodeMode-enabled and direct-schema sessions.\n- Separately tracked OpenCode/toolbox changes when direct evidence proves they are necessary for the agreed outcome.\n\n### Out of Scope\n\n- Unrelated OpenCode, toolbox, or MCP inventory improvements.\n- Redesigning Advance plugin tool registration.\n- Editing archived ADV change bundles.\n- General tool-context optimization unrelated to invocation correctness.\n- Opportunistic platform changes without an acceptance-criterion dependency.\n\n### Must Not\n\n- Must not assume CodeMode is always enabled or that `execute` is always exposed.\n- Must not duplicate OpenCode’s full generated MCP catalog in Advance prompts.\n- Must not rewrite all concrete references before tests and design establish the selected shape.\n- Must not edit deployed artifacts without changing and regenerating their owning source.\n- Must not fold external repository work into untracked edits.",
+    "problemStatement": "# Problem Statement\n\nAdvance’s MCP invocation guidance may conflict with OpenCode CodeMode, but the best Advance-specific response is unknown.\n\nAdvance currently contains many direct MCP-call examples and exact-name constraints. CodeMode changes how MCP tools are exposed and invoked, while Advance’s own plugin tools and built-ins remain top-level. A broad dual-mode rewrite might improve compatibility, but could also add prompt complexity, duplicate runtime knowledge, or solve a problem that should be handled elsewhere.\n\nThe change must first investigate actual Advance agent/runtime behavior and test representative MCP calls with CodeMode enabled and disabled. It must compare no change, dual-mode guidance, CodeMode-first guidance with fallback, and generated/runtime-specific guidance using evidence from correctness, prompt complexity, maintainability, deployment parity, and fallback behavior.\n\nNo broad instruction rewrite should occur unless investigation demonstrates the best shape for Advance. Preserving current behavior is valid if alternatives provide no meaningful benefit.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Establish and ship the best evidence-backed MCP invocation guidance shape for Advance.\n2. Preserve correct behavior in both CodeMode-enabled and direct-schema OpenCode sessions.\n3. Prevent Advance prose from creating false beliefs about unavailable external MCP tools.\n4. Keep OpenCode authoritative for generated CodeMode catalog syntax.\n5. Coordinate any required Advance, OpenCode, and toolbox changes through separately tracked repository work.\n\n## Success Criteria\n\n- SC1: Every tested Advance agent uses only invocation surfaces actually exposed in its session.\n- SC2: CodeMode and direct-schema sessions both complete representative MCP operations.\n- SC3: Sessions without external MCP tools report unavailability without false exposure claims.\n- SC4: OpenCode remains sole authority for generated CodeMode catalog syntax.\n- SC5: Required Advance, OpenCode, and toolbox changes ship with linked evidence and no unresolved parity drift.\n\n## Acceptance Criteria\n\n- AC1: A CodeMode-enabled primary Advance agent and a CodeMode-enabled spawned Advance research agent each complete a representative MCP lookup when external MCP is available.\n- AC2: A CodeMode-disabled Advance agent completes the same representative MCP lookup through the directly exposed schema.\n- AC3: A CodeMode-enabled session with all external MCP servers disabled exposes no executable MCP catalog and reports the representative lookup unavailable without attempting a nonexistent callable.\n- AC4: Representative identifier-safe and punctuated MCP names are invoked exactly as exposed by the active schema or catalog.\n- AC5: Active Advance guidance contains no unconditional claim that external MCP tools use one invocation mode.\n- AC6: Against frozen pre-change effective assembled-prompt fixtures, Advance-authored mode guidance adds at most 400 UTF-8 bytes, appears at most once per effective prompt, and does not duplicate OpenCode-generated catalog signatures. Tokenizer-specific counts may be recorded only as advisory evidence.\n- AC7: Canonical prompts, overlays, recursively deployed skill/reference assets, generated/deployed assets, and coverage tests remain synchronized and their targeted parity tests pass; YAML frontmatter is parsed separately from prompt-body prose.\n- AC8: `OC_DISABLE_CODE_MODE=1` disables CodeMode even when the parent environment already exports `OPENCODE_EXPERIMENTAL_CODE_MODE=true`.\n- AC9: Integration with `consolidateAdvToolSurface2` has no unresolved prompt-asset conflict and combined targeted tests pass.\n- AC10: Every required cross-repository edit has separate tracked change, verification, and release evidence.\n\n## Constraints\n\n- C1: Investigation and representative tests precede broad prompt edits.\n- C2: OpenCode remains authoritative for exact generated CodeMode catalog syntax.\n- C3: Correctness follows actually exposed capabilities, not environment-flag inference alone.\n- C4: CodeMode and direct-schema operation are equal compatibility requirements.\n- C5: Built-in and Advance plugin tools are not classified as external MCP tools.\n- C6: Cross-repository changes require direct evidence and separate tracked work.\n- C7: Canonical source owns deployed output; live deployed artifacts are never edited as independent sources.\n\n## Avoidances\n\n- DONT1: Do not assume CodeMode is always enabled or that `execute` is always exposed.\n- DONT2: Do not duplicate OpenCode’s generated MCP catalog or signature block in Advance prompts.\n- DONT3: Do not perform a broad concrete-name rewrite before design selects the least-coupled correct mechanism.\n- DONT4: Do not edit archived ADV bundles.\n- DONT5: Do not make untracked cross-repository edits.\n- DONT6: Do not silently absorb prompt-asset conflicts with `consolidateAdvToolSurface2`.\n\n## Out of Scope\n\n- OOS1: General MCP inventory reduction unrelated to invocation correctness.\n- OOS2: Redesigning Advance plugin tool registration.\n- OOS3: Unrelated OpenCode or toolbox improvements.\n- OOS4: Editing historical archive evidence.\n\n## Preview Applicability\n\n- visual_surface: false\n- preview_expectation: exact_route_required=not_applicable; data_state_expectation=not_applicable; viewport_expectation=not_applicable\n- rationale: Agent instructions, runtime tool exposure, shell launcher behavior, generated assets, and tests only; no browser-visible output.\n\n## Decisions\n\n### User Decisions\n\n- Confirmed toolbox `updateMcpDefaults` as correct origin and motivation.\n- Required CodeMode and direct-schema modes to work equally.\n- Authorized evidence-required implementation to expand across Advance, OpenCode, and toolbox, with separately tracked repository work.\n- Approved the original criteria and the design-validator revision replacing universal model-token counting with a deterministic assembled-prompt byte budget.\n\n### Agent Decisions (LBP)\n\n- Treat OpenCode’s runtime-generated catalog as the exact CodeMode syntax authority.\n- Reject environment-flag-only guidance because executable catalog availability depends on actual MCP exposure.\n- Use a mode-neutral active-surface contract; no Advance translation layer or OpenCode patch without new reproducible blocker evidence.\n- Parse YAML frontmatter separately and derive active prompt corpus from recursive deployment ownership.\n- Require explicit primary and spawned-researcher runtime rows.\n- Treat `consolidateAdvToolSurface2` as a coordination/rebase risk rather than a semantic conflict.\n- Classify the inherited CodeMode disable failure as a verified toolbox defect within conditional cross-repository scope.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved original discovery criteria and approved revised AC6/AC7 after independent design validation on 2026-07-15.",
+    "design": "# Design\n\n## Architecture Overview\n\nAdvance will use a **mode-neutral active-surface contract**, not a CodeMode translation layer. OpenCode owns tool exposure and exact CodeMode catalog syntax. Advance contributes one compact invariant to each effective agent prompt that can use external MCP:\n\n> For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.\n\nWorkflow prose names capabilities/providers without embedding host-specific callable syntax. Exact MCP permission keys remain valid in YAML frontmatter/configuration. No OpenCode patch or Advance runtime translation hook is planned. A separately tracked toolbox change repairs the inherited CodeMode-disable defect and gates acceptance.\n\n## Key Decisions\n\n1. **Active surface owns availability.** Flags/prose cannot prove a tool exists.\n2. **One mode-neutral contract.** OpenCode owns generated paths; Advance owns exact-surface obedience.\n3. **Capability prose replaces callable prose.** Durable workflow intent stays; invocation syntax comes from active schema/catalog.\n4. **Frontmatter and prompt bodies are distinct.** Parse YAML separately so valid permission keys remain.\n5. **Deployment manifest defines active corpus.** Scan recursively deployed agents, overlays, commands, and full skill directories; exclude `.adv/archive/**`.\n6. **Test effective assembled prompts.** Exactly one contract per MCP-capable effective agent; no command-level duplication.\n7. **No speculative OpenCode work.** Re-enter design only for new reproducible contract blocker.\n8. **Toolbox fix gates acceptance.** `OC_DISABLE_CODE_MODE=1` must override inherited CodeMode state through separate tracked work.\n9. **Coordinate with `consolidateAdvToolSurface2`.** Inventory overlap and explicitly rebase/merge prompt assets.\n\n## ADR Drafts\n\nNone. Reversible prompt/test architecture, not hard-to-reverse platform commitment.\n\n## Implementation Strategy\n\n### A. Advance RED tests\n\n1. Add frontmatter-aware prompt-body extraction.\n2. Derive recursive active corpus from deployment ownership, including skill sibling/reference files.\n3. Replace tests that positively require concrete direct MCP names in prose.\n4. Freeze pre-change effective assembled-prompt fixtures.\n5. Add failing assertions for unconditional concrete invocation prose, missing/duplicated contract, altered frontmatter keys, more than 400 added UTF-8 bytes, duplicated catalog signatures, and canonical/overlay/deployed drift.\n6. Add explicit runtime rows: CodeMode primary; CodeMode spawned researcher; direct-mode primary; CodeMode/no-MCP; identifier-safe and punctuated paths.\n\n### B. Advance GREEN migration\n\n1. Add compact canonical contract to applicable effective agent surfaces.\n2. Replace concrete callable examples in active agent, command, overlay, skill/reference, `ADV_INSTRUCTIONS.md`, and `SETUP.md` prompt prose with capability wording.\n3. Preserve exact permission keys in frontmatter/configuration.\n4. Regenerate/review deployment-owned assets; leave archives untouched.\n\n### C. Toolbox linked change\n\n1. Create separately tracked toolbox change.\n2. Add failing wrapper test for inherited CodeMode variable plus disable escape hatch.\n3. Update canonical wrapper source to clear/override inherited state.\n4. Deploy canonically, sync non-secret backup, verify both modes.\n\n### D. Integration\n\n1. Reconcile against `consolidateAdvToolSurface2`.\n2. Run recursive corpus, effective-prompt, deployment-parity, byte-budget, and runtime-matrix verification.\n3. Record linked toolbox release evidence.\n4. Keep OpenCode unchanged absent new blocker and design re-entry.\n\n## LBP Analysis\n\n- Machine-exposed capabilities own truth.\n- One invariant replaces repeated host syntax and avoids adapter code.\n- OpenCode owns syntax; Advance owns workflow intent.\n- Same contract covers CodeMode, direct mode, absent MCP, punctuation, primary agents, and spawned researchers.\n- Parsed frontmatter, deployment-derived corpus, frozen fixtures, byte budgets, and explicit matrix rows provide structural enforcement.\n\n## Affected Components\n\n### Advance\n\n- `.opencode/agents/*.md`\n- `.opencode/overlays/*.overlay.md`\n- active `.opencode/command/*.md`\n- recursively deployed prompt-bearing `skills/**`\n- `ADV_INSTRUCTIONS.md`, `SETUP.md`\n- `plugin/src/tool-name-assets.test.ts`\n- overlay/deploy assembly tests and prompt-corpus helpers\n\n### toolbox\n\n- `dev/oc-wrapper/oc`\n- wrapper tests\n- `backups/dotfiles/` source snapshot\n\n### OpenCode\n\nSource/reference evidence only; no planned edits.\n\n## Design-Derived Criteria\n\n- DDC1: Frozen effective-prompt fixtures provide deterministic baselines; guidance adds at most 400 UTF-8 bytes and appears once per applicable prompt.\n- DDC2: Active-corpus discovery follows recursive deployment ownership and parses YAML frontmatter separately.\n- DDC3: Scans include skill sibling/reference prose and exclude archives.\n- DDC4: Commands/skills may name providers/capabilities but not unconditional concrete external MCP callable syntax.\n- DDC5: Runtime matrix includes every explicit row; no applicability escape.\n- DDC6: Toolbox disable behavior is deterministic with inherited CodeMode state.\n- DDC7: OpenCode remains unchanged unless new reproducible blocker triggers design re-entry.\n\n## Design Leverage Scout\n\n- Considered: 4.\n- Auto-adopted: frontmatter-aware scans; effective assembled-prompt tests; no speculative runtime/OpenCode branch.\n- Toolbox sequencing resolved by AC8/AC10: linked fix gates acceptance.\n- Inconclusive: none.\n\n## Risks / Mitigations\n\n- Valid permission keys falsely banned → parse frontmatter separately.\n- Prompt-bearing skill references missed → recursive deploy-derived corpus.\n- Contract duplication/context growth → frozen fixtures, one-copy rule, 400-byte cap.\n- Provider assembly drift → deployment-owned effective fixtures.\n- Concurrent prompt conflicts → explicit reconciliation with `consolidateAdvToolSurface2`.\n- Experimental CodeMode changes → equal direct-mode coverage.\n- Partial cross-repo release → linked toolbox evidence gates acceptance.\n\n## Validator Status\n\n- Initial validation: **caution, no blockers**.\n- Amendments: frozen deterministic byte baseline; recursive deployment corpus with frontmatter separation; explicit mandatory runtime rows.\n- Focused revalidation: **pass**, high confidence, low risk, no blockers.\n- Remaining note: target-scoped global-spec lookup unavailable; approved strict ChangeContract and source evidence show no conflict.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nAdvance now gives agents a mode-neutral contract for using external MCP tools: discover the callable surface actually exposed in the current session, then use that surface without assuming CodeMode or direct schemas. Approval accepts this verified source change for release hardening.\n\n## Why It Matters\nThe change prevents false tool-invocation guidance when sessions differ, while keeping OpenCode as the only owner of generated CodeMode catalog syntax. It also preserves a separately tracked toolbox fix for explicit CodeMode-disable precedence.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Replaced one-mode external-MCP instructions across canonical agent, overlay, command, skill, and reference assets with one bounded, mode-neutral contract.\n2. Added structural corpus and runtime-matrix coverage for actual exposed callable surfaces, exact name forms, absent external MCP, prompt byte budget, frontmatter separation, and deployed-asset parity.\n3. Re-froze the contract baseline from trunk after `consolidateAdvToolSurface2` so peer role-policy frontmatter is not charged to this change's 400-byte guidance budget.\n4. Hardened runtime-evidence loading: an absent optional fixture is allowed, but malformed committed evidence fails loudly; regression coverage added.\n5. Linked the separately tracked toolbox change `fixCodemodeDisableOverride`, which proves explicit disable precedence and both runtime modes.\n\n## What Was Verified\n- Acceptance review: READY; one provenance finding fixed before acceptance.\n- Release hardening: READY; stale protocol documentation and a machine-specific probe path fixed.\n- Tests: targeted matrix/corpus checks passed 24/24; merged contract checks passed 23/23; peer guards passed 428/428; full suite passed 357 files and 5283 tests.\n- Prompt budget: merged maximum effective-prompt delta is 334 bytes, below the 400-byte limit.\n- Preview URL: not_applicable — no frontend, browser-visible, or visual-output work.\n- Contract matrix: 32/32 rows passed, respected, or explicitly out of scope; zero failures.\n\n## Remaining Concerns\n- Non-blocking: live external-runtime probes measure deployed assets and were not rerun from this undeployed worktree. Existing committed matrix evidence covers all five mandatory rows; regenerate probes after deployment.\n- Non-blocking: opt-in runtime-probe sandboxes are retained for inspection; decide a future retention policy.\n\n## Supporting Evidence\n- Task checkpoints: `55e00ddd`, `7f1d70a7`, `d3cb0f4e`, `e35bb003`, `ee7ec13c`.\n- Acceptance reviewer report: `updateCodemodeMcpContracts|change:review:acceptance|adv-reviewer|2`.\n- Harden reviewer/scanner reports: `change:harden:release` and `change:scanner-bundle:harden`.\n- Linked toolbox terminal projection: `fixCodemodeDisableOverride` (archived).\n- Cross-change merge proof: clean merge-tree with trunk containing `consolidateAdvToolSurface2`.\n\n## Consequence Context\n- **Delivered value — pass:** Agents follow the actual external-MCP surface instead of a single assumed invocation mode.\n- **Enabling-only/follow-up dependency — pass:** Toolbox disable-precedence evidence is separately tracked in archived `fixCodemodeDisableOverride`.\n- **Ops readiness — pending:** Harden owns release/deploy/production/docs/cleanup readiness; no operational rollout occurs in this change.\n- **Migration/data impact — n/a:** Source prompts, fixtures, and tests only; no data or migration surface changed.\n- **Frontend/preview impact — not_applicable:** No user-facing visual output changed.\n- **Collision/release risk — low:** Peer conflict was resolved by reviewed baseline migration; clean merge-tree and merged checks passed.\n- **Open follow-ups — non-blocking:** Regenerate live runtime probes after deployment; decide sandbox retention policy.\n- **Next action — ready:** Archive sign-off can finalize release.\n\n## Release Readiness Summary\n- **Release/deploy readiness — pass:** No environment variables, services, CI configuration, migrations, or infrastructure changes; plugin validation passed.\n- **Production readiness — pass:** Runtime evidence now fails loudly when present but malformed; no unresolved reliability or security finding.\n- **Documentation hygiene — pass:** Mode-neutral MCP contract coverage documentation now matches canonical prompt behavior and structural tests.\n- **Cleanup — pass with non-blocking follow-up:** Repository worktree is clean after checkpoint; retained runtime-probe sandboxes are intentional external operator artifacts.\n- **Frontend/preview — not_applicable:** Guidance, fixtures, scripts, and tests only.\n- **Collision/release risk — low:** Clean merge-tree against trunk peer archive; baseline migration isolates peer frontmatter from this change's byte budget.\n- **Open follow-ups — non-blocking:** Regenerate live probe evidence after deployment; define probe-sandbox retention policy.\n- **Archive readiness — ready:** Harden reviewer READY, scanner bundle has no blocker/high finding, and targeted validation passed after hardening.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-15T17:44:00.504Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Every tested Advance agent uses only invocation surfaces actually exposed in its session. | pass | Acceptance reviewer READY; corpus and runtime-matrix coverage verify exposed-surface-only invocation guidance. |\n| SC2 | success_criterion | CodeMode and direct-schema sessions both complete representative MCP operations. | pass | Runtime matrix committed evidence covers CodeMode primary/spawned and direct-primary rows; targeted matrix suite passed 24/24. |\n| SC3 | success_criterion | Sessions without external MCP tools report unavailability without false exposure claims. | pass | Required codemode-no-mcp matrix row has committed pass evidence; matrix suite passed 24/24. |\n| SC4 | success_criterion | OpenCode remains sole authority for generated CodeMode catalog syntax. | pass | Reviewer found no duplicated generated catalog signatures; exact invocation tests pass. |\n| SC5 | success_criterion | Required Advance, OpenCode, and toolbox changes ship with linked evidence and no unresolved parity drift. | pass | Peer merge-tree clean; toolbox tracked change has archived projection; no unresolved parity drift. |\n| AC1 | acceptance_criterion | A CodeMode-enabled primary Advance agent and a CodeMode-enabled spawned Advance research agent each complete a representative MCP lookup when external MCP is available. | pass | Committed runtime matrix covers codemode-primary and codemode-spawned-researcher; coverage check found all 5 mandatory rows passing. |\n| AC2 | acceptance_criterion | A CodeMode-disabled Advance agent completes the same representative MCP lookup through the directly exposed schema. | pass | Committed direct-primary matrix row and linked toolbox disabled live probe prove direct schema route. |\n| AC3 | acceptance_criterion | A CodeMode-enabled session with all external MCP servers disabled exposes no executable MCP catalog and reports the representative lookup unavailable without attempting a nonexistent callable. | pass | Committed codemode-no-mcp row proves unavailable external MCP is handled without false catalog exposure. |\n| AC4 | acceptance_criterion | Representative identifier-safe and punctuated MCP names are invoked exactly as exposed by the active schema or catalog. | pass | Committed exact-path-forms row and targeted matrix suite verify identifier-safe and punctuated forms. |\n| AC5 | acceptance_criterion | Active Advance guidance contains no unconditional claim that external MCP tools use one invocation mode. | pass | tool-name-assets plus runtime-matrix targeted suite passed 24/24; no one-mode invocation claims remain. |\n| AC6 | acceptance_criterion | Against frozen pre-change effective assembled-prompt fixtures, Advance-authored mode guidance adds at most 400 UTF-8 bytes, appears at most once per effective prompt, and does not duplicate OpenCode-generated catalog signatures. Tokenizer-specific counts may be recorded only as advisory evidence. | pass | Baseline migrated to trunk a5898ce5; merged maximum delta 334 bytes under 400-byte budget; exactly-once corpus checks pass. |\n| AC7 | acceptance_criterion | Canonical prompts, overlays, recursively deployed skill/reference assets, generated/deployed assets, and coverage tests remain synchronized and their targeted parity tests pass; YAML frontmatter is parsed separately from prompt-body prose. | pass | Corpus parity/frontmatter tests pass; full suite passed 357 files and 5283 tests. |\n| AC8 | acceptance_criterion | `OC_DISABLE_CODE_MODE=1` disables CodeMode even when the parent environment already exports `OPENCODE_EXPERIMENTAL_CODE_MODE=true`. | pass | Archived toolbox fixCodemodeDisableOverride recorded focused precedence 6/6 and disabled direct-schema live probe. |\n| AC9 | acceptance_criterion | Integration with `consolidateAdvToolSurface2` has no unresolved prompt-asset conflict and combined targeted tests pass. | pass | git merge-tree clean with trunk peer archive; merged contract checks 23/23 and peer guards 428/428 passed. |\n| AC10 | acceptance_criterion | Every required cross-repository edit has separate tracked change, verification, and release evidence. | pass | Advance checkpoints e35bb003/d3cb0f4e plus archived toolbox change fixCodemodeDisableOverride provide separate tracked evidence. |\n| C1 | constraint | Investigation and representative tests precede broad prompt edits. | respected | Discovery/design and initial red→green corpus task preceded broad prompt migration. |\n| C2 | constraint | OpenCode remains authoritative for exact generated CodeMode catalog syntax. | respected | Prompts instruct catalog discovery without copying OpenCode-generated callable signatures. |\n| C3 | constraint | Correctness follows actually exposed capabilities, not environment-flag inference alone. | respected | Runtime matrix validates actual exposed routes; no environment-flag-only correctness inference. |\n| C4 | constraint | CodeMode and direct-schema operation are equal compatibility requirements. | respected | Matrix includes CodeMode and direct-schema mandatory rows; targeted suite passed 24/24. |\n| C5 | constraint | Built-in and Advance plugin tools are not classified as external MCP tools. | respected | External MCP contract tests distinguish MCP catalog surfaces from built-in and Advance tools. |\n| C6 | constraint | Cross-repository changes require direct evidence and separate tracked work. | respected | Separate toolbox change fixCodemodeDisableOverride archived with its own execution and acceptance evidence. |\n| C7 | constraint | Canonical source owns deployed output; live deployed artifacts are never edited as independent sources. | respected | Fixture and prompt sources changed in canonical worktree; deployed artifacts were not edited directly. |\n| DONT1 | avoidance | Do not assume CodeMode is always enabled or that `execute` is always exposed. | respected | Mode-neutral guidance and runtime rows cover absent execute/direct surfaces. |\n| DONT2 | avoidance | Do not duplicate OpenCode’s generated MCP catalog or signature block in Advance prompts. | respected | Corpus review found no OpenCode-generated catalog/signature duplication. |\n| DONT3 | avoidance | Do not perform a broad concrete-name rewrite before design selects the least-coupled correct mechanism. | respected | Design-selected capability wording and structural corpus test preceded concrete spelling replacement. |\n| DONT4 | avoidance | Do not edit archived ADV bundles. | respected | No archived ADV bundle changed in this branch diff. |\n| DONT5 | avoidance | Do not make untracked cross-repository edits. | respected | Required toolbox work is represented by separately tracked archived change, not untracked edits. |\n| DONT6 | avoidance | Do not silently absorb prompt-asset conflicts with `consolidateAdvToolSurface2`. | respected | Peer semantic byte-budget collision was surfaced, fixed by deliberate baseline migration, and merged-tree validated. |\n| OOS1 | out_of_scope | General MCP inventory reduction unrelated to invocation correctness. | not_applicable | General MCP inventory reduction intentionally excluded by agreement. |\n| OOS2 | out_of_scope | Redesigning Advance plugin tool registration. | not_applicable | Advance plugin tool-registration redesign intentionally excluded by agreement. |\n| OOS3 | out_of_scope | Unrelated OpenCode or toolbox improvements. | not_applicable | Unrelated OpenCode/toolbox improvements intentionally excluded by agreement. |\n| OOS4 | out_of_scope | Editing historical archive evidence. | not_applicable | Historical archive evidence was read-only and not changed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-15T05:48:30.440Z",
+      "contentHash": "672351513d251e33d7852bb2a73444f67ebb9a05a3cc13951d070b54dc6aa7c4",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-15T04:03:26.203Z",
+      "contentHash": "8062a4c7f3cc27f515bf09cd5875719f3e168b93817eb3fa36688febd5e721d7",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-15T12:38:36.681Z",
+      "contentHash": "147cf12e4943fdd214102889ddcc777fa96876a5a415d0f10f0093427f15135e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-15T12:43:15.720Z",
+      "contentHash": "97b521ec72fc8d72eef8ba38dc8253028ab07e0ccaca8a292a064ab021407ec3",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-15T17:56:54.450Z",
+      "contentHash": "7ac31b7664eea17a5a8a6300f6e6fc3126044a6f743e7c19d0643cdeb4021b25",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-15T17:56:54.450Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-15T17:18:46.575Z"
+    }
+  ]
+}
