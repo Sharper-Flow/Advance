@@ -9,16 +9,20 @@ import { buildProjectTaskQueue } from "../temporal/client";
 import {
   classifyQueueServiceability,
   probeTaskQueuePollers,
+  type LocalOwnership,
   type QueueServiceability,
 } from "../temporal/queue-serviceability";
 import { getService } from "../temporal/service";
 import {
   ensureProjectTemporalQueue,
-  getRegisteredTemporalWorkerQueues,
-  getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics,
   getTemporalWorkerRole,
+  type TemporalWorkerDiagnostics,
 } from "../plugin-init";
+import {
+  statusDiagnosticsIncludeQueue,
+  statusDiagnosticsShowAliveQueue,
+} from "./status-health";
 import {
   getExternalRoot,
   getExternalRootForProject,
@@ -177,28 +181,35 @@ function closeStore(store: Store): void {
   store.close?.();
 }
 
-function targetMutationLocalOwnership(): "owned" | "peer" | "unknown" {
+function targetMutationLocalOwnership(): LocalOwnership {
   const role = getTemporalWorkerRole();
   if (role === "host") return "owned";
   if (role === "client") return "peer";
   return "unknown";
 }
 
-function localQueueServiceability(input: {
-  projectId: string;
-  expectedQueue: string;
-}): QueueServiceability {
-  return classifyQueueServiceability({
-    projectId: input.projectId,
-    expectedQueue: input.expectedQueue,
-    localRegistered: true,
-    localWorkerAlive: true,
-    localOwnership: "owned",
-    workerDiagnostics: getTemporalWorkerDiagnostics(),
-    serverPollerProbe: { status: "unavailable", lastAccessMs: null },
-    staleRunningWorkflowCount: 0,
-    staleQueueProbe: "unavailable",
-  });
+interface LocalQueueEvidence {
+  registered: boolean;
+  alive: boolean;
+  ownership: LocalOwnership;
+  diagnostics: TemporalWorkerDiagnostics[];
+}
+
+/**
+ * Per-queue local evidence for mutation readiness. Raw registration lists do
+ * not filter failed queues, and aggregate worker aliveness can be satisfied
+ * by an unrelated queue, so only per-queue diagnostics are conservative
+ * enough to admit a target-path mutation. This mirrors the evidence model
+ * status/diagnostics use for queue serviceability.
+ */
+function deriveLocalQueueEvidence(expectedQueue: string): LocalQueueEvidence {
+  const diagnostics = getTemporalWorkerDiagnostics();
+  return {
+    registered: statusDiagnosticsIncludeQueue(diagnostics, expectedQueue),
+    alive: statusDiagnosticsShowAliveQueue(diagnostics, expectedQueue),
+    ownership: targetMutationLocalOwnership(),
+    diagnostics,
+  };
 }
 
 function formatTargetMutationReadinessError(
@@ -211,9 +222,8 @@ function formatTargetMutationReadinessError(
     `Target project Temporal queue is not serviceable for target_path mutation: ${serviceability.expectedQueue}`,
     `status=${serviceability.status}`,
     `confidence=${serviceability.confidence}`,
-    `poller=${serviceability.evidence.serverPollerProbe}`,
     `blockers=${blockers}`,
-    "action=open or restart the target project ADV worker, then retry the target_path mutation",
+    "remediation=open or restart the target project ADV worker, then retry the target_path mutation",
   ].join("; ");
 }
 
@@ -223,25 +233,37 @@ export async function ensureTargetMutationQueueReady(input: {
   freshPollerMs?: number;
 }): Promise<QueueServiceability> {
   const expectedQueue = buildProjectTaskQueue(input.projectId);
-  if (getRegisteredTemporalWorkerQueues().includes(expectedQueue)) {
-    return localQueueServiceability({
-      projectId: input.projectId,
-      expectedQueue,
-    });
+
+  // Local worker registration is the primary readiness signal: try to
+  // register the target queue on this process's worker before consulting
+  // server-side evidence.
+  let local = deriveLocalQueueEvidence(expectedQueue);
+  if (!local.registered) {
+    try {
+      await ensureProjectTemporalQueue(input.projectId);
+      local = deriveLocalQueueEvidence(expectedQueue);
+    } catch {
+      // Local registration is not the only valid readiness signal. A
+      // client-only process may safely submit target mutations when another
+      // worker is freshly polling the target queue.
+    }
   }
 
-  try {
-    await ensureProjectTemporalQueue(input.projectId);
-    return localQueueServiceability({
-      projectId: input.projectId,
-      expectedQueue,
-    });
-  } catch {
-    // Local registration is not the only valid readiness signal. A client-only
-    // process may safely submit target mutations when another worker is freshly
-    // polling the target queue.
-  }
+  const localServiceability = classifyQueueServiceability({
+    projectId: input.projectId,
+    expectedQueue,
+    localRegistered: local.registered,
+    localWorkerAlive: local.alive,
+    localOwnership: local.ownership,
+    workerDiagnostics: local.diagnostics,
+    serverPollerProbe: { status: "unavailable", lastAccessMs: null },
+    staleRunningWorkflowCount: 0,
+    staleQueueProbe: "unavailable",
+  });
+  if (localServiceability.status === "serviceable") return localServiceability;
 
+  // Bounded fresh server poller evidence is conservative admission evidence
+  // only: it admits the mutation without proving local worker liveness.
   const serverPollerProbe = await probeTaskQueuePollers({
     connection: input.temporalBundle.connection as Parameters<
       typeof probeTaskQueuePollers
@@ -253,11 +275,10 @@ export async function ensureTargetMutationQueueReady(input: {
   const serviceability = classifyQueueServiceability({
     projectId: input.projectId,
     expectedQueue,
-    localRegistered:
-      getRegisteredTemporalWorkerQueues().includes(expectedQueue),
-    localWorkerAlive: getTemporalWorkerAliveness(),
-    localOwnership: targetMutationLocalOwnership(),
-    workerDiagnostics: getTemporalWorkerDiagnostics(),
+    localRegistered: local.registered,
+    localWorkerAlive: local.alive,
+    localOwnership: local.ownership,
+    workerDiagnostics: local.diagnostics,
     serverPollerProbe,
     staleRunningWorkflowCount: 0,
     staleQueueProbe: "ok",
