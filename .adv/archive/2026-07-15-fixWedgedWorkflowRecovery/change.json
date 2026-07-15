@@ -1,0 +1,1598 @@
+{
+  "id": "fixWedgedWorkflowRecovery",
+  "title": "Fix wedged workflow recovery",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-15T17:47:15.526Z",
+  "tasks": [
+    {
+      "id": "tk-9a830ac3c12a",
+      "title": "Classify reachable query failures",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-15T18:09:21.020Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "C4"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T18:11:57.975Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWedgedWorkflowRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+          "task_id": "tk-9a830ac3c12a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9a830ac3c12a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/recovery-classification.ts",
+            "plugin/src/temporal/recovery-classification.test.ts",
+            "plugin/src/storage/store-temporal/shared.ts",
+            "plugin/src/storage/store-temporal/shared.test.ts",
+            "plugin/src/storage/store-temporal/index.ts",
+            "plugin/src/storage/store-temporal/index.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts",
+              "exit_code": 1,
+              "summary": "RED pre-implementation: 6 intended failures; 51 passed."
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 57/57 passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/ src/temporal/recovery-classification.test.ts src/temporal/retry-wrapper.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+              "exit_code": 0,
+              "summary": "167/167 passed across 14 files."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/worktree/ src/tools/backlog.test.ts",
+              "exit_code": 0,
+              "summary": "181/181 passed."
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "360 files / 5426 tests passed."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, isolation, lockfile, lint, and format passed; no public Zod model changed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a structural three-way RecoveryReason taxonomy and a projection-safe subset.",
+              "why": "Keeps query_failed distinct from mutation-authorizing missing/poisoned reasons."
+            },
+            {
+              "what": "Classified unregistered query handlers as query_failed and rejected query_failed at both re-seed mutation gates.",
+              "why": "A workflow can exist while being unable to answer; fallback must not mask live-workflow or code-skew failures."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Inline recovery-reason unions in worktree state and backlog are adjacent but untouched; no compile impact."
+          ],
+          "required_main_agent_actions": [
+            "Record durable ADV TDD evidence before task completion; subagent could not access ADV MCP tools."
+          ],
+          "related_scan": "Scanned recoveryReason, recoveryReasonFromError, and classifyTemporalReadFailure consumers. index.ts has two mutation gates now guarded; gate and recovery-probe contracts remain unchanged.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Typed query_failed propagation is implemented. Query failures no longer authorize re-seed/projection mutation. Full suite and plugin checks pass; no commit made.",
+            "suggested_next_action": "Record required ADV TDD ledger evidence, inspect diff, checkpoint task, then continue to termination work."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/ src/temporal/recovery-classification.test.ts src/temporal/retry-wrapper.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/worktree/ src/tools/backlog.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Retry after successful adv_temporal_reconnect. RED tr_mrmfcan8_eb8aaa17; GREEN tr_mrmfeu3u_fb3ef10c.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f14bdb45db47231db4c3938aad5de5930f5d6a74",
+      "completedAt": "2026-07-15T18:44:46.332Z",
+      "completed_at": "2026-07-15T18:44:46.332Z"
+    },
+    {
+      "id": "tk-c27ca0a33a1e",
+      "title": "Add pinned workflow termination tool",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-15T18:09:32.234Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9a830ac3c12a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T18:45:04.756Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWedgedWorkflowRecovery",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+          "task_id": "tk-c27ca0a33a1e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-c27ca0a33a1e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.workflow-terminate.test.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/recovery-probe.ts",
+            "plugin/src/tools/_adapters.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/tool-role-policy.ts",
+            "plugin/src/tool-ownership-assets.test.ts",
+            "plugin/src/tool-registry.inventory.test.ts",
+            "plugin/src/cli-bridge-contract.test.ts",
+            "plugin/src/utils/tool-title.ts",
+            "docs/tool-ownership.md",
+            "docs/cli-surface-matrix.md",
+            ".opencode/agents/adv.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm vitest run src/tools/change.workflow-terminate.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN 18/18; durable adv_run_test tr_mrmgzvl1_1ec255b0."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "All checks passed."
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Plugin and worker build passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added pinned workflow termination with operator approval and archived routing.",
+              "why": "Prevents termination of an unverified or different workflow run."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Full suite had a pre-existing load-sensitive bounded-read-deadline test failure; isolated checks pass."
+          ],
+          "required_main_agent_actions": [
+            "Checkpoint task before continuing."
+          ],
+          "related_scan": "All archive-purge registration, ownership, inventory, CLI, title, and documentation surfaces updated and tested.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Termination tool is implemented with focused TDD evidence and build/check passing.",
+            "suggested_next_action": "Checkpoint task and proceed to guarded gate recovery."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/tools/change.workflow-terminate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run build"
+            }
+          ]
+        }
+      ],
+      "verification": "RED tr_mrmg84v4_e92f9b17; GREEN tr_mrmgzvl1_1ec255b0 (18/18). pnpm run check and build passed; full-suite single pre-existing load-sensitive failure documented.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        "docs/cli-surface-matrix.md",
+        "docs/tool-ownership.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-ownership-assets.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/_adapters.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        "docs/cli-surface-matrix.md",
+        "docs/tool-ownership.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-ownership-assets.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/_adapters.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "a4c750ded9018deef7432d474425c66a8ee693a7",
+      "completedAt": "2026-07-15T19:26:15.179Z",
+      "completed_at": "2026-07-15T19:26:15.179Z"
+    },
+    {
+      "id": "tk-e12e4c2d146a",
+      "title": "Gate disk recovery after termination",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-15T18:09:42.097Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c27ca0a33a1e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC4",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T19:26:20.973Z",
+      "verification": "RED tr_mrmh6isu_f30e3533; GREEN tr_mrmh862j_9de1f8e9 (35/35). Targeted verification tr_mrmh9f38_428330ce (80/80).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "3cb3470e116ab22f96464487b78f219d670ac84e",
+      "completedAt": "2026-07-15T19:33:16.003Z",
+      "completed_at": "2026-07-15T19:33:16.003Z"
+    },
+    {
+      "id": "tk-fab9911c3969",
+      "title": "Verify recovery surface integration",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-15T18:09:51.345Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e12e4c2d146a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5",
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T19:33:28.418Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWedgedWorkflowRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+          "task_id": "tk-fab9911c3969",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-fab9911c3969"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/gate.release-enforcement.test.ts",
+            "plugin/src/tools/gate.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts",
+              "exit_code": 0,
+              "summary": "46/46 passed."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Durable ADV evidence tr_mrmhxgp2_c3d2068e passed."
+            },
+            {
+              "command": "../bin/oc-test full",
+              "exit_code": 0,
+              "summary": "361 test files, 5445 tests passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a real disk snapshot to release-recovery enforcement test.",
+              "why": "Preserves fail-closed recovery behavior while allowing merge enforcement to execute."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [
+            "Checkpoint verified test changes."
+          ],
+          "related_scan": "Full suite found no same-pattern invalid disk snapshot tests.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Integration verification and targeted test repair are complete.",
+            "suggested_next_action": "Checkpoint and complete execution verification."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test full"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWedgedWorkflowRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+          "task_id": "tk-fab9911c3969",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-fab9911c3969"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git diff --check f14bdb45..05426db",
+              "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/gate.release-enforcement.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/shared.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Diff whitespace check passed; focused suite 4 files, 78 tests passed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Focused tests use mocked Temporal handles; full-suite evidence covers broader integration."
+          ],
+          "required_main_agent_actions": [
+            "No remediation required."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check f14bdb45..05426db"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/gate.release-enforcement.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/shared.test.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWedgedWorkflowRecovery",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+          "task_id": "tk-fab9911c3969",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-fab9911c3969"
+          },
+          "agent": "adv-reviewer",
+          "phase": "harden",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git status --short && git diff --check trunk...HEAD",
+              "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/temporal/recovery-classification.test.ts src/tool-registry.inventory.test.ts src/tool-ownership-assets.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Working tree clean; diff clean; focused suite 49 tests passed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "No live poisoned-history execution performed; mocked focused tests plus prior full-suite evidence."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git status --short && git diff --check trunk...HEAD"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/temporal/recovery-classification.test.ts src/tool-registry.inventory.test.ts src/tool-ownership-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Integration verification: pnpm run check tr_mrmhxgp2_c3d2068e passed; verifier also reported targeted 46/46 and full suite 5445/5445 passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.test.ts"
+      ],
+      "checkpointSha": "05426db7383e4a211ebb363639a1e48140d88b72",
+      "completedAt": "2026-07-15T19:52:09.025Z",
+      "completed_at": "2026-07-15T19:52:09.025Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorkflowRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+      "task_id": "tk-9a830ac3c12a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9a830ac3c12a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/temporal/recovery-classification.test.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-temporal/shared.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/index.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts",
+          "exit_code": 1,
+          "summary": "RED pre-implementation: 6 intended failures; 51 passed."
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 57/57 passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/ src/temporal/recovery-classification.test.ts src/temporal/retry-wrapper.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "167/167 passed across 14 files."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/worktree/ src/tools/backlog.test.ts",
+          "exit_code": 0,
+          "summary": "181/181 passed."
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "360 files / 5426 tests passed."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, isolation, lockfile, lint, and format passed; no public Zod model changed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a structural three-way RecoveryReason taxonomy and a projection-safe subset.",
+          "why": "Keeps query_failed distinct from mutation-authorizing missing/poisoned reasons."
+        },
+        {
+          "what": "Classified unregistered query handlers as query_failed and rejected query_failed at both re-seed mutation gates.",
+          "why": "A workflow can exist while being unable to answer; fallback must not mask live-workflow or code-skew failures."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Inline recovery-reason unions in worktree state and backlog are adjacent but untouched; no compile impact."
+      ],
+      "required_main_agent_actions": [
+        "Record durable ADV TDD evidence before task completion; subagent could not access ADV MCP tools."
+      ],
+      "related_scan": "Scanned recoveryReason, recoveryReasonFromError, and classifyTemporalReadFailure consumers. index.ts has two mutation gates now guarded; gate and recovery-probe contracts remain unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Typed query_failed propagation is implemented. Query failures no longer authorize re-seed/projection mutation. Full suite and plugin checks pass; no commit made.",
+        "suggested_next_action": "Record required ADV TDD ledger evidence, inspect diff, checkpoint task, then continue to termination work."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/ src/temporal/recovery-classification.test.ts src/temporal/retry-wrapper.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/worktree/ src/tools/backlog.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorkflowRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+      "task_id": "tk-c27ca0a33a1e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-c27ca0a33a1e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.workflow-terminate.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/tools/_adapters.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tool-ownership-assets.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/utils/tool-title.ts",
+        "docs/tool-ownership.md",
+        "docs/cli-surface-matrix.md",
+        ".opencode/agents/adv.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm vitest run src/tools/change.workflow-terminate.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN 18/18; durable adv_run_test tr_mrmgzvl1_1ec255b0."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "All checks passed."
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Plugin and worker build passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added pinned workflow termination with operator approval and archived routing.",
+          "why": "Prevents termination of an unverified or different workflow run."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Full suite had a pre-existing load-sensitive bounded-read-deadline test failure; isolated checks pass."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint task before continuing."
+      ],
+      "related_scan": "All archive-purge registration, ownership, inventory, CLI, title, and documentation surfaces updated and tested.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Termination tool is implemented with focused TDD evidence and build/check passing.",
+        "suggested_next_action": "Checkpoint task and proceed to guarded gate recovery."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/tools/change.workflow-terminate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run build"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorkflowRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:recovery-integration"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "cd plugin && pnpm run schemas:check",
+          "exit_code": 0
+        },
+        {
+          "kind": "command",
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 1
+        },
+        {
+          "kind": "command",
+          "command": "cd plugin && pnpm run build",
+          "exit_code": 0
+        },
+        {
+          "kind": "command",
+          "command": "cd plugin && ../bin/oc-test full",
+          "exit_code": 1
+        }
+      ],
+      "status": "fail",
+      "error_class": "SEMANTIC",
+      "confidence": "high",
+      "evidence_basis": "Schemas and build passed. pnpm run check failed only Prettier formatting for gate.test.ts. Full suite failed only release recovery assertion: expected RELEASE_REQUIRES_TRUNK_MERGE, received durable recovery projection unavailable.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "blocker",
+          "summary": "Release-gate recovery behavior no longer reaches trunk-merge enforcement.",
+          "evidence": [
+            {
+              "label": "full suite",
+              "locator": "plugin: ../bin/oc-test full",
+              "summary": "gate.release-enforcement.test.ts expected RELEASE_REQUIRES_TRUNK_MERGE but received durable recovery projection unavailable."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "issue",
+          "summary": "gate.test.ts needs formatting.",
+          "evidence": [
+            {
+              "label": "pnpm run check",
+              "locator": "plugin: pnpm run check",
+              "summary": "Prettier reported code style issues."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "route_adv_engineer",
+      "scope_risk": false,
+      "suggested_handoff": {
+        "summary": "Preserve release recovery enforcement when an in-memory test projection is intentionally used, while keeping completed-workflow disk recovery fail-closed.",
+        "in_scope": [
+          "Release recovery behavior",
+          "gate test formatting"
+        ],
+        "out_of_scope": [
+          "ADV state",
+          "scope changes"
+        ],
+        "done_when": [
+          "release enforcement test passes",
+          "pnpm run check passes",
+          "full suite passes"
+        ],
+        "verification": [
+          "pnpm run check",
+          "../bin/oc-test full"
+        ]
+      },
+      "required_main_agent_actions": [
+        "Route scoped remediation."
+      ],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorkflowRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+      "task_id": "tk-fab9911c3969",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-fab9911c3969"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts",
+          "exit_code": 0,
+          "summary": "46/46 passed."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Durable ADV evidence tr_mrmhxgp2_c3d2068e passed."
+        },
+        {
+          "command": "../bin/oc-test full",
+          "exit_code": 0,
+          "summary": "361 test files, 5445 tests passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a real disk snapshot to release-recovery enforcement test.",
+          "why": "Preserves fail-closed recovery behavior while allowing merge enforcement to execute."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [
+        "Checkpoint verified test changes."
+      ],
+      "related_scan": "Full suite found no same-pattern invalid disk snapshot tests.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Integration verification and targeted test repair are complete.",
+        "suggested_next_action": "Checkpoint and complete execution verification."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorkflowRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+      "task_id": "tk-fab9911c3969",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-fab9911c3969"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git diff --check f14bdb45..05426db",
+          "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/gate.release-enforcement.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/shared.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Diff whitespace check passed; focused suite 4 files, 78 tests passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Focused tests use mocked Temporal handles; full-suite evidence covers broader integration."
+      ],
+      "required_main_agent_actions": [
+        "No remediation required."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --check f14bdb45..05426db"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/gate.release-enforcement.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/shared.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorkflowRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "architecture-quality",
+        "scope-conformance",
+        "documentation",
+        "performance",
+        "error-handling",
+        "naming-comments-style",
+        "consistency",
+        "cross-repo"
+      ],
+      "summary": "Independent review plus task evidence found no blockers or issues. All acceptance criteria map to targeted tests and full-suite evidence; no cross-repo or visual surface applies.",
+      "findings": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorkflowRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorkflowRecovery",
+      "task_id": "tk-fab9911c3969",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-fab9911c3969"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git status --short && git diff --check trunk...HEAD",
+          "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/temporal/recovery-classification.test.ts src/tool-registry.inventory.test.ts src/tool-ownership-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Working tree clean; diff clean; focused suite 49 tests passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No live poisoned-history execution performed; mocked focused tests plus prior full-suite evidence."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git status --short && git diff --check trunk...HEAD"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/temporal/recovery-classification.test.ts src/tool-registry.inventory.test.ts src/tool-ownership-assets.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-9a830ac3c12a": [
+      {
+        "runId": "tr_mrmfcan8_eb8aaa17",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts",
+        "durationMs": 3483.254379999824,
+        "recordedAt": "2026-07-15T18:39:17.041Z"
+      },
+      {
+        "runId": "tr_mrmfeu3u_fb3ef10c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/recovery-classification.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts",
+        "durationMs": 3598.043595999945,
+        "recordedAt": "2026-07-15T18:41:15.572Z"
+      }
+    ],
+    "tk-c27ca0a33a1e": [
+      {
+        "runId": "tr_mrmg84v4_e92f9b17",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 9473.69000799954,
+        "recordedAt": "2026-07-15T19:04:02.652Z"
+      },
+      {
+        "runId": "tr_mrmgzvl1_1ec255b0",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 8119.856922999956,
+        "recordedAt": "2026-07-15T19:25:36.991Z"
+      }
+    ],
+    "tk-e12e4c2d146a": [
+      {
+        "runId": "tr_mrmh6isu_f30e3533",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/gate.test.ts",
+        "durationMs": 5106.840797999874,
+        "recordedAt": "2026-07-15T19:30:46.941Z"
+      },
+      {
+        "runId": "tr_mrmh7lx6_0a2ce5cd",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/gate.test.ts",
+        "durationMs": 4731.309710999951,
+        "recordedAt": "2026-07-15T19:31:37.646Z"
+      },
+      {
+        "runId": "tr_mrmh862j_9de1f8e9",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/gate.test.ts",
+        "durationMs": 4618.497326999903,
+        "recordedAt": "2026-07-15T19:32:03.754Z"
+      },
+      {
+        "runId": "tr_mrmh8cs7_0850fbf7",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/gate.test.ts src/tools/recovery-probe.test.ts src/tools/_recovery-writers.test.ts src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 28.30375500023365,
+        "recordedAt": "2026-07-15T19:32:12.489Z"
+      },
+      {
+        "runId": "tr_mrmh8v4h_d201bba4",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/gate.test.ts plugin/src/tools/recovery-probe.test.ts plugin/src/tools/_recovery-writers.test.ts plugin/src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 1339.2995840003714,
+        "assertionDensity": 1.4752475247524752,
+        "mockSurface": [
+          {
+            "pattern": "vi.mock",
+            "count": 5
+          },
+          {
+            "pattern": "vi.fn",
+            "count": 35
+          },
+          {
+            "pattern": "vi.spyOn",
+            "count": 2
+          }
+        ],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-15T19:32:36.208Z"
+      },
+      {
+        "runId": "tr_mrmh9f38_428330ce",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/gate.test.ts src/tools/recovery-probe.test.ts src/tools/_recovery-writers.test.ts src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 6473.226356999949,
+        "recordedAt": "2026-07-15T19:33:02.114Z"
+      }
+    ],
+    "tk-fab9911c3969": [
+      {
+        "runId": "tr_mrmhxgp2_c3d2068e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 54061.78760199994,
+        "recordedAt": "2026-07-15T19:51:43.972Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-15T17:49:06.482Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed the problem statement and proposal.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8fa4a2c1a7232045472d2951379b60cf124b76bc7f561b86d38ee06d8fcca203",
+        "non_whitespace_chars": 1460,
+        "checked_at": "2026-07-15T17:47:15.619Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-15T17:59:33.414Z",
+      "completed_at": "2026-07-15T17:59:44.454Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the persisted agreement. Minted strict ChangeContract with 19 items; discovery completed with source evidence, typed spec delta dl-WedgedRecovery198, and recorded degraded terminal-inventory warning.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "non_whitespace_chars": 8364,
+        "checked_at": "2026-07-15T17:47:15.620Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:08:47.925Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the termination-first design. Independent validator CAUTION was resolved by prohibiting live-workflow disk writes; disk-authoritative gate recovery must follow pinned-run termination.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "1e12037441d21c4af8ed9e51b71a3f1e544c14f6ca3786aebcc360965487b0bc",
+        "non_whitespace_chars": 4119,
+        "checked_at": "2026-07-15T17:47:15.621Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:11:44.859Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the four-task dependency graph for autonomous implementation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-15T19:53:08.471Z",
+      "completed_by": "agent",
+      "approval_evidence": "All four tasks checkpointed. Targeted recovery checks passed; pnpm run check passed; full suite verification reported 361 files / 5445 tests passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-15T20:04:21.972Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved acceptance after review; contract review matrix has 19 rows with zero failures.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "de68746667e47bd3dd23ecbc09d71267190919a9b39b32c409cdc16c26d25ceb",
+        "non_whitespace_chars": 2053,
+        "checked_at": "2026-07-15T17:47:15.622Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+      "approvedAt": "2026-07-15T17:59:38.536Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**Typed reset path:** An audited ADV tool can terminate only an eligible reachable-but-wedged change workflow. It records the target change, termination outcome, reason, evidence, and idempotent already-terminated state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**Authoritative recovery path:** For an eligible acceptance or release recovery, `adv_gate_complete` can explicitly use the durable corrected projection even while a reachable wedged workflow would otherwise supply stale state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**Accurate diagnostics:** A reachable workflow whose query handler fails is labeled `query_failed`; `missing_workflow` is reserved for an actually absent or terminally unavailable workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**Fail-closed boundaries:** Unknown, unshipped, non-terminal, incomplete-prior-gate, or insufficiently evidenced reset/recovery requests make no workflow termination and no disk projection mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "**Regression proof:** Automated tests cover reset success, idempotency, each refusal boundary, disk-authoritative success/refusal, and query-failure classification. Public schema artifacts stay generated and checked.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Given a reachable workflow wedged at acceptance or release, all prior gates done, shipped proof, and audit evidence, when the reset tool is invoked, then it terminates only that workflow and returns an audit result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Given the AC1 state and a corrected durable projection, when guarded disk-authoritative recovery completes the target gate, then it computes readiness from that projection without raw Temporal CLI use.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Given missing shipment proof, incomplete gates, missing evidence, unknown ID, or a non-terminal change, when reset or disk-authoritative recovery is requested, then ADV returns a structured refusal and performs no termination or projection write.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Given a reachable workflow query failure, when a read falls back to a projection, then `_recovery.reason` is `query_failed`, not `missing_workflow`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Targeted regression tests, schema generation/check, and relevant plugin checks exit 0.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Reuse existing typed Temporal/store boundaries; do not add a raw CLI workaround.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Require explicit approval/evidence for destructive workflow termination.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep recovery limited to acceptance/release and preserve prior-gate/task/readiness checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Use Zod/schema-registry types for recovery-reason vocabulary; no string-only classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Preserve archive-purge semantics; the new tool is a distinct active/wedged recovery surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Implementation runs in the ADV-managed change worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "General Temporal worker supervision or restart redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Redesigning archive finalization, ops-followup semantics, or all recovery tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Repairing existing incidents without explicit operator approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-15T19:56:55.139Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; pinned termination tool has approval, eligibility, run-pinning, and idempotency coverage."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Gate recovery reads one durable snapshot after terminal workflow evidence; targeted gate tests pass."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed query_failed classification and mutation rejection covered by task 1 tests."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Refusal paths for incomplete, unavailable, and unshipped recovery states reviewed and tested."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review focused suite 78/78; integration full suite 5445/5445; pnpm run check passed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.workflow-terminate.test.ts 18/18 passes; focused review suite passes."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate.test.ts coherent disk snapshot recovery test passes."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Termination and gate recovery refusal tests pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "recovery-classification and Temporal store tests pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check and full suite 361 files/5445 tests pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review found typed tool/store/Temporal adapters only; no raw CLI path."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Termination requires explicit approval and non-empty audit evidence."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Recovery entrypoint limits targets to acceptance/release and retains task/readiness checks."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "query_failed is typed and rejected at mutation-authority boundaries."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Archived changes remain routed to archive purge; new tool covers active wedged recovery."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All task checkpoints were created on change/fixWedgedWorkflowRecovery worktree."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No general worker supervision redesign included."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No archive finalization or ops-followup redesign included."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No existing incident repair executed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Given a reachable workflow wedged at acceptance or release, all prior gates done, shipped proof, and audit evidence, when the reset tool is invoked, then it terminates only that workflow and returns an audit result.",
+    "**AC2:** Given the AC1 state and a corrected durable projection, when guarded disk-authoritative recovery completes the target gate, then it computes readiness from that projection without raw Temporal CLI use.",
+    "**AC3:** Given missing shipment proof, incomplete gates, missing evidence, unknown ID, or a non-terminal change, when reset or disk-authoritative recovery is requested, then ADV returns a structured refusal and performs no termination or projection write.",
+    "**AC4:** Given a reachable workflow query failure, when a read falls back to a projection, then `_recovery.reason` is `query_failed`, not `missing_workflow`.",
+    "**AC5:** Targeted regression tests, schema generation/check, and relevant plugin checks exit 0."
+  ],
+  "documents": {
+    "proposal": "## Proposal\n\nMake disk-projection gate recovery safe and first-class for terminally shipped changes whose workflow remains reachable but wedged.\n\n### Scope\n\n1. Add an audited ADV workflow reset/termination tool for a wedged change workflow.\n2. Add a guarded `diskAuthoritative` recovery mode to `adv_gate_complete` so authorized recovery can recompute readiness from disk even while the workflow is reachable-but-stuck.\n3. Correct recovery diagnostics so query-handler failure is distinguished from an absent workflow.\n4. Add structural tests for guards, state classification, recovery behavior, and non-wedged refusal paths.\n\n### Acceptance criteria\n\n- Given a workflow is reachable but wedged and all prior gates are complete, when an operator invokes the reset tool with required audit evidence and shipped/terminal proof, then ADV terminates only that eligible workflow and returns an audit result.\n- Given a reachable-but-wedged eligible workflow and an authorized corrected disk projection, when `adv_gate_complete` uses guarded disk-authoritative recovery for the target gate, then readiness is computed from that projection and the target gate can complete without raw Temporal CLI use.\n- Given a workflow query handler fails while workflow reachability remains established, when `adv_change_show` renders recovery metadata, then `_recovery.reason` identifies query failure rather than `missing_workflow`.\n- Given a non-terminal, unshipped, unknown, or otherwise ineligible change, when reset or disk-authoritative recovery is requested, then the operation is refused with no workflow termination or disk mutation.\n- Automated tests cover the success paths and each refusal boundary above.",
+    "problemStatement": "## Problem\n\nA change workflow can remain reachable yet wedged at a gate. Existing disk-projection recovery activates only after `WorkflowNotFoundError`, while the live workflow continues to re-project stale event-history state over corrected disk state. Operators must use a raw Temporal CLI termination to recover a shipped change, and query-handler failures are mislabeled as `missing_workflow`.\n\n## Impact\n\n- Shipped changes can remain blocked before release/archive.\n- Authorized recovery edits are overwritten by the live workflow.\n- The only proven escape path requires an unsupported raw CLI intervention.\n- Recovery diagnostics misstate whether a workflow is absent or merely query-unavailable.\n\n## Evidence\n\nIssue #198 records the `retirePptCompatSurfaces` incident: PR #732 was merged with CI passing, but release remained wedged by a stale `blocks` ops-followup link. Disk edits were re-projected away until the workflow was terminated manually; only then could the release recovery complete.",
+    "agreement": "# Agreement: Fix Wedged Workflow Recovery\n\n## Objective\n\nEliminate raw Temporal CLI termination as the recovery path for a terminally shipped change whose workflow remains reachable but wedged, while preserving fail-closed gate, audit, and projection correctness.\n\n## Success Criteria\n\n1. **Typed reset path:** An audited ADV tool can terminate only an eligible reachable-but-wedged change workflow. It records the target change, termination outcome, reason, evidence, and idempotent already-terminated state.\n2. **Authoritative recovery path:** For an eligible acceptance or release recovery, `adv_gate_complete` can explicitly use the durable corrected projection even while a reachable wedged workflow would otherwise supply stale state.\n3. **Accurate diagnostics:** A reachable workflow whose query handler fails is labeled `query_failed`; `missing_workflow` is reserved for an actually absent or terminally unavailable workflow.\n4. **Fail-closed boundaries:** Unknown, unshipped, non-terminal, incomplete-prior-gate, or insufficiently evidenced reset/recovery requests make no workflow termination and no disk projection mutation.\n5. **Regression proof:** Automated tests cover reset success, idempotency, each refusal boundary, disk-authoritative success/refusal, and query-failure classification. Public schema artifacts stay generated and checked.\n\n## Acceptance Criteria\n\n- **AC1:** Given a reachable workflow wedged at acceptance or release, all prior gates done, shipped proof, and audit evidence, when the reset tool is invoked, then it terminates only that workflow and returns an audit result.\n- **AC2:** Given the AC1 state and a corrected durable projection, when guarded disk-authoritative recovery completes the target gate, then it computes readiness from that projection without raw Temporal CLI use.\n- **AC3:** Given missing shipment proof, incomplete gates, missing evidence, unknown ID, or a non-terminal change, when reset or disk-authoritative recovery is requested, then ADV returns a structured refusal and performs no termination or projection write.\n- **AC4:** Given a reachable workflow query failure, when a read falls back to a projection, then `_recovery.reason` is `query_failed`, not `missing_workflow`.\n- **AC5:** Targeted regression tests, schema generation/check, and relevant plugin checks exit 0.\n\n## Constraints\n\n- Reuse existing typed Temporal/store boundaries; do not add a raw CLI workaround.\n- Require explicit approval/evidence for destructive workflow termination.\n- Keep recovery limited to acceptance/release and preserve prior-gate/task/readiness checks.\n- Use Zod/schema-registry types for recovery-reason vocabulary; no string-only classification.\n- Preserve archive-purge semantics; the new tool is a distinct active/wedged recovery surface.\n- Implementation runs in the ADV-managed change worktree.\n\n## Out of Scope\n\n- General Temporal worker supervision or restart redesign.\n- Redesigning archive finalization, ops-followup semantics, or all recovery tools.\n- Repairing existing incidents without explicit operator approval.\n\n# Discovery Findings\n\n## Discovery Checklist\n\n| Step | Status | Evidence |\n|---|---|---|\n| Cross-project origin | PASS | Local change; no cross-project origin. |\n| Skill discovery | PASS | Loaded `adv-agent-tool-contracts`: new tool arguments and audit fields require Zod/preflight/schema/test alignment. |\n| Prior research extension | PASS | No `temp/*.md`; no recovery-specific `docs/*-prep.md`. Extended archived `validateReleaseRecovery`, `fixArchiveTerminalProjection`, and `fixWorkflowLifecycleMap` evidence. |\n| Conflict and related-work scan | PASS, degraded | `adv_change_validate` passed (only expected pre-prep `NO_TASKS`/`NO_DELTAS`). Visible active inventory has no confirmed duplicate; `updateSubagentDispatch` has no file/surface overlap. Inventory omitted 58 terminal candidates after deadline, so terminal related-work scan is incomplete. |\n| Edge cases | PASS | Recorded reachable-but-query-failed, already-terminated idempotency, stale projection overwrite, incomplete shipment proof, and stale disk correction cases. |\n| Design-question depth | PASS | Tool-vs-flag decision uses trusted operator input, bounded single-change blast radius, and rejects raw CLI/separate unguarded writer alternatives. |\n| Draft spec delta shapes | PASS | Added `advance-workflow` delta `dl-WedgedRecovery198` / `rq-WedgedRecovery198` with 3 G/W/T scenarios. |\n| Related-pattern scan | PASS | Existing archive purge termination and terminal projection recovery are adjacent patterns; no active overlap found. |\n| Completeness verification | PASS | Problem cause includes both stale live re-projection and false query classification; solution includes reset, guarded recovery, typed reason propagation, and tests. Confidence: high. |\n| LBP check | PASS | Prefer audited typed recovery and Zod-state propagation over raw CLI, ad-hoc disk edits, or heuristic state inference. |\n| Discovery opportunity scout | SKIP | Bounded internal correctness fix; no product/market/external-option leverage. |\n\n## Skills Considered\n\n| Skill | Assessment | Action |\n|---|---|---|\n| `adv-agent-tool-contracts` | Direct match: new audited ADV tool contract | Loaded; require schema/preflight/registry/test consistency. |\n| `adv-worktree` | Applies during execution only | Defer until implementation. |\n| `adv-arch-detection` | No architecture inconsistency beyond defined recovery paths | Not loaded. |\n\n## Extends\n\n- `validateReleaseRecovery`: existing recovery-audit trust predicate proves disk recovery must remain auditable and structurally validated.\n- `fixArchiveTerminalProjection`: bundle-dominant terminal recovery establishes fail-closed shipped-invariant checks and typed recovery writers.\n- `fixWorkflowLifecycleMap`: lifecycle docs distinguish gate/recovery ownership; this change adds no new lifecycle gate.\n\nNew finding: `recoveryReasonFromError` defaults every non-poisoned error to `missing_workflow`; the false classification originates before projection rendering, so fix must propagate a typed `query_failed` reason through state/schema surfaces.\n\n## Current State\n\n- `completeGateViaRecovery` (`plugin/src/tools/gate.ts:473`) only supports acceptance/release and optionally reloads disk using `diskDirect`; this does not protect a live wedged workflow from re-projection.\n- `recoveryReasonFromError` (`plugin/src/temporal/recovery-classification.ts:77-83`) returns `missing_workflow` for every non-poisoned error.\n- `classifyTemporalReadFailure` (`plugin/src/storage/store-temporal/shared.ts:338-365`) passes that reason into fallback/reseed behavior.\n- `ProjectionRecoveryReason` (`plugin/src/storage/store-temporal/index.ts:56-74`) admits only `missing_workflow` and `poisoned_history`.\n- `adv_archive_purge` (`plugin/src/tools/change.ts:3592-3715`) is the closest typed `handle.terminate()` pattern, but deliberately refuses non-archived changes. No wedged active-change reset tool exists.\n\n## Edge Cases\n\n| Gap | Failure modes |\n|---|---|\n| Workflow reset | Already completed/terminated must be idempotent; an unshipped or non-terminal workflow must refuse before termination. |\n| Disk-authoritative recovery | A stale disk projection must not override a healthy workflow; prior gates, task completion, release blockers, and audit evidence must still block. |\n| Classification | Query-handler failure must not claim workflow absence; actual not-found/completed errors must remain distinct. |\n\n## Open Design Questions\n\n| Question | Trust model | Blast radius | Alternatives |\n|---|---|---|---|\n| Recovery surface | Explicit operator approval plus shipped-proof and precise evidence | One change workflow | Raw CLI rejected; unguarded generic terminate rejected. |\n| Disk-authoritative control | Explicit opt-in on existing gate completion with same eligibility checks | Acceptance/release recovery only | Separate mutation tool rejected: splits sequencing and readiness logic. |\n| Reason vocabulary | Zod/typed union propagated through fallback/rendering | Recovery metadata and tests | Free-form diagnostic strings rejected: cannot structurally prevent false `missing_workflow`. |\n\n## Related Pattern Scan\n\n- `adv_archive_purge` supplies audited termination/idempotency behavior but remains archived-only.\n- `adv_change_status_repair` supplies audited terminal-state repair but cannot resolve an incomplete release gate.\n- `validateReleaseRecovery` supplies recovery-audit trust boundaries.\n- No confirmed overlap with active `updateSubagentDispatch`; terminal inventory was degraded by read deadline and is recorded above.\n\n## Completeness Verification\n\n- **Problem completeness:** High confidence. Covers both the observable wedge and underlying stale live projection plus false reason classification.\n- **Solution scope:** High confidence. Covers the load-bearing reset path, optional no-termination recovery path, typed classification propagation, and regression boundaries.\n- **Sole-entry claim:** None. `adv_archive_purge` and status repair are classified as adjacent, distinct surfaces.\n\n## LBP Check\n\nUse a typed, audited tool plus a typed recovery-reason union and deterministic eligibility predicates. This preserves existing Temporal/store boundaries, prevents raw CLI dependence, and avoids heuristic recovery decisions.\n\n## AMBIGUITY ANALYSIS\n\nNo blocking ambiguity findings. Coverage: B:C F:C S:C M:C. Advisory: terminal related-work inventory is incomplete because the workflow query deadline omitted 58 candidates; implementation scope is source-verified and active-change overlap is clear.\n",
+    "design": "# Design: Fix Wedged Workflow Recovery\n\n## Architecture Decision\n\nImplement a single operator-only **workflow recovery** operation, not a raw Temporal Reset and not a live-workflow `diskAuthoritative` write.\n\nThe operation validates a shipped-but-wedged change, describes and pins the active Temporal run, terminates that exact run, derives readiness from one coherent durable disk snapshot, performs the authorized acceptance/release recovery, and verifies the resulting readback. This preserves the agreed outcome—no raw CLI and recovery from corrected durable state—without allowing a live workflow to overwrite the recovery projection.\n\n## Agreement Safety Amendment\n\nThe approved outcome remains unchanged. The implementation form changes:\n\n- Replace a standalone live `adv_gate_complete diskAuthoritative` path with a combined typed recovery operation that **terminates the pinned wedged run first**.\n- Do not expose Temporal Reset semantics; reset would replay history from an earlier event and is not a projection-authority repair.\n- `query_failed` remains diagnostic-only and never authorizes mutation.\n\nThis is required because a reachable workflow can re-project stale state after any direct disk write. A live-workflow disk override would violate the fail-closed constraint.\n\n## Components\n\n1. **Recovery classification**\n   - Extend the typed recovery-reason union with `query_failed`.\n   - Classify poisoned evidence as `poisoned_history`; completed/not-found as `missing_workflow`; other query failures as `query_failed`.\n   - Propagate through temporal read fallback and rendered `_recovery` metadata.\n\n2. **Operator-only workflow recovery tool**\n   - Add a named recovery/terminate surface; do not call it Reset.\n   - Require `changeId`, target gate (`acceptance` or `release`), explicit approval, non-empty approval/recovery evidence, recovery reason, dry run, and acceptance prior-approval evidence where applicable.\n   - Describe first; pin the run ID; terminate only that run.\n   - Require terminal shipment proof, completed prior gates, target-specific readiness, and a coherent disk snapshot.\n   - Treat an already-not-found/completed pinned run as idempotent only after eligibility checks.\n   - Termination failure, stale-run mismatch, incoherent snapshot, failed recovery write, or failed readback returns a structured failure without a false success.\n\n3. **Coherent disk recovery evaluator**\n   - Extract/reuse readiness evaluation so change, gates, tasks, artifacts, and ops-followup links originate from one snapshot.\n   - Preserve acceptance artifact/approval checks and release merge/reachability checks.\n   - Never accept `query_failed` as mutation authority.\n\n4. **Surface integration**\n   - Register tool and ownership policy as operator-only/dual authority.\n   - Update tool-name inventory, ownership asset tests, CLI surface matrix, and Temporal recovery documentation.\n   - Update generated public schemas only if a public persisted Zod model changes; otherwise keep output metadata internal but typed.\n\n## Rejected Alternatives\n\n- **Raw Temporal CLI:** unsupported operational workaround.\n- **True Temporal Reset:** wrong semantics; replays from history and does not establish disk authority.\n- **Standalone live disk override:** unsafe; live workflow can re-project stale state.\n- **Dedicated recovery signal:** viable but unsuitable for poisoned/non-replayable histories and larger than necessary.\n\n## Verification Plan\n\n1. RED tests for query-failure classification, healthy/unshipped refusal, stale run ID, termination failure, and live re-projection risk.\n2. GREEN tests for eligible acceptance/release recovery, already-terminated idempotency, coherent snapshot use, target-specific proof, and post-recovery readback.\n3. Tool-registration/ownership/doc asset tests; regenerate schemas if a public schema changes.\n4. Run targeted suites, `pnpm run schemas:check`, `pnpm run check`, and plugin build.\n\n## Design-Derived Criteria\n\n- **DD1:** Recovery cannot mutate a projection while the described pinned workflow run remains live.\n- **DD2:** Recovery refuses if shipment proof, gate sequence, task completion, target-specific evidence, or approval evidence is absent.\n- **DD3:** `query_failed` is represented as a typed reason and cannot satisfy a mutation-authority predicate.\n- **DD4:** Every recovery evaluation consumes one coherent disk snapshot rather than mixing disk change data with live gates.\n- **DD5:** Tool registration, ownership, surface documentation, and tests remain synchronized.\n\n## Validator Result\n\nIndependent `adv-researcher`: CAUTION, high confidence, high risk for the original live disk-authoritative write. Design revised to terminate the pinned run before disk-derived recovery. No validator conflict remains after this revision.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nThis change adds a controlled recovery path for terminally shipped ADV changes whose workflow is reachable but wedged. Release approval covers a safer operator-only repair path; it does not repair any existing incident.\n\n## Why It Matters\nThe recovery path prevents stale live workflow state from overwriting corrected durable state and makes failed workflow queries diagnosable without granting mutation authority.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Typed `query_failed` diagnostics and mutation refusal.\n2. Approval-gated pinned workflow termination for eligible shipped changes.\n3. Acceptance/release recovery from one durable disk snapshot after termination.\n4. Regression coverage for guards, merge enforcement, registration, ownership, and docs.\n\n## What Was Verified\n- Acceptance review: 0 blockers, 0 issues; contract matrix 19/19 rows pass/respected/n/a.\n- Tests: focused review 78/78; full suite 361 files / 5445 tests.\n- Checks: `pnpm run check` passed.\n- Harden: clean worktree and diff; focused release suite 49/49.\n- Preview URL: not_applicable — no frontend or visual-output work.\n\n## Release Readiness Summary\nREADY. Operator-only policy, exact run pinning, eligibility guards, dry-run, idempotency, failure-before-refresh, registry/ownership, and documentation surfaces were hardened. No release blockers or required follow-ups. Residual limitation: no live poisoned-history incident was executed; automated tests use mocked Temporal handles.\n\n## Remaining Concerns\nNone blocking.\n\n## Supporting Evidence\nTask checkpoints `tk-9a830ac3c12a`, `tk-c27ca0a33a1e`, `tk-e12e4c2d146a`, `tk-fab9911c3969`; reviewer reports attempts 1 and 2; contract matrix 19 rows.\n\n## Consequence Context\n1. **Delivered value — ready:** termination-first recovery prevents stale workflow projection overwrite.\n2. **Enabling-only/follow-up dependency — n/a:** no required links.\n3. **Ops readiness — ready:** no deployment or production operation; harden found no release blocker.\n4. **Migration/data impact — n/a:** no migration or user data change.\n5. **Frontend/preview impact — n/a:** no visual surface.\n6. **Collision/release risk — ready:** merge/reachability enforcement retained; clean worktree.\n7. **Open follow-ups — n/a:** none reported.\n8. **Next action — archive sign-off:** approval authorizes Phase 9 archive finalization.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-15T19:56:55.139Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **Typed reset path:** An audited ADV tool can terminate only an eligible reachable-but-wedged change workflow. It records the target change, termination outcome, reason, evidence, and idempotent already-terminated state. | pass | Reviewer READY; pinned termination tool has approval, eligibility, run-pinning, and idempotency coverage. |\n| SC2 | success_criterion | **Authoritative recovery path:** For an eligible acceptance or release recovery, `adv_gate_complete` can explicitly use the durable corrected projection even while a reachable wedged workflow would otherwise supply stale state. | pass | Gate recovery reads one durable snapshot after terminal workflow evidence; targeted gate tests pass. |\n| SC3 | success_criterion | **Accurate diagnostics:** A reachable workflow whose query handler fails is labeled `query_failed`; `missing_workflow` is reserved for an actually absent or terminally unavailable workflow. | pass | Typed query_failed classification and mutation rejection covered by task 1 tests. |\n| SC4 | success_criterion | **Fail-closed boundaries:** Unknown, unshipped, non-terminal, incomplete-prior-gate, or insufficiently evidenced reset/recovery requests make no workflow termination and no disk projection mutation. | pass | Refusal paths for incomplete, unavailable, and unshipped recovery states reviewed and tested. |\n| SC5 | success_criterion | **Regression proof:** Automated tests cover reset success, idempotency, each refusal boundary, disk-authoritative success/refusal, and query-failure classification. Public schema artifacts stay generated and checked. | pass | Review focused suite 78/78; integration full suite 5445/5445; pnpm run check passed. |\n| AC1 | acceptance_criterion | **AC1:** Given a reachable workflow wedged at acceptance or release, all prior gates done, shipped proof, and audit evidence, when the reset tool is invoked, then it terminates only that workflow and returns an audit result. | pass | change.workflow-terminate.test.ts 18/18 passes; focused review suite passes. |\n| AC2 | acceptance_criterion | **AC2:** Given the AC1 state and a corrected durable projection, when guarded disk-authoritative recovery completes the target gate, then it computes readiness from that projection without raw Temporal CLI use. | pass | gate.test.ts coherent disk snapshot recovery test passes. |\n| AC3 | acceptance_criterion | **AC3:** Given missing shipment proof, incomplete gates, missing evidence, unknown ID, or a non-terminal change, when reset or disk-authoritative recovery is requested, then ADV returns a structured refusal and performs no termination or projection write. | pass | Termination and gate recovery refusal tests pass. |\n| AC4 | acceptance_criterion | **AC4:** Given a reachable workflow query failure, when a read falls back to a projection, then `_recovery.reason` is `query_failed`, not `missing_workflow`. | pass | recovery-classification and Temporal store tests pass. |\n| AC5 | acceptance_criterion | **AC5:** Targeted regression tests, schema generation/check, and relevant plugin checks exit 0. | pass | pnpm run check and full suite 361 files/5445 tests pass. |\n| C1 | constraint | Reuse existing typed Temporal/store boundaries; do not add a raw CLI workaround. | respected | Review found typed tool/store/Temporal adapters only; no raw CLI path. |\n| C2 | constraint | Require explicit approval/evidence for destructive workflow termination. | respected | Termination requires explicit approval and non-empty audit evidence. |\n| C3 | constraint | Keep recovery limited to acceptance/release and preserve prior-gate/task/readiness checks. | respected | Recovery entrypoint limits targets to acceptance/release and retains task/readiness checks. |\n| C4 | constraint | Use Zod/schema-registry types for recovery-reason vocabulary; no string-only classification. | respected | query_failed is typed and rejected at mutation-authority boundaries. |\n| C5 | constraint | Preserve archive-purge semantics; the new tool is a distinct active/wedged recovery surface. | respected | Archived changes remain routed to archive purge; new tool covers active wedged recovery. |\n| C6 | constraint | Implementation runs in the ADV-managed change worktree. | respected | All task checkpoints were created on change/fixWedgedWorkflowRecovery worktree. |\n| OOS1 | out_of_scope | General Temporal worker supervision or restart redesign. | not_applicable | No general worker supervision redesign included. |\n| OOS2 | out_of_scope | Redesigning archive finalization, ops-followup semantics, or all recovery tools. | not_applicable | No archive finalization or ops-followup redesign included. |\n| OOS3 | out_of_scope | Repairing existing incidents without explicit operator approval. | not_applicable | No existing incident repair executed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-15T17:47:15.691Z",
+      "contentHash": "8fa4a2c1a7232045472d2951379b60cf124b76bc7f561b86d38ee06d8fcca203",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-15T17:47:15.691Z",
+      "contentHash": "417edbef280d81e860df77a626e08db2d67ed382afb78bac9eea099596ab66f9",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-15T17:58:09.955Z",
+      "contentHash": "0583c9f817183d6ba256438a88d4b26c2380cc40034687b1dc80e9bad64e4a6e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-15T18:05:17.934Z",
+      "contentHash": "1e12037441d21c4af8ed9e51b71a3f1e544c14f6ca3786aebcc360965487b0bc",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-15T20:07:08.512Z",
+      "contentHash": "585ca2f60d681adb6c6b4e3f7df81ecc0ca5e826e7a15f06e36ec0f35e572884",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-15T20:07:08.512Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/198"
+  ],
+  "worktree_auto_managed": true
+}
