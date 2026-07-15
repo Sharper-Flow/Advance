@@ -12,6 +12,7 @@ import {
   applyOriginRepairedToState,
   applyProposalUpdatedToState,
   applyTaskAddedToState,
+  applyTaskAssignedToState,
   applyTaskCompletedToState,
   applyTestRunRecordedToState,
   changeSeedStateFromChange,
@@ -50,6 +51,59 @@ function makeEngineerReport(changeId: string, taskId: string, attempt = 1) {
     context_update_for_adv: {
       what_ads_needs_to_know: "Report persisted",
       suggested_next_action: "Continue",
+    },
+  };
+}
+
+function makeDesignerReport(
+  changeId: string,
+  taskId: string,
+  implementationCycleId: string,
+  attempt = 1,
+) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: changeId,
+    task_id: taskId,
+    scope: { kind: "task" as const, task_id: taskId },
+    attempt,
+    agent: "adv-designer" as const,
+    status: "complete" as const,
+    files_touched: ["plugin/src/temporal/change-state.ts"],
+    verification: [
+      {
+        command: "pnpm exec vitest run src/temporal/change-state.test.ts",
+        exit_code: 0,
+        summary: "passed",
+      },
+    ],
+    decisions: [],
+    blockers: [],
+    follow_ups: [],
+    required_main_agent_actions: [],
+    related_scan: "none",
+    workdir_used: "/tmp/worktree",
+    context_update_for_adv: {
+      what_ads_needs_to_know: "Designer report persisted",
+      suggested_next_action: "Continue",
+    },
+    design_dimensions: {
+      component_correctness: "n/a" as const,
+      semantic_html_a11y: "n/a" as const,
+      responsive_behavior: "n/a" as const,
+      visual_polish: "n/a" as const,
+      site_design_consistency: "n/a" as const,
+      finer_details: "n/a" as const,
+      notes: "Workflow-only test",
+    },
+    neighboring_recommendations: [],
+    apply_context: {
+      implementation_cycle_id: implementationCycleId,
+      implementation_provenance: {
+        kind: "inline" as const,
+        baseline_head_sha: "abc123",
+        diff_ref: "test diff",
+      },
     },
   };
 }
@@ -774,6 +828,95 @@ describe("change-state pure mutation helpers", () => {
     });
     expect(state).not.toHaveProperty("taskRuns");
     expect(state.lastSignalAt).toBe("2026-05-06T00:00:02.000Z");
+  });
+
+  it("rejects frontend completion without matching designer cycle evidence", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-guard",
+      title: "Frontend cycle guard",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-frontend",
+        verification: "verified",
+        summary: "complete",
+        filesTouched: [],
+        completedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/requires successful adv-designer evidence/);
+  });
+
+  it("permits frontend completion with matching designer cycle evidence", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-allow",
+      title: "Frontend cycle allow",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-frontend",
+      report: makeDesignerReport(
+        "frontend-cycle-allow",
+        "tk-frontend",
+        "ic-frontend",
+      ),
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    applyTaskCompletedToState(state, {
+      taskId: "tk-frontend",
+      verification: "verified",
+      summary: "complete",
+      filesTouched: [],
+      completedAt: "2026-05-06T00:00:04.000Z",
+    });
+
+    expect(state.tasks[0]?.status).toBe("done");
   });
 
   it("preserves checkpoint metadata when a duplicate completion omits checkpointSha", () => {

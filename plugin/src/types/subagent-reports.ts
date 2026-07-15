@@ -79,6 +79,35 @@ export const SubagentVerificationEntrySchema = z
   })
   .strict();
 
+const ImplementationProvenanceSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("engineer"),
+      baseline_head_sha: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("engineer_report"),
+      report_key: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("inline"),
+      baseline_head_sha: z.string().min(1),
+      diff_ref: z.string().min(1),
+    })
+    .strict(),
+]);
+
+export const SubagentApplyContextSchema = z
+  .object({
+    implementation_cycle_id: z.string().min(1),
+    implementation_provenance: ImplementationProvenanceSchema,
+  })
+  .strict();
+
 export const SubagentDecisionSchema = z
   .object({
     what: z.string().min(1),
@@ -185,6 +214,7 @@ export const EngineerSubagentReportSchema =
         suggested_next_action: z.string().min(1),
       })
       .strict(),
+    apply_context: SubagentApplyContextSchema.optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   }).strict();
 
@@ -255,6 +285,7 @@ export const DesignerSubagentReportSchema =
     neighboring_recommendations: z.array(
       DesignerNeighboringRecommendationSchema,
     ),
+    apply_context: SubagentApplyContextSchema.optional(),
     required_follow_ups: z.array(RequiredFollowUpSchema).optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   }).strict();
@@ -1012,16 +1043,29 @@ export function subagentReportKey(input: {
   scope?: SubagentReportScope;
   agent: SubagentAgent;
   attempt: number;
+  implementationCycleId?: string;
 }): string {
+  const cycleSuffix = input.implementationCycleId
+    ? `|cycle:${input.implementationCycleId}`
+    : "";
   if (input.taskId) {
-    return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+    return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}${cycleSuffix}`;
   }
   const scopeId = input.scope
     ? input.scope.kind === "task"
       ? `task:${input.scope.task_id}`
       : `change:${input.scope.scope_key}`
     : "unknown-scope";
-  return `${input.changeId}|${scopeId}|${input.agent}|${input.attempt}`;
+  return `${input.changeId}|${scopeId}|${input.agent}|${input.attempt}${cycleSuffix}`;
+}
+
+export function subagentReportImplementationCycleId(
+  report: ScopedSubagentReport,
+): string | undefined {
+  if (report.agent !== "adv-engineer" && report.agent !== "adv-designer") {
+    return undefined;
+  }
+  return report.apply_context?.implementation_cycle_id;
 }
 
 // =============================================================================

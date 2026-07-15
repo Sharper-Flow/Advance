@@ -5,7 +5,10 @@ import {
   subagentReportSubmittedSignal,
   taskUpdatedSignal,
 } from "../temporal/messages";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import {
   SUBAGENT_REPORT_SCHEMA_VERSION,
   SubagentAgentSchema,
@@ -293,6 +296,7 @@ function reportId(report: ScopedSubagentReport): string {
     scope: typeof report.scope === "string" ? undefined : report.scope,
     agent: report.agent,
     attempt: report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(report),
   });
 }
 

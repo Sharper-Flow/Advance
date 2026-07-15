@@ -32,7 +32,10 @@ import {
   opsFollowupSeededSignal,
   opsFollowupLinkAddedSignal,
 } from "../temporal/messages";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   withTargetPathStore,
@@ -135,6 +138,7 @@ function reportId(report: ScopedSubagentReport): string {
     scope: typeof report.scope === "string" ? undefined : report.scope,
     agent: report.agent,
     attempt: report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(report),
   });
 }
 

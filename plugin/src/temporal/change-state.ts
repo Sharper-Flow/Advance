@@ -62,7 +62,10 @@ import {
   normalizePersistedSubagentReportState,
   normalizeLegacyChangeStatus,
 } from "../types";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
@@ -891,6 +894,25 @@ export function applyTaskCompletedToState(
     return state;
   }
 
+  const implementationCycleId = task.apply_cycle?.implementation_cycle_id;
+  if (task.metadata?.frontend === "true" && implementationCycleId) {
+    const reports = [
+      ...(state.subagent_reports ?? []),
+      ...(task.subagent_reports ?? []),
+    ];
+    if (
+      !hasMatchingDesignerApplyEvidence({
+        taskId: payload.taskId,
+        implementationCycleId,
+        reports,
+      })
+    ) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.`,
+      );
+    }
+  }
+
   // rq-TDD009seq: red-then-green ordering enforcement for inline TDD tasks.
   // Only fires when lastGreenRunId is structurally present (cutover boundary).
   // Legacy tasks without lastGreenRunId are grandfathered (C1).
@@ -1018,6 +1040,21 @@ function taskIdFromReport(
   return "task_id" in report ? report.task_id : undefined;
 }
 
+function hasMatchingDesignerApplyEvidence(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): boolean {
+  return input.reports.some(
+    (report) =>
+      report.agent === "adv-designer" &&
+      report.status === "complete" &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+}
+
 function reportKey(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): string {
@@ -1027,6 +1064,7 @@ function reportKey(
     scope: typeof report.scope === "string" ? undefined : report.scope,
     agent: report.agent,
     attempt: report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(report),
   });
 }
 

@@ -31,7 +31,10 @@ import type { Store } from "../storage/store-types";
 import type { Change, DesignConcernDisposition, Gates } from "../types";
 import { saveChange } from "../storage/json";
 import type { ArtifactMetadata } from "../temporal/contracts";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import { findArchiveBundle, bundleJsonStringify } from "../archive/archive";
 import { atomicWriteFile } from "../utils/fs";
 
@@ -312,6 +315,9 @@ export async function saveRecoveredSubagentReport(input: {
       typeof input.report.scope === "string" ? undefined : input.report.scope,
     agent: input.report.agent as never,
     attempt: input.report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(
+      input.report as never,
+    ),
   });
 
   const auditedReport = {
@@ -382,6 +388,7 @@ function recoveryReportKey(
     scope: typeof scope === "string" ? undefined : (scope as never),
     agent: report.agent as never,
     attempt: (report.attempt as number | undefined) ?? 1,
+    implementationCycleId: subagentReportImplementationCycleId(report as never),
   });
 }
 
