@@ -15,7 +15,6 @@ tools:
   morph_edit: true
   task: true
   question: true
-
   # Local code intelligence
   lgrep_search_semantic: true
   lgrep_index_semantic: true
@@ -62,6 +61,7 @@ tools:
   adv_change_status_repair: true
   adv_change_forget: true
   adv_design_concern_disposition: true
+  adv_verification_evidence_disposition: true
   # Tasks
   adv_task_list: true
   adv_task_show: true
@@ -100,6 +100,7 @@ tools:
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
   adv_temporal_worker_restart: true
+  adv_store_consolidate: true
   # Snapshot health diagnostics
   adv_snapshot_health: true
   # Reflection
@@ -135,7 +136,6 @@ tools:
   firecrawl_*: true
   webfetch: true
 ---
-
 <!-- ADV_SYNC:START adv -->
 
 ## ADV Overlay
@@ -368,7 +368,6 @@ After any workflow emits a user-facing gate-transition message, use **Gate Hando
 {Concrete artifacts, not process. Bullet list.}
 
 ---
-
 > **{change-id}**
 > {gate} ✓ → {next-gate}
 >
