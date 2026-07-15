@@ -10,10 +10,19 @@ import {
   buildPendingMergePhase9Status,
   verifyReleaseEvidenceFromMain,
   preservePhase9Evidence,
+  runReacquiringChangeQuery,
+  waitForArchiveReleaseGateCompletion,
 } from "./archive-gate";
 import * as gitFinalize from "../archive-helpers/git-finalize";
+import { getService, reinitStsl } from "../../temporal/service";
+import { getGateStatusQuery } from "../../temporal/messages";
 import type { Change, Store } from "../../types";
 import type { GitFinalizeDeps } from "../archive-helpers/git-finalize";
+
+vi.mock("../../temporal/service", () => ({
+  getService: vi.fn(),
+  reinitStsl: vi.fn(async () => undefined),
+}));
 
 function createStore(mainCheckout: string): Store {
   return {
@@ -283,5 +292,108 @@ describe("preservePhase9Evidence", () => {
     expect(next.changeTipSha).toBe("tip-202-abc");
     expect(next.autoMergeArmed).toBe(true);
     expect(next.status).toBe("done");
+  });
+});
+
+function fakeClientWithHandle(handle: { query: ReturnType<typeof vi.fn> }) {
+  return { workflow: { getHandle: vi.fn(() => handle) } };
+}
+
+describe("runReacquiringChangeQuery", () => {
+  // rq-reapOrphanAdvWorkers T2: a handle captured before a mid-op reconnect
+  // keeps the closed client. The reacquiring query must rebuild the handle
+  // from getService() inside every retry attempt.
+  it("reacquires the client via getService() on retry after a reconnectable transport failure", async () => {
+    const doneGate = { status: "done" };
+    const secondHandle = { query: vi.fn(async () => doneGate) };
+    const secondClient = fakeClientWithHandle(secondHandle);
+    const bundle: { client: unknown } = { client: undefined };
+    const firstHandle = {
+      query: vi.fn(async () => {
+        // Simulate reinitStsl mutating the cached bundle in place.
+        bundle.client = secondClient;
+        throw new Error("Channel has been shut down");
+      }),
+    };
+    const firstClient = fakeClientWithHandle(firstHandle);
+    bundle.client = firstClient;
+    vi.mocked(getService).mockImplementation(
+      () => bundle as unknown as ReturnType<typeof getService>,
+    );
+
+    const result = await runReacquiringChangeQuery(
+      "project-a",
+      "change-a",
+      getGateStatusQuery,
+      "release",
+    );
+
+    expect(result).toEqual(doneGate);
+    expect(firstHandle.query).toHaveBeenCalledTimes(1);
+    expect(secondHandle.query).toHaveBeenCalledTimes(1);
+    // The retried attempt rebuilt its handle from the swapped-in client,
+    // not the closed one.
+    expect(secondClient.workflow.getHandle).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(getService).mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // rq-reapOrphanAdvWorkers T2: saturation is retryable but NOT
+  // reconnectable — the shared connection must not be replaced.
+  it("retries bare read saturation (DEADLINE_EXCEEDED) without reconnecting", async () => {
+    const doneGate = { status: "done" };
+    const saturationError = Object.assign(
+      new Error("Query failed: deadline exceeded"),
+      {
+        cause: { code: 4, details: "context deadline exceeded", metadata: {} },
+      },
+    );
+    const handle = {
+      query: vi
+        .fn()
+        .mockRejectedValueOnce(saturationError)
+        .mockResolvedValueOnce(doneGate),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+    vi.mocked(reinitStsl).mockClear();
+
+    const result = await runReacquiringChangeQuery(
+      "project-a",
+      "change-a",
+      getGateStatusQuery,
+      "release",
+    );
+
+    expect(result).toEqual(doneGate);
+    expect(handle.query).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(reinitStsl)).not.toHaveBeenCalled();
+  });
+});
+
+describe("waitForArchiveReleaseGateCompletion", () => {
+  // rq-reapOrphanAdvWorkers T2: the confirmation poll must reacquire the
+  // service bundle + handle on every poll attempt, not reuse a captured one.
+  it("polls via a reacquiring query that rebuilds the handle from getService() each attempt", async () => {
+    const pendingGate = { status: "pending" };
+    const doneGate = { status: "done" };
+    const handle = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce(pendingGate)
+        .mockResolvedValueOnce(doneGate),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const result = await waitForArchiveReleaseGateCompletion(
+      "project-a",
+      "change-a",
+      { delayMs: 1 },
+    );
+
+    expect(result).toEqual(doneGate);
+    expect(handle.query).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(getService).mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(client.workflow.getHandle).toHaveBeenCalledTimes(2);
   });
 });

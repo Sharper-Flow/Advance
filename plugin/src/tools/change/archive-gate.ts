@@ -21,9 +21,12 @@ import { getService } from "../../temporal/service";
 import {
   fireSignalAndRefresh,
   getChangeHandle,
-  querySignal,
   waitForGateCompletion,
 } from "../_adapters";
+import {
+  runTemporalQuery,
+  type WorkflowHandleLike,
+} from "../../storage/store-temporal/shared";
 import {
   gateCompletedSignal,
   getGateStatusQuery,
@@ -81,9 +84,9 @@ export async function resolveArchiveGateState(
     return { effectiveGates: storeGates, storeGates, source: "store" };
   }
   try {
-    const handle = getChangeHandle(bundle.client, projectId, changeId);
-    const queriedGates = await querySignal<Gates>(
-      handle,
+    const queriedGates = await runReacquiringChangeQuery<Gates>(
+      projectId,
+      changeId,
       getGateStatusQuery,
       undefined,
     );
@@ -152,10 +155,70 @@ export function getArchiveGatePreflightError(
   return null;
 }
 // rq-releaseFinalization01: release gate confirmation must be durable.
+// rq-reapOrphanAdvWorkers T2: archive finalization reads must not pin a
+// pre-built handle. `reinitStsl` swaps the cached bundle's client in place
+// on reconnect; a handle captured before the retry loop keeps the closed
+// client and every retried query fails with the same transport error.
+// Rebuilding the handle from `getService()` inside each attempt closure
+// picks up the swapped-in client.
+function queryWithFreshChangeHandle(
+  projectId: string,
+  changeId: string,
+  query: unknown,
+  args: unknown[],
+): Promise<unknown> {
+  const bundle = getService();
+  if (!bundle) {
+    throw new Error("STSL not initialized for change query");
+  }
+  return getChangeHandle(bundle.client, projectId, changeId).query(
+    query,
+    ...args,
+  );
+}
+export function runReacquiringChangeQuery<T>(
+  projectId: string,
+  changeId: string,
+  query: unknown,
+  ...args: unknown[]
+): Promise<T> {
+  return runTemporalQuery(() =>
+    queryWithFreshChangeHandle(projectId, changeId, query, args),
+  ) as Promise<T>;
+}
+/**
+ * Handle-like adapter whose `query` reacquires the real handle from
+ * `getService()` on every invocation. Lets `waitForGateCompletion` (the
+ * single source of truth for gate poll semantics, STRUCT-003) drive the
+ * archive release-gate poll without pinning a stale client.
+ */
+function reacquiringChangeQueryHandle(
+  projectId: string,
+  changeId: string,
+): WorkflowHandleLike {
+  return {
+    query: (definition: unknown, ...args: unknown[]) =>
+      queryWithFreshChangeHandle(projectId, changeId, definition, args),
+    executeUpdate: () =>
+      Promise.reject(
+        new Error("reacquiring query handle does not support executeUpdate"),
+      ),
+    signal: () =>
+      Promise.reject(
+        new Error("reacquiring query handle does not support signal"),
+      ),
+  };
+}
 export async function waitForArchiveReleaseGateCompletion(
-  handle: ReturnType<typeof getChangeHandle>,
+  projectId: string,
+  changeId: string,
+  opts: { attempts?: number; delayMs?: number } = {},
 ): Promise<GateCompletion | undefined> {
-  return waitForGateCompletion(handle, "release");
+  return waitForGateCompletion(
+    reacquiringChangeQueryHandle(projectId, changeId),
+    "release",
+    opts,
+  );
 }
 export function buildReleaseCompletionEvidence(
   finalization: GitFinalizeOutcome,
@@ -897,8 +960,9 @@ export async function completeReleaseGateAfterFinalization(input: {
   const evidence = buildReleaseCompletionEvidence(input.finalization);
   let currentGate: GateCompletion | undefined;
   try {
-    currentGate = await querySignal<GateCompletion>(
-      handle,
+    currentGate = await runReacquiringChangeQuery<GateCompletion>(
+      projectId,
+      input.changeId,
       getGateStatusQuery,
       "release",
     );
@@ -934,7 +998,10 @@ export async function completeReleaseGateAfterFinalization(input: {
   }
   let postSignalGate: GateCompletion | undefined;
   try {
-    postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
+    postSignalGate = await waitForArchiveReleaseGateCompletion(
+      projectId,
+      input.changeId,
+    );
   } catch (error) {
     return recoverReleaseGateIfWorkflowCompleted(error, {
       store: input.store,
