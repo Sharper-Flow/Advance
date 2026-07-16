@@ -20,6 +20,17 @@ export interface WorkerLockContentsV2 {
   schema_version: 2;
   last_heartbeat: string;
   expected_queue?: string;
+  /**
+   * Generation of the worker bundle (`dist/temporal/bundle-manifest.json`)
+   * the owning worker child was started from. Optional: locks written
+   * before bundle manifests existed simply omit it. Written on acquire,
+   * then renewed ONLY by the worker.lock heartbeat — the sole
+   * post-acquire lock writer — after the roll monitor hands off a new
+   * generation (`worker-heartbeat.ts` `setBundleGeneration`). There is
+   * deliberately no direct "stamp the generation" writer here: a second
+   * read-modify-write path races the heartbeat and loses updates (AC5).
+   */
+  bundle_generation?: string;
 }
 
 export type WorkerLockContents = WorkerLockContentsV1 | WorkerLockContentsV2;
@@ -39,6 +50,7 @@ export interface AcquireWorkerLockOptions {
   lockFilename?: string;
   schemaVersion?: 1 | 2;
   expectedQueue?: string;
+  bundleGeneration?: string;
   now?: () => Date;
 }
 
@@ -71,6 +83,9 @@ export async function acquireWorkerLock(
           last_heartbeat: acquiredAt,
           ...(options.expectedQueue
             ? { expected_queue: options.expectedQueue }
+            : {}),
+          ...(options.bundleGeneration
+            ? { bundle_generation: options.bundleGeneration }
             : {}),
         }
       : { schema_version: 1 }),
@@ -154,7 +169,9 @@ export async function readLockContents(
     if (
       typeof parsed.last_heartbeat !== "string" ||
       (parsed.expected_queue !== undefined &&
-        typeof parsed.expected_queue !== "string")
+        typeof parsed.expected_queue !== "string") ||
+      (parsed.bundle_generation !== undefined &&
+        typeof parsed.bundle_generation !== "string")
     ) {
       return null;
     }
@@ -166,6 +183,9 @@ export async function readLockContents(
       last_heartbeat: parsed.last_heartbeat,
       ...(parsed.expected_queue
         ? { expected_queue: parsed.expected_queue }
+        : {}),
+      ...(parsed.bundle_generation
+        ? { bundle_generation: parsed.bundle_generation }
         : {}),
     };
   }

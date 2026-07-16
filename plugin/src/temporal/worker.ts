@@ -10,6 +10,18 @@ function resolveWorkflowsPath(): string {
   return fileURLToPath(new URL("./workflows.ts", import.meta.url));
 }
 
+/**
+ * Explicit Temporal `shutdownGraceTime` for every Worker this child
+ * process creates. The SDK default is 0 — a SIGTERM (sent by the parent's
+ * first-class `restartChild` bundle roll, see worker-multi.ts) would
+ * cancel in-flight workflow/activity tasks immediately instead of draining
+ * them. 5s gives polls and in-flight tasks a real drain window while
+ * staying well under the parent's hard-kill deadline
+ * (`RESTART_HARD_KILL_DEADLINE_MS` in worker-multi.ts), which MUST always
+ * exceed this value.
+ */
+export const TEMPORAL_WORKER_SHUTDOWN_GRACE_MS = 5_000;
+
 export interface TemporalWorkerOptions {
   address?: string;
   namespace?: string;
@@ -31,6 +43,7 @@ export async function runTemporalWorker(
       taskQueue: options.taskQueue,
       workflowsPath: options.workflowsPath ?? resolveWorkflowsPath(),
       activities,
+      shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
     });
 
     await worker.run();
@@ -194,6 +207,7 @@ export async function runMultiQueueTemporalWorker(
           taskQueue,
           workflowsPath,
           activities,
+          shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
         }),
       ),
     );
@@ -223,6 +237,7 @@ export async function runMultiQueueTemporalWorker(
             taskQueue: queue,
             workflowsPath,
             activities,
+            shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
           });
           workerRegistry.set(queue, newWorker);
           // Fire-and-forget .run so the IPC handler returns promptly.

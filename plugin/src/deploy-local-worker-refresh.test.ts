@@ -66,6 +66,8 @@ printf '// fake build\\n' > "$PWD/dist/index.js"
 printf '// fake worker\\n' > "$PWD/dist/temporal/worker.js"
 printf '// fake workflows\\n' > "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/index.js" "$PWD/dist/temporal/worker.js" "$PWD/dist/temporal/workflows.js"
+printf '{"schema_version":1,"generation":"fake","files":{"worker.js":"fake","workflows.js":"fake"},"built_at":"2026-01-01T00:00:00.000Z"}
+' > "$PWD/dist/temporal/bundle-manifest.json"
 `,
     { mode: 0o755 },
   );
