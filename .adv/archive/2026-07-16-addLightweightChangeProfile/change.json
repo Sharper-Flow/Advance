@@ -1,0 +1,2369 @@
+{
+  "id": "addLightweightChangeProfile",
+  "title": "Add lightweight change profile",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-16T17:53:16.187Z",
+  "tasks": [
+    {
+      "id": "tk-2523227ec38d",
+      "title": "Define lightweight profile state and evaluator",
+      "type": "code",
+      "section": "Typed profile foundation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-16T18:24:38.180Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Workflow-state implementation has no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T18:27:59.586Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addLightweightChangeProfile",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+          "task_id": "tk-2523227ec38d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2523227ec38d"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/lightweight-change-profile.ts",
+            "plugin/src/types/lightweight-change-profile.test.ts",
+            "plugin/src/types/lightweight-change-profile.state.test.ts",
+            "plugin/src/types/index.ts",
+            "plugin/src/types/changes.ts",
+            "plugin/src/types/signals.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/messages.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/temporal/workflows.lightweight-profile.test.ts",
+            "plugin/src/temporal/messages.test.ts",
+            "plugin/src/storage/store-temporal/shared.ts",
+            "plugin/schemas/change.schema.json"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile, lint, and format:check all pass"
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/temporal/messages.test.ts src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/temporal/workflows.lightweight-profile.test.ts",
+              "exit_code": 0,
+              "summary": "27 targeted tests pass (evaluator, reducer, signal contract, workflow signal handlers)"
+            },
+            {
+              "command": "../bin/oc-test targeted -- -t \"continues as new with every declared seedState field\" src/temporal/workflows.signal-handlers.test.ts",
+              "exit_code": 0,
+              "summary": "Continue-as-new seed field invariant passes with lightweight_profile included"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Plugin and Temporal worker bundles build successfully"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented a pure evaluator with no host I/O",
+              "why": "Design (DDC1) requires evaluator to accept normalized snapshots and perform zero host I/O; Git/worktree collection is deferred to the next task."
+            },
+            {
+              "what": "Computed result downgraded only when previousResult was qualified and current result is not qualified",
+              "why": "Preserves design AC7: revalidation failure after qualification records downgrade reason and continues standard workflow without resetting gates."
+            },
+            {
+              "what": "Used stable evaluation key {requestId}:{phase}:{fingerprint} for append-only deduplication",
+              "why": "Same request/phase/fingerprint retry reuses result; changed evidence appends once, preventing history growth."
+            },
+            {
+              "what": "Made omission policy a single immutable object with exactly four boolean flags",
+              "why": "Matches agreement/decision that eligible changes may omit only four bounded advisory categories."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated temporal/messages.test.ts signal contract count (54) and representative payload cases; confirmed continue-as-new seed field test still passes with new lightweight_profile key.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented typed lightweight change profile state and pure evaluator. Added six criterion schemas, evidence snapshot, qualified/ineligible/downgraded result, immutable four-category omission policy, stable evaluation key, and append-only history. Wired request/evaluation signals, workflow reducers, ChangeWorkflowState/ChangeSchema/seedState/continue-as-new, and read projection. All targeted tests and pnpm run check/build pass. No Git/worktree collector or command routing implemented (future task).",
+            "suggested_next_action": "Run bin/oc-test smoke/full before parent gates or proceed to task tk-2d8c3e7ce0d9 (evidence collection)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/temporal/messages.test.ts src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/temporal/workflows.lightweight-profile.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- -t \"continues as new with every declared seedState field\" src/temporal/workflows.signal-handlers.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run build"
+            }
+          ]
+        }
+      ],
+      "verification": "27 focused tests, continue-as-new invariant, pnpm run check, and pnpm run build passed via adv_run_test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.lightweight-profile.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/lightweight-change-profile.state.test.ts",
+        "plugin/src/types/lightweight-change-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.lightweight-profile.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/lightweight-change-profile.state.test.ts",
+        "plugin/src/types/lightweight-change-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "2c047f5f1f2b3d7a9107b8db8d4a461b5db8beef",
+      "completedAt": "2026-07-16T18:59:04.900Z",
+      "completed_at": "2026-07-16T18:59:04.900Z"
+    },
+    {
+      "id": "tk-2d8c3e7ce0d9",
+      "title": "Collect complete eligibility evidence",
+      "type": "code",
+      "section": "Evidence collection",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-16T18:24:49.677Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2523227ec38d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Host-side evidence collection has no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T18:59:48.380Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addLightweightChangeProfile",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+          "task_id": "tk-2d8c3e7ce0d9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2d8c3e7ce0d9"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/lightweight-change-profile-evidence.ts",
+            "plugin/src/utils/lightweight-change-profile-evidence.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/utils/lightweight-change-profile-evidence.test.ts",
+              "exit_code": 0,
+              "summary": "14 tests pass (multi-commit, rename, delete, untracked, stale fingerprint, dependency/spec-law detection, policy_absent, public_impact, proven_private, graph_failure, durable task/delta/scope facts, collector+evaluator integration)"
+            },
+            {
+              "command": "pnpm exec vitest run src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts",
+              "exit_code": 0,
+              "summary": "Existing lightweight profile pure-evaluator and state-reducer tests still pass (22 tests)"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all pass"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Plugin and Temporal worker bundles build successfully; the worker bundle does not pull in the new host-side collector"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used real git repositories in temp directories for the evidence-collector tests instead of mocking git-binary.",
+              "why": "Parsing git porcelain/diff output is critical to the collector; real repos exercise the complete baseline-to-current range, rename scoring, and untracked detection more faithfully than a mock."
+            },
+            {
+              "what": "Counted task types 'code' and 'verification' as implementation tasks.",
+              "why": "The TaskTypeSchema does not define 'implementation'; 'code' is the canonical implementation type, and 'verification' also produces implementation evidence."
+            },
+            {
+              "what": "Let git-detected spec-law path changes override stored spec deltas.",
+              "why": "The live worktree is the authoritative source for what changed; if a .adv/specs/ path appears in the diff range the change is ineligible regardless of stored delta state."
+            },
+            {
+              "what": "Passed the public-root API-compatibility policy into the collector as an optional input rather than embedding it in project.json.",
+              "why": "Policy shape is new; keeping it caller-supplied lets the project config/policy evolve without changing the collector module."
+            },
+            {
+              "what": "Resolved import specifiers by checking file existence across source extensions and directory-index candidates.",
+              "why": "First-candidate resolution produced false graph failures (e.g., reading 'src/public' instead of 'src/public.ts'); existence checks make the reachability graph accurate."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed import resolution to use file existence across extension/index candidates rather than returning the first candidate path. No other related patterns found in the untouched subsystem.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Host-side evidence collection for lightweight change profiles is implemented outside Temporal workflows. It collects complete baseline-to-current git range (committed/index/working-tree, renames/deletes/untracked), computes a content-sensitive fingerprint, loads durable task/delta/scope facts from storage, detects dependency manifest/lockfile changes and spec-law path changes, and evaluates deny-by-default public-root import/export reachability. 14 focused tests pass plus pnpm run check.",
+            "suggested_next_action": "Wire the collector into an ADV tool or workflow signal handler (command routing) in a follow-up task; keep the evaluator pure."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run build"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addLightweightChangeProfile",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+          "task_id": "tk-2d8c3e7ce0d9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2d8c3e7ce0d9"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/lightweight-change-profile.ts",
+            "plugin/src/utils/lightweight-change-profile-evidence.ts",
+            "plugin/src/utils/lightweight-change-profile-evidence.test.ts",
+            "plugin/src/types/lightweight-change-profile.test.ts",
+            "plugin/src/types/lightweight-change-profile.state.test.ts",
+            "plugin/src/tools/lightweight-profile.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "cd plugin && pnpm vitest run src/utils/lightweight-change-profile-evidence.test.ts",
+              "exit_code": 0,
+              "summary": "16 tests passed, including new invalid-baseline and non-git-workdir fail-closed tests."
+            },
+            {
+              "command": "cd plugin && pnpm vitest run src/types/lightweight-change-profile.test.ts",
+              "exit_code": 0,
+              "summary": "18 tests passed, including new direct incomplete-range evaluator test."
+            },
+            {
+              "command": "cd plugin && pnpm vitest run src/tools/lightweight-profile.test.ts",
+              "exit_code": 0,
+              "summary": "10 tests passed; updated mock snapshots remain compatible."
+            },
+            {
+              "command": "cd plugin && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run schemas:check && pnpm exec tsx scripts/check-test-isolation.ts",
+              "exit_code": 0,
+              "summary": "All static checks pass: typecheck, lint, format, schemas, and test isolation."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added `rangeStatus` enum to `changedPaths` in the snapshot schema instead of a boolean or top-level flag.",
+              "why": "A typed enum carries the failure surface (rev-parse, diff, status) in the evidence, keeps the evaluator pure, and gives a clear fail-closed reason. A boolean would hide which collection step failed."
+            },
+            {
+              "what": "Forced `changed_file_count` to `failed` when `rangeStatus !== \"complete\"`.",
+              "why": "The contract requires missing/unavailable evidence to be ineligible, not unknown. The criterion is the direct consumer of path-range completeness; failing it ensures result != qualified."
+            },
+            {
+              "what": "Included `rangeStatus` in the content fingerprint.",
+              "why": "Prevents a transition from incomplete to complete evidence from reusing the same fingerprint if the path set happens to be identical."
+            },
+            {
+              "what": "Updated all existing snapshot literals in tests to include `rangeStatus: \"complete\"`.",
+              "why": "The schema now requires the field; this preserves existing behavior and makes the type checker happy."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated every `changedPaths` literal in the touched subsystem (tests) to include the new required `rangeStatus` field; no other production code constructs this object.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Git evidence collection now fails closed. Added typed `rangeStatus` enum to changed-path evidence; rev-parse/diff/status failures surface as `incomplete_*` and force the changed-file-count criterion to `failed`. Real repos remain unchanged (`rangeStatus: complete`). Two RED→GREEN integration tests added for invalid baseline and non-git workdir; pure evaluator also has a direct incomplete-range test. All targeted tests, typecheck, lint, format, schemas:check, and test-isolation pass.",
+            "suggested_next_action": "Run full lightweight-profile test suite plus pnpm run check when host load permits; no code changes remaining for this task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm vitest run src/utils/lightweight-change-profile-evidence.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm vitest run src/types/lightweight-change-profile.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm vitest run src/tools/lightweight-profile.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run schemas:check && pnpm exec tsx scripts/check-test-isolation.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Reviewer remediation: 44 focused collector/evaluator/tool tests passed via tr_mro0exk9_e110c1e5; pnpm run check passed via tr_mro0h43n_b3e37f2d.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/lightweight-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.state.test.ts",
+        "plugin/src/types/lightweight-change-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.ts",
+        "plugin/src/utils/lightweight-change-profile-evidence.test.ts",
+        "plugin/src/utils/lightweight-change-profile-evidence.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/lightweight-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.state.test.ts",
+        "plugin/src/types/lightweight-change-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.ts",
+        "plugin/src/utils/lightweight-change-profile-evidence.test.ts",
+        "plugin/src/utils/lightweight-change-profile-evidence.ts"
+      ],
+      "checkpointSha": "0f10b92bb9e51f0a7b095d2a389cdbbe189e0592",
+      "completedAt": "2026-07-16T21:18:56.303Z",
+      "completed_at": "2026-07-16T21:18:56.303Z"
+    },
+    {
+      "id": "tk-731a12c746f6",
+      "title": "Route lightweight workflow safely",
+      "type": "code",
+      "section": "Workflow routing",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-16T18:25:00.974Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2523227ec38d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2d8c3e7ce0d9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Internal workflow routing has no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T19:26:11.293Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addLightweightChangeProfile",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+          "task_id": "tk-731a12c746f6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-731a12c746f6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/agents/adv.md",
+            ".opencode/command/adv-apply.md",
+            ".opencode/command/adv-prep.md",
+            ".opencode/command/adv-review.md",
+            "docs/cli-surface-matrix.md",
+            "docs/tool-ownership.md",
+            "plugin/src/cli-bridge-contract.test.ts",
+            "plugin/src/tool-registry.inventory.test.ts",
+            "plugin/src/tool-role-policy.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/tools/gate.test.ts",
+            "plugin/src/tools/gate.ts",
+            "plugin/src/utils/tool-title.ts",
+            "plugin/src/utils/workflow-directive.test.ts",
+            "plugin/src/utils/workflow-directive.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript passes"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tool-role-policy.test.ts src/tool-ownership-assets.test.ts src/cli-surface-matrix.test.ts src/cli-bridge-contract.test.ts src/tools/lightweight-profile.test.ts src/tools/gate.test.ts src/utils/workflow-directive.test.ts src/tool-registry.inventory.test.ts src/tool-name-assets.test.ts src/latent-tool-removal.test.ts src/advance-epics-assets.test.ts",
+              "exit_code": 0,
+              "summary": "308 tests pass across 11 files"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/workflows.lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts src/utils/lightweight-change-profile-evidence.test.ts src/temporal/change-state.test.ts",
+              "exit_code": 0,
+              "summary": "95 prior lightweight profile tests still pass"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas, typecheck, isolation, lockfile, lint, and format all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Registered adv_lightweight_profile_evaluate as orchestrator class in tool-role-policy.ts",
+              "why": "Tool is workflow-driven by gate completion and signals Temporal workflow; no destructive/operator-only surface"
+            },
+            {
+              "what": "Placed command markdown routing guidance under existing delegation and boundary sections",
+              "why": "Keeps the lightweight profile policy co-located with the routing decisions it affects, avoiding a scattered cross-file policy"
+            },
+            {
+              "what": "Ran pnpm run format to satisfy Prettier after check failure",
+              "why": "CI requires format:check green; formatting changes are style-only and do not alter behavior"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "None beyond the newly touched policy/docs/test files",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Completed lightweight profile routing task: added command docs for /adv-prep, /adv-apply, and /adv-review; registered adv_lightweight_profile_evaluate in tool-role-policy as orchestrator; added it to the adv.md manifest; updated docs/tool-ownership.md and docs/cli-surface-matrix.md; aligned frozen ADV_TOOL_NAMES snapshot and tool count accounting in cli-bridge-contract.test.ts and tool-registry.inventory.test.ts. Typecheck, targeted tests (308 pass), and pnpm run check all green.",
+            "suggested_next_action": "Run full plugin test suite (bin/oc-test full) and review the diff for the change before proceeding to acceptance"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tool-role-policy.test.ts src/tool-ownership-assets.test.ts src/cli-surface-matrix.test.ts src/cli-bridge-contract.test.ts src/tools/lightweight-profile.test.ts src/tools/gate.test.ts src/utils/workflow-directive.test.ts src/tool-registry.inventory.test.ts src/tool-name-assets.test.ts src/latent-tool-removal.test.ts src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/workflows.lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts src/utils/lightweight-change-profile-evidence.test.ts src/temporal/change-state.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addLightweightChangeProfile",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+          "task_id": "tk-731a12c746f6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-731a12c746f6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/gate.ts",
+            "plugin/src/tools/gate.test.ts",
+            "plugin/src/types/lightweight-change-profile.ts"
+          ],
+          "verification": [
+            {
+              "command": "cd plugin && pnpm exec vitest run src/tools/gate.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "42 tests passed (including 4 new RED→GREEN tests for policy propagation and failure-downgrade semantics)"
+            },
+            {
+              "command": "cd plugin && pnpm exec vitest run src/tools/lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "28 tests passed (no regressions in profile evaluator/type tests)"
+            },
+            {
+              "command": "cd plugin && pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm exec eslint src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts && pnpm exec prettier --check src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts",
+              "exit_code": 0,
+              "summary": "Schemas, typecheck, test isolation, lint, and format checks all passed for changed files"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Loaded public-root policy from store.config/project.json passthrough field and validated with PublicRootPolicySchema in gate.ts rather than changing ProjectConfigSchema",
+              "why": "Avoids a public Zod schema change and circular import risk while still centralizing and validating the policy for both boundary evaluations"
+            },
+            {
+              "what": "Recorded boundary failures by sending lightweightProfileEvaluatedSignal directly from gate.ts",
+              "why": "The existing evaluateLightweightProfileAndSignal returns errors instead of throwing for most failures; emitting a synthetic signal durably updates workflow state so prior qualified cannot remain directive. Preserves no-reset semantics: prior qualified becomes downgraded, otherwise ineligible."
+            },
+            {
+              "what": "Exported CRITERION_ORDER from types/lightweight-change-profile.ts",
+              "why": "Needed to construct a schema-valid criteria array (6 items) for synthetic failure evaluations without hard-coding criterion IDs in gate.ts."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified existing lightweight-profile and lightweight-change-profile type tests still pass; no same-pattern issues found elsewhere in gate.ts profile routing.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Acceptance remediation for lightweight profile routing is complete. Gate.ts now resolves a validated public-root API compatibility policy from project.json and passes it to execution_boundary (planning gate) and acceptance_boundary (execution gate) evaluations. On collector/service/signal failure, it durably records a downgraded/ineligible lightweightProfileEvaluated signal so a prior qualified profile cannot remain directive. Four new RED→GREEN tests cover policy propagation and failure-downgrade semantics; all 42 gate.test.ts tests pass.",
+            "suggested_next_action": "Run full plugin test suite / bin/oc-test smoke to confirm no regressions in related workflows, then proceed to acceptance re-review."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm exec eslint src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts && pnpm exec prettier --check src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts"
+            }
+          ]
+        }
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-16T20:14:23.112Z",
+      "verification": "Release hardening added fail-closed boundary-directive suppression; 26 workflow-directive tests passed via tr_mro213iy_be72bb62.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/workflow-directive.test.ts",
+        "plugin/src/utils/workflow-directive.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/workflow-directive.test.ts",
+        "plugin/src/utils/workflow-directive.ts"
+      ],
+      "checkpointSha": "68718cfc95df75377de5c17bb89ceaadde94ea16",
+      "completedAt": "2026-07-16T22:02:20.716Z",
+      "completed_at": "2026-07-16T22:02:20.716Z"
+    },
+    {
+      "id": "tk-f684eeba0a35",
+      "title": "Verify lightweight profile contract",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-16T18:25:13.206Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-731a12c746f6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Verification-only internal change."
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T20:16:23.183Z",
+      "verification": "Scoped lightweight contract suite passed 84/84 via adv_run_test tr_mrnzmq3b_6a0ecbf3. Two full-suite attempts were red only in unrelated cross-suite/Temporal/filesystem surfaces; targeted status suite passed 54/54 and source scan found no lightweight-profile integration.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f0b70c2b6637f296ce3f84bc1954b786e5a8abfa",
+      "completedAt": "2026-07-16T20:55:19.952Z",
+      "completed_at": "2026-07-16T20:55:19.952Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout for lightweight change profile",
+      "sources": [
+        {
+          "label": "Current proposal and problem statement",
+          "locator": "adv_change_show:addLightweightChangeProfile",
+          "summary": "Defines structural eligibility, fail-closed revalidation before execution and acceptance, preserved seven gates, and visible/auditable downgrade reasons."
+        },
+        {
+          "label": "Fast-track command contract",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-task.md:46-109",
+          "summary": "Current /adv-task always performs researcher validation, source scan, conflict scan, and task generation while crossing proposal through planning."
+        },
+        {
+          "label": "Central gate-readiness composition",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/gate-readiness.ts:901-957",
+          "summary": "Structural blockers are composed centrally into a typed ready/blockers result for acceptance and release."
+        },
+        {
+          "label": "Checkpoint touched-file derivation",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/checkpoint.ts:860-887",
+          "summary": "Checkpoint currently derives touched_files from only git diff --name-only HEAD~1 and persists that evidence on task completion."
+        },
+        {
+          "label": "Touched-file summary projection",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/context-snapshot.ts:112-150",
+          "summary": "Existing context snapshot computes a union count from task touched_files, but does not establish a change-baseline-to-head file diff."
+        },
+        {
+          "label": "Temporal TypeScript safe workflow evolution",
+          "locator": "https://docs.temporal.io/typescript/versioning",
+          "summary": "Temporal documents patch/versioning mechanisms for workflow-code changes that could affect replay determinism."
+        },
+        {
+          "label": "Zod typed result patterns",
+          "locator": "https://zod.dev/basics",
+          "summary": "Zod safeParse returns a discriminated success/error result, supporting explicit typed eligibility outcomes rather than prose inference."
+        },
+        {
+          "label": "Advance workflow spec",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json:57-94,4838-4868",
+          "summary": "Existing law defines /adv-task tracked fast-path behavior and structural acceptance/release blocking for missing verification evidence."
+        }
+      ],
+      "architecture_assessment": "Direction is sound but discovery should lock four leverage points and one unresolved evidence question. Auto-adopt: (1) implement one pure typed profile evaluator and call it from classification plus execution/acceptance readiness instead of duplicating command prose; (2) use a change-baseline-to-head repository diff as authoritative file-count evidence, because current checkpoint evidence is HEAD~1-only; (3) persist a discriminated eligibility result containing per-criterion reason, evidence/provenance, evaluation time, and downgrade history. User-surface: define an explicit allowlist of advisory workflow work that lightweight mode may omit; current /adv-task mandates researcher and scan work, while central gate-readiness blockers must remain untouched. Inconclusive: no bounded local evidence identified a repository-wide structural authority for both new-dependency and breaking-API detection, so these criteria need explicit evidence contracts before implementation.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Core typed, fail-closed profile aligns with existing Zod/Temporal and gate-readiness architecture. Caution remains because authoritative evidence for file count, dependency changes, breaking API status, and exact advisory-skip allowlist is not yet contracted."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Persisted per-criterion evidence improves auditability and fail-closed revalidation but adds schema, signal, projection, and replay-compatibility maintenance.",
+          "Baseline-to-head git evidence prevents undercounting across commits but requires explicit baseline identity and handling of renames/generated files.",
+          "An advisory-work allowlist is safer than broad skip flags but requires maintaining workflow-step classification as commands evolve."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Command-prose-only lightweight routing",
+            "disposition": "rejected",
+            "rationale": "Cannot structurally enforce eligibility, stale evidence, downgrade, or audit history."
+          },
+          {
+            "option": "Use task touched_files count as sole file-limit authority",
+            "disposition": "rejected",
+            "rationale": "Current checkpoint derives touched_files from HEAD~1, which can undercount a multi-commit change."
+          },
+          {
+            "option": "Broad lightweight boolean that disables research/review/test categories",
+            "disposition": "rejected",
+            "rationale": "Would mix advisory omission with required blockers and risks bypassing preserved gate protections."
+          },
+          {
+            "option": "Typed evaluator plus durable evidence and explicit advisory allowlist",
+            "disposition": "preferred",
+            "rationale": "Reuses central readiness architecture, preserves blockers, and keeps profile behavior inspectable."
+          }
+        ],
+        "recommendation": "During discovery agreement, specify one typed evaluator/result schema, authoritative evidence source and freshness rule for every eligibility criterion, change-baseline-to-head file counting, downgrade audit history, and a narrow allowlist of advisory work that may be omitted."
+      },
+      "recommendation": "Adopt the three low-risk structural leverage points now; surface advisory-skip policy for orchestrator/user synthesis; leave dependency/API evidence authority inconclusive until explicit contracts are selected.",
+      "follow_ups": [
+        "Active-change inventory was degraded by a Temporal deadline; prior-consideration/conflict absence is unknown and must not be inferred.",
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were present and followed.",
+        "No files were edited."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Bounded simplifications, reuse opportunities, and cross-cutting risks in lightweight-profile design",
+      "sources": [
+        {
+          "label": "ADV gate readiness implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/gate-readiness.ts#L901-L975",
+          "summary": "Central readiness returns structured blockers; adjacent criterion evaluation is explicitly advisory and uses pass/fail/na semantics."
+        },
+        {
+          "label": "ADV workflow state contracts",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/contracts.ts#L214-L277",
+          "summary": "Continue-as-new/bootstrap seed state uses an explicit Pick list, so new durable profile state must be added deliberately."
+        },
+        {
+          "label": "ADV change-state seed mapping",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L121-L180",
+          "summary": "Initial state and persisted-change seed mapping are explicit, creating another required profile-state propagation point."
+        },
+        {
+          "label": "ADV workflow bundle boundary",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/AGENTS.md#L33-L40",
+          "summary": "Workflow-reachable code cannot import tools, storage, or node:*; external Git evidence collection must remain outside the workflow-pure evaluator."
+        },
+        {
+          "label": "ADV delegation precedence law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.adv/specs/advance-meta/spec.json#L1209-L1230",
+          "summary": "Explicit delegation_hint and risk signals retain precedence over default/context-shed delegation heuristics."
+        },
+        {
+          "label": "Official Git diff documentation",
+          "locator": "https://git-scm.com/docs/git-diff",
+          "summary": "Committed-range, staged, and unstaged comparisons are distinct; --name-status and rename detection provide typed path statuses."
+        },
+        {
+          "label": "Temporal TypeScript safe versioning",
+          "locator": "https://docs.temporal.io/typescript/versioning",
+          "summary": "Workflow behavior changes that affect replay require safe versioning/patching rather than assuming ordinary code replacement is harmless."
+        },
+        {
+          "label": "Zod v4 discriminated unions",
+          "locator": "https://github.com/colinhacks/zod/blob/v4.0.1/packages/docs/content/api.mdx",
+          "summary": "Zod supports discriminated unions suitable for qualified/ineligible/downgraded typed outcomes."
+        }
+      ],
+      "architecture_assessment": "Scout candidates (5): [auto-adopt] Keep profile qualification separate from advisory evaluateGateCriteria semantics; unknown/error must produce ineligible/downgraded, never advisory na. [auto-adopt] Split evidence collection from evaluation: an outer collector obtains Git/worktree/API evidence, while one workflow-safe pure evaluator consumes the normalized snapshot. [auto-adopt] Persist one append-only evaluation history whose downgraded entries carry reason and prior revision; derive downgrade history and active result instead of maintaining two competing histories. [auto-adopt] Treat profile state propagation as one atomic contract change across ChangeWorkflowState, seedState Pick, createChangeWorkflowState, changeSeedStateFromChange, signals/handlers, and continue-as-new tests. [inconclusive] No existing typed API-compatibility authority was found; keep this criterion fail-closed until a specific authority and freshness rule are named. Additional cross-cutting guard: the omission allowlist must suppress only default optional specialist delegation, not explicit delegation_hint or risk-forced inline routing.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Overall design preserves gates and central authority, but implementation would be unsafe if it reused advisory na semantics, collected Git evidence inside workflow code, omitted seed/continue-as-new propagation, duplicated downgrade histories, or guessed API compatibility authority."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "A separate fail-closed evaluator duplicates a small amount of criterion-evaluation structure but avoids inheriting advisory na behavior.",
+          "One append-only evaluation history simplifies persistence but consumers must derive downgrade views.",
+          "External evidence collection preserves workflow isolation but requires freshness and baseline identity in every snapshot.",
+          "Preserving explicit delegation overrides narrows the lightweight omission benefit when a user has deliberately requested delegation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Reuse evaluateGateCriteria directly",
+            "disposition": "rejected",
+            "rationale": "Its documented advisory pass/fail/na behavior is incompatible with fail-closed qualification."
+          },
+          {
+            "option": "Collect Git evidence inside Temporal workflow code",
+            "disposition": "rejected",
+            "rationale": "Project workflow bundle boundaries forbid tool/storage/node imports and Git is external mutable state."
+          },
+          {
+            "option": "Persist separate evaluation and downgrade histories",
+            "disposition": "rejected",
+            "rationale": "A single typed append-only history can represent downgrade transitions without duplicate sources of truth."
+          },
+          {
+            "option": "Infer API compatibility from changed paths or task prose",
+            "disposition": "rejected",
+            "rationale": "No typed authority was found, and the agreement requires unavailable evidence to be ineligible."
+          }
+        ],
+        "recommendation": "Revise design with the four auto-adopt clarifications, retain fail-closed API criterion, and name API authority before implementation."
+      },
+      "recommendation": "Adopt four structural simplifications now; leave API compatibility inconclusive/fail-closed until a typed, fresh authority is specified. Ensure lightweight omission cannot override explicit delegation_hint or risk routing.",
+      "follow_ups": [
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were present and followed.",
+        "Local semantic search timed out twice, including required non-hybrid retry; symbol/text search and direct source reads supplied local evidence instead.",
+        "Episode recall returned no relevant authoritative project decision and was not used as evidence."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Revalidation of repaired lightweight-profile design",
+      "sources": [
+        {
+          "label": "Approved agreement",
+          "locator": "adv://change/addLightweightChangeProfile/agreement",
+          "summary": "Requires complete-range evidence, fail-closed API evidence, exactly six criteria, central typed routing, seven retained gates, and unchanged safety/review/release controls."
+        },
+        {
+          "label": "Revised design",
+          "locator": "adv://change/addLightweightChangeProfile/design",
+          "summary": "Now includes porcelain-derived untracked paths, a content-sensitive full evidence fingerprint, deny-by-default public-root reachability, stable evaluation idempotency, and focused regression tests."
+        },
+        {
+          "label": "Git status documentation",
+          "locator": "https://git-scm.com/docs/git-status",
+          "summary": "Porcelain status provides stable scripting output and separately represents untracked paths, supporting explicit complete-worktree enumeration."
+        },
+        {
+          "label": "Temporal workflow basics",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/basics",
+          "summary": "Workflow logic must remain deterministic; external state access belongs outside workflow logic or in recorded Activities."
+        },
+        {
+          "label": "Temporal Continue-As-New documentation",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/continue-as-new",
+          "summary": "Continue-As-New carries state through new input and message handlers should finish before continuation, supporting explicit profile propagation and idempotent state handling."
+        },
+        {
+          "label": "Advance Workflow spec",
+          "locator": "adv://spec/advance-workflow",
+          "summary": "rq-gatemodel01 preserves all seven ordered gates; rq-R3v13wR1 preserves evidence-backed review/harden; scope re-entry remains independently authoritative."
+        },
+        {
+          "label": "Delegation Defaults spec",
+          "locator": "adv://spec/delegation-defaults",
+          "summary": "Defines mandatory design/review/harden delegation boundaries that the revised omission policy expressly retains."
+        },
+        {
+          "label": "Local workflow state contract",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/contracts.ts",
+          "summary": "Durable workflow seed fields are explicitly enumerated, making profile propagation structurally testable."
+        },
+        {
+          "label": "Local pure state-transition pattern",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/change-state.ts",
+          "summary": "Existing workflow mutations use typed deterministic state functions, matching the proposed pure evaluator and idempotent evaluation application."
+        },
+        {
+          "label": "Local Continue-As-New path",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflows.ts",
+          "summary": "Existing implementation explicitly copies seed fields and waits for handlers before continuation."
+        }
+      ],
+      "architecture_assessment": "The two prior blockers are resolved without weakening the agreement. Explicit porcelain-derived untracked paths close the complete-range enumeration gap, while the fingerprint binds untracked content and every material mutable evidence dimension so same-HEAD worktree changes become stale. The API criterion now has a conservative structural authority: named public roots plus deny-by-default import/export reachability, with policy absence, unsupported/failed graph analysis, reachable paths, and unknown outcomes all ineligible. This proves only absence of modeled public-interface reachability and deliberately leaves behavioral correctness to retained specs, targeted tests, and review; that separation is compatible with the agreement because uncertainty falls back to standard workflow. Stable request+phase+fingerprint keys resolve retry-driven history growth while preserving distinct initial, execution, and acceptance records. Core shape remains simple: one evaluator, one snapshot, one central policy, no competing state machine.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Prior untracked-file and API-authority blockers are resolved. No remaining contract, security, or release blocker found. Implementation must verify porcelain parsing, graph fail-closed behavior, fingerprint sensitivity, and seed/Continue-As-New propagation exactly as designed."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Deny-by-default public reachability will reject some genuinely safe changes, but false negatives safely use standard workflow.",
+          "Content-sensitive fingerprints add collector complexity, but prevent stale qualification when HEAD remains unchanged.",
+          "Idempotent history preserves auditability while intentionally reusing duplicate delivery of identical phase evidence.",
+          "Static public-root reachability is narrower than behavioral compatibility, so targeted tests and review remain mandatory rather than omitted."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Treat unstaged as implicitly including untracked paths",
+            "disposition": "rejected",
+            "rationale": "Git exposes untracked paths distinctly; explicit porcelain handling is safer and testable."
+          },
+          {
+            "option": "Use path-name classification as API authority",
+            "disposition": "rejected",
+            "rationale": "It does not prove transitive public reachability and can silently misclassify public impact."
+          },
+          {
+            "option": "Use deny-by-default public-root import/export reachability with unknown-on-failure",
+            "disposition": "preferred",
+            "rationale": "Boring, deterministic, conservative, and compatible with fail-closed agreement semantics."
+          },
+          {
+            "option": "Append a new history entry for every signal retry",
+            "disposition": "rejected",
+            "rationale": "Adds no evidence and permits duplicate growth."
+          },
+          {
+            "option": "Deduplicate by stable request, phase, and evidence fingerprint",
+            "disposition": "preferred",
+            "rationale": "Preserves one auditable result per distinct boundary evidence state while making retries idempotent."
+          }
+        ],
+        "recommendation": "Complete design validation and proceed to planning. Keep implementation acceptance strict: tests must prove explicit untracked inclusion, each fingerprint dimension, graph unknown/failure ineligibility, public/reachable rejection, retry deduplication, retained delegation/review/release controls, and profile propagation through seed/reseed/Continue-As-New."
+      },
+      "recommendation": "Proceed to planning. Treat implementation tests—not prose—as proof that collector completeness, graph fail-closed behavior, fingerprint freshness, idempotency, and retained workflow controls match the repaired design.",
+      "follow_ups": [
+        "All required identity and scope anchors were present.",
+        "No new user-value commitment was introduced.",
+        "Episode was not recalled again; prior single advisory recall supplied no authoritative evidence."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "task_id": "tk-2523227ec38d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2523227ec38d"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/lightweight-change-profile.ts",
+        "plugin/src/types/lightweight-change-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.state.test.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/temporal/workflows.lightweight-profile.test.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/schemas/change.schema.json"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile, lint, and format:check all pass"
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/temporal/messages.test.ts src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/temporal/workflows.lightweight-profile.test.ts",
+          "exit_code": 0,
+          "summary": "27 targeted tests pass (evaluator, reducer, signal contract, workflow signal handlers)"
+        },
+        {
+          "command": "../bin/oc-test targeted -- -t \"continues as new with every declared seedState field\" src/temporal/workflows.signal-handlers.test.ts",
+          "exit_code": 0,
+          "summary": "Continue-as-new seed field invariant passes with lightweight_profile included"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Plugin and Temporal worker bundles build successfully"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented a pure evaluator with no host I/O",
+          "why": "Design (DDC1) requires evaluator to accept normalized snapshots and perform zero host I/O; Git/worktree collection is deferred to the next task."
+        },
+        {
+          "what": "Computed result downgraded only when previousResult was qualified and current result is not qualified",
+          "why": "Preserves design AC7: revalidation failure after qualification records downgrade reason and continues standard workflow without resetting gates."
+        },
+        {
+          "what": "Used stable evaluation key {requestId}:{phase}:{fingerprint} for append-only deduplication",
+          "why": "Same request/phase/fingerprint retry reuses result; changed evidence appends once, preventing history growth."
+        },
+        {
+          "what": "Made omission policy a single immutable object with exactly four boolean flags",
+          "why": "Matches agreement/decision that eligible changes may omit only four bounded advisory categories."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated temporal/messages.test.ts signal contract count (54) and representative payload cases; confirmed continue-as-new seed field test still passes with new lightweight_profile key.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented typed lightweight change profile state and pure evaluator. Added six criterion schemas, evidence snapshot, qualified/ineligible/downgraded result, immutable four-category omission policy, stable evaluation key, and append-only history. Wired request/evaluation signals, workflow reducers, ChangeWorkflowState/ChangeSchema/seedState/continue-as-new, and read projection. All targeted tests and pnpm run check/build pass. No Git/worktree collector or command routing implemented (future task).",
+        "suggested_next_action": "Run bin/oc-test smoke/full before parent gates or proceed to task tk-2d8c3e7ce0d9 (evidence collection)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/temporal/messages.test.ts src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/temporal/workflows.lightweight-profile.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- -t \"continues as new with every declared seedState field\" src/temporal/workflows.signal-handlers.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run build"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "task_id": "tk-2d8c3e7ce0d9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2d8c3e7ce0d9"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/lightweight-change-profile-evidence.ts",
+        "plugin/src/utils/lightweight-change-profile-evidence.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/utils/lightweight-change-profile-evidence.test.ts",
+          "exit_code": 0,
+          "summary": "14 tests pass (multi-commit, rename, delete, untracked, stale fingerprint, dependency/spec-law detection, policy_absent, public_impact, proven_private, graph_failure, durable task/delta/scope facts, collector+evaluator integration)"
+        },
+        {
+          "command": "pnpm exec vitest run src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts",
+          "exit_code": 0,
+          "summary": "Existing lightweight profile pure-evaluator and state-reducer tests still pass (22 tests)"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all pass"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Plugin and Temporal worker bundles build successfully; the worker bundle does not pull in the new host-side collector"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used real git repositories in temp directories for the evidence-collector tests instead of mocking git-binary.",
+          "why": "Parsing git porcelain/diff output is critical to the collector; real repos exercise the complete baseline-to-current range, rename scoring, and untracked detection more faithfully than a mock."
+        },
+        {
+          "what": "Counted task types 'code' and 'verification' as implementation tasks.",
+          "why": "The TaskTypeSchema does not define 'implementation'; 'code' is the canonical implementation type, and 'verification' also produces implementation evidence."
+        },
+        {
+          "what": "Let git-detected spec-law path changes override stored spec deltas.",
+          "why": "The live worktree is the authoritative source for what changed; if a .adv/specs/ path appears in the diff range the change is ineligible regardless of stored delta state."
+        },
+        {
+          "what": "Passed the public-root API-compatibility policy into the collector as an optional input rather than embedding it in project.json.",
+          "why": "Policy shape is new; keeping it caller-supplied lets the project config/policy evolve without changing the collector module."
+        },
+        {
+          "what": "Resolved import specifiers by checking file existence across source extensions and directory-index candidates.",
+          "why": "First-candidate resolution produced false graph failures (e.g., reading 'src/public' instead of 'src/public.ts'); existence checks make the reachability graph accurate."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed import resolution to use file existence across extension/index candidates rather than returning the first candidate path. No other related patterns found in the untouched subsystem.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Host-side evidence collection for lightweight change profiles is implemented outside Temporal workflows. It collects complete baseline-to-current git range (committed/index/working-tree, renames/deletes/untracked), computes a content-sensitive fingerprint, loads durable task/delta/scope facts from storage, detects dependency manifest/lockfile changes and spec-law path changes, and evaluates deny-by-default public-root import/export reachability. 14 focused tests pass plus pnpm run check.",
+        "suggested_next_action": "Wire the collector into an ADV tool or workflow signal handler (command routing) in a follow-up task; keep the evaluator pure."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run build"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "task_id": "tk-731a12c746f6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-731a12c746f6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-review.md",
+        "docs/cli-surface-matrix.md",
+        "docs/tool-ownership.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/utils/tool-title.ts",
+        "plugin/src/utils/workflow-directive.test.ts",
+        "plugin/src/utils/workflow-directive.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript passes"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tool-role-policy.test.ts src/tool-ownership-assets.test.ts src/cli-surface-matrix.test.ts src/cli-bridge-contract.test.ts src/tools/lightweight-profile.test.ts src/tools/gate.test.ts src/utils/workflow-directive.test.ts src/tool-registry.inventory.test.ts src/tool-name-assets.test.ts src/latent-tool-removal.test.ts src/advance-epics-assets.test.ts",
+          "exit_code": 0,
+          "summary": "308 tests pass across 11 files"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/workflows.lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts src/utils/lightweight-change-profile-evidence.test.ts src/temporal/change-state.test.ts",
+          "exit_code": 0,
+          "summary": "95 prior lightweight profile tests still pass"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas, typecheck, isolation, lockfile, lint, and format all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Registered adv_lightweight_profile_evaluate as orchestrator class in tool-role-policy.ts",
+          "why": "Tool is workflow-driven by gate completion and signals Temporal workflow; no destructive/operator-only surface"
+        },
+        {
+          "what": "Placed command markdown routing guidance under existing delegation and boundary sections",
+          "why": "Keeps the lightweight profile policy co-located with the routing decisions it affects, avoiding a scattered cross-file policy"
+        },
+        {
+          "what": "Ran pnpm run format to satisfy Prettier after check failure",
+          "why": "CI requires format:check green; formatting changes are style-only and do not alter behavior"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "None beyond the newly touched policy/docs/test files",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Completed lightweight profile routing task: added command docs for /adv-prep, /adv-apply, and /adv-review; registered adv_lightweight_profile_evaluate in tool-role-policy as orchestrator; added it to the adv.md manifest; updated docs/tool-ownership.md and docs/cli-surface-matrix.md; aligned frozen ADV_TOOL_NAMES snapshot and tool count accounting in cli-bridge-contract.test.ts and tool-registry.inventory.test.ts. Typecheck, targeted tests (308 pass), and pnpm run check all green.",
+        "suggested_next_action": "Run full plugin test suite (bin/oc-test full) and review the diff for the change before proceeding to acceptance"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tool-role-policy.test.ts src/tool-ownership-assets.test.ts src/cli-surface-matrix.test.ts src/cli-bridge-contract.test.ts src/tools/lightweight-profile.test.ts src/tools/gate.test.ts src/utils/workflow-directive.test.ts src/tool-registry.inventory.test.ts src/tool-name-assets.test.ts src/latent-tool-removal.test.ts src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/workflows.lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts src/utils/lightweight-change-profile-evidence.test.ts src/temporal/change-state.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "review-routing-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/gate.ts",
+          "line": 125,
+          "what": "Automatic boundary revalidation never supplies the required public-root policy.",
+          "why": "Both boundary calls omit `apiCompatibilityPolicy`; collector returns `policy_absent` at plugin/src/utils/lightweight-change-profile-evidence.ts:532, so API compatibility fails and every automatically revalidated profile becomes ineligible/downgraded. A profile manually qualified with a policy cannot remain qualified at execution or acceptance, defeating AC4's qualified-boundary routing.",
+          "fix": "Persist or centrally derive a validated public-root policy and pass it to each boundary evaluation; add execution- and acceptance-boundary qualification tests."
+        },
+        {
+          "id": "review-routing-2",
+          "label": "blocker",
+          "file": "plugin/src/tools/gate.ts",
+          "line": 137,
+          "what": "Boundary evaluation failures are only logged after gate completion, retaining any prior qualified directive.",
+          "why": "`evaluateLightweightProfileAtPhases` swallows unsuccessful evaluations and exceptions. The directive derives eligibility from the last stored evaluation (plugin/src/utils/workflow-directive.ts:226), so unavailable/stale boundary proof can leave an earlier qualified result active. This violates AC2/AC4 and C3 fail-closed requirements.",
+          "fix": "Make failed boundary revalidation durably ineligible/downgraded before routing, or block lightweight routing until a successful current-boundary evaluation exists; cover evaluator/service/signal failure."
+        },
+        {
+          "id": "review-evidence-1",
+          "label": "blocker",
+          "file": "plugin/src/utils/lightweight-change-profile-evidence.ts",
+          "line": 150,
+          "what": "Git evidence collection errors are diagnostics only and can yield qualifying empty evidence.",
+          "why": "Failure of `git diff baseline..HEAD`, `git status`, or `rev-parse` is caught, but evaluator receives ordinary empty path/spec/dependency facts and does not consume diagnostics. With otherwise valid task, scope, and API evidence, unavailable complete-range evidence can qualify, contrary to AC2, C3, C5, and DONT4.",
+          "fix": "Represent Git collection completeness in typed evidence and fail changed-file/spec/dependency qualification closed whenever required Git commands fail; test invalid baseline and status/revision failures."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A fail-closed evaluator is insufficient when upstream collectors collapse unavailable evidence into ordinary empty values or boundary callers discard evaluation failures; freshness/completeness must be represented in typed state consumed by routing."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/temporal/workflows.lightweight-profile.test.ts src/utils/lightweight-change-profile-evidence.test.ts src/tools/lightweight-profile.test.ts src/tools/gate.test.ts src/utils/workflow-directive.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "110/110 tests passed in 7 files. Source review found the three fail-closed routing/evidence gaps above; existing tests do not exercise them."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No code was changed: repair requires defining authoritative public-root policy persistence/derivation and durable handling for unsuccessful revalidation.",
+        "The current automatic gate path makes lightweight routing unusable for otherwise eligible changes and can retain stale prior qualification after boundary evaluation failure."
+      ],
+      "required_main_agent_actions": [
+        "Route the three blockers to an ADV engineer within this change; retain acceptance gate pending.",
+        "Require focused tests for automatic execution/acceptance qualification, failed boundary evaluation with prior qualification, and Git collection failure before rerunning scoped review."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "task_id": "tk-2d8c3e7ce0d9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2d8c3e7ce0d9"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/lightweight-change-profile.ts",
+        "plugin/src/utils/lightweight-change-profile-evidence.ts",
+        "plugin/src/utils/lightweight-change-profile-evidence.test.ts",
+        "plugin/src/types/lightweight-change-profile.test.ts",
+        "plugin/src/types/lightweight-change-profile.state.test.ts",
+        "plugin/src/tools/lightweight-profile.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "cd plugin && pnpm vitest run src/utils/lightweight-change-profile-evidence.test.ts",
+          "exit_code": 0,
+          "summary": "16 tests passed, including new invalid-baseline and non-git-workdir fail-closed tests."
+        },
+        {
+          "command": "cd plugin && pnpm vitest run src/types/lightweight-change-profile.test.ts",
+          "exit_code": 0,
+          "summary": "18 tests passed, including new direct incomplete-range evaluator test."
+        },
+        {
+          "command": "cd plugin && pnpm vitest run src/tools/lightweight-profile.test.ts",
+          "exit_code": 0,
+          "summary": "10 tests passed; updated mock snapshots remain compatible."
+        },
+        {
+          "command": "cd plugin && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run schemas:check && pnpm exec tsx scripts/check-test-isolation.ts",
+          "exit_code": 0,
+          "summary": "All static checks pass: typecheck, lint, format, schemas, and test isolation."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added `rangeStatus` enum to `changedPaths` in the snapshot schema instead of a boolean or top-level flag.",
+          "why": "A typed enum carries the failure surface (rev-parse, diff, status) in the evidence, keeps the evaluator pure, and gives a clear fail-closed reason. A boolean would hide which collection step failed."
+        },
+        {
+          "what": "Forced `changed_file_count` to `failed` when `rangeStatus !== \"complete\"`.",
+          "why": "The contract requires missing/unavailable evidence to be ineligible, not unknown. The criterion is the direct consumer of path-range completeness; failing it ensures result != qualified."
+        },
+        {
+          "what": "Included `rangeStatus` in the content fingerprint.",
+          "why": "Prevents a transition from incomplete to complete evidence from reusing the same fingerprint if the path set happens to be identical."
+        },
+        {
+          "what": "Updated all existing snapshot literals in tests to include `rangeStatus: \"complete\"`.",
+          "why": "The schema now requires the field; this preserves existing behavior and makes the type checker happy."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated every `changedPaths` literal in the touched subsystem (tests) to include the new required `rangeStatus` field; no other production code constructs this object.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Git evidence collection now fails closed. Added typed `rangeStatus` enum to changed-path evidence; rev-parse/diff/status failures surface as `incomplete_*` and force the changed-file-count criterion to `failed`. Real repos remain unchanged (`rangeStatus: complete`). Two RED→GREEN integration tests added for invalid baseline and non-git workdir; pure evaluator also has a direct incomplete-range test. All targeted tests, typecheck, lint, format, schemas:check, and test-isolation pass.",
+        "suggested_next_action": "Run full lightweight-profile test suite plus pnpm run check when host load permits; no code changes remaining for this task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm vitest run src/utils/lightweight-change-profile-evidence.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm vitest run src/types/lightweight-change-profile.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm vitest run src/tools/lightweight-profile.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run schemas:check && pnpm exec tsx scripts/check-test-isolation.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "task_id": "tk-731a12c746f6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-731a12c746f6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/types/lightweight-change-profile.ts"
+      ],
+      "verification": [
+        {
+          "command": "cd plugin && pnpm exec vitest run src/tools/gate.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "42 tests passed (including 4 new RED→GREEN tests for policy propagation and failure-downgrade semantics)"
+        },
+        {
+          "command": "cd plugin && pnpm exec vitest run src/tools/lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "28 tests passed (no regressions in profile evaluator/type tests)"
+        },
+        {
+          "command": "cd plugin && pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm exec eslint src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts && pnpm exec prettier --check src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts",
+          "exit_code": 0,
+          "summary": "Schemas, typecheck, test isolation, lint, and format checks all passed for changed files"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Loaded public-root policy from store.config/project.json passthrough field and validated with PublicRootPolicySchema in gate.ts rather than changing ProjectConfigSchema",
+          "why": "Avoids a public Zod schema change and circular import risk while still centralizing and validating the policy for both boundary evaluations"
+        },
+        {
+          "what": "Recorded boundary failures by sending lightweightProfileEvaluatedSignal directly from gate.ts",
+          "why": "The existing evaluateLightweightProfileAndSignal returns errors instead of throwing for most failures; emitting a synthetic signal durably updates workflow state so prior qualified cannot remain directive. Preserves no-reset semantics: prior qualified becomes downgraded, otherwise ineligible."
+        },
+        {
+          "what": "Exported CRITERION_ORDER from types/lightweight-change-profile.ts",
+          "why": "Needed to construct a schema-valid criteria array (6 items) for synthetic failure evaluations without hard-coding criterion IDs in gate.ts."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified existing lightweight-profile and lightweight-change-profile type tests still pass; no same-pattern issues found elsewhere in gate.ts profile routing.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Acceptance remediation for lightweight profile routing is complete. Gate.ts now resolves a validated public-root API compatibility policy from project.json and passes it to execution_boundary (planning gate) and acceptance_boundary (execution gate) evaluations. On collector/service/signal failure, it durably records a downgraded/ineligible lightweightProfileEvaluated signal so a prior qualified profile cannot remain directive. Four new RED→GREEN tests cover policy propagation and failure-downgrade semantics; all 42 gate.test.ts tests pass.",
+        "suggested_next_action": "Run full plugin test suite / bin/oc-test smoke to confirm no regressions in related workflows, then proceed to acceptance re-review."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm exec eslint src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts && pnpm exec prettier --check src/tools/gate.ts src/tools/gate.test.ts src/types/lightweight-change-profile.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/utils/workflow-directive.ts",
+          "summary": "Fail-closed directive derivation now suppresses a prior qualified lightweight result whenever durable planning/execution gate state lacks its required execution/acceptance boundary revalidation.",
+          "verification": "Focused lightweight profile, gate, evidence, and directive suites pass (94 tests)."
+        },
+        {
+          "file": "plugin/src/utils/workflow-directive.test.ts",
+          "summary": "Added regression coverage for missing execution-boundary and acceptance-boundary revalidations after their adjacent durable gate transitions.",
+          "verification": "New regression tests pass; Prettier check passes."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For boundary-dependent advisory routing, derive authorization from both latest evaluation and durable gate phase; a stale qualified evaluation alone must never authorize omissions after an adjacent gate has completed."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/utils/workflow-directive.test.ts src/tools/gate.test.ts src/tools/lightweight-profile.test.ts src/utils/lightweight-change-profile-evidence.test.ts",
+          "pnpm --dir plugin exec prettier --check src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Focused suites: 4 files, 94 passed. Prettier reported all matched files formatted. git diff --check produced no errors. Reviewed Git range failures as fail-closed via rangeStatus, verified boundary policy resolution is supplied at planning and acceptance boundaries, and added durable directive-level suppression for collector/service/signal failure paths."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Acceptance review may proceed; do not revisit unrelated full-suite-only failures under this scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLightweightChangeProfile",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLightweightChangeProfile",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "When a lightweight boundary revalidation signal cannot be durably appended, derive-on-read routing must fail closed from durable gate progress so a stale qualified evaluation cannot activate advisory omissions."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/utils/workflow-directive.test.ts src/tools/gate.test.ts src/tools/lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Focused profile/routing suite: 4 files, 96 tests passed. Plugin check passed schemas:check, typecheck, isolation/lockfile checks, ESLint, and Prettier. An initial invocation from plugin/ used bin/oc-test and failed because the wrapper lives at repository root; rerun from locked workdir passed. Reviewed release hardening diff: completed planning/execution gates require their respective boundary phase; missing durable revalidation suppresses profile routing as ineligible."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No full-suite run: explicitly out of scope; existing unrelated Temporal/filesystem/status failures remain classified.",
+        "Boundary-failure persistence can still be unavailable during Temporal outage, but directive derivation now prevents stale qualification from enabling omissions on reads."
+      ],
+      "required_main_agent_actions": [
+        "Use this READY hardening report with focused 96-test and plugin-check evidence for release readiness.",
+        "Leave unrelated full-suite-only Temporal/filesystem/status failures untouched per OUT_OF_SCOPE."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-2523227ec38d": [
+      {
+        "runId": "tr_mrnuqevr_60f5acdd",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 14327.480054999702,
+        "recordedAt": "2026-07-16T18:37:56.243Z"
+      },
+      {
+        "runId": "tr_mrnve7cf_71c2938f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/messages.test.ts src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/temporal/workflows.lightweight-profile.test.ts",
+        "durationMs": 10442.832409000024,
+        "recordedAt": "2026-07-16T18:56:26.191Z"
+      },
+      {
+        "runId": "tr_mrnvei0m_a15cffca",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- -t \"continues as new with every declared seedState field\" src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 5624.587130999193,
+        "recordedAt": "2026-07-16T18:56:39.999Z"
+      },
+      {
+        "runId": "tr_mrnvgazx_332b1e5e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 75043.3817189997,
+        "recordedAt": "2026-07-16T18:58:04.220Z"
+      },
+      {
+        "runId": "tr_mrnvh6b7_fa60a0d9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 34315.921816000715,
+        "recordedAt": "2026-07-16T18:58:44.811Z"
+      }
+    ],
+    "tk-2d8c3e7ce0d9": [
+      {
+        "runId": "tr_mrnvrpd5_e4cbeaa4",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/utils/lightweight-change-profile-evidence.test.ts",
+        "durationMs": 120234.16078200005,
+        "recordedAt": "2026-07-16T19:06:56.901Z"
+      },
+      {
+        "runId": "tr_mrnwb2gp_27c4743e",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/lightweight-change-profile-evidence.test.ts",
+        "durationMs": 4645.284195999615,
+        "recordedAt": "2026-07-16T19:21:59.519Z"
+      },
+      {
+        "runId": "tr_mrnwba0x_f8b6f4d6",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts",
+        "durationMs": 2665.7694200007245,
+        "recordedAt": "2026-07-16T19:22:09.237Z"
+      },
+      {
+        "runId": "tr_mrnwcqli_8fa196b3",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 59465.27960600052,
+        "recordedAt": "2026-07-16T19:23:17.401Z"
+      },
+      {
+        "runId": "tr_mrnwe6c7_7865e837",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 27966.0233350005,
+        "recordedAt": "2026-07-16T19:24:24.488Z"
+      },
+      {
+        "runId": "tr_mrnwfgdx_f4390557",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 32775.637575999834,
+        "recordedAt": "2026-07-16T19:25:24.132Z"
+      },
+      {
+        "runId": "tr_mro028i8_dea33eb9",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm test -- src/utils/lightweight-change-profile-evidence.test.ts src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/tools/lightweight-profile.test.ts",
+        "durationMs": 120093.51344299875,
+        "recordedAt": "2026-07-16T21:07:05.872Z"
+      },
+      {
+        "runId": "tr_mro05ral_eeb429dd",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && pnpm test -- src/utils/lightweight-change-profile-evidence.test.ts src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts",
+        "durationMs": 152986.45784300007,
+        "recordedAt": "2026-07-16T21:09:50.208Z"
+      },
+      {
+        "runId": "tr_mro0exk9_e110c1e5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/lightweight-change-profile-evidence.test.ts src/types/lightweight-change-profile.test.ts src/tools/lightweight-profile.test.ts",
+        "durationMs": 8092.424081999809,
+        "recordedAt": "2026-07-16T21:16:58.447Z"
+      },
+      {
+        "runId": "tr_mro0h43n_b3e37f2d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 91895.77009099908,
+        "recordedAt": "2026-07-16T21:18:40.666Z"
+      }
+    ],
+    "tk-731a12c746f6": [
+      {
+        "runId": "tr_mrny2sc4_0794162e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 19715.787845999002,
+        "recordedAt": "2026-07-16T20:11:32.394Z"
+      },
+      {
+        "runId": "tr_mrny36r3_13a0208b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tool-role-policy.test.ts src/tool-ownership-assets.test.ts src/cli-surface-matrix.test.ts src/cli-bridge-contract.test.ts src/tools/lightweight-profile.test.ts src/tools/gate.test.ts src/utils/workflow-directive.test.ts src/tool-registry.inventory.test.ts src/tool-name-assets.test.ts src/latent-tool-removal.test.ts src/advance-epics-assets.test.ts",
+        "durationMs": 9836.239500001073,
+        "recordedAt": "2026-07-16T20:11:51.121Z"
+      },
+      {
+        "runId": "tr_mrny3mw7_c88162d2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/workflows.lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts src/utils/lightweight-change-profile-evidence.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 12460.587300000712,
+        "recordedAt": "2026-07-16T20:12:11.998Z"
+      },
+      {
+        "runId": "tr_mrny5e5p_e79243e7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 75447.66779400036,
+        "recordedAt": "2026-07-16T20:13:34.013Z"
+      },
+      {
+        "runId": "tr_mro0rkz6_e773790d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm exec vitest run src/tools/gate.test.ts --reporter=verbose",
+        "durationMs": 5864.574524000287,
+        "recordedAt": "2026-07-16T21:26:48.418Z"
+      },
+      {
+        "runId": "tr_mro0t2bi_47ea25ba",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm exec vitest run src/tools/lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts --reporter=verbose",
+        "durationMs": 1909.7779409997165,
+        "recordedAt": "2026-07-16T21:27:57.625Z"
+      },
+      {
+        "runId": "tr_mro0u0yn_dac755a3",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm run check",
+        "durationMs": 30373.872109001502,
+        "recordedAt": "2026-07-16T21:28:42.519Z"
+      },
+      {
+        "runId": "tr_mro0whlj_ce86ed37",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm exec vitest run src/tools/gate.test.ts --reporter=verbose",
+        "durationMs": 7386.335442001,
+        "recordedAt": "2026-07-16T21:30:37.349Z"
+      },
+      {
+        "runId": "tr_mro0yn09_3a8c56a2",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm exec vitest run src/tools/gate.test.ts --reporter=verbose",
+        "durationMs": 6462.346985999495,
+        "recordedAt": "2026-07-16T21:32:17.630Z"
+      },
+      {
+        "runId": "tr_mro10qtr_4f9b02a7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/gate.test.ts src/tools/lightweight-profile.test.ts src/types/lightweight-change-profile.test.ts",
+        "durationMs": 6336.991585001349,
+        "recordedAt": "2026-07-16T21:33:55.983Z"
+      },
+      {
+        "runId": "tr_mro213iy_be72bb62",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/workflow-directive.test.ts",
+        "durationMs": 4048.0432830005884,
+        "recordedAt": "2026-07-16T22:02:11.979Z"
+      }
+    ],
+    "tk-f684eeba0a35": [
+      {
+        "runId": "tr_mrnzmq3b_6a0ecbf3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/types/lightweight-change-profile.test.ts src/types/lightweight-change-profile.state.test.ts src/utils/lightweight-change-profile-evidence.test.ts src/tools/lightweight-profile.test.ts src/tools/gate.test.ts",
+        "durationMs": 5447.110617998987,
+        "recordedAt": "2026-07-16T20:55:02.219Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-16T17:56:15.825Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved the proposal framing with “approve”. Proposal records structural eligibility, revalidation, fail-closed downgrade, retained safeguards, scope, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e390c42129c7558b4d2d5cc8b9dd3595bc241e6099bb14e7b9cb5ae95b6ec02e",
+        "non_whitespace_chars": 3547,
+        "checked_at": "2026-07-16T17:53:16.221Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-16T18:07:36.865Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved discovery success and acceptance criteria with “approve”. Agreement records strict typed eligibility, bounded advisory omissions, retained safety checks, downgrade behavior, preview inapplicability, and a strict 24-item ChangeContract.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "non_whitespace_chars": 4998,
+        "checked_at": "2026-07-16T17:53:16.222Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-16T18:22:43.116Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persists a pure typed evaluator, complete worktree and freshness evidence, deny-by-default public-surface reachability, idempotent history, and immutable omission policy. Independent validator attempt 2 passed with high confidence; no user-value tradeoff, conflict, or contract compromise remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "00a1b40945e01115aa779dd2531bea4768292b3be61d5307b0db06d7c1376697",
+        "non_whitespace_chars": 5251,
+        "checked_at": "2026-07-16T17:53:16.223Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-16T18:27:36.040Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved the four-task graph with “approve”. Tasks cover typed profile state/evaluator, complete evidence, central safe routing, and verification; `rq-smallChangeProfile01` spec delta is recorded. Strict validation could not produce a verdict because its bounded input load exceeded 8s twice while Temporal health remained good; planning gate readiness will enforce its own structural checks."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-16T20:57:18.811Z",
+      "completed_by": "agent",
+      "approval_evidence": "All four tasks are done with checkpoint evidence. Scoped verification passed 84/84; prior targeted profile/routing suites, check, build, and typecheck passed. `adv_change_validate strict` is inconclusive_due_to_budget: a read-only diagnostic confirmed a reachable healthy workflow and 8s input-read exhaustion from large persisted state, so gate-state structural authority is used. Two full-suite runs had unrelated cross-suite/Temporal/filesystem failures; targeted status suite passed and source scan found no profile integration."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-16T21:40:34.659Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly accepted delivered work with “approve”. Acceptance re-review is READY after remediation; 24/24 contract review rows pass/respected/not-applicable. Scoped and targeted evidence passed; strict validate remains inconclusive due documented input-read budget only.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "fa59b2f22204a889179e0e6f3bee714a401ad761d6192c46950ccf369211e134",
+        "non_whitespace_chars": 1372,
+        "checked_at": "2026-07-16T17:53:16.225Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+      "approvedAt": "2026-07-16T18:07:25.052Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "An eligible change completes proposal, discovery, design, planning, execution, acceptance, and release through the existing ordered gate model while using the lightweight profile only when all six eligibility criteria are satisfied.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Every classification, execution-boundary revalidation, and acceptance-boundary revalidation records one typed outcome per criterion with evidence provenance, evaluation time, and any downgrade reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "A non-qualified or downgraded change follows standard workflow requirements from its current gate and cannot bypass an existing gate, verification, review, approval, worktree, or release blocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a change requests the lightweight profile, when profile evaluation runs, then it records exactly six criterion outcomes: implementation-task count, changed-file count, spec delta, dependency change, API compatibility, and repository scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a requested profile, when all six criterion outcomes are explicitly satisfied, then the change is qualified; when any outcome is failed, missing, stale, or contradictory, then the change is ineligible and standard workflow requirements apply.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given changed-file evaluation, when a change contains multiple commits, renames, or deletions, then the count covers the complete change range and a count greater than two is ineligible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a qualified change, when it reaches the execution boundary or acceptance boundary, then all six criteria are re-evaluated before lightweight routing applies at that boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given an eligible change, when lightweight workflow work is selected, then it may omit only optional deep codebase scans, generic external research, opportunity scouting, and specialist delegation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given an eligible change, when workflow work is selected, then spec and conflict checks, targeted verification, review, human approvals, worktree isolation, and release checks remain required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given a qualified change later fails revalidation without changing approved user scope, when it is downgraded, then the downgrade reason is recorded and the change continues from its current gate under standard requirements; normal scope-reentry behavior remains unchanged when scope does change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Automated coverage includes at least six cases spanning qualification, each failure class, unknown/stale evidence, multi-commit file count, rename/deletion handling, and boundary downgrade.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Eligibility and routing must use typed schemas/validators and durable workflow state; agent prose, task titles, and heuristics cannot determine qualification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The profile must reuse central gate/readiness authority and must not persist a competing workflow state machine.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Missing, stale, contradictory, or unavailable evidence is ineligible; it cannot be downgraded to a warning-only qualification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Worktree isolation, targeted proof, review, human checkpoints, existing verification blockers, and release safety remain unchanged for eligible and standard changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Changed-file evidence must represent the complete change range, not only a last-checkpoint or last-commit summary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create a broad lightweight boolean that disables categories of research, verification, review, or release work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not auto-dispose verification or review blockers for lightweight changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not create command-local eligibility logic that can drift from gate/readiness authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not treat a degraded Temporal/read result as evidence that a change is eligible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Removing, skipping, or reordering any gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing standard-workflow requirements for non-qualified changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Cross-project or cross-repository lightweight behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "General status/read latency optimization unrelated to deterministic lightweight-profile selection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-16T21:40:27.415Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance re-review READY; typed profile preserves gate authority."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed evaluation history, boundary revalidation, and stable keys reviewed."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Downgrade tests and review confirm standard routing/no bypass."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused profile suites pass; six criteria schema asserted."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Fail-closed unknown/malformed/incomplete-range tests pass."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Collector tests cover multi-commit, rename, delete, untracked paths."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Boundary policy and failure-downgrade tests pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Exact four-category omission policy tests pass."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Required-control and explicit-delegation precedence tests pass."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No-reset downgrade behavior is tested and reviewed."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "94 focused acceptance re-review tests pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Zod schemas and durable state own eligibility."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer found no competing workflow state machine."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Unknown, policy, Git, and boundary failures fail closed."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review confirms required controls remain intact."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Complete-range evidence covers Git and worktree states."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only immutable four-item omission policy exists."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No review or verification blocker disposal added."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Central evaluator and gate routing own decisions."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Read/evaluation failures cause non-qualification, never authorization."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No gate removal or reordering."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Standard workflow unchanged for ineligible changes."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No cross-project profile behavior."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No general status/read latency optimization."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a change requests the lightweight profile, when profile evaluation runs, then it records exactly six criterion outcomes: implementation-task count, changed-file count, spec delta, dependency change, API compatibility, and repository scope.",
+    "Given a requested profile, when all six criterion outcomes are explicitly satisfied, then the change is qualified; when any outcome is failed, missing, stale, or contradictory, then the change is ineligible and standard workflow requirements apply.",
+    "Given changed-file evaluation, when a change contains multiple commits, renames, or deletions, then the count covers the complete change range and a count greater than two is ineligible.",
+    "Given a qualified change, when it reaches the execution boundary or acceptance boundary, then all six criteria are re-evaluated before lightweight routing applies at that boundary.",
+    "Given an eligible change, when lightweight workflow work is selected, then it may omit only optional deep codebase scans, generic external research, opportunity scouting, and specialist delegation.",
+    "Given an eligible change, when workflow work is selected, then spec and conflict checks, targeted verification, review, human approvals, worktree isolation, and release checks remain required.",
+    "Given a qualified change later fails revalidation without changing approved user scope, when it is downgraded, then the downgrade reason is recorded and the change continues from its current gate under standard requirements; normal scope-reentry behavior remains unchanged when scope does change.",
+    "Automated coverage includes at least six cases spanning qualification, each failure class, unknown/stale evidence, multi-commit file count, rename/deletion handling, and boundary downgrade."
+  ],
+  "documents": {
+    "proposal": "# Proposal\n\n## Why\n\nSmall, low-risk tracked changes need the durable seven-gate lifecycle, but current workflow cost can be dominated by non-required deep scans, specialist delegation, and broad test runs rather than the change itself.\n\n## What Changes\n\nIntroduce a typed, machine-enforced small-change profile. The profile selects bounded, risk-proportionate workflow work while preserving all seven gates, gate order, human checkpoints, worktree isolation, targeted proof, review, and release safety.\n\n## User Outcomes\n\n- A contributor can complete an eligible small tracked change through every normal lifecycle gate without unrelated slow tooling.\n- A contributor sees why a change qualifies, does not qualify, or loses lightweight status.\n- A change that becomes riskier automatically receives standard workflow protections before implementation or acceptance can continue.\n- A reviewer can audit the profile decision and the evidence used at each revalidation point.\n\n## Affected Code\n\n- Change/profile schemas and validators.\n- Gate-readiness and workflow-plan selection.\n- `/adv-task`, proposal/discovery/design/prep/review/harden workflow contracts and agent packets.\n- `advance-workflow` and related prep/readiness specs.\n- Focused routing, eligibility, revalidation, and workflow-contract tests.\n\n## Related Repositories\n\nCurrent Advance repository only. No cross-project or cross-repository behavior is introduced.\n\n## Impact\n\nEligible small changes avoid non-required advisory scans, specialist delegation, and broad/full-suite verification. Standard changes retain current behavior. Gate authority and blocking evidence remain unchanged.\n\n## Discovery Agenda\n\n- Establish the authoritative profile shape, owner, and audit projection without creating competing workflow state.\n- Confirm existing fast-track and gate-readiness boundaries that must remain compatible.\n- Define deterministic evidence for file count, dependency changes, spec delta, API compatibility, task count, and repository scope.\n- Define revalidation timing and downgrade behavior for missing, stale, contradictory, or failed facts.\n- Confirm which checks are genuinely gate-required versus advisory and can be omitted for an eligible profile.\n\n## Scope\n\n### In Scope\n\n- Change-profile schema and structural eligibility validation.\n- Eligibility revalidation before execution and acceptance.\n- Risk-proportionate routing that skips only non-required advisory work.\n- Durable audit output for eligibility and downgrade outcomes.\n- Spec deltas, command/agent contract alignment, and focused automated coverage.\n\n### Out of Scope\n\n- Removing, skipping, or reordering gates.\n- Changing standard-workflow requirements.\n- A user-declared lightweight profile without structural validation.\n- Cross-project behavior.\n\n### Must Not\n\n- Infer eligibility from prose or agent judgment alone.\n- Auto-dispose verification or review blockers.\n- Bypass worktree isolation, targeted verification, review, approvals, or release checks.\n- Reduce verification below task- and subsystem-required evidence.\n\n## Eligibility\n\nA change qualifies only when tooling verifies all of the following at classification and revalidates them before execution and acceptance:\n\n- Exactly one planned implementation task.\n- At most two changed repository files.\n- No spec delta.\n- No new dependency.\n- No breaking API change.\n- No cross-project or cross-repository scope.\n\n## Failure Handling\n\nA missing, stale, contradictory, or failed eligibility signal is a typed ineligibility result, never a warning-only bypass. A change that drifts beyond eligibility before execution or acceptance loses the profile and continues through the standard workflow from its current gate. Existing gate, verification, review, and release blockers remain blocking.\n\n## Constraints\n\n- Preserve existing gate authority, user checkpoints, contracts, worktree isolation, targeted verification, review, and release safety.\n- Keep eligibility structural and fail closed.\n- Preserve current standard-workflow behavior for non-qualified changes.\n- Treat `advance-workflow` as the governing spec law.\n\n## Discovery Findings\n\n### Current State\n\n- `rq-taskSpecLaw01` defines `/adv-task` as a tracked fast path for small well-understood changes, but it has no typed profile, eligibility audit, or gate-boundary revalidation.\n- `GATE_WORKTREE_IMPACT` classifies proposal, discovery, and design as metadata-only; planning through release remain worktree-mutation gates. This supports concise early-gate work without weakening isolation for mutable work.\n- Gate readiness centrally emits typed acceptance/release blockers. `addTypedOrchestrationApi` is evidence that a completed change can remain blocked by unresolved verification evidence; the new profile must not auto-dispose such blockers.\n\n### Extends\n\n- `docs/repo-improve-prep.md` finds default ADV reads can perform excess work before view projection. New finding: a profile must choose its bounded workflow plan from typed facts, not prompt instructions, so it reduces work without adding conflicting read paths.\n- `docs/adv-run-test-prep.md` identifies full-suite resource cost and recommends structural test profiles. New finding: lightweight-profile verification must remain targeted and evidence-bearing, not become a broad test-skip flag.\n- `docs/non-coding-task-rigor-prep.md` confirms existing gates and Temporal-backed state are the correct durable foundation. New finding: this change reuses that foundation rather than adding a parallel lifecycle.\n- `docs/adv-slop-scan-prep.md` is unrelated to profile eligibility and supplies no adopted requirement.\n\n### Conflict Scan\n\nInventory is **degraded**: `adv_change_list` omitted terminal candidates after its bounded Temporal read, and strict validation for this change exhausted its input-load budget. `adv_temporal_diagnose` reports server, worker, STSL, and this workflow healthy; therefore the degraded scan is recorded, not treated as a conflict-free result.\n\n- `addTypedOrchestrationApi` establishes a typed, read-only PhasePlan and deterministic gate routing. This profile should consume the central plan/readiness path rather than create competing command authority.\n- `addToolContextTelemetry` measures tool context and cache behavior. It is observability-only and does not implement workflow-profile selection.\n- `fixTemporalQueryRecovery` makes reads bounded and fail closed. The profile must preserve its typed degraded outcomes and never upgrade unavailable eligibility evidence to qualification.\n\n### Edge Cases\n\n- Multiple commits can exceed two changed files even when the final checkpoint names fewer files; evaluate the complete change baseline-to-HEAD range, including renames and deletions.\n- A qualifying change can later add a spec delta, dependency, or extra file; revalidation must downgrade it before execution or acceptance continues.\n- A missing or contradictory API/dependency evidence source must yield ineligible, not an agent judgment.\n- Concurrent task or branch changes can stale an earlier qualification; each revalidation records the observed revision/evidence provenance.\n\n### Draft Spec Delta\n\n- `rq-smallChangeProfile01`: Given a change requests lightweight processing, when every typed eligibility criterion is satisfied at classification and each required revalidation, then all seven gates remain sequentially recorded while only an explicit advisory-work allowlist is omitted; otherwise the change is ineligible or downgraded and standard requirements apply.\n\n### Related Pattern Scan\n\n- Worktree policy already separates metadata-only and mutation gates (`plugin/src/types/gates.ts:314-328`); retain it.\n- Central readiness already produces typed blockers; reuse it for profile downgrade/routing rather than command-local checks.\n- Existing checkpoint file summaries are insufficient as the sole changed-file proof because they can describe only the last commit.\n\n### Completeness Verification\n\n- Problem completeness: high confidence. The issue is workflow decision breadth, not one tool’s latency. Tool latency remains separate work unless required to make a profile decision deterministic.\n- Solution scope: high confidence. The intended control surface is one typed evaluator plus workflow-plan consumption and audit projection; no claim is made that a single command owns all workflow behavior.\n- Secondary surfaces: `/adv-task`, gate readiness, checkpoint/baseline evidence, and command/agent contracts are in scope. Broad status-read optimization is out of scope with rationale: it improves general latency independently of profile safety.\n\n### LBP Check\n\nAdopt one pure typed evaluator reused at classification and execution/acceptance. Persist a discriminated criterion-level result with provenance, evaluation time, and downgrade history. Use baseline-to-HEAD file evidence. Reject prose-only routing, last-commit file counting, and broad skip flags.\n\n### Discovery Opportunity Scout\n\nRun. Three low-risk structural candidates adopted: central evaluator, baseline-to-HEAD changed-file evidence, and typed audit record. One user-facing item remains: the explicit allowlist of advisory work eligible changes may omit. Dependency/API evidence authority remains a design obligation; until it is proven, the evaluator must fail closed.\n\n### AMBIGUITY ANALYSIS\n\nB1 HIGH Boundaries — The exact advisory-work allowlist is not yet enumerated.\nEvidence: “skip only non-required advisory work.”\nReason: the boundary is needed to distinguish permitted optimization from skipped safety work.\n\nCoverage: B:P F:C S:C M:C\n\n### Clarification Status\n\nOne advisory boundary finding remains. No critical ambiguity; criteria drafting may continue after the listed outcome questions are resolved.",
+    "problemStatement": "Small, low-risk tracked changes need the same durable seven-gate lifecycle as standard work, but current workflows apply advisory research, broad scans, and full-suite verification regardless of risk. That overhead can dominate the actual implementation while providing little additional decision value. ADV needs a structurally enforced lightweight profile that preserves gate authority, human checkpoints, worktree isolation, targeted proof, review, and release safety.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add a typed, fail-closed lightweight profile for eligible ADV changes without removing, skipping, or reordering any of the seven gates.\n2. Make qualification and revalidation structural, auditable, and centrally consumed by workflow/readiness routing.\n3. Reduce only explicitly allowed advisory work; preserve required safety, evidence, review, approval, and release controls.\n\n## Success Criteria\n\n- SC1: An eligible change completes proposal, discovery, design, planning, execution, acceptance, and release through the existing ordered gate model while using the lightweight profile only when all six eligibility criteria are satisfied.\n- SC2: Every classification, execution-boundary revalidation, and acceptance-boundary revalidation records one typed outcome per criterion with evidence provenance, evaluation time, and any downgrade reason.\n- SC3: A non-qualified or downgraded change follows standard workflow requirements from its current gate and cannot bypass an existing gate, verification, review, approval, worktree, or release blocker.\n\n## Acceptance Criteria\n\n- AC1: Given a change requests the lightweight profile, when profile evaluation runs, then it records exactly six criterion outcomes: implementation-task count, changed-file count, spec delta, dependency change, API compatibility, and repository scope.\n- AC2: Given a requested profile, when all six criterion outcomes are explicitly satisfied, then the change is qualified; when any outcome is failed, missing, stale, or contradictory, then the change is ineligible and standard workflow requirements apply.\n- AC3: Given changed-file evaluation, when a change contains multiple commits, renames, or deletions, then the count covers the complete change range and a count greater than two is ineligible.\n- AC4: Given a qualified change, when it reaches the execution boundary or acceptance boundary, then all six criteria are re-evaluated before lightweight routing applies at that boundary.\n- AC5: Given an eligible change, when lightweight workflow work is selected, then it may omit only optional deep codebase scans, generic external research, opportunity scouting, and specialist delegation.\n- AC6: Given an eligible change, when workflow work is selected, then spec and conflict checks, targeted verification, review, human approvals, worktree isolation, and release checks remain required.\n- AC7: Given a qualified change later fails revalidation without changing approved user scope, when it is downgraded, then the downgrade reason is recorded and the change continues from its current gate under standard requirements; normal scope-reentry behavior remains unchanged when scope does change.\n- AC8: Automated coverage includes at least six cases spanning qualification, each failure class, unknown/stale evidence, multi-commit file count, rename/deletion handling, and boundary downgrade.\n\n## Constraints\n\n- C1: Eligibility and routing must use typed schemas/validators and durable workflow state; agent prose, task titles, and heuristics cannot determine qualification.\n- C2: The profile must reuse central gate/readiness authority and must not persist a competing workflow state machine.\n- C3: Missing, stale, contradictory, or unavailable evidence is ineligible; it cannot be downgraded to a warning-only qualification.\n- C4: Worktree isolation, targeted proof, review, human checkpoints, existing verification blockers, and release safety remain unchanged for eligible and standard changes.\n- C5: Changed-file evidence must represent the complete change range, not only a last-checkpoint or last-commit summary.\n\n## Avoidances\n\n- DONT1: Do not create a broad lightweight boolean that disables categories of research, verification, review, or release work.\n- DONT2: Do not auto-dispose verification or review blockers for lightweight changes.\n- DONT3: Do not create command-local eligibility logic that can drift from gate/readiness authority.\n- DONT4: Do not treat a degraded Temporal/read result as evidence that a change is eligible.\n\n## Out of Scope\n\n- OOS1: Removing, skipping, or reordering any gate.\n- OOS2: Changing standard-workflow requirements for non-qualified changes.\n- OOS3: Cross-project or cross-repository lightweight behavior.\n- OOS4: General status/read latency optimization unrelated to deterministic lightweight-profile selection.\n\n## Preview Applicability\n\n- visual_surface: false\n- preview_expectation:\n  - exact_route_required: not_applicable\n  - data_state_expectation: not_applicable\n  - viewport_expectation: not_applicable\n  - rationale: This is internal plugin workflow and state-routing behavior with no browser-visible output.\n\n## Decisions\n\n### User Decisions\n\n- Qualification uses a strict, revalidated policy rather than user declaration.\n- Permitted omissions are bounded advisory work only: optional deep scans, generic research, opportunity scouting, and specialist delegation.\n- Loss of eligibility records a downgrade and continues standard workflow from the current gate unless normal scope-reentry rules independently apply.\n- Uncertain dependency or API evidence is ineligible until proven.\n\n### Agent Decisions (LBP)\n\n- One pure typed evaluator is reused at initial classification and both gate-boundary revalidations.\n- Complete-change-range file evidence is required because last-commit task summaries can undercount multi-commit changes.\n- Criterion-level durable audit history and an explicit advisory allowlist preserve inspectability while preventing prose-only or broad-skip routing.\n\n## Deferred Questions\n\n- None. Evidence authority for dependency and API criteria must be designed before implementation; until then the agreed ineligible result applies.\n\n## Sign-Off\n\nUser approved the success and acceptance criteria inline on 2026-07-16.",
+    "design": "# Design\n\n## Architecture Overview\n\n`LightweightChangeProfile` is durable change-workflow state: request marker, baseline revision, and append-only evaluations. Active state derives from latest evaluation; no second workflow machine exists.\n\nA pure evaluator consumes `LightweightProfileEvidenceSnapshot` and returns `qualified`, `ineligible`, or `downgraded`. Each result has exactly six criterion records, provenance, evidence fingerprint, observed revision, timestamp, and reason. Host-side collection normalizes Git/worktree and durable-state facts before signal/state persistence; workflow-reachable code performs zero host I/O.\n\n## Key Decisions\n\n1. Keep this evaluator separate from advisory gate criteria: unknown, malformed, stale, or failed evidence is ineligible/downgraded, never `na`.\n2. Capture a baseline revision and collect the complete worktree range: committed, index, tracked worktree, renames, deletions, and untracked paths. More than two paths fails.\n3. Bind freshness to baseline SHA, HEAD SHA, index, tracked worktree, untracked content identities, project id, task/delta/scope revisions, and public-surface-policy version. Any mismatch is stale/ineligible.\n4. Define API compatibility as no public-interface impact. A validated, deny-by-default import/export-reachability policy starts at named public roots. Only graph-proven-private changed paths satisfy; policy absence, graph failure, public/reachable path, or unknown is ineligible.\n5. Derive remaining criteria from durable task graph (one implementation task), no change delta/spec-law path, no configured dependency manifest/lockfile path, and current-project-only scope.\n6. Use one immutable omission policy with exactly four optional omissions: deep codebase scans, generic external research, opportunity scouting, and default specialist delegation. It cannot override explicit delegation hints, risk routing, spec/conflict checks, targeted verification, review, approvals, isolation, blockers, or release checks.\n7. Use stable evaluation key `{requestId, phase, fingerprint}`. Same-key retry reuses result; changed evidence appends once. Execution/acceptance failure downgrades and switches to standard requirements without resetting gates; scope re-entry remains independent.\n8. Propagate state explicitly through initial, seed/reseed, signals, projections, and continue-as-new paths.\n\n## ADR Drafts\n\nNo ADR. Localized workflow-state evolution does not meet all ADR criteria.\n\n## Implementation Strategy\n\n1. Add Zod schemas for request, snapshot, six criterion results, public-surface policy, evaluation, idempotency key, and history.\n2. Implement exhaustive pure evaluator with zero host I/O.\n3. Implement host-side collector for full worktree status, untracked identities, dependency/spec/scope/task facts, public-surface reachability, and fingerprint.\n4. Implement validated public-root reachability policy; only `proven_private` qualifies.\n5. Persist request/evaluations via existing signals; propagate through seed and continue-as-new.\n6. Evaluate after task graph completion; revalidate idempotently before execution and acceptance selection.\n7. Route commands from central profile result/omission policy; retain existing gate/blocker authority.\n8. Add `advance-workflow` spec delta for seven-gate preservation, six criteria, untracked/stale evidence, bounded omissions, revalidation, and downgrade.\n9. Add table-driven tests for all criteria; untracked files; every fingerprint dimension; multi-commit/rename/delete; public graph failure/unknown; exact omission policy; delegation precedence; both boundaries; retry deduplication; downgrade/no-reset; retained blockers; seed/reseed/continue propagation.\n\n## LBP Analysis\n\nCentral typed evaluation prevents command drift. Full worktree evidence closes multi-commit and untracked bypasses. Public-root reachability provides structural API-interface authority rather than agent/path inference. Stable keys prevent retry growth. Standard workflow remains available whenever proof is absent.\n\n## Affected Components\n\n- Change/workflow schemas, signals, projections, state seed/reseed, continue-as-new paths.\n- Central workflow-plan and readiness routing.\n- Worktree/Git evidence collector, fingerprinting, public-surface graph policy.\n- `/adv-task` and agent/command contracts consuming omission policy.\n- `advance-workflow` and related specs; focused tests.\n\n## Design-Derived Criteria\n\n- DDC1: Evaluator accepts normalized typed snapshots and performs zero host I/O.\n- DDC2: Every evaluation has exactly six criterion records, one terminal outcome, and one stable idempotency key.\n- DDC3: Stale fingerprint, untracked ambiguity, graph failure, or unknown public surface cannot qualify.\n- DDC4: Omission policy contains exactly four categories and cannot override explicit delegation or required controls.\n- DDC5: Same request/phase/fingerprint produces zero duplicate history entries.\n\n## Risks / Mitigations\n\n- Public API authority: deny-by-default reachability; unknown fails closed.\n- Worktree completeness: porcelain parsing plus untracked identities; table-driven coverage.\n- Replay/evolution: additive schema/signal propagation tests.\n- Command drift: central policy/result plus asset tests.\n- Initial conservatism: standard workflow remains lossless; expansion requires a spec/design change.\n\n## Design Leverage Scout\n\nAdopted: separate eligibility evaluator; host-side evidence collection; derived append-only history; optional delegation suppression never overrides explicit delegation/risk routing.\n\n## Validator Result\n\nValidator attempt 1 found untracked-file and API-authority gaps. Repaired design adds full worktree evidence, content-sensitive freshness, deny-by-default public-root reachability, and retry-stable history. Independent validator attempt 2: **pass**, high confidence, low risk, no contract compromise. Required gates, reviews, delegation boundaries, approvals, isolation, and release checks remain intact.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV now has a typed lightweight-change profile that preserves all seven gates while omitting only four bounded advisory activities for structurally eligible work.\n\n## Value\n\nSmall, low-risk changes can move through the full durable workflow without unnecessary deep scans, generic research, opportunity scouting, or default specialist delegation. Safety controls remain active.\n\n## Delivered\n\n- Typed six-criterion eligibility and idempotent evaluation history.\n- Complete Git/worktree evidence, including untracked, rename, and delete paths.\n- Fail-closed freshness, dependency/spec/scope checks, and public-surface reachability.\n- Execution/acceptance revalidation with durable downgrade to standard workflow.\n- Exact omission policy; retained checks, proof, review, approvals, isolation, blockers, and release checks.\n\n## Verification\n\n- Acceptance re-review: READY; 94 focused tests passed.\n- Release hardening: READY; 96 focused tests passed.\n- `pnpm --dir plugin run check` passed.\n- Contract review matrix: 24/24 rows passing, respected, or not applicable.\n\n## Release Readiness Summary\n\n- No release blocker found. Boundary failures now durably suppress stale lightweight qualification.\n- Spec delta `rq-smallChangeProfile01` is recorded for archive application.\n- Strict change validation remains inconclusive only because this large persisted change exceeds its 8-second input-load budget; Temporal and gate-state reads are healthy.\n- Two full-suite attempts exposed unrelated cross-suite/Temporal/filesystem failures. Isolated status verification passed; hardening found no lightweight-profile link.\n\n## Risks and Follow-Ups\n\n- Consider a separate change to make strict validation scale with large persisted report state or use bounded input projections.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-16T21:40:27.415Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | An eligible change completes proposal, discovery, design, planning, execution, acceptance, and release through the existing ordered gate model while using the lightweight profile only when all six eligibility criteria are satisfied. | pass | Acceptance re-review READY; typed profile preserves gate authority. |\n| SC2 | success_criterion | Every classification, execution-boundary revalidation, and acceptance-boundary revalidation records one typed outcome per criterion with evidence provenance, evaluation time, and any downgrade reason. | pass | Typed evaluation history, boundary revalidation, and stable keys reviewed. |\n| SC3 | success_criterion | A non-qualified or downgraded change follows standard workflow requirements from its current gate and cannot bypass an existing gate, verification, review, approval, worktree, or release blocker. | pass | Downgrade tests and review confirm standard routing/no bypass. |\n| AC1 | acceptance_criterion | Given a change requests the lightweight profile, when profile evaluation runs, then it records exactly six criterion outcomes: implementation-task count, changed-file count, spec delta, dependency change, API compatibility, and repository scope. | pass | Focused profile suites pass; six criteria schema asserted. |\n| AC2 | acceptance_criterion | Given a requested profile, when all six criterion outcomes are explicitly satisfied, then the change is qualified; when any outcome is failed, missing, stale, or contradictory, then the change is ineligible and standard workflow requirements apply. | pass | Fail-closed unknown/malformed/incomplete-range tests pass. |\n| AC3 | acceptance_criterion | Given changed-file evaluation, when a change contains multiple commits, renames, or deletions, then the count covers the complete change range and a count greater than two is ineligible. | pass | Collector tests cover multi-commit, rename, delete, untracked paths. |\n| AC4 | acceptance_criterion | Given a qualified change, when it reaches the execution boundary or acceptance boundary, then all six criteria are re-evaluated before lightweight routing applies at that boundary. | pass | Boundary policy and failure-downgrade tests pass. |\n| AC5 | acceptance_criterion | Given an eligible change, when lightweight workflow work is selected, then it may omit only optional deep codebase scans, generic external research, opportunity scouting, and specialist delegation. | pass | Exact four-category omission policy tests pass. |\n| AC6 | acceptance_criterion | Given an eligible change, when workflow work is selected, then spec and conflict checks, targeted verification, review, human approvals, worktree isolation, and release checks remain required. | pass | Required-control and explicit-delegation precedence tests pass. |\n| AC7 | acceptance_criterion | Given a qualified change later fails revalidation without changing approved user scope, when it is downgraded, then the downgrade reason is recorded and the change continues from its current gate under standard requirements; normal scope-reentry behavior remains unchanged when scope does change. | pass | No-reset downgrade behavior is tested and reviewed. |\n| AC8 | acceptance_criterion | Automated coverage includes at least six cases spanning qualification, each failure class, unknown/stale evidence, multi-commit file count, rename/deletion handling, and boundary downgrade. | pass | 94 focused acceptance re-review tests pass. |\n| C1 | constraint | Eligibility and routing must use typed schemas/validators and durable workflow state; agent prose, task titles, and heuristics cannot determine qualification. | respected | Zod schemas and durable state own eligibility. |\n| C2 | constraint | The profile must reuse central gate/readiness authority and must not persist a competing workflow state machine. | respected | Reviewer found no competing workflow state machine. |\n| C3 | constraint | Missing, stale, contradictory, or unavailable evidence is ineligible; it cannot be downgraded to a warning-only qualification. | respected | Unknown, policy, Git, and boundary failures fail closed. |\n| C4 | constraint | Worktree isolation, targeted proof, review, human checkpoints, existing verification blockers, and release safety remain unchanged for eligible and standard changes. | respected | Review confirms required controls remain intact. |\n| C5 | constraint | Changed-file evidence must represent the complete change range, not only a last-checkpoint or last-commit summary. | respected | Complete-range evidence covers Git and worktree states. |\n| DONT1 | avoidance | Do not create a broad lightweight boolean that disables categories of research, verification, review, or release work. | respected | Only immutable four-item omission policy exists. |\n| DONT2 | avoidance | Do not auto-dispose verification or review blockers for lightweight changes. | respected | No review or verification blocker disposal added. |\n| DONT3 | avoidance | Do not create command-local eligibility logic that can drift from gate/readiness authority. | respected | Central evaluator and gate routing own decisions. |\n| DONT4 | avoidance | Do not treat a degraded Temporal/read result as evidence that a change is eligible. | respected | Read/evaluation failures cause non-qualification, never authorization. |\n| OOS1 | out_of_scope | Removing, skipping, or reordering any gate. | not_applicable | No gate removal or reordering. |\n| OOS2 | out_of_scope | Changing standard-workflow requirements for non-qualified changes. | not_applicable | Standard workflow unchanged for ineligible changes. |\n| OOS3 | out_of_scope | Cross-project or cross-repository lightweight behavior. | not_applicable | No cross-project profile behavior. |\n| OOS4 | out_of_scope | General status/read latency optimization unrelated to deterministic lightweight-profile selection. | not_applicable | No general status/read latency optimization. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-16T18:01:48.538Z",
+      "contentHash": "eda84842ffed5b365b4d84846a3d3b1d8b4c749aa1c9c685a09f023795cdbea8",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-16T17:53:16.329Z",
+      "contentHash": "07140f0098a018d09cd36583b5949d08a8a91bebe69f6d4f708779a57b56e570",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-16T18:07:19.200Z",
+      "contentHash": "f2b21e2ac78c3ddce678a26bb027ba3eeeb28c30c2d1dde6fa3042febc26c4de",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-16T18:22:28.620Z",
+      "contentHash": "00a1b40945e01115aa779dd2531bea4768292b3be61d5307b0db06d7c1376697",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-16T21:44:56.275Z",
+      "contentHash": "f4e5d52081c7d85455d626cb7589cf0a6c5340c6e456a18d5b43d197e7ba98d8",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-16T22:02:20.716Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
