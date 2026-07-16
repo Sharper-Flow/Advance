@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  ADV_TEMPORAL_WORKER_SELF_ROLL_CAPABILITY,
+  ADV_TEMPORAL_WORKER_SELF_ROLL_ENV,
   buildTemporalServerCommand,
+  buildTemporalWorkerProcessSpec,
   getTemporalRuntimeLockPath,
   probeTemporalClientRuntime,
   probeTemporalWorkerRuntime,
@@ -26,6 +29,20 @@ describe("temporal runtime manager helpers", () => {
         "--headless",
       ],
     });
+  });
+
+  it("marks the worker child with the self-roll capability env marker", () => {
+    const spec = buildTemporalWorkerProcessSpec({
+      workerScript: "/fake/worker.js",
+      taskQueue: "adv-change-proj1",
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      projectId: "proj1",
+    });
+
+    expect(spec.env[ADV_TEMPORAL_WORKER_SELF_ROLL_ENV]).toBe(
+      ADV_TEMPORAL_WORKER_SELF_ROLL_CAPABILITY,
+    );
   });
 
   it("derives a stable lock path for a project", () => {
