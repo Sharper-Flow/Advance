@@ -137,7 +137,7 @@ class rather than operator-only.
 | `adv_contract_mint` | orchestrator | ChangeContract minting from approved agreement |
 | `adv_contract_review_matrix_set` | orchestrator | Review-matrix persistence |
 | `adv_design_concern_disposition` | orchestrator | Design-concern disposition |
-| `adv_verification_evidence_disposition` | orchestrator | Verification-evidence disposition |
+| `adv_verification_evidence_disposition` | orchestrator | Verification-evidence disposition clearing `VERIFICATION_EVIDENCE_MISSING` blockers on proof-bearing task policies (`fixed` / `rejected_with_evidence` / `split` / `fast_follow` with non-blank evidence; no `accepted_debt` path) |
 | `adv_followup_promote` | orchestrator | Ops follow-up promotion to child change |
 | `adv_report_followup_promote` | orchestrator | Report follow-up promotion |
 | `adv_subagent_report_submit` | orchestrator | Typed sub-agent report ingestion |

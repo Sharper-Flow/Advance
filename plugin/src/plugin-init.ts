@@ -42,6 +42,14 @@ import {
   createLogger,
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
+import {
+  registerPluginSession,
+  unregisterLoadedBuildSession,
+} from "./migration/session-registry";
+import {
+  resolveMigrationRoot,
+  resolveOwnBuildIdentity,
+} from "./migration/paths";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 import { resolveProductContext } from "./storage/product-context";
 import {
@@ -187,6 +195,15 @@ export async function tryInitStore(
       backend_mode: "temporal",
     });
     if (projectId) {
+      // AC9/DDC5: record this session's loaded-build identity into the
+      // machine-wide cutover registry. Self-guarding (skips in test mode
+      // and src/dev mode without a build identity) and never throws — the
+      // init resilience contract takes precedence over registration.
+      registerPluginSession({
+        projectId,
+        migrationRoot: resolveMigrationRoot(),
+        identity: resolveOwnBuildIdentity(),
+      });
       const runtimeStartedAt = performance.now();
       const runtime = await ensureTemporalRuntime(projectId);
       profilePluginInit("temporal_runtime_ready", {
@@ -701,6 +718,20 @@ const noopShutdownHandlers: ShutdownHandlers = {
 };
 
 /**
+ * Remove this session's loaded-build registry record (AC9/DDC5). Sync and
+ * best-effort so it is safe inside process.on("exit") handlers; dead-PID
+ * records are also reaped lazily by the inventory collector, so a missed
+ * removal never blocks cutover.
+ */
+function unregisterPluginSessionRecord(): void {
+  try {
+    unregisterLoadedBuildSession({ migrationRoot: resolveMigrationRoot() });
+  } catch (e) {
+    debugLog(`Error unregistering loaded-build session record: ${e}`);
+  }
+}
+
+/**
  * Build process-level shutdown handlers that tolerate a null store (init
  * failure). Returns handlers plus a disposer that removes the installed
  * process listeners.
@@ -721,6 +752,7 @@ export function registerShutdownHandlers(
 
   const handleExit = () => {
     cleanupTerminal();
+    unregisterPluginSessionRecord();
     // Fire-and-forget: process.on("exit") handlers MUST be synchronous.
     // The in-process worker's shutdown is best-effort at this stage; real
     // graceful drain happens via shutdownWithFlush on SIGINT/SIGTERM.
@@ -741,6 +773,7 @@ export function registerShutdownHandlers(
   let flushInFlight = false;
   const shutdownWithFlush = () => {
     cleanupTerminal();
+    unregisterPluginSessionRecord();
     stopWorkerHealthMonitor();
     if (flushInFlight) return;
     flushInFlight = true;

@@ -20,6 +20,12 @@ import {
   type WorkflowDirective,
 } from "../utils/workflow-directive";
 import {
+  degradedPhasePlan,
+  derivePhasePlanSafe,
+  type DegradedPhasePlan,
+} from "../utils/phase-plan";
+import { checkPlanRoutingGuard } from "../migration/routing-guard";
+import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
 } from "../utils/context-snapshot";
@@ -181,19 +187,37 @@ export async function enrichRecentChangeStatus(
   // reads elsewhere keep this fresh); never persisted. Best effort: a
   // derivation failure must not break status enrichment — fall back to the
   // first open gate and omit the `_directive` payload on the rare error path.
-  const directive = deriveDirectiveSafe(
-    changeToDirectiveState({
-      projectId: changeData.adv_project_id ?? "unknown",
-      change: changeData,
-      gates,
-    }),
-    Date.now(),
-  );
-  const fallbackNextGate = directive
-    ? undefined
-    : (GATE_ORDER.find((gateId) => gates[gateId]?.status !== "done") as
-        | GateId
-        | undefined);
+  //
+  // AC9/DDC7 fail-closed: after an active build-bound cutover receipt, a
+  // degraded plan instead stops plan-dependent routing — no first-open-gate
+  // fallback (DONT4), typed degraded diagnostics attached, zero Temporal
+  // effects (DONT5).
+  const directiveState = changeToDirectiveState({
+    projectId: changeData.adv_project_id ?? "unknown",
+    change: changeData,
+    gates,
+  });
+  const directive = deriveDirectiveSafe(directiveState, Date.now());
+  let failClosedPlan: DegradedPhasePlan | undefined;
+  let fallbackNextGate: GateId | undefined;
+  if (!directive) {
+    const routingGuard = checkPlanRoutingGuard();
+    if (routingGuard.failClosed) {
+      const plan = derivePhasePlanSafe(directiveState, Date.now());
+      failClosedPlan =
+        plan.kind === "degraded"
+          ? plan
+          : degradedPhasePlan(
+              changeId,
+              "derivation_error",
+              "directive derivation failed while plan derivation succeeded; treating projections as conflicting",
+            );
+    } else {
+      fallbackNextGate = GATE_ORDER.find(
+        (gateId) => gates[gateId]?.status !== "done",
+      ) as GateId | undefined;
+    }
+  }
 
   const snapshotInput = {
     change: changeData,
@@ -215,6 +239,7 @@ export async function enrichRecentChangeStatus(
       ? buildChangeContextSnapshot({ ...snapshotInput, directive })
       : buildChangeContextTicker(snapshotInput),
     _directive: directive,
+    ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
   });
 
   const dependencyStatus = await buildExternalDependencyStatus(
@@ -227,7 +252,9 @@ export async function enrichRecentChangeStatus(
 
   const nextGate = directive
     ? (directive.action.gateId as GateId | undefined)
-    : fallbackNextGate;
+    : failClosedPlan
+      ? undefined
+      : fallbackNextGate;
   if (directive && nextGate) {
     const parentContext = changeData.fast_follow_of
       ? await getFastFollowParentContext(

@@ -13,9 +13,9 @@
  */
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { TestWorkflowEnvironment } from "@temporalio/testing";
+import type { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
-import { withTestWorkflowEnvironment } from "./with-test-env";
+import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 import { archiveRequestedSignal, changeCancelledSignal } from "../messages";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput } from "../contracts";
@@ -84,81 +84,75 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
 
 describe("changeWorkflow terminal-state exit (terminatechangeworkflowonarchi)", () => {
   it("Completes after archiveChangeUpdate resolves", async () => {
-    await withTestWorkflowEnvironment(
-      () => TestWorkflowEnvironment.createTimeSkipping(),
-      async (env) => {
-        await registerAdvSearchAttributes(env);
+    await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+      await registerAdvSearchAttributes(env);
 
-        const worker = await Worker.create({
-          connection: env.nativeConnection,
-          workflowsPath,
+      const worker = await Worker.create({
+        connection: env.nativeConnection,
+        workflowsPath,
+        taskQueue: "termination-test-archive",
+      });
+
+      await worker.runUntil(async () => {
+        const input = makeChangeInput("archive-test-001");
+        const handle = await env.client.workflow.start("changeWorkflow", {
+          workflowId: `term-archive-${Date.now()}`,
           taskQueue: "termination-test-archive",
+          args: [input],
         });
 
-        await worker.runUntil(async () => {
-          const input = makeChangeInput("archive-test-001");
-          const handle = await env.client.workflow.start("changeWorkflow", {
-            workflowId: `term-archive-${Date.now()}`,
-            taskQueue: "termination-test-archive",
-            args: [input],
-          });
-
-          // Trigger archive — sets state.status = "archived"
-          await handle.signal(archiveRequestedSignal, {
-            approvalEvidence: "Test archive approval",
-            requestedBy: "tester",
-            requestedAt: new Date().toISOString(),
-          });
-
-          // After fix: workflow exits cleanly via terminal-state branch.
-          // Before fix: workflow stays Running until history rotation.
-          const outcome = await waitForCompleted(handle, 5_000);
-          expect(outcome).toBe("completed");
-
-          // Confirm via describe() — defense in depth
-          const description = await handle.describe();
-          expect(description.status.name).toBe("COMPLETED");
+        // Trigger archive — sets state.status = "archived"
+        await handle.signal(archiveRequestedSignal, {
+          approvalEvidence: "Test archive approval",
+          requestedBy: "tester",
+          requestedAt: new Date().toISOString(),
         });
-      },
-    );
+
+        // After fix: workflow exits cleanly via terminal-state branch.
+        // Before fix: workflow stays Running until history rotation.
+        const outcome = await waitForCompleted(handle, 5_000);
+        expect(outcome).toBe("completed");
+
+        // Confirm via describe() — defense in depth
+        const description = await handle.describe();
+        expect(description.status.name).toBe("COMPLETED");
+      });
+    });
   }, 30_000);
 
   it("Completes after closeChangeUpdate resolves", async () => {
-    await withTestWorkflowEnvironment(
-      () => TestWorkflowEnvironment.createTimeSkipping(),
-      async (env) => {
-        await registerAdvSearchAttributes(env);
+    await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+      await registerAdvSearchAttributes(env);
 
-        const worker = await Worker.create({
-          connection: env.nativeConnection,
-          workflowsPath,
+      const worker = await Worker.create({
+        connection: env.nativeConnection,
+        workflowsPath,
+        taskQueue: "termination-test-close",
+      });
+
+      await worker.runUntil(async () => {
+        const input = makeChangeInput("close-test-001");
+        const handle = await env.client.workflow.start("changeWorkflow", {
+          workflowId: `term-close-${Date.now()}`,
           taskQueue: "termination-test-close",
+          args: [input],
         });
 
-        await worker.runUntil(async () => {
-          const input = makeChangeInput("close-test-001");
-          const handle = await env.client.workflow.start("changeWorkflow", {
-            workflowId: `term-close-${Date.now()}`,
-            taskQueue: "termination-test-close",
-            args: [input],
-          });
-
-          // Trigger close with a cancellation payload — sets state.status = "closed"
-          await handle.signal(changeCancelledSignal, {
-            approvalEvidence: "Test cancellation",
-            reason: "cancelled",
-            cancelledBy: "tester",
-            cancelledAt: new Date().toISOString(),
-          });
-
-          const outcome = await waitForCompleted(handle, 5_000);
-          expect(outcome).toBe("completed");
-
-          const description = await handle.describe();
-          expect(description.status.name).toBe("COMPLETED");
+        // Trigger close with a cancellation payload — sets state.status = "closed"
+        await handle.signal(changeCancelledSignal, {
+          approvalEvidence: "Test cancellation",
+          reason: "cancelled",
+          cancelledBy: "tester",
+          cancelledAt: new Date().toISOString(),
         });
-      },
-    );
+
+        const outcome = await waitForCompleted(handle, 5_000);
+        expect(outcome).toBe("completed");
+
+        const description = await handle.describe();
+        expect(description.status.name).toBe("COMPLETED");
+      });
+    });
   }, 30_000);
 
   // Note: a "stays Running on non-terminal status" negative test was

@@ -85,6 +85,12 @@ import {
   changeToWorkflowState,
 } from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
+import {
+  degradedPhasePlan,
+  derivePhasePlanSafe,
+  type DegradedPhasePlan,
+} from "../utils/phase-plan";
+import { checkPlanRoutingGuard } from "../migration/routing-guard";
 import { createLogger } from "../utils/debug-log";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
@@ -1276,30 +1282,56 @@ export const gateTools = {
             // wrapper), the same derivation the workflow's getDirectiveQuery
             // and status enrichment consume. On derivation failure we fall
             // back to gate-derived next-action so gate-status stays useful.
-            const directive = deriveDirectiveSafe(
-              changeToDirectiveState({
-                projectId: projectId ?? result.data.adv_project_id ?? "unknown",
-                change: result.data,
-                gates: normalizedGates,
-              }),
-              Date.now(),
-            );
+            //
+            // AC9/DDC7 fail-closed: after an active build-bound cutover
+            // receipt, a degraded plan instead stops plan-dependent consumer
+            // routing — no gate-derived next action (DONT4), typed degraded
+            // diagnostics only, and zero Temporal signals/writes (DONT5).
+            const directiveState = changeToDirectiveState({
+              projectId: projectId ?? result.data.adv_project_id ?? "unknown",
+              change: result.data,
+              gates: normalizedGates,
+            });
+            const directive = deriveDirectiveSafe(directiveState, Date.now());
+            let failClosedPlan: DegradedPhasePlan | undefined;
+            let failClosedBasis: string | undefined;
             if (!directive) {
-              logger.warn(
-                `deriveWorkflowDirective failed in gate-status for ${changeId}; falling back to gate-derived next-action`,
-              );
+              const routingGuard = checkPlanRoutingGuard();
+              if (routingGuard.failClosed) {
+                const plan = derivePhasePlanSafe(directiveState, Date.now());
+                failClosedPlan =
+                  plan.kind === "degraded"
+                    ? plan
+                    : degradedPhasePlan(
+                        changeId,
+                        "derivation_error",
+                        "directive derivation failed while plan derivation succeeded; treating projections as conflicting",
+                      );
+                failClosedBasis = routingGuard.basis;
+                logger.warn(
+                  `deriveWorkflowDirective failed in gate-status for ${changeId}; plan routing fail-closed (${routingGuard.basis}) — next-action routing stopped`,
+                );
+              } else {
+                logger.warn(
+                  `deriveWorkflowDirective failed in gate-status for ${changeId}; falling back to gate-derived next-action`,
+                );
+              }
             }
             const fallbackNextGate =
               incomplete.length > 0 ? incomplete[0] : null;
             const canArchive = directive
               ? directive.canArchive
-              : allGatesSatisfied(normalizedGates);
+              : failClosedPlan
+                ? false
+                : allGatesSatisfied(normalizedGates);
             const nextGate = directive
               ? directive.canArchive
                 ? null
                 : ((directive.action.gateId as GateId | undefined) ??
                   fallbackNextGate)
-              : fallbackNextGate;
+              : failClosedPlan
+                ? null
+                : fallbackNextGate;
 
             return formatToolOutput({
               changeId,
@@ -1308,6 +1340,15 @@ export const gateTools = {
               canArchive,
               nextGate,
               ...(directive ? { _directive: directive } : {}),
+              ...(failClosedPlan
+                ? {
+                    _phasePlan: failClosedPlan,
+                    _routingStopped: {
+                      reason: failClosedPlan.reason,
+                      basis: failClosedBasis,
+                    },
+                  }
+                : {}),
               ...(gateCriteria ? { gateCriteria } : {}),
               ...(poisonedFallback
                 ? { _recovery: { reason: "poisoned_history" } }

@@ -5,7 +5,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
 
@@ -52,7 +51,7 @@ import {
   worktreeDeletedSignal,
   worktreeSetupFailedSignal,
 } from "./messages";
-import { withTestWorkflowEnvironment } from "./__tests__/with-test-env";
+import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
 import { inspectArtifactActivity, writeArtifactActivity } from "./activities";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
@@ -150,26 +149,23 @@ async function withSignalWorker(
     handle: WorkflowHandle<typeof import("./workflows").changeWorkflow>,
   ) => Promise<void>,
 ): Promise<void> {
-  await withTestWorkflowEnvironment(
-    () => TestWorkflowEnvironment.createTimeSkipping(),
-    async (env) => {
-      const taskQueue = `signal-handlers-${name}`;
-      const worker = await Worker.create({
-        connection: env.nativeConnection,
-        workflowsPath,
-        taskQueue,
-      });
+  await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+    const taskQueue = `signal-handlers-${name}`;
+    const worker = await Worker.create({
+      connection: env.nativeConnection,
+      workflowsPath,
+      taskQueue,
+    });
 
-      await worker.runUntil(async () => {
-        const handle = await env.client.workflow.start("changeWorkflow", {
-          workflowId: `signal-${name}-${Date.now()}`,
-          taskQueue,
-          args: [makeChangeInput(name)],
-        });
-        await fn(handle);
+    await worker.runUntil(async () => {
+      const handle = await env.client.workflow.start("changeWorkflow", {
+        workflowId: `signal-${name}-${Date.now()}`,
+        taskQueue,
+        args: [makeChangeInput(name)],
       });
-    },
-  );
+      await fn(handle);
+    });
+  });
 }
 
 async function withArtifactSignalWorker(
@@ -179,27 +175,24 @@ async function withArtifactSignalWorker(
     handle: WorkflowHandle<typeof import("./workflows").changeWorkflow>,
   ) => Promise<void>,
 ): Promise<void> {
-  await withTestWorkflowEnvironment(
-    () => TestWorkflowEnvironment.createTimeSkipping(),
-    async (env) => {
-      const taskQueue = `signal-handlers-${name}`;
-      const worker = await Worker.create({
-        connection: env.nativeConnection,
-        workflowsPath,
-        taskQueue,
-        activities: { inspectArtifactActivity, writeArtifactActivity },
-      });
+  await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+    const taskQueue = `signal-handlers-${name}`;
+    const worker = await Worker.create({
+      connection: env.nativeConnection,
+      workflowsPath,
+      taskQueue,
+      activities: { inspectArtifactActivity, writeArtifactActivity },
+    });
 
-      await worker.runUntil(async () => {
-        const handle = await env.client.workflow.start("changeWorkflow", {
-          workflowId: `signal-${name}-${Date.now()}`,
-          taskQueue,
-          args: [input],
-        });
-        await fn(handle);
+    await worker.runUntil(async () => {
+      const handle = await env.client.workflow.start("changeWorkflow", {
+        workflowId: `signal-${name}-${Date.now()}`,
+        taskQueue,
+        args: [input],
       });
-    },
-  );
+      await fn(handle);
+    });
+  });
 }
 
 async function queryState(

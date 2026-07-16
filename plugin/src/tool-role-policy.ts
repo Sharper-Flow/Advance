@@ -46,7 +46,7 @@ export interface ToolRoleEntry {
  * tool-role-policy.test.ts — a registry change without a policy row fails CI.
  */
 export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
-  // ── Operator-only (8) ────────────────────────────────────────────────
+  // ── Operator-only (9) ────────────────────────────────────────────────
   // Maintenance/recovery tools with destructive, wedged-state, or store-level
   // blast radius. Grantable only to the ADV orchestrator, which invokes them
   // solely on explicit operator instruction with approval evidence (C6).
@@ -166,7 +166,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     operatorActions: [],
   },
 
-  // ── Orchestrator (62) ────────────────────────────────────────────────
+  // ── Orchestrator (63) ────────────────────────────────────────────────
   // Routine ADV command-workflow and agent tools. Several mutations remain
   // approval-gated, driven by the orchestrator through gate/command workflows
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
@@ -403,7 +403,8 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   },
   adv_verification_evidence_disposition: {
     class: "orchestrator",
-    rationale: "Verification-evidence disposition.",
+    rationale:
+      "Verification-evidence disposition clearing a VERIFICATION_EVIDENCE_MISSING blocker on proof-bearing task policies; typed fixed/rejected_with_evidence/split/fast_follow with non-blank evidence (no accepted_debt), parallel to adv_design_concern_disposition.",
   },
   adv_wisdom_add: {
     class: "orchestrator",

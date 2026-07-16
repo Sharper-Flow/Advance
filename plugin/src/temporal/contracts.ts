@@ -62,6 +62,10 @@ export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
   task: "adv.change.task",
   getCurrentBucket: "adv.change.getCurrentBucket",
   getDirective: "adv.change.getDirective",
+  // SC1/AC8: centralized canonical wire name for the typed PhasePlan read
+  // query. Client bindings (messages.ts) and the workflow handler
+  // (workflows.ts) both bind from this constant so the name cannot drift.
+  getPhasePlan: "adv.change.getPhasePlan",
   getInvestmentReport: "adv.change.getInvestmentReport",
   getReviewVerification: "adv.change.getReviewVerification",
   getTaskRunSummary: "adv.change.getTaskRunSummary",
