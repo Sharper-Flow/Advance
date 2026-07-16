@@ -161,9 +161,23 @@ export async function readPluginBundleManifest(
   ) {
     return null;
   }
-  if (typeof candidate.built_at !== "string") return null;
+  if (
+    typeof candidate.built_at !== "string" ||
+    !isCanonicalIsoTimestamp(candidate.built_at)
+  ) {
+    return null;
+  }
 
   return candidate as PluginBundleManifest;
+}
+
+/** The manifest contract requires the canonical ISO string emitted by Date. */
+function isCanonicalIsoTimestamp(value: string): boolean {
+  try {
+    return new Date(value).toISOString() === value;
+  } catch {
+    return false;
+  }
 }
 
 const RESTART_RECOVERY = "Restart OpenCode to load the current plugin bundle.";

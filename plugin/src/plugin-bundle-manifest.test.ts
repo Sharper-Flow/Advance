@@ -136,6 +136,20 @@ describe("plugin bundle manifest", () => {
       }),
     );
     await expect(readPluginBundleManifest(unsupportedDir)).resolves.toBeNull();
+
+    const invalidTimestampDir = await tempDistDir();
+    await writeFile(
+      join(invalidTimestampDir, PLUGIN_BUNDLE_MANIFEST_FILENAME),
+      JSON.stringify({
+        schema_version: 1,
+        generation: generatePluginBundleGeneration(),
+        files: { index: generatePluginBundleGeneration() },
+        built_at: "not-an-iso-timestamp",
+      }),
+    );
+    await expect(
+      readPluginBundleManifest(invalidTimestampDir),
+    ).resolves.toBeNull();
   });
 
   describe("comparePluginBundleGenerations", () => {
