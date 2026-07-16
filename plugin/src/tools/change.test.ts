@@ -16,7 +16,12 @@ import {
 } from "./change";
 import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
-import { parsePhasePlan } from "../utils/phase-plan";
+import { derivePhasePlanSafe, parsePhasePlan } from "../utils/phase-plan";
+import {
+  PARITY_ROWS,
+  toolChangeFor,
+} from "../__tests__/phase-plan-parity-matrix";
+import { changeToDirectiveState } from "../temporal/change-state";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import * as gitFinalize from "./archive-helpers/git-finalize";
 import * as worktree from "./worktree";
@@ -1979,6 +1984,65 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(parsed.changes[0].status).toBe("draft");
         expect("phase" in parsed.changes[0]).toBe(false);
       });
+    });
+  });
+
+  describe("adv_change_show — phase plan parity matrix (AC10)", () => {
+    // One table-driven pass over the shared parity matrix: all seven gate
+    // positions, never-started, all-gates-done, approval, readiness-blocked,
+    // precise recovery, precedence collisions, archived, closed, and the
+    // malformed projection (typed degraded plan, no directive).
+    test.each(PARITY_ROWS)("$name", async (row) => {
+      const store = createMockStore(toolChangeFor(row));
+
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "test-change",
+          include: { phasePlan: true, snapshot: true },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // The projection always parses as exactly one strict plan variant.
+      const plan = parsePhasePlan(parsed._phasePlan);
+      expect(plan.kind).toBe(row.expect.planKind);
+      if (row.expect.planKind === "actionable") {
+        expect(plan).toMatchObject({
+          gateId: row.expect.planGateId,
+          command: row.expect.planCommand,
+          failClosed: false,
+        });
+      } else {
+        expect(plan.failClosed).toBe(true);
+        // Non-authorizing variants carry no route or command.
+        expect(parsed._phasePlan).not.toHaveProperty("command");
+        expect(parsed._phasePlan).not.toHaveProperty("route");
+      }
+
+      // The snapshot Next line tracks the same routing the plan reports.
+      if (row.expect.snapshotNext) {
+        expect(parsed._contextSnapshot).toContain(row.expect.snapshotNext);
+      } else {
+        expect(parsed._contextSnapshot ?? "").not.toContain("Next:");
+      }
+
+      // The tool projection equals the canonical derivation over the same
+      // durable snapshot — consumers never see a second opinion.
+      const change = (await store.changes.get("test-change")).data!;
+      expect(parsed._phasePlan).toEqual(
+        derivePhasePlanSafe(
+          changeToDirectiveState({
+            projectId: "test-project-id",
+            change,
+            gates: row.state.gates,
+          }),
+          Date.now(),
+        ),
+      );
+
+      // Routing-only read: no workflow signals from any matrix row.
+      expect(mocks.signalMock).not.toHaveBeenCalled();
     });
   });
 
