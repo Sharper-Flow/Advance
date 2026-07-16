@@ -97,8 +97,56 @@ import {
   workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
+import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
+import type { LightweightProfilePhase } from "../types";
 
 const logger = createLogger("gate");
+
+interface LightweightProfileBoundaryResult {
+  phase: LightweightProfilePhase;
+  result: string;
+  evaluationKey?: string;
+  downgradeReason?: string;
+}
+
+// rq-smallChangeProfile01: re-evaluate lightweight profile at gate boundaries.
+// Errors are best-effort logged; gate completion must not fail because the
+// optional profile evaluation encountered a transient host-side issue.
+async function evaluateLightweightProfileAtPhases(
+  store: Store,
+  change: Change,
+  changeId: string,
+  phases: LightweightProfilePhase[],
+): Promise<LightweightProfileBoundaryResult[]> {
+  if (!change.lightweight_profile) return [];
+  const results: LightweightProfileBoundaryResult[] = [];
+  for (const phase of phases) {
+    try {
+      const evalResult = await evaluateLightweightProfileAndSignal({
+        store,
+        changeId,
+        phase,
+      });
+      if (evalResult.success && evalResult.evaluation) {
+        results.push({
+          phase,
+          result: evalResult.evaluation.result,
+          evaluationKey: evalResult.evaluation.evaluationKey,
+          downgradeReason: evalResult.evaluation.downgradeReason,
+        });
+      } else if (!evalResult.success) {
+        logger.warn(
+          `Lightweight profile evaluation skipped at ${phase} for ${changeId}: ${evalResult.error}`,
+        );
+      }
+    } catch (error) {
+      logger.warn(
+        `Lightweight profile evaluation failed at ${phase} for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+  return results;
+}
 
 // rq-releaseFinalization01: gate completion confirmation must be durable.
 const MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS = 20;
@@ -946,6 +994,18 @@ async function handlePlanningGateCompletion({
     });
   }
 
+  const profileEvaluations = await evaluateLightweightProfileAtPhases(
+    store,
+    change,
+    changeId,
+    ["initial", "execution_boundary"],
+  );
+
+  const profilePayload =
+    profileEvaluations.length > 0
+      ? { lightweightProfileEvaluations: profileEvaluations }
+      : {};
+
   return completeGateAndBuildResponse({
     store,
     change,
@@ -958,6 +1018,7 @@ async function handlePlanningGateCompletion({
     extraPayload: {
       ...warningsPayload,
       ...clarifyPayload,
+      ...profilePayload,
     },
   });
 }
@@ -1503,6 +1564,20 @@ export const gateTools = {
           });
         }
 
+        const profileEvaluations =
+          gateId === "execution"
+            ? await evaluateLightweightProfileAtPhases(
+                activeStore,
+                change,
+                changeId,
+                ["acceptance_boundary"],
+              )
+            : [];
+        const profilePayload =
+          profileEvaluations.length > 0
+            ? { lightweightProfileEvaluations: profileEvaluations }
+            : {};
+
         return completeGateAndBuildResponse({
           store: activeStore,
           change,
@@ -1512,9 +1587,10 @@ export const gateTools = {
           notes,
           completedBy,
           boundaryWarning,
-          extraPayload: projectContext
-            ? { _projectContext: projectContext }
-            : {},
+          extraPayload: {
+            ...profilePayload,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          },
         });
       };
 

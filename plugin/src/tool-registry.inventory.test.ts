@@ -67,13 +67,15 @@ const CONTRACTED_PUBLIC_REMOVALS = [
  * Public tools whose addition is contracted to LATER changes after the
  * consolidation baseline landed (fixWedgedWorkflowRecovery added
  * adv_change_workflow_terminate; strengthenAgentEvidence added
- * adv_verification_evidence_disposition). Exact accounting keeps the
+ * adv_verification_evidence_disposition; addLightweightChangeProfile added
+ * adv_lightweight_profile_evaluate). Exact accounting keeps the
  * canonical count pinned at every intermediate state: the count may grow
  * only via this recorded addition set, by exactly the number landed.
  */
 const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_change_workflow_terminate",
   "adv_verification_evidence_disposition",
+  "adv_lightweight_profile_evaluate",
 ] as const;
 
 describe("public tool inventory — DDC1 name-set parity", () => {
@@ -220,7 +222,9 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // completion both removals landed (78 = 80 - 2);
     // fixWedgedWorkflowRecovery then added the pinned termination tool
     // (79 = 80 - 2 + 1); strengthenAgentEvidence then added the
-    // verification-evidence disposition tool (80 = 80 - 2 + 2).
+    // verification-evidence disposition tool (80 = 80 - 2 + 2);
+    // addLightweightChangeProfile then added the lightweight profile evaluate
+    // tool (81 = 80 - 2 + 3).
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) - landedRemovals + landedAdditions,
     );

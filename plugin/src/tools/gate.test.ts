@@ -64,6 +64,7 @@ const mocks = vi.hoisted(() => {
         store: targetStore,
       },
     })),
+    evaluateLightweightProfileAndSignal: vi.fn(),
   };
 });
 
@@ -117,6 +118,11 @@ vi.mock("./_adapters", () => ({
     }
     return latest;
   },
+}));
+
+vi.mock("./lightweight-profile", () => ({
+  evaluateLightweightProfileAndSignal:
+    mocks.evaluateLightweightProfileAndSignal,
 }));
 
 function createMockStore(
@@ -185,6 +191,18 @@ describe("gate tools — signal-driven lifecycle", () => {
     vi.clearAllMocks();
     mocks.querySignal.mockReset();
     mocks.targetStoreRef.current = undefined;
+    mocks.evaluateLightweightProfileAndSignal.mockResolvedValue({
+      success: true,
+      evaluation: {
+        evaluationKey: "eval-1",
+        phase: "initial",
+        result: "qualified",
+        criteria: [],
+        evidenceFingerprint: "fp-1",
+        observedRevision: "rev-1",
+        evaluatedAt: "2026-01-01T00:00:00Z",
+      },
+    });
   });
 
   afterEach(() => {
@@ -999,6 +1017,148 @@ describe("gate tools — signal-driven lifecycle", () => {
       );
 
       delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    test("planning gate completion triggers initial and execution_boundary profile evaluations", async () => {
+      const store = createMockStore({
+        change: {
+          lightweight_profile: {
+            request: {
+              requestId: "req-1",
+              baselineRevision: "baseline-1",
+              requestedAt: "2026-01-01T00:00:00Z",
+            },
+            omissionPolicy: {
+              omitDeepScans: true,
+              omitGenericExternalResearch: true,
+              omitOpportunityScouting: true,
+              omitDefaultSpecialistDelegation: true,
+            },
+            evaluations: [],
+          },
+        },
+      });
+      mocks.querySignal.mockResolvedValueOnce({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "planning",
+          userApproved: true,
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledTimes(
+        2,
+      );
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledWith(
+        expect.objectContaining({ phase: "initial" }),
+      );
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledWith(
+        expect.objectContaining({ phase: "execution_boundary" }),
+      );
+      expect(parsed.lightweightProfileEvaluations).toHaveLength(2);
+    });
+
+    test("execution gate completion triggers acceptance_boundary profile evaluation", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          lightweight_profile: {
+            request: {
+              requestId: "req-1",
+              baselineRevision: "baseline-1",
+              requestedAt: "2026-01-01T00:00:00Z",
+            },
+            omissionPolicy: {
+              omitDeepScans: true,
+              omitGenericExternalResearch: true,
+              omitOpportunityScouting: true,
+              omitDefaultSpecialistDelegation: true,
+            },
+            evaluations: [],
+          },
+          tasks: [{ id: "t-1", status: "done" }],
+        },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce(gates)
+        .mockResolvedValueOnce([{ id: "t-1", status: "done" }])
+        .mockResolvedValueOnce({ status: "done" });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "execution",
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledWith(
+        expect.objectContaining({ phase: "acceptance_boundary" }),
+      );
+      expect(parsed.lightweightProfileEvaluations).toHaveLength(1);
+      expect(parsed.lightweightProfileEvaluations[0].phase).toBe(
+        "acceptance_boundary",
+      );
+    });
+
+    test("gate completion skips profile evaluation when change has no profile", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValueOnce({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "planning",
+          userApproved: true,
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.evaluateLightweightProfileAndSignal).not.toHaveBeenCalled();
+      expect(parsed.lightweightProfileEvaluations).toBeUndefined();
     });
   });
 

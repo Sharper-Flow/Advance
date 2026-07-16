@@ -316,6 +316,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Gate read.",
   },
+  adv_lightweight_profile_evaluate: {
+    class: "orchestrator",
+    rationale:
+      "Host-side evidence collection + Temporal signal for lightweight profile evaluation; driven by gate workflow.",
+  },
   adv_ops_evidence_add: {
     class: "orchestrator",
     rationale: "Ops follow-up evidence append.",
@@ -524,6 +529,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_followup_promote",
       "adv_gate_complete",
       "adv_gate_status",
+      "adv_lightweight_profile_evaluate",
       "adv_ops_evidence_add",
       "adv_ops_run_evidence_add",
       "adv_ops_run_upsert",

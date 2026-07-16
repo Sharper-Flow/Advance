@@ -17,6 +17,10 @@
 
 import type { GateId, GateReadinessBlocker, Gates } from "../types";
 import { GATE_ORDER, allGatesSatisfied } from "../types";
+import type {
+  LightweightProfileOmissionPolicy,
+  LightweightProfileResult,
+} from "../types/lightweight-change-profile";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import { isPrecisePoisonedHistoryEvidence } from "../temporal/recovery-classification";
 import type { Bucket } from "./buckets";
@@ -87,6 +91,16 @@ export interface WorkflowDirective {
   blockers: GateReadinessBlocker[];
   canArchive: boolean;
   bucket: Bucket;
+  /**
+   * Lightweight change profile routing info. Undefined when the change has
+   * not requested a lightweight profile.
+   */
+  lightweightProfile?: {
+    result: LightweightProfileResult;
+    omissionPolicy: LightweightProfileOmissionPolicy;
+    evaluatedAt?: string;
+    downgradeReason?: string;
+  };
 }
 
 // =============================================================================
@@ -104,6 +118,7 @@ export interface DirectiveContext {
   blockers: GateReadinessBlocker[];
   bucket: Bucket;
   recovery?: DirectiveRecovery;
+  lightweightProfile?: WorkflowDirective["lightweightProfile"];
 }
 
 function gateStatusRecord(gates: Gates): Record<GateId, DirectiveGateStatus> {
@@ -205,6 +220,21 @@ function isTerminalStatus(status: ChangeWorkflowState["status"]): boolean {
   return status === "archived" || status === "closed";
 }
 
+function deriveLightweightProfile(
+  state: ChangeWorkflowState,
+): WorkflowDirective["lightweightProfile"] {
+  const profile = state.lightweight_profile;
+  if (!profile) return undefined;
+  const latest = profile.evaluations[profile.evaluations.length - 1];
+  if (!latest) return undefined;
+  return {
+    result: latest.result,
+    omissionPolicy: profile.omissionPolicy,
+    evaluatedAt: latest.evaluatedAt,
+    downgradeReason: latest.downgradeReason,
+  };
+}
+
 export function directiveCtxFromState(
   state: ChangeWorkflowState,
   epoch: number,
@@ -231,6 +261,7 @@ export function directiveCtxFromState(
     blockers: collectBlockers(state),
     bucket: deriveBucket(bucketCtxFromState(state, epoch)),
     recovery: deriveRecovery(state),
+    lightweightProfile: deriveLightweightProfile(state),
   };
 }
 
@@ -267,6 +298,7 @@ export function deriveWorkflowDirective(
     blockers: ctx.blockers,
     canArchive: ctx.canArchive,
     bucket: ctx.bucket,
+    lightweightProfile: ctx.lightweightProfile,
   };
 }
 
