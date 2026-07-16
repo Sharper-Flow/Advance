@@ -81,7 +81,9 @@ export function createInventoryBudget(
     },
     snapshot() {
       checkDeadline();
-      return reason ? { complete: false, stopReason: reason } : { complete: true };
+      return reason
+        ? { complete: false, stopReason: reason }
+        : { complete: true };
     },
     dispose() {
       clearTimeout(timer);

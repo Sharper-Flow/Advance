@@ -51,6 +51,11 @@ import {
   escapeVisibilityValue,
   openLifecycleVisibilityClauses,
 } from "../../temporal/lifecycle-visibility";
+import {
+  createInventoryBudget,
+  type InventoryBudget,
+  type InventoryStopReason,
+} from "./inventory-budget";
 
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
@@ -156,6 +161,18 @@ export interface WorktreeRegistrySnapshot extends WorktreesAcrossChangesResult {
     string,
     { branch?: string; touched_files?: string[]; status?: string }
   >;
+  complete?: boolean;
+  stopReason?: InventoryStopReason;
+  stoppedStage?: string;
+  inspectedCount?: number;
+  candidateCount?: number;
+  omitted?: Array<{
+    scope: string;
+    changeId?: string;
+    branch?: string;
+    reason: string;
+  }>;
+  stageTimings?: Record<string, number>;
 }
 
 /** Back-compat token for callers that previously passed a Database. */
@@ -779,21 +796,90 @@ export async function listWorktreesAcrossChanges(
 
 export async function getWorktreeRegistrySnapshot(
   access: WorktreeStateAccess,
+  options?: {
+    budget?: InventoryBudget;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+  },
 ): Promise<WorktreeRegistrySnapshot> {
-  const unavailable = (message: string, error?: unknown) => ({
-    records: [],
-    changeSummaries: {},
-    warnings: [
-      {
-        source: "worktree_visibility" as const,
-        message,
-        errorClass: error ? errorClass(error) : "Unavailable",
-        ...(error ? { evidenceSummary: summarizeErrorEvidence(error) } : {}),
-      },
-    ],
-    poisonedWorkflows: [],
-    unavailable: true,
-  });
+  let ownBudget: InventoryBudget | undefined;
+  let budget = options?.budget;
+  if (!budget && (options?.signal || options?.timeoutMs !== undefined)) {
+    ownBudget = createInventoryBudget({
+      callerSignal: options.signal,
+      timeoutMs: options.timeoutMs,
+    });
+    budget = ownBudget;
+  }
+
+  const stageTimings: Record<string, number> = {};
+  let stageStart = performance.now();
+  let currentStage = "start";
+  let stoppedStage: string | undefined;
+  let candidateCount = 0;
+  let inspectedCount = 0;
+  const omitted: NonNullable<WorktreeRegistrySnapshot["omitted"]> = [];
+
+  function enterStage(stage: string) {
+    const now = performance.now();
+    if (currentStage !== stage) {
+      stageTimings[currentStage] = Number((now - stageStart).toFixed(3));
+      currentStage = stage;
+      stageStart = now;
+    }
+  }
+
+  function admit(stage: string): boolean {
+    enterStage(stage);
+    if (!budget) return true;
+    const ok = budget.canStartInspection();
+    if (!ok && !stoppedStage) stoppedStage = stage;
+    return ok;
+  }
+
+  function buildResult(
+    base: Partial<WorktreeRegistrySnapshot>,
+  ): WorktreeRegistrySnapshot {
+    enterStage("complete");
+    const snap = budget?.snapshot();
+    const complete = snap?.complete ?? true;
+    return {
+      records: [],
+      changeSummaries: {},
+      warnings: [],
+      poisonedWorkflows: [],
+      ...base,
+      complete,
+      stopReason: snap?.stopReason,
+      stoppedStage: complete ? undefined : (stoppedStage ?? currentStage),
+      inspectedCount: base.inspectedCount ?? inspectedCount,
+      candidateCount: base.candidateCount ?? candidateCount,
+      omitted: base.omitted ?? (omitted.length > 0 ? omitted : undefined),
+      stageTimings,
+    };
+  }
+
+  const unavailable = (message: string, error?: unknown) =>
+    buildResult({
+      records: [],
+      changeSummaries: {},
+      warnings: [
+        {
+          source: "worktree_visibility" as const,
+          message,
+          errorClass: error ? errorClass(error) : "Unavailable",
+          ...(error ? { evidenceSummary: summarizeErrorEvidence(error) } : {}),
+        },
+      ],
+      poisonedWorkflows: [],
+      unavailable: true,
+    });
+
+  if (!admit("service_check")) {
+    return unavailable(
+      "Inventory budget exhausted before Temporal service check",
+    );
+  }
 
   const bundle = getService();
   if (!bundle) return unavailable("Temporal service unavailable");
@@ -802,8 +888,20 @@ export async function getWorktreeRegistrySnapshot(
       getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
     };
   };
+
+  if (!admit("client_check")) {
+    return unavailable(
+      "Inventory budget exhausted before Temporal client check",
+    );
+  }
   if (!client.workflow.list || !client.workflow.getHandle) {
     return unavailable("Temporal workflow list/getHandle unavailable");
+  }
+
+  if (!admit("list_active_worktrees")) {
+    return unavailable(
+      "Inventory budget exhausted before listing active worktree workflows",
+    );
   }
 
   let changeIds: string[];
@@ -815,55 +913,86 @@ export async function getWorktreeRegistrySnapshot(
   } catch (error) {
     return unavailable("Unable to list active worktree workflows", error);
   }
+  candidateCount = changeIds.length;
 
   const records: MaterializedWorktreeRecord[] = [];
   const warnings: WorktreeCrossChangeWarning[] = [];
   const poisonedWorkflows: WorktreePoisonedWorkflowEntry[] = [];
   const changeSummaries: WorktreeRegistrySnapshot["changeSummaries"] = {};
 
-  for (const listedChangeId of changeIds) {
-    const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${listedChangeId}`;
-    const handle = client.workflow.getHandle(workflowId);
+  const queue = [...changeIds];
+  async function worker() {
+    while (true) {
+      if (budget && !budget.canStartInspection()) {
+        return;
+      }
+      const changeId = queue.shift();
+      if (!changeId) return;
+      await processChangeId(changeId);
+    }
+  }
+
+  async function processChangeId(changeId: string) {
+    if (!admit("query_change_workflow")) {
+      omitted.push({
+        scope: "query_change_workflow",
+        changeId,
+        reason: "inventory budget exhausted",
+      });
+      return;
+    }
+
+    inspectedCount += 1;
+    const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
+    const handle = client.workflow.getHandle!(workflowId);
     let state: ChangeWorkflowState;
     try {
       state = (await handle.query(getStateQuery)) as ChangeWorkflowState;
     } catch (error) {
-      const classification = await classifyWorktreeWorkflowFailure(
-        handle,
-        error,
-      );
-      const message = `Unable to query worktree registry snapshot for change ${listedChangeId}`;
-      warnings.push({
-        source: "worktree_workflow",
-        changeId: listedChangeId,
-        workflowId,
-        message,
-        errorClass: errorClass(error),
-        ...(classification.recoveryReason
-          ? { recoveryReason: classification.recoveryReason }
-          : {}),
-        ...(classification.evidenceSummary
-          ? { evidenceSummary: classification.evidenceSummary }
-          : {}),
-      });
-      if (
-        classification.recoveryReason === "poisoned_history" &&
-        classification.evidenceSummary
-      ) {
-        poisonedWorkflows.push({
-          changeId: listedChangeId,
+      if (admit("classify_workflow_failure")) {
+        const classification = await classifyWorktreeWorkflowFailure(
+          handle,
+          error,
+        );
+        const message = `Unable to query worktree registry snapshot for change ${changeId}`;
+        warnings.push({
+          source: "worktree_workflow",
+          changeId,
           workflowId,
-          recoveryReason: "poisoned_history",
-          evidenceSummary: classification.evidenceSummary,
           message,
+          errorClass: errorClass(error),
+          ...(classification.recoveryReason
+            ? { recoveryReason: classification.recoveryReason }
+            : {}),
+          ...(classification.evidenceSummary
+            ? { evidenceSummary: classification.evidenceSummary }
+            : {}),
+        });
+        if (
+          classification.recoveryReason === "poisoned_history" &&
+          classification.evidenceSummary
+        ) {
+          poisonedWorkflows.push({
+            changeId,
+            workflowId,
+            recoveryReason: "poisoned_history",
+            evidenceSummary: classification.evidenceSummary,
+            message,
+          });
+        }
+      } else {
+        omitted.push({
+          scope: "classify_workflow_failure",
+          changeId,
+          reason: "inventory budget exhausted",
         });
       }
-      continue;
+      return;
     }
 
-    const changeId = state.changeId ?? listedChangeId;
+    const summaryChangeId = state.changeId ?? changeId;
     const touchedFiles = collectTouchedFilesFromState(state);
-    changeSummaries[changeId] = {
+    changeSummaries[summaryChangeId] = {
       ...(typeof state.status === "string" ? { status: state.status } : {}),
       ...(touchedFiles.length > 0 ? { touched_files: touchedFiles } : {}),
     };
@@ -873,25 +1002,51 @@ export async function getWorktreeRegistrySnapshot(
     );
     for (const [branch, record] of worktreeEntries) {
       const materialized = materializeChangeWorktreeRecord(
-        changeId,
+        summaryChangeId,
         branch,
         record as WorktreeRecord,
       );
       if (materialized) {
         records.push(materialized);
-        const isCanonicalChangeBranch = branch === `change/${changeId}`;
-        changeSummaries[changeId] = {
-          ...changeSummaries[changeId],
+        const isCanonicalChangeBranch = branch === `change/${summaryChangeId}`;
+        changeSummaries[summaryChangeId] = {
+          ...changeSummaries[summaryChangeId],
           branch:
-            changeSummaries[changeId]?.branch && !isCanonicalChangeBranch
-              ? changeSummaries[changeId].branch
+            changeSummaries[summaryChangeId]?.branch && !isCanonicalChangeBranch
+              ? changeSummaries[summaryChangeId].branch
               : branch,
         };
       }
     }
   }
 
-  return { records, changeSummaries, warnings, poisonedWorkflows };
+  await Promise.all(Array.from({ length: 4 }, worker));
+  for (const changeId of queue) {
+    omitted.push({
+      scope: "query_change_workflow",
+      changeId,
+      reason: "inventory budget exhausted",
+    });
+  }
+
+  records.sort((a, b) => {
+    const byChangeId = (a.changeId ?? "").localeCompare(b.changeId ?? "");
+    if (byChangeId !== 0) return byChangeId;
+    return (a.branch ?? "").localeCompare(b.branch ?? "");
+  });
+  warnings.sort((a, b) => (a.changeId ?? "").localeCompare(b.changeId ?? ""));
+  poisonedWorkflows.sort((a, b) => a.changeId.localeCompare(b.changeId));
+
+  if (ownBudget) ownBudget.dispose();
+
+  return buildResult({
+    records,
+    changeSummaries,
+    warnings,
+    poisonedWorkflows,
+    inspectedCount,
+    candidateCount,
+  });
 }
 
 // =============================================================================
