@@ -784,14 +784,18 @@ function collectTouchedFilesFromState(state: ChangeWorkflowState): string[] {
 
 export async function listWorktreesAcrossChanges(
   access: WorktreeStateAccess,
-): Promise<WorktreesAcrossChangesResult> {
-  const snapshot = await getWorktreeRegistrySnapshot(access);
-  return {
-    records: snapshot.records,
-    warnings: snapshot.warnings,
-    poisonedWorkflows: snapshot.poisonedWorkflows,
-    ...(snapshot.unavailable ? { unavailable: true as const } : {}),
-  };
+  options?: {
+    budget?: InventoryBudget;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+  },
+): Promise<WorktreeRegistrySnapshot> {
+  const snapshot = await getWorktreeRegistrySnapshot(access, {
+    budget: options?.budget,
+    signal: options?.signal,
+    timeoutMs: options?.timeoutMs,
+  });
+  return snapshot;
 }
 
 export async function getWorktreeRegistrySnapshot(

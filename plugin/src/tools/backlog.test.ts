@@ -10,6 +10,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { backlogTools } from "./backlog";
 import type { Store } from "../storage/store-types";
+import { type InventoryBudget } from "./worktree/inventory-budget";
 
 function makeMockStore(
   changesList: Array<{
@@ -412,6 +413,107 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.warnings).toContainEqual(
       expect.objectContaining({ source: "peer_sessions" }),
     );
+  });
+
+  it("preserves active_changes and peer_sessions when the worktree snapshot is incomplete", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => ({
+          worktrees: [
+            {
+              changeId: "changeA",
+              branch: "change/changeA",
+              path: "/wt/changeA",
+              status: "active",
+              materialized: true,
+            },
+          ],
+          complete: false,
+          stopReason: "internal_budget_exhausted",
+          stoppedStage: "query_change_workflow",
+          inspectedCount: 1,
+          candidateCount: 10,
+        }),
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_abcd1234",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: true,
+              worktree: "changeA",
+            },
+          ],
+          total: 1,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.active_changes).toHaveLength(1);
+    expect(parsed.worktrees).toHaveLength(1);
+    expect(parsed.peer_sessions).toHaveLength(1);
+    expect(parsed.degradation?.worktree).toMatchObject({
+      complete: false,
+      stopReason: "internal_budget_exhausted",
+      stoppedStage: "query_change_workflow",
+      inspectedCount: 1,
+      candidateCount: 10,
+    });
+    expect(parsed.warnings).toContainEqual(
+      expect.objectContaining({
+        source: "worktrees",
+        reason: expect.stringContaining("incomplete"),
+      }),
+    );
+  });
+
+  it("propagates a caller abort signal to the worktree collector", async () => {
+    const store = makeMockStore([]);
+    const controller = new AbortController();
+    controller.abort("caller aborted");
+
+    let receivedBudget: InventoryBudget | undefined;
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      { store, signal: controller.signal },
+      undefined,
+      {
+        worktreesProvider: async (_projectRoot, budget) => {
+          receivedBudget = budget;
+          return {
+            worktrees: [],
+            complete: false,
+            stopReason: budget?.stopReason(),
+          };
+        },
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(receivedBudget?.signal.aborted).toBe(true);
+    expect(parsed.degradation?.worktree?.stopReason).toBe("caller_cancelled");
   });
 
   it("calls all three sources in parallel (no sequential dependency)", async () => {

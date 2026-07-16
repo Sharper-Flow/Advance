@@ -30,7 +30,7 @@ import type { OpencodeClient } from "./utils/opencode-types";
 import { specTools } from "./tools/spec";
 import { specDeltaTools } from "./tools/spec-delta";
 import { roadmapTools } from "./tools/roadmap";
-import { backlogTools } from "./tools/backlog";
+import { backlogTools, WIP_CALLER_TIMEOUT_MS } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
@@ -181,6 +181,25 @@ function getToolContextSessionID(value: unknown): string | undefined {
     : undefined;
 }
 
+/**
+ * Extract the host abort signal from an SDK ToolContext when present.
+ *
+ * This is a defensive, ABI-safe read: we only use the signal if it is an
+ * actual AbortSignal instance. Generic tool wrappers are unchanged; only
+ * tools that opt in via their own execute signature receive the signal.
+ */
+function extractAbortSignal(context: unknown): AbortSignal | undefined {
+  if (
+    context &&
+    typeof context === "object" &&
+    "abort" in context &&
+    context.abort instanceof AbortSignal
+  ) {
+    return context.abort as AbortSignal;
+  }
+  return undefined;
+}
+
 function namedExecute<TArgs>(
   name: string,
   execute: ToolExecute<TArgs>,
@@ -290,8 +309,43 @@ export function createToolMap(
     // consolidateAdvToolSurface2 (tk-f022bfadbd81).
     adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
 
-    // Backlog Coordination Tools (rq-backlogCoord04)
-    adv_wip_state: bindTool(backlogTools.adv_wip_state, "adv_wip_state", store),
+    // adv_wip_state — fixTriageTimeouts.
+    //
+    // WIP aggregator reads active changes, cross-change worktree inventory, and
+    // peer sessions. The worktree inventory fans out to every change workflow
+    // and can exceed the default 10s safety net on large projects, so this is
+    // the only interactive read tool with a >10s override.
+    //
+    // Outer safety net: 60s (WIP_CALLER_TIMEOUT_MS). Inner collector budget:
+    // 55s (INVENTORY_INTERNAL_BUDGET_MS), reserving 5s to render a partial
+    // response before the outer wrapper fires. If the collector stops early, the
+    // tool still returns active_changes and peer_sessions plus a typed
+    // degradation warning. The host abort signal is extracted from the SDK
+    // ToolContext and forwarded to the collector only on this tool, so a
+    // caller cancellation stops new workflow queries without losing sections
+    // that have already settled.
+    adv_wip_state: registerTool(
+      backlogTools.adv_wip_state.description,
+      backlogTools.adv_wip_state.args,
+      namedExecute(
+        "adv_wip_state",
+        safeExecute(
+          async (args, sdkContext: unknown) => {
+            const signal = extractAbortSignal(sdkContext);
+            return backlogTools.adv_wip_state.execute(
+              args as Record<string, unknown>,
+              {
+                store,
+                signal,
+              },
+            );
+          },
+          "adv_wip_state",
+          undefined,
+          { timeoutMs: WIP_CALLER_TIMEOUT_MS },
+        ),
+      ),
+    ),
 
     // Backlog Shell Tools
     adv_backlog_add: bindTool(
