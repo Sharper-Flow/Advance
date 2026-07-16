@@ -25,7 +25,11 @@ describe("authorizeMorphWorktree", () => {
       ADV_MORPH_WORKTREE_CAPABILITY,
     );
     expect(descriptor?.enumerable).toBe(false);
-    expect(descriptor?.value).toEqual({ root, taskId: "tk-1", sessionID: "session-1" });
+    expect(descriptor?.value).toEqual({
+      root,
+      taskId: "tk-1",
+      sessionID: "session-1",
+    });
   });
 
   test("rejects a caller-selected root before injecting a capability", async () => {

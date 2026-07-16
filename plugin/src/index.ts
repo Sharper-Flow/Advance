@@ -596,17 +596,21 @@ const advancePluginImpl: Plugin = async (input) => {
     input: Record<string, unknown>,
   ) => {
     if (toolName === "morph_edit") {
-      const sessionID = typeof input.sessionID === "string" ? input.sessionID : "";
+      const sessionID =
+        typeof input.sessionID === "string" ? input.sessionID : "";
       if (!store || !worktreeStateAccess || !resolvedProjectId || !sessionID) {
         if (args.workdir !== undefined || args.taskId !== undefined) {
           throw new Error("Morph ADV workdir authorization is unavailable");
         }
       } else {
         await authorizeMorphWorktree(args, sessionID, {
-          getTaskChangeId: async (taskId) => (await store.tasks.show(taskId))?.changeId ?? null,
-          getExpectedRoot: (changeId) => join(getWorktreeBase(resolvedProjectId), "change", changeId),
+          getTaskChangeId: async (taskId) =>
+            (await store.tasks.show(taskId))?.changeId ?? null,
+          getExpectedRoot: (changeId) =>
+            join(getWorktreeBase(resolvedProjectId), "change", changeId),
           canonicalize: (path) => realpathSync(path),
-          isSetupReady: (changeId) => worktreeExistsForChange(worktreeStateAccess, changeId),
+          isSetupReady: (changeId) =>
+            worktreeExistsForChange(worktreeStateAccess, changeId),
         });
       }
     }
