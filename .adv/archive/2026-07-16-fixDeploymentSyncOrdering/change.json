@@ -1,0 +1,1293 @@
+{
+  "id": "fixDeploymentSyncOrdering",
+  "title": "Fix deployment sync ordering",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-15T23:25:40.034Z",
+  "tasks": [
+    {
+      "id": "tk-ccb1a8fb008b",
+      "title": "Add deploy worker-refresh regression harness",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-15T23:44:15.486Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T23:59:04.219Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDeploymentSyncOrdering",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+          "task_id": "tk-ccb1a8fb008b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ccb1a8fb008b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/deploy-local-worker-refresh.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+              "exit_code": 1,
+              "summary": "RED recorded (phase red, runId tr_mrmrt6g7_884676e1): stuck-worker test fails all 5 soft contract expectations (commands synced, adv-engineer.md copied, '==> Done.' reached, summary /worker/i, summary /stale/i); C2/C3 pins pass (nonzero status, [ADV:ACTION_REQUIRED], worker path, PID evidence, restart remediation, no 'bounce complete'); success-path guard passes (exit 0, assets synced, no false stale claim)"
+            },
+            {
+              "command": "pnpm exec prettier --check src/deploy-local-worker-refresh.test.ts && pnpm exec tsc --noEmit -p tsconfig.json && pnpm exec eslint src/deploy-local-worker-refresh.test.ts && pnpm exec tsx scripts/check-test-isolation.ts",
+              "exit_code": 0,
+              "summary": "Format, typecheck, lint, and test-isolation checks all clean for the new harness file"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "New colocated file plugin/src/deploy-local-worker-refresh.test.ts instead of extending deploy-local.test.ts",
+              "why": "Existing file is static-content assertions; the executable harness needs process/temp fixtures. Design explicitly permits a colocated focused deploy regression file."
+            },
+            {
+              "what": "Temp git worktree + fake pnpm/rsync + throwaway HOME fixtures (pattern from overlay-sync-assets.test.ts)",
+              "why": "Hermetic and fast: no real pnpm build, no writes outside tmpdir/HOME fixtures; worker path is temp-only so the script's exact-path matcher can only ever match the fixture process."
+            },
+            {
+              "what": "Fixture command ends with a trailing no-op after sleep 30",
+              "why": "bash exec-optimizes a trailing sleep: /proc cmdline became 'sleep 30', losing the worker-path argument so the matcher never saw the fixture. Verified via /proc cmdline + SIGTERM survival before adopting."
+            },
+            {
+              "what": "expect.soft for the continuation/summary RED block; hard expects for C2/C3 pins and AC3 guard",
+              "why": "One RED run demonstrates every contract expectation the current script violates (5/5 shown) while pins fail fast and loud if the fix ever weakens immutable semantics."
+            },
+            {
+              "what": "Stale-runtime summary asserted as '==> Done.' section matching /worker/i and /stale/i, plus output not containing 'bounce complete'",
+              "why": "Pins the design requirement (explicit stale-runtime condition, no active-worker claim) without over-constraining the exact wording tk-0d5183f9e5f7 will choose."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "tk-0d5183f9e5f7 implements the script fix against this harness; if it chooses summary wording without 'worker'/'stale' it must renegotiate the contract, not weaken the test"
+          ],
+          "required_follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Searched all plugin tests for SIGTERM/process-fixture patterns: only mock-based unit tests and static content asserts exist; no other executable worker fixture needed the same-pattern fix. Verified no process/worktree/temp litter after runs (orphaned fixture sleep is bounded at 30s and reaped by init).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "RED harness recorded (final run tr_mrmrt6g7_884676e1, phase red): current deploy-local.sh dies under set -e immediately after the ACTION_REQUIRED block — 5 contract expectations fail (commands synced, adv-engineer.md copied, '==> Done.' reached, summary names worker, summary names stale) while C2/C3 pins and the AC3 success-path guard stay green. tk-0d5183f9e5f7 turns exactly the soft-assert block green without touching the hard pins: capture refresh_deployed_temporal_workers exit instead of letting set -e kill the run, continue asset sync, add an explicit stale-runtime worker status to the '==> Done.' summary, and propagate the captured failure at final status selection. Harness safety: fixture matches only the exact temp worker path; SIGTERM observed hitting only fixture PID 80837; no real workers enumerated or signaled.",
+            "suggested_next_action": "Checkpoint this task, then start tk-0d5183f9e5f7 (defer worker-refresh terminal failure) using the soft-assert block as the executable contract."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "prettier/tsc/eslint/isolation checks were run via bash (pnpm exec) rather than adv_run_test; only the vitest RED runs are tool-recorded (runIds tr_mrmrl7om_9ae82d70, tr_mrmrrp4q_3edf3d40, tr_mrmrt6g7_884676e1)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/deploy-local-worker-refresh.test.ts && pnpm exec tsc --noEmit -p tsconfig.json && pnpm exec eslint src/deploy-local-worker-refresh.test.ts && pnpm exec tsx scripts/check-test-isolation.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "RED recorded with adv_run_test tr_mrmrt6g7_884676e1: new harness intentionally fails only continuation/summary expectations against the current deploy script; immutable worker safety pins and success-path guard pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/deploy-local-worker-refresh.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/deploy-local-worker-refresh.test.ts"
+      ],
+      "checkpointSha": "1c8f2efcbbf7ef70d4c0b6edf4330d444cce61e1",
+      "completedAt": "2026-07-16T00:31:02.202Z",
+      "completed_at": "2026-07-16T00:31:02.202Z"
+    },
+    {
+      "id": "tk-0d5183f9e5f7",
+      "title": "Defer worker refresh terminal failure",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-15T23:44:23.235Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ccb1a8fb008b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T00:31:09.156Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDeploymentSyncOrdering",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+          "task_id": "tk-0d5183f9e5f7",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-0d5183f9e5f7"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "scripts/deploy-local.sh"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test src/deploy-local-worker-refresh.test.ts",
+              "exit_code": 1,
+              "summary": "RED confirmed pre-fix: AC1/AC2/AC6 soft asserts failed (no 'command(s) synced', no '==> Done.', summary missing worker/stale); C2/C3 pins (nonzero, [ADV:ACTION_REQUIRED], PID, no 'bounce complete') already passed. runId tr_mrms2k5k_386a85d0"
+            },
+            {
+              "command": "pnpm test src/deploy-local-worker-refresh.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 2/2 tests pass - stuck worker stays loud + continues asset sync + nonzero final status; success path stays 0 with no stale claim. runId tr_mrms4jic_552e4b0d"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/deploy-local.test.ts src/deploy-local-exclusion.test.ts",
+              "exit_code": 0,
+              "summary": "82/82 tests pass across all 3 deploy-local test files"
+            },
+            {
+              "command": "bash -n scripts/deploy-local.sh",
+              "exit_code": 0,
+              "summary": "Shell syntax check passes"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Guarded the after-sync refresh with `refresh_deployed_temporal_workers \"after-sync\" || worker_refresh_exit=$?`, mirroring the existing `fix_adv_cli_install || fix_adv_cli_exit=$?` / `fix_config || fix_config_exit=$?` pattern",
+              "why": "Disarms `set -e` for exactly this call so independent asset/config sync completes; the function's own output is unsuppressed (no redirection), preserving C2/C3 loud semantics. Worker function itself unchanged per contract."
+            },
+            {
+              "what": "Initialized `worker_refresh_exit=0` unconditionally just before the DRY_RUN dispatch",
+              "why": "Summary/exit code paths reference it under `set -u`; the after-sync call site sits inside the non-dry-run branch, so init must precede the branch."
+            },
+            {
+              "what": "Summary prints a failure-only `Worker refresh: stale deployed Temporal worker(s)...` line after the Config block; final exit precedence is CLI, then config, then worker-refresh",
+              "why": "DONE_WHEN requires the summary to name the stale condition only when it occurs (happy-path test asserts no /stale/i in summary); deterministic precedence keeps an earlier CLI/config exit code from being masked."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Unrelated pre-existing failures observed when the full plugin suite ran (before any edit, via a mistargeted `pnpm test --` invocation): src/tool-role-policy.test.ts (adv_verification_evidence_disposition unspecified), src/__tests__/spec-citation-invariant.test.ts, src/temporal/messages.test.ts (51 vs 52 signals), src/temporal/out-of-process-worker.itest.ts, src/storage/store-temporal/bounded-read-deadline.test.ts. These predate this task's edit and appear owned by sibling tasks in this change; not caused by the shell-only diff."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Checked deploy-local.sh for same-pattern unguarded-failure call sites: fix_adv_cli_install and fix_config already use the `|| var=$?` guard; check/dry-run refresh modes are read-only and return 0 on matches (lines 1183-1204), so no in-scope same-pattern gap remains. check_rsync || exit 1 is an intentional hard-fail and was left alone.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "deploy-local.sh now captures `refresh_deployed_temporal_workers \"after-sync\"` failure into worker_refresh_exit without suppressing output, completes all independent asset/config sync, names the stale-worker condition in the ==> Done. summary, and exits nonzero with deterministic precedence CLI -> config -> worker-refresh. Success path unchanged (exit 0, no stale claim). Only scripts/deploy-local.sh modified (+15/-2); the regression harness needed no wording changes. GREEN recorded via adv_run_test (runId tr_mrms4jic_552e4b0d); 82/82 deploy tests pass via bin/oc-test targeted.",
+            "suggested_next_action": "Mark tk-0d5183f9e5f7 done and proceed to the next ready task; consider running bin/oc-test smoke before push to confirm no cross-task regressions."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test src/deploy-local-worker-refresh.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test src/deploy-local-worker-refresh.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/deploy-local.test.ts src/deploy-local-exclusion.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bash -n scripts/deploy-local.sh"
+            }
+          ]
+        }
+      ],
+      "verification": "RED then GREEN recorded for deploy worker-refresh regression; focused harness passes via adv_run_test tr_mrms6wtj_238050f2; agent reports 82/82 focused deploy tests and bash -n passing.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "1c3530ac451754802e1c00b6e4838fe051c429d3",
+      "completedAt": "2026-07-16T00:39:08.596Z",
+      "completed_at": "2026-07-16T00:39:08.596Z"
+    },
+    {
+      "id": "tk-6c8e543f73fe",
+      "title": "Pin engineer Morph worktree directive",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-15T23:44:33.342Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "tdd_rationale": "This task pins an agent instruction contract through static asset assertions; it has no runtime logic branch.",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T23:59:10.105Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDeploymentSyncOrdering",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+          "task_id": "tk-6c8e543f73fe",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6c8e543f73fe"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/adv-engineer-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts",
+              "exit_code": 0,
+              "summary": "25/25 tests pass (24 existing + 1 new regression assertion)"
+            },
+            {
+              "command": "pnpm exec prettier --check src/adv-engineer-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Formatting clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Pinned the exact directive sentence alongside both parameter tokens",
+              "why": "Prevents regression to workdir-only Morph instructions with clear failures."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Reviewed remaining bundled-profile morph_edit mentions; Working Directory Lock is the sole directive location and no same-pattern gap was found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Static AC4 proof complete. The worker could not submit due unavailable tool surface; orchestrator persisted this report.",
+            "suggested_next_action": "Checkpoint task and continue deploy-regression harness."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-engineer-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/adv-engineer-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts: 25 passing tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-engineer-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-engineer-assets.test.ts"
+      ],
+      "checkpointSha": "c8551b615dbbef26fcfa491dd836c8f811af226f",
+      "completedAt": "2026-07-16T00:11:42.322Z",
+      "completed_at": "2026-07-16T00:11:42.322Z"
+    },
+    {
+      "id": "tk-240e3e94d96c",
+      "title": "Verify deployment and Morph contract",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-15T23:44:41.271Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d5183f9e5f7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6c8e543f73fe"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T00:39:14.362Z",
+      "verification": "107 focused deploy/agent tests pass; bash -n passes; external Morph source `bun test` passes 141 tests; worktree clean and verifier bundle reports pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "1c3530ac451754802e1c00b6e4838fe051c429d3",
+      "completedAt": "2026-07-16T00:42:11.100Z",
+      "completed_at": "2026-07-16T00:42:11.100Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDeploymentSyncOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate deferred worker-refresh failure during ADV asset deployment",
+      "sources": [
+        {
+          "label": "Deploy worker-refresh execution and exit behavior",
+          "locator": "scripts/deploy-local.sh:1148-1232, 1261-1271, 1567-1607",
+          "summary": "Worker refresh returns failure immediately under set -e; final summary has no worker-refresh status."
+        },
+        {
+          "label": "Worker-bounce specification",
+          "locator": "docs/specs/advance-meta.md:202-247",
+          "summary": "Requires exact-path handling, loud remediation, and final nonzero failure; does not require immediate abort."
+        },
+        {
+          "label": "Morph authorization path",
+          "locator": "plugin/src/index.ts:598-615; plugin/src/utils/morph-worktree-authorization.ts:18-39",
+          "summary": "Pair-based, session-bound worktree authorization remains fail-closed."
+        }
+      ],
+      "architecture_assessment": "Capturing the post-sync worker refresh result and returning it after independent asset synchronization is compatible with the worker-bounce law, provided the final summary explicitly reports failed refresh and final exit remains nonzero.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Unconditional `==> Done.` would mislead after deferred worker refresh failure. Add explicit failure summary, deterministic exit precedence, and executable regression coverage."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Complete agent/asset synchronization despite a stale runtime worker",
+          "Longer interval where stale worker remains until restart"
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Immediate abort",
+            "disposition": "rejected",
+            "rationale": "Preserves fail-fast behavior but leaves independently managed agent assets stale."
+          },
+          {
+            "option": "Runtime rollback",
+            "disposition": "rejected",
+            "rationale": "Adds complex rollback behavior not required by the existing worker-bounce law."
+          },
+          {
+            "option": "Deferred final failure",
+            "disposition": "preferred",
+            "rationale": "Keeps failure loud/nonzero while completing independent disk asset synchronization."
+          }
+        ],
+        "recommendation": "Capture worker refresh failure, continue independent synchronization, add explicit worker-refresh summary, and return final nonzero with deterministic precedence."
+      },
+      "recommendation": "Amend design to include neutral completion wording, explicit worker-refresh status, deterministic final-status precedence, an executable continuation test, and agent directive assertion.",
+      "follow_ups": [
+        "Expand Morph capability negative-path test coverage; not required to change the authorization implementation for this fix."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDeploymentSyncOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+      "task_id": "tk-6c8e543f73fe",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6c8e543f73fe"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/adv-engineer-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts",
+          "exit_code": 0,
+          "summary": "25/25 tests pass (24 existing + 1 new regression assertion)"
+        },
+        {
+          "command": "pnpm exec prettier --check src/adv-engineer-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Formatting clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Pinned the exact directive sentence alongside both parameter tokens",
+          "why": "Prevents regression to workdir-only Morph instructions with clear failures."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reviewed remaining bundled-profile morph_edit mentions; Working Directory Lock is the sole directive location and no same-pattern gap was found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Static AC4 proof complete. The worker could not submit due unavailable tool surface; orchestrator persisted this report.",
+        "suggested_next_action": "Checkpoint task and continue deploy-regression harness."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-engineer-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/adv-engineer-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDeploymentSyncOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+      "task_id": "tk-ccb1a8fb008b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ccb1a8fb008b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/deploy-local-worker-refresh.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+          "exit_code": 1,
+          "summary": "RED recorded (phase red, runId tr_mrmrt6g7_884676e1): stuck-worker test fails all 5 soft contract expectations (commands synced, adv-engineer.md copied, '==> Done.' reached, summary /worker/i, summary /stale/i); C2/C3 pins pass (nonzero status, [ADV:ACTION_REQUIRED], worker path, PID evidence, restart remediation, no 'bounce complete'); success-path guard passes (exit 0, assets synced, no false stale claim)"
+        },
+        {
+          "command": "pnpm exec prettier --check src/deploy-local-worker-refresh.test.ts && pnpm exec tsc --noEmit -p tsconfig.json && pnpm exec eslint src/deploy-local-worker-refresh.test.ts && pnpm exec tsx scripts/check-test-isolation.ts",
+          "exit_code": 0,
+          "summary": "Format, typecheck, lint, and test-isolation checks all clean for the new harness file"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "New colocated file plugin/src/deploy-local-worker-refresh.test.ts instead of extending deploy-local.test.ts",
+          "why": "Existing file is static-content assertions; the executable harness needs process/temp fixtures. Design explicitly permits a colocated focused deploy regression file."
+        },
+        {
+          "what": "Temp git worktree + fake pnpm/rsync + throwaway HOME fixtures (pattern from overlay-sync-assets.test.ts)",
+          "why": "Hermetic and fast: no real pnpm build, no writes outside tmpdir/HOME fixtures; worker path is temp-only so the script's exact-path matcher can only ever match the fixture process."
+        },
+        {
+          "what": "Fixture command ends with a trailing no-op after sleep 30",
+          "why": "bash exec-optimizes a trailing sleep: /proc cmdline became 'sleep 30', losing the worker-path argument so the matcher never saw the fixture. Verified via /proc cmdline + SIGTERM survival before adopting."
+        },
+        {
+          "what": "expect.soft for the continuation/summary RED block; hard expects for C2/C3 pins and AC3 guard",
+          "why": "One RED run demonstrates every contract expectation the current script violates (5/5 shown) while pins fail fast and loud if the fix ever weakens immutable semantics."
+        },
+        {
+          "what": "Stale-runtime summary asserted as '==> Done.' section matching /worker/i and /stale/i, plus output not containing 'bounce complete'",
+          "why": "Pins the design requirement (explicit stale-runtime condition, no active-worker claim) without over-constraining the exact wording tk-0d5183f9e5f7 will choose."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "tk-0d5183f9e5f7 implements the script fix against this harness; if it chooses summary wording without 'worker'/'stale' it must renegotiate the contract, not weaken the test"
+      ],
+      "required_follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Searched all plugin tests for SIGTERM/process-fixture patterns: only mock-based unit tests and static content asserts exist; no other executable worker fixture needed the same-pattern fix. Verified no process/worktree/temp litter after runs (orphaned fixture sleep is bounded at 30s and reaped by init).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "RED harness recorded (final run tr_mrmrt6g7_884676e1, phase red): current deploy-local.sh dies under set -e immediately after the ACTION_REQUIRED block — 5 contract expectations fail (commands synced, adv-engineer.md copied, '==> Done.' reached, summary names worker, summary names stale) while C2/C3 pins and the AC3 success-path guard stay green. tk-0d5183f9e5f7 turns exactly the soft-assert block green without touching the hard pins: capture refresh_deployed_temporal_workers exit instead of letting set -e kill the run, continue asset sync, add an explicit stale-runtime worker status to the '==> Done.' summary, and propagate the captured failure at final status selection. Harness safety: fixture matches only the exact temp worker path; SIGTERM observed hitting only fixture PID 80837; no real workers enumerated or signaled.",
+        "suggested_next_action": "Checkpoint this task, then start tk-0d5183f9e5f7 (defer worker-refresh terminal failure) using the soft-assert block as the executable contract."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "prettier/tsc/eslint/isolation checks were run via bash (pnpm exec) rather than adv_run_test; only the vitest RED runs are tool-recorded (runIds tr_mrmrl7om_9ae82d70, tr_mrmrrp4q_3edf3d40, tr_mrmrt6g7_884676e1)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/deploy-local-worker-refresh.test.ts && pnpm exec tsc --noEmit -p tsconfig.json && pnpm exec eslint src/deploy-local-worker-refresh.test.ts && pnpm exec tsx scripts/check-test-isolation.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDeploymentSyncOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+      "task_id": "tk-0d5183f9e5f7",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-0d5183f9e5f7"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "scripts/deploy-local.sh"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test src/deploy-local-worker-refresh.test.ts",
+          "exit_code": 1,
+          "summary": "RED confirmed pre-fix: AC1/AC2/AC6 soft asserts failed (no 'command(s) synced', no '==> Done.', summary missing worker/stale); C2/C3 pins (nonzero, [ADV:ACTION_REQUIRED], PID, no 'bounce complete') already passed. runId tr_mrms2k5k_386a85d0"
+        },
+        {
+          "command": "pnpm test src/deploy-local-worker-refresh.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 2/2 tests pass - stuck worker stays loud + continues asset sync + nonzero final status; success path stays 0 with no stale claim. runId tr_mrms4jic_552e4b0d"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/deploy-local.test.ts src/deploy-local-exclusion.test.ts",
+          "exit_code": 0,
+          "summary": "82/82 tests pass across all 3 deploy-local test files"
+        },
+        {
+          "command": "bash -n scripts/deploy-local.sh",
+          "exit_code": 0,
+          "summary": "Shell syntax check passes"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Guarded the after-sync refresh with `refresh_deployed_temporal_workers \"after-sync\" || worker_refresh_exit=$?`, mirroring the existing `fix_adv_cli_install || fix_adv_cli_exit=$?` / `fix_config || fix_config_exit=$?` pattern",
+          "why": "Disarms `set -e` for exactly this call so independent asset/config sync completes; the function's own output is unsuppressed (no redirection), preserving C2/C3 loud semantics. Worker function itself unchanged per contract."
+        },
+        {
+          "what": "Initialized `worker_refresh_exit=0` unconditionally just before the DRY_RUN dispatch",
+          "why": "Summary/exit code paths reference it under `set -u`; the after-sync call site sits inside the non-dry-run branch, so init must precede the branch."
+        },
+        {
+          "what": "Summary prints a failure-only `Worker refresh: stale deployed Temporal worker(s)...` line after the Config block; final exit precedence is CLI, then config, then worker-refresh",
+          "why": "DONE_WHEN requires the summary to name the stale condition only when it occurs (happy-path test asserts no /stale/i in summary); deterministic precedence keeps an earlier CLI/config exit code from being masked."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Unrelated pre-existing failures observed when the full plugin suite ran (before any edit, via a mistargeted `pnpm test --` invocation): src/tool-role-policy.test.ts (adv_verification_evidence_disposition unspecified), src/__tests__/spec-citation-invariant.test.ts, src/temporal/messages.test.ts (51 vs 52 signals), src/temporal/out-of-process-worker.itest.ts, src/storage/store-temporal/bounded-read-deadline.test.ts. These predate this task's edit and appear owned by sibling tasks in this change; not caused by the shell-only diff."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Checked deploy-local.sh for same-pattern unguarded-failure call sites: fix_adv_cli_install and fix_config already use the `|| var=$?` guard; check/dry-run refresh modes are read-only and return 0 on matches (lines 1183-1204), so no in-scope same-pattern gap remains. check_rsync || exit 1 is an intentional hard-fail and was left alone.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "deploy-local.sh now captures `refresh_deployed_temporal_workers \"after-sync\"` failure into worker_refresh_exit without suppressing output, completes all independent asset/config sync, names the stale-worker condition in the ==> Done. summary, and exits nonzero with deterministic precedence CLI -> config -> worker-refresh. Success path unchanged (exit 0, no stale claim). Only scripts/deploy-local.sh modified (+15/-2); the regression harness needed no wording changes. GREEN recorded via adv_run_test (runId tr_mrms4jic_552e4b0d); 82/82 deploy tests pass via bin/oc-test targeted.",
+        "suggested_next_action": "Mark tk-0d5183f9e5f7 done and proceed to the next ready task; consider running bin/oc-test smoke before push to confirm no cross-task regressions."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test src/deploy-local-worker-refresh.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test src/deploy-local-worker-refresh.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/deploy-local.test.ts src/deploy-local-exclusion.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bash -n scripts/deploy-local.sh"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDeploymentSyncOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:deployment-contract"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/deploy-local.test.ts src/deploy-local-exclusion.test.ts src/adv-engineer-assets.test.ts",
+          "exit_code": 0,
+          "duration_ms": 8680
+        },
+        {
+          "kind": "command",
+          "command": "bash -n scripts/deploy-local.sh",
+          "exit_code": 0
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "Targeted wrapper suite passed 4 files / 107 tests. Shell syntax check passed. Committed worktree is clean and scoped; worker refresh failure is guarded, summary warns only on stale failure, and exit precedence is CLI → config → worker.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "Scoped automated verification passed.",
+          "evidence": [
+            {
+              "label": "test output",
+              "locator": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/deploy-local.test.ts src/deploy-local-exclusion.test.ts src/adv-engineer-assets.test.ts",
+              "summary": "4 test files, 107 tests passed."
+            },
+            {
+              "label": "shell syntax",
+              "locator": "scripts/deploy-local.sh",
+              "summary": "bash -n exited 0."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "info",
+          "summary": "Worker failure retains safety and defers final exit.",
+          "evidence": [
+            {
+              "label": "script diff",
+              "locator": "scripts/deploy-local.sh",
+              "summary": "Post-sync refresh failure is captured, stale summary is conditional, and exit order is CLI then config then worker."
+            },
+            {
+              "label": "regression harness",
+              "locator": "plugin/src/deploy-local-worker-refresh.test.ts:219-279",
+              "summary": "Stuck-worker path requires continued asset sync plus loud nonzero status; success path stays zero."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDeploymentSyncOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/deploy-local-worker-refresh.test.ts",
+          "line": 32,
+          "what": "Regression fixture isolates HOME/XDG/config/runtime paths and uses an exact temporary worker-script argument.",
+          "why": "The live /proc matcher can only target its spawned fixture process; cleanup kills the fixture and removes its temporary git worktree."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "When a deploy script must preserve a failed runtime refresh while completing independent sync, capture the helper status with an explicit guarded branch and resolve exits once at the end in documented precedence order."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/adv-engineer-assets.test.ts",
+          "bash -n scripts/deploy-local.sh",
+          "git diff --check origin/trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Focused review run passed 27/27 tests in 8.70s. Shell syntax and whitespace checks passed; worktree remained clean. Existing execution evidence also records 107 focused deploy/agent tests and external Morph authorization bun test 141/141 passing."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The executable fixture deliberately exercises the real /proc exact-path matcher and SIGTERM, but all candidate paths, HOME/XDG locations, and its worker process are temporary and cleanup is explicit.",
+        "Combined CLI/config plus worker-refresh failures are not separately regression-tested; deterministic CLI > config > worker precedence is directly enforced by final ordered exit branches."
+      ],
+      "required_main_agent_actions": [
+        "Record acceptance evidence and proceed with the remaining acceptance/release workflow; no code remediation is required."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDeploymentSyncOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDeploymentSyncOrdering",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "scripts/deploy-local.sh",
+          "line": 1274,
+          "what": "Worker-refresh failure is captured without disabling the exact-path SIGTERM/grace-period safety behavior.",
+          "why": "Independent commands, agents, skills, CLI, and config synchronization now complete before the same failure remains visible in the summary and final exit status."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For mutating deploy scripts under set -e, capture recoverable-but-terminal operational failures at the boundary, finish independent synchronization, then return the captured status after deterministic higher-priority failures."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts src/adv-engineer-assets.test.ts",
+          "bash -n scripts/deploy-local.sh",
+          "git diff --check HEAD^ HEAD",
+          "git status --porcelain=v1"
+        ],
+        "results": "pass",
+        "evidence": "Focused release regression: 2 files, 27 tests passed in 10.47s. The stuck-worker fixture is hermetic (temporary HOME/worktree, exact temporary worker path, fake build tools) and verifies nonzero exit, ACTION_REQUIRED path/PID/restart evidence, no false 'bounce complete', continued command/agent sync, and final stale-worker summary. Happy path exits 0. Shell syntax and committed-diff whitespace checks pass. Final porcelain status is empty. Acceptance evidence additionally records 107 focused deploy/agent tests and 141 external Morph authorization tests passing. Release Readiness Summary: READY. Deployment assets synchronize after a stale worker, failure precedence is CLI install then --fix config then worker refresh, worker matching/SIGTERM/grace behavior remains unchanged, and no documentation/release-note gap was found because existing release guidance already requires the script-owned restart recovery path."
+      },
+      "scope_drift": null,
+      "risks": [
+        "A live --fix deploy that encounters a worker surviving the SIGTERM grace period intentionally exits nonzero after asset/config sync; treat this as an operational restart-required condition, not a successful runtime refresh.",
+        "Do not run local deploy unattended while an in-flight deployed worker cannot be disrupted; use the script's emitted remediation and adv_temporal_worker_restart, then verify/retry as existing release guidance specifies."
+      ],
+      "required_main_agent_actions": [
+        "Release may proceed. If performing local deployment, run scripts/deploy-local.sh --fix from the release checkout and require exit 0 before claiming the new worker runtime is active.",
+        "If deploy reports [ADV:ACTION_REQUIRED], preserve its evidence, restart through adv_temporal_worker_restart rather than manual process termination, then rerun/verify deployment; synchronized agents/assets may already be present but worker runtime is not yet active."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-6c8e543f73fe": [
+      {
+        "runId": "tr_mrmr709r_edd06a1c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts",
+        "durationMs": 1955.0504260000016,
+        "recordedAt": "2026-07-16T00:11:05.699Z"
+      }
+    ],
+    "tk-ccb1a8fb008b": [
+      {
+        "runId": "tr_mrmrl7om_9ae82d70",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 7374.135057999985,
+        "recordedAt": "2026-07-16T00:22:08.510Z"
+      },
+      {
+        "runId": "tr_mrmrrp4q_3edf3d40",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 7344.305166000151,
+        "recordedAt": "2026-07-16T00:27:11.030Z"
+      },
+      {
+        "runId": "tr_mrmrt6g7_884676e1",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 7386.326710999943,
+        "recordedAt": "2026-07-16T00:28:20.164Z"
+      }
+    ],
+    "tk-0d5183f9e5f7": [
+      {
+        "runId": "tr_mrms24f4_9334e88b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 137044.72363000014,
+        "recordedAt": "2026-07-16T00:35:17.436Z"
+      },
+      {
+        "runId": "tr_mrms2k5k_386a85d0",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 7596.917518999893,
+        "recordedAt": "2026-07-16T00:35:37.816Z"
+      },
+      {
+        "runId": "tr_mrms4jic_552e4b0d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm test src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 11383.017307000002,
+        "recordedAt": "2026-07-16T00:37:10.328Z"
+      },
+      {
+        "runId": "tr_mrms6wtj_238050f2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 8806.945409999928,
+        "recordedAt": "2026-07-16T00:39:00.841Z"
+      }
+    ],
+    "tk-240e3e94d96c": [
+      {
+        "runId": "tr_mrmsahsp_1e2e8a09",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test",
+        "durationMs": 132.9462249998469,
+        "recordedAt": "2026-07-16T00:41:47.998Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-meta": [
+      {
+        "id": "dl-deployAssetContinuation01",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-deployAssetContinuation01",
+          "title": "Deploy Asset Synchronization Survives Worker Refresh Failure",
+          "body": "After a mutating deploy synchronizes the runtime plugin, a failed exact-path Temporal worker refresh must remain loud and produce a nonzero final deploy status, but it must not prevent synchronization of independent supported assets such as commands, bundled agents, shared-agent overlays, skills, the managed CLI payload, and configuration validation. The final output must preserve the restart remediation and must not claim runtime worker code is active until refresh succeeds.",
+          "priority": "must",
+          "tags": [
+            "deploy-local",
+            "worker-refresh",
+            "agent-sync",
+            "morph-worktree"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-deployAssetContinuation01.1",
+              "title": "Worker refresh failure continues independent asset synchronization",
+              "given": [
+                "A mutating deploy has synchronized the runtime plugin",
+                "An exact-path deployed Temporal worker remains alive after bounded SIGTERM handling",
+                "ADV commands or bundled agent profiles have source updates"
+              ],
+              "when": "The deploy processes supported assets",
+              "then": [
+                "The commands and bundled agent profiles are synchronized",
+                "The deploy emits the existing worker restart remediation",
+                "The final deploy status is nonzero",
+                "The output does not claim runtime worker code is active"
+              ]
+            },
+            {
+              "id": "rq-deployAssetContinuation01.2",
+              "title": "Successful worker refresh preserves normal deploy success",
+              "given": [
+                "A mutating deploy has synchronized the runtime plugin",
+                "No exact-path deployed Temporal worker remains after refresh"
+              ],
+              "when": "The deploy processes supported assets",
+              "then": [
+                "Supported assets are synchronized",
+                "The deploy preserves its normal success behavior"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-15T23:27:53.197Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the proposal after root-cause evidence established that deploy-local exits on worker-bounce failure before copying the global adv-engineer profile.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "1ceaa58af13d6b665277e7fb9ea899fa04913c8b156ed12b33d85012510ff7de",
+        "non_whitespace_chars": 1937,
+        "checked_at": "2026-07-15T23:25:40.097Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-15T23:39:50.289Z",
+      "completed_at": "2026-07-15T23:40:01.699Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved agreement; minted standard ChangeContract. Discovery verified global agent drift, deploy-script early exit under set -e, and existing worker-bounce failure law.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "non_whitespace_chars": 2024,
+        "checked_at": "2026-07-15T23:25:40.098Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-15T23:43:45.626Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent adv-researcher validator returned CAUTION, not conflict. Design incorporated required explicit worker-refresh summary, deterministic failure precedence, and executable continuation tests; no product tradeoff or contract compromise remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "97909acdc1e14302d182f38eb1439863a44d89fa6b74af7fe27e91bcad3ee4bb",
+        "non_whitespace_chars": 1662,
+        "checked_at": "2026-07-15T23:25:40.099Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-15T23:58:51.101Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision and task graph. All AC/C items have structured task refs; current strict validation query is persistently degraded by its 8s input budget while Temporal diagnostics are healthy."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-16T00:42:26.512Z",
+      "completed_by": "agent",
+      "approval_evidence": "All four tasks checkpointed. RED/GREEN deploy regression, 107 focused deploy/agent tests, shell syntax, and 141 external Morph authorization tests pass; worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-16T00:46:54.948Z",
+      "completed_at": "2026-07-16T00:47:33.825Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved acceptance. Executive summary artifact is present with contentHash d55f29e289e5c49c3de1aeb4ae8e365c4c5731606fd2f9705793128fcd85b642; all nine contract rows pass/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d55f29e289e5c49c3de1aeb4ae8e365c4c5731606fd2f9705793128fcd85b642",
+        "non_whitespace_chars": 1449,
+        "checked_at": "2026-07-15T23:25:40.101Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+      "approvedAt": "2026-07-15T23:39:56.186Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**Continuation:** With a worker-refresh result of `1`, `deploy-local.sh --fix` copies bundled agents before final exit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**Loud failure:** In that case, exit status is nonzero and output still includes `[ADV:ACTION_REQUIRED]`, worker path/PID evidence, and restart instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**Success path:** With a successful worker refresh, supported assets synchronize and final status remains successful unless another existing validation fails.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**Engineer contract:** Source and deployed `adv-engineer.md` direct Morph calls to include `workdir: WORKING DIRECTORY` and `taskId: TASK`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**Authorization preserved:** Existing Morph capability tests still reject missing, mismatched, and reused capability requests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**Proof:** Regression tests cover continuation/final-status behavior plus the engineer profile contract; relevant source checks pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No manual copying into `~/.config/opencode`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No weakening of worker matching, SIGTERM behavior, grace period, or nonzero failure semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No claim that the new worker bundle is active until its refresh succeeds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-16T00:45:06.867Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/deploy-local-worker-refresh.test.ts` stuck-worker fixture proves command and bundled-agent sync continues; 107 focused deploy/agent tests pass.",
+          "notes": "Worker-refresh failure remains terminal only after independent assets sync."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Stuck-worker test requires nonzero status, `[ADV:ACTION_REQUIRED]`, worker path/PID, and restart remediation; targeted suite passes.",
+          "notes": "Loud worker failure remains observable."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Success-path regression asserts exit 0, asset sync, and no stale summary; targeted suite passes.",
+          "notes": "Normal successful deployment behavior preserved."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-engineer-assets.test.ts` requires exact Morph directive with both `workdir: WORKING DIRECTORY` and `taskId: TASK`; focused test passes.",
+          "notes": "Source profile pinned against workdir-only regression."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bun test` in `/home/jon/dev/opencode-morph-fast-apply` passes 141 tests, including capability authorization coverage.",
+          "notes": "No Morph authorization implementation changed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verifier reports 107 focused deploy/agent tests passing; `bash -n scripts/deploy-local.sh` and external Morph tests pass.",
+          "notes": "Regression and source checks recorded."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Committed diff is limited to deploy script and repository tests; no direct `~/.config/opencode` copy was added.",
+          "notes": "Deployment remains script-owned."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review confirms worker matcher, `kill -TERM`, bounded grace period, and read-only branches are unchanged; existing deploy tests pass.",
+          "notes": "Safety helper unchanged."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Failure summary names stale workers; stuck-worker test forbids `bounce complete`; success-path test forbids stale claim.",
+          "notes": "No false runtime-active claim."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**Continuation:** With a worker-refresh result of `1`, `deploy-local.sh --fix` copies bundled agents before final exit.",
+    "**Loud failure:** In that case, exit status is nonzero and output still includes `[ADV:ACTION_REQUIRED]`, worker path/PID evidence, and restart instructions.",
+    "**Success path:** With a successful worker refresh, supported assets synchronize and final status remains successful unless another existing validation fails.",
+    "**Engineer contract:** Source and deployed `adv-engineer.md` direct Morph calls to include `workdir: WORKING DIRECTORY` and `taskId: TASK`.",
+    "**Authorization preserved:** Existing Morph capability tests still reject missing, mismatched, and reused capability requests.",
+    "**Proof:** Regression tests cover continuation/final-status behavior plus the engineer profile contract; relevant source checks pass."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Fix deployment sync ordering\n\n## Problem\n\n`adv-engineer` worktree Morph support is correct in the repository profile but stale in `~/.config/opencode/agents/adv-engineer.md`. `scripts/deploy-local.sh --fix` synchronizes the runtime plugin, then exits when a matching deployed Temporal worker remains after SIGTERM. It never reaches command and agent synchronization.\n\n## Outcome\n\nMake deploy completion independent from a failed worker bounce for non-runtime assets, while retaining explicit nonzero reporting for an unrefreshed worker. Then deploy the corrected agent profile so ADV engineers pass both `workdir` and `taskId` to `morph_edit`.\n\n## Scope\n\n- `scripts/deploy-local.sh`: separate runtime worker-refresh result from command, agent, skill, and config synchronization.\n- Deploy-script regression tests and `adv-engineer` asset contract tests.\n- Supported local deployment and fresh-session verification.\n\n## Failure handling\n\nA worker-bounce failure remains visible, returns nonzero after assets are synchronized, and prints exact restart remediation. No rollback is required because copied assets are source-controlled and the runtime worker is explicitly reported as stale until restart.\n\n## Authorization boundary\n\nMorph worktree access stays protected by the existing opaque, session-bound capability: valid calls require matching `workdir`, `taskId`, session, setup-ready task, and canonical worktree root.\n\n## Boundaries\n\n- Do not weaken Morph's session-bound worktree authorization.\n- Do not silently claim worker refresh succeeded.\n- Do not manually copy global agent files outside the supported deploy path.\n\n## Acceptance criteria\n\n1. Given a deployed worker remains alive after the bounded SIGTERM grace period, when `deploy-local.sh --fix` runs, then it still synchronizes ADV agents and returns a nonzero status with exact restart remediation.\n2. Given a successful deployment, then global `adv-engineer.md` directs `morph_edit` calls to include both `workdir: WORKING DIRECTORY` and `taskId: TASK`.\n3. Given an authorized task worktree, then Morph continues to reject missing, mismatched, or reused worktree capabilities.\n4. Automated tests cover the deploy continuation behavior and the agent-profile contract.\n",
+    "problemStatement": "ADV engineers cannot reliably use Morph in authorized worktrees after a deployment if the deploy script exits on a worker-bounce failure before updating global agent assets. Restore reliable deployment ordering without weakening the worktree capability boundary.",
+    "agreement": "# Agreement: Fix deployment sync ordering\n\n## Objective\n\nDeploy the updated ADV engineer profile even when a deployed Temporal worker cannot be retired, while retaining the runtime-refresh failure as a loud, nonzero result.\n\n## Evidence\n\n- Repository `.opencode/agents/adv-engineer.md` requires Morph calls to include both `workdir` and `taskId`; deployed global profile lacks that requirement.\n- `scripts/deploy-local.sh` invokes `refresh_deployed_temporal_workers \"after-sync\"` under `set -e`; that function returns `1` when an exact-path worker survives. The script exits before its command/agent synchronization phase.\n- Existing `rq-deployWorkerBounce01` requires nonzero status and restart remediation, but does not require independent asset synchronization to stop.\n\n## Direction\n\n- Capture the post-sync worker-refresh result instead of letting `set -e` terminate the script immediately.\n- Continue supported asset synchronization and config validation.\n- Exit nonzero after those steps when worker refresh failed; preserve `[ADV:ACTION_REQUIRED]` output.\n- Keep opaque Morph worktree authorization unchanged. The deployed engineer profile must instruct `morph_edit` to send matching `workdir` and `taskId`.\n\n## Acceptance criteria\n\n1. **Continuation:** With a worker-refresh result of `1`, `deploy-local.sh --fix` copies bundled agents before final exit.\n2. **Loud failure:** In that case, exit status is nonzero and output still includes `[ADV:ACTION_REQUIRED]`, worker path/PID evidence, and restart instructions.\n3. **Success path:** With a successful worker refresh, supported assets synchronize and final status remains successful unless another existing validation fails.\n4. **Engineer contract:** Source and deployed `adv-engineer.md` direct Morph calls to include `workdir: WORKING DIRECTORY` and `taskId: TASK`.\n5. **Authorization preserved:** Existing Morph capability tests still reject missing, mismatched, and reused capability requests.\n6. **Proof:** Regression tests cover continuation/final-status behavior plus the engineer profile contract; relevant source checks pass.\n\n## Constraints\n\n- No manual copying into `~/.config/opencode`.\n- No weakening of worker matching, SIGTERM behavior, grace period, or nonzero failure semantics.\n- No claim that the new worker bundle is active until its refresh succeeds.\n",
+    "design": "# Design: Fix deployment sync ordering\n\n## Flow\n\n1. Synchronize runtime plugin as today.\n2. Invoke `refresh_deployed_temporal_workers \"after-sync\"` in a guarded branch; retain its result in `worker_refresh_exit` without suppressing its existing output.\n3. Continue independent CLI deployment, commands, agents, overlays, skills, config work, checks, and summary.\n4. Replace unconditional successful completion wording with an explicit worker-refresh status. A failed refresh names the stale-runtime condition and restart remediation; it never implies active new worker code.\n5. At final status selection, use deterministic precedence: existing CLI failure first, existing config failure second, otherwise the captured worker-refresh failure. Return zero only when all applicable stages succeed.\n\n## Invariants\n\n- Exact-path worker matching, SIGTERM, grace period, and `[ADV:ACTION_REQUIRED]` reporting remain in `refresh_deployed_temporal_workers` unchanged.\n- The worker helper remains immediately after runtime sync.\n- Asset copy occurs only through `deploy-local.sh`; no direct global-agent mutation.\n- Morph capability validation is not modified. The bundled agent instruction contract is pinned for `workdir` + `taskId` use.\n\n## Tests\n\n- Executable deploy-script regression: controlled stuck worker causes action-required output, copies a bundled agent, reports worker-refresh failure in the summary, and exits nonzero.\n- Success-path regression: successful refresh preserves normal successful final status.\n- Extend `adv-engineer-assets.test.ts` to require the exact taskId-aware Morph directive.\n- Retain existing capability tests; add focused negative cases for partial pairs/unready tasks if local test structure makes them low-cost.\n\n## Files\n\n- `scripts/deploy-local.sh`\n- `plugin/src/adv-engineer-assets.test.ts`\n- `plugin/src/deploy-local.test.ts` or a colocated focused deploy regression file.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV local deployment now completes independent asset synchronization even when a deployed Temporal worker survives its bounded refresh attempt. The deploy remains explicitly unsuccessful until that stale worker is restarted or exits.\n\n## Value\n\nBundled `adv-engineer` instructions now reach the global profile instead of remaining stale behind a worker-refresh failure. Engineers receive the required Morph call contract: both `workdir` and `taskId`.\n\n## What changed\n\n- Captured post-sync worker-refresh failure instead of allowing `set -e` to stop the deploy before command, agent, skill, CLI, and config work.\n- Added an explicit stale-worker line in the deploy summary.\n- Preserved deterministic final failure precedence: CLI install, config repair, then worker refresh.\n- Added a hermetic stuck-worker regression harness and an agent-profile contract assertion.\n\n## Verification\n\n- 107 focused deploy and agent-contract tests passed.\n- `bash -n scripts/deploy-local.sh` passed.\n- Morph source authorization suite passed: 141 tests.\n- Independent acceptance review: READY; no findings.\n- Release hardening: READY; 27 focused harden tests, whitespace/diff, and clean worktree checks passed.\n\n## Risks and follow-up\n\nA stale deployed worker still requires OpenCode restart or worker exit; the deploy prints `[ADV:ACTION_REQUIRED]` and exits nonzero. No authorization boundary, exact-path worker matching, SIGTERM behavior, grace period, or read-only behavior changed.\n\n## Release Readiness Summary\n\nREADY. This is a local developer-environment deployment change: no production migration, data impact, frontend preview, or external service rollout. The only operational consequence is explicit restart remediation when a stale worker remains; do not claim runtime activation until that refresh succeeds.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-16T00:45:06.867Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **Continuation:** With a worker-refresh result of `1`, `deploy-local.sh --fix` copies bundled agents before final exit. | pass | `plugin/src/deploy-local-worker-refresh.test.ts` stuck-worker fixture proves command and bundled-agent sync continues; 107 focused deploy/agent tests pass. |\n| AC2 | acceptance_criterion | **Loud failure:** In that case, exit status is nonzero and output still includes `[ADV:ACTION_REQUIRED]`, worker path/PID evidence, and restart instructions. | pass | Stuck-worker test requires nonzero status, `[ADV:ACTION_REQUIRED]`, worker path/PID, and restart remediation; targeted suite passes. |\n| AC3 | acceptance_criterion | **Success path:** With a successful worker refresh, supported assets synchronize and final status remains successful unless another existing validation fails. | pass | Success-path regression asserts exit 0, asset sync, and no stale summary; targeted suite passes. |\n| AC4 | acceptance_criterion | **Engineer contract:** Source and deployed `adv-engineer.md` direct Morph calls to include `workdir: WORKING DIRECTORY` and `taskId: TASK`. | pass | `adv-engineer-assets.test.ts` requires exact Morph directive with both `workdir: WORKING DIRECTORY` and `taskId: TASK`; focused test passes. |\n| AC5 | acceptance_criterion | **Authorization preserved:** Existing Morph capability tests still reject missing, mismatched, and reused capability requests. | pass | `bun test` in `/home/jon/dev/opencode-morph-fast-apply` passes 141 tests, including capability authorization coverage. |\n| AC6 | acceptance_criterion | **Proof:** Regression tests cover continuation/final-status behavior plus the engineer profile contract; relevant source checks pass. | pass | Verifier reports 107 focused deploy/agent tests passing; `bash -n scripts/deploy-local.sh` and external Morph tests pass. |\n| C1 | constraint | No manual copying into `~/.config/opencode`. | respected | Committed diff is limited to deploy script and repository tests; no direct `~/.config/opencode` copy was added. |\n| C2 | constraint | No weakening of worker matching, SIGTERM behavior, grace period, or nonzero failure semantics. | respected | Review confirms worker matcher, `kill -TERM`, bounded grace period, and read-only branches are unchanged; existing deploy tests pass. |\n| C3 | constraint | No claim that the new worker bundle is active until its refresh succeeds. | respected | Failure summary names stale workers; stuck-worker test forbids `bounce complete`; success-path test forbids stale claim. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-15T23:25:54.592Z",
+      "contentHash": "1ceaa58af13d6b665277e7fb9ea899fa04913c8b156ed12b33d85012510ff7de",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-15T23:25:40.142Z",
+      "contentHash": "e9e03bcf5766ec393493db085c2c5d72d94ba12ea3bc581db4ac2a2f5d7ca1bb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-15T23:28:36.802Z",
+      "contentHash": "c3ffee545475c834fcdf77d4fab713870f46a22040783f3d56dc1358eb7579c1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-15T23:43:34.143Z",
+      "contentHash": "97909acdc1e14302d182f38eb1439863a44d89fa6b74af7fe27e91bcad3ee4bb",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-16T00:52:51.153Z",
+      "contentHash": "19bb3c505824da60c81c4bc1c63487d04bae14c952edcc66a1b5ae4962af56f1",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-16T00:52:51.153Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-16T00:12:36.933Z"
+    }
+  ]
+}
