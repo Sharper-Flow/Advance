@@ -68,6 +68,7 @@ printf '// fake workflows\\n' > "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/index.js" "$PWD/dist/temporal/worker.js" "$PWD/dist/temporal/workflows.js"
 printf '{"schema_version":1,"generation":"fake","files":{"worker.js":"fake","workflows.js":"fake"},"built_at":"2026-01-01T00:00:00.000Z"}
 ' > "$PWD/dist/temporal/bundle-manifest.json"
+printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
 `,
     { mode: 0o755 },
   );

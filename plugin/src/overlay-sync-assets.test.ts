@@ -52,6 +52,7 @@ describe("overlay sync script support", () => {
     expect(content).toContain("dist/temporal/worker.js");
     expect(content).toContain("dist/temporal/workflows.js");
     expect(content).toContain("dist/temporal/bundle-manifest.json");
+    expect(content).toContain("dist/plugin-bundle-manifest.json");
     expect(content).toContain(
       '(cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build)',
     );
@@ -65,9 +66,7 @@ describe("overlay sync script support", () => {
       'if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then',
     );
     const guardCall = content.indexOf("ensure_plugin_dist_fresh", sourceGuard);
-    const pluginRsync = content.indexOf(
-      'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/"',
-    );
+    const pluginRsync = content.indexOf('rsync -a --delete --exclude="dist/');
 
     expect(checkExit).toBeGreaterThan(-1);
     expect(sourceGuard).toBeGreaterThan(checkExit);
@@ -137,6 +136,10 @@ describe("overlay sync script support", () => {
         ),
         '{"schema_version":1}\n',
       );
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
+        '{"schema_version":1,"generation":"fresh","files":{"index":"d46de8ad756e25bc85bb3589a2523f5ee15fb8ec2358640174b169c0285a7a9f"},"built_at":"2026-01-01T00:00:00.000Z"}\n',
+      );
       utimesSync(
         distPath,
         new Date("2030-01-01T00:00:00Z"),
@@ -160,6 +163,11 @@ describe("overlay sync script support", () => {
           "temporal",
           "bundle-manifest.json",
         ),
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
         new Date("2030-01-01T00:00:00Z"),
         new Date("2030-01-01T00:00:00Z"),
       );
@@ -223,10 +231,12 @@ printf '// fake build\n' > "$PWD/dist/index.js"
 printf '// fake worker\n' > "$PWD/dist/temporal/worker.js"
 printf '// fake workflows\n' > "$PWD/dist/temporal/workflows.js"
 printf '{"schema_version":1}\n' > "$PWD/dist/temporal/bundle-manifest.json"
+printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
 touch "$PWD/dist/index.js"
 touch "$PWD/dist/temporal/worker.js"
 touch "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/temporal/bundle-manifest.json"
+touch "$PWD/dist/plugin-bundle-manifest.json"
 `,
         { mode: 0o755 },
       );
