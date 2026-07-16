@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.24.1
-> **Updated:** 2026-07-15
+> **Version:** 1.25.0
+> **Updated:** 2026-07-16
 
 ## Purpose
 
@@ -499,7 +499,7 @@ The default /adv-roadmap slash command must be a thin OpenCode shell-output brid
 
 **ID:** `rq-statusProbeCache01` | **Priority:** **[MUST]**
 
-ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.
+ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, snapshot health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, age_ms, ttl_ms, and optional error. Status-facing health diagnostics must expose an advisory forceRefresh path that bypasses fresh cached probe entries only for the selected health probes and never for gate, task, change, contract, archive, or release truth. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions.
 
 **Tags:** `diagnostics`, `temporal`, `cache`, `health`
 
@@ -508,14 +508,15 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Status health probes are coalesced and freshened** (`rq-statusProbeCache01.1`)
 
 **Given:**
-- Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, or worktree census within the probe TTL
+- Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, snapshot health, or worktree census within the probe TTL
 
 **When:** The probes execute
 
 **Then:**
 - Concurrent same-key probes are coalesced
 - Repeated calls within TTL return cached values
-- The health response includes _freshness metadata for each cached probe
+- The health response includes _freshness metadata for each cached probe with cached_at, stale, age_ms, ttl_ms, and optional error
+- age_ms is non-negative and ttl_ms identifies the probe cache TTL
 - Existing health fields remain present for legacy consumers
 
 **Stale probe data is diagnostic-only for recovery safety** (`rq-statusProbeCache01.2`)
@@ -526,9 +527,23 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **When:** A diagnostic or recovery tool builds recommendations
 
 **Then:**
-- The stale value may be returned with _freshness.stale=true and an error summary
+- The stale value may be returned with _freshness.stale=true, age_ms, ttl_ms, and an error summary
 - The stale value must not be treated as proof of worker serviceability
-- The stale value must not authorize worker-lock reclaim, restart success, override, unlock, or archive decisions
+- The stale value must not authorize worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions
+
+**Status force refresh is advisory-only** (`rq-statusProbeCache01.4`)
+
+**Given:**
+- adv_status is called with forceRefresh:true and a view that requests advisory health probes
+- Fresh cached values already exist for one or more selected probes
+
+**When:** The status read executes
+
+**Then:**
+- The selected advisory probe caches attempt fresh fetches instead of reusing fresh cached entries
+- The response freshness metadata still reports cached_at, stale, age_ms, ttl_ms, and optional error for each returned probe
+- forceRefresh does not bypass or cache gate, task, change, contract, archive, or release truth
+- Default summary output remains lightweight and does not expose detailed _freshness payloads
 
 **Probe timeout bounds underlying work or reports non-cancellable classification** (`rq-statusProbeCache01.3`)
 
@@ -1269,6 +1284,8 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 - The table contains a GitHub CI / check-run / status investigation row mapped to general
 - The table routes code-edit rows to adv-engineer or adv-designer, not general
 - adv-apply.md does not duplicate the operational routing table
+
+---
 
 ### adv_archive_purge tool
 
@@ -2682,5 +2699,44 @@ Every registered ADV tool must have an explicit ownership/reachability classific
 **Then:**
 - Read actions are agent-reachable
 - Mutation or refresh surfaces remain operator-owned and are not invoked as routine autonomous agent actions
+
+---
+
+### Deploy Asset Synchronization Survives Worker Refresh Failure
+
+**ID:** `rq-deployAssetContinuation01` | **Priority:** **[MUST]**
+
+After a mutating deploy synchronizes the runtime plugin, a failed exact-path Temporal worker refresh must remain loud and produce a nonzero final deploy status, but it must not prevent synchronization of independent supported assets such as commands, bundled agents, shared-agent overlays, skills, the managed CLI payload, and configuration validation. The final output must preserve the restart remediation and must not claim runtime worker code is active until refresh succeeds.
+
+**Tags:** `deploy-local`, `worker-refresh`, `agent-sync`, `morph-worktree`
+
+#### Scenarios
+
+**Worker refresh failure continues independent asset synchronization** (`rq-deployAssetContinuation01.1`)
+
+**Given:**
+- A mutating deploy has synchronized the runtime plugin
+- An exact-path deployed Temporal worker remains alive after bounded SIGTERM handling
+- ADV commands or bundled agent profiles have source updates
+
+**When:** The deploy processes supported assets
+
+**Then:**
+- The commands and bundled agent profiles are synchronized
+- The deploy emits the existing worker restart remediation
+- The final deploy status is nonzero
+- The output does not claim runtime worker code is active
+
+**Successful worker refresh preserves normal deploy success** (`rq-deployAssetContinuation01.2`)
+
+**Given:**
+- A mutating deploy has synchronized the runtime plugin
+- No exact-path deployed Temporal worker remains after refresh
+
+**When:** The deploy processes supported assets
+
+**Then:**
+- Supported assets are synchronized
+- The deploy preserves its normal success behavior
 
 ---
