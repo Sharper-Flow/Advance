@@ -73,7 +73,7 @@ describe("checkPlanRoutingGuard", () => {
     expect(guard.basis).toBe("no_receipt");
   });
 
-  test("env override forces and clears fail-closed for drills/tests", async () => {
+  test("env override can force fail-closed for drills/tests", async () => {
     const root = await tempDir("adv-guard-env-");
     expect(
       checkPlanRoutingGuard({
@@ -82,13 +82,18 @@ describe("checkPlanRoutingGuard", () => {
         env: { ADV_PLAN_ROUTING_FAIL_CLOSED: "1" },
       }).failClosed,
     ).toBe(true);
-    expect(
-      checkPlanRoutingGuard({
-        migrationRoot: root,
-        currentDigest: DIGEST_A,
-        env: { ADV_PLAN_ROUTING_FAIL_CLOSED: "0" },
-      }).failClosed,
-    ).toBe(false);
+  });
+
+  test("env override cannot clear a receipt-backed fail-closed boundary", async () => {
+    const root = await tempDir("adv-guard-env-clear-");
+    activate(root);
+    const guard = checkPlanRoutingGuard({
+      migrationRoot: root,
+      currentDigest: DIGEST_A,
+      env: { ADV_PLAN_ROUTING_FAIL_CLOSED: "0" },
+    });
+    expect(guard.failClosed).toBe(true);
+    expect(guard.basis).toBe("receipt_active");
   });
 
   test("active receipt bound to the current digest → fail-closed", async () => {
@@ -116,7 +121,7 @@ describe("checkPlanRoutingGuard", () => {
     expect(guard.receiptDigest).toBe(DIGEST_A);
   });
 
-  test("active receipt with unknown current identity → not fail-closed (C5: no proof, no fail-closed)", async () => {
+  test("active receipt with unknown current identity → fail-closed (do not bypass completed cutover)", async () => {
     const root = await tempDir("adv-guard-noident-");
     activate(root);
     const guard = checkPlanRoutingGuard({
@@ -124,7 +129,7 @@ describe("checkPlanRoutingGuard", () => {
       currentDigest: null,
       env: {},
     });
-    expect(guard.failClosed).toBe(false);
+    expect(guard.failClosed).toBe(true);
     expect(guard.basis).toBe("identity_unavailable");
   });
 

@@ -76,8 +76,11 @@ export function checkPlanRoutingGuard(input?: {
 }): PlanRoutingGuard {
   const env = input?.env ?? process.env;
   const override = env[ADV_PLAN_ROUTING_FAIL_CLOSED_ENV];
-  if (override === "1" || override === "0") {
-    return { failClosed: override === "1", basis: "env_override" };
+  if (override === "1") {
+    // Test/drill forcing may make routing stricter before cutover, but an
+    // environment variable must never clear a receipt-backed safety boundary.
+    // Disabling the receipt is the auditable first rollback action.
+    return { failClosed: true, basis: "env_override" };
   }
 
   const migrationRoot = input?.migrationRoot ?? resolveMigrationRoot({ env });
@@ -121,7 +124,12 @@ function evaluate(
   }
   if (currentDigest === null) {
     return {
-      failClosed: false,
+      // An active receipt proves this machine already completed cutover. If
+      // this process can no longer identify its loaded build, resuming legacy
+      // routing would silently bypass that completed cutover. Stop only
+      // plan-dependent routing until the identity is restored or the receipt
+      // is explicitly disabled for rollback.
+      failClosed: true,
       basis: "identity_unavailable",
       receiptDigest: receipt.buildDigest,
     };
