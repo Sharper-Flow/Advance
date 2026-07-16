@@ -374,6 +374,8 @@ describe("adv-designer assets", () => {
     ]);
   });
 
+  // rq-delDefaults10: frontend tasks route directly to adv-designer (Priority 1.5),
+  // never engineer-first; explicit hint (Priority 1) and step-4 risk signals override.
   test("adv-apply.md delegation routing includes Priority 1.5 metadata.frontend branch for adv-designer", () => {
     const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
     expect(content).toContain("metadata.frontend");
@@ -381,6 +383,20 @@ describe("adv-designer assets", () => {
     expect(content).toContain("adv-designer");
     // metadata.delegation_hint MUST remain Priority 1 (explicit user override wins)
     expect(content).toMatch(/\b1\s*\|\s*`?metadata\.delegation_hint/);
+    // Designer-direct: the Priority 1.5 row routes frontend work to adv-designer
+    expect(content).toMatch(
+      /1\.5\s*\|\s*`?metadata\.frontend\s*==\s*"true"`?\?*\s*\|[^\n]*adv-designer/,
+    );
+    // Reject engineer-first semantics: no instruction may dispatch adv-engineer
+    // before adv-designer for frontend tasks
+    expect(content).not.toMatch(
+      /adv-engineer[^\n.]*before[^\n.]*adv-designer/i,
+    );
+    expect(content).not.toMatch(/engineer-first/i);
+    // adv-designer is apply-phase only; review/harden stays with adv-reviewer
+    expect(content).toContain(
+      "review/harden ownership remains with `adv-reviewer`",
+    );
   });
 
   test("adv-apply.md Designer Apply Context Packet exists and starts with WORKING DIRECTORY", () => {

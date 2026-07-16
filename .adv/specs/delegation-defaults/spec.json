@@ -464,40 +464,42 @@
     },
     {
       "id": "rq-delDefaults10",
-      "title": "Engineer-First Frontend Dispatch",
-      "body": "For delegated code tasks, including tasks with metadata.frontend set to true, ADV MUST select adv-engineer for initial implementation. Frontend metadata structurally requires one matching-cycle adv-designer follow-up after successful engineer or safe inline implementation; the follow-up packet MUST include implementation cycle and typed engineer-report or inline provenance. adv-designer remains apply-phase only and MUST NOT own review or harden.",
+      "title": "Designer-Direct Frontend Dispatch",
+      "body": "For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation directly to adv-designer via the Priority 1.5 frontend branch instead of adv-engineer, unless step-4 risk signals force inline implementation. An explicit metadata.delegation_hint (Priority 1) remains the user override and wins over the frontend branch; the routing-table priority order is authoritative. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership for changes that include frontend scope.",
       "priority": "must",
       "tags": [
         "delegation",
         "frontend",
-        "engineer-first",
-        "designer-follow-up"
+        "designer-direct",
+        "apply-phase"
       ],
       "scenarios": [
         {
           "id": "rq-delDefaults10.1",
-          "title": "Frontend task dispatches engineer before designer",
+          "title": "Frontend task dispatches designer directly",
           "given": [
-            "A delegated code task has metadata.frontend set to true"
+            "A delegated code task has metadata.frontend set to true",
+            "No metadata.delegation_hint is set",
+            "No step-4 risk signals force inline implementation"
           ],
           "when": "ADV applies the task",
           "then": [
-            "ADV selects adv-engineer for initial implementation",
-            "ADV requires one matching-cycle adv-designer follow-up after successful implementation",
-            "The designer packet carries implementation-cycle and typed implementation provenance"
+            "ADV selects adv-designer for initial implementation via the Priority 1.5 frontend branch",
+            "ADV does not dispatch adv-engineer before adv-designer for the task",
+            "adv-designer receives the Designer Apply Context Packet"
           ]
         },
         {
           "id": "rq-delDefaults10.2",
-          "title": "Inline frontend implementation still requires designer follow-up",
+          "title": "Explicit hint and risk signals take precedence over the frontend branch",
           "given": [
-            "A code task has metadata.frontend set to true",
-            "Risk signals require initial implementation inline"
+            "A code task has metadata.frontend set to true"
           ],
-          "when": "The inline implementation succeeds",
+          "when": "metadata.delegation_hint is set, or step-4 risk signals are present",
           "then": [
-            "ADV requires a matching-cycle adv-designer follow-up before task completion",
-            "adv-designer does not edit backend, API, storage, Temporal, or business-rule scope"
+            "An explicit metadata.delegation_hint (Priority 1) wins over the frontend branch",
+            "Step-4 risk signals force inline_required implementation",
+            "The delegation routing table priority order remains authoritative"
           ]
         },
         {
