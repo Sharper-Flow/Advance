@@ -764,7 +764,21 @@ describe("deploy-local.sh", () => {
       ).toContain("STSL");
       expect(deployWorkerBounce?.body).toContain("SIGTERM");
       expect(deployWorkerBounce?.body).toContain("[ADV:ACTION_REQUIRED]");
+      expect(deployWorkerBounce?.body).toContain(
+        "ADV_TEMPORAL_WORKER_SELF_ROLL=1",
+      );
+      expect(deployWorkerBounce?.body).toContain("self-roll");
       expect(deployWorkerBounce?.scenarios).toHaveLength(3);
+      expect(
+        deployWorkerBounce?.scenarios
+          ?.find((s) => s.id === "rq-deployWorkerBounce01.1")
+          ?.then.join("\n"),
+      ).toContain("ADV_TEMPORAL_WORKER_SELF_ROLL=1");
+      expect(
+        deployWorkerBounce?.scenarios?.find(
+          (s) => s.id === "rq-deployWorkerBounce01.2",
+        )?.title,
+      ).toContain("Self-roll");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.1");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.2");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.3");
