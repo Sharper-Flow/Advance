@@ -377,9 +377,34 @@ function evidenceByCommand(text: string): Map<string, AdvRunTestEvidence> {
   );
 }
 
+/**
+ * Durable per-task `adv_run_test` evidence recorded via `testRunRecordedSignal`
+ * and persisted in `state.testRuns[taskId][]` (mirrored as `change.test_runs`).
+ * Consulting it lets evidence recorded by ANY session (a sub-agent when plugin
+ * tools are available, or an orchestrator relaying a sub-agent report) satisfy
+ * the verification gate without the command being echoed in the task free-text.
+ * Latest retained record per exact command wins (persisted array order ==
+ * workflow application order; no timestamp sort), so a later GREEN supersedes an
+ * earlier RED for the same command.
+ */
+type DurableTestRunLike = { command?: string; exitCode?: number | null };
+
+function latestDurableByCommand(
+  records: readonly DurableTestRunLike[] | undefined,
+): Map<string, { exitCode: number | null }> {
+  const map = new Map<string, { exitCode: number | null }>();
+  for (const record of records ?? []) {
+    if (record && typeof record.command === "string" && record.command) {
+      map.set(record.command, { exitCode: record.exitCode ?? null });
+    }
+  }
+  return map;
+}
+
 function verificationWarnings(
   report: ScopedSubagentReport,
   task?: Task,
+  durableRecords?: readonly DurableTestRunLike[],
 ): ConsumerWarning[] {
   if (!task) return [];
   const recorded = [
@@ -390,9 +415,24 @@ function verificationWarnings(
     .filter((value): value is string => Boolean(value?.trim()))
     .join("\n");
   const structuredEvidence = evidenceByCommand(recorded);
+  const durableByCommand = latestDurableByCommand(durableRecords);
 
   if (report.agent === "adv-engineer" || report.agent === "adv-designer") {
     return report.verification.flatMap((entry): ConsumerWarning[] => {
+      // Durable typed evidence is authoritative when present for the command.
+      const durable = durableByCommand.get(entry.command);
+      if (durable) {
+        if (durable.exitCode !== null && durable.exitCode !== entry.exit_code) {
+          return [
+            {
+              kind: "verification_mismatch" as const,
+              message: `Reported exit_code ${entry.exit_code} differs from durable adv_run_test evidence exitCode ${durable.exitCode} for command: ${entry.command}`,
+            },
+          ];
+        }
+        return [];
+      }
+
       const evidence = structuredEvidence.get(entry.command);
       if (!evidence && !recorded.includes(entry.command)) {
         return [
@@ -439,7 +479,9 @@ function verificationWarnings(
     return report.verification.tests_run
       .filter(
         (command) =>
-          !structuredEvidence.has(command) && !recorded.includes(command),
+          !durableByCommand.has(command) &&
+          !structuredEvidence.has(command) &&
+          !recorded.includes(command),
       )
       .map((command) => ({
         kind: "verification_missing" as const,
@@ -629,6 +671,15 @@ async function executeSubmit(
     );
   }
 
+  // Read fresh workflow state so durable adv_run_test evidence recorded via
+  // testRunRecordedSignal is visible: adv_run_test is cache-refresh-exempt, so a
+  // stale changeCache entry could otherwise omit just-recorded test_runs and
+  // produce a false verification_missing (validator blocker).
+  try {
+    await store.changes.refresh?.(parsedReport.report.change_id);
+  } catch {
+    // Best-effort: a refresh failure must never block report submission.
+  }
   const change = await loadChange(store, parsedReport.report.change_id);
   const taskId = reportTaskId(parsedReport.report);
   const task = taskId ? findTask(change, taskId) : undefined;
@@ -663,7 +714,11 @@ async function executeSubmit(
     );
   }
 
-  const initialWarnings = verificationWarnings(parsedReport.report, task);
+  const initialWarnings = verificationWarnings(
+    parsedReport.report,
+    task,
+    taskId ? change.test_runs?.[taskId] : undefined,
+  );
   const report = withConsumerWarnings(parsedReport.report, initialWarnings);
 
   if (!args.dryRun) {
