@@ -7,6 +7,7 @@ vi.mock("@temporalio/workflow", () => ({
 }));
 
 import {
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
 } from "./contracts";
@@ -144,6 +145,26 @@ describe("change workflow message contract", () => {
       expect(CHANGE_WORKFLOW_QUERY_NAMES[key]).toBe(`adv.change.${key}`);
       expect(messages[`${key}Query` as keyof typeof messages]).toBeDefined();
     }
+  });
+
+  it("binds the canonical phase-plan query from the centralized wire name while preserving getDirective", () => {
+    // SC1/AC8: one centralized canonical read-query name drives both the
+    // client-side binding and the workflow handler registration.
+    expect(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan).toBe(
+      "adv.change.getPhasePlan",
+    );
+    expect(messages.getPhasePlanQuery).toEqual({
+      kind: "query",
+      name: "adv.change.getPhasePlan",
+    });
+    // SC2/AC6: the legacy directive compat query is preserved unchanged.
+    expect(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective).toBe(
+      "adv.change.getDirective",
+    );
+    expect(messages.getDirectiveQuery).toEqual({
+      kind: "query",
+      name: "adv.change.getDirective",
+    });
   });
 
   it("validates representative payloads for every design signal schema", () => {

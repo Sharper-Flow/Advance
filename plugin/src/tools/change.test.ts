@@ -16,6 +16,7 @@ import {
 } from "./change";
 import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
+import { parsePhasePlan } from "../utils/phase-plan";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import * as gitFinalize from "./archive-helpers/git-finalize";
 import * as worktree from "./worktree";
@@ -519,6 +520,129 @@ describe("change tools — signal-driven lifecycle", () => {
         format: "task-id-em-dash-title",
         window: { includeCurrent: true, readyLimit: 3, omitDone: true },
       });
+    });
+
+    test("attaches typed phase-plan read projection when include.phasePlan is set", async () => {
+      // Default mock gates: all done except release → actionable archive step.
+      const store = createMockStore();
+      // Baseline: a plain show performs its own pre-existing reads/writes
+      // (e.g. clarify-findings persistence). The plan projection must add
+      // zero mutations on top of that baseline (AC3/C2).
+      await changeTools.adv_change_show.execute(
+        { changeId: "test-change" },
+        store,
+      );
+      const plainShowSaves = vi.mocked(store.changes.save).mock.calls.length;
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { phasePlan: true } },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      // SC1/AC1/AC8: strict boundary — the projection always parses as one
+      // discriminated PhasePlan variant.
+      const plan = parsePhasePlan(parsed._phasePlan);
+      expect(plan).toMatchObject({
+        version: 1,
+        kind: "actionable",
+        changeId: "test-change",
+        phase: "release",
+        gateId: "release",
+        command: "adv-archive",
+        failClosed: false,
+        provenance: { source: "canonical" },
+      });
+      // Existing response fields are preserved unchanged.
+      expect(parsed.id).toBe("test-change");
+      expect(parsed.title).toBe("Test Change");
+      expect(Array.isArray(parsed.tasks)).toBe(true);
+      expect(parsed._phasePlanError).toBeUndefined();
+      // AC3/C2: the plan read performs zero additional mutations and sends
+      // no workflow signals.
+      const planShowSaves = vi.mocked(store.changes.save).mock.calls.length;
+      expect(planShowSaves - plainShowSaves).toBe(plainShowSaves);
+      expect(mocks.signalMock).not.toHaveBeenCalled();
+    });
+
+    test("omits _phasePlan when include.phasePlan is not set", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed._phasePlan).toBeUndefined();
+      expect(parsed.id).toBe("test-change");
+    });
+
+    test("approval-pending change yields non-authorizing plan with no command", async () => {
+      const store = createMockStore({ pendingCheckpoint: true });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { phasePlan: true } },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      const plan = parsePhasePlan(parsed._phasePlan);
+      expect(plan).toMatchObject({
+        kind: "approval-required",
+        failClosed: true,
+        gateId: "release",
+        provenance: { source: "canonical" },
+      });
+      // AC3/C2: non-authorizing variants carry no route/command.
+      expect(parsed._phasePlan).not.toHaveProperty("command");
+      expect(parsed._phasePlan).not.toHaveProperty("route");
+    });
+
+    test("archived change yields terminal non-authorizing plan", async () => {
+      const store = createMockStore({ status: "archived" });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { phasePlan: true } },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      const plan = parsePhasePlan(parsed._phasePlan);
+      expect(plan).toMatchObject({
+        kind: "terminal",
+        phase: "archived",
+        failClosed: true,
+      });
+      expect(parsed._phasePlan).not.toHaveProperty("command");
+    });
+
+    test("malformed gate projection degrades to typed non-authorizing plan with no route", async () => {
+      // Partially hydrated projection: gates record missing entries makes the
+      // derivation throw; the tool layer must adapt that into a typed
+      // degraded plan (SC3/AC3) instead of inventing a next action.
+      const store = createMockStore();
+      vi.mocked(store.gates.get).mockResolvedValue({
+        release: { status: "pending" },
+      } as unknown as Change["gates"]);
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { phasePlan: true } },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      const plan = parsePhasePlan(parsed._phasePlan);
+      expect(plan).toMatchObject({
+        kind: "degraded",
+        failClosed: true,
+        reason: "missing_state",
+        provenance: { source: "degraded", reason: "missing_state" },
+      });
+      expect(parsed._phasePlan).not.toHaveProperty("command");
+      expect(parsed._phasePlan).not.toHaveProperty("route");
+      // Degraded reads stay non-authorizing: no workflow signals sent.
+      expect(mocks.signalMock).not.toHaveBeenCalled();
     });
 
     test("target artifact readback routes through Temporal-backed target store", async () => {

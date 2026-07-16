@@ -1,5 +1,6 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
+import { derivePhasePlanFromState } from "../utils/phase-plan";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
 import type { ChangeStatus, GateReadinessBlocker } from "../types";
 import { normalizeLegacyChangeStatus } from "../types";
@@ -240,6 +241,9 @@ const getCurrentBucketQuery = wf.defineQuery<ReturnType<typeof deriveBucket>>(
 const getDirectiveQuery = wf.defineQuery<
   ReturnType<typeof deriveWorkflowDirective>
 >(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective);
+const getPhasePlanQuery = wf.defineQuery<
+  ReturnType<typeof derivePhasePlanFromState>
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan);
 const getInvestmentReportQuery = wf.defineQuery<{
   taskCounts: {
     total: number;
@@ -725,6 +729,14 @@ export async function changeWorkflow(
   );
   wf.setHandler(getDirectiveQuery, () =>
     deriveWorkflowDirective(state, workflowEpoch),
+  );
+  // SC1/AC1/AC3: typed plan query — canonical PhasePlan derived on read from
+  // the same durable state as the directive. Read-only: no signals, no
+  // persistence, no mutation authority (DDC3). A derivation throw surfaces
+  // deterministically inside the workflow (never masked); tool-layer readers
+  // own safe degradation.
+  wf.setHandler(getPhasePlanQuery, () =>
+    derivePhasePlanFromState(state, workflowEpoch),
   );
   wf.setHandler(getInvestmentReportQuery, () =>
     deriveInvestmentReportFromState(state),

@@ -86,6 +86,7 @@ import type {
   EpicWorkflowState,
 } from "./contracts";
 import type { WorkflowDirective } from "../utils/workflow-directive";
+import type { PhasePlan } from "../utils/phase-plan";
 import {
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
@@ -130,6 +131,9 @@ export const getCurrentBucketQuery = wf.defineQuery<string>(
 );
 export const getDirectiveQuery = wf.defineQuery<WorkflowDirective>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective,
+);
+export const getPhasePlanQuery = wf.defineQuery<PhasePlan>(
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan,
 );
 export const getReadyTasksQuery = wf.defineQuery<
   ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>

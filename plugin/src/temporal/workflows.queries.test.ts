@@ -4,6 +4,7 @@ import { Worker } from "@temporalio/worker";
 
 import type { Task } from "../types";
 import { createDefaultGates } from "../types";
+import { parsePhasePlan } from "../utils/phase-plan";
 import type { ChangeWorkflowInput } from "./contracts";
 import {
   acceptanceCriteriaSetSignal,
@@ -12,6 +13,7 @@ import {
   getCurrentBucketQuery,
   getDirectiveQuery,
   getInvestmentReportQuery,
+  getPhasePlanQuery,
   getReadyTasksQuery,
   getReviewVerificationQuery,
   getTaskRunSummaryQuery,
@@ -139,6 +141,18 @@ describe("changeWorkflow query handlers", () => {
             proposal: "done",
             execution: "done",
           }),
+        });
+        const plan = await handle.query(getPhasePlanQuery);
+        expect(() => parsePhasePlan(plan)).not.toThrow();
+        expect(plan).toMatchObject({
+          version: 1,
+          kind: "actionable",
+          changeId: "query-test-change",
+          phase: "acceptance",
+          gateId: "acceptance",
+          command: "adv-review",
+          failClosed: false,
+          provenance: { source: "canonical", bucket: "awaiting_approval" },
         });
         await expect(handle.query(getReadyTasksQuery)).resolves.toMatchObject({
           ready: [expect.objectContaining({ id: "tk-ready" })],
