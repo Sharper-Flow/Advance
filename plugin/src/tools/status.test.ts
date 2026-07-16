@@ -34,6 +34,7 @@ import {
   clearPendingDelete,
   incrementPendingDeleteAttempts,
   initStateDb as initWorktreeStateDb,
+  recordPendingDeleteFailure,
   setPendingDelete,
 } from "./worktree/state";
 
@@ -308,6 +309,16 @@ describe("Status Tools", () => {
       for (let i = 0; i < 5; i++) {
         await incrementPendingDeleteAttempts(access, "change/status-retained");
       }
+      // Record the typed blocker so production classification is deterministic:
+      // classifyPendingDelete returns lastErrorClass first, then falls back to
+      // the reason string. Without this, the shared drain could classify the
+      // fixture as worktree_not_found depending on runtime state.
+      await recordPendingDeleteFailure(
+        access,
+        "change/status-retained",
+        "WORKTREE_IN_USE",
+        "worktree_in_use",
+      );
 
       try {
         const result = await statusTools.adv_status.execute(

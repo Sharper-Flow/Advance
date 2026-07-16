@@ -33,6 +33,7 @@ export interface ToolSchemaManifest {
 }
 
 let manifest: ToolSchemaManifest = emptyManifest();
+let lastInput: readonly ToolSchemaTelemetryEntry[] | undefined;
 
 function emptyManifest(): ToolSchemaManifest {
   return {
@@ -87,11 +88,17 @@ export function buildToolSchemaManifest(
   return next;
 }
 
-/** Compute and retain the init-time manifest. Not called on the request path. */
+/** Compute and retain the init-time manifest. Not called on the request path.
+ * Memoized on the same static entry array so repeated plugin inits avoid
+ * re-serializing every tool schema.
+ */
 export function initializeToolSchemaTelemetry(
   entries: readonly ToolSchemaTelemetryEntry[],
 ): ToolSchemaManifest {
-  manifest = buildToolSchemaManifest(entries);
+  if (entries !== lastInput) {
+    manifest = buildToolSchemaManifest(entries);
+    lastInput = entries;
+  }
   return getToolSchemaManifest();
 }
 
@@ -111,4 +118,5 @@ export function getToolSchemaManifest(): ToolSchemaManifest {
 /** Test-only reset, paired with the session-reset behavior in plugin init. */
 export function resetToolSchemaTelemetry(): void {
   manifest = emptyManifest();
+  lastInput = undefined;
 }

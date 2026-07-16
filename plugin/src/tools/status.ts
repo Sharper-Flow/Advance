@@ -821,8 +821,21 @@ export const statusTools = {
               )
             : undefined;
 
-          const toolSchemaManifest = getToolSchemaManifest();
-          const laneProjections = await getLaneProjections(toolSchemaManifest);
+          // T4: tool-context telemetry is only required for the health view;
+          // skip the expensive opencode lane-permission probes for other views.
+          const toolContextTelemetry =
+            view === "health"
+              ? {
+                  manifest: getToolSchemaManifest(),
+                  lane_projections: await getLaneProjections(
+                    getToolSchemaManifest(),
+                  ),
+                  cache_tokens: getCacheTokenTelemetry(),
+                  limitations: [
+                    "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
+                  ],
+                }
+              : undefined;
 
           const fullOutput = {
             ...status,
@@ -868,14 +881,9 @@ export const statusTools = {
             // T4: tool-context telemetry (init-time schema manifest + numeric
             // cache-token samples). Live per-request MCP tool counts require
             // upstream OpenCode support and are intentionally not available.
-            tool_context_telemetry: {
-              manifest: toolSchemaManifest,
-              lane_projections: laneProjections,
-              cache_tokens: getCacheTokenTelemetry(),
-              limitations: [
-                "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
-              ],
-            },
+            ...(toolContextTelemetry
+              ? { tool_context_telemetry: toolContextTelemetry }
+              : {}),
             plugin_runtime: pluginRuntimeInfo,
             diagnostics: {
               temporalWorker: temporalHealth?.worker_alive

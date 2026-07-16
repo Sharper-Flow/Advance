@@ -32,6 +32,7 @@ vi.mock("../plugin-init", async () => {
 vi.mock("../tool-registry", () => ({
   createToolMap: vi.fn(() => ({})),
   createDegradedToolMap: vi.fn(() => ({})),
+  getRegisteredAdvToolEntries: vi.fn(() => []),
 }));
 
 const createMockPluginInput = (directory: string) => ({

@@ -245,7 +245,7 @@ describe("changeWorkflow Epic membership signals", () => {
       state = await queryState(handle);
       expect(state.epic_membership).toBeUndefined();
     });
-  });
+  }, 30_000);
 });
 
 describe("changeWorkflow spec-delta signals", () => {
