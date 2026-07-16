@@ -146,4 +146,53 @@ describe("worker lock", () => {
       reason: "lock_held_by_alive_pid",
     });
   });
+
+  describe("bundle_generation", () => {
+    test("acquire writes bundle_generation and read round-trips it", async () => {
+      const dir = await tempDir();
+
+      const result = await acquireWorkerLock(dir, {
+        pid: 1234,
+        schemaVersion: 2,
+        expectedQueue: "adv-test-queue",
+        bundleGeneration: "gen-aaa",
+        now: () => NOW,
+      });
+
+      expect(result.owned).toBe(true);
+      await expect(readLockContents(result.lockPath)).resolves.toMatchObject({
+        schema_version: 2,
+        bundle_generation: "gen-aaa",
+      });
+    });
+
+    test("read tolerates a v2 lock without bundle_generation", async () => {
+      const dir = await tempDir();
+      const lockPath = await writeLock(dir, {
+        pid: 2222,
+        worker_id: "pre-roll-worker",
+        acquired_at: NOW.toISOString(),
+        schema_version: 2,
+        last_heartbeat: NOW.toISOString(),
+      });
+
+      const contents = await readLockContents(lockPath);
+      expect(contents).toMatchObject({ schema_version: 2 });
+      expect(contents).not.toHaveProperty("bundle_generation");
+    });
+
+    test("read rejects a v2 lock with a malformed bundle_generation", async () => {
+      const dir = await tempDir();
+      const lockPath = await writeLock(dir, {
+        pid: 2222,
+        worker_id: "bad-gen-worker",
+        acquired_at: NOW.toISOString(),
+        schema_version: 2,
+        last_heartbeat: NOW.toISOString(),
+        bundle_generation: 42,
+      });
+
+      await expect(readLockContents(lockPath)).resolves.toBeNull();
+    });
+  });
 });

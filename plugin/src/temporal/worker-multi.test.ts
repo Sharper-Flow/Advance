@@ -1,5 +1,9 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { createMultiWorker, MULTI_SHUTDOWN_GRACE_MS } from "./worker-multi";
+import {
+  createMultiWorker,
+  MULTI_SHUTDOWN_GRACE_MS,
+  RESTART_HARD_KILL_DEADLINE_MS,
+} from "./worker-multi";
 import {
   getLastWorkerRunError,
   resetTemporalRetryTelemetry,
@@ -539,6 +543,154 @@ describe("Multi-queue worker host", () => {
       const result = await settled;
       expect(result).toBeInstanceOf(Error);
       expect((result as Error).message).toMatch(/exit|crash|never became/i);
+    });
+  });
+
+  // Bundle-roll lifecycle (restartChild).
+  //
+  // restartChild is a FIRST-CLASS lifecycle distinct from crash-respawn and
+  // from shutdown(): it retires the current child gracefully (SIGTERM, with
+  // a hard-kill deadline that exceeds the child-side Temporal
+  // shutdownGraceTime), spawns a replacement, and resolves only after the
+  // replacement sends its ready handshake. It must NOT set shuttingDown
+  // (that is terminal) and must NOT touch the crash restartCount.
+  describe("restartChild (bundle roll)", () => {
+    it("retires the old child via SIGTERM and spawns a ready replacement", async () => {
+      const worker = await createMultiWorker(baseInput);
+      const oldChild = lastMockChild!;
+
+      await worker.restartChild();
+
+      expect(oldChild.kill).toHaveBeenCalledWith("SIGTERM");
+      expect(mockChildren.length).toBe(2);
+      expect(worker.isAlive()).toBe(true);
+      expect(worker.getDiagnostics().childPid).toBe(mockChildren[1].pid);
+
+      await worker.shutdown();
+    });
+
+    it("does not increment the crash restartCount", async () => {
+      const worker = await createMultiWorker(baseInput);
+
+      await worker.restartChild();
+
+      expect(worker.getDiagnostics().restartCount).toBe(0);
+
+      await worker.shutdown();
+    });
+
+    it("resolves only after the replacement child sends ready", async () => {
+      const worker = await createMultiWorker(baseInput);
+
+      // The replacement child will NOT auto-ready.
+      autoEmitReady = false;
+      let resolved = false;
+      const rollPromise = worker.restartChild().then(() => {
+        resolved = true;
+      });
+
+      // Let the old child exit and the replacement spawn.
+      await new Promise((r) => setTimeout(r, 50));
+      expect(mockChildren.length).toBe(2);
+      expect(resolved).toBe(false);
+
+      mockChildren[1].sendReady();
+      await rollPromise;
+      expect(resolved).toBe(true);
+
+      await worker.shutdown();
+    });
+
+    it("single-flights concurrent restartChild calls", async () => {
+      const worker = await createMultiWorker(baseInput);
+      const oldChild = lastMockChild!;
+
+      await Promise.all([worker.restartChild(), worker.restartChild()]);
+
+      // One roll: old child SIGTERMed once, exactly one replacement spawned.
+      expect(
+        oldChild.kill.mock.calls.filter(([sig]) => sig === "SIGTERM").length,
+      ).toBe(1);
+      expect(mockChildren.length).toBe(2);
+
+      await worker.shutdown();
+    });
+
+    it("rejects while shutting down", async () => {
+      const worker = await createMultiWorker(baseInput);
+      await worker.shutdown();
+
+      await expect(worker.restartChild()).rejects.toThrow(/shutting down/);
+    });
+
+    it("escalates to SIGKILL only after the hard-kill deadline, never before grace expires", async () => {
+      vi.useFakeTimers();
+      const worker = await createMultiWorker(baseInput);
+      const oldChild = lastMockChild!;
+
+      // Stuck child: SIGTERM does not produce an exit; SIGKILL does.
+      (oldChild.kill as ReturnType<typeof vi.fn>).mockImplementation(
+        (signal?: string) => {
+          oldChild.killed = true;
+          if (signal === "SIGKILL") {
+            oldChild.exitCode = 137;
+            queueMicrotask(() => oldChild.emit("exit", 137, "SIGKILL"));
+          }
+        },
+      );
+
+      const rollPromise = worker.restartChild();
+
+      // SIGTERM is sent immediately at the start of the roll.
+      await vi.advanceTimersByTimeAsync(0);
+      expect(oldChild.kill).toHaveBeenCalledWith("SIGTERM");
+      expect(
+        oldChild.kill.mock.calls.filter(([sig]) => sig === "SIGKILL").length,
+      ).toBe(0);
+
+      // Just before the deadline: still no SIGKILL, no replacement.
+      await vi.advanceTimersByTimeAsync(RESTART_HARD_KILL_DEADLINE_MS - 100);
+      expect(
+        oldChild.kill.mock.calls.filter(([sig]) => sig === "SIGKILL").length,
+      ).toBe(0);
+      expect(mockChildren.length).toBe(1);
+
+      // Past the deadline: SIGKILL fires, then the replacement spawns.
+      await vi.advanceTimersByTimeAsync(200);
+      expect(oldChild.kill).toHaveBeenCalledWith("SIGKILL");
+
+      // SIGTERM strictly precedes SIGKILL.
+      const termOrder =
+        oldChild.kill.mock.invocationCallOrder[
+          oldChild.kill.mock.calls.findIndex(([sig]) => sig === "SIGTERM")
+        ];
+      const killOrder =
+        oldChild.kill.mock.invocationCallOrder[
+          oldChild.kill.mock.calls.findIndex(([sig]) => sig === "SIGKILL")
+        ];
+      expect(termOrder).toBeLessThan(killOrder);
+
+      await rollPromise;
+      expect(mockChildren.length).toBe(2);
+      expect(worker.getDiagnostics().restartCount).toBe(0);
+
+      // Return to real timers before shutdown — the replacement child's
+      // mock SIGTERM exit is scheduled via setImmediate.
+      vi.useRealTimers();
+      await worker.shutdown();
+    });
+
+    it("keeps the worker shut-downable after a completed roll", async () => {
+      const worker = await createMultiWorker(baseInput);
+      await worker.restartChild();
+
+      const replacement = mockChildren[1];
+      const shutdownPromise = worker.shutdown();
+      setTimeout(() => replacement.emit("exit", 0, null), 10);
+      await shutdownPromise;
+
+      expect(replacement.kill).toHaveBeenCalledWith("SIGTERM");
+      expect(worker.isAlive()).toBe(false);
     });
   });
 });

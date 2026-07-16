@@ -90,6 +90,17 @@ Change-scoped optimized handoff packets add `SCOPE KEY` instead of `TASK`; examp
 
 Review/harden `explore` scanners stay scanner lanes: they may receive `WORKING DIRECTORY`, `CHANGE`, and `ATTEMPT`, but return dimension-specific analysis JSON to the orchestrator instead of persisted reports. After synthesis, the orchestrator may submit one `adv-scanner-bundle` report with `SCOPE KEY: scanner-bundle:{review|harden}`.
 
+## Sub-Agent Plugin-Tool Runtime Limitation
+
+opencode `task`-spawned sub-agents receive **MCP-server tools** (context7, exa, lgrep, searchcode, time, episode) but **not host ADV plugin tools** (`adv_*`). Even when an agent manifest declares `adv_run_test: true` / `adv_subagent_report_submit: true`, those plugin-provided tools are not wired into the spawned session's runtime — the agent frontmatter can only gate tools that already exist in the session, not summon a host plugin tool.
+
+Consequences and resolution levers:
+
+- A spawned `adv-engineer` / `adv-reviewer` cannot record its own `adv_run_test` evidence or call `adv_subagent_report_submit`; it returns its typed report as final message text and the **orchestrator relays** it via `adv_subagent_report_submit`.
+- Durable `adv_run_test` evidence is the authority, not the report text. The evidence is persisted per task via `testRunRecordedSignal` → `state.testRuns[taskId][]` (mirrored as `change.test_runs`). The verification-evidence matcher in `tools/subagent-report.ts` consults this durable ledger (latest retained record per exact command), so evidence recorded by **any** session — the sub-agent when tools exist, or the orchestrator when relaying — satisfies the acceptance/release verification gate. When relaying a sub-agent report, the orchestrator SHOULD record `adv_run_test` for each cited command so the durable ledger backs the report.
+- Escape hatch: `adv_verification_evidence_disposition` (verbs `fixed | rejected_with_evidence | split | fast_follow`) records a typed disposition to clear a residual `verification_missing` / `verification_mismatch` block on a completed task when durable evidence cannot be re-associated.
+- Related but separate: host-loaded plugin **staleness** (a deployed `dist/index.js` predating source tools) requires `pnpm run build` + `deploy-local.sh --fix` + an OpenCode restart to reload; the disposition tool being absent from a session's surface is a symptom of this staleness, not a missing feature.
+
 ## Recurrence Guard
 
 If schema-required fields are missing from context packets or prompts, fix the contract instead of weakening the schema. Strict ingest returning `INVALID_REPORT` is correct; missing context is the bug. If tool callers send placeholder-filled payloads, fix preflight policy/tests instead of accepting placeholders in handlers. Missing scope/done/stop/verification anchors are warn-first rollout defects until the owning specs and asset tests promote them to stricter enforcement.

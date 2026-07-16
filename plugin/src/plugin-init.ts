@@ -33,6 +33,7 @@ import {
 } from "./temporal/health-monitor";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
+import { dirname } from "node:path";
 import { performance } from "node:perf_hooks";
 import { cleanup as cleanupTerminal } from "./events";
 import {
@@ -52,6 +53,10 @@ import {
   startWorkerLockHeartbeat,
   type WorkerLockHeartbeatController,
 } from "./temporal/worker-heartbeat";
+import {
+  initWorkerBundleRoll,
+  type WorkerBundleRollMonitor,
+} from "./temporal/worker-roll";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -162,6 +167,7 @@ export async function tryInitStore(
   const initStartedAt = performance.now();
   let worker: InProcessWorker | undefined;
   let workerHeartbeat: WorkerLockHeartbeatController | undefined;
+  let workerBundleRollMonitor: WorkerBundleRollMonitor | undefined;
 
   try {
     const projectIdStartedAt = performance.now();
@@ -230,6 +236,11 @@ export async function tryInitStore(
               spawnedWorker
                 ? isWorkerServiceable(spawnedWorker, expectedQueue)
                 : true,
+            // Fire-and-forget: the drift check single-flights internally;
+            // beats must never block on a roll.
+            onBeat: () => {
+              void workerBundleRollMonitor?.checkNow().catch(() => undefined);
+            },
           });
           registerWorkerLockHeartbeat(workerHeartbeat);
         }
@@ -266,15 +277,40 @@ export async function tryInitStore(
             );
           }
           const workerStartedAt = performance.now();
-          spawnedWorker = await createOutOfProcessWorker({
+          const workerScriptPath = resolveWorkerScriptPath();
+          const outOfProcessWorker = await createOutOfProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
             queues: [expectedQueue],
-            workerScript: resolveWorkerScriptPath(),
+            workerScript: workerScriptPath,
             projectId,
             onWorkerExhausted,
           });
+          spawnedWorker = outOfProcessWorker;
           worker = spawnedWorker;
+
+          // OOP-only bundle drift self-roll (owner-driven). The child was
+          // just spawned from the current bundle and passed its ready
+          // handshake — hand the current generation to the heartbeat (the
+          // sole worker.lock writer) so it is stamped post-readiness on
+          // the next beat, then converge on every heartbeat beat.
+          // In-process workers share the host's bundle and never drift,
+          // so they skip this.
+          workerBundleRollMonitor = await initWorkerBundleRoll({
+            projectStateDir,
+            bundleDir: dirname(workerScriptPath),
+            restartChild: () => outOfProcessWorker.restartChild(),
+            setBundleGeneration: (generation) =>
+              workerHeartbeat?.setBundleGeneration(generation),
+            onRollError: (err) =>
+              debugLog(`worker bundle roll failed: ${err.message}`),
+          }).catch((err) => {
+            debugLog(
+              `worker bundle roll monitor unavailable: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            return undefined;
+          });
+
           profilePluginInit("worker_started", {
             duration_ms: Number(
               (performance.now() - workerStartedAt).toFixed(3),

@@ -723,6 +723,34 @@ describe("delegation matrix coverage", () => {
     }
   });
 
+  // rq-delDefaults10: engineer-first frontend dispatch with mandatory designer follow-up.
+  test("engineer-first frontend dispatch is represented in the spec", () => {
+    const spec = loadSpec();
+    const requirement = spec.requirements?.find(
+      (entry) => entry.id === "rq-delDefaults10",
+    );
+    expect(requirement, "rq-delDefaults10 must exist").toBeDefined();
+
+    const scenarioIds =
+      requirement?.scenarios?.map((scenario) => scenario.id) ?? [];
+    expect(scenarioIds).toEqual([
+      "rq-delDefaults10.1",
+      "rq-delDefaults10.2",
+      "rq-delDefaults10.3",
+    ]);
+
+    const text = [
+      requirement?.body ?? "",
+      ...(requirement?.scenarios ?? []).flatMap(
+        (scenario) => scenario.then ?? [],
+      ),
+    ].join("\n");
+
+    for (const expected of ["frontend", "adv-engineer", "adv-designer"]) {
+      expect(text).toContain(expected);
+    }
+  });
+
   // rq-delDefaults06: provider-eval GPT prompt anchors a delegation regression test.
   test("provider-eval GPT prompt anchors a delegation under-spawn regression test", () => {
     const content = readFileSync(PROVIDER_EVAL_PROMPT_PATH, "utf8");

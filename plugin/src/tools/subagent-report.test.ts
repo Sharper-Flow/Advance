@@ -602,6 +602,149 @@ describe("subagentReportTools", () => {
     );
   });
 
+  test("durable test_runs evidence satisfies engineer verification without free-text", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_green_1",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("durable test_runs exit-code disagreement yields verification_mismatch", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_red_1",
+              command: "pnpm test",
+              exitCode: 1,
+              classification: "failed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("latest durable record wins: RED then GREEN clears the warning", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_red",
+              command: "pnpm test",
+              exitCode: 1,
+              classification: "failed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+            {
+              runId: "tr_green",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:02:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("report submit refreshes change state before matching durable evidence", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_fresh",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    expect(store.changes.refresh).toHaveBeenCalledWith("change-1");
+  });
+
   test("dryRun validates and previews without signal", async () => {
     const store = storeFor(change());
 

@@ -215,7 +215,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js; do
+	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
@@ -1259,6 +1259,10 @@ if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then
 	exit 1
 fi
 ensure_plugin_dist_fresh
+# Tracks the post-sync worker bounce so a stuck deployed worker stays loud
+# (nonzero final exit, named in the summary) without aborting the remaining
+# independent asset/config sync under `set -e`.
+worker_refresh_exit=0
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
 	refresh_deployed_temporal_workers "dry-run"
@@ -1267,7 +1271,7 @@ else
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
 	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
-	refresh_deployed_temporal_workers "after-sync"
+	refresh_deployed_temporal_workers "after-sync" || worker_refresh_exit=$?
 fi
 
 # ---------------------------------------------------------------------------
@@ -1596,12 +1600,21 @@ else
 	fi
 fi
 
+if [ "$worker_refresh_exit" -ne 0 ]; then
+	echo "    Worker refresh: ❌ stale deployed Temporal worker(s) survived the SIGTERM grace period — see [ADV:ACTION_REQUIRED] above (exit $worker_refresh_exit)"
+fi
+
 echo "    Restart OpenCode sessions to pick up changes."
 
-# Propagate fix_config exit code so JSONC drift fails the script run.
+# Propagate failures in deterministic precedence: CLI install, then --fix
+# config drift, then worker refresh. A stale deployed worker fails the run
+# but never masks an earlier CLI/config exit code.
 if [ "$fix_adv_cli_exit" -ne 0 ]; then
 	exit "$fix_adv_cli_exit"
 fi
 if [ "$MODE" = "fix" ] && [ "$fix_config_exit" -ne 0 ]; then
 	exit "$fix_config_exit"
+fi
+if [ "$worker_refresh_exit" -ne 0 ]; then
+	exit "$worker_refresh_exit"
 fi
