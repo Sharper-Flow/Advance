@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import { acquireWorkerLock, readLockContents } from "./worker-lock";
 import { writeWorkerBundleManifest } from "./worker-bundle-manifest";
+import { startWorkerLockHeartbeat } from "./worker-heartbeat";
 import {
   createWorkerBundleRollMonitor,
   initWorkerBundleRoll,
@@ -63,28 +64,30 @@ describe("worker bundle roll monitor", () => {
     return { stateDir, bundleDir, manifestGeneration, lockPath: lock.lockPath };
   };
 
-  test("drift between manifest and lock generation triggers exactly one restart and stamps the lock", async () => {
+  test("drift between manifest and lock generation triggers exactly one restart and hands the new generation to the heartbeat", async () => {
     const { stateDir, bundleDir, manifestGeneration, lockPath } = await setup({
       lockGeneration: "gen-stale",
     });
     const restartChild = vi.fn(async () => {});
+    const setBundleGeneration = vi.fn();
 
     const monitor = createWorkerBundleRollMonitor({
       projectStateDir: stateDir,
       bundleDir,
       restartChild,
+      setBundleGeneration,
     });
 
     const result = await monitor.checkNow();
 
-    expect(result).toEqual({
-      rolled: true,
-      generation: manifestGeneration,
-      lockUpdated: true,
-    });
+    expect(result).toEqual({ rolled: true, generation: manifestGeneration });
     expect(restartChild).toHaveBeenCalledTimes(1);
+    expect(setBundleGeneration).toHaveBeenCalledTimes(1);
+    expect(setBundleGeneration).toHaveBeenCalledWith(manifestGeneration);
+    // The monitor NEVER writes the lock itself — the heartbeat (sole
+    // lock writer) stamps the handed-off generation on its next beat.
     await expect(readLockContents(lockPath)).resolves.toMatchObject({
-      bundle_generation: manifestGeneration,
+      bundle_generation: "gen-stale",
     });
     expect(monitor.lastRolledGeneration()).toBe(manifestGeneration);
   });
@@ -138,41 +141,38 @@ describe("worker bundle roll monitor", () => {
     expect(latchedCount).toBe(1);
   });
 
-  test("lock generation is stamped only AFTER the replacement child is ready", async () => {
-    const { stateDir, bundleDir, manifestGeneration, lockPath } = await setup({
+  test("the generation is handed to the heartbeat only AFTER the replacement child is ready", async () => {
+    const { stateDir, bundleDir, manifestGeneration } = await setup({
       lockGeneration: "gen-stale",
     });
 
-    let generationDuringRoll: string | null = null;
+    const handed: string[] = [];
+    let handedDuringRoll: string[] = [];
     const restartChild = vi.fn(async () => {
-      // Readiness gate: while the roll is executing, the lock must still
-      // show the OLD generation — the stamp happens after resolve.
-      const contents = await readLockContents(lockPath);
-      generationDuringRoll =
-        contents?.schema_version === 2
-          ? (contents.bundle_generation ?? null)
-          : null;
+      // Readiness gate: while the roll is executing, no generation may
+      // have been handed off yet — the handoff happens after resolve.
+      handedDuringRoll = [...handed];
     });
 
     const monitor = createWorkerBundleRollMonitor({
       projectStateDir: stateDir,
       bundleDir,
       restartChild,
+      setBundleGeneration: (generation) => handed.push(generation),
     });
 
     await monitor.checkNow();
 
-    expect(generationDuringRoll).toBe("gen-stale");
-    await expect(readLockContents(lockPath)).resolves.toMatchObject({
-      bundle_generation: manifestGeneration,
-    });
+    expect(handedDuringRoll).toEqual([]);
+    expect(handed).toEqual([manifestGeneration]);
   });
 
-  test("a failed roll leaves the lock generation untouched and the next check retries", async () => {
+  test("a failed roll leaves the recorded generation untouched and the next check retries", async () => {
     const { stateDir, bundleDir, manifestGeneration, lockPath } = await setup({
       lockGeneration: "gen-stale",
     });
     const onRollError = vi.fn();
+    const setBundleGeneration = vi.fn();
     const restartChild = vi
       .fn<() => Promise<void>>()
       .mockRejectedValueOnce(new Error("child never became ready"))
@@ -182,6 +182,7 @@ describe("worker bundle roll monitor", () => {
       projectStateDir: stateDir,
       bundleDir,
       restartChild,
+      setBundleGeneration,
       onRollError,
     });
 
@@ -189,7 +190,9 @@ describe("worker bundle roll monitor", () => {
 
     expect(failed).toMatchObject({ rolled: false, reason: "roll_failed" });
     expect(onRollError).toHaveBeenCalledTimes(1);
-    // Lock NOT stamped — the child never became ready.
+    // No handoff — the child never became ready, so neither the
+    // in-memory generation nor the lock may claim the new generation.
+    expect(setBundleGeneration).not.toHaveBeenCalled();
     await expect(readLockContents(lockPath)).resolves.toMatchObject({
       bundle_generation: "gen-stale",
     });
@@ -198,11 +201,8 @@ describe("worker bundle roll monitor", () => {
     // Latch released: the next beat retries the roll.
     const retried = await monitor.checkNow();
     expect(restartChild).toHaveBeenCalledTimes(2);
-    expect(retried).toEqual({
-      rolled: true,
-      generation: manifestGeneration,
-      lockUpdated: true,
-    });
+    expect(retried).toEqual({ rolled: true, generation: manifestGeneration });
+    expect(setBundleGeneration).toHaveBeenCalledWith(manifestGeneration);
   });
 
   test("does not roll when the lock is held by a different pid (owner-driven only)", async () => {
@@ -257,21 +257,72 @@ describe("worker bundle roll monitor", () => {
     expect(restartChild).not.toHaveBeenCalled();
   });
 
-  test("initWorkerBundleRoll stamps the current generation post-readiness and converges the monitor", async () => {
+  test("single-writer flow: a lagging lock stamp cannot trigger a re-roll", async () => {
     const { stateDir, bundleDir, manifestGeneration, lockPath } = await setup({
       lockGeneration: "gen-stale",
     });
     const restartChild = vi.fn(async () => {});
+    const heartbeat = startWorkerLockHeartbeat(stateDir, { now: () => NOW });
+
+    const monitor = createWorkerBundleRollMonitor({
+      projectStateDir: stateDir,
+      bundleDir,
+      restartChild,
+      setBundleGeneration: (generation) =>
+        heartbeat.setBundleGeneration(generation),
+    });
+
+    const rolled = await monitor.checkNow();
+    expect(rolled).toEqual({ rolled: true, generation: manifestGeneration });
+
+    // The lock still shows the stale generation — the heartbeat has not
+    // beaten since the handoff. The in-memory generation is
+    // authoritative, so an immediate re-check is a no-op (AC5).
+    await expect(readLockContents(lockPath)).resolves.toMatchObject({
+      bundle_generation: "gen-stale",
+    });
+    await expect(monitor.checkNow()).resolves.toEqual({
+      rolled: false,
+      reason: "same_generation",
+    });
+    expect(restartChild).toHaveBeenCalledTimes(1);
+
+    // The heartbeat stamps the handed-off generation together with the
+    // next beat — one writer, no lost update.
+    await heartbeat.beatNow();
+    await expect(readLockContents(lockPath)).resolves.toMatchObject({
+      bundle_generation: manifestGeneration,
+      last_heartbeat: NOW.toISOString(),
+    });
+
+    await heartbeat.stop();
+  });
+
+  test("initWorkerBundleRoll hands the current generation to the heartbeat post-readiness and converges the monitor", async () => {
+    const { stateDir, bundleDir, manifestGeneration, lockPath } = await setup({
+      lockGeneration: "gen-stale",
+    });
+    const restartChild = vi.fn(async () => {});
+    const heartbeat = startWorkerLockHeartbeat(stateDir, { now: () => NOW });
 
     // The worker child was JUST spawned from the current bundle (ready
-    // handshake already resolved) — stamp the lock without rolling.
+    // handshake already resolved) — hand the generation to the heartbeat
+    // without rolling.
     const monitor = await initWorkerBundleRoll({
       projectStateDir: stateDir,
       bundleDir,
       restartChild,
+      setBundleGeneration: (generation) =>
+        heartbeat.setBundleGeneration(generation),
     });
 
     expect(restartChild).not.toHaveBeenCalled();
+    // The monitor never writes the lock directly...
+    await expect(readLockContents(lockPath)).resolves.toMatchObject({
+      bundle_generation: "gen-stale",
+    });
+    // ...the heartbeat stamps the handed-off generation on its next beat.
+    await heartbeat.beatNow();
     await expect(readLockContents(lockPath)).resolves.toMatchObject({
       bundle_generation: manifestGeneration,
     });
@@ -280,5 +331,7 @@ describe("worker bundle roll monitor", () => {
     const result = await monitor.checkNow();
     expect(result).toEqual({ rolled: false, reason: "same_generation" });
     expect(restartChild).not.toHaveBeenCalled();
+
+    await heartbeat.stop();
   });
 });

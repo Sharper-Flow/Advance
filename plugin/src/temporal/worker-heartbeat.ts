@@ -28,12 +28,30 @@ export interface WorkerLockHeartbeatOptions {
    * be cheap and non-blocking (e.g. `void monitor.checkNow()`).
    */
   onBeat?: () => void;
+  /**
+   * Testing seam: invoked after the lock is read and before the renewed
+   * contents are constructed and atomically rewritten. Lets interleaving
+   * tests park a beat inside its read-modify-write window to inject a
+   * concurrent generation handoff. Not used in production.
+   */
+  onBeatLockRead?: () => void | Promise<void>;
   setIntervalFn?: (handler: () => void, timeout: number) => IntervalHandle;
   clearIntervalFn?: (timer: IntervalHandle) => void;
 }
 
 export interface WorkerLockHeartbeatController {
   beatNow: () => Promise<void>;
+  /**
+   * Record the bundle generation the worker child is now running. The
+   * heartbeat is the SOLE writer of worker.lock after acquire: the
+   * handed-off generation is written together with `last_heartbeat` in
+   * the same atomic rewrite on the next beat (and every beat after).
+   * Because the roll path (`worker-roll.ts`) never writes the lock
+   * directly and this override is applied at write time — not read from
+   * the beat's lock snapshot — a roll can never lose its generation to
+   * an interleaved beat (AC5 no-lost-updates).
+   */
+  setBundleGeneration: (generation: string) => void;
   stop: () => Promise<void>;
   isStopped: () => boolean;
 }
@@ -60,6 +78,10 @@ export function startWorkerLockHeartbeat(
 
   let stopped = false;
   let firstUnserviceableAt: number | null = null;
+  // Generation handed off by the roll path. Applied at write time on
+  // every subsequent beat, so the value persisted never depends on how
+  // stale the beat's lock snapshot is.
+  let bundleGenerationOverride: string | null = null;
 
   const stopRenewing = () => {
     if (stopped) return;
@@ -83,9 +105,15 @@ export function startWorkerLockHeartbeat(
 
     const contents = await readLockContents(lockPath).catch(() => null);
     if (!contents || contents.schema_version !== 2) return;
+    if (options.onBeatLockRead) {
+      await options.onBeatLockRead();
+    }
     const next: WorkerLockContentsV2 = {
       ...contents,
       last_heartbeat: current.toISOString(),
+      ...(bundleGenerationOverride !== null
+        ? { bundle_generation: bundleGenerationOverride }
+        : {}),
     };
     await writeLockContentsAtomically(lockPath, next);
 
@@ -105,6 +133,9 @@ export function startWorkerLockHeartbeat(
 
   return {
     beatNow,
+    setBundleGeneration: (generation: string) => {
+      bundleGenerationOverride = generation;
+    },
     stop: async () => {
       stopRenewing();
       await releaseWorkerLock(projectStateDir, { lockFilename });

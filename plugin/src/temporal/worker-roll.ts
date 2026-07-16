@@ -10,11 +10,14 @@
  *   1. Each heartbeat beat (fire-and-forget — see worker-heartbeat.ts)
  *      calls `checkNow()`.
  *   2. The on-disk manifest generation (`bundle-manifest.json`) is
- *      compared against the `bundle_generation` stamped in worker.lock.
+ *      compared against the generation the current child is running,
+ *      tracked IN-MEMORY (seeded at spawn, updated on every roll) so a
+ *      lagging lock stamp can never trigger a redundant re-roll.
  *   3. On drift, the monitor drives a first-class `restartChild()` roll
  *      (NOT crash-respawn, NOT shutdown — see worker-multi.ts) and only
- *      AFTER the replacement child's ready handshake stamps the lock with
- *      the new generation via a readback-validated write.
+ *      AFTER the replacement child's ready handshake records the new
+ *      generation in-memory and hands it to the heartbeat controller,
+ *      which stamps worker.lock on its next beat.
  *
  * Hard rules (design constraints):
  *   - Owner-driven only: rolls happen exclusively when THIS process holds
@@ -22,17 +25,19 @@
  *     never reclaim an alive owner's lock.
  *   - Same generation is a no-op — including immediately after a roll.
  *   - Single-flight: overlapping beats share one in-flight roll. A failed
- *     roll leaves the lock generation untouched so the next beat retries.
+ *     roll leaves the recorded generation untouched so the next beat
+ *     retries.
+ *   - Single lock writer (AC5 no-lost-updates): the monitor NEVER writes
+ *     worker.lock directly. The heartbeat (`worker-heartbeat.ts`) is the
+ *     sole post-acquire lock writer; it persists the handed-off
+ *     generation together with `last_heartbeat` in one atomic rewrite,
+ *     so a concurrent beat can never clobber a completed roll's stamp.
  */
 
 import { join } from "path";
 
 import { readWorkerBundleGeneration } from "./worker-bundle-manifest";
-import {
-  readLockContents,
-  updateWorkerLockBundleGeneration,
-  WORKER_LOCK_FILENAME,
-} from "./worker-lock";
+import { readLockContents, WORKER_LOCK_FILENAME } from "./worker-lock";
 
 export interface WorkerBundleRollMonitorOptions {
   /** Project state directory holding worker.lock. */
@@ -44,6 +49,21 @@ export interface WorkerBundleRollMonitorOptions {
    * `() => outOfProcessWorker.restartChild()`.
    */
   restartChild: () => Promise<void>;
+  /**
+   * Sole-writer handoff: the worker.lock heartbeat controller's
+   * `setBundleGeneration`. Invoked with the generation the current child
+   * is running — at spawn (via `initWorkerBundleRoll`) and after every
+   * successful roll — so the heartbeat stamps it on its next beat. When
+   * omitted, the monitor still tracks the generation in-memory (drift
+   * detection is unaffected); the lock simply is never stamped.
+   */
+  setBundleGeneration?: (generation: string) => void;
+  /**
+   * Generation the current child is already running (seeded by
+   * `initWorkerBundleRoll` from the post-spawn manifest). When omitted,
+   * the first check falls back to the lock's `bundle_generation`.
+   */
+  initialGeneration?: string | null;
   lockFilename?: string;
   /** Owning pid for the lock-owner check. Defaults to process.pid. */
   pid?: number;
@@ -52,7 +72,7 @@ export interface WorkerBundleRollMonitorOptions {
 }
 
 export type WorkerRollCheckResult =
-  | { rolled: true; generation: string; lockUpdated: boolean }
+  | { rolled: true; generation: string }
   | {
       rolled: false;
       reason:
@@ -86,6 +106,10 @@ export function createWorkerBundleRollMonitor(
 
   let rollInFlight: Promise<WorkerRollCheckResult> | null = null;
   let lastRolled: string | null = null;
+  // Source of truth for the running child's bundle generation. Updated
+  // synchronously the moment a roll's readiness gate passes, so a lock
+  // stamp lagging up to one heartbeat interval cannot cause a re-roll.
+  let currentGeneration: string | null = options.initialGeneration ?? null;
 
   async function checkAndRoll(): Promise<WorkerRollCheckResult> {
     const manifestGeneration = await readWorkerBundleGeneration(
@@ -104,7 +128,11 @@ export function createWorkerBundleRollMonitor(
       // worker — never roll someone else's child.
       return { rolled: false, reason: "not_lock_owner" };
     }
-    if (lock.bundle_generation === manifestGeneration) {
+    // In-memory generation wins; the lock value is only a fallback for
+    // monitors created without spawn information.
+    const runningGeneration =
+      currentGeneration ?? lock.bundle_generation ?? null;
+    if (runningGeneration === manifestGeneration) {
       return { rolled: false, reason: "same_generation" };
     }
 
@@ -113,25 +141,16 @@ export function createWorkerBundleRollMonitor(
       // replacement. Resolves only after the new child sent ready.
       await options.restartChild();
 
-      // Readiness gate passed — stamp the lock with the generation the
-      // replacement child is actually running (readback-validated).
-      const stamp = await updateWorkerLockBundleGeneration(
-        options.projectStateDir,
-        {
-          bundleGeneration: manifestGeneration,
-          ...(options.lockFilename
-            ? { lockFilename: options.lockFilename }
-            : {}),
-        },
-      );
+      // Readiness gate passed — the replacement child is running
+      // `manifestGeneration` NOW. Record it in-memory immediately and
+      // hand it to the heartbeat (the sole worker.lock writer), which
+      // stamps it together with last_heartbeat on its next beat.
+      currentGeneration = manifestGeneration;
+      options.setBundleGeneration?.(manifestGeneration);
 
       lastRolled = manifestGeneration;
       options.onRolled?.(manifestGeneration);
-      return {
-        rolled: true,
-        generation: manifestGeneration,
-        lockUpdated: stamp.updated,
-      };
+      return { rolled: true, generation: manifestGeneration };
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       options.onRollError?.(error);
@@ -169,14 +188,15 @@ export function createWorkerBundleRollMonitor(
 /**
  * Post-spawn convergence: a freshly started worker child was created from
  * the CURRENT on-disk bundle and has already passed its ready handshake —
- * stamp the lock with the current manifest generation (no roll needed),
- * then return the drift monitor. This satisfies the "update the lock
+ * seed the monitor's in-memory generation and hand it to the heartbeat
+ * (the sole worker.lock writer) so the next beat stamps the lock, then
+ * return the drift monitor. This satisfies the "record the lock
  * generation only after child readiness" rule for initial spawn and keeps
  * the first post-start beat a same-generation no-op.
  *
- * Best-effort: a stamp failure (or a missing manifest) never prevents
- * monitor creation — the next beat simply sees drift and converges via a
- * roll.
+ * Best-effort: a missing manifest (or an unwired heartbeat handoff) never
+ * prevents monitor creation — the next beat simply sees drift and
+ * converges via a roll.
  */
 export async function initWorkerBundleRoll(
   options: WorkerBundleRollMonitorOptions,
@@ -185,10 +205,10 @@ export async function initWorkerBundleRoll(
     options.bundleDir,
   );
   if (manifestGeneration) {
-    await updateWorkerLockBundleGeneration(options.projectStateDir, {
-      bundleGeneration: manifestGeneration,
-      ...(options.lockFilename ? { lockFilename: options.lockFilename } : {}),
-    }).catch(() => undefined);
+    options.setBundleGeneration?.(manifestGeneration);
   }
-  return createWorkerBundleRollMonitor(options);
+  return createWorkerBundleRollMonitor({
+    ...options,
+    initialGeneration: manifestGeneration ?? null,
+  });
 }

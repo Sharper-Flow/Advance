@@ -157,6 +157,89 @@ describe("worker lock heartbeat", () => {
     await heartbeat.stop();
   });
 
+  test("writes a handed-off bundle_generation together with the heartbeat on every beat", async () => {
+    const dir = await tempDir();
+    let now = new Date("2026-05-12T00:00:00.000Z");
+    const lock = await acquireWorkerLock(dir, {
+      pid: 7000,
+      schemaVersion: 2,
+      expectedQueue: "adv-test-queue",
+      bundleGeneration: "gen-old",
+      now: () => now,
+    });
+
+    const heartbeat = startWorkerLockHeartbeat(dir, { now: () => now });
+    // Roll handoff: the generation is applied at write time, not read
+    // from the beat's lock snapshot.
+    heartbeat.setBundleGeneration("gen-new");
+
+    now = new Date("2026-05-12T00:00:10.000Z");
+    await heartbeat.beatNow();
+
+    await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
+      pid: 7000,
+      expected_queue: "adv-test-queue",
+      bundle_generation: "gen-new",
+      last_heartbeat: "2026-05-12T00:00:10.000Z",
+    });
+
+    // The override persists: later beats keep stamping it alongside the
+    // renewed heartbeat.
+    now = new Date("2026-05-12T00:00:20.000Z");
+    await heartbeat.beatNow();
+
+    await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
+      bundle_generation: "gen-new",
+      last_heartbeat: "2026-05-12T00:00:20.000Z",
+    });
+
+    await heartbeat.stop();
+  });
+
+  test("a generation handed off mid-beat is not lost to the beat's stale snapshot", async () => {
+    const dir = await tempDir();
+    let now = new Date("2026-05-12T00:00:00.000Z");
+    const lock = await acquireWorkerLock(dir, {
+      pid: 6000,
+      schemaVersion: 2,
+      bundleGeneration: "gen-old",
+      now: () => now,
+    });
+
+    // Park the beat inside its read-modify-write window: the lock read
+    // has resolved (snapshot holds gen-old), the rewrite has not run.
+    let releaseRead!: () => void;
+    let readReached!: () => void;
+    const readParked = new Promise<void>((resolve) => (readReached = resolve));
+    const readGate = new Promise<void>((resolve) => (releaseRead = resolve));
+    const heartbeat = startWorkerLockHeartbeat(dir, {
+      now: () => now,
+      onBeatLockRead: async () => {
+        readReached();
+        await readGate;
+      },
+    });
+
+    now = new Date("2026-05-12T00:00:10.000Z");
+    const beat = heartbeat.beatNow();
+    await readParked;
+
+    // The roll hands the new generation to the heartbeat (the sole lock
+    // writer) while the beat is parked on a stale snapshot.
+    heartbeat.setBundleGeneration("gen-new");
+    releaseRead();
+    await beat;
+
+    // AC5: the handed-off generation is applied at write time, so the
+    // interleaved beat cannot lose it.
+    await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
+      bundle_generation: "gen-new",
+      last_heartbeat: "2026-05-12T00:00:10.000Z",
+    });
+
+    await heartbeat.stop();
+  });
+
   test("stops renewing after serviceability grace expires", async () => {
     const dir = await tempDir();
     let now = new Date("2026-05-12T00:00:00.000Z");

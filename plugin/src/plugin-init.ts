@@ -291,13 +291,17 @@ export async function tryInitStore(
 
           // OOP-only bundle drift self-roll (owner-driven). The child was
           // just spawned from the current bundle and passed its ready
-          // handshake — stamp the lock generation post-readiness, then
-          // converge on every heartbeat beat. In-process workers share
-          // the host's bundle and never drift, so they skip this.
+          // handshake — hand the current generation to the heartbeat (the
+          // sole worker.lock writer) so it is stamped post-readiness on
+          // the next beat, then converge on every heartbeat beat.
+          // In-process workers share the host's bundle and never drift,
+          // so they skip this.
           workerBundleRollMonitor = await initWorkerBundleRoll({
             projectStateDir,
             bundleDir: dirname(workerScriptPath),
             restartChild: () => outOfProcessWorker.restartChild(),
+            setBundleGeneration: (generation) =>
+              workerHeartbeat?.setBundleGeneration(generation),
             onRollError: (err) =>
               debugLog(`worker bundle roll failed: ${err.message}`),
           }).catch((err) => {

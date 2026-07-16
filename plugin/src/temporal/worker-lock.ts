@@ -1,4 +1,4 @@
-import { open, readFile, rename, rm, writeFile } from "fs/promises";
+import { open, readFile, rm } from "fs/promises";
 import { randomUUID } from "crypto";
 import { join } from "path";
 import { isProcessAlive } from "../utils/process-liveness";
@@ -23,9 +23,12 @@ export interface WorkerLockContentsV2 {
   /**
    * Generation of the worker bundle (`dist/temporal/bundle-manifest.json`)
    * the owning worker child was started from. Optional: locks written
-   * before bundle manifests existed simply omit it. The bundle roll
-   * monitor (`worker-roll.ts`) compares this against the on-disk manifest
-   * generation to detect stale workers; heartbeats preserve it verbatim.
+   * before bundle manifests existed simply omit it. Written on acquire,
+   * then renewed ONLY by the worker.lock heartbeat — the sole
+   * post-acquire lock writer — after the roll monitor hands off a new
+   * generation (`worker-heartbeat.ts` `setBundleGeneration`). There is
+   * deliberately no direct "stamp the generation" writer here: a second
+   * read-modify-write path races the heartbeat and loses updates (AC5).
    */
   bundle_generation?: string;
 }
@@ -147,75 +150,6 @@ export async function releaseWorkerLock(
     options.lockFilename ?? WORKER_LOCK_FILENAME,
   );
   await rm(lockPath, { force: true }).catch(() => undefined);
-}
-
-export interface UpdateWorkerLockBundleGenerationOptions {
-  bundleGeneration: string;
-  lockFilename?: string;
-}
-
-export type UpdateWorkerLockBundleGenerationResult =
-  | { updated: true; generation: string }
-  | {
-      updated: false;
-      reason: "lock_missing" | "lock_not_v2" | "readback_mismatch";
-      generation: string | null;
-    };
-
-/**
- * Stamp the lock with the bundle generation the owning worker child is now
- * running. Called by the lock owner ONLY after the child has confirmed
- * readiness (see `worker-roll.ts`) — never before, so the generation claim
- * always reflects a worker that is actually up.
- *
- * The write is atomic (temp file + rename in the same directory) and
- * validated by readback: after the rename the lock is re-read and the
- * persisted generation must match the requested one. A readback mismatch
- * (corrupt write, lost race with a lock rewrite) is reported rather than
- * silently accepted.
- */
-export async function updateWorkerLockBundleGeneration(
-  projectStateDir: string,
-  options: UpdateWorkerLockBundleGenerationOptions,
-): Promise<UpdateWorkerLockBundleGenerationResult> {
-  const lockPath = join(
-    projectStateDir,
-    options.lockFilename ?? WORKER_LOCK_FILENAME,
-  );
-
-  const current = await readLockContents(lockPath).catch(() => null);
-  if (!current) {
-    return { updated: false, reason: "lock_missing", generation: null };
-  }
-  if (current.schema_version !== 2) {
-    return { updated: false, reason: "lock_not_v2", generation: null };
-  }
-
-  const next: WorkerLockContentsV2 = {
-    ...current,
-    bundle_generation: options.bundleGeneration,
-  };
-  const tmpPath = `${lockPath}.${process.pid}.${randomUUID()}.tmp`;
-  await writeFile(tmpPath, JSON.stringify(next, null, 2));
-  await rename(tmpPath, lockPath);
-
-  const readback = await readLockContents(lockPath).catch(() => null);
-  if (
-    !readback ||
-    readback.schema_version !== 2 ||
-    readback.bundle_generation !== options.bundleGeneration
-  ) {
-    return {
-      updated: false,
-      reason: "readback_mismatch",
-      generation:
-        readback?.schema_version === 2
-          ? (readback.bundle_generation ?? null)
-          : null,
-    };
-  }
-
-  return { updated: true, generation: options.bundleGeneration };
 }
 
 export async function readLockContents(

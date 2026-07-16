@@ -1,4 +1,4 @@
-import { readdir, writeFile } from "fs/promises";
+import { writeFile } from "fs/promises";
 import { join } from "path";
 import { afterEach, describe, expect, test } from "vitest";
 
@@ -8,7 +8,6 @@ import {
   acquireWorkerLock,
   readLockContents,
   tryReclaimStaleLock,
-  updateWorkerLockBundleGeneration,
 } from "./worker-lock";
 
 const NOW = new Date("2026-05-12T00:00:00.000Z");
@@ -194,93 +193,6 @@ describe("worker lock", () => {
       });
 
       await expect(readLockContents(lockPath)).resolves.toBeNull();
-    });
-
-    test("updateWorkerLockBundleGeneration updates the generation and validates via readback", async () => {
-      const dir = await tempDir();
-      const lock = await acquireWorkerLock(dir, {
-        pid: 4321,
-        schemaVersion: 2,
-        bundleGeneration: "gen-old",
-        now: () => NOW,
-      });
-
-      const result = await updateWorkerLockBundleGeneration(dir, {
-        bundleGeneration: "gen-new",
-      });
-
-      expect(result).toEqual({ updated: true, generation: "gen-new" });
-      await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
-        pid: 4321,
-        bundle_generation: "gen-new",
-      });
-    });
-
-    test("updateWorkerLockBundleGeneration preserves other lock fields", async () => {
-      const dir = await tempDir();
-      const lock = await acquireWorkerLock(dir, {
-        pid: 4321,
-        schemaVersion: 2,
-        expectedQueue: "adv-test-queue",
-        now: () => NOW,
-      });
-
-      await updateWorkerLockBundleGeneration(dir, {
-        bundleGeneration: "gen-new",
-      });
-
-      await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
-        pid: 4321,
-        worker_id: lock.workerId,
-        acquired_at: NOW.toISOString(),
-        last_heartbeat: NOW.toISOString(),
-        expected_queue: "adv-test-queue",
-      });
-    });
-
-    test("updateWorkerLockBundleGeneration refuses when the lock is missing", async () => {
-      const dir = await tempDir();
-
-      const result = await updateWorkerLockBundleGeneration(dir, {
-        bundleGeneration: "gen-new",
-      });
-
-      expect(result).toEqual({
-        updated: false,
-        reason: "lock_missing",
-        generation: null,
-      });
-    });
-
-    test("updateWorkerLockBundleGeneration refuses a v1 lock", async () => {
-      const dir = await tempDir();
-      await writeLock(dir, {
-        pid: 1111,
-        worker_id: "v1-worker",
-        acquired_at: NOW.toISOString(),
-      });
-
-      const result = await updateWorkerLockBundleGeneration(dir, {
-        bundleGeneration: "gen-new",
-      });
-
-      expect(result).toEqual({
-        updated: false,
-        reason: "lock_not_v2",
-        generation: null,
-      });
-    });
-
-    test("updateWorkerLockBundleGeneration leaves no temp files behind", async () => {
-      const dir = await tempDir();
-      await acquireWorkerLock(dir, { pid: 4321, schemaVersion: 2 });
-
-      await updateWorkerLockBundleGeneration(dir, {
-        bundleGeneration: "gen-new",
-      });
-
-      const entries = await readdir(dir);
-      expect(entries.filter((name) => name.endsWith(".tmp"))).toEqual([]);
     });
   });
 });
