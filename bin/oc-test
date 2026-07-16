@@ -4,6 +4,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugin_dir="$repo_root/plugin"
+reaper_bin="$repo_root/bin/lib/oc-test-reaper.bash"
 
 usage() {
   cat >&2 <<'USAGE'
@@ -13,20 +14,48 @@ Tiers:
   targeted  Run Vitest with optional file/test filters.
   smoke     Run repo checks plus the ADV test-tool/subagent smoke slice.
   full      Run the plugin's full Vitest suite.
+
+Environment:
+  OC_TEST_REAPER_DISABLE=1   Skip the stale temporal-test-server sweep.
+  OC_TEST_REAPER_*           See bin/lib/oc-test-reaper.bash for reaper knobs.
 USAGE
   exit 64
+}
+
+# Conservative stale-only sweep for orphaned temporal-test-server processes
+# (reapLeakedTestServers, AC3). The reaper only acts on processes provably
+# older than OC_TEST_REAPER_MIN_AGE_SECONDS (default 2h), so pre- and
+# post-run sweeps are both safe for concurrent peer runs. A reaper failure
+# must never fail the test run.
+sweep_test_servers() {
+  local phase="$1"
+  [[ "${OC_TEST_REAPER_DISABLE:-0}" == "1" ]] && return 0
+  [[ -r "$reaper_bin" ]] || return 0
+  OC_TEST_REAPER_PHASE="$phase" bash "$reaper_bin" || true
 }
 
 run_with_optional_gate() {
   local tier="$1"
   shift
 
+  sweep_test_servers pre
+
+  local rc=0
   if command -v oc-test-gate >/dev/null 2>&1; then
-    exec oc-test-gate "$tier" -- "$@"
+    set +e
+    oc-test-gate "$tier" -- "$@"
+    rc=$?
+    set -e
+  else
+    printf 'bin/oc-test: oc-test-gate not found; running %s tier directly.\n' "$tier" >&2
+    set +e
+    "$@"
+    rc=$?
+    set -e
   fi
 
-  printf 'bin/oc-test: oc-test-gate not found; running %s tier directly.\n' "$tier" >&2
-  exec "$@"
+  sweep_test_servers post
+  exit "$rc"
 }
 
 tier="${1:-}"
