@@ -178,6 +178,19 @@ describe("adv-engineer assets", () => {
     }
   });
 
+  test("Working Directory Lock section pins morph_edit workdir+taskId pair", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const wdSection =
+      content.split("## Working Directory Lock")[1]?.split("## ")[0] ?? "";
+    // Regression guard: deployment must never regress to workdir-only Morph
+    // calls — the directive must state BOTH tokens, tied to morph_edit.
+    expect(wdSection).toContain("`workdir: WORKING DIRECTORY`");
+    expect(wdSection).toContain("`taskId: TASK`");
+    expect(wdSection).toContain(
+      "For `morph_edit`, pass both `workdir: WORKING DIRECTORY` and `taskId: TASK`",
+    );
+  });
+
   test("Scope Lock section mentions WORKING DIRECTORY", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const scopeSection =
