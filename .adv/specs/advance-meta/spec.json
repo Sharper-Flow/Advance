@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.24.1",
-  "updated_at": "2026-07-15",
+  "version": "1.25.0",
+  "updated_at": "2026-07-16T00:53:26.664Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -2938,6 +2938,49 @@
           "then": [
             "Read actions are agent-reachable",
             "Mutation or refresh surfaces remain operator-owned and are not invoked as routine autonomous agent actions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-deployAssetContinuation01",
+      "title": "Deploy Asset Synchronization Survives Worker Refresh Failure",
+      "body": "After a mutating deploy synchronizes the runtime plugin, a failed exact-path Temporal worker refresh must remain loud and produce a nonzero final deploy status, but it must not prevent synchronization of independent supported assets such as commands, bundled agents, shared-agent overlays, skills, the managed CLI payload, and configuration validation. The final output must preserve the restart remediation and must not claim runtime worker code is active until refresh succeeds.",
+      "priority": "must",
+      "tags": [
+        "deploy-local",
+        "worker-refresh",
+        "agent-sync",
+        "morph-worktree"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-deployAssetContinuation01.1",
+          "title": "Worker refresh failure continues independent asset synchronization",
+          "given": [
+            "A mutating deploy has synchronized the runtime plugin",
+            "An exact-path deployed Temporal worker remains alive after bounded SIGTERM handling",
+            "ADV commands or bundled agent profiles have source updates"
+          ],
+          "when": "The deploy processes supported assets",
+          "then": [
+            "The commands and bundled agent profiles are synchronized",
+            "The deploy emits the existing worker restart remediation",
+            "The final deploy status is nonzero",
+            "The output does not claim runtime worker code is active"
+          ]
+        },
+        {
+          "id": "rq-deployAssetContinuation01.2",
+          "title": "Successful worker refresh preserves normal deploy success",
+          "given": [
+            "A mutating deploy has synchronized the runtime plugin",
+            "No exact-path deployed Temporal worker remains after refresh"
+          ],
+          "when": "The deploy processes supported assets",
+          "then": [
+            "Supported assets are synchronized",
+            "The deploy preserves its normal success behavior"
           ]
         }
       ]
