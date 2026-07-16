@@ -78,7 +78,8 @@ export function buildToolSchemaManifest(
         status: "conversion_error",
         schema_bytes: null,
         approx_tokens_4char_rule: null,
-        conversion_error: error instanceof Error ? error.message : String(error),
+        conversion_error:
+          error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -99,7 +100,10 @@ export function getToolSchemaManifest(): ToolSchemaManifest {
   return {
     ...manifest,
     tools: Object.fromEntries(
-      Object.entries(manifest.tools).map(([name, entry]) => [name, { ...entry }]),
+      Object.entries(manifest.tools).map(([name, entry]) => [
+        name,
+        { ...entry },
+      ]),
     ),
   };
 }

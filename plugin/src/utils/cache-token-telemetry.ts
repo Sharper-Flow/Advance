@@ -67,7 +67,10 @@ export function recordStepFinishTokens(part: unknown): boolean {
     telemetry.total_cache_write_tokens += sample.cache_write_tokens;
     telemetry.samples.push(sample);
     if (telemetry.samples.length > CACHE_TOKEN_SAMPLE_LIMIT) {
-      telemetry.samples.splice(0, telemetry.samples.length - CACHE_TOKEN_SAMPLE_LIMIT);
+      telemetry.samples.splice(
+        0,
+        telemetry.samples.length - CACHE_TOKEN_SAMPLE_LIMIT,
+      );
     }
     return true;
   } catch {

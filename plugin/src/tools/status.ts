@@ -25,6 +25,8 @@ import { loadProjectConfigWithDiagnostics } from "../storage/json";
 import { readProjectMetadata } from "../storage/project-metadata";
 import { getMetrics, withRecordedPhase } from "../utils/metrics";
 import { scanOpenCodeSessionDebt } from "../utils/opencode-session-debt";
+import { getToolSchemaManifest } from "../utils/tool-schema-telemetry";
+import { getCacheTokenTelemetry } from "../utils/cache-token-telemetry";
 import { z } from "zod";
 import { withOptionalTargetPathStore } from "./target-project";
 import { resolveMainCheckout } from "./archive-helpers/git-finalize";
@@ -859,6 +861,16 @@ export const statusTools = {
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).
             metrics: getMetrics(),
+            // T4: tool-context telemetry (init-time schema manifest + numeric
+            // cache-token samples). Live per-request MCP tool counts require
+            // upstream OpenCode support and are intentionally not available.
+            tool_context_telemetry: {
+              manifest: getToolSchemaManifest(),
+              cache_tokens: getCacheTokenTelemetry(),
+              limitations: [
+                "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
+              ],
+            },
             plugin_runtime: pluginRuntimeInfo,
             diagnostics: {
               temporalWorker: temporalHealth?.worker_alive

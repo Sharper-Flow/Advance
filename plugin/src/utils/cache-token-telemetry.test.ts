@@ -25,7 +25,9 @@ describe("recordStepFinishTokens", () => {
       total_input_tokens: 120,
       total_cache_read_tokens: 80,
       total_cache_write_tokens: 12,
-      samples: [{ input_tokens: 120, cache_read_tokens: 80, cache_write_tokens: 12 }],
+      samples: [
+        { input_tokens: 120, cache_read_tokens: 80, cache_write_tokens: 12 },
+      ],
     });
   });
 

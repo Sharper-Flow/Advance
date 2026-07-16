@@ -1419,6 +1419,16 @@ Vague in-flight work.
         expect(parsed.opencode_session_debt).toBeUndefined();
         expect(parsed.diagnostics).toBeDefined();
 
+        // T4: tool-context telemetry is surfaced in health view.
+        expect(parsed.tool_context_telemetry).toBeDefined();
+        expect(parsed.tool_context_telemetry.manifest).toBeDefined();
+        expect(parsed.tool_context_telemetry.cache_tokens).toBeDefined();
+        expect(parsed.tool_context_telemetry.limitations).toEqual(
+          expect.arrayContaining([
+            "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
+          ]),
+        );
+
         // Summary-only fields are absent from health view.
         expect(parsed.temporal_health_ok).toBeUndefined();
         expect(parsed.worktree_count).toBeUndefined();

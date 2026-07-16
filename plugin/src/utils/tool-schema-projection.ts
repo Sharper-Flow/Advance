@@ -48,7 +48,8 @@ export function parseAgentToolPermissions(
 ): Record<string, boolean> | undefined {
   const starts = [0];
   for (let index = 0; index < output.length; index++) {
-    if (output[index] === "\n" && output[index + 1] === "{") starts.push(index + 1);
+    if (output[index] === "\n" && output[index + 1] === "{")
+      starts.push(index + 1);
   }
   for (const start of starts) {
     try {
