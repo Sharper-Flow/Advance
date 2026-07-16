@@ -58,6 +58,12 @@ export const LightweightProfileEvidenceSnapshotSchema = z.object({
     renames: z.number().int().nonnegative(),
     deletions: z.number().int().nonnegative(),
     untrackedCount: z.number().int().nonnegative(),
+    rangeStatus: z.enum([
+      "complete",
+      "incomplete_rev_parse",
+      "incomplete_diff",
+      "incomplete_status",
+    ]),
   }),
   specDelta: z.object({
     hasDelta: z.boolean(),
@@ -205,6 +211,13 @@ function evaluateChangedPaths(
       criterion: "changed_file_count",
       status: "unknown",
       reason: "Changed-path evidence is malformed or unavailable",
+    };
+  }
+  if (changedPaths.rangeStatus !== "complete") {
+    return {
+      criterion: "changed_file_count",
+      status: "failed",
+      reason: `Changed-path evidence is incomplete (${changedPaths.rangeStatus}); complete range cannot be trusted`,
     };
   }
   if (changedPaths.untrackedCount > 0) {

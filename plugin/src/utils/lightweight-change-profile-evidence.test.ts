@@ -564,4 +564,104 @@ describe("collectLightweightProfileEvidence", () => {
 
     expect(evaluation.result).toBe("qualified");
   });
+
+  it("fails closed with incomplete evidence when baseline revision is invalid", async () => {
+    await writeFile(join(workdir, "a.ts"), "export const a = 1;");
+    git(workdir, "add .");
+    git(workdir, "commit -q -m 'initial'");
+
+    await writeChangeJson(changesDir, "lightweight-change", {
+      id: "lightweight-change",
+      title: "Lightweight change",
+      status: "draft",
+      created_at: TIMESTAMP,
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Implement",
+          type: "code",
+          status: "pending",
+          created_at: TIMESTAMP,
+        },
+      ],
+      deltas: {},
+    });
+
+    const { snapshot, diagnostics } = await collectLightweightProfileEvidence(
+      makeInput(workdir, changesDir, {
+        baselineRevision: "nonexistent-baseline",
+      }),
+    );
+
+    expect(snapshot.observedRevision).toMatch(/^[0-9a-f]{40}$/);
+    expect(snapshot.changedPaths.rangeStatus).toBe("incomplete_diff");
+    expect(
+      diagnostics.some((d) => d.includes("Failed to collect committed diff")),
+    ).toBe(true);
+
+    const evaluation = evaluateLightweightProfile({
+      snapshot,
+      requestId: "req-1",
+      phase: "initial",
+      evaluatedAt: TIMESTAMP,
+    });
+
+    expect(evaluation.result).toBe("ineligible");
+    const fileCriterion = evaluation.criteria.find(
+      (c) => c.criterion === "changed_file_count",
+    );
+    expect(fileCriterion?.status).toBe("failed");
+    expect(fileCriterion?.reason).toContain("incomplete_diff");
+  });
+
+  it("fails closed with incomplete evidence when revision/status collection fails", async () => {
+    const nonGitWorkdir = join(tempDir, "not-a-repo");
+    await mkdir(nonGitWorkdir, { recursive: true });
+
+    await writeChangeJson(changesDir, "lightweight-change", {
+      id: "lightweight-change",
+      title: "Lightweight change",
+      status: "draft",
+      created_at: TIMESTAMP,
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Implement",
+          type: "code",
+          status: "pending",
+          created_at: TIMESTAMP,
+        },
+      ],
+      deltas: {},
+    });
+
+    const { snapshot, diagnostics } = await collectLightweightProfileEvidence(
+      makeInput(nonGitWorkdir, changesDir),
+    );
+
+    expect(snapshot.observedRevision).toBe("unknown");
+    expect(snapshot.changedPaths.rangeStatus).toBe("incomplete_rev_parse");
+    expect(
+      diagnostics.some((d) => d.includes("Failed to read observed revision")),
+    ).toBe(true);
+    expect(
+      diagnostics.some((d) =>
+        d.includes("Failed to collect working-tree status"),
+      ),
+    ).toBe(true);
+
+    const evaluation = evaluateLightweightProfile({
+      snapshot,
+      requestId: "req-1",
+      phase: "initial",
+      evaluatedAt: TIMESTAMP,
+    });
+
+    expect(evaluation.result).toBe("ineligible");
+    const fileCriterion = evaluation.criteria.find(
+      (c) => c.criterion === "changed_file_count",
+    );
+    expect(fileCriterion?.status).toBe("failed");
+    expect(fileCriterion?.reason).toContain("incomplete_rev_parse");
+  });
 });

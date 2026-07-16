@@ -28,6 +28,7 @@ function makeValidSnapshot(): LightweightProfileEvidenceSnapshot {
       renames: 0,
       deletions: 0,
       untrackedCount: 0,
+      rangeStatus: "complete",
     },
     specDelta: { hasDelta: false, capabilities: [] },
     dependencyChange: { hasDependencyChange: false, manifests: [] },
@@ -79,6 +80,7 @@ describe("evaluateLightweightProfile", () => {
       renames: 0,
       deletions: 0,
       untrackedCount: 0,
+      rangeStatus: "complete",
     };
 
     const result = evaluateLightweightProfile({
@@ -103,6 +105,7 @@ describe("evaluateLightweightProfile", () => {
       renames: 1,
       deletions: 1,
       untrackedCount: 0,
+      rangeStatus: "complete",
     };
 
     const result = evaluateLightweightProfile({
@@ -137,6 +140,25 @@ describe("evaluateLightweightProfile", () => {
     );
     expect(fileCriterion?.status).toBe("failed");
     expect(fileCriterion?.reason).toContain("Untracked");
+  });
+
+  it("is ineligible when changed-path evidence range is incomplete", () => {
+    const snapshot = makeValidSnapshot();
+    snapshot.changedPaths.rangeStatus = "incomplete_diff";
+
+    const result = evaluateLightweightProfile({
+      snapshot,
+      requestId: "req-1",
+      phase: "initial",
+      evaluatedAt: timestamp,
+    });
+
+    expect(result.result).toBe("ineligible");
+    const fileCriterion = result.criteria.find(
+      (c) => c.criterion === "changed_file_count",
+    );
+    expect(fileCriterion?.status).toBe("failed");
+    expect(fileCriterion?.reason).toContain("incomplete_diff");
   });
 
   it("is ineligible when a spec delta is present", () => {

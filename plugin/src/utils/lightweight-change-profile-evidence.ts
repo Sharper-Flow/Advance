@@ -116,6 +116,7 @@ interface GitEvidence {
   observedRevision: string | null;
   diffEntries: GitDiffEntry[];
   statusEntries: GitStatusEntry[];
+  rangeStatus: LightweightProfileEvidenceSnapshot["changedPaths"]["rangeStatus"];
   diagnostics: string[];
 }
 
@@ -137,17 +138,24 @@ async function collectGitEvidence(
 ): Promise<GitEvidence> {
   const diagnostics: string[] = [];
   let observedRevision: string | null = null;
+  let revParseFailed = false;
 
   try {
     const { stdout } = await runGitCommand(workdir, ["rev-parse", "HEAD"]);
     observedRevision = stdout.trim() || null;
+    if (!observedRevision) {
+      revParseFailed = true;
+      diagnostics.push("Observed revision is empty");
+    }
   } catch (error) {
+    revParseFailed = true;
     diagnostics.push(
       `Failed to read observed revision: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
   const diffEntries: GitDiffEntry[] = [];
+  let diffFailed = false;
   try {
     const { stdout, diagnostics: cmdDiagnostics } = await runGitCommand(
       workdir,
@@ -156,12 +164,14 @@ async function collectGitEvidence(
     diagnostics.push(...cmdDiagnostics);
     diffEntries.push(...parseGitDiffNameStatus(stdout));
   } catch (error) {
+    diffFailed = true;
     diagnostics.push(
       `Failed to collect committed diff: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
   const statusEntries: GitStatusEntry[] = [];
+  let statusFailed = false;
   try {
     const { stdout, diagnostics: cmdDiagnostics } = await runGitCommand(
       workdir,
@@ -170,12 +180,28 @@ async function collectGitEvidence(
     diagnostics.push(...cmdDiagnostics);
     statusEntries.push(...parseGitStatusPorcelain(stdout));
   } catch (error) {
+    statusFailed = true;
     diagnostics.push(
       `Failed to collect working-tree status: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
-  return { observedRevision, diffEntries, statusEntries, diagnostics };
+  let rangeStatus: GitEvidence["rangeStatus"] = "complete";
+  if (revParseFailed) {
+    rangeStatus = "incomplete_rev_parse";
+  } else if (diffFailed) {
+    rangeStatus = "incomplete_diff";
+  } else if (statusFailed) {
+    rangeStatus = "incomplete_status";
+  }
+
+  return {
+    observedRevision,
+    diffEntries,
+    statusEntries,
+    rangeStatus,
+    diagnostics,
+  };
 }
 
 function parseGitDiffNameStatus(stdout: string): GitDiffEntry[] {
@@ -241,11 +267,13 @@ interface ChangedPathsEvidence {
   renames: number;
   deletions: number;
   untrackedCount: number;
+  rangeStatus: LightweightProfileEvidenceSnapshot["changedPaths"]["rangeStatus"];
 }
 
 function mergeGitEvidenceIntoChangedPaths(
   diffEntries: GitDiffEntry[],
   statusEntries: GitStatusEntry[],
+  rangeStatus: ChangedPathsEvidence["rangeStatus"],
 ): ChangedPathsEvidence {
   const paths = new Set<string>();
   let renames = 0;
@@ -294,6 +322,7 @@ function mergeGitEvidenceIntoChangedPaths(
     renames,
     deletions,
     untrackedCount,
+    rangeStatus,
   };
 }
 
@@ -314,6 +343,7 @@ async function computeFingerprint(
   hash.update(String(changedPaths.renames));
   hash.update(String(changedPaths.deletions));
   hash.update(String(changedPaths.untrackedCount));
+  hash.update(changedPaths.rangeStatus);
 
   for (const path of changedPaths.paths) {
     const fullPath = join(workdir, path);
@@ -634,6 +664,7 @@ export async function collectLightweightProfileEvidence(
   const changedPaths = mergeGitEvidenceIntoChangedPaths(
     gitEvidence.diffEntries,
     gitEvidence.statusEntries,
+    gitEvidence.rangeStatus,
   );
 
   const dependencyChange = {

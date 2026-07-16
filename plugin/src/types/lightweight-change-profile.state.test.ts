@@ -47,6 +47,7 @@ function makeEvaluation() {
         renames: 0,
         deletions: 0,
         untrackedCount: 0,
+        rangeStatus: "complete",
       },
       specDelta: { hasDelta: false, capabilities: [] },
       dependencyChange: { hasDependencyChange: false, manifests: [] },
