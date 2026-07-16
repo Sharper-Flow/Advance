@@ -168,3 +168,64 @@ describe("named constructor wrappers", () => {
     expect(teardown).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("signal-aware teardown regression (reapLeakedTestServers AC2)", () => {
+  it("runs teardown when fn rejects via an external AbortSignal", async () => {
+    // Deterministic interrupt: proves the finally-guarantee holds when fn is
+    // cancelled mid-flight, which is exactly how a signal-aware fn behaves
+    // when Vitest aborts the test signal on timeout.
+    const controller = new AbortController();
+    const teardown = vi.fn(async () => {});
+
+    const promise = withTestWorkflowEnvironment(
+      async () => ({ teardown }),
+      () =>
+        new Promise<never>((_, reject) => {
+          controller.signal.addEventListener("abort", () => {
+            reject(new Error("AbortError: test interrupted"));
+          });
+        }),
+    );
+    setTimeout(() => controller.abort(), 10);
+
+    await expect(promise).rejects.toThrow("AbortError: test interrupted");
+    expect(teardown).toHaveBeenCalledTimes(1);
+  });
+
+  describe("Vitest timeout path", () => {
+    const teardownLog: string[] = [];
+
+    // it.fails: this test is DESIGNED to time out. Vitest 4 aborts the
+    // TestContext signal on timeout (verified empirically against vitest
+    // 4.1.8: the timed-out test reports as expected-fail and the follow-up
+    // assertion below observes the teardown side effects).
+    it.fails(
+      "interrupts fn via the Vitest test signal on timeout",
+      async ({ signal }) => {
+        await withTestWorkflowEnvironment(
+          async () => ({
+            teardown: async () => {
+              teardownLog.push("teardown");
+            },
+          }),
+          () =>
+            new Promise<never>((_, reject) => {
+              signal.addEventListener("abort", () => {
+                teardownLog.push("fn-aborted");
+                reject(new Error("AbortError: vitest timeout"));
+              });
+            }),
+        );
+      },
+      150, // deliberately tiny: the timeout IS the scenario under test
+    );
+
+    it("ran teardown for the timed-out test (finally survived the abort)", () => {
+      // If the helper's finally-guarantee breaks (teardown removed, or fn
+      // never settles so finally never runs), this assertion fails even
+      // though the it.fails test above still counts as an expected fail.
+      expect(teardownLog).toContain("fn-aborted");
+      expect(teardownLog).toContain("teardown");
+    });
+  });
+});
