@@ -43,6 +43,11 @@ import {
   OpsRunEvidenceEntrySchema,
   OpsRunSchema,
 } from "./changes";
+import {
+  LightweightProfileEvaluationSchema,
+  LightweightProfileOmissionPolicySchema,
+  LightweightProfileRequestSchema,
+} from "./lightweight-change-profile";
 
 const IsoTimestampSchema = z.string();
 
@@ -526,6 +531,24 @@ export const OpsRunEvidenceAppendedSignalPayloadSchema = z.object({
 });
 export type OpsRunEvidenceAppendedSignalPayload = z.infer<
   typeof OpsRunEvidenceAppendedSignalPayloadSchema
+>;
+
+export const LightweightProfileRequestedSignalPayloadSchema = z.object({
+  request: LightweightProfileRequestSchema,
+  omissionPolicy: LightweightProfileOmissionPolicySchema,
+  requestedAt: IsoTimestampSchema,
+  requestedBy: z.string().optional(),
+});
+export type LightweightProfileRequestedSignalPayload = z.infer<
+  typeof LightweightProfileRequestedSignalPayloadSchema
+>;
+
+export const LightweightProfileEvaluatedSignalPayloadSchema = z.object({
+  evaluation: LightweightProfileEvaluationSchema,
+  evaluatedAt: IsoTimestampSchema,
+});
+export type LightweightProfileEvaluatedSignalPayload = z.infer<
+  typeof LightweightProfileEvaluatedSignalPayloadSchema
 >;
 
 export const ChangeCancelledSignalPayloadSchema = z.object({

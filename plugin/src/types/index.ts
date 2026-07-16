@@ -396,6 +396,32 @@ export {
   type OpsFollowupLink,
 } from "./changes";
 
+export {
+  LightweightProfileCriterionIdSchema,
+  type LightweightProfileCriterionId,
+  LightweightProfileCriterionStatusSchema,
+  type LightweightProfileCriterionStatus,
+  LightweightProfileRequestSchema,
+  type LightweightProfileRequest,
+  LightweightProfileEvidenceSnapshotSchema,
+  type LightweightProfileEvidenceSnapshot,
+  LightweightProfileCriterionRecordSchema,
+  type LightweightProfileCriterionRecord,
+  LightweightProfileResultSchema,
+  type LightweightProfileResult,
+  LightweightProfilePhaseSchema,
+  type LightweightProfilePhase,
+  LightweightProfileEvaluationSchema,
+  type LightweightProfileEvaluation,
+  LightweightProfileOmissionPolicySchema,
+  type LightweightProfileOmissionPolicy,
+  LightweightChangeProfileSchema,
+  type LightweightChangeProfile,
+  buildLightweightProfileEvaluationKey,
+  evaluateLightweightProfile,
+  LIGHTWEIGHT_PROFILE_OMISSION_CATEGORIES,
+} from "./lightweight-change-profile";
+
 // =============================================================================
 // Project
 // =============================================================================

@@ -2355,6 +2355,157 @@
       ],
       "type": "string"
     },
+    "lightweight_profile": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluations": {
+          "default": [],
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "criteria": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "criterion": {
+                      "enum": [
+                        "implementation_task_count",
+                        "changed_file_count",
+                        "spec_delta",
+                        "dependency_change",
+                        "api_compatibility",
+                        "repository_scope"
+                      ],
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "satisfied",
+                        "failed",
+                        "unknown"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "criterion",
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 6,
+                "minItems": 6,
+                "type": "array"
+              },
+              "downgradeReason": {
+                "type": "string"
+              },
+              "evaluatedAt": {
+                "type": "string"
+              },
+              "evaluationKey": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "evidenceFingerprint": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "observedRevision": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "phase": {
+                "enum": [
+                  "initial",
+                  "execution_boundary",
+                  "acceptance_boundary"
+                ],
+                "type": "string"
+              },
+              "result": {
+                "enum": [
+                  "qualified",
+                  "ineligible",
+                  "downgraded"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "evaluationKey",
+              "phase",
+              "result",
+              "criteria",
+              "evidenceFingerprint",
+              "observedRevision",
+              "evaluatedAt"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "omissionPolicy": {
+          "additionalProperties": false,
+          "properties": {
+            "omitDeepScans": {
+              "type": "boolean"
+            },
+            "omitDefaultSpecialistDelegation": {
+              "type": "boolean"
+            },
+            "omitGenericExternalResearch": {
+              "type": "boolean"
+            },
+            "omitOpportunityScouting": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "omitDeepScans",
+            "omitGenericExternalResearch",
+            "omitOpportunityScouting",
+            "omitDefaultSpecialistDelegation"
+          ],
+          "type": "object"
+        },
+        "request": {
+          "additionalProperties": false,
+          "properties": {
+            "baselineRevision": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "requestedAt": {
+              "type": "string"
+            },
+            "requestedBy": {
+              "type": "string"
+            },
+            "requestId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "requestId",
+            "baselineRevision",
+            "requestedAt"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "request",
+        "omissionPolicy",
+        "evaluations"
+      ],
+      "type": "object"
+    },
     "ops_followup": {
       "additionalProperties": false,
       "properties": {

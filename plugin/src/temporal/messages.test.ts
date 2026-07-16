@@ -56,6 +56,8 @@ import {
   OpsFollowupSeededSignalPayloadSchema,
   OpsRunEvidenceAppendedSignalPayloadSchema,
   OpsRunUpsertedSignalPayloadSchema,
+  LightweightProfileRequestedSignalPayloadSchema,
+  LightweightProfileEvaluatedSignalPayloadSchema,
 } from "../types";
 
 const designSignalKeys = [
@@ -105,6 +107,8 @@ const designSignalKeys = [
   "opsEvidenceAppended",
   "opsRunUpserted",
   "opsRunEvidenceAppended",
+  "lightweightProfileRequested",
+  "lightweightProfileEvaluated",
   "epicMembershipSet",
   "epicMembershipCleared",
   "updateArtifactMetadata",
@@ -123,11 +127,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 52 signal surface", () => {
+  it("defines the 54 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(52);
+    expect(surfacedKeys).toHaveLength(54);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -518,6 +522,70 @@ describe("change workflow message contract", () => {
             next_status: "complete",
           },
           appendedAt: timestamp,
+        },
+      ],
+      [
+        LightweightProfileRequestedSignalPayloadSchema,
+        {
+          request: {
+            requestId: "req-1",
+            baselineRevision: "base-abc",
+            requestedAt: timestamp,
+            requestedBy: "agent",
+          },
+          omissionPolicy: {
+            omitDeepScans: true,
+            omitGenericExternalResearch: true,
+            omitOpportunityScouting: true,
+            omitDefaultSpecialistDelegation: true,
+          },
+          requestedAt: timestamp,
+        },
+      ],
+      [
+        LightweightProfileEvaluatedSignalPayloadSchema,
+        {
+          evaluation: {
+            evaluationKey: "req-1:initial:fp-1",
+            phase: "initial",
+            result: "qualified",
+            criteria: [
+              {
+                criterion: "implementation_task_count",
+                status: "satisfied",
+                reason: "One implementation task",
+              },
+              {
+                criterion: "changed_file_count",
+                status: "satisfied",
+                reason: "One path",
+              },
+              {
+                criterion: "spec_delta",
+                status: "satisfied",
+                reason: "No spec delta",
+              },
+              {
+                criterion: "dependency_change",
+                status: "satisfied",
+                reason: "No dependency change",
+              },
+              {
+                criterion: "api_compatibility",
+                status: "satisfied",
+                reason: "Proven private",
+              },
+              {
+                criterion: "repository_scope",
+                status: "satisfied",
+                reason: "Current project only",
+              },
+            ],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "head-abc",
+            evaluatedAt: timestamp,
+          },
+          evaluatedAt: timestamp,
         },
       ],
       [
