@@ -6,9 +6,10 @@
 
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "fs";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+import { validateSlopScanReport } from "./lib/slop-scan/schema";
 
 const ADV_PATH = join(import.meta.dir, "adv");
 const GIT_TEST_IDENTITY = [
@@ -41,20 +42,48 @@ function makeSnapshot() {
   };
 }
 
+interface RunAdvOptions {
+  cwd?: string;
+  env?: Record<string, string | undefined>;
+}
+
 async function runAdv(
   args: string[],
   cwd?: string,
+): Promise<{ exitCode: number; stdout: string; stderr: string }>;
+async function runAdv(
+  args: string[],
+  options?: RunAdvOptions,
+): Promise<{ exitCode: number; stdout: string; stderr: string }>;
+async function runAdv(
+  args: string[],
+  optionsOrCwd?: string | RunAdvOptions,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const proc = Bun.spawn(["bun", ADV_PATH, ...args], {
-    cwd,
+  const options =
+    typeof optionsOrCwd === "string"
+      ? { cwd: optionsOrCwd }
+      : optionsOrCwd ?? {};
+  const env = options.env ?? { ...process.env, NO_COLOR: "1" };
+
+  const proc = Bun.spawn([process.execPath, ADV_PATH, ...args], {
+    cwd: options.cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, NO_COLOR: "1" },
+    env,
   });
   const stdout = await new Response(proc.stdout).text();
   const stderr = await new Response(proc.stderr).text();
   const exitCode = await proc.exited;
   return { exitCode, stdout, stderr };
+}
+
+function buildDegradedEnv(emptyBinDir: string): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = { NO_COLOR: "1" };
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.toLowerCase() !== "path") env[key] = value;
+  }
+  env.PATH = emptyBinDir;
+  return env;
 }
 
 describe("adv dispatcher metadata", () => {
@@ -167,24 +196,54 @@ describe("adv roadmap dispatcher", () => {
 });
 
 describe("adv slop-scan dispatcher", () => {
-  test("--json exits 1 with parseable degraded failure when required detectors are unavailable", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-slop-scan-"));
-    await mkdir(join(tmp, "src"), { recursive: true });
-    await writeFile(join(tmp, "src/app.ts"), "export function ok() { return 1; }\n");
+  test(
+    "--json exits 1 with parseable degraded failure when required detectors are unavailable",
+    async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "adv-slop-scan-"));
+      const emptyBin = join(tmp, "empty-bin");
+      await mkdir(emptyBin, { recursive: true });
+      await mkdir(join(tmp, "src"), { recursive: true });
+      await writeFile(
+        join(tmp, "src/app.ts"),
+        "export function ok() { return 1; }\n",
+      );
+      const parentPath = process.env.PATH;
 
-    const { exitCode, stdout } = await runAdv(["slop-scan", "src", "--json", "--no-color"], tmp);
+      try {
+        const { exitCode, stdout } = await runAdv(
+          ["slop-scan", "src", "--json", "--no-color"],
+          { cwd: tmp, env: buildDegradedEnv(emptyBin) },
+        );
 
-    expect(exitCode).toBe(1);
-    const parsed = JSON.parse(stdout);
-    expect(parsed.schema_version).toBe("slop_scan_report.v1");
-    expect(parsed.scope.requestedPath).toBe("src");
-    expect(parsed.scope.languages).toContain("typescript");
-    expect(parsed.coverage.detectors.length).toBeGreaterThan(0);
-    expect(parsed.failure.code).toBe("SLOP_SCAN_DEGRADED");
-    expect(parsed.failure.failedDetectors.length).toBeGreaterThan(0);
-    expect(parsed.failure.failedDetectors.every((detector: any) => detector.important)).toBe(true);
-    expect(parsed.summary.total).toBe(parsed.findings.length);
-  });
+        const validated = validateSlopScanReport(JSON.parse(stdout));
+        expect(validated.ok).toBe(true);
+        expect(exitCode).toBe(1);
+
+        const parsed = validated.value!;
+        expect(parsed.schema_version).toBe("slop_scan_report.v1");
+        expect(parsed.scope.requestedPath).toBe("src");
+        expect(parsed.scope.languages).toContain("typescript");
+        expect(parsed.failure?.code).toBe("SLOP_SCAN_DEGRADED");
+
+        const detectorStates = new Map(
+          parsed.coverage.detectors.map((d) => [d.id, d.state]),
+        );
+        expect(detectorStates.get("eslint")).toBe("unavailable");
+        expect(detectorStates.get("knip")).toBe("unavailable");
+        expect(detectorStates.get("ast-grep")).toBe("unavailable");
+        expect(detectorStates.get("jscpd")).toBe("unavailable");
+        expect(
+          parsed.failure!.failedDetectors.map((d) => d.id).sort(),
+        ).toEqual(["ast-grep", "eslint", "jscpd", "knip"]);
+        expect(parsed.summary.total).toBe(parsed.findings.length);
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
+
+      expect(process.env.PATH).toBe(parentPath);
+    },
+    5000,
+  );
 });
 
 describe("adv epic list dispatcher", () => {
