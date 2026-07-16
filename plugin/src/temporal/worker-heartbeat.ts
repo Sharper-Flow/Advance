@@ -20,6 +20,14 @@ export interface WorkerLockHeartbeatOptions {
   serviceabilityGraceMs?: number;
   now?: () => Date;
   isServiceable?: () => boolean;
+  /**
+   * Fire-and-forget hook invoked synchronously after each SUCCESSFUL beat
+   * (v2 lock renewed). Not invoked when the beat early-returns (stopped,
+   * unserviceable past grace, or no v2 lock). Used by plugin-init to run
+   * the worker bundle drift check on the heartbeat cadence; the hook must
+   * be cheap and non-blocking (e.g. `void monitor.checkNow()`).
+   */
+  onBeat?: () => void;
   setIntervalFn?: (handler: () => void, timeout: number) => IntervalHandle;
   clearIntervalFn?: (timer: IntervalHandle) => void;
 }
@@ -73,13 +81,21 @@ export function startWorkerLockHeartbeat(
       firstUnserviceableAt = null;
     }
 
-    const contents = await readLockContents(lockPath);
+    const contents = await readLockContents(lockPath).catch(() => null);
     if (!contents || contents.schema_version !== 2) return;
     const next: WorkerLockContentsV2 = {
       ...contents,
       last_heartbeat: current.toISOString(),
     };
     await writeLockContentsAtomically(lockPath, next);
+
+    if (options.onBeat) {
+      try {
+        options.onBeat();
+      } catch {
+        // Fire-and-forget hook must never break the heartbeat cadence.
+      }
+    }
   };
 
   const timer = setIntervalFn(() => {

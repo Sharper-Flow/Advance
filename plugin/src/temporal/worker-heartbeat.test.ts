@@ -99,6 +99,64 @@ describe("worker lock heartbeat", () => {
     expect(clearIntervalFn).toHaveBeenCalledWith(timer);
   });
 
+  test("heartbeat preserves bundle_generation", async () => {
+    const dir = await tempDir();
+    let now = new Date("2026-05-12T00:00:00.000Z");
+    const lock = await acquireWorkerLock(dir, {
+      pid: 4000,
+      schemaVersion: 2,
+      bundleGeneration: "gen-pinned",
+      now: () => now,
+    });
+
+    const heartbeat = startWorkerLockHeartbeat(dir, { now: () => now });
+    now = new Date("2026-05-12T00:00:12.000Z");
+    await heartbeat.beatNow();
+
+    await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
+      pid: 4000,
+      bundle_generation: "gen-pinned",
+      last_heartbeat: "2026-05-12T00:00:12.000Z",
+    });
+
+    await heartbeat.stop();
+  });
+
+  test("invokes onBeat after each successful beat (fire-and-forget safe)", async () => {
+    const dir = await tempDir();
+    const now = new Date("2026-05-12T00:00:00.000Z");
+    await acquireWorkerLock(dir, {
+      pid: 5000,
+      schemaVersion: 2,
+      now: () => now,
+    });
+
+    const onBeat = vi.fn();
+    const heartbeat = startWorkerLockHeartbeat(dir, {
+      now: () => now,
+      onBeat,
+    });
+
+    await heartbeat.beatNow();
+    await heartbeat.beatNow();
+
+    expect(onBeat).toHaveBeenCalledTimes(2);
+
+    await heartbeat.stop();
+  });
+
+  test("does not invoke onBeat when the beat has no v2 lock to renew", async () => {
+    const dir = await tempDir();
+    const onBeat = vi.fn();
+    const heartbeat = startWorkerLockHeartbeat(dir, { onBeat });
+
+    await heartbeat.beatNow();
+
+    expect(onBeat).not.toHaveBeenCalled();
+
+    await heartbeat.stop();
+  });
+
   test("stops renewing after serviceability grace expires", async () => {
     const dir = await tempDir();
     let now = new Date("2026-05-12T00:00:00.000Z");

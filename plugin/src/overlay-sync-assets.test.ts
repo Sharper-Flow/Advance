@@ -51,6 +51,7 @@ describe("overlay sync script support", () => {
     expect(content).toContain("tsup.config.ts");
     expect(content).toContain("dist/temporal/worker.js");
     expect(content).toContain("dist/temporal/workflows.js");
+    expect(content).toContain("dist/temporal/bundle-manifest.json");
     expect(content).toContain(
       '(cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build)',
     );
@@ -126,6 +127,16 @@ describe("overlay sync script support", () => {
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
         "// fresh workflows\n",
       );
+      writeFileSync(
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
+        '{"schema_version":1}\n',
+      );
       utimesSync(
         distPath,
         new Date("2030-01-01T00:00:00Z"),
@@ -138,6 +149,17 @@ describe("overlay sync script support", () => {
       );
       utimesSync(
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
         new Date("2030-01-01T00:00:00Z"),
         new Date("2030-01-01T00:00:00Z"),
       );
@@ -200,9 +222,11 @@ mkdir -p "$PWD/dist/temporal"
 printf '// fake build\n' > "$PWD/dist/index.js"
 printf '// fake worker\n' > "$PWD/dist/temporal/worker.js"
 printf '// fake workflows\n' > "$PWD/dist/temporal/workflows.js"
+printf '{"schema_version":1}\n' > "$PWD/dist/temporal/bundle-manifest.json"
 touch "$PWD/dist/index.js"
 touch "$PWD/dist/temporal/worker.js"
 touch "$PWD/dist/temporal/workflows.js"
+touch "$PWD/dist/temporal/bundle-manifest.json"
 `,
         { mode: 0o755 },
       );
@@ -637,10 +661,27 @@ cp -a "$src/." "$dest/"
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
         "// test workflows is fresh\n",
       );
+      writeFileSync(
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
+        '{"schema_version":1}\n',
+      );
       for (const distFile of [
         join(tempWorktree, "plugin", "dist", "index.js"),
         join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
       ]) {
         utimesSync(
           distFile,

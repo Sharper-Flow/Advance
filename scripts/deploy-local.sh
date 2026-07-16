@@ -215,7 +215,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js; do
+	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
