@@ -1,3 +1,4 @@
+import type { Connection } from "@temporalio/client";
 import {
   normalizePersistedSubagentReportState,
   type Change,
@@ -110,6 +111,18 @@ export function getChangeHandle(
   const workflowId = buildChangeWorkflowId(input.projectId, changeId);
   const bundle = input.temporal as { client: TemporalHandleClient };
   return bundle.client.workflow.getHandle(workflowId);
+}
+
+/**
+ * Extract the underlying Temporal Connection from the store input when one
+ * is present. Production bundles expose it; test fixtures and target-path
+ * snapshots may omit it and fall back to the Promise.race-based wrapper.
+ */
+export function getTemporalConnection(
+  input: TemporalStoreBackendInput,
+): Connection | undefined {
+  const bundle = input.temporal as { connection?: Connection };
+  return bundle.connection;
 }
 
 /**
@@ -265,6 +278,17 @@ export async function runTemporalQuery<T>(
 }
 
 export {
+  createTemporalReadContext,
+  runTemporalRead,
+  abortTemporalRead,
+  isTemporalReadExpired,
+  type TemporalReadContext,
+  type TemporalReadMetadata,
+  type TemporalReadResult,
+  type RunTemporalReadOptions,
+} from "./read-context";
+
+export {
   createTemporalReadDeadline,
   remainingDeadlineMs,
   TEMPORAL_READ_DEADLINE_BUDGET_MS,
@@ -409,7 +433,10 @@ export interface StoreDeps {
   resolveChangeId: (taskId: string) => Promise<string | null>;
   getTemporalChange: (
     changeId: string,
-    opts?: { deadline?: TemporalReadDeadline },
+    opts?: {
+      deadline?: TemporalReadDeadline;
+      context?: import("./read-context").TemporalReadContext;
+    },
   ) => Promise<ReturnType<Store["changes"]["get"]>>;
   listResolvedChanges: (
     filter?: {

@@ -10,6 +10,7 @@ import {
   runTemporal,
   getGuardedChangeHandle,
   type StoreDeps,
+  createTemporalReadContext,
 } from "./shared";
 
 export function createGateOps(deps: StoreDeps): Store["gates"] {
@@ -26,13 +27,13 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
   return {
     ...legacy.gates,
     get: async (changeId: string) => {
+      const ctx = createTemporalReadContext();
       try {
-        const state = (await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).query(
-            changeStateQuery,
-          ),
-        )) as import("../../temporal/contracts").ChangeWorkflowState;
-        return state.gates;
+        const result = await getTemporalChange(changeId, { context: ctx });
+        if (result.success && result.data) {
+          return result.data.gates ?? null;
+        }
+        throw new Error(`Failed to load gates for change ${changeId}`);
       } catch (error) {
         const failure = await classifyTemporalReadFailure(
           input,

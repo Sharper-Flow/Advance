@@ -35,13 +35,19 @@ import {
   type StoreDeps,
   mapTemporalChangeStateToChange,
   getGuardedChangeHandle,
-  runTemporalQuery,
   classifyTemporalReadFailure,
   createTemporalReadDeadline,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
   TemporalQueryTimeoutError,
   type TemporalReadDeadline,
+  createTemporalReadContext,
+  runTemporalRead,
+  getTemporalConnection,
+  type TemporalReadContext,
+  isTemporalReadExpired,
+  runTemporalQuery,
+  makeReconnectingHook,
 } from "./shared";
 import {
   changeStateQuery,
@@ -630,22 +636,32 @@ export function createTemporalStoreBackend(
 
   const getTemporalChange = async (
     changeId: string,
-    opts?: { deadline?: TemporalReadDeadline },
+    opts?: { deadline?: TemporalReadDeadline; context?: TemporalReadContext },
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
-    const deadline = opts?.deadline;
+    const ctx =
+      opts?.context ??
+      createTemporalReadContext(
+        opts?.deadline ? opts.deadline.budgetMs : undefined,
+      );
+    // When a caller supplied only a deadline, align the context's absolute
+    // deadline with the supplied one so a shared request budget is honored.
+    if (opts?.deadline && !opts.context) {
+      ctx.deadline = opts.deadline;
+    }
+
     // Aggregate-deadline admission (KD1/KD5): once the request budget is
     // exhausted, no further read stage may begin. The caller records the
     // resulting TemporalQueryTimeoutError as typed incompleteness rather
     // than re-entering another retry loop.
-    if (deadline && remainingDeadlineMs(deadline) <= 0) {
-      throw new TemporalQueryTimeoutError(deadline.budgetMs);
+    if (isTemporalReadExpired(ctx)) {
+      throw new TemporalQueryTimeoutError(ctx.deadline.budgetMs);
     }
     // rq-terminalProjectionTruth01: durable terminal projection dominates
     // stale non-terminal shadows before any live workflow round-trip.
     const terminalProjection = await loadTerminalProjection(
       changeId,
       "missing_workflow",
-      deadline,
+      ctx.deadline,
     );
     if (terminalProjection) {
       indexTasksFromChange(terminalProjection);
@@ -671,13 +687,25 @@ export function createTemporalStoreBackend(
       };
     }
     try {
-      const state = (await runTemporalQuery(
-        async () =>
-          (await getGuardedChangeHandle(input, changeId)).query(
-            changeStateQuery,
-          ),
-        { deadline },
-      )) as ChangeWorkflowState;
+      const read = await runTemporalRead(
+        getTemporalConnection(input),
+        async () => {
+          const state = (await (
+            await getGuardedChangeHandle(input, changeId)
+          ).query(changeStateQuery)) as ChangeWorkflowState;
+          return state;
+        },
+        ctx,
+        {
+          opType: "changeStateQuery",
+          timeoutMs: 5_000,
+          onTransientFailure: makeReconnectingHook(),
+        },
+      );
+      if (!read.complete) {
+        throw read.error;
+      }
+      const state = read.data as ChangeWorkflowState;
       indexTasksFromState(state);
       // rq-autoManageAdvWorktrees AC3 — lazy migration trigger.
       // Fires once on legacy reads; sticky handler dedupes concurrent races.
@@ -706,7 +734,7 @@ export function createTemporalStoreBackend(
         input,
         changeId,
         error,
-        deadline,
+        ctx.deadline,
       );
       // query_failed never authorizes mutation: re-seed may start a new
       // workflow run, which is only safe when the workflow is known missing
@@ -718,7 +746,7 @@ export function createTemporalStoreBackend(
         const reseeded = await reseedChangeFromDisk(
           changeId,
           failure.recoveryReason ?? "missing_workflow",
-          deadline,
+          ctx.deadline,
         );
         if (reseeded) {
           // rq-autoManageAdvWorktrees AC3 — lazy migration after reseed.
@@ -810,17 +838,32 @@ export function createTemporalStoreBackend(
       includeArchived?: boolean;
       includeClosed?: boolean;
     },
-    deadline: TemporalReadDeadline = createTemporalReadDeadline(),
+    contextOrDeadline:
+      | TemporalReadContext
+      | TemporalReadDeadline = createTemporalReadContext(),
     options?: {
       candidateLimit?: number;
       hydrationConcurrency?: number;
       sourceRanked?: boolean;
     },
   ): Promise<import("../store-types").ResolvedChangeList> => {
+    const ctx =
+      "abortController" in contextOrDeadline
+        ? contextOrDeadline
+        : createTemporalReadContext(
+            contextOrDeadline ? contextOrDeadline.budgetMs : undefined,
+          );
+    // If the caller supplied a plain deadline, align the context's absolute
+    // deadline so the shared request budget is honored.
+    if (contextOrDeadline && !("abortController" in contextOrDeadline)) {
+      ctx.deadline = contextOrDeadline;
+    }
+
+    const deadline = ctx.deadline;
+    const expired = (): boolean => isTemporalReadExpired(ctx);
     const wantsTerminalStatuses = Boolean(
       filter?.includeArchived || filter?.includeClosed,
     );
-    const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
 
     // Track source-class failures and per-candidate outcomes so aggregate
     // reads can surface structured degraded metadata instead of
@@ -875,18 +918,25 @@ export function createTemporalStoreBackend(
       typeof bundle.client?.workflow?.list === "function"
     ) {
       try {
-        visibilityIds = await raceWithTemporalDeadline(
-          listChangeWorkflowIds(
-            bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-            {
-              projectId: input.projectId,
-              // Drop the status filter when caller wants archived/closed
-              // so the visibility query doesn't pre-narrow the result set.
-              statuses: wantsTerminalStatuses ? null : undefined,
-            },
-          ),
-          deadline,
+        const visibilityRead = await runTemporalRead(
+          getTemporalConnection(input),
+          () =>
+            listChangeWorkflowIds(
+              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+              {
+                projectId: input.projectId,
+                // Drop the status filter when caller wants archived/closed
+                // so the visibility query doesn't pre-narrow the result set.
+                statuses: wantsTerminalStatuses ? null : undefined,
+              },
+            ),
+          ctx,
+          { opType: "visibilityList", timeoutMs: 5_000 },
         );
+        if (!visibilityRead.complete) {
+          throw visibilityRead.error;
+        }
+        visibilityIds = visibilityRead.data as string[];
       } catch (err) {
         const hitDeadline =
           err instanceof TemporalQueryTimeoutError || expired();
@@ -1138,7 +1188,7 @@ export function createTemporalStoreBackend(
       const isArchiveCandidate = archiveIdSet.has(changeId);
       try {
         const result = await raceWithTemporalDeadline(
-          getTemporalChange(changeId, { deadline }),
+          getTemporalChange(changeId, { context: ctx }),
           deadline,
         );
         if (result.success && result.data) {
@@ -1472,6 +1522,8 @@ export function createTemporalStoreBackend(
     // so deep hydration stops at the bound instead of hydrating every
     // candidate and slicing afterwards (KD4 / AC3).
     const deadline = options?.deadline ?? createTemporalReadDeadline();
+    const ctx = createTemporalReadContext(deadline.budgetMs);
+    ctx.deadline = deadline;
     const specsResult = await listSpecsActivity({
       specsDir: legacy.paths.specs,
     });
@@ -1479,7 +1531,7 @@ export function createTemporalStoreBackend(
 
     const resolved = await listResolvedChanges(
       undefined,
-      deadline,
+      ctx,
       options?.recentLimit !== undefined
         ? {
             candidateLimit: options.recentLimit,

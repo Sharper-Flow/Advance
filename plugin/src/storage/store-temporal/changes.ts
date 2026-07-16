@@ -40,9 +40,12 @@ import {
   runTemporalQuery,
   getChangeHandle,
   getGuardedChangeHandle,
+  getTemporalConnection,
+  runTemporalRead,
   createTemporalReadDeadline,
+  createTemporalReadContext,
+  isTemporalReadExpired,
   raceWithTemporalDeadline,
-  remainingDeadlineMs,
   TemporalQueryTimeoutError,
   type StoreDeps,
 } from "./shared";
@@ -476,7 +479,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // adv_change_show, and adv_change_list all behave the same when
       // a workflow is missing: try to re-seed from disk, otherwise
       // return the not-found error.
-      return getTemporalChange(changeId);
+      const ctx = createTemporalReadContext();
+      return getTemporalChange(changeId, { context: ctx });
     },
     refresh: async (changeId: string): Promise<void> => {
       // R1 follow-on: tool-layer code paths that mutate workflow state
@@ -820,7 +824,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // cold-miss hydration below; expiry produces typed degradation
       // instead of an unbounded read.
       const deadline = createTemporalReadDeadline();
-      const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
+      const ctx = createTemporalReadContext(deadline.budgetMs);
+      ctx.deadline = deadline;
+      const expired = (): boolean => isTemporalReadExpired(ctx);
       let deadlineExceeded = false;
       const deadlineSources = new Set<TerminalSource>();
       const markDeadline = (source: TerminalSource): void => {
@@ -1027,13 +1033,20 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       let visibilityIds: string[] = [];
       if (typeof bundle.client?.workflow?.list === "function") {
         try {
-          visibilityIds = await raceWithTemporalDeadline(
-            listChangeWorkflowIds(
-              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-              { projectId: input.projectId },
-            ),
-            deadline,
+          const visibilityRead = await runTemporalRead(
+            getTemporalConnection(input),
+            () =>
+              listChangeWorkflowIds(
+                bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+                { projectId: input.projectId },
+              ),
+            ctx,
+            { opType: "visibilityList", timeoutMs: 5_000 },
           );
+          if (!visibilityRead.complete) {
+            throw visibilityRead.error;
+          }
+          visibilityIds = visibilityRead.data as string[];
         } catch (err) {
           const hitDeadline =
             err instanceof TemporalQueryTimeoutError || expired();
@@ -1212,8 +1225,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         }
         try {
           const loaded = await raceWithTemporalDeadline(
-            getTemporalChange(id, { deadline }),
-            deadline,
+            getTemporalChange(id, { context: ctx }),
+            ctx.deadline,
           );
           if (loaded.success && loaded.data) {
             fromHydration += 1;
