@@ -396,6 +396,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "STSL reconnect without workflow-state mutation.",
   },
+  adv_verification_evidence_disposition: {
+    class: "orchestrator",
+    rationale: "Verification-evidence disposition.",
+  },
   adv_wisdom_add: {
     class: "orchestrator",
     rationale: "Wisdom capture.",
@@ -550,6 +554,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_temporal_reconnect",
       "adv_temporal_register_search_attributes",
       "adv_temporal_worker_restart",
+      "adv_verification_evidence_disposition",
       "adv_wip_state",
       "adv_wisdom_add",
       "adv_wisdom_list",
