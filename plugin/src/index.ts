@@ -67,6 +67,7 @@ import {
 import { isChangeReachable, type ReachabilityDeps } from "./tools/_adapters";
 import { parseWorktreePaths } from "./utils/worktree-paths";
 import { getWorktreeBase } from "./utils/project-id";
+import { getLoadedPluginBundleGeneration } from "./plugin-bundle-manifest";
 import { existsSync } from "fs";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveGitSessionContext } from "./utils/git-session";
@@ -316,6 +317,10 @@ const advancePluginImpl: Plugin = async (input) => {
   const { isWorktree, isMainCheckout } = gitSession;
   debugLog(
     `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}, isMainCheckout=${isMainCheckout}, mainCheckoutPath=${gitSession.mainCheckoutPath ?? "unknown"}`,
+  );
+  const loadedBundleGeneration = getLoadedPluginBundleGeneration();
+  debugLog(
+    `Loaded plugin bundle generation: ${loadedBundleGeneration ?? "none"}`,
   );
 
   const {
