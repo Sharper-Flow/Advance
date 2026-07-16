@@ -43,6 +43,10 @@ import {
   resetMetrics,
 } from "./utils/metrics";
 import { initializeToolSchemaTelemetry } from "./utils/tool-schema-telemetry";
+import {
+  recordStepFinishTokens,
+  resetCacheTokenTelemetry,
+} from "./utils/cache-token-telemetry";
 
 import {
   createToolMap,
@@ -441,6 +445,7 @@ const advancePluginImpl: Plugin = async (input) => {
   // AC6 — reset session-scoped metrics on every plugin init. JC-1 keeps
   // metrics in-memory only; no persistence across plugin restarts.
   resetMetrics();
+  resetCacheTokenTelemetry();
   // AC1 — schema conversion is amortized at init; request hooks only read the
   // retained manifest through the status health surface.
   initializeToolSchemaTelemetry(getRegisteredAdvToolEntries());
@@ -970,6 +975,10 @@ const advancePluginImpl: Plugin = async (input) => {
 
         if (eventType === "session.status") {
           handleSessionStatusEvent(event as { properties: unknown });
+        } else if (eventType === "message.part.updated") {
+          const properties = (event as { properties?: { part?: unknown } })
+            .properties;
+          recordStepFinishTokens(properties?.part);
         } else if (eventType === "session.deleted") {
           await handleSessionDeletedEvent();
         } else if (
