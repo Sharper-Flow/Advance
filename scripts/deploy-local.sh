@@ -1145,6 +1145,23 @@ list_deployed_temporal_worker_matches() {
 	done
 }
 
+# Classifies a matched /proc/PID entry as self-roll capable. Parses the
+# NUL-separated /proc/PID/environ and recognizes only the exact entry
+# ADV_TEMPORAL_WORKER_SELF_ROLL=1. Missing, malformed, or unreadable environ
+# falls through to the legacy SIGTERM path.
+worker_has_self_roll_capability() {
+	local proc="$1"
+	local entry
+
+	[ -r "$proc/environ" ] || return 1
+	while IFS= read -r -d '' entry; do
+		if [ "$entry" = "ADV_TEMPORAL_WORKER_SELF_ROLL=1" ]; then
+			return 0
+		fi
+	done <"$proc/environ"
+	return 1
+}
+
 print_worker_action_required() {
 	local worker_script="$1"
 	local reason="$2"
@@ -1169,7 +1186,7 @@ print_worker_action_required() {
 refresh_deployed_temporal_workers() {
 	local mode="$1"
 	local runtime_plugin_path worker_script
-	local matches failures remaining pid cmd
+	local matches advisory legacy pid cmd
 	local bounce_grace_seconds=2
 
 	if runtime_plugin_path="$(cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P)"; then
@@ -1195,16 +1212,42 @@ refresh_deployed_temporal_workers() {
 		return 0
 	fi
 
+	advisory=""
+	legacy=""
+	while IFS=$'\t' read -r pid cmd; do
+		[ -n "$pid" ] || continue
+		if worker_has_self_roll_capability "/proc/$pid"; then
+			advisory+="$pid"$'\t'"$cmd"$'\n'
+		else
+			legacy+="$pid"$'\t'"$cmd"$'\n'
+		fi
+	done <<<"$matches"
+
+	if [ -n "$advisory" ]; then
+		echo "    advisory: the following deployed Temporal workers advertise self-roll capability (ADV_TEMPORAL_WORKER_SELF_ROLL=1) and will not be signaled:"
+		while IFS=$'\t' read -r pid cmd; do
+			[ -n "$pid" ] || continue
+			echo "      PID $pid — $cmd"
+		done <<<"$advisory"
+	fi
+
 	case "$mode" in
 	check | dry-run)
-		print_worker_action_required "$worker_script" "running workers match the deployed worker bundle; $mode mode is read-only" "$matches"
+		if [ -n "$legacy" ]; then
+			print_worker_action_required "$worker_script" "running legacy workers match the deployed worker bundle; $mode mode is read-only" "$legacy"
+		fi
 		echo "      No worker processes were signaled."
 		return 0
 		;;
 	esac
 
-	echo "    bouncing deployed Temporal worker(s) for: $worker_script"
-	failures=""
+	if [ -z "$legacy" ]; then
+		echo "    no legacy deployed Temporal workers require signaling; self-roll capable workers skipped"
+		return 0
+	fi
+
+	echo "    bouncing legacy deployed Temporal worker(s) for: $worker_script"
+	local failures=""
 	while IFS=$'\t' read -r pid cmd; do
 		[ -n "$pid" ] || continue
 		if kill -TERM "$pid" 2>/dev/null; then
@@ -1212,19 +1255,19 @@ refresh_deployed_temporal_workers() {
 		else
 			failures+="$pid"$'\t'"$cmd"$'\n'
 		fi
-	done <<<"$matches"
+	done <<<"$legacy"
 
 	sleep "$bounce_grace_seconds"
-	remaining=""
+	local remaining=""
 	while IFS=$'\t' read -r pid cmd; do
 		[ -n "$pid" ] || continue
 		if kill -0 "$pid" 2>/dev/null; then
 			remaining+="$pid"$'\t'"$cmd"$'\n'
 		fi
-	done <<<"$matches"
+	done <<<"$legacy"
 
 	if [ -n "$failures" ] || [ -n "$remaining" ]; then
-		print_worker_action_required "$worker_script" "one or more matching workers could not be bounced" "${failures}${remaining}"
+		print_worker_action_required "$worker_script" "one or more matching legacy workers could not be bounced" "${failures}${remaining}"
 		return 1
 	fi
 
