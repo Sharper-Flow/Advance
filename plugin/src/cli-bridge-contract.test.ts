@@ -204,6 +204,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_snapshot_health",
       "adv_store_consolidate",
       "adv_store_cleanup",
+      "adv_lightweight_profile_evaluate",
     ];
     const byName = (a: string, b: string) => a.localeCompare(b);
     expect([...ADV_TOOL_NAMES].sort(byName)).toEqual([...frozen].sort(byName));

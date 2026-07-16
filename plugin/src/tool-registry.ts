@@ -59,6 +59,7 @@ import { advSessionTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
 import { storeConsolidateTools } from "./tools/store-consolidate";
 import { storeCleanupTools } from "./tools/store-cleanup";
+import { lightweightProfileTools } from "./tools/lightweight-profile";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -813,6 +814,13 @@ export function createToolMap(
     ),
     adv_reflect: bindTool(reflectionTools.adv_reflect, "adv_reflect", store),
 
+    // Lightweight Change Profile Tool
+    adv_lightweight_profile_evaluate: bindTool(
+      lightweightProfileTools.adv_lightweight_profile_evaluate,
+      "adv_lightweight_profile_evaluate",
+      store,
+    ),
+
     // Conformance Tool — adv_conformance takes (args, store).
     // Switched from bindToolSimple to bindTool in change
     // centralizemutationcacherefresh (T02) so the dispatcher can use
@@ -989,6 +997,7 @@ const PUBLIC_TOOL_GROUPS = [
   checkpointTools,
   reflectionTools,
   snapshotHealthTools,
+  lightweightProfileTools,
   projectMetadataTools,
   conformanceTools,
   advWorktreeTools,

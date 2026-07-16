@@ -23,6 +23,7 @@ import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
+import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
 export {
   ContractEvidencePolicySchema,
   type ContractEvidencePolicy,
@@ -1089,6 +1090,12 @@ export const ChangeSchema = z
      * observe this field via adv_change_show to confirm completion.
      */
     phase9_status: Phase9FinalizationStatusSchema.optional(),
+
+    /**
+     * Lightweight change profile state: request, immutable omission policy, and
+     * append-only evaluation history. Optional for backward compatibility.
+     */
+    lightweight_profile: LightweightChangeProfileSchema.optional(),
 
     /**
      * Ops/enabler follow-up profile on this change (child/follow-up context).

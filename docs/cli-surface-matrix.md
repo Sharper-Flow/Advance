@@ -98,6 +98,7 @@
 | `adv_run_test` | `keep-mcp-only` | Workflow-bound test evidence tool |
 | `adv_task_checkpoint` | `keep-mcp-only` | Workflow-bound checkpoint tool |
 | `adv_subagent_report_submit` | `keep-mcp-only` | Workflow-bound report ingestion |
+| `adv_lightweight_profile_evaluate` | `keep-mcp-only` | Workflow-bound gate evaluation signal tool |
 | `adv_worktree_cleanup` | `keep-mcp-only` | Preview MCP-side; mutation approval-gated |
 | `adv_change_create` | `no-cli-dangerous` | Change mutation |
 | `adv_change_update` | `no-cli-dangerous` | Change mutation |

@@ -79,6 +79,7 @@ tools:
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
+  adv_lightweight_profile_evaluate: true
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
   adv_run_test: true

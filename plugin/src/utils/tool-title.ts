@@ -185,6 +185,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_reflection_list: (args) =>
     read(`List reflections${suffix(args, "changeId", "target_path")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
+  adv_lightweight_profile_evaluate: (args) =>
+    write(`Evaluate lightweight profile${suffix(args, "changeId", "phase")}`),
   adv_conformance: (args) =>
     operator(`Run conformance${suffix(args, "action")}`),
   adv_worktree_create: (args) =>

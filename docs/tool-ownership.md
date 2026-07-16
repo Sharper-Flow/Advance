@@ -93,6 +93,12 @@ class rather than operator-only.
 | `adv_change_reenter` | orchestrator | Gate re-entry |
 | `adv_change_forget` | orchestrator | In-memory session active-change pointer clear; no persistent mutation |
 
+### Lightweight change profile
+
+| Tool | Class | Notes |
+|---|---|---|
+| `adv_lightweight_profile_evaluate` | orchestrator | Host-side evidence collection + Temporal signal for gate-bound lightweight profile evaluation |
+
 ### Epic
 
 | Tool | Class | Notes |
