@@ -160,7 +160,7 @@ export function buildLightweightProfileEvaluationKey(
   return `${requestId}:${phase}:${fingerprint}`;
 }
 
-const CRITERION_ORDER: LightweightProfileCriterionId[] = [
+export const CRITERION_ORDER: LightweightProfileCriterionId[] = [
   "implementation_task_count",
   "changed_file_count",
   "spec_delta",

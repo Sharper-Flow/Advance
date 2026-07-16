@@ -1160,6 +1160,380 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(mocks.evaluateLightweightProfileAndSignal).not.toHaveBeenCalled();
       expect(parsed.lightweightProfileEvaluations).toBeUndefined();
     });
+
+    test("passes apiCompatibilityPolicy from project.json to both planning profile evaluations", async () => {
+      const store = createMockStore({
+        change: {
+          lightweight_profile: {
+            request: {
+              requestId: "req-1",
+              baselineRevision: "baseline-1",
+              requestedAt: "2026-01-01T00:00:00Z",
+            },
+            omissionPolicy: {
+              omitDeepScans: true,
+              omitGenericExternalResearch: true,
+              omitOpportunityScouting: true,
+              omitDefaultSpecialistDelegation: true,
+            },
+            evaluations: [],
+          },
+        },
+      });
+      store.config = {
+        name: "test",
+        public_root_policy: { roots: ["src/public.ts"] },
+      } as unknown as import("../types").ProjectConfig;
+      mocks.querySignal.mockResolvedValueOnce({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "planning",
+          userApproved: true,
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledTimes(
+        2,
+      );
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          phase: "initial",
+          apiCompatibilityPolicy: { roots: ["src/public.ts"] },
+        }),
+      );
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          phase: "execution_boundary",
+          apiCompatibilityPolicy: { roots: ["src/public.ts"] },
+        }),
+      );
+      expect(parsed.lightweightProfileEvaluations).toHaveLength(2);
+      expect(parsed.lightweightProfileEvaluations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ phase: "initial", result: "qualified" }),
+          expect.objectContaining({
+            phase: "execution_boundary",
+            result: "qualified",
+          }),
+        ]),
+      );
+    });
+
+    test("passes apiCompatibilityPolicy from project.json to acceptance_boundary evaluation", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          lightweight_profile: {
+            request: {
+              requestId: "req-1",
+              baselineRevision: "baseline-1",
+              requestedAt: "2026-01-01T00:00:00Z",
+            },
+            omissionPolicy: {
+              omitDeepScans: true,
+              omitGenericExternalResearch: true,
+              omitOpportunityScouting: true,
+              omitDefaultSpecialistDelegation: true,
+            },
+            evaluations: [],
+          },
+          tasks: [{ id: "t-1", status: "done" }],
+        },
+      });
+      store.config = {
+        name: "test",
+        public_root_policy: { roots: ["src/public.ts"] },
+      } as unknown as import("../types").ProjectConfig;
+      mocks.querySignal
+        .mockResolvedValueOnce(gates)
+        .mockResolvedValueOnce([{ id: "t-1", status: "done" }])
+        .mockResolvedValueOnce({ status: "done" });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "execution",
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mocks.evaluateLightweightProfileAndSignal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          phase: "acceptance_boundary",
+          apiCompatibilityPolicy: { roots: ["src/public.ts"] },
+        }),
+      );
+      expect(parsed.lightweightProfileEvaluations).toHaveLength(1);
+      expect(parsed.lightweightProfileEvaluations[0]).toMatchObject({
+        phase: "acceptance_boundary",
+        result: "qualified",
+      });
+    });
+
+    test("records downgrade when prior qualified profile and boundary evaluation fails", async () => {
+      const store = createMockStore({
+        change: {
+          lightweight_profile: {
+            request: {
+              requestId: "req-1",
+              baselineRevision: "baseline-1",
+              requestedAt: "2026-01-01T00:00:00Z",
+            },
+            omissionPolicy: {
+              omitDeepScans: true,
+              omitGenericExternalResearch: true,
+              omitOpportunityScouting: true,
+              omitDefaultSpecialistDelegation: true,
+            },
+            evaluations: [
+              {
+                evaluationKey: "req-1:initial:fp-1",
+                phase: "initial",
+                result: "qualified",
+                criteria: [
+                  {
+                    criterion: "implementation_task_count",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  {
+                    criterion: "changed_file_count",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  { criterion: "spec_delta", status: "satisfied", reason: "" },
+                  {
+                    criterion: "dependency_change",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  {
+                    criterion: "api_compatibility",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  {
+                    criterion: "repository_scope",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                ],
+                evidenceFingerprint: "fp-1",
+                observedRevision: "rev-1",
+                evaluatedAt: "2026-01-01T00:00:00Z",
+              },
+            ],
+          },
+        },
+      });
+      store.config = {
+        name: "test",
+        public_root_policy: { roots: ["src/public.ts"] },
+      } as unknown as import("../types").ProjectConfig;
+      mocks.querySignal.mockResolvedValueOnce({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
+      mocks.evaluateLightweightProfileAndSignal.mockResolvedValue({
+        success: false,
+        error: "collector service unavailable",
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "planning",
+          userApproved: true,
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      // Gate completion signal plus two boundary-failure signals.
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(3);
+      const failureSignals = mocks.fireSignalAndRefresh.mock.calls.filter(
+        (call) =>
+          call[4] != null &&
+          typeof call[4] === "object" &&
+          "evaluation" in (call[4] as Record<string, unknown>),
+      );
+      expect(failureSignals).toHaveLength(2);
+      expect(failureSignals[0][4]).toMatchObject({
+        evaluation: expect.objectContaining({
+          phase: "initial",
+          result: "downgraded",
+          downgradeReason: expect.stringContaining("prior qualification"),
+        }),
+      });
+      expect(failureSignals[1][4]).toMatchObject({
+        evaluation: expect.objectContaining({
+          phase: "execution_boundary",
+          result: "downgraded",
+          downgradeReason: expect.stringContaining("prior qualification"),
+        }),
+      });
+      expect(parsed.lightweightProfileEvaluations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            phase: "initial",
+            result: "downgraded",
+          }),
+          expect.objectContaining({
+            phase: "execution_boundary",
+            result: "downgraded",
+          }),
+        ]),
+      );
+      expect(parsed.lightweightProfileEvaluations).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ result: "qualified" }),
+        ]),
+      );
+    });
+
+    test("records downgrade when prior qualified profile boundary evaluation throws", async () => {
+      const store = createMockStore({
+        change: {
+          lightweight_profile: {
+            request: {
+              requestId: "req-1",
+              baselineRevision: "baseline-1",
+              requestedAt: "2026-01-01T00:00:00Z",
+            },
+            omissionPolicy: {
+              omitDeepScans: true,
+              omitGenericExternalResearch: true,
+              omitOpportunityScouting: true,
+              omitDefaultSpecialistDelegation: true,
+            },
+            evaluations: [
+              {
+                evaluationKey: "req-1:initial:fp-1",
+                phase: "initial",
+                result: "qualified",
+                criteria: [
+                  {
+                    criterion: "implementation_task_count",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  {
+                    criterion: "changed_file_count",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  { criterion: "spec_delta", status: "satisfied", reason: "" },
+                  {
+                    criterion: "dependency_change",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  {
+                    criterion: "api_compatibility",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                  {
+                    criterion: "repository_scope",
+                    status: "satisfied",
+                    reason: "",
+                  },
+                ],
+                evidenceFingerprint: "fp-1",
+                observedRevision: "rev-1",
+                evaluatedAt: "2026-01-01T00:00:00Z",
+              },
+            ],
+          },
+        },
+      });
+      store.config = {
+        name: "test",
+        public_root_policy: { roots: ["src/public.ts"] },
+      } as unknown as import("../types").ProjectConfig;
+      mocks.querySignal.mockResolvedValueOnce({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
+      mocks.evaluateLightweightProfileAndSignal.mockRejectedValue(
+        new Error("signal fire failed"),
+      );
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "planning",
+          userApproved: true,
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.lightweightProfileEvaluations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            phase: "initial",
+            result: "downgraded",
+          }),
+          expect.objectContaining({
+            phase: "execution_boundary",
+            result: "downgraded",
+          }),
+        ]),
+      );
+      expect(parsed.lightweightProfileEvaluations).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ result: "qualified" }),
+        ]),
+      );
+    });
   });
 
   describe("adv_gate_status", () => {
