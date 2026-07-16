@@ -11,6 +11,7 @@ import {
   statusTools,
   _healthSnapshotCache,
   _statusProbeCaches,
+  resetStatusHealthForTest,
 } from "./status";
 import { _healthRequestProbeCaches } from "./status-health-plan";
 import {
@@ -133,8 +134,7 @@ describe("Status Tools", () => {
       records: [],
       warnings: [],
     });
-    _statusProbeCaches.clear();
-    _healthRequestProbeCaches.clear();
+    resetStatusHealthForTest();
     mockScanSnapshotHealth.mockReset();
     mockScanSnapshotHealth.mockResolvedValue({
       schema_version: 1,
@@ -1138,7 +1138,8 @@ Vague in-flight work.
 
     describe("_healthSnapshot", () => {
       beforeEach(() => {
-        _healthSnapshotCache.clear();
+        resetStatusHealthForTest();
+        _healthRequestProbeCaches.clear();
       });
 
       test("includes _healthSnapshot with disk leak metrics", async () => {

@@ -183,6 +183,12 @@ export async function fetchStatusSnapshotHealth(
 }
 
 /** Exported for test isolation only */
+export function resetStatusHealthForTest(): void {
+  healthSnapshotCache.clear();
+  _statusProbeCaches.clear();
+}
+
+/** Exported for test isolation only */
 export const _healthSnapshotCache = healthSnapshotCache;
 export function computeSearchAttributesSnapshot(): SearchAttributesSnapshot {
   const stslStats = getStslStats();

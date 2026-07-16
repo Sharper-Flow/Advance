@@ -87,7 +87,11 @@ import {
   buildHealthExecutionMeta,
 } from "./status-health-plan";
 export { _test } from "./status-enrich";
-export { _healthSnapshotCache, _statusProbeCaches } from "./status-health";
+export {
+  _healthSnapshotCache,
+  _statusProbeCaches,
+  resetStatusHealthForTest,
+} from "./status-health";
 export {
   computeAutoManagedCensus,
   deriveOpencodeDebtCounts,
