@@ -227,6 +227,27 @@ function deriveLightweightProfile(
   if (!profile) return undefined;
   const latest = profile.evaluations[profile.evaluations.length - 1];
   if (!latest) return undefined;
+
+  // A completed gate is durable evidence that its adjacent profile boundary
+  // must have been revalidated. If collection, service, or signal delivery
+  // failed after the gate transition, a prior qualification must not keep
+  // advisory omissions active merely because it remains the latest profile
+  // evaluation. Derive the fail-closed suppression from durable gate state so
+  // it survives reads, retries, and host-process restarts.
+  const requiredPhase =
+    state.gates.execution.status === "done"
+      ? "acceptance_boundary"
+      : state.gates.planning.status === "done"
+        ? "execution_boundary"
+        : undefined;
+  if (requiredPhase && latest.phase !== requiredPhase) {
+    return {
+      result: "ineligible",
+      omissionPolicy: profile.omissionPolicy,
+      downgradeReason: `${requiredPhase} revalidation is missing after its gate boundary`,
+    };
+  }
+
   return {
     result: latest.result,
     omissionPolicy: profile.omissionPolicy,

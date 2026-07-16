@@ -286,6 +286,94 @@ describe("deriveWorkflowDirective lightweight profile routing", () => {
     expect(d.lightweightProfile?.evaluatedAt).toBe(FRESH);
   });
 
+  it("suppresses a prior qualification when a completed boundary lacks its revalidation", () => {
+    const omissionPolicy = LightweightProfileOmissionPolicySchema.parse({
+      omitDeepScans: true,
+      omitGenericExternalResearch: true,
+      omitOpportunityScouting: true,
+      omitDefaultSpecialistDelegation: true,
+    });
+    const gates = markDone(
+      gatesWith("execution", "pending"),
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+    );
+    const state = makeState({
+      gates,
+      lightweight_profile: {
+        request: {
+          requestId: "req-1",
+          baselineRevision: "baseline-1",
+          requestedAt: FRESH,
+        },
+        omissionPolicy,
+        evaluations: [
+          {
+            evaluationKey: "req-1:initial:fp-1",
+            phase: "initial",
+            result: "qualified",
+            criteria: [],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "rev-1",
+            evaluatedAt: FRESH,
+          },
+        ],
+      },
+    });
+
+    const d = deriveWorkflowDirective(state, EPOCH);
+    expect(d.lightweightProfile?.result).toBe("ineligible");
+    expect(d.lightweightProfile?.downgradeReason).toContain(
+      "execution_boundary revalidation is missing",
+    );
+  });
+
+  it("suppresses an execution qualification when acceptance revalidation is missing", () => {
+    const gates = markDone(
+      gatesWith("acceptance", "pending"),
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+    );
+    const state = makeState({
+      gates,
+      lightweight_profile: {
+        request: {
+          requestId: "req-1",
+          baselineRevision: "baseline-1",
+          requestedAt: FRESH,
+        },
+        omissionPolicy: LightweightProfileOmissionPolicySchema.parse({
+          omitDeepScans: true,
+          omitGenericExternalResearch: true,
+          omitOpportunityScouting: true,
+          omitDefaultSpecialistDelegation: true,
+        }),
+        evaluations: [
+          {
+            evaluationKey: "req-1:execution_boundary:fp-1",
+            phase: "execution_boundary",
+            result: "qualified",
+            criteria: [],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "rev-1",
+            evaluatedAt: FRESH,
+          },
+        ],
+      },
+    });
+
+    const d = deriveWorkflowDirective(state, EPOCH);
+    expect(d.lightweightProfile?.result).toBe("ineligible");
+    expect(d.lightweightProfile?.downgradeReason).toContain(
+      "acceptance_boundary revalidation is missing",
+    );
+  });
+
   it("surfaces downgrade reason on directive when revalidation failed", () => {
     const state = makeState({
       lightweight_profile: {
