@@ -27,6 +27,7 @@ import { getMetrics, withRecordedPhase } from "../utils/metrics";
 import { scanOpenCodeSessionDebt } from "../utils/opencode-session-debt";
 import { getToolSchemaManifest } from "../utils/tool-schema-telemetry";
 import { getCacheTokenTelemetry } from "../utils/cache-token-telemetry";
+import { getLaneProjections } from "../utils/tool-lane-projection";
 import { z } from "zod";
 import { withOptionalTargetPathStore } from "./target-project";
 import { resolveMainCheckout } from "./archive-helpers/git-finalize";
@@ -820,6 +821,9 @@ export const statusTools = {
               )
             : undefined;
 
+          const toolSchemaManifest = getToolSchemaManifest();
+          const laneProjections = await getLaneProjections(toolSchemaManifest);
+
           const fullOutput = {
             ...status,
             ...(buildProductContextOutput(activeStore, scope)
@@ -865,7 +869,8 @@ export const statusTools = {
             // cache-token samples). Live per-request MCP tool counts require
             // upstream OpenCode support and are intentionally not available.
             tool_context_telemetry: {
-              manifest: getToolSchemaManifest(),
+              manifest: toolSchemaManifest,
+              lane_projections: laneProjections,
               cache_tokens: getCacheTokenTelemetry(),
               limitations: [
                 "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",

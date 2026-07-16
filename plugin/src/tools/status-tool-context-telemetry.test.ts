@@ -37,6 +37,22 @@ const full = {
         { input_tokens: 600, cache_read_tokens: 100, cache_write_tokens: 150 },
       ],
     },
+    lane_projections: {
+      "adv-ci-waiter": {
+        availability: "available" as const,
+        enabled_tools: 2,
+        schema_bytes: 600,
+        approx_tokens_4char_rule: 150,
+        conversion_errors: 0,
+      },
+      "adv-engineer": {
+        availability: "unavailable" as const,
+        enabled_tools: 0,
+        schema_bytes: 0,
+        approx_tokens_4char_rule: 0,
+        conversion_errors: 0,
+      },
+    },
     limitations: [
       "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
     ],
@@ -44,7 +60,7 @@ const full = {
 };
 
 describe("applyStatusView tool_context_telemetry projection", () => {
-  test("health view includes schema manifest + cache-token telemetry + limitation", () => {
+  test("health view includes schema manifest + lane projections + cache-token telemetry + limitation", () => {
     const projection = applyStatusView(full as never, "health");
 
     expect(projection.tool_context_telemetry).toEqual(
