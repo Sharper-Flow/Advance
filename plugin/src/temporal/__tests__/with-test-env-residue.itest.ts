@@ -117,7 +117,11 @@ function sleepMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForGone(pid: number, timeoutMs: number): Promise<void> {
+async function waitForGone(
+  pid: number,
+  timeoutMs: number,
+  context?: string,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (isGone(pid)) return;
@@ -125,7 +129,7 @@ async function waitForGone(pid: number, timeoutMs: number): Promise<void> {
   }
   expect(
     isGone(pid),
-    `pid ${pid} still present ${timeoutMs}ms after teardown`,
+    `pid ${pid} still present ${timeoutMs}ms after teardown${context ? `; ${context}` : ""}`,
   ).toBe(true);
 }
 
@@ -190,12 +194,28 @@ interface ReaperRun {
   stderr: string;
 }
 
+const REAPER_ENV_PREFIX = "OC_TEST_REAPER_";
+
+/** Hermetic reaper config: an inherited OC_TEST_REAPER_* knob (a stray
+ * DRY_RUN=1 or QUIET=1 in the runner environment) must never silently change
+ * what the proof asks the reaper to do — the acceptance flake was exactly
+ * this signature (sweep exits 0, leak left alive, assertion blind). */
+function hermeticReaperEnv(
+  overrides: Record<string, string>,
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.startsWith(REAPER_ENV_PREFIX)) env[key] = value;
+  }
+  return { ...env, ...overrides };
+}
+
 async function runReaper(
   pids: number[],
   env: Record<string, string>,
 ): Promise<ReaperRun> {
   const child = spawn("bash", [REAPER, ...pids.map(String)], {
-    env: { ...process.env, ...env },
+    env: hermeticReaperEnv(env),
     stdio: ["ignore", "pipe", "pipe"],
   });
   let stdout = "";
@@ -273,10 +293,22 @@ describe.skipIf(!isLinux)(
           OC_TEST_REAPER_TERM_GRACE_SECONDS: "3",
         });
 
-        expect(run.exitCode).toBe(0);
-        // Stale REAL leak reaped; identity visible in the reaper log.
-        expect(isGone(leakedPid)).toBe(true);
-        expect(run.stderr).toContain(`TERM pid ${leakedPid}`);
+        expect(
+          run.exitCode,
+          `reaper sweep exited non-zero; log:\n${run.stderr}`,
+        ).toBe(0);
+        // The reaper must have ACTED on the stale leak: a skip or DRY-RUN
+        // line here means the sweep proved nothing — fail with the log
+        // attached instead of a blind boolean.
+        expect(
+          run.stderr,
+          `reaper did not TERM the stale real leak; log:\n${run.stderr}`,
+        ).toContain(`TERM pid ${leakedPid}`);
+        // Death can still be in flight when the sweep returns (KILL
+        // latency, slow zombie reaping under load): the AC5 obligation is
+        // that the residue is gone, so wait bounded rather than asserting
+        // a single instant.
+        await waitForGone(leakedPid, 10_000, `reaper log:\n${run.stderr}`);
         // Fresh REAL peer untouched (below the conservative minimum age).
         expect(isGone(peerPid)).toBe(false);
         expect(run.stderr).toContain(`skip pid ${peerPid}`);
