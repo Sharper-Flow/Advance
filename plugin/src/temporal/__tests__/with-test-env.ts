@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { TestWorkflowEnvironment } from "@temporalio/testing";
 
 /**
  * Shared harness for Temporal test environments.
@@ -13,8 +14,17 @@ import { tmpdir } from "node:os";
  *
  * This helper wraps the env lifecycle in a `try/finally` block so every
  * call site drains the server regardless of whether the test body throws.
- * Teardown errors propagate (they must not be silently swallowed) so operators
- * notice a broken teardown path instead of silently leaking procs again.
+ *
+ * Error-propagation caveat: this module propagates any error thrown across
+ * the `teardown()` call boundary, but the SDK's own
+ * `TestWorkflowEnvironment.teardown()` catches, logs (`console.error`), and
+ * swallows its internal connection-close / server-shutdown failures (verified
+ * in @temporalio/testing v1.17.x `lib/testing-workflow-environment.js`). A
+ * broken SDK-internal shutdown therefore surfaces only as SDK log output, not
+ * a test failure — the `try/finally` here is the only teardown guarantee we
+ * control. Known upstream caveats: temporalio/sdk-typescript#1443 (startup
+ * failure skips shutdown), #1394 (ephemeral-server kill hangs), #2068
+ * (native-resource teardown races).
  */
 export interface TestEnvironmentLike {
   teardown: () => Promise<void>;
@@ -52,6 +62,11 @@ export async function createTestWorkflowEnvironment<TEnv>(
  *   the runtime sees first via finally semantics). Either is an actionable
  *   signal; silent success is NOT acceptable and is the whole reason this
  *   helper exists.
+ *
+ * Note: the SDK's own `TestWorkflowEnvironment.teardown()` logs and swallows
+ * its internal close/shutdown failures (see module docstring). The
+ * propagation semantics above apply to errors that cross the `teardown()`
+ * call boundary itself — custom envs and wrapper-level failures.
  */
 export async function withTestWorkflowEnvironment<
   TEnv extends TestEnvironmentLike,
@@ -66,4 +81,43 @@ export async function withTestWorkflowEnvironment<
   } finally {
     await env.teardown();
   }
+}
+
+/**
+ * Named constructor: create a time-skipping test environment from the stable
+ * non-worktree cwd.
+ *
+ * Raw `TestWorkflowEnvironment.create*` calls must stay inside this module so
+ * every construction path is auditable in one place. Call sites use these
+ * wrappers (or `withTimeSkippingTestWorkflowEnvironment` for full lifecycle).
+ */
+export function createTimeSkippingTestWorkflowEnvironment(): Promise<TestWorkflowEnvironment> {
+  return createTestWorkflowEnvironment(() =>
+    TestWorkflowEnvironment.createTimeSkipping(),
+  );
+}
+
+/**
+ * Named constructor: create a full local (non-time-skipping) test environment
+ * from the stable non-worktree cwd.
+ */
+export function createLocalTestWorkflowEnvironment(): Promise<TestWorkflowEnvironment> {
+  return createTestWorkflowEnvironment(() =>
+    TestWorkflowEnvironment.createLocal(),
+  );
+}
+
+/**
+ * Create a time-skipping test environment, run `fn` with it, and always tear
+ * down. Equivalent to
+ * `withTestWorkflowEnvironment(() => TestWorkflowEnvironment.createTimeSkipping(), fn)`
+ * with construction owned by this module.
+ */
+export function withTimeSkippingTestWorkflowEnvironment<TResult>(
+  fn: (env: TestWorkflowEnvironment) => Promise<TResult>,
+): Promise<TResult> {
+  return withTestWorkflowEnvironment(
+    createTimeSkippingTestWorkflowEnvironment,
+    fn,
+  );
 }

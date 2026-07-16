@@ -797,15 +797,17 @@ Any code that enqueues more than a handful of workflows in a loop must satisfy *
 ### Positive pattern
 
 ```typescript
-import { TestWorkflowEnvironment } from "@temporalio/testing";
-import { withTestWorkflowEnvironment } from "./with-test-env";
+import {
+  createLocalTestWorkflowEnvironment,
+  withTestWorkflowEnvironment,
+} from "./with-test-env";
 
 async function dryRunBulkEnqueue(
   changes: Change[],
   projectId: string,
 ): Promise<void> {
   await withTestWorkflowEnvironment(
-    () => TestWorkflowEnvironment.createLocal(),
+    createLocalTestWorkflowEnvironment,
     async (env) => {
       const queue = `advance-${projectId}`;
       for (const change of changes) {

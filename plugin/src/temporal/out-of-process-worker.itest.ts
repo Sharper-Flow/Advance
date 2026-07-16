@@ -25,10 +25,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { TestWorkflowEnvironment } from "@temporalio/testing";
 import {
-  createTestWorkflowEnvironment,
-  withTestWorkflowEnvironment,
+  createTimeSkippingTestWorkflowEnvironment,
+  withTimeSkippingTestWorkflowEnvironment,
 } from "./__tests__/with-test-env";
 import { createOutOfProcessWorker } from "./out-of-process-worker";
 import { resolveNodeExecutable } from "./runtime-manager";
@@ -55,48 +54,44 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
     const script = workerScriptAvailable();
     expect(script).not.toBeNull();
 
-    await withTestWorkflowEnvironment(
-      () => TestWorkflowEnvironment.createTimeSkipping(),
-      async (env) => {
-        const address = String(env.address ?? "127.0.0.1:7233");
+    await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+      const address = String(env.address ?? "127.0.0.1:7233");
 
-        // Retry worker creation — child process may exit before ready IPC
-        // due to Temporal server startup timing or port races (CI flake).
-        const worker = await retry(
-          async () => {
-            const w = await createOutOfProcessWorker({
-              address,
-              namespace: "default",
-              queues: ["advance-oop-itest"],
-              workerScript: script!.path,
-              projectId: "oop-itest",
-            });
-            await waitForWorkerAlive(w, 5_000, 100);
-            return w;
-          },
-          3,
-          1_000,
-        );
+      // Retry worker creation — child process may exit before ready IPC
+      // due to Temporal server startup timing or port races (CI flake).
+      const worker = await retry(
+        async () => {
+          const w = await createOutOfProcessWorker({
+            address,
+            namespace: "default",
+            queues: ["advance-oop-itest"],
+            workerScript: script!.path,
+            projectId: "oop-itest",
+          });
+          await waitForWorkerAlive(w, 5_000, 100);
+          return w;
+        },
+        3,
+        1_000,
+      );
 
-        try {
-          expect(worker.queues).toEqual(["advance-oop-itest"]);
-          expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
-            true,
-          );
-        } finally {
-          await worker.shutdown();
-          expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(
-            false,
-          );
-        }
-      },
-    );
+      try {
+        expect(worker.queues).toEqual(["advance-oop-itest"]);
+        expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(true);
+      } finally {
+        await worker.shutdown();
+        expect((worker as { isAlive?: () => boolean }).isAlive?.()).toBe(false);
+      }
+    });
   }, 120_000);
 
   it("reaps the specific temporal-test-server process opened for its port", async () => {
-    const env = await createTestWorkflowEnvironment(() =>
-      TestWorkflowEnvironment.createTimeSkipping(),
-    );
+    // DELIBERATE EXCEPTION: this test asserts the test-server PID actually
+    // exits after teardown(), so it must control teardown timing explicitly
+    // and cannot route through withTimeSkippingTestWorkflowEnvironment
+    // (whose teardown runs only in finally). Construction still goes through
+    // the helper-owned named constructor.
+    const env = await createTimeSkippingTestWorkflowEnvironment();
     const port = extractPort(String(env.address ?? ""));
     expect(port).not.toBeNull();
 
@@ -219,5 +214,5 @@ if (!canRun) {
 }
 
 // beforeAll/afterAll are intentionally not imported here; the in-process
-// itest pattern uses them, but withTestWorkflowEnvironment owns lifecycle
+// itest pattern uses them, but the with-test-env helpers own lifecycle
 // in this file.
