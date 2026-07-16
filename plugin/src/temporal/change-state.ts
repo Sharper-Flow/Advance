@@ -897,6 +897,10 @@ export function applyTaskCompletedToState(
     return state;
   }
 
+  // rq-delDefaults10: frontend completion structurally requires one
+  // matching-cycle adv-designer follow-up after successful engineer or safe
+  // inline implementation; the task's active apply cycle anchors that
+  // evidence — no cycle anchor, no completion.
   if (task.metadata?.frontend === "true") {
     const implementationCycleId = task.apply_cycle?.implementation_cycle_id;
     if (!implementationCycleId) {

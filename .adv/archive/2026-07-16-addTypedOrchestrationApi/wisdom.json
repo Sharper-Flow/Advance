@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-36PXKb",
+      "type": "gotcha",
+      "content": "ChangeWorkflowState.status uses the narrow ChangeStatus union (\"draft\"|\"archived\"|\"closed\"), not Change.status's wider union (\"active\", ...). Synthetic ChangeWorkflowState fixtures must use \"draft\" for active changes — \"active\" fails tsc --noEmit even though vitest runs fine. Separately: with all 7 gate keys present, phase-plan derivation is total (cannot throw); to exercise degraded-plan consumer wiring, either module-mock deriveDirectiveSafe to undefined (gate-status, which also runs getIncompleteGates over the gates) or use real missing-key gates only where the consumer path is optional-chain safe (status-enrich's fallbackNextGate).",
+      "source_task": "tk-c9beb1315936",
+      "recorded_at": "2026-07-16T03:56:41.099Z"
+    }
+  ],
+  "count": 1
+}

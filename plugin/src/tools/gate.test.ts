@@ -13,6 +13,12 @@ import { tmpdir } from "os";
 import { COMMAND_MANIFEST } from "../manifest";
 import { gateTools, validateGateBoundary } from "./gate";
 import type { Store } from "../storage/store";
+import {
+  PARITY_ROWS,
+  toolChangeFor,
+} from "../__tests__/phase-plan-parity-matrix";
+import { changeToDirectiveState } from "../temporal/change-state";
+import { deriveWorkflowDirective } from "../utils/workflow-directive";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -1437,6 +1443,60 @@ describe("gate tools — signal-driven lifecycle", () => {
       } finally {
         await rm(tmp, { recursive: true, force: true });
       }
+    });
+  });
+
+  describe("adv_gate_status — parity matrix (AC6)", () => {
+    // Every matrix row with a well-formed durable projection: all seven gate
+    // positions plus approval, readiness-blocked, precise recovery,
+    // precedence collisions, archived, and closed. The malformed row is
+    // excluded here — gate status throws on a gate record with missing
+    // entries before the directive fallback engages (its degraded-read path
+    // is covered by the adv_change_show parity table).
+    const rows = PARITY_ROWS.filter(
+      (row) => row.expect.gateStatus !== undefined,
+    );
+
+    test.each(rows)("$name", async (row) => {
+      const store = createMockStore({
+        gates: row.state.gates,
+        change: toolChangeFor(row),
+      });
+      mocks.querySignal.mockResolvedValueOnce(row.state.gates);
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      const expected = row.expect.gateStatus!;
+      expect(parsed.nextGate).toBe(expected.nextGate);
+      expect(parsed.canArchive).toBe(expected.canArchive);
+      expect(parsed._directive.action.kind).toBe(
+        row.expect.directiveActionKind,
+      );
+      if (row.expect.planKind === "actionable") {
+        expect(parsed._directive.action.command).toBe(row.expect.planCommand);
+        expect(parsed._directive.action.gateId).toBe(row.expect.planGateId);
+      } else {
+        // Non-authorizing actions carry no command route.
+        expect(parsed._directive.action).not.toHaveProperty("command");
+      }
+
+      // AC6: the returned guidance is exactly the canonical directive derived
+      // from the same durable projection — no second derivation path.
+      const change = (await store.changes.get("test-change")).data!;
+      expect(parsed._directive).toEqual(
+        deriveWorkflowDirective(
+          changeToDirectiveState({
+            projectId: "test-project-id",
+            change,
+            gates: row.state.gates,
+          }),
+          Date.now(),
+        ),
+      );
     });
   });
 });

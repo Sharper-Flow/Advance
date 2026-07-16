@@ -197,6 +197,7 @@ function parseCLI() {
       all: { type: "boolean", short: "a", default: false },
       temperature: { type: "string" },
       "max-tokens": { type: "string" },
+      "metrics-only": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
     strict: true,
@@ -215,9 +216,10 @@ Options:
   -a, --all               Run evaluation for all configured providers
   --temperature <num>     Override default temperature (default: 0)
   --max-tokens <num>      Override max output tokens (default: 4096)
+  --metrics-only          Print prompt-size metrics without provider calls
   -h, --help              Show this help
 
-Requires OPENROUTER_API_KEY environment variable.
+Requires OPENROUTER_API_KEY environment variable unless --metrics-only is set.
 Results stored in scripts/provider-eval-results/<run-id>/`);
     process.exit(0);
   }
@@ -241,7 +243,7 @@ Results stored in scripts/provider-eval-results/<run-id>/`);
   }
 
   if (values.all) {
-    return { providers: Object.keys(PROVIDERS) };
+    return { providers: Object.keys(PROVIDERS), metricsOnly: values["metrics-only"] };
   }
 
   const providerName = values.provider;
@@ -259,7 +261,7 @@ Results stored in scripts/provider-eval-results/<run-id>/`);
     process.exit(1);
   }
 
-  return { providers: [providerName] };
+  return { providers: [providerName], metricsOnly: values["metrics-only"] };
 }
 
 function parseFiniteNumberOption(
@@ -649,7 +651,10 @@ function loadPrompts(providerName: string): TestPrompt[] {
   return prompts;
 }
 
-async function runEvaluation(providerName: string): Promise<void> {
+async function runEvaluation(
+  providerName: string,
+  options: { metricsOnly?: boolean } = {},
+): Promise<void> {
   const config = PROVIDERS[providerName];
   if (!config) {
     console.error(`Unknown provider: ${providerName}`);
@@ -726,6 +731,10 @@ async function runEvaluation(providerName: string): Promise<void> {
   console.log(
     `Selected runtime prompt: ${formatSize(promptMetrics.selected_agent_runtime_prompt)}\n`,
   );
+
+  if (options.metricsOnly) {
+    return;
+  }
 
   // Load test prompts
   const prompts = loadPrompts(providerName);
@@ -1019,9 +1028,9 @@ function formatComparison(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const { providers } = parseCLI();
+  const { providers, metricsOnly } = parseCLI();
 
-  if (!process.env.OPENROUTER_API_KEY?.trim()) {
+  if (!metricsOnly && !process.env.OPENROUTER_API_KEY?.trim()) {
     console.error(
       "Error: OPENROUTER_API_KEY is required for provider evaluation.",
     );
@@ -1036,7 +1045,7 @@ async function main() {
   console.log("");
 
   for (const provider of providers) {
-    await runEvaluation(provider);
+    await runEvaluation(provider, { metricsOnly });
   }
 
   console.log(`\n${"=".repeat(70)}`);
