@@ -19,7 +19,8 @@
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const PLUGIN_BUNDLE_MANIFEST_FILENAME = "plugin-bundle-manifest.json";
 export const PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION = 1;
@@ -219,4 +220,41 @@ export function comparePluginBundleGenerations(
     reason: "generation_mismatch",
     recovery: RESTART_RECOVERY,
   };
+}
+
+/**
+ * Read the deployed manifest and compare it against the loaded plugin bundle
+ * generation. The optional `loadedGenerationOverride` supports tests; when
+ * omitted, the generation captured at module evaluation is used.
+ */
+export async function getPluginBundleFreshness(
+  distDir: string,
+  loadedGenerationOverride?: string,
+): Promise<PluginBundleFreshness> {
+  const loaded = loadedGenerationOverride ?? getLoadedPluginBundleGeneration();
+  const deployed = await readPluginBundleManifest(distDir);
+  return comparePluginBundleGenerations(loaded, deployed);
+}
+
+/**
+ * Resolve the Advance plugin root directory from the location of this module.
+ *
+ * This module lives at `plugin/src/plugin-bundle-manifest.ts` in source and is
+ * bundled into `plugin/dist/index.js` (or a sibling `plugin/dist/chunk-*.js`)
+ * at runtime. In both contexts the parent directory of the module's directory
+ * is the plugin root (`.../advance/plugin`), never the repo root.
+ */
+export function getPluginRoot(moduleUrl: string = import.meta.url): string {
+  return resolve(dirname(fileURLToPath(moduleUrl)), "..");
+}
+
+/**
+ * Resolve the `plugin/dist` directory that hosts the deployed bundle and its
+ * sidecar manifest. Centralizes the path calculation so callers do not drift
+ * between source and bundled runtime contexts.
+ */
+export function getPluginBundleDistDir(
+  moduleUrl: string = import.meta.url,
+): string {
+  return resolve(getPluginRoot(moduleUrl), "dist");
 }

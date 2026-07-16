@@ -10,6 +10,9 @@ import {
   comparePluginBundleGenerations,
   generatePluginBundleGeneration,
   getLoadedPluginBundleGeneration,
+  getPluginBundleDistDir,
+  getPluginBundleFreshness,
+  getPluginRoot,
   readPluginBundleManifest,
   writePluginBundleManifest,
 } from "./plugin-bundle-manifest";
@@ -20,23 +23,23 @@ function sha256(text: string): string {
   return createHash("sha256").update(text).digest("hex");
 }
 
+let tempDirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(tempDirs.map((dir) => cleanupTempDir(dir)));
+  tempDirs = [];
+});
+
+const tempDistDir = async (withIndex = true) => {
+  const dir = await createTempDir("plugin-bundle-manifest-");
+  tempDirs.push(dir);
+  if (withIndex) {
+    await writeFile(join(dir, "index.js"), "// plugin bundle v1\n");
+  }
+  return dir;
+};
+
 describe("plugin bundle manifest", () => {
-  let tempDirs: string[] = [];
-
-  afterEach(async () => {
-    await Promise.all(tempDirs.map((dir) => cleanupTempDir(dir)));
-    tempDirs = [];
-  });
-
-  const tempDistDir = async (withIndex = true) => {
-    const dir = await createTempDir("plugin-bundle-manifest-");
-    tempDirs.push(dir);
-    if (withIndex) {
-      await writeFile(join(dir, "index.js"), "// plugin bundle v1\n");
-    }
-    return dir;
-  };
-
   test("generatePluginBundleGeneration returns opaque 64-hex digest", () => {
     const gen = generatePluginBundleGeneration();
     expect(gen).toMatch(/^[0-9a-f]{64}$/);
@@ -209,5 +212,91 @@ describe("plugin bundle manifest", () => {
     // In test source execution, the build-time define is not injected, so it
     // returns null. This still proves the capture path is wired and safe.
     expect(getLoadedPluginBundleGeneration()).toBeNull();
+  });
+});
+
+describe("getPluginBundleFreshness", () => {
+  test("returns current when loaded and deployed generations match", async () => {
+    const dir = await tempDistDir();
+    const generation = generatePluginBundleGeneration();
+    await writePluginBundleManifest(dir, generation, { now: () => NOW });
+    const result = await getPluginBundleFreshness(dir, generation);
+    expect(result.state).toBe("current");
+    expect(result.loadedGeneration).toBe(generation);
+    expect(result.deployedGeneration).toBe(generation);
+    expect(result.reason).toBeNull();
+    expect(result.recovery).toBeNull();
+  });
+
+  test("returns stale with typed advisory when generations differ", async () => {
+    const dir = await tempDistDir();
+    const loaded = generatePluginBundleGeneration();
+    const deployed = generatePluginBundleGeneration();
+    await writePluginBundleManifest(dir, deployed, { now: () => NOW });
+    const result = await getPluginBundleFreshness(dir, loaded);
+    expect(result.state).toBe("stale");
+    expect(result.advisoryType).toBe(PLUGIN_BUNDLE_STALE_ADVISORY);
+    expect(result.loadedGeneration).toBe(loaded);
+    expect(result.deployedGeneration).toBe(deployed);
+    expect(result.recovery).toMatch(/restart/i);
+  });
+
+  test("returns unknown with bounded reason when loaded generation is missing", async () => {
+    const dir = await tempDistDir();
+    const deployed = generatePluginBundleGeneration();
+    await writePluginBundleManifest(dir, deployed, { now: () => NOW });
+    const result = await getPluginBundleFreshness(dir);
+    expect(result.state).toBe("unknown");
+    expect(result.reason).toBe("missing_loaded_generation");
+    expect(result.loadedGeneration).toBeNull();
+  });
+
+  test("returns unknown with bounded reason when manifest is missing", async () => {
+    const dir = await tempDistDir();
+    const loaded = generatePluginBundleGeneration();
+    const result = await getPluginBundleFreshness(dir, loaded);
+    expect(result.state).toBe("unknown");
+    expect(result.reason).toBe("missing_manifest");
+    expect(result.deployedGeneration).toBeNull();
+  });
+});
+
+describe("plugin bundle path resolution", () => {
+  test("getPluginRoot resolves plugin root from source index.ts module", () => {
+    const srcUrl = "file:///home/user/advance/plugin/src/index.ts";
+    expect(getPluginRoot(srcUrl)).toBe("/home/user/advance/plugin");
+  });
+
+  test("getPluginRoot resolves plugin root from bundled dist/index.js module", () => {
+    const distUrl = "file:///home/user/advance/plugin/dist/index.js";
+    expect(getPluginRoot(distUrl)).toBe("/home/user/advance/plugin");
+  });
+
+  test("getPluginRoot resolves plugin root from bundled dist chunk module", () => {
+    const chunkUrl = "file:///home/user/advance/plugin/dist/chunk-PL7DRBOO.js";
+    expect(getPluginRoot(chunkUrl)).toBe("/home/user/advance/plugin");
+  });
+
+  test("getPluginBundleDistDir resolves plugin/dist from source module", () => {
+    const srcUrl =
+      "file:///home/user/advance/plugin/src/plugin-bundle-manifest.ts";
+    expect(getPluginBundleDistDir(srcUrl)).toBe(
+      "/home/user/advance/plugin/dist",
+    );
+  });
+
+  test("getPluginBundleDistDir resolves plugin/dist from bundled chunk module", () => {
+    const chunkUrl = "file:///home/user/advance/plugin/dist/chunk-PL7DRBOO.js";
+    expect(getPluginBundleDistDir(chunkUrl)).toBe(
+      "/home/user/advance/plugin/dist",
+    );
+  });
+
+  test("getPluginBundleDistDir returns a path inside plugin root, not repo root", () => {
+    const distUrl = "file:///home/user/advance/plugin/dist/index.js";
+    const distDir = getPluginBundleDistDir(distUrl);
+    expect(distDir).not.toBe("/home/user/advance/dist");
+    expect(distDir).not.toBe("/home/user/dist");
+    expect(distDir).toMatch(/\/advance\/plugin\/dist$/);
   });
 });
