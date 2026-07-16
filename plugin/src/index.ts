@@ -42,8 +42,13 @@ import {
   recordSystemBlockBytes,
   resetMetrics,
 } from "./utils/metrics";
+import { initializeToolSchemaTelemetry } from "./utils/tool-schema-telemetry";
 
-import { createToolMap, createDegradedToolMap } from "./tool-registry";
+import {
+  createToolMap,
+  createDegradedToolMap,
+  getRegisteredAdvToolEntries,
+} from "./tool-registry";
 import { loadProjectConfigWithDiagnostics } from "./storage/json";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
@@ -436,6 +441,9 @@ const advancePluginImpl: Plugin = async (input) => {
   // AC6 — reset session-scoped metrics on every plugin init. JC-1 keeps
   // metrics in-memory only; no persistence across plugin restarts.
   resetMetrics();
+  // AC1 — schema conversion is amortized at init; request hooks only read the
+  // retained manifest through the status health surface.
+  initializeToolSchemaTelemetry(getRegisteredAdvToolEntries());
 
   // No handoff.json hydration: session startup is now workflow-backed.
   // The old external handoff file is transitional legacy state and will be

@@ -1003,6 +1003,14 @@ const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(
 );
 
 /**
+ * Registered ADV tool definitions for init-time schema telemetry. The entries
+ * intentionally reuse the inventory that parity-tests against createToolMap.
+ */
+export function getRegisteredAdvToolEntries(): readonly PublicToolEntry[] {
+  return PUBLIC_TOOL_ENTRIES;
+}
+
+/**
  * Live tool-surface lookup (addAcWarrantGuard): tool name → set of declared
  * argument keys, derived from PUBLIC_TOOL_ENTRIES (data only — no `execute`
  * invocation). This is the source of truth used to verify capability warrants
