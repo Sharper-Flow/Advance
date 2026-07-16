@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { runTimedSamples } from "../perf/latency";
 import {
   getCacheTokenTelemetry,
   recordStepFinishTokens,
@@ -42,5 +43,25 @@ describe("recordStepFinishTokens", () => {
       }),
     ).toBe(false);
     expect(getCacheTokenTelemetry().sample_count).toBe(0);
+  });
+});
+
+describe("recordStepFinishTokens overhead", () => {
+  it("p95 handler latency stays under 2ms", async () => {
+    const payload = {
+      type: "step-finish",
+      tokens: { input: 120, cache: { read: 80, write: 12 } },
+    };
+
+    const measurement = await runTimedSamples(
+      "recordStepFinishTokens",
+      async () => {
+        recordStepFinishTokens(payload);
+      },
+      500,
+      20,
+    );
+
+    expect(measurement.stats.p95_ms).toBeLessThan(2);
   });
 });

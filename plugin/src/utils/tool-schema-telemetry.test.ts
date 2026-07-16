@@ -1,7 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { buildToolSchemaManifest } from "./tool-schema-telemetry";
+import {
+  buildToolSchemaManifest,
+  getToolSchemaManifest,
+  initializeToolSchemaTelemetry,
+  resetToolSchemaTelemetry,
+} from "./tool-schema-telemetry";
+import * as toolSchemaTelemetry from "./tool-schema-telemetry";
 
 describe("buildToolSchemaManifest", () => {
   it("measures host-equivalent JSON schema UTF-8 bytes and an advisory estimate", () => {
@@ -43,5 +49,24 @@ describe("buildToolSchemaManifest", () => {
       schema_bytes: null,
       approx_tokens_4char_rule: null,
     });
+  });
+});
+
+describe("initializeToolSchemaTelemetry", () => {
+  it("caches the manifest and does not rebuild on reads", () => {
+    resetToolSchemaTelemetry();
+    const manifest = initializeToolSchemaTelemetry([
+      ["adv_test", { value: z.string() }],
+    ]);
+
+    const buildSpy = vi
+      .spyOn(toolSchemaTelemetry, "buildToolSchemaManifest")
+      .mockImplementation(() => {
+        throw new Error("manifest should not be rebuilt on read");
+      });
+
+    const read = getToolSchemaManifest();
+    expect(read.total_tools).toBe(manifest.total_tools);
+    expect(buildSpy).toHaveBeenCalledTimes(0);
   });
 });
