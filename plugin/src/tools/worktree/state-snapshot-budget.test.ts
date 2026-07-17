@@ -205,4 +205,32 @@ describe("getWorktreeRegistrySnapshot (bounded)", () => {
     expect(resultAfterAbort.complete).toBe(false);
     expect(resultAfterAbort.stopReason).toBe("caller_cancelled");
   });
+
+  it("returns partial state when an admitted workflow query outlives the budget", async () => {
+    mockListChangeIds(["c1", "c2"]);
+    queryFn.mockImplementation(() => new Promise(() => {}));
+
+    const result = await getWorktreeRegistrySnapshot(access, {
+      timeoutMs: 10,
+    });
+
+    expect(result).toMatchObject({
+      complete: false,
+      stopReason: "internal_budget_exhausted",
+      candidateCount: 2,
+    });
+    expect(result.omitted).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scope: "query_change_workflow",
+          changeId: "c1",
+          reason: "inventory stopped before workflow query settled",
+        }),
+        expect.objectContaining({
+          scope: "query_change_workflow",
+          changeId: "c2",
+        }),
+      ]),
+    );
+  });
 });

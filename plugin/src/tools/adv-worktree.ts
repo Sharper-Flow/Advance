@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { INVENTORY_INTERNAL_BUDGET_MS } from "./worktree/inventory-budget";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
 import type { OpencodeClient } from "../utils/opencode-types";
@@ -743,15 +744,36 @@ export const advWorktreeTools = {
           "Optional project root override (defaults to current working directory)",
         ),
     },
-    execute: async (args: { projectRoot?: string }, store: Store) => {
+    execute: async (
+      args: { projectRoot?: string },
+      context: Store | { store: Store; signal?: AbortSignal },
+    ) => {
+      const store = "store" in context ? context.store : context;
+      const signal = "store" in context ? context.signal : undefined;
       const repoRoot = args.projectRoot ?? store.paths.root;
       const result = await triageWorktrees(repoRoot, undefined, {
         currentProjectRoot: store.paths.root,
+        callerSignal: signal,
+        timeoutMs: INVENTORY_INTERNAL_BUDGET_MS,
       });
       return formatToolOutput({
-        success: true,
+        // An incomplete inventory is actionable but not successful: omitted
+        // worktrees must never be mistaken for clean or deletion-safe.
+        success: result.complete !== false,
         orphans: result.orphans,
         total: result.total,
+        complete: result.complete ?? true,
+        ...(result.stopReason ? { stopReason: result.stopReason } : {}),
+        ...(result.stoppedStage ? { stoppedStage: result.stoppedStage } : {}),
+        ...(typeof result.inspectedCount === "number"
+          ? { inspectedCount: result.inspectedCount }
+          : {}),
+        ...(typeof result.candidateCount === "number"
+          ? { candidateCount: result.candidateCount }
+          : {}),
+        ...(result.omitted ? { omitted: result.omitted } : {}),
+        ...(result.stageTimings ? { stageTimings: result.stageTimings } : {}),
+        ...(result.warnings ? { warnings: result.warnings } : {}),
       });
     },
   },

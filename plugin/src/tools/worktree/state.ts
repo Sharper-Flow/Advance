@@ -798,6 +798,43 @@ export async function listWorktreesAcrossChanges(
   return snapshot;
 }
 
+class InventoryInspectionStoppedError extends Error {
+  constructor() {
+    super("worktree inventory stopped before query settled");
+    this.name = "InventoryInspectionStoppedError";
+  }
+}
+
+/**
+ * Let an admitted Temporal query settle in the background, but stop waiting
+ * when inventory cancellation fires. This preserves time to render an honest
+ * partial response instead of consuming the outer tool timeout.
+ */
+function awaitInventoryQuery<T>(
+  operation: Promise<T>,
+  budget: InventoryBudget | undefined,
+): Promise<T> {
+  if (!budget) return operation;
+  if (budget.signal.aborted) {
+    return Promise.reject(new InventoryInspectionStoppedError());
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new InventoryInspectionStoppedError());
+    budget.signal.addEventListener("abort", onAbort, { once: true });
+    operation.then(
+      (value) => {
+        budget.signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error) => {
+        budget.signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
 export async function getWorktreeRegistrySnapshot(
   access: WorktreeStateAccess,
   options?: {
@@ -951,8 +988,19 @@ export async function getWorktreeRegistrySnapshot(
     const handle = client.workflow.getHandle!(workflowId);
     let state: ChangeWorkflowState;
     try {
-      state = (await handle.query(getStateQuery)) as ChangeWorkflowState;
+      state = (await awaitInventoryQuery(
+        handle.query(getStateQuery),
+        budget,
+      )) as ChangeWorkflowState;
     } catch (error) {
+      if (error instanceof InventoryInspectionStoppedError) {
+        omitted.push({
+          scope: "query_change_workflow",
+          changeId,
+          reason: "inventory stopped before workflow query settled",
+        });
+        return;
+      }
       if (admit("classify_workflow_failure")) {
         const classification = await classifyWorktreeWorkflowFailure(
           handle,

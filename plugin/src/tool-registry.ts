@@ -952,10 +952,27 @@ export function createToolMap(
         ),
       ),
     ),
-    adv_worktree_triage: bindTool(
-      advWorktreeTools.adv_worktree_triage,
-      "adv_worktree_triage",
-      store,
+    // Triage shares the 55s bounded inventory collector with WIP. Preserve a
+    // 5s formatting reserve beneath this 60s outer containment so partial
+    // findings and omissions return before safeExecute can become opaque.
+    adv_worktree_triage: registerTool(
+      advWorktreeTools.adv_worktree_triage.description,
+      advWorktreeTools.adv_worktree_triage.args,
+      namedExecute(
+        "adv_worktree_triage",
+        safeExecute(
+          async (args, sdkContext: unknown) =>
+            advWorktreeTools.adv_worktree_triage.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_triage.execute
+              >[0],
+              { store, signal: extractAbortSignal(sdkContext) },
+            ),
+          "adv_worktree_triage",
+          undefined,
+          { timeoutMs: WIP_CALLER_TIMEOUT_MS },
+        ),
+      ),
     ),
 
     // Session Tools

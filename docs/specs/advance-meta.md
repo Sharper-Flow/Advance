@@ -1366,20 +1366,20 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 - The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative
 - The tool is registered with an explicit safety-net timeout override that exceeds the verification budget with modest headroom
 
-**adv_wip_state uses bounded worktree inventory with degraded partial response** (`rq-toolTimeoutOverride01.3`)
+**Worktree readers use bounded inventory with degraded partial response** (`rq-toolTimeoutOverride01.3`)
 
 **Given:**
 - A project with many active change workflows
-- `adv_wip_state` is invoked to read active changes, cross-change worktree inventory, and peer sessions
+- `adv_wip_state` or `adv_worktree_triage` is invoked to read cross-change worktree inventory
 
 **When:**
 - The worktree inventory fan-out exceeds the default 10s tool safety net
 
 **Then:**
-- The tool is registered with an explicit `{ timeoutMs: 60_000 }` outer safety net (`WIP_CALLER_TIMEOUT_MS`)
+- Each tool is registered with an explicit `{ timeoutMs: 60_000 }` outer safety net (`WIP_CALLER_TIMEOUT_MS`)
 - The inner worktree collector uses a 55s budget (`INVENTORY_INTERNAL_BUDGET_MS`), reserving 5s to render a partial response
-- If the collector stops early, the response still contains `active_changes` and `peer_sessions`
-- A typed `degradation.worktree` warning is returned with `complete: false`, `stopReason`, `stoppedStage`, `inspectedCount`, and `candidateCount`
+- If the collector stops early, WIP still contains `active_changes` and `peer_sessions`; triage returns inspected findings plus explicit omitted scope
+- A typed WIP `degradation.worktree` warning or triage partial response returns `complete: false`, `stopReason`, `stoppedStage`, `inspectedCount`, and `candidateCount`
 - The host abort signal is forwarded to the collector so caller cancellation stops new workflow queries without losing already-settled sections
 
 ---
