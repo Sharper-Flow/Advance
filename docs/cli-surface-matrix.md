@@ -84,6 +84,8 @@
 | `adv_session_list` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_session_show` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_worktree_triage` | `mcp+cli-additive` | Human inventory/report; additive CLI output |
+| `adv_tool_catalog` | `keep-mcp-only` | Bounded metadata read; agent/profile-author surface |
+| `adv_tool_describe` | `keep-mcp-only` | Single-tool schema/metadata read; agent/profile-author surface |
 | `adv_conformance` | `mcp+cli-additive` | CLI read/CI verdict additive; init/lock/unlock/override remain MCP-gated |
 | `adv_task_show` | `keep-mcp-only` | Agent-workflow reads; low standalone CLI value |
 | `adv_task_list` | `keep-mcp-only` | Agent-workflow reads; low standalone CLI value |
@@ -98,6 +100,7 @@
 | `adv_run_test` | `keep-mcp-only` | Workflow-bound test evidence tool |
 | `adv_task_checkpoint` | `keep-mcp-only` | Workflow-bound checkpoint tool |
 | `adv_subagent_report_submit` | `keep-mcp-only` | Workflow-bound report ingestion |
+| `adv_lightweight_profile_evaluate` | `keep-mcp-only` | Workflow-bound gate evaluation signal tool |
 | `adv_worktree_cleanup` | `keep-mcp-only` | Preview MCP-side; mutation approval-gated |
 | `adv_change_create` | `no-cli-dangerous` | Change mutation |
 | `adv_change_update` | `no-cli-dangerous` | Change mutation |

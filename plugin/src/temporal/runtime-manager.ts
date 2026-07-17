@@ -295,6 +295,10 @@ function buildSafeSpawnEnv(
   ) as NodeJS.ProcessEnv;
 }
 
+export const ADV_TEMPORAL_WORKER_SELF_ROLL_ENV =
+  "ADV_TEMPORAL_WORKER_SELF_ROLL";
+export const ADV_TEMPORAL_WORKER_SELF_ROLL_CAPABILITY = "1";
+
 export function buildTemporalWorkerProcessSpec(input: {
   workerScript: string;
   taskQueue: string;
@@ -311,6 +315,8 @@ export function buildTemporalWorkerProcessSpec(input: {
       ADV_TEMPORAL_NAMESPACE: input.namespace,
       ADV_TEMPORAL_TASK_QUEUE: input.taskQueue,
       ADV_TEMPORAL_PROJECT_ID: input.projectId,
+      [ADV_TEMPORAL_WORKER_SELF_ROLL_ENV]:
+        ADV_TEMPORAL_WORKER_SELF_ROLL_CAPABILITY,
     },
   };
 }

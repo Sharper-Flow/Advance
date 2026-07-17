@@ -17,7 +17,7 @@
  *      (NOT crash-respawn, NOT shutdown — see worker-multi.ts) and only
  *      AFTER the replacement child's ready handshake records the new
  *      generation in-memory and hands it to the heartbeat controller,
- *      which stamps worker.lock on its next beat.
+ *      which stamps worker.lock atomically immediately after readiness.
  *
  * Hard rules (design constraints):
  *   - Owner-driven only: rolls happen exclusively when THIS process holds
@@ -51,11 +51,16 @@ export interface WorkerBundleRollMonitorOptions {
   restartChild: () => Promise<void>;
   /**
    * Sole-writer handoff: the worker.lock heartbeat controller's
-   * `setBundleGeneration`. Invoked with the generation the current child
+   * `stampBundleGeneration`. Invoked with the generation the current child
    * is running — at spawn (via `initWorkerBundleRoll`) and after every
-   * successful roll — so the heartbeat stamps it on its next beat. When
-   * omitted, the monitor still tracks the generation in-memory (drift
-   * detection is unaffected); the lock simply is never stamped.
+   * successful roll — so the heartbeat stamps it atomically immediately
+   * after readiness, without waiting for the next scheduled beat.
+   */
+  stampBundleGeneration?: (generation: string) => Promise<void>;
+  /**
+   * Override-only handoff: used when `stampBundleGeneration` is not
+   * provided (tests/back-compat). The generation is written together
+   * with `last_heartbeat` on the next beat.
    */
   setBundleGeneration?: (generation: string) => void;
   /**
@@ -143,10 +148,15 @@ export function createWorkerBundleRollMonitor(
 
       // Readiness gate passed — the replacement child is running
       // `manifestGeneration` NOW. Record it in-memory immediately and
-      // hand it to the heartbeat (the sole worker.lock writer), which
-      // stamps it together with last_heartbeat on its next beat.
+      // hand it to the heartbeat (the sole worker.lock writer) so the
+      // generation is stamped atomically without waiting for the next
+      // scheduled beat.
       currentGeneration = manifestGeneration;
-      options.setBundleGeneration?.(manifestGeneration);
+      if (options.stampBundleGeneration) {
+        await options.stampBundleGeneration(manifestGeneration);
+      } else {
+        options.setBundleGeneration?.(manifestGeneration);
+      }
 
       lastRolled = manifestGeneration;
       options.onRolled?.(manifestGeneration);
@@ -205,7 +215,11 @@ export async function initWorkerBundleRoll(
     options.bundleDir,
   );
   if (manifestGeneration) {
-    options.setBundleGeneration?.(manifestGeneration);
+    if (options.stampBundleGeneration) {
+      await options.stampBundleGeneration(manifestGeneration);
+    } else {
+      options.setBundleGeneration?.(manifestGeneration);
+    }
   }
   return createWorkerBundleRollMonitor({
     ...options,

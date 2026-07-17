@@ -43,6 +43,10 @@ import type { ChangeWorkflowState } from "../temporal/contracts";
 import { isPrecisePoisonedHistoryEvidence } from "../temporal/recovery-classification";
 import type { Bucket } from "./buckets";
 import { bucketCtxFromState, deriveBucket } from "./buckets";
+import type {
+  LightweightProfileOmissionPolicy,
+  LightweightProfileResult,
+} from "../types/lightweight-change-profile";
 
 // =============================================================================
 // Version and bounds
@@ -102,6 +106,13 @@ export const PlanRecoverySchema = z
   .strict();
 export type PlanRecovery = z.infer<typeof PlanRecoverySchema>;
 
+export interface DirectiveLightweightProfile {
+  result: LightweightProfileResult;
+  omissionPolicy: LightweightProfileOmissionPolicy;
+  evaluatedAt?: string;
+  downgradeReason?: string;
+}
+
 export interface DirectiveContext {
   changeId: string;
   isArchived: boolean;
@@ -113,6 +124,7 @@ export interface DirectiveContext {
   blockers: GateReadinessBlocker[];
   bucket: Bucket;
   recovery?: PlanRecovery;
+  lightweightProfile?: DirectiveLightweightProfile;
 }
 
 function gateStatusRecord(gates: Gates): Record<GateId, DirectiveGateStatus> {
@@ -212,6 +224,42 @@ function isTerminalStatus(status: ChangeWorkflowState["status"]): boolean {
   return status === "archived" || status === "closed";
 }
 
+function deriveLightweightProfile(
+  state: ChangeWorkflowState,
+): DirectiveLightweightProfile | undefined {
+  const profile = state.lightweight_profile;
+  if (!profile) return undefined;
+  const latest = profile.evaluations[profile.evaluations.length - 1];
+  if (!latest) return undefined;
+
+  // A completed gate is durable evidence that its adjacent profile boundary
+  // must have been revalidated. If collection, service, or signal delivery
+  // failed after the gate transition, a prior qualification must not keep
+  // advisory omissions active merely because it remains the latest profile
+  // evaluation. Derive the fail-closed suppression from durable gate state so
+  // it survives reads, retries, and host-process restarts.
+  const requiredPhase =
+    state.gates.execution.status === "done"
+      ? "acceptance_boundary"
+      : state.gates.planning.status === "done"
+        ? "execution_boundary"
+        : undefined;
+  if (requiredPhase && latest.phase !== requiredPhase) {
+    return {
+      result: "ineligible",
+      omissionPolicy: profile.omissionPolicy,
+      downgradeReason: `${requiredPhase} revalidation is missing after its gate boundary`,
+    };
+  }
+
+  return {
+    result: latest.result,
+    omissionPolicy: profile.omissionPolicy,
+    evaluatedAt: latest.evaluatedAt,
+    downgradeReason: latest.downgradeReason,
+  };
+}
+
 export function directiveCtxFromState(
   state: ChangeWorkflowState,
   epoch: number,
@@ -238,6 +286,7 @@ export function directiveCtxFromState(
     blockers: collectBlockers(state),
     bucket: deriveBucket(bucketCtxFromState(state, epoch)),
     recovery: deriveRecovery(state),
+    lightweightProfile: deriveLightweightProfile(state),
   };
 }
 

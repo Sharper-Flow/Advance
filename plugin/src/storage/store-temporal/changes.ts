@@ -385,10 +385,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const effectiveIncludeClosed =
         filter?.includeClosed || filter?.status === "closed";
 
-      const resolved = await listResolvedChanges({
-        includeArchived: effectiveIncludeArchived,
-        includeClosed: effectiveIncludeClosed,
-      });
+      const resolved = await listResolvedChanges(
+        {
+          includeArchived: effectiveIncludeArchived,
+          includeClosed: effectiveIncludeClosed,
+        },
+        undefined,
+        {
+          hydrationConcurrency: filter?.validationConcurrency,
+        },
+      );
       let filtered = resolved.changes;
 
       if (filter?.status) {
@@ -442,6 +448,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             .length,
           fast_follow_of: change.fast_follow_of,
           epic_membership: change.epic_membership,
+          capabilities: Object.keys(change.deltas),
         })),
         // Terminal degraded metadata is forwarded for terminal reads
         // (existing semantics); deadline-triggered incompleteness is

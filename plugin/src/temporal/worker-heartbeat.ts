@@ -42,6 +42,13 @@ export interface WorkerLockHeartbeatOptions {
 export interface WorkerLockHeartbeatController {
   beatNow: () => Promise<void>;
   /**
+   * Immediate heartbeat-owned generation stamp. Persists the handed-off
+   * generation together with `last_heartbeat` atomically now, rather than
+   * waiting for the next scheduled beat. The heartbeat remains the sole
+   * writer of worker.lock.
+   */
+  stampBundleGeneration: (generation: string) => Promise<void>;
+  /**
    * Record the bundle generation the worker child is now running. The
    * heartbeat is the SOLE writer of worker.lock after acquire: the
    * handed-off generation is written together with `last_heartbeat` in
@@ -89,6 +96,32 @@ export function startWorkerLockHeartbeat(
     clearIntervalFn(timer);
   };
 
+  const renewLockNow = async (
+    current: Date,
+    onLockRead?: () => void | Promise<void>,
+  ): Promise<boolean> => {
+    const contents = await readLockContents(lockPath).catch(() => null);
+    if (!contents || contents.schema_version !== 2) return false;
+    if (onLockRead) {
+      await onLockRead();
+    }
+    const next: WorkerLockContentsV2 = {
+      ...contents,
+      last_heartbeat: current.toISOString(),
+      ...(bundleGenerationOverride !== null
+        ? { bundle_generation: bundleGenerationOverride }
+        : {}),
+    };
+    await writeLockContentsAtomically(lockPath, next);
+    return true;
+  };
+
+  const stampBundleGeneration = async (generation: string): Promise<void> => {
+    if (stopped) return;
+    bundleGenerationOverride = generation;
+    await renewLockNow(now());
+  };
+
   const beatNow = async (): Promise<void> => {
     if (stopped) return;
 
@@ -103,21 +136,9 @@ export function startWorkerLockHeartbeat(
       firstUnserviceableAt = null;
     }
 
-    const contents = await readLockContents(lockPath).catch(() => null);
-    if (!contents || contents.schema_version !== 2) return;
-    if (options.onBeatLockRead) {
-      await options.onBeatLockRead();
-    }
-    const next: WorkerLockContentsV2 = {
-      ...contents,
-      last_heartbeat: current.toISOString(),
-      ...(bundleGenerationOverride !== null
-        ? { bundle_generation: bundleGenerationOverride }
-        : {}),
-    };
-    await writeLockContentsAtomically(lockPath, next);
+    const wrote = await renewLockNow(current, options.onBeatLockRead);
 
-    if (options.onBeat) {
+    if (wrote && options.onBeat) {
       try {
         options.onBeat();
       } catch {
@@ -133,6 +154,7 @@ export function startWorkerLockHeartbeat(
 
   return {
     beatNow,
+    stampBundleGeneration,
     setBundleGeneration: (generation: string) => {
       bundleGenerationOverride = generation;
     },

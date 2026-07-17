@@ -55,6 +55,8 @@ import type {
   OpsFollowupSeededSignalPayload,
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
+  LightweightProfileEvaluatedSignalPayload,
+  LightweightProfileRequestedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   Phase9StatusUpdatedSignalPayload,
@@ -300,6 +302,12 @@ export const opsRunUpsertedSignal = wf.defineSignal<
 export const opsRunEvidenceAppendedSignal = wf.defineSignal<
   [OpsRunEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunEvidenceAppended);
+export const lightweightProfileRequestedSignal = wf.defineSignal<
+  [LightweightProfileRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileRequested);
+export const lightweightProfileEvaluatedSignal = wf.defineSignal<
+  [LightweightProfileEvaluatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileEvaluated);
 export const epicMembershipSetSignal = wf.defineSignal<
   [EpicMembershipSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);

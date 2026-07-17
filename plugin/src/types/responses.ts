@@ -116,6 +116,13 @@ export interface ChangeListResponse {
     ops_followup_links?: OpsFollowupLink[];
     /** Optional Epic membership projection for bounded list/status annotation. */
     epic_membership?: import("./epics").EpicMembership;
+    /**
+     * Capability names derived from the change's deltas. Populated by
+     * authoritative Store implementations for one-pass validation
+     * inventory projection; omitted when the Store cannot expose it
+     * without a second read.
+     */
+    capabilities?: string[];
   }>;
   warnings?: TerminalWarning[];
   hydrationStats?: HydrationStats;

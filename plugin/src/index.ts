@@ -67,9 +67,15 @@ import {
 import { isChangeReachable, type ReachabilityDeps } from "./tools/_adapters";
 import { parseWorktreePaths } from "./utils/worktree-paths";
 import { getWorktreeBase } from "./utils/project-id";
+import {
+  getLoadedPluginBundleGeneration,
+  getPluginBundleDistDir,
+  getPluginBundleFreshness,
+} from "./plugin-bundle-manifest";
 import { existsSync } from "fs";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveGitSessionContext } from "./utils/git-session";
+import { roleFirewallCheck } from "./tool-role-firewall";
 import {
   evaluateTodoWriteGuard,
   extractTodoTaskIds,
@@ -316,6 +322,11 @@ const advancePluginImpl: Plugin = async (input) => {
   const { isWorktree, isMainCheckout } = gitSession;
   debugLog(
     `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}, isMainCheckout=${isMainCheckout}, mainCheckoutPath=${gitSession.mainCheckoutPath ?? "unknown"}`,
+  );
+  const pluginBundleDistDir = getPluginBundleDistDir();
+  const loadedBundleGeneration = getLoadedPluginBundleGeneration();
+  debugLog(
+    `Loaded plugin bundle generation: ${loadedBundleGeneration ?? "none"}`,
   );
 
   const {
@@ -595,6 +606,13 @@ const advancePluginImpl: Plugin = async (input) => {
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
+    roleFirewallCheck({
+      toolName,
+      callerSessionID:
+        typeof input.sessionID === "string" ? input.sessionID : undefined,
+      mainSessionId,
+    });
+
     if (toolName === "morph_edit") {
       const sessionID =
         typeof input.sessionID === "string" ? input.sessionID : "";
@@ -1090,12 +1108,12 @@ const advancePluginImpl: Plugin = async (input) => {
     //
     // Markers composed by `applyAdvSystemBlock` (defined in
     // `utils/system-block.ts`):
-    //   - [ADV:DEGRADED]          (degraded-mode banner)
-    //   - [ADV:SESSION_HEALTH]    (session-health banner)
-    //   - [ADV:PROVIDER_SWITCH]   (provider-switch hint)
-    //   - [ADV:WORKTREE_SESSION]  (worktree marker)
-    //   - [ADV] Active change     (active change line)
-    //   - [ADV:RECORD_WISDOM]     (wisdom recording prompt — append-only)
+    //   - [ADV:DEGRADED]              (degraded-mode banner)
+    //   - [ADV:SESSION_HEALTH]        (session-health banner)
+    //   - [ADV:PLUGIN_BUNDLE_STALE]   (deployed plugin bundle newer than loaded)
+    //   - [ADV:WORKTREE_SESSION]      (worktree marker)
+    //   - [ADV] Active change         (active change line)
+    //   - [ADV:RECORD_WISDOM]         (wisdom recording prompt — append-only)
     //
     "experimental.chat.system.transform": async (
       input,
@@ -1108,11 +1126,23 @@ const advancePluginImpl: Plugin = async (input) => {
           debugLog(`Captured mainSessionId: ${mainSessionId}`);
         }
 
+        // Reread the bounded deployed manifest every transform so a
+        // manifest replacement is surfaced on the next turn (AC7).
+        const pluginBundleFreshness = await getPluginBundleFreshness(
+          pluginBundleDistDir,
+        ).catch((err) => {
+          debugLog(
+            `plugin bundle freshness probe failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          return null;
+        });
+
         const beforeBytes = output.system[0]?.length ?? 0;
         const result = applyAdvSystemBlock(output, {
           state,
           initError,
           storeAvailable: !!store,
+          pluginBundleFreshness,
         });
 
         // AC6: track bytes added to output.system[0] this turn.

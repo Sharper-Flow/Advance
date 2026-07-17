@@ -785,7 +785,7 @@ export function createTemporalStoreBackend(
       includeClosed?: boolean;
     },
     deadline: TemporalReadDeadline = createTemporalReadDeadline(),
-    options?: { candidateLimit?: number },
+    options?: { candidateLimit?: number; hydrationConcurrency?: number },
   ): Promise<import("../store-types").ResolvedChangeList> => {
     const wantsTerminalStatuses = Boolean(
       filter?.includeArchived || filter?.includeClosed,
@@ -964,6 +964,10 @@ export function createTemporalStoreBackend(
     // against memory usage. 20 keeps per-batch latency under ~200ms with
     // typical Temporal backends while avoiding excessive concurrent signals.
     const CHANGE_LIST_BATCH_SIZE = 20;
+    const hydrationConcurrency = Math.max(
+      1,
+      Math.floor(options?.hydrationConcurrency ?? CHANGE_LIST_BATCH_SIZE),
+    );
     const changes: Change[] = [];
 
     // Layer A1 (rq-archiveRetirement01.1): per-list-call cache for archive
@@ -1145,7 +1149,7 @@ export function createTemporalStoreBackend(
       return {};
     };
 
-    for (let i = 0; i < hydrationIds.length; i += CHANGE_LIST_BATCH_SIZE) {
+    for (let i = 0; i < hydrationIds.length; i += hydrationConcurrency) {
       // Batch admission: no new load work begins after expiry. Remaining
       // candidates become typed omissions rather than hanging the read.
       if (expired()) {
@@ -1160,7 +1164,7 @@ export function createTemporalStoreBackend(
         }
         break;
       }
-      const batch = hydrationIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
+      const batch = hydrationIds.slice(i, i + hydrationConcurrency);
       const loaded = await Promise.all(batch.map(loadCandidate));
       for (const entry of loaded) {
         if (entry.change) changes.push(entry.change);

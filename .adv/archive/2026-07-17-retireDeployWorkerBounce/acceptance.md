@@ -1,0 +1,27 @@
+# Acceptance
+
+Reviewed at: 2026-07-17T02:51:09.338Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | A marked current-generation worker is not signaled during a mutating deploy and deployment exits 0 with an advisory. | pass | Marked current-generation worker left unsignaled by mutating deploy, exit 0 with advisory (deploy-local-worker-refresh fixture tests; reviewer-verified 114 targeted tests pass). |
+| SC2 | success_criterion | A legacy or unreadable-environment worker retains loud actionable failure semantics. | pass | Legacy loud semantics verified in tests AND live 2026-07-17T02:48Z: branch deploy classified pre-marker running workers as legacy, applied SIGTERM+grace, emitted [ADV:ACTION_REQUIRED] with PIDs and exited 1 for survivors. |
+| SC3 | success_criterion | Post-restart live deployment converges to the deployed worker generation within 60 seconds. | pass | Live post-restart convergence: deployed manifest built_at 02:48:58Z generation c929e329887d…; worker restarted 02:49:49Z; worker.lock bundle_generation equalled deployed generation with last_heartbeat 02:49:57Z — within 60s. |
+| AC1 | acceptance_criterion | A current worker with `ADV_TEMPORAL_WORKER_SELF_ROLL=1` is left running by a mutating deploy, deployment exits 0, and output contains an advisory but no `[ADV:ACTION_REQUIRED]`. | pass | Fixture with ADV_TEMPORAL_WORKER_SELF_ROLL=1 left running; deploy exits 0 with advisory, no [ADV:ACTION_REQUIRED] (deploy-local-worker-refresh.test.ts, reviewer-verified). |
+| AC2 | acceptance_criterion | A matching worker with missing, malformed, or unreadable capability evidence is treated as legacy; a SIGTERM-resistant fixture causes exit 1 and `[ADV:ACTION_REQUIRED]` with PID and recovery instruction. | pass | Missing/malformed/unreadable capability evidence classified legacy; SIGTERM-resistant fixture yields exit 1 + [ADV:ACTION_REQUIRED] with PID and recovery instruction (tests) — behavior also observed live on 02:48Z deploy. |
+| AC3 | acceptance_criterion | `--check` and `--dry-run` send no signals to either marked or legacy fixtures. | pass | --check and --dry-run send no signals to marked or legacy fixtures; reviewer added dry-run marked-worker no-signal regression coverage during acceptance review. |
+| AC4 | acceptance_criterion | Exact-path matching does not signal an unrelated Node or Bun process. | pass | Exact-path matching does not signal unrelated Node/Bun processes (fixture tests, reviewer-verified 114 targeted pass). |
+| AC5 | acceptance_criterion | After plugin-host restart, a deployment replacing the worker manifest yields a ready replacement and lock generation equal to the deployed generation within 60 seconds. | pass | LIVE PROOF 2026-07-17 (user-approved option b): deployed dist/temporal/bundle-manifest.json generation c929e329887da70c… built_at 02:48:58Z; adv_temporal_worker_restart 02:49:49Z returned serviceable replacement (PID 1429384, fresh pollers); worker.lock schema v2 bundle_generation matched deployed generation at last_heartbeat 02:49:57Z — ready replacement + lock generation equality well within 60s. |
+| AC6 | acceptance_criterion | The marked-worker deployment leaves crash-respawn accounting unchanged. | pass | Marked-worker deployment leaves crash-respawn accounting unchanged (lifecycle tests); live restart diagnostics show restartCount 0. |
+| AC7 | acceptance_criterion | Spec, generated documentation, setup guidance, archive guidance, implementation, and tests describe marker-gated self-roll with legacy fallback. | pass | Spec (advance-meta), generated docs, setup/archive/recovery guidance, implementation, and tests all describe marker-gated self-roll with legacy fallback (task 3 checkpoint evidence + reviewer corpus verification). |
+| C1 | constraint | Capability classification fails closed; never infer self-roll support from the on-disk manifest. | respected | Classifier fails closed; capability proven only by literal running-process marker, never by on-disk manifest (contract tests pin marker literal; pnpm run check green). |
+| C2 | constraint | Preserve existing exact-path process safety. | respected | Exact-path process discovery preserved; AC4 tests prove no broadened matching. |
+| C3 | constraint | Maintain legacy transition behavior until a worker explicitly carries the capability marker. | respected | Legacy transition behavior maintained until explicit marker — demonstrated live: pre-marker workers handled through legacy path on first rollout. |
+| DONT1 | avoidance | Do not remove all worker refresh protection unconditionally. | respected | Worker refresh protection retained for legacy/unclassifiable workers; only proven self-roll workers exempted. |
+| DONT2 | avoidance | Do not use manifest presence or timestamps as capability proof. | respected | Manifest presence/timestamps never used as capability proof (DC1; reviewer static review). |
+| DONT3 | avoidance | Do not consume worker crash-respawn budget through a normal marked-worker deployment. | respected | Normal marked-worker deployment does not consume crash-respawn budget (planned-roll accounting tests; live restartCount 0). |
+| OOS1 | out_of_scope | Cross-shard worker/lock discovery changes. | not_applicable | Cross-shard worker/lock discovery unchanged. |
+| OOS2 | out_of_scope | Changing in-process worker lifecycle behavior. | not_applicable | In-process worker lifecycle behavior unchanged. |
+

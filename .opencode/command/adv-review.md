@@ -93,6 +93,17 @@ From change data: affected files, spec scenarios, task completion evidence, `cha
 ### Worktree Context
 `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Critical in worktrees — sub-agents inherit default project root, not worktree path.
 
+### Lightweight Change Profile (acceptance boundary)
+
+The lightweight profile is re-evaluated automatically before acceptance selection. If the profile result is `qualified`, the bounded omission policy in the workflow directive (`_directive.lightweightProfile`) applies:
+
+- `omitDeepScans` — skip optional deep codebase scans
+- `omitGenericExternalResearch` — skip generic external research
+- `omitOpportunityScouting` — skip opportunity scouting
+- `omitDefaultSpecialistDelegation` — skip default specialist delegation
+
+This policy never overrides explicit `delegation_hint`, risk-forced inline routing, spec/conflict checks, the 12-dimension review, human acceptance, worktree isolation, or release checks. If the profile is `ineligible` or `downgraded`, run the standard review workflow with no omissions.
+
 ---
 ## 12-Dimension Review Framework
 Apply the 12-dimension matrix defined once in the embedded methodology above (Phase 0 → Review Methodology → 12-Dimension Framework). Every review must assess all 12 dimensions — including Security's OWASP top 10 scope; skipping any dimension requires explicit justification. The scanner fan-out, dimension contracts, and inline fallbacks below execute this framework; they do not replace it.
