@@ -222,6 +222,46 @@ Design-quality concerns raised by adv-designer reports MUST be enforced structur
 
 ---
 
+### Reviewer-Owned Safe Local Cleanup of Evidence-Backed Bad Tests
+
+**ID:** `rq-reviewBadTestCleanup01` | **Priority:** **[MUST]**
+
+/adv-review and /adv-harden MUST remediate clearly bad tests (flaky, tautological, permanently skipped, or implementation-coupled) in the directly touched subsystem when the remediation is safe and local. The finding must be evidence-backed and the scope bounded to the change's touched subsystem; broader consumer-repository cleanup remains out of scope. Review and harden MUST NOT use a bad-test finding to bypass a valid non-test evidence route or create a repo-wide cleanup obligation.
+
+**Tags:** `workflow`, `review`, `harden`, `cleanup`, `evidence`, `touched-scope`
+
+#### Scenarios
+
+**Evidence-backed bad test in touched subsystem is remediated locally** (`rq-reviewBadTestCleanup01.1`)
+
+**Given:**
+
+- Review or harden identifies a flaky, tautological, permanently skipped, or implementation-coupled test
+- The test is in the directly touched subsystem of the change
+
+**When:** The finding is evaluated for remediation
+
+**Then:**
+
+- The test is remediated when the fix is safe and local
+- Remediation is verified with the relevant evidence path
+- Broader cleanup beyond the touched subsystem is not required
+
+**Broader cleanup remains out of scope** (`rq-reviewBadTestCleanup01.2`)
+
+**Given:**
+
+- A bad test is identified outside the directly touched subsystem
+
+**When:** Review or harden evaluates the finding
+
+**Then:**
+
+- The finding is recorded as a follow-up or rejected with evidence
+- No repo-wide cleanup obligation is created for the current change
+
+---
+
 ### Mid-Change Scope Expansion Re-Entry
 
 **ID:** `rq-scopeReentry01` | **Priority:** **[MUST]**

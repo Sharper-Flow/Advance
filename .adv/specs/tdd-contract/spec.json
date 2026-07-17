@@ -42,7 +42,7 @@
           "when": "The task classifier determines TDD intent",
           "then": [
             "The task is treated as tdd_intent='inline' for TDD compliance purposes",
-            "Title-based heuristics are used as fallback to determine if the task is test-relevant or implementation-relevant"
+            "Title-based heuristics are used as advisory fallback only and do not establish a structural evidence-plan compatibility boundary"
           ]
         }
       ]
@@ -86,7 +86,7 @@
     {
       "id": "rq-TDD003na",
       "title": "Not-Applicable TDD Intent",
-      "body": "Tasks that are not logic-bearing (documentation, configuration, chores, releases) SHOULD set metadata.tdd_intent='not_applicable' to skip TDD evidence requirements. When metadata is absent, the existing title-based heuristics (isTrivialTask patterns) determine whether TDD is required.",
+      "body": "Tasks that are not logic-bearing (documentation, configuration, chores, releases) SHOULD set metadata.tdd_intent='not_applicable' to skip TDD evidence requirements. When metadata is absent, the existing title-based heuristics (isTrivialTask patterns) are used as an advisory fallback to determine whether TDD is required; they do not by themselves establish a normalized evidence-plan compatibility or exempt a task from evidence requirements.",
       "priority": "should",
       "tags": ["tdd", "task-model", "trivial"],
       "scenarios": [
@@ -117,7 +117,7 @@
     {
       "id": "rq-TDD004cls",
       "title": "Task Classifier with Metadata-First Detection",
-      "body": "A shared task classifier MUST check metadata.tdd_intent first, then fall back to title-based heuristics for legacy tasks without metadata. The classifier is the single source of truth for determining a task's TDD intent across all validators (prep-readiness, completeness, gate checks).",
+      "body": "A shared task classifier MUST check metadata.tdd_intent first, then fall back to title-based heuristics for legacy tasks without metadata. The classifier is the single source of truth for determining a task's TDD intent across all validators (prep-readiness, completeness, gate checks). When a task carries a typed evidence_plan, the plan is the structural authority for its evidence route; the classifier's title fallback is advisory only and does not override the plan.",
       "priority": "must",
       "tags": ["tdd", "classifier", "metadata"],
       "scenarios": [
@@ -161,7 +161,7 @@
     {
       "id": "rq-TDD005inv",
       "title": "TDD Inversion Detection with Metadata Awareness",
-      "body": "TDD contract owns the canonical semantics for TDD inversion and task-classifier expectations. The prep-readiness TDD inversion check MUST use the task classifier to determine task roles. A test task (by classifier) blocked_by an implementation task (by classifier) of the same scope is a TDD inversion — UNLESS the test task has metadata.tdd_intent='separate_verification'. This replaces the previous title-only detection that produced false positives. Prep-readiness/rq-PR003tdd owns the planning-gate enforcement behavior and readiness failure surface.",
+      "body": "TDD contract owns the canonical semantics for TDD inversion and task-classifier expectations. The prep-readiness TDD inversion check MUST use the task classifier to determine task roles. A test task (by classifier) blocked_by an implementation task (by classifier) of the same scope is a TDD inversion — UNLESS the test task has metadata.tdd_intent='separate_verification'. This replaces the previous title-only detection that produced false positives. Inversion detection operates on task roles; the normalized evidence plan (rq-TDD013evp) separately determines the valid proof route for each task. Prep-readiness/rq-PR003tdd owns the planning-gate enforcement behavior and readiness failure surface.",
       "priority": "must",
       "tags": ["tdd", "prep", "inversion", "task-graph"],
       "scenarios": [
@@ -459,6 +459,69 @@
             "retryFailureCount is treated as derived evidence only",
             "task.attempts and task.error_recovery remain the authoritative retry accounting",
             "The ledger value does not gate task completion or acceptance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD013evp",
+      "title": "Normalized Task Evidence Plan",
+      "body": "Every task MUST have a normalized evidence plan that records exactly one evidence policy, one non-empty proof target, and explicit compatibility provenance. New and materially reclassified tasks carry provenance `new` or `reclassified`; legacy in-flight tasks without plan provenance are normalized on read with compatibility `legacy`. Title, path, and test-quality heuristics (assertion density, mock surface, coverage, flake indicators) are advisory inputs only and MUST NOT determine the plan or gate task completion. Behavior-critical tasks (type `code` or `verification`) MUST NOT use `not_applicable` as their evidence route; a non-test route for logic-bearing work requires a bounded rationale (at most 500 non-whitespace characters) and a linked `review_conclusion`.",
+      "priority": "must",
+      "tags": ["tdd", "evidence", "task-model", "structural-correctness"],
+      "scenarios": [
+        {
+          "id": "rq-TDD013evp.1",
+          "title": "New task carries exactly one policy and proof target",
+          "given": [
+            "A task is created under the normalized evidence-plan model"
+          ],
+          "when": "The task evidence plan is resolved",
+          "then": [
+            "The plan contains exactly one evidence policy",
+            "The plan contains a non-empty proof target",
+            "The plan provenance is `new` or `reclassified`"
+          ]
+        },
+        {
+          "id": "rq-TDD013evp.2",
+          "title": "Behavior-critical not_applicable route is rejected",
+          "given": [
+            "A task has type `code` or `verification`",
+            "The task's evidence plan uses policy `not_applicable`"
+          ],
+          "when": "The plan is validated at prep or completion",
+          "then": [
+            "The plan is rejected as invalid",
+            "The task is directed to a proof-bearing route such as test, review, or static_check"
+          ]
+        },
+        {
+          "id": "rq-TDD013evp.3",
+          "title": "Non-test route for logic-bearing work requires rationale and review conclusion",
+          "given": [
+            "A behavior-critical task selects a non-test evidence policy",
+            "The task is new or materially reclassified"
+          ],
+          "when": "The plan is validated",
+          "then": [
+            "A bounded rationale (<= 500 non-whitespace characters) is present",
+            "A linked review_conclusion is present",
+            "The task is blocked until both are provided"
+          ]
+        },
+        {
+          "id": "rq-TDD013evp.4",
+          "title": "Legacy task without plan provenance normalizes on read",
+          "given": [
+            "An in-flight task predates the normalized evidence-plan model",
+            "The task has valid historical evidence"
+          ],
+          "when": "The task is read or completed",
+          "then": [
+            "The plan is materialized with compatibility `legacy`",
+            "No heuristic cutover is performed",
+            "Valid historical evidence remains readable"
           ]
         }
       ]
