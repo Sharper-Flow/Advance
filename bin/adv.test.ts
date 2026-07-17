@@ -329,7 +329,7 @@ describe("adv status live default", () => {
     );
     await commitProc.exited;
 
-    const proc = Bun.spawn(["bun", ADV_PATH, "status", "--json"], {
+    const proc = Bun.spawn([process.execPath, ADV_PATH, "status", "--json"], {
       cwd: tmp,
       stdout: "pipe",
       stderr: "pipe",
