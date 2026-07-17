@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.26.0
-> **Updated:** 2026-07-16
+> **Version:** 1.27.0
+> **Updated:** 2026-07-17
 
 ## Purpose
 
@@ -1365,22 +1365,6 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 - The tool returns success:true only when serviceability is proven by local worker readiness and/or fresh server-side poller evidence
 - The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative
 - The tool is registered with an explicit safety-net timeout override that exceeds the verification budget with modest headroom
-
-**Worktree readers use bounded inventory with degraded partial response** (`rq-toolTimeoutOverride01.3`)
-
-**Given:**
-- A project with many active change workflows
-- `adv_wip_state` or `adv_worktree_triage` is invoked to read cross-change worktree inventory
-
-**When:**
-- The worktree inventory fan-out exceeds the default 10s tool safety net
-
-**Then:**
-- Each tool is registered with an explicit `{ timeoutMs: 60_000 }` outer safety net (`WIP_CALLER_TIMEOUT_MS`)
-- The inner worktree collector uses a 55s budget (`INVENTORY_INTERNAL_BUDGET_MS`), reserving 5s to render a partial response
-- If the collector stops early, WIP still contains `active_changes` and `peer_sessions`; triage returns inspected findings plus explicit omitted scope
-- A typed WIP `degradation.worktree` warning or triage partial response returns `complete: false`, `stopReason`, `stoppedStage`, `inspectedCount`, and `candidateCount`
-- The host abort signal is forwarded to the collector so caller cancellation stops new workflow queries without losing already-settled sections
 
 ---
 
@@ -2757,5 +2741,64 @@ After a mutating deploy synchronizes the runtime plugin, a failed exact-path Tem
 **Then:**
 - Supported assets are synchronized
 - The deploy preserves its normal success behavior
+
+---
+
+### Target-Relative Cross-Project Trunk Write Firewall
+
+**ID:** `rq-crossProjectTrunkFirewall01` | **Priority:** **[MUST]**
+
+When the session project enables worktree_guard_enforce, the trunk write firewall must classify every intercepted direct file-write and recognized destructive Bash target against the target repository’s own topology. It must block default-branch main-checkout writes for foreign repositories, allow eligible target linked worktrees and the established non-Git/recovery exceptions, evaluate only explicit generated artifacts relative to the target main root, and block target main-checkout writes when the default branch cannot be verified. Target topology resolution must be bounded to one hook invocation and must not treat prunable worktree records as writable linked worktrees.
+
+**Tags:** `trunk-write-firewall`, `cross-project`, `worktree`, `safety`
+
+#### Scenarios
+
+**Foreign default-branch main checkout blocks** (`rq-crossProjectTrunkFirewall01.1`)
+
+**Given:**
+- worktree_guard_enforce is enabled for the session project
+- A direct file write or recognized destructive Bash target is inside another repository’s default-branch main checkout
+
+**When:** The firewall evaluates the target repository context
+
+**Then:**
+- The operation is blocked with worktree remediation
+- The target is not allowed merely because it is outside the session project root
+
+**Eligible foreign linked worktree allows** (`rq-crossProjectTrunkFirewall01.2`)
+
+**Given:**
+- A target is inside a non-prunable linked worktree registered by its repository
+- The target repository is on its default branch
+
+**When:** The firewall evaluates a direct file write or recognized destructive Bash target
+
+**Then:**
+- The operation is allowed
+- The main checkout remains protected
+
+**Target-root artifact and uncertainty boundaries remain narrow** (`rq-crossProjectTrunkFirewall01.3`)
+
+**Given:**
+- A target is in a foreign repository’s main checkout
+
+**When:** The target is one of the four explicit root artifacts, a nested lookalike, another .adv path, or a repository with unknown default branch
+
+**Then:**
+- Only the exact target-root artifact is allowed
+- Nested and unrelated artifact paths are blocked
+- Unknown-default main-checkout writes are blocked with remediation
+
+**Missing-parent and prunable topology are safe** (`rq-crossProjectTrunkFirewall01.4`)
+
+**Given:**
+- A target has missing nested parent directories or lies under a prunable worktree record
+
+**When:** The firewall resolves target topology
+
+**Then:**
+- The nearest existing ancestor is used for classification
+- A prunable record does not grant linked-worktree allowance
 
 ---

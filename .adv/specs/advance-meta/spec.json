@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.26.0",
-  "updated_at": "2026-07-16T15:00:00.000Z",
+  "version": "1.27.0",
+  "updated_at": "2026-07-17T17:27:16.904Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -2984,6 +2984,71 @@
           "then": [
             "Supported assets are synchronized",
             "The deploy preserves its normal success behavior"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-crossProjectTrunkFirewall01",
+      "title": "Target-Relative Cross-Project Trunk Write Firewall",
+      "body": "When the session project enables worktree_guard_enforce, the trunk write firewall must classify every intercepted direct file-write and recognized destructive Bash target against the target repository’s own topology. It must block default-branch main-checkout writes for foreign repositories, allow eligible target linked worktrees and the established non-Git/recovery exceptions, evaluate only explicit generated artifacts relative to the target main root, and block target main-checkout writes when the default branch cannot be verified. Target topology resolution must be bounded to one hook invocation and must not treat prunable worktree records as writable linked worktrees.",
+      "priority": "must",
+      "tags": [
+        "trunk-write-firewall",
+        "cross-project",
+        "worktree",
+        "safety"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-crossProjectTrunkFirewall01.1",
+          "title": "Foreign default-branch main checkout blocks",
+          "given": [
+            "worktree_guard_enforce is enabled for the session project",
+            "A direct file write or recognized destructive Bash target is inside another repository’s default-branch main checkout"
+          ],
+          "when": "The firewall evaluates the target repository context",
+          "then": [
+            "The operation is blocked with worktree remediation",
+            "The target is not allowed merely because it is outside the session project root"
+          ]
+        },
+        {
+          "id": "rq-crossProjectTrunkFirewall01.2",
+          "title": "Eligible foreign linked worktree allows",
+          "given": [
+            "A target is inside a non-prunable linked worktree registered by its repository",
+            "The target repository is on its default branch"
+          ],
+          "when": "The firewall evaluates a direct file write or recognized destructive Bash target",
+          "then": [
+            "The operation is allowed",
+            "The main checkout remains protected"
+          ]
+        },
+        {
+          "id": "rq-crossProjectTrunkFirewall01.3",
+          "title": "Target-root artifact and uncertainty boundaries remain narrow",
+          "given": [
+            "A target is in a foreign repository’s main checkout"
+          ],
+          "when": "The target is one of the four explicit root artifacts, a nested lookalike, another .adv path, or a repository with unknown default branch",
+          "then": [
+            "Only the exact target-root artifact is allowed",
+            "Nested and unrelated artifact paths are blocked",
+            "Unknown-default main-checkout writes are blocked with remediation"
+          ]
+        },
+        {
+          "id": "rq-crossProjectTrunkFirewall01.4",
+          "title": "Missing-parent and prunable topology are safe",
+          "given": [
+            "A target has missing nested parent directories or lies under a prunable worktree record"
+          ],
+          "when": "The firewall resolves target topology",
+          "then": [
+            "The nearest existing ancestor is used for classification",
+            "A prunable record does not grant linked-worktree allowance"
           ]
         }
       ]
