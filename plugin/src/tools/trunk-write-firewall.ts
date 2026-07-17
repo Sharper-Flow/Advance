@@ -149,6 +149,13 @@ function getWorktreeTopology(
   return cached;
 }
 
+// rq-crossProjectTrunkFirewall01: Target-Relative Cross-Project Trunk Write
+// Firewall. The firewall is evaluated relative to each write target's OWN git
+// root/branch topology (not just the current session's project), so a FOREIGN
+// repo's main checkout on its default branch is protected exactly like the
+// session project's trunk, while an eligible foreign linked worktree is allowed
+// (rq-crossProjectTrunkFirewall01.1 / .2). Target-root artifact and uncertainty
+// boundaries stay narrow (.3) and missing-parent/prunable topology is safe (.4).
 async function resolveTrunkContext(
   targetPath: string,
   deps: TrunkWriteFirewallDeps,
