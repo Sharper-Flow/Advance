@@ -206,6 +206,10 @@ This matrix is the documented view. The code-owned enforcement lives in
 `plugin/src/tool-role-policy.ts`: an exhaustive role classification of every
 retained canonical tool (including the action-level dual distinctions above)
 plus the intended ADV allowlist per shipped agent manifest.
+`plugin/src/tool-role-firewall.ts` is the runtime backstop: `tool.execute.before`
+derives its blockable set as the complement of the spawned-agent allowlist
+union, permits that set only for the captured main session, and fails closed
+when role or policy resolution is unavailable.
 `plugin/src/tool-role-policy.test.ts` fails CI when the policy and this
 document disagree, when an agent manifest's ADV grants diverge from the
 intended allowed set, or when a non-orchestrator agent can reach an

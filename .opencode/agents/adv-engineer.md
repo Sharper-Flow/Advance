@@ -34,40 +34,46 @@ tools:
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
+  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
+  # Default-deny wildcard
   adv_*: false
   # === ADV reads (narrow, read-only) ===
+  # Allowed
+  adv_change_show: true
+  adv_gate_status: true
+  adv_project_context: true
+  adv_run_test: true
+  adv_snapshot_health: true
   adv_spec: true
   adv_status: true
-  adv_project_context: true
-  adv_change_show: true
-  adv_change_validate: false
-  adv_task_show: true
+  adv_subagent_report_submit: true
   adv_task_list: true
   adv_task_ready: true
-  adv_wisdom_list: true
-  adv_gate_status: true
-  adv_snapshot_health: true
+  adv_task_show: true
   # === ADV evidence/test (task-level only) ===
-  adv_run_test: true
   adv_wisdom_add: true
-  adv_subagent_report_submit: true
-  # === BLOCKED: Orchestration, gate management, agenda, worktree ===
-  adv_change_create: false
-  adv_change_update: false
+  adv_wisdom_list: true
+  # Explicitly blocked
   adv_change_archive: false
-  adv_change_reenter: false
-  adv_change_update_issues: false
+  # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   adv_change_close: false
-  adv_task_add: false
-  adv_task_update: false
-  adv_task_cancel: false
-  adv_task_reclassify_tdd: false
-  adv_task_checkpoint: false
+  adv_change_create: false
+  adv_change_reenter: false
+  adv_change_update: false
+  adv_change_update_issues: false
+  adv_change_validate: false
   adv_gate_complete: false
+  adv_task_add: false
+  adv_task_cancel: false
+  adv_task_checkpoint: false
+  adv_task_reclassify_tdd: false
+  adv_task_update: false
   adv_temporal_worker_restart: false
+  adv_worktree_cleanup: false
   adv_worktree_create: false
   adv_worktree_delete: false
-  adv_worktree_cleanup: false
+  # <<< ADV-GENERATED adv_* tools <<<
   task: false
 ---
 

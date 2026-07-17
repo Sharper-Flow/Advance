@@ -10,7 +10,11 @@ permission:
   bash: allow
 tools:
   # === ADV role policy: default-deny all ADV tools — CI polling uses the oc-ci-wait CLI, never ADV state (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
+  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
+  # Default-deny wildcard
   adv_*: false
+  # <<< ADV-GENERATED adv_* tools <<<
 ---
 
 You are `adv-ci-waiter`, a CI-only polling sub-agent.
