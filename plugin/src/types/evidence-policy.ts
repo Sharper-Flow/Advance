@@ -21,3 +21,59 @@ export const ContractEvidencePolicySchema = z.enum([
 export type ContractEvidencePolicy = z.infer<
   typeof ContractEvidencePolicySchema
 >;
+
+// =============================================================================
+// Task Evidence Plan
+// =============================================================================
+
+/**
+ * Compatibility provenance for a task evidence plan.
+ *
+ * - new: task was created under the normalized evidence-plan model.
+ * - reclassified: task was materially reclassified after creation (e.g., TDD
+ *   intent changed via adv_task_reclassify_tdd).
+ * - legacy: task predates the plan model; its plan is a compatibility
+ *   normalization, not a structural declaration.
+ */
+export const TaskEvidenceCompatibilitySchema = z.enum([
+  "new",
+  "reclassified",
+  "legacy",
+]);
+
+export type TaskEvidenceCompatibility = z.infer<
+  typeof TaskEvidenceCompatibilitySchema
+>;
+
+/**
+ * Normalized evidence plan for a task. One policy, one proof target, and
+ * explicit compatibility provenance. Non-test routes for logic-bearing work
+ * carry a bounded rationale and linked review conclusion.
+ */
+export const TaskEvidencePlanSchema = z.object({
+  policy: ContractEvidencePolicySchema,
+  proof_target: z.string().trim().min(1),
+  rationale: z.string().trim().optional(),
+  review_conclusion: z.string().trim().optional(),
+  provenance: TaskEvidenceCompatibilitySchema,
+});
+
+export type TaskEvidencePlan = z.infer<typeof TaskEvidencePlanSchema>;
+
+/**
+ * Pure resolver output. Consumers receive validity, the normalized policy/proof
+ * target, compatibility provenance, and any structural errors.
+ */
+export const TaskEvidenceResolutionSchema = z.object({
+  valid: z.boolean(),
+  policy: ContractEvidencePolicySchema.optional(),
+  proof_target: z.string().trim().min(1).optional(),
+  rationale: z.string().trim().optional(),
+  review_conclusion: z.string().trim().optional(),
+  compatibility: TaskEvidenceCompatibilitySchema.optional(),
+  errors: z.array(z.string()).default([]),
+});
+
+export type TaskEvidenceResolution = z.infer<
+  typeof TaskEvidenceResolutionSchema
+>;

@@ -131,6 +131,18 @@ export {
 } from "./tasks";
 
 // =============================================================================
+// Evidence Policy
+// =============================================================================
+export {
+  TaskEvidenceCompatibilitySchema,
+  type TaskEvidenceCompatibility,
+  TaskEvidencePlanSchema,
+  type TaskEvidencePlan,
+  TaskEvidenceResolutionSchema,
+  type TaskEvidenceResolution,
+} from "./evidence-policy";
+
+// =============================================================================
 // Sub-agent Reports
 // =============================================================================
 export {

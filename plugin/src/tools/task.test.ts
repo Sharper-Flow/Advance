@@ -949,6 +949,11 @@ describe("task tools — signal/query adapters", () => {
           title: "New Task",
           status: "pending",
           metadata: { tdd_intent: "inline" },
+          evidence_plan: expect.objectContaining({
+            policy: "test",
+            proof_target: expect.any(String),
+            provenance: "new",
+          }),
         }),
       });
     });
@@ -1408,9 +1413,12 @@ describe("task tools — signal/query adapters", () => {
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
-        partial: {
+        partial: expect.objectContaining({
           metadata: { tdd_intent: "not_applicable" },
-        },
+          evidence_plan: expect.objectContaining({
+            provenance: "reclassified",
+          }),
+        }),
       });
     });
 
@@ -1461,9 +1469,9 @@ describe("task tools — signal/query adapters", () => {
         expect.anything(),
         expect.objectContaining({
           taskId: "tk-target",
-          partial: {
+          partial: expect.objectContaining({
             metadata: { tdd_intent: "not_applicable" },
-          },
+          }),
         }),
       );
     });

@@ -29,8 +29,10 @@ import {
   type ScopedSubagentReport,
   type Change,
   type Task,
+  type TaskEvidencePlan,
   type TaskType,
 } from "../types";
+import { resolveTaskEvidence } from "../validator/task-classifier";
 import {
   reportFollowUpId,
   reportKeyFromReport,
@@ -164,6 +166,21 @@ async function createPrePlanningTask(
       : {}),
     followup_ref: ref,
   };
+
+  // Normalize evidence plan for every planned pre-planning task.
+  const evidenceResolution = resolveTaskEvidence(task);
+  const evidencePlan: TaskEvidencePlan = {
+    policy: evidenceResolution.policy!,
+    proof_target: evidenceResolution.proof_target!,
+    ...(evidenceResolution.rationale
+      ? { rationale: evidenceResolution.rationale }
+      : {}),
+    ...(evidenceResolution.review_conclusion
+      ? { review_conclusion: evidenceResolution.review_conclusion }
+      : {}),
+    provenance: "new",
+  };
+  task.evidence_plan = evidencePlan;
 
   try {
     const handle = await getChangeHandleForChangeId(

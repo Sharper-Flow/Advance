@@ -6453,6 +6453,50 @@
             ],
             "type": "object"
           },
+          "evidence_plan": {
+            "additionalProperties": false,
+            "properties": {
+              "policy": {
+                "enum": [
+                  "test",
+                  "review",
+                  "static_check",
+                  "design_proof",
+                  "not_applicable",
+                  "source_citation",
+                  "source_audit",
+                  "rubric_review",
+                  "stakeholder_acceptance",
+                  "artifact_reference"
+                ],
+                "type": "string"
+              },
+              "proof_target": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "provenance": {
+                "enum": [
+                  "new",
+                  "reclassified",
+                  "legacy"
+                ],
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string"
+              },
+              "review_conclusion": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "policy",
+              "proof_target",
+              "provenance"
+            ],
+            "type": "object"
+          },
           "evidence_policy": {
             "enum": [
               "test",

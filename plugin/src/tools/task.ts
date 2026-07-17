@@ -19,7 +19,9 @@ import {
   type TaskContractRefs,
   type TddReclassification,
   type Task,
+  type TaskEvidencePlan,
 } from "../types";
+import { resolveTaskEvidence } from "../validator/task-classifier";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import {
@@ -1154,6 +1156,22 @@ export const taskTools = {
           ...(evidence_policy ? { evidence_policy } : {}),
         };
 
+        // Normalize evidence plan so every newly planned task carries exactly
+        // one policy, one proof target, and explicit compatibility provenance.
+        const evidenceResolution = resolveTaskEvidence(task);
+        const evidencePlan: TaskEvidencePlan = {
+          policy: evidenceResolution.policy!,
+          proof_target: evidenceResolution.proof_target!,
+          ...(evidenceResolution.rationale
+            ? { rationale: evidenceResolution.rationale }
+            : {}),
+          ...(evidenceResolution.review_conclusion
+            ? { review_conclusion: evidenceResolution.review_conclusion }
+            : {}),
+          provenance: "new",
+        };
+        task.evidence_plan = evidencePlan;
+
         let recoveredViaPoisoned = false;
         try {
           await fireSignalAndRefresh(
@@ -1571,23 +1589,6 @@ export const taskTools = {
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
 
-        await fireSignalAndRefresh(
-          handle,
-          activeStore,
-          changeId,
-          taskUpdatedSignal,
-          {
-            taskId: args.taskId,
-            partial: {
-              metadata: {
-                ...task.metadata,
-                tdd_intent: args.toIntent,
-              },
-            },
-            updatedAt: now,
-          },
-        );
-
         const reclassification: TddReclassification = {
           from_intent: currentIntent ?? "none",
           to_intent: args.toIntent,
@@ -1597,10 +1598,51 @@ export const taskTools = {
           approved_at: now,
         };
 
+        // Recompute the normalized evidence plan for the reclassified intent.
+        // Materially reclassified tasks carry provenance 'reclassified' and one
+        // explicit policy/proof target.
+        const updatedTask: Task = {
+          ...task,
+          metadata: {
+            ...task.metadata,
+            tdd_intent: args.toIntent,
+          },
+          tdd_reclassification: reclassification,
+        };
+        const evidenceResolution = resolveTaskEvidence(updatedTask);
+        const evidencePlan: TaskEvidencePlan = {
+          policy: evidenceResolution.policy!,
+          proof_target: evidenceResolution.proof_target!,
+          ...(evidenceResolution.rationale
+            ? { rationale: evidenceResolution.rationale }
+            : {}),
+          ...(evidenceResolution.review_conclusion
+            ? { review_conclusion: evidenceResolution.review_conclusion }
+            : {}),
+          provenance: "reclassified",
+        };
+
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          taskUpdatedSignal,
+          {
+            taskId: args.taskId,
+            partial: {
+              metadata: updatedTask.metadata,
+              tdd_reclassification: reclassification,
+              evidence_plan: evidencePlan,
+            },
+            updatedAt: now,
+          },
+        );
+
         return formatToolOutput({
           success: true,
           taskId: args.taskId,
           reclassification,
+          evidence_plan: evidencePlan,
           message: `Reclassified tdd_intent from "${currentIntent}" to "${args.toIntent}" with user approval.`,
           ...(projectContext ? { _projectContext: projectContext } : {}),
         });
