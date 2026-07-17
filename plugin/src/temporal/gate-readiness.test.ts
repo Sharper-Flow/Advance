@@ -1525,14 +1525,16 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
     },
   );
 
-  it("does not block when task has no evidence_policy", () => {
+  it("blocks when code task with no evidence_policy resolves to test", () => {
     const state = makeState({
       tasks: [doneTask()],
       subagent_reports: [engineerReport({ warnings: [missingWarning] })],
     });
-    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
-      [],
-    );
+    const blockers = checkUnresolvedVerificationEvidence(state, "acceptance");
+    expect(
+      blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
+    ).toBe(true);
+    expect(blockers[0]?.message).toMatch(/evidence_policy: test/);
   });
 
   it("does not block when task is not done", () => {
@@ -1634,5 +1636,186 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
     expect(
       result.blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
     ).toBe(true);
+  });
+});
+
+describe("checkCompletedTaskEvidencePlan — resolved plan readiness (C2/C4/C5)", () => {
+  function doneTask(
+    overrides: { evidence_plan?: any; evidence_policy?: string } = {},
+  ) {
+    return {
+      id: "tk-ev-plan",
+      title: "Task",
+      type: "code" as const,
+      status: "done" as const,
+      priority: 0,
+      created_at: "2026-05-20T00:00:00.000Z",
+      ...(overrides.evidence_policy && {
+        evidence_policy: overrides.evidence_policy,
+      }),
+      ...(overrides.evidence_plan && {
+        evidence_plan: overrides.evidence_plan,
+      }),
+    };
+  }
+
+  function engineerReport(warnings: any[] = []) {
+    return {
+      schema_version: "1.0" as const,
+      change_id: "change-1",
+      task_id: "tk-ev-plan",
+      scope: { kind: "task" as const, task_id: "tk-ev-plan" },
+      attempt: 1,
+      agent: "adv-engineer" as const,
+      status: "complete" as const,
+      files_touched: ["src/foo.ts"],
+      verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
+      decisions: [],
+      blockers: [],
+      scope_drift: null,
+      follow_ups: [],
+      required_main_agent_actions: [],
+      related_scan: "none",
+      workdir_used: "/tmp/worktree",
+      context_update_for_adv: {
+        what_ads_needs_to_know: "x",
+        suggested_next_action: "y",
+      },
+      ...(warnings.length > 0 ? { consumer_warnings: warnings } : {}),
+    };
+  }
+
+  const missingWarning = {
+    kind: "verification_missing" as const,
+    message: "No adv_run_test evidence found",
+  };
+
+  it("uses resolved evidence plan to block proof-bearing policy with verification warnings", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [
+        doneTask({
+          evidence_policy: "test",
+          evidence_plan: {
+            policy: "test",
+            proof_target: "Automated tests",
+            provenance: "new",
+          },
+        }),
+      ],
+      subagent_reports: [engineerReport([missingWarning])],
+    });
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
+    ).toBe(true);
+  });
+
+  it("does not block warn-first policy for verification warnings (SC4)", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [
+        doneTask({
+          evidence_policy: "source_citation",
+          evidence_plan: {
+            policy: "source_citation",
+            proof_target: "Source citation",
+            provenance: "new",
+          },
+        }),
+      ],
+      subagent_reports: [engineerReport([missingWarning])],
+    });
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
+    ).toBe(false);
+  });
+
+  it("blocks acceptance for done behavior-critical non-test route without review proof", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [
+        doneTask({
+          evidence_policy: "review",
+          evidence_plan: {
+            policy: "review",
+            proof_target: "Structured review conclusion",
+            rationale: "Peer review is sufficient.",
+            provenance: "legacy",
+          },
+        }),
+      ],
+    });
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some(
+        (b) => b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not block when behavior-critical non-test route has review conclusion", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [
+        doneTask({
+          evidence_policy: "review",
+          evidence_plan: {
+            policy: "review",
+            proof_target: "Structured review conclusion",
+            rationale: "Peer review is sufficient.",
+            review_conclusion: "reviewer-verdict-abc",
+            provenance: "new",
+          },
+        }),
+      ],
+    });
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some(
+        (b) => b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
+      ),
+    ).toBe(false);
+  });
+
+  it("does not block non-acceptance/release gates", () => {
+    const state = makeState({
+      tasks: [
+        doneTask({
+          evidence_policy: "review",
+          evidence_plan: {
+            policy: "review",
+            proof_target: "Structured review conclusion",
+            provenance: "new",
+          },
+        }),
+      ],
+    });
+    expect(
+      evaluateGateReadiness(state, "design").blockers.some(
+        (b) => b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
+      ),
+    ).toBe(false);
   });
 });

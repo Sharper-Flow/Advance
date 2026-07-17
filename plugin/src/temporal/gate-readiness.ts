@@ -1,7 +1,6 @@
 import {
   GATE_ORDER,
   GateArtifactEvidenceSchema,
-  type ContractEvidencePolicy,
   type DesignConcernDisposition,
   type DesignerSubagentReport,
   type GateArtifactEvidence,
@@ -13,7 +12,9 @@ import {
   type OpsFollowupStatus,
   type ScopedSubagentReport,
   type VerificationEvidenceDisposition,
+  isProofBearingEvidencePolicy,
 } from "../types";
+import { resolveTaskEvidence } from "../validator/task-classifier";
 import type { ChangeWorkflowState } from "./contracts";
 import { isFailingContractReviewStatus } from "./recovery-classification";
 
@@ -636,12 +637,6 @@ export function checkUnresolvedDesignConcerns(
 // (latest-wins durable evidence), or (b) a typed disposition for
 // (taskId, "verification") — never silently (no grandfathering). The check is
 // NOT bypassed by compatibilityReason, mirroring checkUnresolvedDesignConcerns.
-const VERIFICATION_BLOCKING_POLICIES: ContractEvidencePolicy[] = [
-  "test",
-  "static_check",
-  "review",
-  "artifact_reference",
-];
 
 const VERIFICATION_WARNING_KINDS = new Set([
   "verification_missing",
@@ -692,8 +687,9 @@ export function checkUnresolvedVerificationEvidence(
   const blockers: GateReadinessBlocker[] = [];
   for (const task of state.tasks) {
     if (task.status !== "done") continue;
-    const policy = task.evidence_policy;
-    if (!policy || !VERIFICATION_BLOCKING_POLICIES.includes(policy)) continue;
+    const resolution = resolveTaskEvidence(task);
+    const policy = resolution.policy;
+    if (!policy || !isProofBearingEvidencePolicy(policy)) continue;
     if (isDispositioned(task.id)) continue;
 
     const warnings = latestVerificationReportsForTask(state, task.id).flatMap(
@@ -713,6 +709,60 @@ export function checkUnresolvedVerificationEvidence(
         remediation: `Re-run adv_run_test and submit an updated task report so the latest report is warning-free, or record a typed disposition via adv_verification_evidence_disposition (taskId: ${task.id}, concernKey: ${VERIFICATION_CONCERN_KEY}).`,
       }),
     );
+  }
+  return blockers;
+}
+
+// rq-evidencePlan01: gate-readiness enforcement of completed task evidence plans.
+// Uses resolveTaskEvidence as the sole compatibility authority. Behavior-critical
+// non-test routes must carry a linked review conclusion; unsupported routes fail
+// structurally at acceptance/release. Quality signals (consumer warnings) do not
+// own gate authority here; they are evaluated separately by
+// checkUnresolvedVerificationEvidence.
+function isBehaviorCriticalTaskType(type: string): boolean {
+  return type === "code" || type === "verification";
+}
+
+export function checkCompletedTaskEvidencePlan(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "acceptance" && gateId !== "release") return [];
+
+  const blockers: GateReadinessBlocker[] = [];
+  for (const task of state.tasks) {
+    if (task.status !== "done") continue;
+
+    const resolution = resolveTaskEvidence(task);
+    if (!resolution.valid) {
+      blockers.push(
+        makeBlocker({
+          code: "EVIDENCE_PLAN_INVALID",
+          gateId,
+          message: `Completed task ${task.id} has an invalid evidence plan: ${resolution.errors.join("; ")}.`,
+          remediation: `Fix the task evidence plan or reclassify with user approval before completing ${gateId}.`,
+        }),
+      );
+      continue;
+    }
+
+    if (
+      resolution.policy &&
+      isBehaviorCriticalTaskType(task.type ?? "code") &&
+      resolution.policy !== "test" &&
+      resolution.policy !== "not_applicable" &&
+      !resolution.review_conclusion &&
+      !task.evidence_plan?.review_conclusion
+    ) {
+      blockers.push(
+        makeBlocker({
+          code: "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
+          gateId,
+          message: `Completed task ${task.id} uses a non-test evidence policy (${resolution.policy}) but has no linked review conclusion.`,
+          remediation: `Add evidence_plan.review_conclusion or submit a task-scoped adv-reviewer report for task ${task.id}.`,
+        }),
+      );
+    }
   }
   return blockers;
 }
@@ -937,6 +987,7 @@ export function evaluateGateReadiness(
     }
     blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
     blockers.push(...checkUnresolvedVerificationEvidence(state, gateId));
+    blockers.push(...checkCompletedTaskEvidencePlan(state, gateId));
   }
 
   if (gateId === "release") {
@@ -945,6 +996,7 @@ export function evaluateGateReadiness(
     blockers.push(...checkOpsFollowupReleaseBlockers(state, gateId));
     blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
     blockers.push(...checkUnresolvedVerificationEvidence(state, gateId));
+    blockers.push(...checkCompletedTaskEvidencePlan(state, gateId));
   }
 
   const warnings = artifactCascadeWarnings(state, gateId);

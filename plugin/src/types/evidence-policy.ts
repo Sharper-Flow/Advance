@@ -23,6 +23,48 @@ export type ContractEvidencePolicy = z.infer<
 >;
 
 // =============================================================================
+// Policy partition: proof-bearing vs warn-first
+// =============================================================================
+
+/**
+ * Proof-bearing evidence policies. At acceptance/release readiness, unresolved
+ * verification_missing / verification_mismatch consumer warnings on a completed
+ * task with one of these policies become a typed VERIFICATION_EVIDENCE_MISSING
+ * blocker.
+ */
+export const PROOF_BEARING_EVIDENCE_POLICIES: ContractEvidencePolicy[] = [
+  "test",
+  "static_check",
+  "review",
+  "artifact_reference",
+] as const;
+
+/**
+ * Warn-first evidence policies. Consumer warnings on completed tasks with these
+ * policies stay advisory; they do not hard-block acceptance/release readiness.
+ */
+export const WARN_FIRST_EVIDENCE_POLICIES: ContractEvidencePolicy[] = [
+  "source_citation",
+  "source_audit",
+  "rubric_review",
+  "stakeholder_acceptance",
+  "design_proof",
+  "not_applicable",
+] as const;
+
+export function isProofBearingEvidencePolicy(
+  policy: ContractEvidencePolicy,
+): boolean {
+  return PROOF_BEARING_EVIDENCE_POLICIES.includes(policy);
+}
+
+export function isWarnFirstEvidencePolicy(
+  policy: ContractEvidencePolicy,
+): boolean {
+  return WARN_FIRST_EVIDENCE_POLICIES.includes(policy);
+}
+
+// =============================================================================
 // Task Evidence Plan
 // =============================================================================
 
