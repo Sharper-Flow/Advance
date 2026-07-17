@@ -9,7 +9,7 @@ export default tseslint.config(
   // Source files - with project service
   {
     files: ["src/**/*.ts"],
-    ignores: ["src/**/*.test.ts"],
+    ignores: ["src/**/*.test.ts", "src/**/*.itest.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -47,6 +47,23 @@ export default tseslint.config(
   // Test files - without project service
   {
     files: ["src/**/*.test.ts"],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  // Integration test files - without project service
+  {
+    files: ["src/**/*.itest.ts"],
     languageOptions: {
       parserOptions: {
         projectService: false,

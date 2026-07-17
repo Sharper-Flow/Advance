@@ -189,6 +189,7 @@ describe("Status Tools", () => {
   afterEach(async () => {
     store.close();
     await cleanupTempDir(tempDir);
+    vi.useRealTimers();
   });
 
   describe("adv_status", () => {
@@ -894,6 +895,7 @@ Vague in-flight work.
     });
 
     test("health view includes probe freshness and reuses cached temporal health", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
       const firstResult = await statusTools.adv_status.execute(
         { view: "health" },
         store,
