@@ -110,7 +110,11 @@ export async function loadValidationInventory(
   let changeList: Awaited<ReturnType<typeof store.changes.list>>;
   try {
     changeList = await raceWithDeadline(
-      store.changes.list({ includeArchived: true, includeClosed: true }),
+      store.changes.list({
+        includeArchived: true,
+        includeClosed: true,
+        validationConcurrency: 4,
+      }),
       deadline,
     );
   } catch (err) {

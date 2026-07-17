@@ -416,7 +416,7 @@ export interface StoreDeps {
       includeClosed?: boolean;
     },
     deadline?: TemporalReadDeadline,
-    options?: { candidateLimit?: number },
+    options?: { candidateLimit?: number; hydrationConcurrency?: number },
   ) => Promise<import("../store-types").ResolvedChangeList>;
   reseedChangeFromDisk: (
     changeId: string,

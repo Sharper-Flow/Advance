@@ -155,6 +155,11 @@ describe("loadValidationInventory", () => {
     expect(inventory.warnings).toHaveLength(0);
     expect(inventory.entries).toHaveLength(3);
     expect(store.listCallCount()).toBe(1);
+    expect(store.changes.list).toHaveBeenCalledWith({
+      includeArchived: true,
+      includeClosed: true,
+      validationConcurrency: 4,
+    });
     expect(store.getCallCount()).toBe(0);
     const ownEntry = inventory.entries.find((e) => e.isOwnChange);
     expect(ownEntry?.id).toBe("own-change");

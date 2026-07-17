@@ -274,9 +274,20 @@ export async function createDiskStore(
           filter?.includeArchived || filter?.status === "archived";
         const effectiveIncludeClosed =
           filter?.includeClosed || filter?.status === "closed";
-        const loaded = await Promise.all(
-          ids.map((id) => loadChange(paths.changes, id)),
+        const concurrency = Math.max(
+          1,
+          Math.floor(filter?.validationConcurrency ?? Math.max(ids.length, 1)),
         );
+        const loaded: Awaited<ReturnType<typeof loadChange>>[] = [];
+        for (let i = 0; i < ids.length; i += concurrency) {
+          loaded.push(
+            ...(await Promise.all(
+              ids
+                .slice(i, i + concurrency)
+                .map((id) => loadChange(paths.changes, id)),
+            )),
+          );
+        }
         let changes = loaded
           .filter((r): r is { success: true; data: Change } =>
             Boolean(r.success && r.data),

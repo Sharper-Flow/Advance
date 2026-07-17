@@ -385,10 +385,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const effectiveIncludeClosed =
         filter?.includeClosed || filter?.status === "closed";
 
-      const resolved = await listResolvedChanges({
-        includeArchived: effectiveIncludeArchived,
-        includeClosed: effectiveIncludeClosed,
-      });
+      const resolved = await listResolvedChanges(
+        {
+          includeArchived: effectiveIncludeArchived,
+          includeClosed: effectiveIncludeClosed,
+        },
+        undefined,
+        {
+          hydrationConcurrency: filter?.validationConcurrency,
+        },
+      );
       let filtered = resolved.changes;
 
       if (filter?.status) {
