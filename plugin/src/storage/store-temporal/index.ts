@@ -741,8 +741,27 @@ export function createTemporalStoreBackend(
   ): Promise<Change | null> => {
     try {
       const result = await legacy.changes.get(changeId);
-      if (result.success && result.data && result.data.status === "closed") {
-        return result.data;
+      // rq-terminalProjectionTruth01 / poison read-resilience: a terminal
+      // change.json (archived OR closed) is disk-authoritative and MUST be
+      // served without a live workflow round-trip. Archived previously relied
+      // solely on loadArchiveBundleDominantProjection (bundle-present); when the
+      // archive bundle is missing/raced, an archived change fell through to the
+      // live query and could hit a poisoned/terminated workflow (TMPRL1100),
+      // paying a wasteful query + describe() probe per candidate before the
+      // catch→reseedChangeFromDisk path finally returned the same disk data.
+      // Short-circuiting both terminal statuses here mirrors reseedChangeFromDisk
+      // and keeps enumeration/status reads fast even against poisoned terminal
+      // workflows.
+      if (
+        result.success &&
+        result.data &&
+        (result.data.status === "closed" || result.data.status === "archived")
+      ) {
+        // Mark the disk source so callers report source "disk" (matching the
+        // prior catch→reseedChangeFromDisk path). This is terminal-projection
+        // dominance, NOT a temporal_query_fallback recovery, so it does not
+        // carry the _recovery reconciliation marker.
+        return { ...result.data, _source: "disk" } as Change;
       }
     } catch {
       // Disk projection is only a terminal-state dominance check. Missing or
