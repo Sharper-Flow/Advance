@@ -625,12 +625,30 @@ check_tool_drift() {
 		return
 	fi
 
-	python3 - "$agent_file" "$registry_file" <<'PY' || ((config_issues++)) || true
+	# Ground-truth tool names come from the EXPORTED ADV_TOOL_NAMES value, not a
+	# source regex. ADV_TOOL_NAMES is a derived list
+	# (Object.freeze(PUBLIC_TOOL_ENTRIES.map(e => e.name))), so scraping the
+	# registry source for a `[...] as const` literal is stale by construction.
+	# Load the registry through tsx and emit the canonical names; this stays
+	# correct across future registry refactors. Advisory check: if tsx/node is
+	# unavailable or the import fails, skip rather than fail-loud.
+	local names_file registry_dir
+	names_file="$(mktemp)"
+	registry_dir="$ASSET_ROOT/plugin"
+	if ! (cd "$registry_dir" && npx --no-install tsx -e \
+		'import("./src/tool-registry.ts").then((m)=>{process.stdout.write(m.ADV_TOOL_NAMES.join("\n"));}).catch((e)=>{console.error(e&&e.message?e.message:e);process.exit(1);})' \
+		>"$names_file" 2>/dev/null) || [ ! -s "$names_file" ]; then
+		echo "    ⚠  tool drift: skipped (could not load ADV_TOOL_NAMES via tsx from $registry_dir)"
+		rm -f "$names_file"
+		return
+	fi
+
+	python3 - "$agent_file" "$names_file" <<'PY' || ((config_issues++)) || true
 import re
 import sys
 from pathlib import Path
 
-agent_path, registry_path = sys.argv[1], sys.argv[2]
+agent_path, names_path = sys.argv[1], sys.argv[2]
 
 # Extract agent mode and adv_* keys from YAML frontmatter `tools:` block
 agent_text = Path(agent_path).read_text()
@@ -664,13 +682,17 @@ for line in fm.splitlines():
         if m:
             allowed.add(m.group(1))
 
-# Extract ADV_TOOL_NAMES from registry
-reg_text = Path(registry_path).read_text()
-m = re.search(r"ADV_TOOL_NAMES[^=]*=\s*\[(.*?)\]\s*as const", reg_text, re.S)
-if not m:
-    print("    ✗  tool drift: could not locate ADV_TOOL_NAMES in registry")
+# Canonical registered tool names: emitted from the exported ADV_TOOL_NAMES
+# value (one per line) by the tsx loader in check_tool_drift(). Robust to
+# registry refactors that derive the list instead of declaring a literal.
+registered = {
+    line.strip()
+    for line in Path(names_path).read_text().splitlines()
+    if line.strip().startswith("adv_")
+}
+if not registered:
+    print("    ✗  tool drift: ADV_TOOL_NAMES resolved to an empty tool set")
     sys.exit(1)
-registered = set(re.findall(r'"(adv_[a-z_]+)"', m.group(1)))
 
 # Leaf subagents submit reports through this tool; primary orchestrators consume
 # those reports via change state instead of submitting reports themselves.
@@ -701,6 +723,7 @@ if issues == 0:
 
 sys.exit(1 if issues > 0 else 0)
 PY
+	rm -f "$names_file"
 }
 
 check_config() {
