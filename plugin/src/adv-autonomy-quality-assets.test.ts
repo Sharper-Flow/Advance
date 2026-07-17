@@ -255,7 +255,7 @@ describe("Archive and spec assets", () => {
     );
   });
 
-  test("adv-archive.md Local Deploy Gate callout encodes deploy-rebuild, worker-bounce, and host-restart activation behavior", () => {
+  test("adv-archive.md Local Deploy Gate callout encodes deploy-rebuild, worker-refresh classification, and host-restart activation behavior", () => {
     // Behavior-level: the callout must communicate the actual activation
     // behavior of the Local Deploy Gate so that removing any required behavior
     // fails this test (AC5). The canonical mechanics live in
@@ -265,10 +265,12 @@ describe("Archive and spec assets", () => {
     // AC1: names ./scripts/deploy-local.sh --fix from the repo root as the
     // primary deploy and states it rebuilds a stale distribution before sync
     // (deploy-local.sh: ensure_plugin_dist_fresh rebuilds stale dist).
-    // AC2: states the command attempts the deployed-worker bounce
-    // automatically, forbids manual worker termination, and routes a failed
-    // bounce to adv_temporal_worker_restart
-    // (deploy-local.sh: refresh_deployed_temporal_workers SIGTERM bounce).
+    // AC2: states the command classifies deployed workers by the
+    // ADV_TEMPORAL_WORKER_SELF_ROLL=1 marker (retireDeployWorkerBounce:
+    // self-roll-capable workers are advisory/not signaled; legacy workers
+    // receive SIGTERM), fails closed on refresh failure, and routes recovery
+    // to adv_temporal_worker_restart rather than manual termination retries
+    // (deploy-local.sh: refresh_deployed_temporal_workers classifier).
     // AC3: requires OpenCode session / plugin-host restart plus tool
     // re-invocation, and explicitly denies any automatic host restart /
     // live-reload claim (temporal-recovery.md external restart boundary).
@@ -280,10 +282,16 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/from the repo root/);
     expect(content).toMatch(/rebuilds[^.\n]*stale[^.\n]*distribut/i);
     expect(content).toMatch(/before sync/i);
-    // AC2 — automatic deployed-worker bounce; no manual termination;
-    // failed bounce routes to adv_temporal_worker_restart
-    expect(content).toMatch(/bounce[^.\n]*deployed[^.\n]*worker/i);
-    expect(content).toMatch(/do not manually terminate[^.\n]*worker/i);
+    // AC2 — marker-gated worker classification; self-roll advisory / legacy
+    // SIGTERM; fail-closed refresh routes to adv_temporal_worker_restart
+    // rather than manual termination retries
+    expect(content).toMatch(
+      /classif[^.\n]*deployed[^.\n]*worker[^.\n]*ADV_TEMPORAL_WORKER_SELF_ROLL=1/i,
+    );
+    expect(content).toMatch(/[Ss]elf-roll-capable workers[^.\n]*not signaled/);
+    expect(content).toMatch(/legacy workers receive `?SIGTERM`?/i);
+    expect(content).toMatch(/fails closed[^.\n]*\[ADV:ACTION_REQUIRED\]/i);
+    expect(content).toMatch(/rather than retrying manual termination/i);
     expect(content).toMatch(/adv_temporal_worker_restart/);
     expect(content).not.toMatch(
       /restart[^.\n]*standalone Temporal worker process/i,
