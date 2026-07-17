@@ -1021,6 +1021,33 @@ Vague in-flight work.
         );
       });
 
+      test("health view includes plugin bundle generation freshness", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.plugin_runtime).toBeDefined();
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "plugin_bundle_manifest_path",
+        );
+        expect(parsed.plugin_runtime.plugin_bundle_manifest_path).toContain(
+          "plugin-bundle-manifest.json",
+        );
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "loaded_plugin_generation",
+        );
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "deployed_plugin_generation",
+        );
+        expect(parsed.plugin_runtime).toHaveProperty("plugin_bundle_freshness");
+        expect(["current", "stale", "unknown"]).toContain(
+          parsed.plugin_runtime.plugin_bundle_freshness,
+        );
+        expect(parsed.plugin_runtime).toHaveProperty("plugin_bundle_recovery");
+      });
+
       test("includes search_attributes section with saVerification from getStslStats", async () => {
         const { getStslStats, isStslInitialized } =
           await import("../temporal/service");

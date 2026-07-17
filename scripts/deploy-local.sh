@@ -215,7 +215,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
+	for output_rel in dist/index.js dist/plugin-bundle-manifest.json dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
@@ -273,6 +273,53 @@ check_rsync() {
 		echo "    Install: sudo apt-get install -y rsync  (or brew install rsync)"
 		return 1
 	fi
+	return 0
+}
+
+PLUGIN_BUNDLE_MANIFEST_BASENAME="plugin-bundle-manifest.json"
+
+# Validate that the copied plugin bundle index matches the SHA-256 recorded in
+# the manifest. Requires jq and sha256sum (or shasum on macOS). Returns non-zero
+# on mismatch, missing manifest, or missing tools.
+validate_plugin_bundle_manifest() {
+	local manifest_path="$1"
+	local index_path="$2"
+
+	if [ ! -f "$manifest_path" ]; then
+		echo "    ✗  plugin bundle manifest missing: $manifest_path"
+		return 1
+	fi
+
+	if ! command -v jq &>/dev/null; then
+		echo "    ✗  jq not found — plugin bundle manifest validation requires jq"
+		echo "    Install: sudo apt-get install -y jq  (or brew install jq)"
+		return 1
+	fi
+
+	local expected_hash
+	expected_hash="$(jq -r '.files.index // empty' "$manifest_path" 2>/dev/null)"
+	if [ -z "$expected_hash" ] || ! [[ "$expected_hash" =~ ^[0-9a-f]{64}$ ]]; then
+		echo "    ✗  plugin bundle manifest has no valid files.index hash: $manifest_path"
+		return 1
+	fi
+
+	local actual_hash
+	if command -v sha256sum &>/dev/null; then
+		actual_hash="$(sha256sum "$index_path" | awk '{print $1}')"
+	elif command -v shasum &>/dev/null; then
+		actual_hash="$(shasum -a 256 "$index_path" | awk '{print $1}')"
+	else
+		echo "    ✗  sha256sum or shasum required to validate plugin bundle"
+		return 1
+	fi
+
+	if [ "$expected_hash" != "$actual_hash" ]; then
+		echo "    ✗  plugin bundle index hash mismatch"
+		echo "       manifest: $expected_hash"
+		echo "       actual:   $actual_hash"
+		return 1
+	fi
+
 	return 0
 }
 
@@ -1259,18 +1306,46 @@ if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then
 	exit 1
 fi
 ensure_plugin_dist_fresh
+
+# Guard: a production build must produce the plugin bundle manifest before we
+# publish the bundle. The manifest is the LAST file published (see below).
+PLUGIN_BUNDLE_MANIFEST="$ADV_SOURCE_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
+if [ "$DRY_RUN" != true ] && [ ! -f "$PLUGIN_BUNDLE_MANIFEST" ]; then
+	echo "    ✗  plugin bundle manifest missing: $PLUGIN_BUNDLE_MANIFEST"
+	echo "       Run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build) and retry."
+	exit 1
+fi
+
 # Tracks the post-sync worker bounce so a stuck deployed worker stays loud
 # (nonzero final exit, named in the summary) without aborting the remaining
 # independent asset/config sync under `set -e`.
 worker_refresh_exit=0
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
+	echo "    dry-run: would exclude plugin bundle manifest from payload rsync"
+	echo "    dry-run: would validate copied plugin bundle index"
+	echo "    dry-run: would publish plugin bundle manifest last"
 	refresh_deployed_temporal_workers "dry-run"
 else
 	check_rsync || exit 1
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
-	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
-	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
+	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
+	echo "    synced runtime plugin payload: $ADV_RUNTIME_PLUGIN_PATH"
+	if ! validate_plugin_bundle_manifest "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist/index.js"; then
+		echo "    ✗  refusing to publish plugin bundle manifest: copied index validation failed"
+		exit 1
+	fi
+	# Copy to a same-directory temporary file and rename it into place. The
+	# manifest is the runtime publication marker, so readers must never observe
+	# a partially copied sidecar.
+	plugin_manifest_tmp="$(mktemp "$ADV_RUNTIME_PLUGIN_PATH/dist/.plugin-bundle-manifest.XXXXXX.tmp")"
+	if ! cp "$PLUGIN_BUNDLE_MANIFEST" "$plugin_manifest_tmp"; then
+		rm -f "$plugin_manifest_tmp"
+		echo "    ✗  refusing to publish plugin bundle manifest: temporary copy failed"
+		exit 1
+	fi
+	mv -f "$plugin_manifest_tmp" "$ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
+	echo "    published plugin bundle manifest: $ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
 	refresh_deployed_temporal_workers "after-sync" || worker_refresh_exit=$?
 fi
 

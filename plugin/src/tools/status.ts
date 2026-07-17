@@ -761,6 +761,14 @@ export const statusTools = {
                       source_dist_freshness:
                         pluginRuntimeInfo.source_dist_freshness,
                       recovery_hint: pluginRuntimeInfo.recovery_hint,
+                      plugin_bundle_freshness:
+                        pluginRuntimeInfo.plugin_bundle_freshness,
+                      loaded_plugin_generation:
+                        pluginRuntimeInfo.loaded_plugin_generation,
+                      deployed_plugin_generation:
+                        pluginRuntimeInfo.deployed_plugin_generation,
+                      plugin_bundle_recovery:
+                        pluginRuntimeInfo.plugin_bundle_recovery,
                     }
                   : undefined,
                 worktreeCensus: worktreeCensus

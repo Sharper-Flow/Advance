@@ -187,6 +187,12 @@ export interface PluginRuntimeInput {
     commands: string[];
     paths: { plugin_root: string; main_checkout?: string; worktree?: string };
   } | null;
+  // rq-pluginBundleStaleness01: optional bundle generation freshness surfaced
+  // when the deployed plugin bundle is newer than the loaded bundle.
+  plugin_bundle_freshness?: "current" | "stale" | "unknown" | null;
+  loaded_plugin_generation?: string | null;
+  deployed_plugin_generation?: string | null;
+  plugin_bundle_recovery?: string | null;
 }
 
 export interface WorkerLockHealthInput {
@@ -485,6 +491,22 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
       for (const cmd of input.pluginRuntime.recovery_hint.commands) {
         healthLines.push(`     ${cmd}`);
       }
+    }
+  }
+  // rq-pluginBundleStaleness01: surface typed plugin bundle stale advisory in
+  // the health section. Current and unknown states intentionally emit no line.
+  if (input.pluginRuntime?.plugin_bundle_freshness === "stale") {
+    healthLines.push(
+      "[ADV:PLUGIN_BUNDLE_STALE] Loaded plugin bundle is stale.",
+    );
+    healthLines.push(
+      `  loaded generation: ${input.pluginRuntime.loaded_plugin_generation ?? "unknown"}`,
+    );
+    healthLines.push(
+      `  deployed generation: ${input.pluginRuntime.deployed_plugin_generation ?? "unknown"}`,
+    );
+    if (input.pluginRuntime.plugin_bundle_recovery) {
+      healthLines.push(`  → ${input.pluginRuntime.plugin_bundle_recovery}`);
     }
   }
   // rq-snapshotHealthSurface01 — one-line snapshot health summary
