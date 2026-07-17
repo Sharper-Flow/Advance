@@ -1470,6 +1470,42 @@ describe("task tools — signal/query adapters", () => {
       });
     });
 
+    test("rejects reclassification that would create an invalid evidence plan", async () => {
+      const store = createMockStore();
+      const task = {
+        id: "tk-review-route",
+        title: "Review-only behavior change",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-07-17T00:00:00.000Z",
+        metadata: { tdd_intent: "inline" },
+        evidence_policy: "review",
+      } as import("../types").Task;
+
+      vi.mocked(store.tasks.show).mockResolvedValue({
+        task,
+        changeId: "test-change",
+      });
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-review-route",
+          toIntent: "not_applicable",
+          reason: "Reassess evidence route",
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toMatch(
+        /Invalid evidence plan.*rationale.*review conclusion/i,
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
     test("routes target_path TDD reclassification through the target store", async () => {
       const store = createMockStore();
       const task = {

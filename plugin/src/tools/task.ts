@@ -1633,6 +1633,12 @@ export const taskTools = {
           tdd_reclassification: reclassification,
         };
         const evidenceResolution = resolveTaskEvidence(updatedTask);
+        if (!evidenceResolution.valid) {
+          return formatToolOutput({
+            error: `Invalid evidence plan: ${evidenceResolution.errors.join("; ")}`,
+            changeId,
+          });
+        }
         const evidencePlan: TaskEvidencePlan = {
           policy: evidenceResolution.policy!,
           proof_target: evidenceResolution.proof_target!,
