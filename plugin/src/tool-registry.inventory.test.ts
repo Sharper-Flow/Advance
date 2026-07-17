@@ -85,6 +85,8 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_change_workflow_terminate",
   "adv_verification_evidence_disposition",
   "adv_lightweight_profile_evaluate",
+  "adv_tool_catalog",
+  "adv_tool_describe",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -132,6 +134,7 @@ const VALID_REALMS = [
   "task",
   "temporal",
   "test",
+  "tool",
   "verification",
   "wisdom",
   "worktree",
@@ -282,7 +285,8 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // (79 = 80 - 2 + 1); strengthenAgentEvidence then added the
     // verification-evidence disposition tool (80 = 80 - 2 + 2);
     // addLightweightChangeProfile then added the lightweight profile evaluate
-    // tool (81 = 80 - 2 + 3).
+    // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
+    // catalog and describe tools (83 = 80 - 2 + 5).
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) - landedRemovals + landedAdditions,
     );

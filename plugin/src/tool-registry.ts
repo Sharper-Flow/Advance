@@ -24,6 +24,7 @@ import {
   preflightToolArgs,
 } from "./utils/tool-arg-preflight";
 import { formatAdvToolTitle } from "./utils/tool-title";
+import { formatToolOutput, paginate } from "./utils/tool-output";
 import type { Store } from "./storage/store-types";
 import type { OpencodeClient } from "./utils/opencode-types";
 
@@ -914,6 +915,18 @@ export function createToolMap(
       "adv_session_show",
       store,
     ),
+
+    // Tool Catalog / Describe (addAdvanceMetadata AC3/C3/C4)
+    adv_tool_catalog: bindTool(
+      toolCatalogTools.adv_tool_catalog,
+      "adv_tool_catalog",
+      store,
+    ),
+    adv_tool_describe: bindTool(
+      toolCatalogTools.adv_tool_describe,
+      "adv_tool_describe",
+      store,
+    ),
   };
 }
 
@@ -991,6 +1004,156 @@ export function collectPublicToolEntries(
   return entries;
 }
 
+// =============================================================================
+// Tool Catalog / Describe Projections (addAdvanceMetadata AC3/C3/C4)
+// =============================================================================
+
+/** One entry in the read-only ADV tool catalog. */
+export interface ToolCatalogItem {
+  readonly name: string;
+  readonly description: string;
+  readonly argKeys: readonly string[];
+  readonly visibility: ToolMetadataV1;
+}
+
+/** Result of converting a tool's canonical Zod args to JSON Schema. */
+export type ToolInputSchemaResult =
+  | { readonly ok: true; readonly schema: Record<string, unknown> }
+  | { readonly ok: false; readonly code: string; readonly error: string };
+
+/**
+ * Render the input JSON Schema for a canonical tool definition using Zod's
+ * native `toJSONSchema` with input semantics. Failures are surfaced as typed
+ * projection errors rather than falling back to argument names (AC4).
+ */
+export function renderToolInputSchema(
+  entry: PublicToolEntry,
+): ToolInputSchemaResult {
+  try {
+    const schema = z.toJSONSchema(z.object(entry.args), {
+      io: "input",
+      unrepresentable: "throw",
+    }) as Record<string, unknown>;
+    return { ok: true, schema };
+  } catch (err) {
+    return {
+      ok: false,
+      code: "SCHEMA_CONVERSION_FAILED",
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/**
+ * Read-only catalog and describe tools for the canonical ADV tool surface.
+ * They project the existing definition inventory and metadata; they never
+ * execute a handler or grant access (C1/DONT1/DONT2/DONT3).
+ */
+export const toolCatalogTools = {
+  adv_tool_catalog: {
+    description:
+      "Bounded read-only catalog of all canonical ADV tools. Returns each tool's name, description, argument keys, and visibility metadata (realm, group, lifecycle gates, risk, recovery-only). Restriction labels are descriptive only and do not grant access.",
+    args: {
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe(
+          "Maximum number of catalog entries to return (1-100, default 50)",
+        ),
+      offset: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Offset for pagination (default: 0)"),
+    },
+    execute: async (
+      args: { limit?: number; offset?: number },
+      _store: unknown,
+    ): Promise<string> => {
+      const limit = args.limit ?? 50;
+      const offset = args.offset ?? 0;
+      const sortedEntries = [...PUBLIC_TOOL_ENTRIES].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      const items: ToolCatalogItem[] = sortedEntries.map((entry) => {
+        const meta = ADV_TOOL_METADATA[entry.name];
+        if (!meta) {
+          throw new Error(
+            `Metadata parity mismatch: ${entry.name} has no ADV_TOOL_METADATA entry`,
+          );
+        }
+        return {
+          name: entry.name,
+          description: entry.description,
+          argKeys: Object.keys(entry.args),
+          visibility: meta,
+        };
+      });
+      const paged = paginate(items, {
+        limit,
+        offset,
+        tool: "adv_tool_catalog",
+      });
+      return formatToolOutput(
+        {
+          items: paged.items,
+          pagination: paged.pagination,
+        },
+        { maxChars: 100000 },
+      );
+    },
+  },
+
+  adv_tool_describe: {
+    description:
+      "Describe a single canonical ADV tool by exact name. Returns metadata, argument keys, and a JSON Schema representation of the tool's input arguments. Does not execute the tool or grant access.",
+    args: {
+      name: z
+        .string()
+        .min(1)
+        .describe("Exact canonical ADV tool name (e.g. adv_change_show)"),
+    },
+    execute: async (
+      args: { name: string },
+      _store: unknown,
+    ): Promise<string> => {
+      const entry = PUBLIC_TOOL_ENTRIES.find((e) => e.name === args.name);
+      if (!entry) {
+        return formatToolOutput({
+          error: `Tool not found: ${args.name}`,
+          code: "TOOL_NOT_FOUND",
+        });
+      }
+      const meta = ADV_TOOL_METADATA[entry.name];
+      if (!meta) {
+        return formatToolOutput({
+          error: `Metadata parity mismatch: ${entry.name} has no ADV_TOOL_METADATA entry`,
+          code: "METADATA_PARITY_MISMATCH",
+        });
+      }
+      const converted = renderToolInputSchema(entry);
+      if (!converted.ok) {
+        return formatToolOutput({
+          error: `Schema conversion failed for ${entry.name}`,
+          code: converted.code,
+          details: converted.error,
+        });
+      }
+      return formatToolOutput({
+        name: entry.name,
+        description: entry.description,
+        argKeys: Object.keys(entry.args),
+        visibility: meta,
+        inputSchema: converted.schema,
+      });
+    },
+  },
+};
+
 const PUBLIC_TOOL_GROUPS = [
   specTools,
   specDeltaTools,
@@ -1023,6 +1186,7 @@ const PUBLIC_TOOL_GROUPS = [
   epicTools,
   storeConsolidateTools,
   storeCleanupTools,
+  toolCatalogTools,
 ] as const satisfies readonly PublicToolGroup[];
 
 const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(
@@ -1105,6 +1269,7 @@ export type ToolRealm =
   | "task"
   | "temporal"
   | "test"
+  | "tool"
   | "verification"
   | "wisdom"
   | "worktree";
@@ -1167,6 +1332,7 @@ const REALM_PREFIXES: ReadonlyArray<readonly [string, ToolRealm]> = [
   ["adv_store_", "store"],
   ["adv_task_", "task"],
   ["adv_temporal_", "temporal"],
+  ["adv_tool_", "tool"],
   ["adv_worktree_", "worktree"],
   ["adv_wisdom_", "wisdom"],
 ];
@@ -1226,6 +1392,8 @@ const GROUP_OVERRIDES: Record<string, ToolGroup> = {
   adv_task_list: "read",
   adv_task_ready: "read",
   adv_task_show: "read",
+  adv_tool_catalog: "read",
+  adv_tool_describe: "read",
   adv_wip_state: "read",
   adv_wisdom_list: "read",
   adv_worktree_triage: "read",
@@ -1310,6 +1478,15 @@ const LIFECYCLE_BY_REALM: Readonly<
   task: ["planning", "execution"],
   temporal: ["execution", "acceptance", "release"],
   test: ["execution", "acceptance"],
+  tool: [
+    "proposal",
+    "discovery",
+    "design",
+    "planning",
+    "execution",
+    "acceptance",
+    "release",
+  ],
   verification: ["acceptance"],
   wisdom: ["execution", "acceptance", "release"],
   worktree: ["execution"],

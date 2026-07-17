@@ -437,6 +437,16 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Read-only worktree inventory.",
   },
+  adv_tool_catalog: {
+    class: "orchestrator",
+    rationale:
+      "Read-only bounded catalog of canonical ADV tools; descriptive visibility metadata only.",
+  },
+  adv_tool_describe: {
+    class: "orchestrator",
+    rationale:
+      "Read-only single-tool schema and metadata projection; no handler invocation.",
+  },
 } as const;
 
 function namesByClass(className: ToolRoleClass): readonly string[] {
@@ -563,6 +573,8 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_temporal_reconnect",
       "adv_temporal_register_search_attributes",
       "adv_temporal_worker_restart",
+      "adv_tool_catalog",
+      "adv_tool_describe",
       "adv_verification_evidence_disposition",
       "adv_wip_state",
       "adv_wisdom_add",
