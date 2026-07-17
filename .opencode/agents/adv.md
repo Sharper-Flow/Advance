@@ -118,11 +118,13 @@ tools:
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
   adv_temporal_worker_restart: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
   adv_verification_evidence_disposition: true
   adv_wip_state: true
+  # === Worktree — orchestrator owns lifecycle ===
   adv_wisdom_add: true
   adv_wisdom_list: true
-  # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_cleanup: true
   adv_worktree_create: true
   adv_worktree_delete: true

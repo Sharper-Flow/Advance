@@ -1,6 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { z } from "zod";
 import {
+  ADV_TOOL_METADATA,
   ADV_TOOL_NAMES,
+  collectPublicToolEntries,
   createDegradedToolMap,
   createToolMap,
   getToolSurface,
@@ -15,12 +18,14 @@ import {
 
 /**
  * Public tool inventory + parity guards — consolidateAdvToolSurface2
- * (task tk-9b61859aa2ba; contract SC1/SC2/AC5/C5; design DDC1/DDC2/DDC3).
+ * (task tk-9b61859aa2ba; contract SC1/SC2/AC5/C5; design DDC1/DDC2/DDC3) and
+ * addAdvanceMetadata (SC4/AC1/AC2/AC5/AC6/C1/C2/C5).
  *
  * The registry owns one typed inventory of retained public `*Tools` groups.
- * Canonical names (ADV_TOOL_NAMES) and the warrant-visible argument surface
- * (getToolSurface) are both derived from that inventory; createToolMap stays
- * explicit. These tests pin the structural equalities:
+ * Canonical names (ADV_TOOL_NAMES), the warrant-visible argument surface
+ * (getToolSurface), and canonical descriptive metadata (ADV_TOOL_METADATA)
+ * are all derived from that inventory; createToolMap stays explicit. These
+ * tests pin the structural equalities:
  *
  * - DDC1: derived names === runtime createToolMap keys === degraded-map keys
  *   === warrant-surface names.
@@ -31,6 +36,10 @@ import {
  * - AC5: every retained callable has a title entry; deterministic tests fail
  *   on divergence.
  * - SC1: baseline/final counts are recorded and asserted.
+ * - SC4/AC1/AC2: metadata keys and definition records are exact and closed;
+ *   missing description or args rejects inventory construction.
+ * - C1/C2/C5: metadata owns only realm/group/lifecycle/risk/recovery facts
+ *   and does not copy authority from TOOL_ROLE_POLICY or AGENT_TOOL_POLICY.
  */
 
 const sorted = (names: Iterable<string>): string[] =>
@@ -76,6 +85,59 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_change_workflow_terminate",
   "adv_verification_evidence_disposition",
   "adv_lightweight_profile_evaluate",
+  "adv_tool_catalog",
+  "adv_tool_describe",
+] as const;
+
+const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
+
+const VALID_LIFECYCLE_GATES = [
+  "proposal",
+  "discovery",
+  "design",
+  "planning",
+  "execution",
+  "acceptance",
+  "release",
+] as const;
+
+const VALID_GROUPS = [
+  "bulk",
+  "diagnostics",
+  "lifecycle",
+  "metadata",
+  "read",
+  "repair",
+  "write",
+] as const;
+
+const VALID_REALMS = [
+  "archive",
+  "backlog",
+  "change",
+  "conformance",
+  "contract",
+  "design",
+  "epic",
+  "followup",
+  "gate",
+  "lightweight",
+  "ops",
+  "project",
+  "reflection",
+  "report",
+  "session",
+  "snapshot",
+  "spec",
+  "status",
+  "store",
+  "task",
+  "temporal",
+  "test",
+  "tool",
+  "verification",
+  "wisdom",
+  "worktree",
 ] as const;
 
 describe("public tool inventory — DDC1 name-set parity", () => {
@@ -116,34 +178,33 @@ describe("public tool inventory — DDC1 name-set parity", () => {
 });
 
 describe("public tool inventory — DDC2 duplicate rejection", () => {
-  test("collectPublicToolEntries rejects a duplicate name across groups before Set/Map collapse", async () => {
-    const { collectPublicToolEntries } = await import("./tool-registry");
+  test("collectPublicToolEntries rejects a duplicate name across groups before Set/Map collapse", () => {
     expect(() =>
       collectPublicToolEntries([
-        { adv_alpha: { args: {} } },
-        { adv_beta: { args: { changeId: {} } } },
-        { adv_alpha: { args: {} } },
+        { adv_alpha: { description: "Alpha", args: {} } },
+        { adv_beta: { description: "Beta", args: { changeId: {} } } },
+        { adv_alpha: { description: "Alpha dup", args: {} } },
       ]),
     ).toThrow(/[Dd]uplicate public tool name.*adv_alpha/);
   });
 
-  test("collectPublicToolEntries rejects a duplicate within one group", async () => {
-    const { collectPublicToolEntries } = await import("./tool-registry");
-    const colliding = { adv_alpha: { args: {} } };
+  test("collectPublicToolEntries rejects a duplicate within one group", () => {
+    const colliding = { adv_alpha: { description: "Alpha", args: {} } };
     expect(() => collectPublicToolEntries([colliding, colliding])).toThrow(
       /[Dd]uplicate public tool name.*adv_alpha/,
     );
   });
 
-  test("collectPublicToolEntries accepts disjoint groups and preserves declared args", async () => {
-    const { collectPublicToolEntries } = await import("./tool-registry");
+  test("collectPublicToolEntries accepts disjoint groups and preserves declared args", () => {
     const entries = collectPublicToolEntries([
-      { adv_alpha: { args: { changeId: {}, dryRun: {} } } },
-      { adv_beta: { args: {} } },
+      {
+        adv_alpha: { description: "Alpha", args: { changeId: {}, dryRun: {} } },
+      },
+      { adv_beta: { description: "Beta", args: {} } },
     ]);
-    expect(entries.map(([name]) => name)).toEqual(["adv_alpha", "adv_beta"]);
-    expect(entries[0]?.[1]).toEqual({ changeId: {}, dryRun: {} });
-    expect(entries[1]?.[1]).toEqual({});
+    expect(entries.map((e) => e.name)).toEqual(["adv_alpha", "adv_beta"]);
+    expect(entries[0]?.args).toEqual({ changeId: {}, dryRun: {} });
+    expect(entries[1]?.args).toEqual({});
   });
 });
 
@@ -224,12 +285,111 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // (79 = 80 - 2 + 1); strengthenAgentEvidence then added the
     // verification-evidence disposition tool (80 = 80 - 2 + 2);
     // addLightweightChangeProfile then added the lightweight profile evaluate
-    // tool (81 = 80 - 2 + 3).
+    // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
+    // catalog and describe tools (83 = 80 - 2 + 5).
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) - landedRemovals + landedAdditions,
     );
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );
+  });
+});
+
+describe("public tool inventory — definition record completeness", () => {
+  test("collectPublicToolEntries rejects a tool missing description", () => {
+    expect(() =>
+      collectPublicToolEntries([
+        { adv_alpha: { args: { changeId: z.string() } } as any },
+      ]),
+    ).toThrow(/description/);
+  });
+
+  test("collectPublicToolEntries rejects a tool missing args", () => {
+    expect(() =>
+      collectPublicToolEntries([
+        { adv_alpha: { description: "Alpha tool" } as any },
+      ]),
+    ).toThrow(/args/);
+  });
+
+  test("collectPublicToolEntries rejects empty description", () => {
+    expect(() =>
+      collectPublicToolEntries([
+        { adv_alpha: { description: "", args: { changeId: z.string() } } },
+      ]),
+    ).toThrow(/description/);
+  });
+
+  test("collectPublicToolEntries preserves description and original Zod args", () => {
+    const args = { changeId: z.string() };
+    const entries = collectPublicToolEntries([
+      { adv_alpha: { description: "Alpha tool", args } },
+      { adv_beta: { description: "Beta tool", args: {} } },
+    ]);
+    expect(entries).toEqual([
+      { name: "adv_alpha", description: "Alpha tool", args },
+      { name: "adv_beta", description: "Beta tool", args: {} },
+    ]);
+  });
+});
+
+describe("public tool inventory — ADV_TOOL_METADATA parity", () => {
+  test("metadata keys exactly equal derived inventory names", () => {
+    expect(sorted(Object.keys(ADV_TOOL_METADATA))).toEqual(
+      sorted(ADV_TOOL_NAMES),
+    );
+  });
+
+  test("every metadata entry carries required descriptive facts", () => {
+    for (const name of ADV_TOOL_NAMES) {
+      const meta = ADV_TOOL_METADATA[name];
+      expect(meta, `metadata exists for ${name}`).toBeDefined();
+      expect(VALID_REALMS, `realm for ${name}`).toContain(meta.realm);
+      expect(VALID_GROUPS, `group for ${name}`).toContain(meta.group);
+      expect(meta.lifecycle.length, `lifecycle for ${name}`).toBeGreaterThan(0);
+      for (const gate of meta.lifecycle) {
+        expect(VALID_LIFECYCLE_GATES, `lifecycle gate for ${name}`).toContain(
+          gate,
+        );
+      }
+      expect(VALID_RISKS, `risk for ${name}`).toContain(meta.risk);
+      expect(typeof meta.recoveryOnly, `recoveryOnly for ${name}`).toBe(
+        "boolean",
+      );
+    }
+  });
+
+  test("metadata does not copy authority facts from TOOL_ROLE_POLICY", () => {
+    for (const name of ADV_TOOL_NAMES) {
+      const meta = ADV_TOOL_METADATA[name];
+      expect(meta, `metadata for ${name}`).toBeDefined();
+      expect(meta).not.toHaveProperty("class");
+      expect(meta).not.toHaveProperty("agentActions");
+      expect(meta).not.toHaveProperty("operatorActions");
+      expect(meta).not.toHaveProperty("rationale");
+    }
+  });
+
+  test("metadata does not copy manifest grants from AGENT_TOOL_POLICY", () => {
+    for (const name of ADV_TOOL_NAMES) {
+      const meta = ADV_TOOL_METADATA[name];
+      expect(meta, `metadata for ${name}`).toBeDefined();
+      expect(meta).not.toHaveProperty("allowed");
+      expect(meta).not.toHaveProperty("explicitBlocked");
+      expect(meta).not.toHaveProperty("denyWildcard");
+    }
+  });
+
+  test("operator-risk metadata is limited to recovery-only repair tools", () => {
+    const operatorRisk = ADV_TOOL_NAMES.filter(
+      (name) => ADV_TOOL_METADATA[name].risk === "operator",
+    );
+    for (const name of operatorRisk) {
+      expect(ADV_TOOL_METADATA[name].recoveryOnly, `${name} recoveryOnly`).toBe(
+        true,
+      );
+      expect(ADV_TOOL_METADATA[name].group, `${name} group`).toBe("repair");
+    }
   });
 });

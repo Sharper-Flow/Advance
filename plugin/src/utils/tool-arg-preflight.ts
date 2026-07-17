@@ -291,6 +291,11 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // ints with 0; normalize to omitted so the handler default applies.
     limit: { zero: "omit" },
   },
+  adv_tool_catalog: {
+    // Optional page limit: strict-mode providers fill optional positive ints
+    // with 0; normalize to omitted so the handler default (50) applies.
+    limit: { zero: "omit" },
+  },
   adv_store_consolidate: {
     source_project_id: { blank: "reject" },
     target_project_id: { blank: "omit" },

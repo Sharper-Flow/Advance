@@ -173,6 +173,8 @@ class rather than operator-only.
 | `adv_worktree_delete` | orchestrator | Worktree deletion (merge-before-delete) |
 | `adv_worktree_cleanup` | orchestrator | Worktree hygiene; `archived_branches` mode is operator-explicit (dry-run first) |
 | `adv_worktree_triage` | orchestrator | Read-only worktree inventory |
+| `adv_tool_catalog` | orchestrator | Bounded read-only catalog of canonical ADV tools with descriptive visibility metadata |
+| `adv_tool_describe` | orchestrator | Read-only single-tool schema/metadata projection; no handler invocation |
 
 ## Removed Tools and Replacements
 
