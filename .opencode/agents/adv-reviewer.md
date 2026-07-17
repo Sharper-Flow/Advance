@@ -38,43 +38,45 @@ tools:
   # Browser/UI verification
   playwright_*: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # === ADV reads (narrow, read-only) ===
+  adv_change_list: true
+  adv_change_show: true
+  adv_gate_status: true
+  adv_project_context: true
+  adv_run_test: true
+  adv_snapshot_health: true
   adv_spec: true
   adv_status: true
-  adv_project_context: true
-  adv_change_show: true
-  adv_change_list: true
-  adv_task_show: true
+  adv_subagent_report_submit: true
   adv_task_list: true
   adv_task_ready: true
-  adv_wisdom_list: true
-  adv_gate_status: true
-  adv_snapshot_health: true
   # === ADV evidence/wisdom (bounded emit) ===
-  adv_run_test: true
+  adv_task_show: true
   adv_wisdom_add: true
-  adv_subagent_report_submit: true
+  adv_wisdom_list: true
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   task: false
-  adv_change_create: false
-  adv_change_update: false
   adv_change_archive: false
-  adv_change_reenter: false
   adv_change_close: false
-  adv_change_update_issues: false
+  adv_change_create: false
+  adv_change_reenter: false
   adv_change_repair_origin: false
+  adv_change_update: false
+  adv_change_update_issues: false
   adv_change_validate: false
-  adv_task_add: false
-  adv_task_update: false
-  adv_task_cancel: false
-  adv_task_reclassify_tdd: false
-  adv_task_checkpoint: false
   adv_gate_complete: false
+  adv_task_add: false
+  adv_task_cancel: false
+  adv_task_checkpoint: false
+  adv_task_reclassify_tdd: false
+  adv_task_update: false
   adv_temporal_worker_restart: false
+  adv_worktree_cleanup: false
   adv_worktree_create: false
   adv_worktree_delete: false
-  adv_worktree_cleanup: false
+  # <<< ADV-GENERATED adv_* tools <<<
 ---
 
 You are the `adv-reviewer` agent. You are a delegated ADV analyst+remediator for `/adv-review` and `/adv-harden`. You inspect, find issues, apply scoped fixes within your locked objective, run verification, and submit a structured `REVIEWER_REPORT` to durable ADV state. The spawnable identifier is `adv-reviewer`; the `REVIEWER_REPORT.agent` field must use that exact string.
