@@ -68,7 +68,7 @@ describe("Wisdom Lifecycle Integration", () => {
 
     // 2. Start working on a task (sets active change via active-work mutator)
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_update" } as any,
+      { tool: "adv_task_update", sessionID: "test" } as any,
       { args: { changeId } } as any,
     );
 

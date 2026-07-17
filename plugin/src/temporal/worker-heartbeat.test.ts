@@ -240,6 +240,53 @@ describe("worker lock heartbeat", () => {
     await heartbeat.stop();
   });
 
+  test("stamps a handed-off bundle generation immediately without waiting for the next beat", async () => {
+    const dir = await tempDir();
+    const now = new Date("2026-05-12T00:00:00.000Z");
+    const lock = await acquireWorkerLock(dir, {
+      pid: 8000,
+      schemaVersion: 2,
+      bundleGeneration: "gen-old",
+      now: () => now,
+    });
+
+    const heartbeat = startWorkerLockHeartbeat(dir, { now: () => now });
+    await heartbeat.stampBundleGeneration("gen-new");
+
+    await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
+      pid: 8000,
+      bundle_generation: "gen-new",
+      last_heartbeat: now.toISOString(),
+    });
+
+    await heartbeat.stop();
+  });
+
+  test("stamping a generation sets the override so subsequent beats keep it", async () => {
+    const dir = await tempDir();
+    let now = new Date("2026-05-12T00:00:00.000Z");
+    const lock = await acquireWorkerLock(dir, {
+      pid: 8100,
+      schemaVersion: 2,
+      bundleGeneration: "gen-old",
+      now: () => now,
+    });
+
+    const heartbeat = startWorkerLockHeartbeat(dir, { now: () => now });
+    await heartbeat.stampBundleGeneration("gen-new");
+
+    now = new Date("2026-05-12T00:00:10.000Z");
+    await heartbeat.beatNow();
+
+    await expect(readLockContents(lock.lockPath)).resolves.toMatchObject({
+      pid: 8100,
+      bundle_generation: "gen-new",
+      last_heartbeat: "2026-05-12T00:00:10.000Z",
+    });
+
+    await heartbeat.stop();
+  });
+
   test("stops renewing after serviceability grace expires", async () => {
     const dir = await tempDir();
     let now = new Date("2026-05-12T00:00:00.000Z");

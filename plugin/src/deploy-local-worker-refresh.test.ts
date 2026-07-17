@@ -42,7 +42,7 @@ interface DeployFixture {
   tempHome: string;
   tempWorktree: string;
   workerScriptPath: string;
-  runDeploy: () => {
+  runDeploy: (mode?: "fix" | "check" | "dry-run") => {
     status: number | null;
     output: string;
   };
@@ -68,6 +68,7 @@ printf '// fake workflows\\n' > "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/index.js" "$PWD/dist/temporal/worker.js" "$PWD/dist/temporal/workflows.js"
 printf '{"schema_version":1,"generation":"fake","files":{"worker.js":"fake","workflows.js":"fake"},"built_at":"2026-01-01T00:00:00.000Z"}
 ' > "$PWD/dist/temporal/bundle-manifest.json"
+printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
 `,
     { mode: 0o755 },
   );
@@ -119,10 +120,12 @@ function setupDeployFixture(): DeployFixture {
     readFileSync(DEPLOY_SCRIPT_PATH, "utf8"),
   );
 
-  const runDeploy = () => {
+  const runDeploy = (mode: "fix" | "check" | "dry-run" = "fix") => {
+    const flag =
+      mode === "fix" ? "--fix" : mode === "check" ? "--check" : "--dry-run";
     const result = spawnSync(
       "bash",
-      [join(tempWorktree, "scripts", "deploy-local.sh"), "--fix"],
+      [join(tempWorktree, "scripts", "deploy-local.sh"), flag],
       {
         cwd: tempWorktree,
         env: {
@@ -175,6 +178,98 @@ function waitForFile(path: string, timeoutMs: number): void {
 interface StuckWorkerFixture {
   pid: number;
   kill: () => void;
+}
+
+// Spawns a fixture process whose cmdline contains the exact deployed worker
+// script path and whose environ declares ADV_TEMPORAL_WORKER_SELF_ROLL=1.
+// The script's classifier should mark this worker as advisory and never send
+// a signal. Only ever matched by exact temp path.
+function spawnSelfRollWorker(workerScriptPath: string): StuckWorkerFixture {
+  const readyPath = canonicalTempDir("adv-worker-refresh-self-roll-ready-");
+  const readyFile = join(readyPath, "ready");
+  const child = spawn(
+    "bash",
+    [
+      "-c",
+      // Trailing no-op defeats bash's last-command exec optimization: without
+      // it bash execs `sleep`, the cmdline loses the worker-path argument, and
+      // the script's exact-path matcher can never see the fixture.
+      'trap "" TERM; : > "$FIXTURE_READY_FILE"; sleep 30; :',
+      workerScriptPath,
+    ],
+    {
+      env: {
+        PATH: process.env.PATH ?? "",
+        FIXTURE_READY_FILE: readyFile,
+        ADV_TEMPORAL_WORKER_SELF_ROLL: "1",
+      },
+      stdio: "ignore",
+    },
+  );
+  const pid = child.pid;
+  expect(pid).toBeGreaterThan(0);
+  waitForFile(readyFile, 5_000);
+  // Trap is installed and the process is alive before the deploy runs.
+  process.kill(pid as number, 0);
+
+  return {
+    pid: pid as number,
+    kill: () => {
+      try {
+        process.kill(pid as number, "SIGKILL");
+      } catch {
+        // Fixture already exited; nothing to clean up.
+      }
+      rmSync(readyPath, { recursive: true, force: true });
+    },
+  };
+}
+
+// Spawns a fixture process whose cmdline contains the exact deployed worker
+// script path, which ignores SIGTERM, and whose environ contains a malformed
+// ADV_TEMPORAL_WORKER_SELF_ROLL value (not exactly "1"). The classifier must
+// treat this as legacy and route it to the SIGTERM/grace/action-required path.
+function spawnMalformedMarkerWorker(
+  workerScriptPath: string,
+): StuckWorkerFixture {
+  const readyPath = canonicalTempDir("adv-worker-refresh-malformed-ready-");
+  const readyFile = join(readyPath, "ready");
+  const child = spawn(
+    "bash",
+    [
+      "-c",
+      // Trailing no-op defeats bash's last-command exec optimization: without
+      // it bash execs `sleep`, the cmdline loses the worker-path argument, and
+      // the script's exact-path matcher can never see the fixture.
+      'trap "" TERM; : > "$FIXTURE_READY_FILE"; sleep 30; :',
+      workerScriptPath,
+    ],
+    {
+      env: {
+        PATH: process.env.PATH ?? "",
+        FIXTURE_READY_FILE: readyFile,
+        ADV_TEMPORAL_WORKER_SELF_ROLL: "yes",
+      },
+      stdio: "ignore",
+    },
+  );
+  const pid = child.pid;
+  expect(pid).toBeGreaterThan(0);
+  waitForFile(readyFile, 5_000);
+  // Trap is installed and the process is alive before the deploy runs.
+  process.kill(pid as number, 0);
+
+  return {
+    pid: pid as number,
+    kill: () => {
+      try {
+        process.kill(pid as number, "SIGKILL");
+      } catch {
+        // Fixture already exited; nothing to clean up.
+      }
+      rmSync(readyPath, { recursive: true, force: true });
+    },
+  };
 }
 
 // Spawns a fixture process whose cmdline contains the exact deployed worker
@@ -258,6 +353,154 @@ describe("deploy-local worker refresh regression", () => {
       }
     } finally {
       stuck.kill();
+      fixture.cleanup();
+    }
+  });
+
+  test("self-roll capable worker is advisory, not signaled, and deploy succeeds", () => {
+    const fixture = setupDeployFixture();
+    const selfRoll = spawnSelfRollWorker(fixture.workerScriptPath);
+    try {
+      const result = fixture.runDeploy();
+      try {
+        // Advisory: the classifier recognizes ADV_TEMPORAL_WORKER_SELF_ROLL=1
+        // and refrains from sending a signal; the deploy stays successful.
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("advisory");
+        expect(result.output).toContain(`PID ${selfRoll.pid}`);
+        expect(result.output).not.toContain("[ADV:ACTION_REQUIRED]");
+        // The advisory worker stays alive because it was not signaled.
+        expect(() => process.kill(selfRoll.pid, 0)).not.toThrow();
+        expect(
+          existsSync(
+            join(fixture.tempHome, ".config/opencode/agents/adv-engineer.md"),
+          ),
+        ).toBe(true);
+      } catch (err) {
+        console.error(`--- deploy-local.sh output ---\n${result.output}`);
+        throw err;
+      }
+    } finally {
+      selfRoll.kill();
+      fixture.cleanup();
+    }
+  });
+
+  test("malformed self-roll marker falls back to legacy SIGTERM failure", () => {
+    const fixture = setupDeployFixture();
+    const malformed = spawnMalformedMarkerWorker(fixture.workerScriptPath);
+    try {
+      const result = fixture.runDeploy();
+      try {
+        // A malformed marker (not exactly ADV_TEMPORAL_WORKER_SELF_ROLL=1) must
+        // be treated as legacy: SIGTERM sent, action-required failure, no
+        // advisory classification, and no bounce-complete claim.
+        expect(result.status).not.toBe(0);
+        expect(result.output).toContain("[ADV:ACTION_REQUIRED]");
+        expect(result.output).toContain(`PID ${malformed.pid}`);
+        expect(result.output).toContain("SIGTERM sent");
+        expect(result.output).not.toContain("advisory");
+        expect(result.output).not.toContain("bounce complete");
+      } catch (err) {
+        console.error(`--- deploy-local.sh output ---\n${result.output}`);
+        throw err;
+      }
+    } finally {
+      malformed.kill();
+      fixture.cleanup();
+    }
+  });
+
+  test("check mode is signal-free and reports legacy workers needing bounce", () => {
+    const fixture = setupDeployFixture();
+    const stuck = spawnStuckWorker(fixture.workerScriptPath);
+    try {
+      const result = fixture.runDeploy("check");
+      try {
+        // Check mode must never signal the worker, even though the overall run
+        // may fail for unrelated config/CLI setup in this throwaway fixture.
+        expect(result.output).toContain("[ADV:ACTION_REQUIRED]");
+        expect(result.output).toContain(`PID ${stuck.pid}`);
+        expect(result.output).toContain("No worker processes were signaled.");
+        expect(result.output).not.toContain("SIGTERM sent");
+        // The worker stays alive because it was not signaled.
+        expect(() => process.kill(stuck.pid, 0)).not.toThrow();
+      } catch (err) {
+        console.error(`--- deploy-local.sh output ---\n${result.output}`);
+        throw err;
+      }
+    } finally {
+      stuck.kill();
+      fixture.cleanup();
+    }
+  });
+
+  test("check mode is signal-free and reports advisory self-roll workers", () => {
+    const fixture = setupDeployFixture();
+    const selfRoll = spawnSelfRollWorker(fixture.workerScriptPath);
+    try {
+      const result = fixture.runDeploy("check");
+      try {
+        // The worker-refresh portion of check mode is signal-free; the overall
+        // status may be nonzero due to unrelated config/CLI checks.
+        expect(result.output).toContain("advisory");
+        expect(result.output).toContain(`PID ${selfRoll.pid}`);
+        expect(result.output).toContain("No worker processes were signaled.");
+        expect(result.output).not.toContain("SIGTERM sent");
+        expect(result.output).not.toContain("[ADV:ACTION_REQUIRED]");
+        expect(() => process.kill(selfRoll.pid, 0)).not.toThrow();
+      } catch (err) {
+        console.error(`--- deploy-local.sh output ---\n${result.output}`);
+        throw err;
+      }
+    } finally {
+      selfRoll.kill();
+      fixture.cleanup();
+    }
+  });
+
+  test("dry-run mode is signal-free and reports legacy workers needing bounce", () => {
+    const fixture = setupDeployFixture();
+    const stuck = spawnStuckWorker(fixture.workerScriptPath);
+    try {
+      const result = fixture.runDeploy("dry-run");
+      try {
+        // Dry-run mode must never signal, but must still report legacy workers.
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("[ADV:ACTION_REQUIRED]");
+        expect(result.output).toContain(`PID ${stuck.pid}`);
+        expect(result.output).toContain("No worker processes were signaled.");
+        expect(result.output).not.toContain("SIGTERM sent");
+        expect(() => process.kill(stuck.pid, 0)).not.toThrow();
+      } catch (err) {
+        console.error(`--- deploy-local.sh output ---\n${result.output}`);
+        throw err;
+      }
+    } finally {
+      stuck.kill();
+      fixture.cleanup();
+    }
+  });
+
+  test("dry-run mode is signal-free and reports advisory self-roll workers", () => {
+    const fixture = setupDeployFixture();
+    const selfRoll = spawnSelfRollWorker(fixture.workerScriptPath);
+    try {
+      const result = fixture.runDeploy("dry-run");
+      try {
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("advisory");
+        expect(result.output).toContain(`PID ${selfRoll.pid}`);
+        expect(result.output).toContain("No worker processes were signaled.");
+        expect(result.output).not.toContain("SIGTERM sent");
+        expect(result.output).not.toContain("[ADV:ACTION_REQUIRED]");
+        expect(() => process.kill(selfRoll.pid, 0)).not.toThrow();
+      } catch (err) {
+        console.error(`--- deploy-local.sh output ---\n${result.output}`);
+        throw err;
+      }
+    } finally {
+      selfRoll.kill();
       fixture.cleanup();
     }
   });

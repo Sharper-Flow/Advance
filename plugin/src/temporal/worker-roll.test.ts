@@ -298,7 +298,35 @@ describe("worker bundle roll monitor", () => {
     await heartbeat.stop();
   });
 
-  test("initWorkerBundleRoll hands the current generation to the heartbeat post-readiness and converges the monitor", async () => {
+  test("a successful roll stamps the generation immediately via the heartbeat stamp path", async () => {
+    const { stateDir, bundleDir, manifestGeneration, lockPath } = await setup({
+      lockGeneration: "gen-stale",
+    });
+    const restartChild = vi.fn(async () => {});
+    const heartbeat = startWorkerLockHeartbeat(stateDir, { now: () => NOW });
+
+    const monitor = createWorkerBundleRollMonitor({
+      projectStateDir: stateDir,
+      bundleDir,
+      restartChild,
+      stampBundleGeneration: (generation) =>
+        heartbeat.stampBundleGeneration(generation),
+    });
+
+    const result = await monitor.checkNow();
+
+    expect(result).toEqual({ rolled: true, generation: manifestGeneration });
+    // The heartbeat is the sole writer: the generation is stamped
+    // immediately after the replacement child is ready, not on the next beat.
+    await expect(readLockContents(lockPath)).resolves.toMatchObject({
+      bundle_generation: manifestGeneration,
+      last_heartbeat: NOW.toISOString(),
+    });
+
+    await heartbeat.stop();
+  });
+
+  test("initWorkerBundleRoll stamps the current generation immediately after readiness and converges the monitor", async () => {
     const { stateDir, bundleDir, manifestGeneration, lockPath } = await setup({
       lockGeneration: "gen-stale",
     });
@@ -307,24 +335,21 @@ describe("worker bundle roll monitor", () => {
 
     // The worker child was JUST spawned from the current bundle (ready
     // handshake already resolved) — hand the generation to the heartbeat
-    // without rolling.
+    // and stamp it without rolling.
     const monitor = await initWorkerBundleRoll({
       projectStateDir: stateDir,
       bundleDir,
       restartChild,
-      setBundleGeneration: (generation) =>
-        heartbeat.setBundleGeneration(generation),
+      stampBundleGeneration: (generation) =>
+        heartbeat.stampBundleGeneration(generation),
     });
 
     expect(restartChild).not.toHaveBeenCalled();
-    // The monitor never writes the lock directly...
-    await expect(readLockContents(lockPath)).resolves.toMatchObject({
-      bundle_generation: "gen-stale",
-    });
-    // ...the heartbeat stamps the handed-off generation on its next beat.
-    await heartbeat.beatNow();
+    // The heartbeat stamps the handed-off generation right after the child
+    // passes its ready handshake — no waiting for the next scheduled beat.
     await expect(readLockContents(lockPath)).resolves.toMatchObject({
       bundle_generation: manifestGeneration,
+      last_heartbeat: NOW.toISOString(),
     });
 
     // Converged: subsequent beats are same-generation no-ops.

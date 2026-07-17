@@ -1,6 +1,6 @@
 # Advance Meta
 
-> **Version:** 1.25.0
+> **Version:** 1.26.0
 > **Updated:** 2026-07-16
 
 ## Purpose
@@ -203,13 +203,13 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 
 **ID:** `rq-deployWorkerBounce01` | **Priority:** **[MUST]**
 
-After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable local deploy path, it MUST prevent stale `dist/temporal/worker.js` processes for that exact deployed worker script from silently continuing to run old worker/workflow code. In mutating deploy modes, exact-path matching running workers are bounced with SIGTERM by default. If any exact-path target cannot be signaled or remains running after bounded handling, deploy MUST exit non-zero and print a multi-line `[ADV:ACTION_REQUIRED]` block with the worker script path, PID evidence when known, and restart/session instructions. The matcher MUST be scoped to the synced runtime worker script path and MUST NOT target unrelated Node/Bun processes.
+After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable local deploy path, it MUST prevent stale `dist/temporal/worker.js` processes for that exact deployed worker script from silently continuing to run old worker/workflow code. Worker refresh is marker-gated: each exact-path matching process is classified by its process environment. Processes that advertise `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are self-roll capable; in mutating deploy modes they are reported as advisory only and MUST NOT be signaled, because the worker coordinates its own reload. All other exact-path matching processes are treated as legacy and are bounced with SIGTERM in mutating deploy modes. If any legacy target cannot be signaled or remains running after bounded handling, deploy MUST exit non-zero and print a multi-line `[ADV:ACTION_REQUIRED]` block with the worker script path, PID evidence when known, and restart/session instructions. The matcher MUST be scoped to the synced runtime worker script path and MUST NOT target unrelated Node/Bun processes.
 
 **Tags:** `install`, `deploy-local`, `temporal`, `worker`, `runtime-refresh`
 
 #### Scenarios
 
-**Mutating deploy bounces exact-path runtime workers** (`rq-deployWorkerBounce01.1`)
+**Mutating deploy classifies exact-path workers by self-roll marker** (`rq-deployWorkerBounce01.1`)
 
 **Given:**
 - `scripts/deploy-local.sh` has successfully synced the runtime plugin bundle
@@ -218,16 +218,29 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 **When:** The deploy runs in a mutating mode
 
 **Then:**
-- Each exact-path matching worker process receives SIGTERM by default
-- The output reports the affected worker script path and PID evidence when known
+- Each exact-path matching worker process is classified by its environment
+- Processes advertising `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are reported as advisory and are not signaled
+- Legacy processes (missing or malformed marker) receive SIGTERM
 - Processes that do not use the exact synced worker script path are not signaled
 
-**Bounce failure is loud and non-zero** (`rq-deployWorkerBounce01.2`)
+**Self-roll capable workers are advisory and not signaled** (`rq-deployWorkerBounce01.2`)
 
 **Given:**
-- A mutating deploy finds exact-path matching runtime worker processes
+- A mutating deploy finds an exact-path running worker whose environment contains `ADV_TEMPORAL_WORKER_SELF_ROLL=1`
 
-**When:** Any target cannot be signaled or remains running after bounded handling
+**When:** The deploy classifies worker refresh candidates
+
+**Then:**
+- The worker is listed as self-roll capable advisory output
+- No signal is sent to the worker
+- The deploy does not fail because the worker remains running
+
+**Legacy bounce failure is loud and non-zero** (`rq-deployWorkerBounce01.3`)
+
+**Given:**
+- A mutating deploy finds exact-path matching legacy runtime worker processes
+
+**When:** Any legacy target cannot be signaled or remains running after bounded handling
 
 **Then:**
 - The deploy exits non-zero
@@ -235,30 +248,19 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 - The block includes the worker script path, PID evidence when known, and restart/session instructions
 - The deploy does not silently claim the new worker/workflow code is active
 
-**No broad process matching** (`rq-deployWorkerBounce01.3`)
-
-**Given:**
-- A host has Node or Bun processes that mention worker-like names but do not execute the synced runtime worker script path
-
-**When:** deploy-local enumerates worker bounce candidates
-
-**Then:**
-- Only processes tied to the exact synced `$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js` path are candidates
-- The detector process and unrelated Node/Bun processes are excluded
-
 ---
 
 ### Deploy-Local Read-Only Modes Never Signal Workers
 
 **ID:** `rq-deployWorkerBounce02` | **Priority:** **[MUST]**
 
-`scripts/deploy-local.sh --check` and `scripts/deploy-local.sh --dry-run` MUST NOT signal worker processes. When matching runtime worker processes exist, read-only modes may report the would-bounce or restart-required action, but they must not mutate process state or imply that stale worker code has been refreshed.
+`scripts/deploy-local.sh --check` and `scripts/deploy-local.sh --dry-run` MUST NOT signal worker processes. When matching runtime worker processes exist, read-only modes must classify each by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker: self-roll-capable workers may be reported as advisory, while legacy workers may be reported as requiring bounce or session restart. They must not mutate process state or imply that stale worker code has been refreshed.
 
 **Tags:** `install`, `deploy-local`, `temporal`, `worker`, `dry-run`
 
 #### Scenarios
 
-**Check mode is no-signal** (`rq-deployWorkerBounce02.1`)
+**Check mode is no-signal and classifies workers** (`rq-deployWorkerBounce02.1`)
 
 **Given:**
 - `scripts/deploy-local.sh --check` runs
@@ -268,10 +270,11 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 
 **Then:**
 - No worker process receives a signal
-- Output may report that running workers require bounce or session restart
+- Self-roll-capable workers (`ADV_TEMPORAL_WORKER_SELF_ROLL=1`) are reported as advisory
+- Legacy workers are reported as requiring bounce or session restart
 - The mode remains read-only
 
-**Dry-run previews worker refresh without signaling** (`rq-deployWorkerBounce02.2`)
+**Dry-run previews marker-gated worker refresh without signaling** (`rq-deployWorkerBounce02.2`)
 
 **Given:**
 - `scripts/deploy-local.sh --dry-run` runs
@@ -281,7 +284,7 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 
 **Then:**
 - No worker process receives a signal
-- Output describes the would-bounce or restart-required action
+- Output describes self-roll-capable workers as advisory and legacy workers as would-bounce or restart-required
 - The mode does not mutate files or process state
 
 ---

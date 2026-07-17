@@ -1,13 +1,18 @@
-import { readFile, stat } from "fs/promises";
-import { dirname, resolve } from "path";
-import { fileURLToPath } from "url";
+import { readFile, stat } from "node:fs/promises";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { execFileGitAsync } from "./git-binary";
 import { isPathInsideDirectory } from "./project-id";
+import {
+  PLUGIN_BUNDLE_MANIFEST_FILENAME,
+  getPluginBundleFreshness,
+  getPluginRoot,
+} from "../plugin-bundle-manifest";
 const GIT_PROBE_TIMEOUT_MS = 1000;
 
 const loadedModulePath = fileURLToPath(import.meta.url);
-const pluginRoot = resolve(dirname(loadedModulePath), "../..");
+const pluginRoot = getPluginRoot();
 const processStartedAt = new Date(
   Date.now() - Math.round(process.uptime() * 1000),
 ).toISOString();
@@ -71,6 +76,14 @@ export type PluginRuntimeInfo = {
   plugin_checkout_head_sha: string | null;
   cwd_vs_plugin_root: CwdRelation;
   recovery_hint: RecoveryHint | null;
+  // === Additive plugin bundle freshness fields ===
+  plugin_bundle_manifest_path: string;
+  loaded_plugin_generation: string | null;
+  deployed_plugin_generation: string | null;
+  plugin_bundle_freshness: "current" | "stale" | "unknown";
+  plugin_bundle_unknown_reason: string | null;
+  plugin_bundle_recovery: string | null;
+  plugin_bundle_advisory_type: string | null;
 };
 
 /**
@@ -223,6 +236,11 @@ export async function getPluginRuntimeInfo(
   const sourceIndexPath = resolve(pluginRoot, "src", "index.ts");
   const buildMarkerPath = resolve(pluginRoot, "dist", "oca-build.json");
   const workerScriptPath = resolve(pluginRoot, "dist", "temporal", "worker.js");
+  const pluginBundleManifestPath = resolve(
+    pluginRoot,
+    "dist",
+    PLUGIN_BUNDLE_MANIFEST_FILENAME,
+  );
 
   let buildMarker: unknown;
   let buildMarkerFound = false;
@@ -233,9 +251,10 @@ export async function getPluginRuntimeInfo(
     buildMarker = undefined;
   }
 
-  const [distMtimeIso, sourceMtimeIso] = await Promise.all([
+  const [distMtimeIso, sourceMtimeIso, bundleFreshness] = await Promise.all([
     statMtimeIso(distIndexPath),
     statMtimeIso(sourceIndexPath),
+    getPluginBundleFreshness(resolve(pluginRoot, "dist")),
   ]);
 
   const freshness = computeFreshness(
@@ -272,5 +291,12 @@ export async function getPluginRuntimeInfo(
     plugin_checkout_head_sha: headSha,
     cwd_vs_plugin_root: cwdRelation,
     recovery_hint: recoveryHint,
+    plugin_bundle_manifest_path: pluginBundleManifestPath,
+    loaded_plugin_generation: bundleFreshness.loadedGeneration,
+    deployed_plugin_generation: bundleFreshness.deployedGeneration,
+    plugin_bundle_freshness: bundleFreshness.state,
+    plugin_bundle_unknown_reason: bundleFreshness.reason,
+    plugin_bundle_recovery: bundleFreshness.recovery,
+    plugin_bundle_advisory_type: bundleFreshness.advisoryType ?? null,
   };
 }

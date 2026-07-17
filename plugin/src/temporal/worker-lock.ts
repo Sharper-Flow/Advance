@@ -26,7 +26,7 @@ export interface WorkerLockContentsV2 {
    * before bundle manifests existed simply omit it. Written on acquire,
    * then renewed ONLY by the worker.lock heartbeat — the sole
    * post-acquire lock writer — after the roll monitor hands off a new
-   * generation (`worker-heartbeat.ts` `setBundleGeneration`). There is
+   * generation (`worker-heartbeat.ts` `stampBundleGeneration`). There is
    * deliberately no direct "stamp the generation" writer here: a second
    * read-modify-write path races the heartbeat and loses updates (AC5).
    */

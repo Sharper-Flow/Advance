@@ -22,6 +22,7 @@ import {
   type AssembleSystemBlockInput,
   type AssembleSystemBlockState,
 } from "./system-block";
+import type { PluginBundleFreshness } from "../plugin-bundle-manifest";
 
 const cleanState = (
   overrides: Partial<AssembleSystemBlockState> = {},
@@ -626,5 +627,93 @@ describe("trunkGuardSection", () => {
     );
     expect(result).not.toBeNull();
     expect(result).toBe("[ADV] Active change: myChange");
+  });
+});
+
+// ─── Plugin Bundle Stale Section ───────────────────────────────────────────
+
+const staleFreshness: PluginBundleFreshness = {
+  state: "stale",
+  loadedGeneration: "loaded-gen",
+  deployedGeneration: "deployed-gen",
+  deployedIndexSha256: "index-sha",
+  reason: "generation_mismatch",
+  recovery: "Restart OpenCode to load the current plugin bundle.",
+  advisoryType: "PLUGIN_BUNDLE_STALE",
+};
+
+describe("plugin bundle stale section", () => {
+  it("emits [ADV:PLUGIN_BUNDLE_STALE] banner when state is stale", () => {
+    const block = assembleSystemBlock(
+      cleanInput({ pluginBundleFreshness: staleFreshness }),
+    );
+    expect(block).not.toBeNull();
+    expect(block).toContain("[ADV:PLUGIN_BUNDLE_STALE]");
+    expect(block).toContain("loaded-gen");
+    expect(block).toContain("deployed-gen");
+    expect(block).toContain("Restart OpenCode");
+  });
+
+  it("does NOT emit when state is current", () => {
+    const block = assembleSystemBlock(
+      cleanInput({
+        pluginBundleFreshness: {
+          state: "current",
+          loadedGeneration: "gen",
+          deployedGeneration: "gen",
+          deployedIndexSha256: "sha",
+          reason: null,
+          recovery: null,
+        },
+      }),
+    );
+    expect(block).toBeNull();
+  });
+
+  it("does NOT emit when state is unknown", () => {
+    const block = assembleSystemBlock(
+      cleanInput({
+        pluginBundleFreshness: {
+          state: "unknown",
+          loadedGeneration: null,
+          deployedGeneration: null,
+          deployedIndexSha256: null,
+          reason: "missing_manifest",
+          recovery: "Manifest state is unreadable.",
+        },
+      }),
+    );
+    expect(block).toBeNull();
+  });
+
+  it("preserves session-health state independently", () => {
+    const block = assembleSystemBlock(
+      cleanInput({
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "session.error",
+            message: "session crashed",
+            detectedAt: 0,
+          },
+        }),
+        pluginBundleFreshness: staleFreshness,
+      }),
+    );
+    expect(block).not.toBeNull();
+    expect(block).toContain("[ADV:SESSION_HEALTH]");
+    expect(block).toContain("[ADV:PLUGIN_BUNDLE_STALE]");
+    const healthIdx = block!.indexOf("[ADV:SESSION_HEALTH]");
+    const staleIdx = block!.indexOf("[ADV:PLUGIN_BUNDLE_STALE]");
+    expect(healthIdx).toBeGreaterThanOrEqual(0);
+    expect(staleIdx).toBeGreaterThan(healthIdx);
+  });
+
+  it("emits PLUGIN_BUNDLE_STALE only once per transform", () => {
+    const block = assembleSystemBlock(
+      cleanInput({ pluginBundleFreshness: staleFreshness }),
+    );
+    expect(block).not.toBeNull();
+    const matches = block!.match(/\[ADV:PLUGIN_BUNDLE_STALE\]/g);
+    expect(matches).toHaveLength(1);
   });
 });

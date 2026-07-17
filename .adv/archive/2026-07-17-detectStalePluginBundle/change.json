@@ -1,0 +1,1967 @@
+{
+  "id": "detectStalePluginBundle",
+  "title": "Detect stale plugin bundle",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-16T18:44:33.762Z",
+  "tasks": [
+    {
+      "id": "tk-36eb89003552",
+      "title": "Add plugin bundle generation manifest",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-16T19:22:58.091Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T19:29:31.566Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "detectStalePluginBundle",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+          "task_id": "tk-36eb89003552",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-36eb89003552"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/plugin-bundle-manifest.ts",
+            "plugin/src/plugin-bundle-manifest.test.ts",
+            "plugin/scripts/build-plugin.ts",
+            "plugin/src/index.ts",
+            "plugin/package.json"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+              "exit_code": 1,
+              "summary": "Red phase: test suite failed before implementation because the plugin-bundle-manifest module did not exist."
+            },
+            {
+              "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+              "exit_code": 0,
+              "summary": "Green phase: 12/12 tests pass after implementation."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts",
+              "exit_code": 0,
+              "summary": "12/12 tests pass through the repo-local throttle wrapper."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all green."
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Production build writes dist/plugin-bundle-manifest.json with schema_version 1, generation, index SHA-256, and ISO built_at; no temp files remain."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used a tsup programmatic build script to generate an opaque pre-bundle generation and inject it via define before bundling.",
+              "why": "The generation must be defined before the bundler runs and then written to the sidecar after index.js exists; the script is the only place that can both inject and finalize."
+            },
+            {
+              "what": "Captured the loaded generation at module evaluation in plugin-bundle-manifest.ts and imported it from index.ts.",
+              "why": "Keeps the generation concern in the manifest module and wires module-evaluation capture without scattering logic in index.ts."
+            },
+            {
+              "what": "Made files.index diagnostic-only and used generation equality as the staleness authority.",
+              "why": "Satisfies AC5: a deployment that preserves index.js mtime but changes the manifest generation still reports stale."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none — new surface; worker-bundle-manifest.ts was used as the reference pattern and is unaffected.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Plugin bundle generation manifest is implemented: build injects an opaque generation into dist/index.js, writes dist/plugin-bundle-manifest.json atomically, and runtime can compare loaded vs deployed generations. Health/banner/deploy handling remains for the next tasks.",
+            "suggested_next_action": "Run bin/oc-test smoke or proceed to task tk-deb236c40515 (Surface typed plugin bundle staleness)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_mismatch",
+              "message": "Reported exit_code 1 differs from durable adv_run_test evidence exitCode 0 for command: pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "12 manifest tests, pnpm run check, and pnpm run build passed; red evidence recorded before implementation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/package.json",
+        "plugin/scripts/build-plugin.ts",
+        "plugin/src/index.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/plugin-bundle-manifest.ts"
+      ],
+      "touched_files": [
+        "plugin/package.json",
+        "plugin/scripts/build-plugin.ts",
+        "plugin/src/index.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/plugin-bundle-manifest.ts"
+      ],
+      "checkpointSha": "8c10a42c59e0fcbce2e4abff17a5a4ab43c69554",
+      "completedAt": "2026-07-16T19:56:19.162Z",
+      "completed_at": "2026-07-16T19:56:19.162Z"
+    },
+    {
+      "id": "tk-deb236c40515",
+      "title": "Surface typed plugin bundle staleness",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-16T19:23:50.228Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-36eb89003552"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T20:29:23.060Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "detectStalePluginBundle",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+          "task_id": "tk-deb236c40515",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-deb236c40515"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/plugin-bundle-manifest.ts",
+            "plugin/src/plugin-bundle-manifest.test.ts",
+            "plugin/src/utils/plugin-runtime-info.ts",
+            "plugin/src/utils/plugin-runtime-info.test.ts",
+            "plugin/src/utils/system-block.ts",
+            "plugin/src/utils/system-block.test.ts",
+            "plugin/src/utils/tool-formatters.ts",
+            "plugin/src/utils/tool-formatters.test.ts",
+            "plugin/src/tools/status.ts",
+            "plugin/src/tools/status.test.ts",
+            "plugin/src/index.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts",
+              "exit_code": 0,
+              "summary": "137 tests pass (TDD green after implementation)"
+            },
+            {
+              "command": "pnpm exec vitest run --run src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "55 status tests pass including new plugin bundle generation freshness assertions"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "192 tests pass through repo-local throttle wrapper"
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Repo checks (schemas, typecheck, isolation, lockfile, lint, format) plus 68 smoke tests pass"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, isolation, lockfile policy, lint, and format:check all green"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Production build writes dist/plugin-bundle-manifest.json and embeds generation into dist/index.js chunk"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added optional loadedGenerationOverride to getPluginBundleFreshness so tests can exercise current/stale/unknown without mocking module-level capture.",
+              "why": "In test source execution the build-time define is not injected, so the captured loaded generation is always null; the override keeps the function production-simple while making it testable."
+            },
+            {
+              "what": "Placed the PLUGIN_BUNDLE_STALE section in the stable header after SESSION_HEALTH and before WORKTREE_SESSION.",
+              "why": "It is an independent deployment advisory, not a session-health hazard; ordering keeps session-health warnings first and preserves the existing stable-section hierarchy."
+            },
+            {
+              "what": "Caught manifest-read errors in the experimental.chat.system.transform hook and returned null for pluginBundleFreshness.",
+              "why": "Satisfies C3/DONT3: staleness detection must not crash initialization or overwrite session-health state."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated system-block marker comment in plugin/src/index.ts to document the new [ADV:PLUGIN_BUNDLE_STALE] section.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Surface typed plugin bundle staleness implemented: PluginRuntimeInfo now carries loaded/deployed generations, bundle freshness state, unknown reason, recovery, and advisory type; adv_status health view returns these fields; the system transform rereads the bounded deployed manifest each turn and emits an independent [ADV:PLUGIN_BUNDLE_STALE] section exactly once when stale, with current/unknown emitting none; session-health state is preserved. TDD red->green, pnpm run check, pnpm run build, bin/oc-test targeted, and bin/oc-test smoke all pass.",
+            "suggested_next_action": "Run bin/oc-test full before acceptance gate, or proceed to task tk-456db27571bf (Publish plugin manifest safely on deploy)."
+          }
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "detectStalePluginBundle",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+          "task_id": "tk-deb236c40515",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-deb236c40515"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/plugin-bundle-manifest.ts",
+            "plugin/src/plugin-bundle-manifest.test.ts",
+            "plugin/src/utils/plugin-runtime-info.ts",
+            "plugin/src/utils/plugin-runtime-info.test.ts",
+            "plugin/src/utils/system-block.ts",
+            "plugin/src/utils/system-block.test.ts",
+            "plugin/src/utils/tool-formatters.ts",
+            "plugin/src/utils/tool-formatters.test.ts",
+            "plugin/src/tools/status.ts",
+            "plugin/src/tools/status.test.ts",
+            "plugin/src/index.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript passes with centralized helpers and removed local imports"
+            },
+            {
+              "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "198 tests pass including 6 new path-resolution regression tests"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "198 tests pass through repo-local throttle wrapper (reran after one transient flake)"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, isolation, lockfile policy, lint, and format:check all green"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Production build succeeds; built dist/chunk-*.js shows getPluginRoot() resolves from module's directory to plugin root, and index.js uses getPluginBundleDistDir()"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Centralized plugin root / dist path resolution in plugin-bundle-manifest.ts via getPluginRoot() and getPluginBundleDistDir().",
+              "why": "Both index.ts and plugin-runtime-info.ts need the plugin root; computing it locally with ../.. from one-level-deep index.ts or from a bundled dist/chunk was producing repo-root instead of plugin-root. A single source-of-truth helper anchored to plugin-bundle-manifest.ts's location (always one level under plugin root) removes the per-callsite arithmetic."
+            },
+            {
+              "what": "Added optional moduleUrl parameter to the helpers so tests can simulate source and bundled module paths.",
+              "why": "Tests run from source and cannot easily observe production bundling; the parameter lets regression tests assert the resolution for src/index.ts, dist/index.js, and dist/chunk-*.js without relying on the actual build."
+            },
+            {
+              "what": "Removed local dirname/fileURLToPath imports from index.ts and plugin-runtime-info.ts where only the plugin root was needed.",
+              "why": "Eliminates the duplicated, fragile path math and keeps the resolution logic in one place."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed only index.ts and plugin-runtime-info.ts were computing plugin/dist paths incorrectly; other repo-root calculations in test files intentionally use ../.. and are unchanged.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Review defect fixed: plugin root path resolution was structurally wrong in index.ts (and would have been wrong in plugin-runtime-info.ts in production). Centralized getPluginRoot()/getPluginBundleDistDir() in plugin-bundle-manifest.ts resolves plugin root from that module's location (plugin/src/... in source, plugin/dist/... or plugin/dist/chunk-*.js at runtime), so manifest lookup now targets plugin/dist instead of repo/dist. Added focused regression tests covering src/index.ts, dist/index.js, and dist/chunk-*.js module URLs. pnpm run check, pnpm run build, and targeted verification all pass; one transient bin/oc-test targeted run flaked on temporal-health caching but reran green.",
+            "suggested_next_action": "Run bin/oc-test full before acceptance gate, or proceed to task tk-456db27571bf (Publish plugin manifest safely on deploy)."
+          }
+        }
+      ],
+      "verification": "198 affected tests, pnpm run check, and pnpm run build passed after plugin root regression fix.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "touched_files": [
+        "plugin/src/index.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "checkpointSha": "e701d077cfa57d6111b57e5f51ac462832b665bc",
+      "completedAt": "2026-07-16T21:09:24.706Z",
+      "completed_at": "2026-07-16T21:09:24.706Z"
+    },
+    {
+      "id": "tk-456db27571bf",
+      "title": "Publish plugin manifest safely on deploy",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-16T19:23:59.173Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-deb236c40515"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8",
+          "AC9"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5"
+        ],
+        "respects": [
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T21:09:38.391Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "detectStalePluginBundle",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+          "task_id": "tk-456db27571bf",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-456db27571bf"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "scripts/deploy-local.sh",
+            "plugin/src/deploy-local-plugin-manifest.test.ts",
+            "plugin/src/overlay-sync-assets.test.ts",
+            "plugin/src/deploy-local-worker-refresh.test.ts",
+            "plugin/src/deploy-local.test.ts",
+            "AGENTS.md"
+          ],
+          "verification": [
+            {
+              "command": "cd plugin && pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, eslint, and prettier all pass."
+            },
+            {
+              "command": "cd plugin && pnpm run build",
+              "exit_code": 0,
+              "summary": "Plugin, worker bundle, and build-identity artifacts produced successfully; plugin-bundle-manifest.json regenerated."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+              "exit_code": 0,
+              "summary": "Both new TDD tests pass: missing manifest blocks deploy and manifest-last publication preserves mtime identity."
+            },
+            {
+              "command": "cd plugin && npx vitest run src/deploy-local.test.ts src/deploy-local-worker-refresh.test.ts src/overlay-sync-assets.test.ts src/deploy-local-plugin-manifest.test.ts",
+              "exit_code": 0,
+              "summary": "All 97 deploy-related regression tests pass after the rsync/manifest changes."
+            },
+            {
+              "command": "./scripts/deploy-local.sh --dry-run",
+              "exit_code": 0,
+              "summary": "Dry-run emits the new manifest-exclude/validate/publish-last preview messages and exits cleanly."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Made the plugin manifest part of the deploy-time stale check so missing manifests trigger a rebuild before the guard fires.",
+              "why": "The stale check already enforces required dist outputs; treating the manifest as a required output is the simplest structural guard and avoids a redundant failure path in normal builds."
+            },
+            {
+              "what": "Skipped the manifest file existence guard in --dry-run mode.",
+              "why": "Dry-run is a preview and may legitimately show a stale dist that would be rebuilt; failing on a missing manifest would break the existing dry-run preview behavior."
+            },
+            {
+              "what": "Used sha256sum with shasum fallback for index validation.",
+              "why": "Keeps the script portable across Linux (sha256sum) and macOS (shasum)."
+            },
+            {
+              "what": "Used jq to extract the expected hash from the manifest.",
+              "why": "jq is already a documented dependency for deploy-local --fix config patching, so reusing it avoids adding another tool."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated all three deploy-related test harnesses (overlay-sync-assets, deploy-local-worker-refresh, deploy-local) to create the required plugin-bundle-manifest.json so the stale check and guard stay green. Also adjusted deploy-local.test.rs assertions for the new rsync --exclude flag.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented manifest-last plugin deploy in scripts/deploy-local.sh. The script now requires dist/plugin-bundle-manifest.json, excludes it from the payload rsync, validates the copied dist/index.js SHA-256 against the manifest, and publishes the manifest last. Added regression tests for missing manifest and mtime-preserved identity. Updated AGENTS.md to state no hot reload, restart remedy, mtime advisory, and one-restart bootstrap limitation. pnpm run check and targeted tests pass; prior runtime mechanics unchanged.",
+            "suggested_next_action": "Run bin/oc-test smoke or full suite before acceptance review; optional real deploy-local.sh --fix in a throwaway environment to validate live publication."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run build"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && npx vitest run src/deploy-local.test.ts src/deploy-local-worker-refresh.test.ts src/overlay-sync-assets.test.ts src/deploy-local-plugin-manifest.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ./scripts/deploy-local.sh --dry-run"
+            }
+          ]
+        }
+      ],
+      "verification": "Plugin deployment manifest tests and 97 deploy-related tests passed; pnpm run check/build and dry-run preview passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "AGENTS.md",
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/overlay-sync-assets.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "AGENTS.md",
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/overlay-sync-assets.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "a44c64389c1d64b70c903ca8244bb15d91f09df8",
+      "completedAt": "2026-07-16T21:57:50.622Z",
+      "completed_at": "2026-07-16T21:57:50.622Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage opportunity scout for stale plugin bundle detection",
+      "sources": [
+        {
+          "label": "Approved agreement",
+          "locator": "adv://change/detectStalePluginBundle/agreement",
+          "summary": "Defines generation equality, typed stale/unknown states, health output, one system banner, deployment refusal, mtime diagnostics only, and no hot reload."
+        },
+        {
+          "label": "Existing plugin runtime diagnostics",
+          "locator": "file:///home/jon/dev/advance/plugin/src/utils/plugin-runtime-info.ts#L55-L74",
+          "summary": "PluginRuntimeInfo already centralizes runtime provenance; current freshness authority is mtime-based and getPluginRuntimeInfo reads diagnostics on demand."
+        },
+        {
+          "label": "Existing status health seam",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/status.ts#L821-L879",
+          "summary": "adv_status already returns plugin_runtime in the health-oriented output assembly."
+        },
+        {
+          "label": "Existing worker manifest pattern",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/worker-bundle-manifest.ts#L12-L18",
+          "summary": "Worker manifest documents content-derived generation and temp-file plus same-directory rename, while its reader collapses invalid states to null."
+        },
+        {
+          "label": "Single system-block assembler",
+          "locator": "file:///home/jon/dev/advance/plugin/src/utils/system-block.ts#L1-L31",
+          "summary": "System diagnostics are composed through one pure ordered formatter; existing session-health state is narrowly typed."
+        },
+        {
+          "label": "Current deployment sync",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L1253-L1274",
+          "summary": "Deployment currently performs one whole-plugin rsync after source-dist freshness checks."
+        }
+      ],
+      "architecture_assessment": "CAUTION. Strongest leverage is extending existing plugin-runtime-info, status health output, and single system-block assembler instead of creating parallel diagnostics. Design should preserve a distinct loaded embedded generation, return discriminated unknown reasons, keep stale banner state independent from session-health hazards, and make manifest publication the explicit last deployment step. Reuse worker manifest semantics as a pattern, not its worker-specific API.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Agreement is coherent, but no draft design artifact was available to confirm these seams and deployment ordering are explicitly handled."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "medium",
+        "risk": "medium",
+        "tradeoffs": [
+          "Adding typed identity fields to PluginRuntimeInfo keeps one diagnostics seam but expands an existing public output contract.",
+          "Discriminated unknown reasons improve diagnosis but require a bounded enum and parser test matrix.",
+          "Publishing the manifest last strengthens commit-marker semantics but makes deployment flow more explicit than one whole-tree rsync.",
+          "Keeping plugin and worker manifests separate duplicates small mechanics but avoids a premature cross-domain abstraction."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Create a separate plugin freshness subsystem and status probe",
+            "disposition": "rejected",
+            "rationale": "Duplicates existing PluginRuntimeInfo and status health seams."
+          },
+          {
+            "option": "Reuse lastSessionHealthIssue for stale-plugin warnings",
+            "disposition": "rejected",
+            "rationale": "Would couple plugin freshness to session-history hazard state and conflicts with DONT3."
+          },
+          {
+            "option": "Generalize worker-bundle-manifest.ts for all bundles",
+            "disposition": "deferred",
+            "rationale": "Current module is worker-specific; one additional consumer does not yet justify a generic framework."
+          },
+          {
+            "option": "Keep whole-tree rsync without explicit manifest-last publication",
+            "disposition": "deferred",
+            "rationale": "Simpler deployment, but design must first prove it preserves sidecar commit-marker semantics."
+          }
+        ],
+        "recommendation": "Adopt candidates 1-3 now, design around candidate 5, and explicitly decide candidate 4 before validator review."
+      },
+      "recommendation": "Carry four design decisions into draft: extend PluginRuntimeInfo; model unknown with bounded reason codes; add an independent stale section to the single system block; keep plugin manifest implementation local. Surface deployment manifest-last publication for explicit design resolution.",
+      "follow_ups": [
+        "Packet omitted IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; scout followed TASK_SCOPE and embedded agreement without inferring missing boundaries.",
+        "Episode recall returned no relevant prior decision; prior_consideration remains unknown and must be supplied by orchestrator conflict scan.",
+        "Candidate details are returned in the user-facing response; no files were edited."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Independent design validation for stale plugin bundle detection",
+      "sources": [
+        {
+          "label": "Approved agreement",
+          "locator": "adv://change/detectStalePluginBundle/agreement",
+          "summary": "Requires immutable generation equality, typed stale/restart recovery, safe bounded unknown states, mtime-independent detection, health projection, exactly one stale section, missing-manifest deploy refusal, no hot reload, and no session-health overwrite."
+        },
+        {
+          "label": "Proposed design",
+          "locator": "adv://change/detectStalePluginBundle/design",
+          "summary": "Proposes one embedded plugin generation, final index.js SHA-256, atomic plugin-specific manifest, additive PluginRuntimeInfo diagnostics, independent system-block section, and manifest-last deployment."
+        },
+        {
+          "label": "Runtime provenance spec law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/advance-delivery/spec.md#rq-runtimeProvenance01",
+          "summary": "Requires existing dist/source/process freshness fields and structured recovery hint in adv_status health, graceful null degradation, and no in-surface rebuild/restart orchestration."
+        },
+        {
+          "label": "Single system-block spec law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/advance-workflow/spec.md#rq-singleSystemBlock01",
+          "summary": "Requires at most one ADV-controlled output.system entry per transform and assembly of all warning/context sections into output.system[0]."
+        },
+        {
+          "label": "Existing plugin runtime seam",
+          "locator": "file:///home/jon/dev/advance/plugin/src/utils/plugin-runtime-info.ts#L55-L74",
+          "summary": "PluginRuntimeInfo already owns runtime provenance; existing source_dist_freshness has a separate four-value contract and recovery_hint is structured."
+        },
+        {
+          "label": "Existing health projection",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/status.ts#L821-L879",
+          "summary": "adv_status detailed output already exposes plugin_runtime through the health-capable assembly path."
+        },
+        {
+          "label": "Existing single system-block assembler",
+          "locator": "file:///home/jon/dev/advance/plugin/src/utils/system-block.ts#L212-L289",
+          "summary": "One pure formatter appends into output.system[0]; session health is a narrow independent state field."
+        },
+        {
+          "label": "Current transform call site",
+          "locator": "file:///home/jon/dev/advance/plugin/src/index.ts#L1100-L1131",
+          "summary": "Each system transform currently calls applyAdvSystemBlock synchronously from an async hook, but no deployed plugin manifest refresh input exists yet."
+        },
+        {
+          "label": "Existing worker manifest pattern",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/worker-bundle-manifest.ts#L12-L18",
+          "summary": "Established local pattern hashes bundle output and publishes a same-directory temp file by rename after payload output."
+        },
+        {
+          "label": "Current build pipeline",
+          "locator": "file:///home/jon/dev/advance/plugin/package.json#L17-L21",
+          "summary": "Full build invokes main tsup, then build:worker, then build:identity; build:worker invokes tsup separately, making plugin-only generation scoping necessary."
+        },
+        {
+          "label": "Current deployment pipeline",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L211-L259",
+          "summary": "Freshness guard currently checks required outputs and mtimes; plugin manifest is not yet required."
+        },
+        {
+          "label": "Current deployment sync",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L1253-L1274",
+          "summary": "Current deployment uses one rsync of the plugin tree, so manifest-last publication requires explicit exclusion/staging rather than relying on present ordering."
+        },
+        {
+          "label": "Official tsup configuration docs",
+          "locator": "https://github.com/egoist/tsup/blob/main/docs/README.md",
+          "summary": "Documents esbuildOptions/define for compile-time replacement and async onSuccess hooks; these provide supported primitives for embedding a build value and post-JavaScript-output finalization."
+        },
+        {
+          "label": "Official tsup source example",
+          "locator": "https://github.com/egoist/tsup/blob/main/src/esbuild/index.ts",
+          "summary": "Shows tsup forwarding options.define into esbuild's define map, supporting build-time constant injection."
+        },
+        {
+          "label": "Node.js crypto API",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/crypto.html#cryptocreatehashalgorithm-options",
+          "summary": "Documents createHash and SHA-256 update/digest usage for output hashing."
+        },
+        {
+          "label": "Node.js filesystem API",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/fs.html#fspromisesrenameoldpath-newpath",
+          "summary": "Documents promise-based rename used by the existing manifest publication pattern."
+        },
+        {
+          "label": "POSIX rename specification",
+          "locator": "https://pubs.opengroup.org/onlinepubs/9699919799.2018edition/functions/rename.html",
+          "summary": "Specifies atomic rename replacement semantics, supporting same-directory temp-file publication on the target POSIX environment."
+        }
+      ],
+      "architecture_assessment": "CAUTION. Core architecture is correct and simpler than timestamp authority or hot reload: capture one immutable build generation in loaded code, compare it with a sidecar generation, retain SHA-256 and built_at as provenance, degrade invalid reads to typed unknown, and surface stale state through existing runtime-info/status/system-block seams (agreement; proposed design; Node crypto docs; POSIX rename spec). Two design details need explicit closure before implementation: (1) AC7 requires the deployed manifest to be re-read and compared on every system transform, or through an equivalently guaranteed refresh path, because current transform input has no plugin-freshness source; init-only capture would miss a later deploy (current transform call site). Keep IO outside the pure assembler and pass a typed snapshot into it. (2) Define generation creation as one pre-bundle, non-content-derived opaque value shared by compile-time injection and manifest finalization; using the final index hash as the embedded generation would create self-reference. Hash final index.js separately as agreed. Preserve existing source_dist_freshness and recovery_hint fields additively because rq-runtimeProvenance01 still requires them. Manifest-last deployment is sound as a visibility marker only if the first rsync excludes the manifest and final publication validates/copies it separately; current one-pass rsync does not provide that ordering.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract, security, or release blocker found. Design satisfies agreement direction and applicable spec laws, but next-transform refresh semantics, non-self-referential generation creation, additive runtime field naming, and concrete manifest-last deploy mechanics must be explicit in planning/implementation criteria."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Reading and validating a small manifest on every system transform gives exact AC7 behavior but adds bounded filesystem IO to each transform; caching must not weaken next-transform detection.",
+          "A random or otherwise opaque per-build generation distinguishes identical repeated builds, while the separate SHA-256 preserves content provenance; this uses two identity values instead of one.",
+          "Keeping a plugin-specific manifest duplicates small worker-manifest mechanics but avoids a premature generic bundle-manifest framework.",
+          "Manifest-last rsync staging improves visibility semantics but does not make the full payload copy transactional; a session starting mid-copy can still encounter deployment-transient behavior.",
+          "Additive PluginRuntimeInfo fields preserve spec compatibility but expand the health output contract and test matrix."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Opaque pre-bundle generation embedded through tsup define, plus separate final index.js SHA-256",
+            "disposition": "preferred",
+            "rationale": "Supported by tsup define and Node crypto APIs; avoids self-referential hashing while satisfying loaded-versus-deployed equality and provenance requirements."
+          },
+          {
+            "option": "Use final index.js SHA-256 as the embedded generation",
+            "disposition": "rejected",
+            "rationale": "Embedding the value changes the file being hashed, creating a circular identity problem unless a more complex canonicalization scheme is introduced."
+          },
+          {
+            "option": "Retain process-start/mtime freshness as stale authority",
+            "disposition": "rejected",
+            "rationale": "Contradicts approved C1/DONT2 and cannot satisfy the mtime-preserved deployment criterion."
+          },
+          {
+            "option": "Implement hot reload after mismatch",
+            "disposition": "rejected",
+            "rationale": "Contradicts approved DONT1/OOS1 and expands risk without being needed for diagnosis."
+          },
+          {
+            "option": "Generalize plugin and worker manifests into one framework now",
+            "disposition": "deferred",
+            "rationale": "Only two domains exist and worker semantics differ; local duplication remains simpler and lower-risk."
+          },
+          {
+            "option": "Capture deployed generation only during plugin initialization",
+            "disposition": "rejected",
+            "rationale": "Cannot guarantee AC7's warning on the next transform after a later manifest replacement."
+          }
+        ],
+        "recommendation": "Proceed after making four points explicit in planning: generate one opaque value before main plugin bundling and inject that exact value; hash final index.js separately and atomically publish schema-v1 manifest; re-read/validate deployed manifest before each system transform and pass typed freshness into the pure assembler; preserve existing runtime-provenance fields while adding separately named bundle freshness fields. Implement deployment as payload rsync excluding plugin-bundle-manifest.json, validate staged payload/manifest, then publish manifest last. Add tests proving build:worker cannot rewrite plugin identity and current/unknown states never emit the stale section."
+      },
+      "recommendation": "Accept architecture with caution; require explicit transform-refresh data flow, pre-bundle generation definition, additive health fields, and executable manifest-last deployment sequence before implementation.",
+      "follow_ups": [
+        "TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION were supplied in the orchestrator packet and followed exactly; no files were edited.",
+        "Episode advisory recall returned no relevant project decision; no recalled text was used as evidence.",
+        "I do not know whether tsup's onSuccess timing remains stable across every future tsup release; current official docs support async onSuccess after successful JavaScript build, but the simpler project-specific build finalizer should be verified by fixture tests.",
+        "Planning should define a bounded unknown-reason enum covering missing, empty, malformed JSON, unsupported schema, invalid generation/hash/timestamp, and unreadable manifest, matching AC4."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+      "task_id": "tk-36eb89003552",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-36eb89003552"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/scripts/build-plugin.ts",
+        "plugin/src/index.ts",
+        "plugin/package.json"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+          "exit_code": 1,
+          "summary": "Red phase: test suite failed before implementation because the plugin-bundle-manifest module did not exist."
+        },
+        {
+          "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+          "exit_code": 0,
+          "summary": "Green phase: 12/12 tests pass after implementation."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts",
+          "exit_code": 0,
+          "summary": "12/12 tests pass through the repo-local throttle wrapper."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all green."
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Production build writes dist/plugin-bundle-manifest.json with schema_version 1, generation, index SHA-256, and ISO built_at; no temp files remain."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used a tsup programmatic build script to generate an opaque pre-bundle generation and inject it via define before bundling.",
+          "why": "The generation must be defined before the bundler runs and then written to the sidecar after index.js exists; the script is the only place that can both inject and finalize."
+        },
+        {
+          "what": "Captured the loaded generation at module evaluation in plugin-bundle-manifest.ts and imported it from index.ts.",
+          "why": "Keeps the generation concern in the manifest module and wires module-evaluation capture without scattering logic in index.ts."
+        },
+        {
+          "what": "Made files.index diagnostic-only and used generation equality as the staleness authority.",
+          "why": "Satisfies AC5: a deployment that preserves index.js mtime but changes the manifest generation still reports stale."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none — new surface; worker-bundle-manifest.ts was used as the reference pattern and is unaffected.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Plugin bundle generation manifest is implemented: build injects an opaque generation into dist/index.js, writes dist/plugin-bundle-manifest.json atomically, and runtime can compare loaded vs deployed generations. Health/banner/deploy handling remains for the next tasks.",
+        "suggested_next_action": "Run bin/oc-test smoke or proceed to task tk-deb236c40515 (Surface typed plugin bundle staleness)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_mismatch",
+          "message": "Reported exit_code 1 differs from durable adv_run_test evidence exitCode 0 for command: pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+      "task_id": "tk-deb236c40515",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-deb236c40515"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts",
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/system-block.ts",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/index.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts",
+          "exit_code": 0,
+          "summary": "137 tests pass (TDD green after implementation)"
+        },
+        {
+          "command": "pnpm exec vitest run --run src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "55 status tests pass including new plugin bundle generation freshness assertions"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "192 tests pass through repo-local throttle wrapper"
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Repo checks (schemas, typecheck, isolation, lockfile, lint, format) plus 68 smoke tests pass"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, isolation, lockfile policy, lint, and format:check all green"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Production build writes dist/plugin-bundle-manifest.json and embeds generation into dist/index.js chunk"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added optional loadedGenerationOverride to getPluginBundleFreshness so tests can exercise current/stale/unknown without mocking module-level capture.",
+          "why": "In test source execution the build-time define is not injected, so the captured loaded generation is always null; the override keeps the function production-simple while making it testable."
+        },
+        {
+          "what": "Placed the PLUGIN_BUNDLE_STALE section in the stable header after SESSION_HEALTH and before WORKTREE_SESSION.",
+          "why": "It is an independent deployment advisory, not a session-health hazard; ordering keeps session-health warnings first and preserves the existing stable-section hierarchy."
+        },
+        {
+          "what": "Caught manifest-read errors in the experimental.chat.system.transform hook and returned null for pluginBundleFreshness.",
+          "why": "Satisfies C3/DONT3: staleness detection must not crash initialization or overwrite session-health state."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated system-block marker comment in plugin/src/index.ts to document the new [ADV:PLUGIN_BUNDLE_STALE] section.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Surface typed plugin bundle staleness implemented: PluginRuntimeInfo now carries loaded/deployed generations, bundle freshness state, unknown reason, recovery, and advisory type; adv_status health view returns these fields; the system transform rereads the bounded deployed manifest each turn and emits an independent [ADV:PLUGIN_BUNDLE_STALE] section exactly once when stale, with current/unknown emitting none; session-health state is preserved. TDD red->green, pnpm run check, pnpm run build, bin/oc-test targeted, and bin/oc-test smoke all pass.",
+        "suggested_next_action": "Run bin/oc-test full before acceptance gate, or proceed to task tk-456db27571bf (Publish plugin manifest safely on deploy)."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+      "task_id": "tk-deb236c40515",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-deb236c40515"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts",
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/system-block.ts",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/index.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript passes with centralized helpers and removed local imports"
+        },
+        {
+          "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "198 tests pass including 6 new path-resolution regression tests"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "198 tests pass through repo-local throttle wrapper (reran after one transient flake)"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, isolation, lockfile policy, lint, and format:check all green"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Production build succeeds; built dist/chunk-*.js shows getPluginRoot() resolves from module's directory to plugin root, and index.js uses getPluginBundleDistDir()"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Centralized plugin root / dist path resolution in plugin-bundle-manifest.ts via getPluginRoot() and getPluginBundleDistDir().",
+          "why": "Both index.ts and plugin-runtime-info.ts need the plugin root; computing it locally with ../.. from one-level-deep index.ts or from a bundled dist/chunk was producing repo-root instead of plugin-root. A single source-of-truth helper anchored to plugin-bundle-manifest.ts's location (always one level under plugin root) removes the per-callsite arithmetic."
+        },
+        {
+          "what": "Added optional moduleUrl parameter to the helpers so tests can simulate source and bundled module paths.",
+          "why": "Tests run from source and cannot easily observe production bundling; the parameter lets regression tests assert the resolution for src/index.ts, dist/index.js, and dist/chunk-*.js without relying on the actual build."
+        },
+        {
+          "what": "Removed local dirname/fileURLToPath imports from index.ts and plugin-runtime-info.ts where only the plugin root was needed.",
+          "why": "Eliminates the duplicated, fragile path math and keeps the resolution logic in one place."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed only index.ts and plugin-runtime-info.ts were computing plugin/dist paths incorrectly; other repo-root calculations in test files intentionally use ../.. and are unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Review defect fixed: plugin root path resolution was structurally wrong in index.ts (and would have been wrong in plugin-runtime-info.ts in production). Centralized getPluginRoot()/getPluginBundleDistDir() in plugin-bundle-manifest.ts resolves plugin root from that module's location (plugin/src/... in source, plugin/dist/... or plugin/dist/chunk-*.js at runtime), so manifest lookup now targets plugin/dist instead of repo/dist. Added focused regression tests covering src/index.ts, dist/index.js, and dist/chunk-*.js module URLs. pnpm run check, pnpm run build, and targeted verification all pass; one transient bin/oc-test targeted run flaked on temporal-health caching but reran green.",
+        "suggested_next_action": "Run bin/oc-test full before acceptance gate, or proceed to task tk-456db27571bf (Publish plugin manifest safely on deploy)."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+      "task_id": "tk-456db27571bf",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-456db27571bf"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "scripts/deploy-local.sh",
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/overlay-sync-assets.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts",
+        "plugin/src/deploy-local.test.ts",
+        "AGENTS.md"
+      ],
+      "verification": [
+        {
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, eslint, and prettier all pass."
+        },
+        {
+          "command": "cd plugin && pnpm run build",
+          "exit_code": 0,
+          "summary": "Plugin, worker bundle, and build-identity artifacts produced successfully; plugin-bundle-manifest.json regenerated."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+          "exit_code": 0,
+          "summary": "Both new TDD tests pass: missing manifest blocks deploy and manifest-last publication preserves mtime identity."
+        },
+        {
+          "command": "cd plugin && npx vitest run src/deploy-local.test.ts src/deploy-local-worker-refresh.test.ts src/overlay-sync-assets.test.ts src/deploy-local-plugin-manifest.test.ts",
+          "exit_code": 0,
+          "summary": "All 97 deploy-related regression tests pass after the rsync/manifest changes."
+        },
+        {
+          "command": "./scripts/deploy-local.sh --dry-run",
+          "exit_code": 0,
+          "summary": "Dry-run emits the new manifest-exclude/validate/publish-last preview messages and exits cleanly."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Made the plugin manifest part of the deploy-time stale check so missing manifests trigger a rebuild before the guard fires.",
+          "why": "The stale check already enforces required dist outputs; treating the manifest as a required output is the simplest structural guard and avoids a redundant failure path in normal builds."
+        },
+        {
+          "what": "Skipped the manifest file existence guard in --dry-run mode.",
+          "why": "Dry-run is a preview and may legitimately show a stale dist that would be rebuilt; failing on a missing manifest would break the existing dry-run preview behavior."
+        },
+        {
+          "what": "Used sha256sum with shasum fallback for index validation.",
+          "why": "Keeps the script portable across Linux (sha256sum) and macOS (shasum)."
+        },
+        {
+          "what": "Used jq to extract the expected hash from the manifest.",
+          "why": "jq is already a documented dependency for deploy-local --fix config patching, so reusing it avoids adding another tool."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated all three deploy-related test harnesses (overlay-sync-assets, deploy-local-worker-refresh, deploy-local) to create the required plugin-bundle-manifest.json so the stale check and guard stay green. Also adjusted deploy-local.test.rs assertions for the new rsync --exclude flag.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented manifest-last plugin deploy in scripts/deploy-local.sh. The script now requires dist/plugin-bundle-manifest.json, excludes it from the payload rsync, validates the copied dist/index.js SHA-256 against the manifest, and publishes the manifest last. Added regression tests for missing manifest and mtime-preserved identity. Updated AGENTS.md to state no hot reload, restart remedy, mtime advisory, and one-restart bootstrap limitation. pnpm run check and targeted tests pass; prior runtime mechanics unchanged.",
+        "suggested_next_action": "Run bin/oc-test smoke or full suite before acceptance review; optional real deploy-local.sh --fix in a throwaway environment to validate live publication."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run build"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && npx vitest run src/deploy-local.test.ts src/deploy-local-worker-refresh.test.ts src/overlay-sync-assets.test.ts src/deploy-local-plugin-manifest.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ./scripts/deploy-local.sh --dry-run"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/plugin-bundle-manifest.ts",
+          "summary": "Reject non-canonical or invalid `built_at` values so malformed manifests degrade to bounded `unknown`, rather than being treated as current or stale.",
+          "verification": "Focused manifest test and affected-suite test pass; `pnpm run check` and production build manifest verification pass."
+        },
+        {
+          "file": "plugin/src/plugin-bundle-manifest.test.ts",
+          "summary": "Add malformed timestamp regression coverage to manifest reader validation.",
+          "verification": "`bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts` passed (22 tests)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Sidecar manifests need validation for every contract field: merely checking `built_at` is a string accepts malformed manifests and violates safe-unknown semantics."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts",
+          "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts src/deploy-local-plugin-manifest.test.ts",
+          "pnpm run check",
+          "pnpm run build && node -e '<verify plugin manifest schema, generation, hash, canonical ISO timestamp>'",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Focused manifest suite: 22/22 passed. Affected suite: 6 files, 200/200 tests passed. `pnpm run check` completed schemas, typecheck, isolation/lockfile checks, lint, and formatting. Production build wrote a schema-v1 manifest; direct verification confirmed generation/hash/canonical ISO timestamp. `git diff --check` clean."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Review and checkpoint the two scoped uncommitted reviewer fixes before acceptance; no further code review action required."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "detectStalePluginBundle",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/detectStalePluginBundle",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "scripts/deploy-local.sh",
+          "summary": "Atomically published manifest after payload validation.",
+          "verification": "295 scoped tests, check, production build passed."
+        },
+        {
+          "file": "plugin/src/deploy-local-plugin-manifest.test.ts",
+          "summary": "Covered no leftover temporary manifest files.",
+          "verification": "Scoped tests passed."
+        },
+        {
+          "file": "plugin/src/overlay-sync-assets.test.ts",
+          "summary": "Added required valid plugin manifest fixture.",
+          "verification": "Scoped tests passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Manifest-last deployments require same-directory temporary-copy and rename publication; direct copy can expose a partial sidecar."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "../bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts src/deploy-local-plugin-manifest.test.ts src/deploy-local-worker-refresh.test.ts src/deploy-local.test.ts src/overlay-sync-assets.test.ts",
+          "pnpm run check",
+          "pnpm run build",
+          "git diff --check $(git merge-base HEAD origin/trunk)"
+        ],
+        "results": "pass",
+        "evidence": "9 scoped files / 295 tests passed; schema/type/isolation/lockfile/lint/format passed; production build emitted manifest; diff check passed. All contract review matrix rows pass. Prior proposal ambiguity warnings are not minted-contract gaps."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Pre-feature loaded bundles remain unknown until documented one-restart bootstrap.",
+        "Deploy fails closed when jq or SHA-256 utility unavailable."
+      ],
+      "required_main_agent_actions": []
+    }
+  ],
+  "test_runs": {
+    "tk-36eb89003552": [
+      {
+        "runId": "tr_mrnwsomn_1ae47545",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/plugin-bundle-manifest.test.ts",
+        "durationMs": 30518.841322999913,
+        "recordedAt": "2026-07-16T19:35:41.407Z"
+      },
+      {
+        "runId": "tr_mrnwtjwt_90cea92c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+        "durationMs": 3962.839860000182,
+        "recordedAt": "2026-07-16T19:36:22.076Z"
+      },
+      {
+        "runId": "tr_mrnwtxsi_f60cc132",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+        "durationMs": 2457.6611020001583,
+        "recordedAt": "2026-07-16T19:36:39.940Z"
+      },
+      {
+        "runId": "tr_mrnwuk2m_48d49da7",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+        "durationMs": 2525.4619030002505,
+        "recordedAt": "2026-07-16T19:37:08.813Z"
+      },
+      {
+        "runId": "tr_mrnx506u_a985dbbd",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts",
+        "durationMs": 3121.471003000159,
+        "recordedAt": "2026-07-16T19:45:16.337Z"
+      },
+      {
+        "runId": "tr_mrnxa4nf_d6b6e3f3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 90381.84352099989,
+        "recordedAt": "2026-07-16T19:49:15.326Z"
+      },
+      {
+        "runId": "tr_mrnxb8xw_cb844554",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 45982.199498999864,
+        "recordedAt": "2026-07-16T19:50:07.596Z"
+      },
+      {
+        "runId": "tr_mrod2d6j_a3b45c4c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/deploy-local-plugin-manifest.test.ts src/deploy-local.test.ts src/overlay-sync-assets.test.ts",
+        "durationMs": 135611.04863599874,
+        "recordedAt": "2026-07-17T03:11:06.963Z"
+      }
+    ],
+    "tk-deb236c40515": [
+      {
+        "runId": "tr_mrnzarto_ea219bbf",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run format",
+        "durationMs": 23544.203093999997,
+        "recordedAt": "2026-07-16T20:45:44.649Z"
+      },
+      {
+        "runId": "tr_mrnzc3hd_e28758cb",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run format:check && pnpm run lint",
+        "durationMs": 54822.514415000565,
+        "recordedAt": "2026-07-16T20:46:46.324Z"
+      },
+      {
+        "runId": "tr_mrnzdy35_786cfbae",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 76593.42136100028,
+        "recordedAt": "2026-07-16T20:48:12.636Z"
+      },
+      {
+        "runId": "tr_mrnzexyn_53ccbe10",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 37079.41530699935,
+        "recordedAt": "2026-07-16T20:48:59.121Z"
+      },
+      {
+        "runId": "tr_mrnzgmzl_525259e8",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run format:check",
+        "durationMs": 24688.05931000039,
+        "recordedAt": "2026-07-16T20:50:18.255Z"
+      },
+      {
+        "runId": "tr_mrnzgt08_93fb97ba",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+        "durationMs": 6.719108999706805,
+        "recordedAt": "2026-07-16T20:50:26.088Z"
+      },
+      {
+        "runId": "tr_mrnzhsd9_967a7ae1",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+        "durationMs": 24853.315054999664,
+        "recordedAt": "2026-07-16T20:51:11.852Z"
+      },
+      {
+        "runId": "tr_mrnzljtu_468409b8",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 169113.26827900019,
+        "recordedAt": "2026-07-16T20:54:07.374Z"
+      },
+      {
+        "runId": "tr_mrnzrxp9_b8f6c1bf",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 11927.318746000528,
+        "recordedAt": "2026-07-16T20:59:05.256Z"
+      },
+      {
+        "runId": "tr_mrnzsm2k_aa6ea3a1",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+        "durationMs": 21233.14833400026,
+        "recordedAt": "2026-07-16T20:59:36.842Z"
+      },
+      {
+        "runId": "tr_mrnztmq7_8c49fa9e",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 40549.82753700018,
+        "recordedAt": "2026-07-16T21:00:24.360Z"
+      },
+      {
+        "runId": "tr_mrnzuj7j_b6a183fb",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run lint",
+        "durationMs": 25210.73005099967,
+        "recordedAt": "2026-07-16T21:01:06.529Z"
+      },
+      {
+        "runId": "tr_mrnzw44k_3f19ecc8",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 64988.170849000104,
+        "recordedAt": "2026-07-16T21:02:20.284Z"
+      },
+      {
+        "runId": "tr_mrnzwo3i_c52a4d39",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run format",
+        "durationMs": 19638.401003999636,
+        "recordedAt": "2026-07-16T21:02:46.198Z"
+      },
+      {
+        "runId": "tr_mrnzy50b_b92a81bc",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 62471.791632999666,
+        "recordedAt": "2026-07-16T21:03:54.832Z"
+      },
+      {
+        "runId": "tr_mrnzz7b6_4b181195",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 41447.390298999846,
+        "recordedAt": "2026-07-16T21:04:44.388Z"
+      },
+      {
+        "runId": "tr_mro00tjr_92f4dc84",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+        "durationMs": 52554.168538000435,
+        "recordedAt": "2026-07-16T21:05:59.894Z"
+      },
+      {
+        "runId": "tr_mro01wtk_29c7e9dc",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --run src/tools/status.test.ts",
+        "durationMs": 31362.658880000003,
+        "recordedAt": "2026-07-16T21:06:50.704Z"
+      },
+      {
+        "runId": "tr_mro02goy_4102b582",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --run src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+        "durationMs": 19866.440167000517,
+        "recordedAt": "2026-07-16T21:07:16.515Z"
+      },
+      {
+        "runId": "tr_mro03ja2_3c37d34a",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts src/tools/status.test.ts",
+        "durationMs": 38019.39297499973,
+        "recordedAt": "2026-07-16T21:08:06.588Z"
+      }
+    ],
+    "tk-456db27571bf": [
+      {
+        "runId": "tr_mro0d3fh_db7ce7ed",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm test -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 120083.3271690011,
+        "recordedAt": "2026-07-16T21:15:32.557Z"
+      },
+      {
+        "runId": "tr_mro1ncc8_65ecd4e6",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && pnpm run check",
+        "durationMs": 97077.36529899947,
+        "recordedAt": "2026-07-16T21:51:30.376Z"
+      },
+      {
+        "runId": "tr_mro1q2tm_7cb92137",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run check",
+        "durationMs": 52951.12497700006,
+        "recordedAt": "2026-07-16T21:53:37.847Z"
+      },
+      {
+        "runId": "tr_mrodtjkr_a52a5aff",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/status.test.ts src/utils/plugin-runtime-info.test.ts src/utils/system-block.test.ts src/utils/tool-formatters.test.ts",
+        "durationMs": 19533.295683000237,
+        "recordedAt": "2026-07-17T03:32:14.903Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-16T18:55:47.884Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal on 2026-07-16.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "a3ab9e81c9ea312521cda85070ef7f05d59af944f6d69f6ab4d3fdddf230c892",
+        "non_whitespace_chars": 797,
+        "checked_at": "2026-07-16T18:44:33.890Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:06:43.634Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved agreement and ChangeContract minted; research established embedded-generation and atomic sidecar manifest direction.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "non_whitespace_chars": 2574,
+        "checked_at": "2026-07-16T18:44:33.891Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:20:48.660Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator caution resolved in design: per-transform refresh, opaque pre-bundle generation, additive diagnostics, and explicit manifest-last deploy sequence.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "d65ee30bc12360f840251804613ec4f5215f1657f09a973026295e6892b8ca42",
+        "non_whitespace_chars": 2586,
+        "checked_at": "2026-07-16T18:44:33.892Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:28:25.815Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan for all three changes on 2026-07-16."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-16T21:58:30.996Z",
+      "completed_by": "agent",
+      "approval_evidence": "All three planned tasks checkpointed with focused verification, check, build, deployment-manifest, health/banner, and documentation evidence."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-17T03:02:19.055Z",
+      "completed_at": "2026-07-17T03:33:44.742Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted (\"accept all\") after independent READY review (0 findings), 20/20 contract review matrix, persisted executive summary. Verification-evidence blockers cleared via fresh adv_run_test runs (tr_mrod2d6j_a3b45c4c: 117/117; tr_mrodtjkr_a52a5aff: 176/176) + typed dispositions.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "4e441e4948004563230c64184bc54e840d9ba9d5f626c3b77fd0184d91979ad0",
+        "non_whitespace_chars": 1630,
+        "checked_at": "2026-07-16T18:44:33.893Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "followup:fixSubagentPluginToolAccess-plugin-staleness"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+      "approvedAt": "2026-07-16T19:06:23.617Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Deployed-versus-loaded plugin identity uses immutable generation equality rather than filesystem timestamps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Confirmed mismatch provides a typed restart remedy without interrupting plugin initialization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Missing or invalid manifest is diagnosable but safe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A production plugin build writes `dist/plugin-bundle-manifest.json` schema v1 containing a generation, SHA-256 for `index.js`, and ISO `built_at`, with no temporary manifest remaining.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A freshly built loaded plugin generation equals its deployed manifest generation and reports `current`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Different loaded and deployed generations report typed `PLUGIN_BUNDLE_STALE`, include both generations, and recommend OpenCode restart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Missing, empty, malformed, unsupported-schema, or unreadable manifest reports bounded `unknown` state without throwing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "A deployment that preserves `dist/index.js` mtime but changes manifest generation still reports stale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`adv_status view:\"health\"` returns loaded generation, deployed generation, freshness state, and recovery action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "The next system transform after confirmed manifest replacement emits exactly one `[ADV:PLUGIN_BUNDLE_STALE]` section in the existing system block; current and unknown states emit none.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Deployment refuses stale build output when required plugin manifest is missing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Documentation states no hot reload, restart remedy, advisory mtime provenance, and one-restart bootstrap limitation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Generation equality is authoritative; timestamp data is diagnostic only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Manifest writes are atomic and schema-validated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Staleness detection must not crash initialization or mutate runtime code.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not implement plugin hot reload.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not use process-start/mtime comparison as stale authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not overwrite session-health/message-history warning state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "OpenCode platform-level module hot reload.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Worker bundle generation behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-17T00:55:42.802Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY: generation equality is the staleness authority; files.index SHA/mtime diagnostic-only (engineer decision record, 12 manifest tests, AC5 mtime-preserving test)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed PLUGIN_BUNDLE_STALE with both generations + OpenCode restart remedy; detection is non-throwing and does not interrupt plugin initialization (reviewer suite: plugin-bundle-manifest, system-block, status tests)."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Missing/empty/malformed/unsupported-schema/unreadable manifest yields bounded unknown state without throwing (AC4 tests in plugin-bundle-manifest.test.ts, reviewer-verified)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run build writes dist/plugin-bundle-manifest.json schema v1 (generation, index.js SHA-256, ISO built_at); reviewer added no-leftover-temp-manifest coverage in deploy-local-plugin-manifest.test.ts — 295 scoped tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Fresh-build loaded==deployed generation reports current (plugin-bundle-manifest.test.ts, 12/12; tr checkpoint 8c10a42c)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Mismatched generations report typed PLUGIN_BUNDLE_STALE with both generations and restart recommendation (plugin-bundle-manifest.test.ts + tool-formatters/system-block tests in reviewer run)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All malformed-manifest variants produce bounded unknown without throw (plugin-bundle-manifest.test.ts, reviewer-verified pass)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "mtime-preserving deployment with changed generation still reports stale — generation equality authoritative (plugin-bundle-manifest.test.ts)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_status view:health returns loaded generation, deployed generation, freshness state, recovery action (status.test.ts + plugin-runtime-info.test.ts in reviewer scoped run)."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Exactly one [ADV:PLUGIN_BUNDLE_STALE] section on confirmed replacement; none for current/unknown (system-block.test.ts, reviewer-verified)."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Deploy refuses when required plugin manifest missing (deploy-local.test.ts + deploy-local-plugin-manifest.test.ts; reviewer hardened atomic same-dir temp+rename publication)."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Docs assert no hot reload, restart remedy, advisory mtime provenance, one-restart bootstrap limitation (docs task checkpoint evidence + reviewer corpus checks)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "pnpm run check green; generation equality is sole authority in plugin-bundle-manifest.ts, timestamps diagnostic-only (engineer decision + reviewer static review)."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Manifest writes atomic (same-directory temp copy + rename, reviewer remediation in deploy-local.sh) and schema-validated; pnpm run check green."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Staleness detection wrapped non-throwing, no runtime code mutation; initialization path unchanged (reviewer static review + 295 scoped tests)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No hot reload implemented; docs explicitly state no hot reload (reviewer READY, 0 findings)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Process-start/mtime comparison not used as stale authority anywhere; AC5 test pins this."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Session-health/message-history warning state untouched; system-block section is additive (system-block.test.ts)."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "OpenCode platform hot reload out of scope; not touched."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Worker bundle generation behavior out of scope; worker-bundle-manifest.ts unaffected (reviewer related-scan)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A production plugin build writes `dist/plugin-bundle-manifest.json` schema v1 containing a generation, SHA-256 for `index.js`, and ISO `built_at`, with no temporary manifest remaining.",
+    "A freshly built loaded plugin generation equals its deployed manifest generation and reports `current`.",
+    "Different loaded and deployed generations report typed `PLUGIN_BUNDLE_STALE`, include both generations, and recommend OpenCode restart.",
+    "Missing, empty, malformed, unsupported-schema, or unreadable manifest reports bounded `unknown` state without throwing.",
+    "A deployment that preserves `dist/index.js` mtime but changes manifest generation still reports stale.",
+    "`adv_status view:\"health\"` returns loaded generation, deployed generation, freshness state, and recovery action.",
+    "The next system transform after confirmed manifest replacement emits exactly one `[ADV:PLUGIN_BUNDLE_STALE]` section in the existing system block; current and unknown states emit none.",
+    "Deployment refuses stale build output when required plugin manifest is missing.",
+    "Documentation states no hot reload, restart remedy, advisory mtime provenance, and one-restart bootstrap limitation."
+  ],
+  "documents": {
+    "proposal": "## Proposal\n\n1. Stamp a build/generation id into the plugin bundle at build time (mirror the worker `bundle-manifest.json` approach) and capture the loaded stamp at plugin init.\n2. On session start / a lightweight probe (e.g. `adv_status` health view), compare the loaded stamp against the on-disk deployed bundle stamp; if the deployed stamp is newer, surface a typed `PLUGIN_BUNDLE_STALE` advisory recommending an OpenCode restart.\n3. Optionally emit the advisory in a SESSION_HEALTH-style banner so it is visible without an explicit probe.\n4. Document the limitation (no hot-reload) and the restart remedy alongside the existing agent-tool-contracts note.\n\n### Out of scope\n- True hot-reload of host-loaded plugin modules (OpenCode platform capability, if ever).\n\n### Acceptance signal\nAfter a build+deploy without restart, a probe reports `PLUGIN_BUNDLE_STALE` with the loaded vs deployed stamps; after restart it reports current.",
+    "problemStatement": "## Problem\n\nThe ADV plugin is host-loaded by OpenCode at session start (`~/.local/share/Advance/plugin/dist/index.js`). After `pnpm run build` + `deploy-local.sh --fix`, the running session keeps executing the OLD plugin code until OpenCode is restarted. There is no in-session signal that the loaded plugin is stale relative to the deployed bundle — agents silently run old tool behavior.\n\n## Evidence (this session)\n\n- The shipped `fixSubagentPluginToolAccess` durable-evidence matcher + `adv_verification_evidence_disposition` were deployed but NOT live in the running session; the session had to use a free-text-evidence workaround to clear gates because the loaded plugin predated the fix.\n- Same failure class as `autoRollStaleWorkerBundle` (worker bundle staleness) but for the PLUGIN bundle. autoRoll solved it for the worker via manifest-generation self-roll; the plugin has no equivalent staleness signal.\n\n## Constraints / nuance\n\n- OpenCode loads plugins at startup; true hot-reload of host-loaded modules may not be possible without an OpenCode-level capability. Scope this as DETECTION + WARNING, not necessarily auto-reload.\n- Detection must be cheap and not depend on the (possibly stale) plugin's own newer code.\n\n## Desired outcome\n\nAn agent/session gets a clear, early signal when the deployed plugin bundle is newer than the loaded one (e.g. a build/generation stamp mismatch), advising a restart — so stale-plugin friction (silent old behavior, gate wedges) is surfaced instead of discovered the hard way.",
+    "agreement": "# Agreement\n\n## Objectives\n- Detect when deployed host-loaded plugin code differs from code captured by the running OpenCode session.\n- Make mismatch visible early without attempting unsupported hot reload.\n\n## Success Criteria\n- SC1: Deployed-versus-loaded plugin identity uses immutable generation equality rather than filesystem timestamps.\n- SC2: Confirmed mismatch provides a typed restart remedy without interrupting plugin initialization.\n- SC3: Missing or invalid manifest is diagnosable but safe.\n\n## Acceptance Criteria\n- AC1: A production plugin build writes `dist/plugin-bundle-manifest.json` schema v1 containing a generation, SHA-256 for `index.js`, and ISO `built_at`, with no temporary manifest remaining.\n- AC2: A freshly built loaded plugin generation equals its deployed manifest generation and reports `current`.\n- AC3: Different loaded and deployed generations report typed `PLUGIN_BUNDLE_STALE`, include both generations, and recommend OpenCode restart.\n- AC4: Missing, empty, malformed, unsupported-schema, or unreadable manifest reports bounded `unknown` state without throwing.\n- AC5: A deployment that preserves `dist/index.js` mtime but changes manifest generation still reports stale.\n- AC6: `adv_status view:\"health\"` returns loaded generation, deployed generation, freshness state, and recovery action.\n- AC7: The next system transform after confirmed manifest replacement emits exactly one `[ADV:PLUGIN_BUNDLE_STALE]` section in the existing system block; current and unknown states emit none.\n- AC8: Deployment refuses stale build output when required plugin manifest is missing.\n- AC9: Documentation states no hot reload, restart remedy, advisory mtime provenance, and one-restart bootstrap limitation.\n\n## Constraints\n- C1: Generation equality is authoritative; timestamp data is diagnostic only.\n- C2: Manifest writes are atomic and schema-validated.\n- C3: Staleness detection must not crash initialization or mutate runtime code.\n\n## Avoidances\n- DONT1: Do not implement plugin hot reload.\n- DONT2: Do not use process-start/mtime comparison as stale authority.\n- DONT3: Do not overwrite session-health/message-history warning state.\n\n## Out of Scope\n- OOS1: OpenCode platform-level module hot reload.\n- OOS2: Worker bundle generation behavior.\n\n## Preview Applicability\n- visual_surface: false\n- preview_expectation: exact_route_required: false; data_state_expectation: none; viewport_expectation: none; rationale: plugin runtime diagnostics only.\n\n## Decisions\n### User Decisions\n- Confirmed mismatch surfaces typed restart warning and a session-visible banner.\n- Invalid deployed manifest reports safe unknown, not false stale.\n- Embedded generation plus sidecar manifest determines staleness.\n\n### Agent Decisions (LBP)\n- Reuse worker manifest atomic-write pattern, scoped to the plugin build so worker builds cannot overwrite plugin identity.\n\n## Deferred Questions\n- None.\n\n## Sign-Off\n- User approved criteria and agreement on 2026-07-16.",
+    "design": "# Design\n\n## Architecture Overview\nPlugin build creates an opaque generation before bundling, embeds it into `index.js`, computes final `index.js` SHA-256 separately, then atomically writes a plugin-specific schema-v1 manifest. Runtime captures embedded generation at evaluation and compares it with a freshly read deployed manifest during each system transform and health probe.\n\n## Key Decisions\n- Extend `PluginRuntimeInfo` with loaded/deployed generation, `current|stale|unknown`, bounded unknown reason, and recovery action; retain source/dist mtime provenance additively.\n- Stale is typed `PLUGIN_BUNDLE_STALE`; malformed/missing/unreadable manifests safely become `unknown`.\n- Add independent stale input/section to existing single system block; never reuse session-health state.\n- Deploy excludes manifest from payload rsync, validates copied payload, then publishes manifest last; missing manifest blocks deployment.\n\n## Implementation Strategy\n1. Scope pre-bundle generation define and post-bundle manifest writer to plugin production build only.\n2. Add parser/comparator with closed unknown reasons and no throws.\n3. Capture module-evaluation generation; refresh manifest on every transform/probe.\n4. Project additive diagnostics through health status and independent banner.\n5. Implement explicit manifest-last deploy sequence.\n6. Test equal, mismatch, invalid, mtime-preserved, per-transform refresh, banner, deploy guard, and worker-build isolation.\n7. Document restart-only recovery and bootstrap limitation.\n\n## LBP Analysis\nOpaque embedded generation answers loaded-versus-deployed identity without self-referential hashing. Per-transform refresh finds later deployment; manifest-last gives one visible publication marker; typed unknown preserves safe host behavior.\n\n## Affected Components\n- Plugin build config, plugin manifest/runtime-info/status/system-block/init transform, deployment script, tests, tool-contract documentation.\n\n## Design-Derived Criteria\n- DC1: Opaque generation is defined before bundling; final hash remains independent.\n- DC2: Loaded generation is never reread from deployed bytes.\n- DC3: Every transform/probe rereads only bounded manifest data.\n- DC4: Manifest has closed unknown reasons and emits stale banner at most once per transform.\n- DC5: Deploy payload copy excludes manifest; validated manifest publication occurs last.\n\n## Design Leverage Scout\n- 5 candidates; adopted runtime-info/status seam, bounded unknowns, independent banner, local manifest module, manifest-last publication.\n\n## Validator Result\n- Caution, high confidence, medium risk. Resolved: pre-bundle opaque generation, per-transform refresh, additive diagnostics, explicit manifest-last deployment sequence. No contract compromise.\n\n## Risks / Mitigations\n- First detector deployment requires one restart; document it.\n- Invalid/transient sidecar reports unknown/stale advisory only.\n- Plugin and worker build hooks are isolated by tests.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nAdvance can now detect — and tell you about — a stale loaded plugin bundle. Every production build stamps an opaque generation into the bundle and writes an atomic sidecar manifest (`dist/plugin-bundle-manifest.json`, schema v1: generation, index.js SHA-256, ISO built_at). At runtime the loaded generation is compared against the deployed manifest.\n\n## Value\n\nThe \"deployed new code but the session silently runs old code\" failure mode — which caused real confusion during this very release cycle — becomes visible and actionable. No more guessing whether a restart is needed.\n\n## Delivered\n\n- Build-time generation stamping + atomic manifest publication (same-directory temp copy + rename; reviewer hardened this so a partial sidecar can never be observed)\n- Typed staleness states: `current`, `PLUGIN_BUNDLE_STALE` (both generations + restart recommendation), bounded `unknown` for missing/malformed manifests — never throws, never blocks init\n- `adv_status view:\"health\"` reports loaded/deployed generations, freshness, recovery action\n- Exactly one `[ADV:PLUGIN_BUNDLE_STALE]` system-block section after confirmed replacement; none otherwise\n- Deploy refuses build output missing the required manifest\n- Docs: no hot reload; restart is the remedy; mtime is advisory only; one-restart bootstrap limitation\n\n## Verification\n\n- Independent reviewer verdict: READY, 0 blocking / 0 nonblocking findings\n- 295 scoped tests across 9 files green; `pnpm run check` + production build green\n- Contract review matrix: 20/20 rows passing/respected/not-applicable\n- Generation equality (not mtime) proven authoritative by dedicated mtime-preserving-deployment test\n\n## Risks / follow-ups\n\n- Bundles loaded before this feature existed report `unknown` until one restart (documented bootstrap limitation)\n- Deploy fails closed if `jq` or a SHA-256 utility is unavailable on the host",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-17T00:55:42.802Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Deployed-versus-loaded plugin identity uses immutable generation equality rather than filesystem timestamps. | pass | Reviewer READY: generation equality is the staleness authority; files.index SHA/mtime diagnostic-only (engineer decision record, 12 manifest tests, AC5 mtime-preserving test). |\n| SC2 | success_criterion | Confirmed mismatch provides a typed restart remedy without interrupting plugin initialization. | pass | Typed PLUGIN_BUNDLE_STALE with both generations + OpenCode restart remedy; detection is non-throwing and does not interrupt plugin initialization (reviewer suite: plugin-bundle-manifest, system-block, status tests). |\n| SC3 | success_criterion | Missing or invalid manifest is diagnosable but safe. | pass | Missing/empty/malformed/unsupported-schema/unreadable manifest yields bounded unknown state without throwing (AC4 tests in plugin-bundle-manifest.test.ts, reviewer-verified). |\n| AC1 | acceptance_criterion | A production plugin build writes `dist/plugin-bundle-manifest.json` schema v1 containing a generation, SHA-256 for `index.js`, and ISO `built_at`, with no temporary manifest remaining. | pass | pnpm run build writes dist/plugin-bundle-manifest.json schema v1 (generation, index.js SHA-256, ISO built_at); reviewer added no-leftover-temp-manifest coverage in deploy-local-plugin-manifest.test.ts — 295 scoped tests pass. |\n| AC2 | acceptance_criterion | A freshly built loaded plugin generation equals its deployed manifest generation and reports `current`. | pass | Fresh-build loaded==deployed generation reports current (plugin-bundle-manifest.test.ts, 12/12; tr checkpoint 8c10a42c). |\n| AC3 | acceptance_criterion | Different loaded and deployed generations report typed `PLUGIN_BUNDLE_STALE`, include both generations, and recommend OpenCode restart. | pass | Mismatched generations report typed PLUGIN_BUNDLE_STALE with both generations and restart recommendation (plugin-bundle-manifest.test.ts + tool-formatters/system-block tests in reviewer run). |\n| AC4 | acceptance_criterion | Missing, empty, malformed, unsupported-schema, or unreadable manifest reports bounded `unknown` state without throwing. | pass | All malformed-manifest variants produce bounded unknown without throw (plugin-bundle-manifest.test.ts, reviewer-verified pass). |\n| AC5 | acceptance_criterion | A deployment that preserves `dist/index.js` mtime but changes manifest generation still reports stale. | pass | mtime-preserving deployment with changed generation still reports stale — generation equality authoritative (plugin-bundle-manifest.test.ts). |\n| AC6 | acceptance_criterion | `adv_status view:\"health\"` returns loaded generation, deployed generation, freshness state, and recovery action. | pass | adv_status view:health returns loaded generation, deployed generation, freshness state, recovery action (status.test.ts + plugin-runtime-info.test.ts in reviewer scoped run). |\n| AC7 | acceptance_criterion | The next system transform after confirmed manifest replacement emits exactly one `[ADV:PLUGIN_BUNDLE_STALE]` section in the existing system block; current and unknown states emit none. | pass | Exactly one [ADV:PLUGIN_BUNDLE_STALE] section on confirmed replacement; none for current/unknown (system-block.test.ts, reviewer-verified). |\n| AC8 | acceptance_criterion | Deployment refuses stale build output when required plugin manifest is missing. | pass | Deploy refuses when required plugin manifest missing (deploy-local.test.ts + deploy-local-plugin-manifest.test.ts; reviewer hardened atomic same-dir temp+rename publication). |\n| AC9 | acceptance_criterion | Documentation states no hot reload, restart remedy, advisory mtime provenance, and one-restart bootstrap limitation. | pass | Docs assert no hot reload, restart remedy, advisory mtime provenance, one-restart bootstrap limitation (docs task checkpoint evidence + reviewer corpus checks). |\n| C1 | constraint | Generation equality is authoritative; timestamp data is diagnostic only. | respected | pnpm run check green; generation equality is sole authority in plugin-bundle-manifest.ts, timestamps diagnostic-only (engineer decision + reviewer static review). |\n| C2 | constraint | Manifest writes are atomic and schema-validated. | respected | Manifest writes atomic (same-directory temp copy + rename, reviewer remediation in deploy-local.sh) and schema-validated; pnpm run check green. |\n| C3 | constraint | Staleness detection must not crash initialization or mutate runtime code. | respected | Staleness detection wrapped non-throwing, no runtime code mutation; initialization path unchanged (reviewer static review + 295 scoped tests). |\n| DONT1 | avoidance | Do not implement plugin hot reload. | respected | No hot reload implemented; docs explicitly state no hot reload (reviewer READY, 0 findings). |\n| DONT2 | avoidance | Do not use process-start/mtime comparison as stale authority. | respected | Process-start/mtime comparison not used as stale authority anywhere; AC5 test pins this. |\n| DONT3 | avoidance | Do not overwrite session-health/message-history warning state. | respected | Session-health/message-history warning state untouched; system-block section is additive (system-block.test.ts). |\n| OOS1 | out_of_scope | OpenCode platform-level module hot reload. | not_applicable | OpenCode platform hot reload out of scope; not touched. |\n| OOS2 | out_of_scope | Worker bundle generation behavior. | not_applicable | Worker bundle generation behavior out of scope; worker-bundle-manifest.ts unaffected (reviewer related-scan). |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-16T18:44:34.005Z",
+      "contentHash": "a3ab9e81c9ea312521cda85070ef7f05d59af944f6d69f6ab4d3fdddf230c892",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-16T18:44:34.005Z",
+      "contentHash": "2246d8bfc1768ad848aaee97f28d268587ac54835ec258bfd0f36d8ad6606fcf",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-16T19:06:10.588Z",
+      "contentHash": "5471b3acc9665e881e6417f3b3d9c3e2de70e44791a5bd662707d2bdc54aebea",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-16T19:17:06.638Z",
+      "contentHash": "d65ee30bc12360f840251804613ec4f5215f1657f09a973026295e6892b8ca42",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-17T00:56:17.093Z",
+      "contentHash": "4e441e4948004563230c64184bc54e840d9ba9d5f626c3b77fd0184d91979ad0",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-17T03:33:44.742Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-17T00:41:24.084Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-17T00:41:24.084Z"
+    }
+  ]
+}

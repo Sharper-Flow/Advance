@@ -275,6 +275,31 @@ describe("getPluginRuntimeInfo (integration)", () => {
     expect(
       info.recovery_hint === null || typeof info.recovery_hint === "object",
     ).toBe(true);
+    // plugin bundle freshness fields
+    expect(typeof info.plugin_bundle_manifest_path).toBe("string");
+    expect(
+      info.loaded_plugin_generation === null ||
+        typeof info.loaded_plugin_generation === "string",
+    ).toBe(true);
+    expect(
+      info.deployed_plugin_generation === null ||
+        typeof info.deployed_plugin_generation === "string",
+    ).toBe(true);
+    expect(["current", "stale", "unknown"]).toContain(
+      info.plugin_bundle_freshness,
+    );
+    expect(
+      info.plugin_bundle_unknown_reason === null ||
+        typeof info.plugin_bundle_unknown_reason === "string",
+    ).toBe(true);
+    expect(
+      info.plugin_bundle_recovery === null ||
+        typeof info.plugin_bundle_recovery === "string",
+    ).toBe(true);
+    expect(
+      info.plugin_bundle_advisory_type === null ||
+        typeof info.plugin_bundle_advisory_type === "string",
+    ).toBe(true);
   });
 
   it("recovery_hint is null when freshness is fresh; populated otherwise", async () => {
@@ -296,5 +321,28 @@ describe("getPluginRuntimeInfo (integration)", () => {
     });
     // Shape unchanged; options just inform recovery_hint paths
     expect(typeof info.source_dist_freshness).toBe("string");
+  });
+
+  it("includes bounded plugin bundle freshness with reason and recovery", async () => {
+    const info = await getPluginRuntimeInfo();
+    expect(["current", "stale", "unknown"]).toContain(
+      info.plugin_bundle_freshness,
+    );
+    if (info.plugin_bundle_freshness === "stale") {
+      expect(info.loaded_plugin_generation).toBeTruthy();
+      expect(info.deployed_plugin_generation).toBeTruthy();
+      expect(info.loaded_plugin_generation).not.toBe(
+        info.deployed_plugin_generation,
+      );
+      expect(info.plugin_bundle_recovery).toMatch(/restart/i);
+      expect(info.plugin_bundle_advisory_type).toBe("PLUGIN_BUNDLE_STALE");
+    } else if (info.plugin_bundle_freshness === "unknown") {
+      expect(typeof info.plugin_bundle_unknown_reason).toBe("string");
+      expect(info.plugin_bundle_recovery).toMatch(/restart|verify/i);
+    } else {
+      expect(info.plugin_bundle_unknown_reason).toBeNull();
+      expect(info.plugin_bundle_recovery).toBeNull();
+      expect(info.plugin_bundle_advisory_type).toBeNull();
+    }
   });
 });
