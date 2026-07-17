@@ -10,6 +10,7 @@ import {
   symlinkSync,
 } from "fs";
 import { spawnSync } from "child_process";
+import { createHash } from "crypto";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 
@@ -51,6 +52,8 @@ describe("overlay sync script support", () => {
     expect(content).toContain("tsup.config.ts");
     expect(content).toContain("dist/temporal/worker.js");
     expect(content).toContain("dist/temporal/workflows.js");
+    expect(content).toContain("dist/temporal/bundle-manifest.json");
+    expect(content).toContain("dist/plugin-bundle-manifest.json");
     expect(content).toContain(
       '(cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build)',
     );
@@ -64,9 +67,7 @@ describe("overlay sync script support", () => {
       'if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then',
     );
     const guardCall = content.indexOf("ensure_plugin_dist_fresh", sourceGuard);
-    const pluginRsync = content.indexOf(
-      'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/"',
-    );
+    const pluginRsync = content.indexOf('rsync -a --delete --exclude="dist/');
 
     expect(checkExit).toBeGreaterThan(-1);
     expect(sourceGuard).toBeGreaterThan(checkExit);
@@ -126,6 +127,20 @@ describe("overlay sync script support", () => {
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
         "// fresh workflows\n",
       );
+      writeFileSync(
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
+        '{"schema_version":1}\n',
+      );
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
+        '{"schema_version":1,"generation":"fresh","files":{"index":"d46de8ad756e25bc85bb3589a2523f5ee15fb8ec2358640174b169c0285a7a9f"},"built_at":"2026-01-01T00:00:00.000Z"}\n',
+      );
       utimesSync(
         distPath,
         new Date("2030-01-01T00:00:00Z"),
@@ -138,6 +153,22 @@ describe("overlay sync script support", () => {
       );
       utimesSync(
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
         new Date("2030-01-01T00:00:00Z"),
         new Date("2030-01-01T00:00:00Z"),
       );
@@ -188,9 +219,12 @@ describe("overlay sync script support", () => {
       writeFileSync(
         join(fakeBin, "pnpm"),
         `#!/usr/bin/env bash
-printf '%s %s\n' "$PWD" "$*" >> "$FAKE_PNPM_LOG"
+printf '%s %s\\n' "$PWD" "$*" >> "$FAKE_PNPM_LOG"
 if [ "\${FAKE_PNPM_FAIL:-}" = "1" ]; then
   exit 42
+fi
+if [ "$1 $2" = "run generate:manifests" ]; then
+  exit 0
 fi
 if [ "\${FAKE_PNPM_NO_REFRESH:-}" = "1" ]; then
   exit 0
@@ -200,9 +234,13 @@ mkdir -p "$PWD/dist/temporal"
 printf '// fake build\n' > "$PWD/dist/index.js"
 printf '// fake worker\n' > "$PWD/dist/temporal/worker.js"
 printf '// fake workflows\n' > "$PWD/dist/temporal/workflows.js"
+printf '{"schema_version":1}\n' > "$PWD/dist/temporal/bundle-manifest.json"
+printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
 touch "$PWD/dist/index.js"
 touch "$PWD/dist/temporal/worker.js"
 touch "$PWD/dist/temporal/workflows.js"
+touch "$PWD/dist/temporal/bundle-manifest.json"
+touch "$PWD/dist/plugin-bundle-manifest.json"
 `,
         { mode: 0o755 },
       );
@@ -268,7 +306,9 @@ exit 0
         FAKE_RSYNC_LOG: rsyncLog,
       });
       expect(freshResult.status).toBe(0);
-      expect(existsSync(pnpmLog)).toBe(false);
+      const freshPnpmLog = readFileSync(pnpmLog, "utf8");
+      expect(freshPnpmLog).toContain("run generate:manifests");
+      expect(freshPnpmLog).not.toContain("run build");
       expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
       rmSync(rsyncLog, { force: true });
 
@@ -315,7 +355,9 @@ exit 0
         FAKE_RSYNC_LOG: rsyncLog,
       });
       expect(successResult.status).toBe(0);
-      expect(readFileSync(pnpmLog, "utf8")).toContain("run build");
+      const successPnpmLog = readFileSync(pnpmLog, "utf8");
+      expect(successPnpmLog).toContain("run build");
+      expect(successPnpmLog).toContain("run generate:manifests");
       expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
     } finally {
       spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
@@ -637,10 +679,42 @@ cp -a "$src/." "$dest/"
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
         "// test workflows is fresh\n",
       );
+      writeFileSync(
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
+        '{"schema_version":1}\n',
+      );
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
+        JSON.stringify({
+          schema_version: 1,
+          generation:
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          files: {
+            index: createHash("sha256")
+              .update("// test dist is fresh\n")
+              .digest("hex"),
+          },
+          built_at: "2026-07-16T00:00:00.000Z",
+        }),
+      );
       for (const distFile of [
         join(tempWorktree, "plugin", "dist", "index.js"),
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
         join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+        join(
+          tempWorktree,
+          "plugin",
+          "dist",
+          "temporal",
+          "bundle-manifest.json",
+        ),
       ]) {
         utimesSync(
           distFile,

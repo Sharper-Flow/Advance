@@ -547,6 +547,55 @@ describe("tool-formatters", () => {
         const result = formatStatusOutput(baseInput);
         expect(result.healthSection).not.toContain("Plugin freshness");
       });
+
+      it("surfaces plugin bundle stale advisory in health section", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          pluginRuntime: {
+            source_dist_freshness: "fresh",
+            recovery_hint: null,
+            plugin_bundle_freshness: "stale",
+            loaded_plugin_generation: "loaded-gen",
+            deployed_plugin_generation: "deployed-gen",
+            plugin_bundle_recovery:
+              "Restart OpenCode to load the current plugin bundle.",
+          },
+        });
+        expect(result.healthSection).toContain("[ADV:PLUGIN_BUNDLE_STALE]");
+        expect(result.healthSection).toContain("loaded-gen");
+        expect(result.healthSection).toContain("deployed-gen");
+        expect(result.healthSection).toContain("Restart OpenCode");
+      });
+
+      it("does NOT add plugin bundle stale lines when current", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          pluginRuntime: {
+            source_dist_freshness: "fresh",
+            recovery_hint: null,
+            plugin_bundle_freshness: "current",
+            loaded_plugin_generation: "gen",
+            deployed_plugin_generation: "gen",
+            plugin_bundle_recovery: null,
+          },
+        });
+        expect(result.healthSection).not.toContain("[ADV:PLUGIN_BUNDLE_STALE]");
+      });
+
+      it("does NOT add plugin bundle stale lines when unknown", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          pluginRuntime: {
+            source_dist_freshness: "fresh",
+            recovery_hint: null,
+            plugin_bundle_freshness: "unknown",
+            loaded_plugin_generation: null,
+            deployed_plugin_generation: null,
+            plugin_bundle_recovery: "Manifest state is unreadable.",
+          },
+        });
+        expect(result.healthSection).not.toContain("[ADV:PLUGIN_BUNDLE_STALE]");
+      });
     });
   });
 

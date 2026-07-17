@@ -529,7 +529,10 @@ describe("saveRecoveredSubagentReport", () => {
     });
 
     expect(second.subagent_reports).toHaveLength(1);
-    expect(second).toBe(first);
+    // The no-op dedupe path returns the freshly loaded authoritative bundle
+    // projection (structurally equal), not the caller's object reference.
+    expect(second).not.toBe(first);
+    expect(second).toEqual(first);
 
     await rm(root, { recursive: true, force: true });
   });
@@ -679,6 +682,347 @@ describe("saveRecoveredSubagentReport", () => {
     );
     // Did NOT write to active dir
     expect(mockedSaveChange).not.toHaveBeenCalled();
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("preserves the authoritative terminal archive projection when input.change is a stale pre-archive shadow", async () => {
+    // Active→archived race: the caller's in-memory change is a STALE shadow
+    // (status "active", release gate pending, no reports). The archive bundle
+    // on disk is the terminal record (rq-terminalProjectionTruth01): archived
+    // status, completed release gate with evidence, a pre-existing terminal
+    // report, and archive-only fields. Recovery MUST mutate from the bundle
+    // projection so none of the terminal state is clobbered.
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-tproj-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const terminalManifest = {
+      ...baseChange(),
+      id: "test-change",
+      status: "archived",
+      gates: {
+        ...baseChange().gates,
+        release: {
+          status: "done",
+          completed_at: "2026-07-09T00:00:00Z",
+          completed_by: "user:jon",
+          approval_evidence: "user approved archive",
+        },
+      },
+      terminated: true,
+      phase9_status: {
+        status: "done",
+        startedAt: "2026-07-09T00:00:00Z",
+        completedAt: "2026-07-09T00:05:00Z",
+      },
+      subagent_reports: [changeScopedReport("test-change", 1)],
+    };
+    await writeFile(
+      join(bundleDir, "change.json"),
+      `${JSON.stringify(terminalManifest, null, 2)}\n`,
+    );
+
+    const staleShadow: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "active",
+      subagent_reports: [],
+    } as Change;
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const newReport = changeScopedReport("test-change", 2);
+    const updated = await saveRecoveredSubagentReport({
+      store,
+      change: staleShadow,
+      report: newReport,
+      authorization: {
+        reason: "post_archive_report_persist_race_fallback",
+        evidence: "WorkflowNotFoundError: workflow execution already completed",
+      },
+    });
+
+    // Returned projection carries TERMINAL state, not the stale shadow.
+    expect(updated.status).toBe("archived");
+    expect(updated.gates?.release).toMatchObject({
+      status: "done",
+      completed_by: "user:jon",
+      approval_evidence: "user approved archive",
+    });
+    expect(updated.terminated).toBe(true);
+    expect(updated.phase9_status).toMatchObject({ status: "done" });
+    expect(updated.subagent_reports).toHaveLength(2);
+    expect(updated.subagent_reports?.[0]).toMatchObject({
+      attempt: 1,
+      agent: "adv-reviewer",
+    });
+    expect(updated.subagent_reports?.[0]).not.toHaveProperty("recovery_audit");
+    expect(updated.subagent_reports?.[1]).toMatchObject({
+      attempt: 2,
+      recovery_audit: expect.objectContaining({
+        persisted_via: "archive-sidecar",
+      }),
+    });
+
+    // Persisted bundle preserves terminal status/gates/reports/archive-only
+    // fields — exactly one audited append.
+    const persisted = JSON.parse(
+      await readFile(join(bundleDir, "change.json"), "utf-8"),
+    );
+    expect(persisted.status).toBe("archived");
+    expect(persisted.gates.release).toMatchObject({
+      status: "done",
+      completed_by: "user:jon",
+    });
+    expect(persisted.terminated).toBe(true);
+    expect(persisted.phase9_status.status).toBe("done");
+    expect(persisted.subagent_reports).toHaveLength(2);
+    expect(persisted.subagent_reports[0].recovery_audit).toBeUndefined();
+    expect(persisted.subagent_reports[1].recovery_audit.persisted_via).toBe(
+      "archive-sidecar",
+    );
+    expect(mockedSaveChange).not.toHaveBeenCalled();
+
+    // Re-submitting the same report against the same stale shadow is a
+    // deduplicated no-op: bundle unchanged, still exactly one audited report.
+    const beforeResubmit = await readFile(
+      join(bundleDir, "change.json"),
+      "utf-8",
+    );
+    const resubmitted = await saveRecoveredSubagentReport({
+      store,
+      change: staleShadow,
+      report: newReport,
+      authorization: {
+        reason: "post_archive_report_persist_race_fallback",
+        evidence: "WorkflowNotFoundError: workflow execution already completed",
+      },
+    });
+    expect(resubmitted.subagent_reports).toHaveLength(2);
+    const afterResubmit = await readFile(
+      join(bundleDir, "change.json"),
+      "utf-8",
+    );
+    expect(afterResubmit).toBe(beforeResubmit);
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("dedupes against a report that exists only in the authoritative bundle, without rewriting it", async () => {
+    // The terminal bundle already holds report attempt 1; the stale shadow
+    // does not. Re-submitting attempt 1 MUST be a no-op keyed on the BUNDLE
+    // projection — no duplicate append, no recovery_audit retrofit, no file
+    // rewrite at all.
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-bdedup-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const terminalManifest = {
+      ...baseChange(),
+      id: "test-change",
+      status: "archived",
+      subagent_reports: [changeScopedReport("test-change", 1)],
+    };
+    await writeFile(
+      join(bundleDir, "change.json"),
+      `${JSON.stringify(terminalManifest, null, 2)}\n`,
+    );
+    const beforeSubmit = await readFile(
+      join(bundleDir, "change.json"),
+      "utf-8",
+    );
+
+    const staleShadow: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "active",
+      subagent_reports: [],
+    } as Change;
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    const result = await saveRecoveredSubagentReport({
+      store,
+      change: staleShadow,
+      report: changeScopedReport("test-change", 1),
+      authorization: {
+        reason: "post_archive_report_persist_race_fallback",
+        evidence: "WorkflowNotFoundError: workflow execution already completed",
+      },
+    });
+
+    expect(result.subagent_reports).toHaveLength(1);
+    // Bundle untouched: no rewrite, no audited duplicate.
+    const afterSubmit = await readFile(join(bundleDir, "change.json"), "utf-8");
+    expect(afterSubmit).toBe(beforeSubmit);
+    const persisted = JSON.parse(afterSubmit);
+    expect(persisted.subagent_reports).toHaveLength(1);
+    expect(persisted.subagent_reports[0].recovery_audit).toBeUndefined();
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("fails closed when the authoritative bundle manifest belongs to a different change", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-badid-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const manifest = `${JSON.stringify({ ...baseChange(), id: "other-change", status: "archived" }, null, 2)}\n`;
+    await writeFile(join(bundleDir, "change.json"), manifest);
+
+    const staleShadow: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "active",
+      subagent_reports: [],
+    } as Change;
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    await expect(
+      saveRecoveredSubagentReport({
+        store,
+        change: staleShadow,
+        report: changeScopedReport("test-change", 2),
+        authorization: {
+          reason: "post_archive_report_persist_race_fallback",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        },
+      }),
+    ).rejects.toThrow(/archive bundle manifest/);
+
+    // Bundle NOT clobbered by the stale shadow.
+    expect(await readFile(join(bundleDir, "change.json"), "utf-8")).toBe(
+      manifest,
+    );
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("fails closed when the authoritative bundle manifest is not valid JSON", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-badjson-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    await writeFile(join(bundleDir, "change.json"), "{ not json");
+
+    const staleShadow: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "active",
+      subagent_reports: [],
+    } as Change;
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    await expect(
+      saveRecoveredSubagentReport({
+        store,
+        change: staleShadow,
+        report: changeScopedReport("test-change", 2),
+        authorization: {
+          reason: "post_archive_report_persist_race_fallback",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        },
+      }),
+    ).rejects.toThrow(/archive bundle manifest/);
+    expect(await readFile(join(bundleDir, "change.json"), "utf-8")).toBe(
+      "{ not json",
+    );
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("fails closed when the authoritative bundle manifest lacks a valid task carrier", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-badtasks-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const manifest = `${JSON.stringify(
+      {
+        ...baseChange(),
+        id: "test-change",
+        status: "archived",
+        tasks: [{ title: "missing canonical task id" }],
+      },
+      null,
+      2,
+    )}\n`;
+    await writeFile(join(bundleDir, "change.json"), manifest);
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    await expect(
+      saveRecoveredSubagentReport({
+        store,
+        change: { ...baseChange(), id: "test-change", status: "active" },
+        report: changeScopedReport("test-change", 2),
+        authorization: {
+          reason: "post_archive_report_persist_race_fallback",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        },
+      }),
+    ).rejects.toThrow(/invalid task carrier/);
+    expect(await readFile(join(bundleDir, "change.json"), "utf-8")).toBe(
+      manifest,
+    );
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("fails closed when the authoritative bundle has an invalid report carrier entry", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-badreport-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const manifest = `${JSON.stringify(
+      {
+        ...baseChange(),
+        id: "test-change",
+        status: "archived",
+        subagent_reports: [[]],
+      },
+      null,
+      2,
+    )}\n`;
+    await writeFile(join(bundleDir, "change.json"), manifest);
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    await expect(
+      saveRecoveredSubagentReport({
+        store,
+        change: { ...baseChange(), id: "test-change", status: "active" },
+        report: changeScopedReport("test-change", 2),
+        authorization: {
+          reason: "post_archive_report_persist_race_fallback",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        },
+      }),
+    ).rejects.toThrow(/invalid subagent_reports entry/);
+    expect(await readFile(join(bundleDir, "change.json"), "utf-8")).toBe(
+      manifest,
+    );
 
     await rm(root, { recursive: true, force: true });
   });

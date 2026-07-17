@@ -24,6 +24,7 @@ import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { saveRecoveredSubagentReport } from "./_recovery-writers";
+import { isWorkflowCompletedError } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -376,9 +377,34 @@ function evidenceByCommand(text: string): Map<string, AdvRunTestEvidence> {
   );
 }
 
+/**
+ * Durable per-task `adv_run_test` evidence recorded via `testRunRecordedSignal`
+ * and persisted in `state.testRuns[taskId][]` (mirrored as `change.test_runs`).
+ * Consulting it lets evidence recorded by ANY session (a sub-agent when plugin
+ * tools are available, or an orchestrator relaying a sub-agent report) satisfy
+ * the verification gate without the command being echoed in the task free-text.
+ * Latest retained record per exact command wins (persisted array order ==
+ * workflow application order; no timestamp sort), so a later GREEN supersedes an
+ * earlier RED for the same command.
+ */
+type DurableTestRunLike = { command?: string; exitCode?: number | null };
+
+function latestDurableByCommand(
+  records: readonly DurableTestRunLike[] | undefined,
+): Map<string, { exitCode: number | null }> {
+  const map = new Map<string, { exitCode: number | null }>();
+  for (const record of records ?? []) {
+    if (record && typeof record.command === "string" && record.command) {
+      map.set(record.command, { exitCode: record.exitCode ?? null });
+    }
+  }
+  return map;
+}
+
 function verificationWarnings(
   report: ScopedSubagentReport,
   task?: Task,
+  durableRecords?: readonly DurableTestRunLike[],
 ): ConsumerWarning[] {
   if (!task) return [];
   const recorded = [
@@ -389,9 +415,24 @@ function verificationWarnings(
     .filter((value): value is string => Boolean(value?.trim()))
     .join("\n");
   const structuredEvidence = evidenceByCommand(recorded);
+  const durableByCommand = latestDurableByCommand(durableRecords);
 
   if (report.agent === "adv-engineer" || report.agent === "adv-designer") {
     return report.verification.flatMap((entry): ConsumerWarning[] => {
+      // Durable typed evidence is authoritative when present for the command.
+      const durable = durableByCommand.get(entry.command);
+      if (durable) {
+        if (durable.exitCode !== null && durable.exitCode !== entry.exit_code) {
+          return [
+            {
+              kind: "verification_mismatch" as const,
+              message: `Reported exit_code ${entry.exit_code} differs from durable adv_run_test evidence exitCode ${durable.exitCode} for command: ${entry.command}`,
+            },
+          ];
+        }
+        return [];
+      }
+
       const evidence = structuredEvidence.get(entry.command);
       if (!evidence && !recorded.includes(entry.command)) {
         return [
@@ -438,7 +479,9 @@ function verificationWarnings(
     return report.verification.tests_run
       .filter(
         (command) =>
-          !structuredEvidence.has(command) && !recorded.includes(command),
+          !durableByCommand.has(command) &&
+          !structuredEvidence.has(command) &&
+          !recorded.includes(command),
       )
       .map((command) => ({
         kind: "verification_missing" as const,
@@ -628,6 +671,15 @@ async function executeSubmit(
     );
   }
 
+  // Read fresh workflow state so durable adv_run_test evidence recorded via
+  // testRunRecordedSignal is visible: adv_run_test is cache-refresh-exempt, so a
+  // stale changeCache entry could otherwise omit just-recorded test_runs and
+  // produce a false verification_missing (validator blocker).
+  try {
+    await store.changes.refresh?.(parsedReport.report.change_id);
+  } catch {
+    // Best-effort: a refresh failure must never block report submission.
+  }
   const change = await loadChange(store, parsedReport.report.change_id);
   const taskId = reportTaskId(parsedReport.report);
   const task = taskId ? findTask(change, taskId) : undefined;
@@ -662,7 +714,11 @@ async function executeSubmit(
     );
   }
 
-  const initialWarnings = verificationWarnings(parsedReport.report, task);
+  const initialWarnings = verificationWarnings(
+    parsedReport.report,
+    task,
+    taskId ? change.test_runs?.[taskId] : undefined,
+  );
   const report = withConsumerWarnings(parsedReport.report, initialWarnings);
 
   if (!args.dryRun) {
@@ -720,14 +776,20 @@ async function executeSubmit(
           error instanceof Error
             ? error.message
             : "Failed to persist sub-agent report";
-        // Defensive: an active→terminal race between loadChange and signal
-        // surfaces as a completed-workflow error. Fall back to the disk
-        // projection instead of returning SUBMIT_SIGNAL_FAILED.
-        const isCompletedWorkflow =
-          /already completed|WorkflowExecutionAlreadyCompleted|WorkflowNotFound/i.test(
-            message,
-          );
-        if (isCompletedWorkflow) {
+        // Tightened authorization for non-terminal WorkflowNotFound recovery
+        // (AC3/SC2): use the structural completed-workflow classifier instead
+        // of a regex on the message text. This catches err.name-only matches
+        // (e.g. WorkflowNotFoundError with a generic message) and rejects
+        // benign messages that merely contain a recognized substring.
+        const completedWorkflow = isWorkflowCompletedError(error);
+        if (completedWorkflow) {
+          // Derive precise audit evidence from the error so the recovery
+          // record cites the actual completed-workflow marker.
+          const errorName = error instanceof Error ? error.name : undefined;
+          const evidence =
+            errorName && errorName !== "Error"
+              ? `${errorName}: ${message}`
+              : message;
           try {
             await saveRecoveredSubagentReport({
               store,
@@ -735,7 +797,7 @@ async function executeSubmit(
               report,
               authorization: {
                 reason: "post_archive_report_persist_race_fallback",
-                evidence: message,
+                evidence,
               },
             });
           } catch (fallbackError) {

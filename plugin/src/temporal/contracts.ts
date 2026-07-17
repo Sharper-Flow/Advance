@@ -62,6 +62,10 @@ export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
   task: "adv.change.task",
   getCurrentBucket: "adv.change.getCurrentBucket",
   getDirective: "adv.change.getDirective",
+  // SC1/AC8: centralized canonical wire name for the typed PhasePlan read
+  // query. Client bindings (messages.ts) and the workflow handler
+  // (workflows.ts) both bind from this constant so the name cannot drift.
+  getPhasePlan: "adv.change.getPhasePlan",
   getInvestmentReport: "adv.change.getInvestmentReport",
   getReviewVerification: "adv.change.getReviewVerification",
   getTaskRunSummary: "adv.change.getTaskRunSummary",
@@ -88,6 +92,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   taskBlocked: "adv.change.taskBlocked",
   taskCancelled: "adv.change.taskCancelled",
   designConcernDispositioned: "adv.change.designConcernDispositioned",
+  verificationEvidenceDispositioned:
+    "adv.change.verificationEvidenceDispositioned",
   gateInProgress: "adv.change.gateInProgress",
   gateAwaitingApproval: "adv.change.gateAwaitingApproval",
   gateStuck: "adv.change.gateStuck",
@@ -113,6 +119,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   opsEvidenceAppended: "adv.change.opsEvidenceAppended",
   opsRunUpserted: "adv.change.opsRunUpserted",
   opsRunEvidenceAppended: "adv.change.opsRunEvidenceAppended",
+  lightweightProfileRequested: "adv.change.lightweightProfileRequested",
+  lightweightProfileEvaluated: "adv.change.lightweightProfileEvaluated",
   epicMembershipSet: "adv.change.epicMembershipSet",
   epicMembershipCleared: "adv.change.epicMembershipCleared",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
@@ -265,10 +273,12 @@ export interface ChangeWorkflowInput {
       | "seenReportIds"
       | "seenReportIdsTotal"
       | "design_concern_dispositions"
+      | "verification_evidence_dispositions"
       | "signal_rejections"
       | "signal_rejections_total"
       | "ops_followup"
       | "ops_followup_links"
+      | "lightweight_profile"
       | "epic_membership"
     >
   >;
@@ -376,6 +386,14 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * predating this extension replay cleanly with it undefined.
    */
   design_concern_dispositions?: import("../types").DesignConcernDisposition[];
+  /**
+   * Typed dispositions of verification-evidence gaps on completed tasks with
+   * proof-bearing evidence policies. Read by the gate-readiness evaluator to
+   * clear an otherwise-blocking VERIFICATION_EVIDENCE_MISSING blocker. Additive
+   * optional field — Temporal replay-safe; histories predating this extension
+   * replay cleanly with it undefined.
+   */
+  verification_evidence_dispositions?: import("../types").VerificationEvidenceDisposition[];
   deltas: import("../types").Change["deltas"];
   wisdom: import("../types").WisdomEntry[];
   gates: Gates;
@@ -548,6 +566,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * `opsFollowupLinkAddedSignal` (idempotent by link id).
    */
   ops_followup_links?: Change["ops_followup_links"];
+  /**
+   * Lightweight change profile state: request, immutable omission policy, and
+   * append-only evaluation history. Mirrors `ChangeSchema.lightweight_profile`.
+   * Set by `lightweightProfileRequestedSignal` and
+   * `lightweightProfileEvaluatedSignal`.
+   */
+  lightweight_profile?: Change["lightweight_profile"];
   /**
    * Per-gate criteria evaluated at completion time.
    * Advisory audit trail — criteria are not blocking.

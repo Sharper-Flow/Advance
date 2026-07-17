@@ -35,6 +35,8 @@
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
+import type { PluginBundleFreshness } from "../plugin-bundle-manifest";
+
 /** Mirror of the SessionHealthIssue shape used by the plugin state.
  *  Re-declared here to keep this module free of plugin-init imports. */
 export interface SessionHealthIssue {
@@ -64,6 +66,8 @@ export interface AssembleSystemBlockInput {
   storeAvailable: boolean;
   /** Existing `output.system[0]` content (used for internal-call detection). */
   existingSystem: string | null;
+  /** Plugin bundle freshness; independent from session-health state. */
+  pluginBundleFreshness?: PluginBundleFreshness | null;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -141,6 +145,21 @@ export function formatSessionHealthBanner(
   ].join("\n");
 }
 
+/** Format the [ADV:PLUGIN_BUNDLE_STALE] banner surfacing a deployed plugin
+ *  bundle that is newer than the bundle loaded into the running OpenCode
+ *  session. Never overwrites session-health state; this is an independent
+ *  deployment advisory. */
+export function formatPluginBundleStaleBanner(
+  freshness: PluginBundleFreshness,
+): string {
+  return [
+    "[ADV:PLUGIN_BUNDLE_STALE] Loaded plugin bundle is stale.",
+    `Loaded generation: ${freshness.loadedGeneration ?? "unknown"}`,
+    `Deployed generation: ${freshness.deployedGeneration ?? "unknown"}`,
+    `${freshness.recovery}`,
+  ].join("\n");
+}
+
 // ─── Section assemblers (each returns string | null) ────────────────────────
 
 /** Stable: degraded-mode banner. Fires when plugin init failed or the
@@ -161,6 +180,16 @@ function healthSection(input: AssembleSystemBlockInput): string | null {
   const issue = input.state.lastSessionHealthIssue;
   if (!issue) return null;
   return formatSessionHealthBanner(issue, input.state.activeChange.id);
+}
+
+/** Stable: plugin bundle staleness banner. Fires when the deployed plugin
+ *  bundle generation is newer than the loaded generation. Independent from
+ *  session-health state. */
+function pluginBundleStaleSection(
+  input: AssembleSystemBlockInput,
+): string | null {
+  if (input.pluginBundleFreshness?.state !== "stale") return null;
+  return formatPluginBundleStaleBanner(input.pluginBundleFreshness);
 }
 
 /** Stable: worktree session marker. Fires when running inside a git
@@ -262,6 +291,7 @@ export function assembleSystemBlock(
   const stableSections = [
     degradedSection,
     healthSection,
+    pluginBundleStaleSection,
     worktreeSection,
     activeChangeSection,
   ];

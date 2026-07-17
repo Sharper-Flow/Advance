@@ -28,6 +28,7 @@ import { TaskStructuredOutputSchema } from "./task-output";
 import {
   DesignConcernDispositionSchema,
   ScopedSubagentReportSchema,
+  VerificationEvidenceDispositionSchema,
 } from "./subagent-reports";
 import {
   ChangeContractSchema,
@@ -42,6 +43,11 @@ import {
   OpsRunEvidenceEntrySchema,
   OpsRunSchema,
 } from "./changes";
+import {
+  LightweightProfileEvaluationSchema,
+  LightweightProfileOmissionPolicySchema,
+  LightweightProfileRequestSchema,
+} from "./lightweight-change-profile";
 
 const IsoTimestampSchema = z.string();
 
@@ -222,6 +228,16 @@ export const DesignConcernDispositionedSignalPayloadSchema =
   DesignConcernDispositionSchema;
 export type DesignConcernDispositionedSignalPayload = z.infer<
   typeof DesignConcernDispositionedSignalPayloadSchema
+>;
+
+// Records a typed disposition for a verification-evidence gap so the
+// gate-readiness evaluator can clear an otherwise-blocking
+// VERIFICATION_EVIDENCE_MISSING blocker. The payload is the disposition record
+// itself (latest-wins per (taskId, concernKey)).
+export const VerificationEvidenceDispositionedSignalPayloadSchema =
+  VerificationEvidenceDispositionSchema;
+export type VerificationEvidenceDispositionedSignalPayload = z.infer<
+  typeof VerificationEvidenceDispositionedSignalPayloadSchema
 >;
 
 export const TaskBlockedSignalPayloadSchema = z.object({
@@ -515,6 +531,24 @@ export const OpsRunEvidenceAppendedSignalPayloadSchema = z.object({
 });
 export type OpsRunEvidenceAppendedSignalPayload = z.infer<
   typeof OpsRunEvidenceAppendedSignalPayloadSchema
+>;
+
+export const LightweightProfileRequestedSignalPayloadSchema = z.object({
+  request: LightweightProfileRequestSchema,
+  omissionPolicy: LightweightProfileOmissionPolicySchema,
+  requestedAt: IsoTimestampSchema,
+  requestedBy: z.string().optional(),
+});
+export type LightweightProfileRequestedSignalPayload = z.infer<
+  typeof LightweightProfileRequestedSignalPayloadSchema
+>;
+
+export const LightweightProfileEvaluatedSignalPayloadSchema = z.object({
+  evaluation: LightweightProfileEvaluationSchema,
+  evaluatedAt: IsoTimestampSchema,
+});
+export type LightweightProfileEvaluatedSignalPayload = z.infer<
+  typeof LightweightProfileEvaluatedSignalPayloadSchema
 >;
 
 export const ChangeCancelledSignalPayloadSchema = z.object({

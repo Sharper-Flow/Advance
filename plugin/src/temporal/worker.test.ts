@@ -20,7 +20,9 @@ import {
   runMultiQueueTemporalWorker,
   createChildIPCHandler,
   startParentLivenessWatchdog,
+  TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
 } from "./worker";
+import { RESTART_HARD_KILL_DEADLINE_MS } from "./worker-multi";
 
 describe("temporal worker helpers", () => {
   beforeEach(() => {
@@ -265,6 +267,48 @@ describe("temporal worker helpers", () => {
         ADV_TEMPORAL_NAMESPACE: "default",
       } as NodeJS.ProcessEnv),
     ).rejects.toThrow(/ADV_TEMPORAL_TASK_QUEUES is empty/);
+  });
+
+  // Bundle-roll graceful drain: every Worker.create in the child must set
+  // an explicit Temporal shutdownGraceTime so SIGTERM (sent by the parent's
+  // restartChild roll) drains in-flight work instead of cancelling it at 0s
+  // (the SDK default). The parent's hard-kill deadline must strictly exceed
+  // the child grace so a draining child always gets its full grace period.
+  describe("shutdownGraceTime (bundle roll drain)", () => {
+    it("parent hard-kill deadline exceeds child Temporal shutdown grace", () => {
+      expect(RESTART_HARD_KILL_DEADLINE_MS).toBeGreaterThan(
+        TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+      );
+    });
+
+    it("runTemporalWorker sets explicit shutdownGraceTime", async () => {
+      await runTemporalWorker({
+        taskQueue: "advance-grace",
+        address: "127.0.0.1:7233",
+        namespace: "default",
+        workflowsPath: "/tmp/workflows.js",
+      });
+
+      expect(workerMocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+        }),
+      );
+    });
+
+    it("runMultiQueueTemporalWorker sets explicit shutdownGraceTime for every queue", async () => {
+      await runMultiQueueTemporalWorker(["advance-g1", "advance-g2"], {
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      } as NodeJS.ProcessEnv);
+
+      expect(workerMocks.create).toHaveBeenCalledTimes(2);
+      for (const [opts] of workerMocks.create.mock.calls) {
+        expect((opts as { shutdownGraceTime?: number }).shutdownGraceTime).toBe(
+          TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+        );
+      }
+    });
   });
 
   // P1.3.7 — Child IPC handler for dynamic queue register/unregister.

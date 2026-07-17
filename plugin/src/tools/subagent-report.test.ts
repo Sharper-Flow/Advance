@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SubagentConsumerWarningSchema } from "../types";
@@ -600,6 +600,149 @@ describe("subagentReportTools", () => {
         }),
       ]),
     );
+  });
+
+  test("durable test_runs evidence satisfies engineer verification without free-text", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_green_1",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("durable test_runs exit-code disagreement yields verification_mismatch", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_red_1",
+              command: "pnpm test",
+              exitCode: 1,
+              classification: "failed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("latest durable record wins: RED then GREEN clears the warning", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_red",
+              command: "pnpm test",
+              exitCode: 1,
+              classification: "failed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+            {
+              runId: "tr_green",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:02:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("report submit refreshes change state before matching durable evidence", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_fresh",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    expect(store.changes.refresh).toHaveBeenCalledWith("change-1");
   });
 
   test("dryRun validates and previews without signal", async () => {
@@ -1316,5 +1459,215 @@ describe("adv_subagent_report_submit — terminal-workflow disk-projection fallb
     expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
       subagentReportSubmittedSignal,
     );
+  });
+});
+
+describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery authorization (AC3/SC2)", () => {
+  let tempRoot: string;
+
+  beforeEach(async () => {
+    mocks.fireSignalAndRefresh.mockClear();
+    tempRoot = await mkdtemp(join(tmpdir(), "adv-nonterminal-report-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  function activeStoreWithDirs(baseChange: Change): {
+    store: Store;
+    changesDir: string;
+  } {
+    const changesDir = join(tempRoot, "changes");
+    const archiveDir = join(tempRoot, "archive");
+    const store = {
+      paths: {
+        root: tempRoot,
+        agenda: join(tempRoot, "agenda.jsonl"),
+        archive: archiveDir,
+        changes: changesDir,
+      },
+      config: null,
+      init: vi.fn(),
+      sync: vi.fn(),
+      close: vi.fn(),
+      flush: vi.fn(),
+      changes: {
+        get: vi.fn(async () => ({ success: true, data: baseChange })),
+        refresh: vi.fn(async () => undefined),
+      },
+    } as unknown as Store;
+    return { store, changesDir };
+  }
+
+  test("authorized: err.name=WorkflowNotFoundError (message without marker) writes one authorized disk projection", async () => {
+    const baseChange = change({ status: "active", subagent_reports: [] });
+    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    const err = new Error("unreachable");
+    err.name = "WorkflowNotFoundError";
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(err);
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: reviewerReport() },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.code).toBeUndefined();
+    const persisted = JSON.parse(
+      await readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    );
+    expect(persisted.subagent_reports).toHaveLength(1);
+    expect(persisted.subagent_reports[0].recovery_audit.persisted_via).toBe(
+      "active-projection",
+    );
+    expect(persisted.subagent_reports[0].recovery_audit.reason).toBe(
+      "post_archive_report_persist_race_fallback",
+    );
+    expect(persisted.subagent_reports[0].recovery_audit.evidence).toContain(
+      "WorkflowNotFoundError",
+    );
+  });
+
+  test("authorized: message cites completed-workflow phrasing writes one authorized disk projection", async () => {
+    const baseChange = change({ status: "active", subagent_reports: [] });
+    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("workflow execution already completed"),
+    );
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport() },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    const persisted = JSON.parse(
+      await readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    );
+    expect(persisted.tasks[0].subagent_reports).toHaveLength(1);
+    expect(
+      persisted.tasks[0].subagent_reports[0].recovery_audit.evidence,
+    ).toContain("workflow execution already completed");
+  });
+
+  test("unauthorized: message contains 'WorkflowNotFound' substring but is not a completed-workflow error → typed failure, no disk write", async () => {
+    const baseChange = change({ status: "active", subagent_reports: [] });
+    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("WorkflowNotFound is a placeholder"),
+    );
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: reviewerReport() },
+        store,
+      ),
+    );
+
+    expect(output.error).toBeDefined();
+    expect(output.code).toBe("SUBMIT_SIGNAL_FAILED");
+    await expect(
+      readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    ).rejects.toThrow();
+  });
+
+  test("unauthorized: transient error → typed failure with failureRecord, no disk write", async () => {
+    const baseChange = change({ status: "active", subagent_reports: [] });
+    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    mocks.fireSignalAndRefresh
+      .mockRejectedValueOnce(new Error("network timeout"))
+      .mockResolvedValueOnce(undefined);
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport() },
+        store,
+      ),
+    );
+
+    expect(output.error).toBe("network timeout");
+    expect(output.code).toBe("SUBMIT_SIGNAL_FAILED");
+    expect(output.failureRecord).toEqual({ recorded: true });
+    await expect(
+      readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    ).rejects.toThrow();
+  });
+
+  test("does not re-signal the same unreachable workflow on authorized recovery", async () => {
+    const baseChange = change({ status: "active", subagent_reports: [] });
+    const { store } = activeStoreWithDirs(baseChange);
+    const err = new Error("unreachable");
+    err.name = "WorkflowNotFoundError";
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(err);
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport() },
+      store,
+    );
+
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
+      subagentReportSubmittedSignal,
+    );
+  });
+
+  test("dedupe: second submission with same report key returns success without re-write", async () => {
+    const baseChange = change({ status: "active", subagent_reports: [] });
+    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    const err = new Error("workflow execution already completed");
+    mocks.fireSignalAndRefresh.mockRejectedValue(err);
+
+    const first = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: reviewerReport() },
+        store,
+      ),
+    );
+    expect(first.success).toBe(true);
+
+    const persisted = JSON.parse(
+      await readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    );
+    (store.changes.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: persisted,
+    });
+
+    const second = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: reviewerReport() },
+        store,
+      ),
+    );
+
+    expect(second.success).toBe(true);
+    expect(second.duplicate).toBe(true);
+    const reRead = JSON.parse(
+      await readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    );
+    expect(reRead.subagent_reports).toHaveLength(1);
+  });
+
+  test("projection write failure returns typed actionable failure", async () => {
+    const baseChange = change({ status: "active", subagent_reports: [] });
+    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    await writeFile(changesDir, "not a dir");
+    const err = new Error("workflow execution already completed");
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(err);
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: reviewerReport() },
+        store,
+      ),
+    );
+
+    expect(output.error).toBeDefined();
+    expect(output.code).toBe("SUBMIT_SIGNAL_FAILED");
   });
 });

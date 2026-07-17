@@ -3,7 +3,6 @@
  */
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
 
@@ -17,7 +16,7 @@ import {
   opsRunEvidenceAppendedSignal,
   opsRunUpsertedSignal,
 } from "./messages";
-import { withTestWorkflowEnvironment } from "./__tests__/with-test-env";
+import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
 
@@ -50,26 +49,23 @@ async function withOpsSignalWorker(
     handle: WorkflowHandle<typeof import("./workflows").changeWorkflow>,
   ) => Promise<void>,
 ): Promise<void> {
-  await withTestWorkflowEnvironment(
-    () => TestWorkflowEnvironment.createTimeSkipping(),
-    async (env) => {
-      const taskQueue = `ops-signal-${name}`;
-      const worker = await Worker.create({
-        connection: env.nativeConnection,
-        workflowsPath,
-        taskQueue,
-      });
+  await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+    const taskQueue = `ops-signal-${name}`;
+    const worker = await Worker.create({
+      connection: env.nativeConnection,
+      workflowsPath,
+      taskQueue,
+    });
 
-      await worker.runUntil(async () => {
-        const handle = await env.client.workflow.start("changeWorkflow", {
-          workflowId: `ops-${name}-${Date.now()}`,
-          taskQueue,
-          args: [makeChangeInput(name)],
-        });
-        await fn(handle);
+    await worker.runUntil(async () => {
+      const handle = await env.client.workflow.start("changeWorkflow", {
+        workflowId: `ops-${name}-${Date.now()}`,
+        taskQueue,
+        args: [makeChangeInput(name)],
       });
-    },
-  );
+      await fn(handle);
+    });
+  });
 }
 
 describe("changeWorkflow ops follow-up signal handlers", () => {

@@ -9,6 +9,7 @@ import {
   stateBackedAcceptanceProof,
   checkOpsFollowupReleaseBlockers,
   checkUnresolvedDesignConcerns,
+  checkUnresolvedVerificationEvidence,
   getOpenOpsFollowupObligations,
 } from "./gate-readiness";
 import type { ChangeWorkflowState } from "./contracts";
@@ -1390,6 +1391,248 @@ describe("checkUnresolvedDesignConcerns — rq-designQualityEvidence01 (structur
     const result = evaluateGateReadiness(state, "acceptance");
     expect(
       result.blockers.some((b) => b.code === "DESIGN_CONCERN_UNRESOLVED"),
+    ).toBe(true);
+  });
+});
+
+describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC2 (structural blocker)", () => {
+  const BLOCKING_POLICIES = [
+    "test",
+    "static_check",
+    "review",
+    "artifact_reference",
+  ] as const;
+  const NON_BLOCKING_POLICIES = [
+    "source_citation",
+    "source_audit",
+    "rubric_review",
+    "stakeholder_acceptance",
+    "design_proof",
+    "not_applicable",
+  ] as const;
+
+  function doneTask(
+    overrides: {
+      id?: string;
+      evidence_policy?: string;
+      status?: string;
+    } = {},
+  ) {
+    return {
+      id: overrides.id ?? "tk-ver-1",
+      title: "Task",
+      type: "code",
+      status: (overrides.status ?? "done") as never,
+      priority: 0,
+      created_at: "2026-05-20T00:00:00.000Z",
+      ...(overrides.evidence_policy
+        ? { evidence_policy: overrides.evidence_policy as never }
+        : {}),
+    };
+  }
+
+  function engineerReport(
+    overrides: {
+      attempt?: number;
+      taskId?: string;
+      warnings?: {
+        kind: "verification_missing" | "verification_mismatch";
+        message: string;
+      }[];
+    } = {},
+  ) {
+    const taskId = overrides.taskId ?? "tk-ver-1";
+    return {
+      schema_version: "1.0" as const,
+      change_id: "strengthenAgentEvidence",
+      task_id: taskId,
+      scope: { kind: "task" as const, task_id: taskId },
+      attempt: overrides.attempt ?? 1,
+      agent: "adv-engineer" as const,
+      status: "complete" as const,
+      files_touched: ["src/foo.ts"],
+      verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
+      decisions: [],
+      blockers: [],
+      scope_drift: null,
+      follow_ups: [],
+      required_main_agent_actions: [],
+      related_scan: "none",
+      workdir_used: "/tmp/worktree",
+      context_update_for_adv: {
+        what_ads_needs_to_know: "x",
+        suggested_next_action: "y",
+      },
+      ...(overrides.warnings ? { consumer_warnings: overrides.warnings } : {}),
+    };
+  }
+
+  const missingWarning = {
+    kind: "verification_missing" as const,
+    message: "No adv_run_test evidence found for reported command: pnpm test",
+  };
+  const mismatchWarning = {
+    kind: "verification_mismatch" as const,
+    message:
+      "Reported exit_code 0 differs from structured adv_run_test.v1 exitCode 1 for command: pnpm test",
+  };
+
+  it("blocks acceptance for a done task with test policy and unresolved verification_missing", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+    });
+    const blockers = checkUnresolvedVerificationEvidence(state, "acceptance");
+    expect(
+      blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
+    ).toBe(true);
+  });
+
+  it("blocks for verification_mismatch as well", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [engineerReport({ warnings: [mismatchWarning] })],
+    });
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (b) => b.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it.each([...BLOCKING_POLICIES])("blocks for blocking policy %s", (policy) => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: policy })],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+    });
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (b) => b.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it.each([...NON_BLOCKING_POLICIES])(
+    "does not block for non-blocking policy %s (SC4)",
+    (policy) => {
+      const state = makeState({
+        tasks: [doneTask({ evidence_policy: policy })],
+        subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+      });
+      expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+        [],
+      );
+    },
+  );
+
+  it("does not block when task has no evidence_policy", () => {
+    const state = makeState({
+      tasks: [doneTask()],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
+  });
+
+  it("does not block when task is not done", () => {
+    for (const status of ["pending", "in_progress", "cancelled"]) {
+      const state = makeState({
+        tasks: [doneTask({ evidence_policy: "test", status })],
+        subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+      });
+      expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+        [],
+      );
+    }
+  });
+
+  it("does not block when there are no verification warnings", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [engineerReport()],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
+  });
+
+  it("clears when a newer report without warnings supersedes (latest-wins durable evidence)", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [
+        engineerReport({ attempt: 1, warnings: [missingWarning] }),
+        engineerReport({ attempt: 2 }),
+      ],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
+  });
+
+  it("clears when a typed disposition exists for the task", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+      verification_evidence_dispositions: [
+        {
+          taskId: "tk-ver-1",
+          concernKey: "verification",
+          disposition: "rejected_with_evidence",
+          evidence: "adv_run_test evidence captured under run id X",
+          dispositionedAt: "2026-05-20T00:00:00.000Z",
+        },
+      ],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
+  });
+
+  it("does not block non-acceptance/release gates", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "design")).toEqual([]);
+    expect(checkUnresolvedVerificationEvidence(state, "execution")).toEqual([]);
+  });
+
+  it("blocks release as well as acceptance", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+    });
+    expect(
+      checkUnresolvedVerificationEvidence(state, "release").some(
+        (b) => b.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns no blockers when there are no reports", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
+  });
+
+  it("is wired into evaluateGateReadiness for acceptance", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+    });
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
     ).toBe(true);
   });
 });

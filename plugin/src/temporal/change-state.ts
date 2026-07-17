@@ -13,6 +13,7 @@ import type {
   ContractReviewMatrixSetSignalPayload,
   ContractSetSignalPayload,
   DesignConcernDispositionedSignalPayload,
+  VerificationEvidenceDispositionedSignalPayload,
   ConformanceLockedSignalPayload,
   ConformanceOverriddenSignalPayload,
   ConformanceVerdictSignalPayload,
@@ -33,6 +34,8 @@ import type {
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
   OriginRepairedSignalPayload,
+  LightweightProfileEvaluatedSignalPayload,
+  LightweightProfileRequestedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
@@ -182,11 +185,14 @@ export function changeSeedStateFromChange(
     seenReportIds: safeChange.seenReportIds,
     seenReportIdsTotal: safeChange.seenReportIdsTotal,
     design_concern_dispositions: safeChange.design_concern_dispositions,
+    verification_evidence_dispositions:
+      safeChange.verification_evidence_dispositions,
     signal_rejections: safeChange.signal_rejections,
     signal_rejections_total: safeChange.signal_rejections_total,
     ops_followup: safeChange.ops_followup,
     ops_followup_links: safeChange.ops_followup_links,
     epic_membership: safeChange.epic_membership,
+    lightweight_profile: safeChange.lightweight_profile,
   };
 }
 
@@ -410,6 +416,40 @@ export function applyOpsRunEvidenceAppendedToState(
     updated_at: payload.appendedAt,
   };
   setLastSignalAt(state, payload.appendedAt);
+  return state;
+}
+
+export function applyLightweightProfileRequestedToState(
+  state: ChangeWorkflowState,
+  payload: LightweightProfileRequestedSignalPayload,
+): ChangeWorkflowState {
+  state.lightweight_profile = {
+    request: payload.request,
+    omissionPolicy: payload.omissionPolicy,
+    evaluations: [],
+  };
+  setLastSignalAt(state, payload.requestedAt);
+  return state;
+}
+
+export function applyLightweightProfileEvaluatedToState(
+  state: ChangeWorkflowState,
+  payload: LightweightProfileEvaluatedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.lightweight_profile;
+  if (!existing) {
+    throw new Error(
+      "Cannot append lightweight profile evaluation: no profile request exists",
+    );
+  }
+  const key = payload.evaluation.evaluationKey;
+  if (existing.evaluations.some((entry) => entry.evaluationKey === key)) {
+    // Stable idempotency: same request/phase/fingerprint retry is a no-op.
+    setLastSignalAt(state, payload.evaluatedAt);
+    return state;
+  }
+  existing.evaluations.push(payload.evaluation);
+  setLastSignalAt(state, payload.evaluatedAt);
   return state;
 }
 
@@ -894,6 +934,10 @@ export function applyTaskCompletedToState(
     return state;
   }
 
+  // rq-delDefaults10: frontend completion structurally requires one
+  // matching-cycle adv-designer follow-up after successful engineer or safe
+  // inline implementation; the task's active apply cycle anchors that
+  // evidence — no cycle anchor, no completion.
   if (task.metadata?.frontend === "true") {
     const implementationCycleId = task.apply_cycle?.implementation_cycle_id;
     if (!implementationCycleId) {
@@ -1378,6 +1422,30 @@ export function applyDesignConcernDispositionedToState(
     dispositionedAt: payload.dispositionedAt,
   });
   state.design_concern_dispositions = next;
+  setLastSignalAt(state, payload.dispositionedAt);
+  return state;
+}
+
+// strengthenAgentEvidence AC1: typed disposition of a verification-evidence
+// gap. Latest disposition wins for a given (taskId, concernKey) so the
+// gate-readiness evaluator reads a single current verdict per gap.
+export function applyVerificationEvidenceDispositionedToState(
+  state: ChangeWorkflowState,
+  payload: VerificationEvidenceDispositionedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.verification_evidence_dispositions ?? [];
+  const next = existing.filter(
+    (d) =>
+      !(d.taskId === payload.taskId && d.concernKey === payload.concernKey),
+  );
+  next.push({
+    taskId: payload.taskId,
+    concernKey: payload.concernKey,
+    disposition: payload.disposition,
+    evidence: payload.evidence,
+    dispositionedAt: payload.dispositionedAt,
+  });
+  state.verification_evidence_dispositions = next;
   setLastSignalAt(state, payload.dispositionedAt);
   return state;
 }

@@ -57,6 +57,8 @@ const STATIC_TITLES: Record<
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
   adv_session_list: { title: "List sessions", titleKind: "read" },
   adv_worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
+  adv_tool_catalog: { title: "Catalog ADV tools", titleKind: "read" },
+  adv_tool_describe: { title: "Describe ADV tool", titleKind: "read" },
 };
 
 const TITLE_BUILDERS: Record<string, TitleBuilder> = {
@@ -136,6 +138,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Set contract review${suffix(args, "changeId")}`),
   adv_design_concern_disposition: (args) =>
     write(`Dispose design concern${suffix(args, "changeId")}`),
+  adv_verification_evidence_disposition: (args) =>
+    write(`Dispose verification evidence${suffix(args, "changeId")}`),
   adv_task_show: (args) => read(`Show task${suffix(args, "taskId")}`),
   adv_task_list: (args) => read(`List tasks${suffix(args, "changeId")}`),
   adv_task_update: (args) => write(`Update task${suffix(args, "taskId")}`),
@@ -183,6 +187,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_reflection_list: (args) =>
     read(`List reflections${suffix(args, "changeId", "target_path")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
+  adv_lightweight_profile_evaluate: (args) =>
+    write(`Evaluate lightweight profile${suffix(args, "changeId", "phase")}`),
   adv_conformance: (args) =>
     operator(`Run conformance${suffix(args, "action")}`),
   adv_worktree_create: (args) =>

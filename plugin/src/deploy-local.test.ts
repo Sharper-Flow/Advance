@@ -230,7 +230,10 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("check_rsync");
       expect(content).toContain("command -v rsync");
       expect(content).toContain(
-        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
+      );
+      expect(content).toContain(
+        '"$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
       );
     });
 
@@ -247,7 +250,7 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("list_deployed_temporal_worker_matches");
 
       const syncIndex = content.indexOf(
-        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
       );
       const refreshIndex = content.indexOf(
         'refresh_deployed_temporal_workers "after-sync"',
@@ -764,7 +767,21 @@ describe("deploy-local.sh", () => {
       ).toContain("STSL");
       expect(deployWorkerBounce?.body).toContain("SIGTERM");
       expect(deployWorkerBounce?.body).toContain("[ADV:ACTION_REQUIRED]");
+      expect(deployWorkerBounce?.body).toContain(
+        "ADV_TEMPORAL_WORKER_SELF_ROLL=1",
+      );
+      expect(deployWorkerBounce?.body).toContain("self-roll");
       expect(deployWorkerBounce?.scenarios).toHaveLength(3);
+      expect(
+        deployWorkerBounce?.scenarios
+          ?.find((s) => s.id === "rq-deployWorkerBounce01.1")
+          ?.then.join("\n"),
+      ).toContain("ADV_TEMPORAL_WORKER_SELF_ROLL=1");
+      expect(
+        deployWorkerBounce?.scenarios?.find(
+          (s) => s.id === "rq-deployWorkerBounce01.2",
+        )?.title,
+      ).toContain("Self-roll");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.1");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.2");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.3");

@@ -8,9 +8,11 @@
 import { describe, expect, it } from "vitest";
 import {
   EngineerSubagentReportSchema,
+  ResearcherSubagentReportSchema,
   ReviewerSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
   type EngineerSubagentReport,
+  type ResearcherSubagentReport,
   type ReviewerSubagentReport,
   type ScannerBundleSubagentReport,
   type BriefingFactOutcome,
@@ -96,6 +98,42 @@ function scannerBundleReport(
     dimensions: ["security"],
     summary: "Clean scan",
     findings: [],
+    follow_ups: [],
+    ...overrides,
+  });
+}
+
+function researcherReport(
+  overrides: Partial<ResearcherSubagentReport> = {},
+): ResearcherSubagentReport {
+  return ResearcherSubagentReportSchema.parse({
+    schema_version: "1.0",
+    change_id: "addBriefingPackets",
+    attempt: 1,
+    workdir_used: "/tmp/wt",
+    scope: { kind: "change", scope_key: "researcher:topic" },
+    agent: "adv-researcher",
+    topic: "Research topic",
+    sources: [
+      {
+        label: "Source A",
+        locator: "https://example.com/a",
+        summary: "Summary A",
+      },
+    ],
+    architecture_assessment: "Assessment text",
+    validation: {
+      status: "pass",
+      blockers: [],
+      notes: "Notes",
+    },
+    architecture_judgement: {
+      applicability: "not_applicable",
+      confidence: "high",
+      reason: "Topic does not require architecture judgement",
+      recommendation: "Proceed",
+    },
+    recommendation: "Recommendation text",
     follow_ups: [],
     ...overrides,
   });
@@ -309,5 +347,132 @@ describe("classifyBriefingFacts", () => {
     const followUps = facts.filter((f) => f.outcome === "report_follow_up");
     expect(followUps[0].id).not.toBe(followUps[1].id);
     expect(followUps[0].id).toMatch(/^follow_ups:/);
+  });
+
+  // ===========================================================================
+  // AC4/SC3 — Bounded typed research citations in engineer briefing facts
+  // ===========================================================================
+
+  describe("researcher source citation (AC4/SC3)", () => {
+    function sources(n: number) {
+      return Array.from({ length: n }, (_, i) => ({
+        label: `Source ${String.fromCharCode(65 + i)}`,
+        locator: `https://example.com/${i}`,
+        summary: `Summary ${String.fromCharCode(65 + i)}`,
+      }));
+    }
+
+    it("renders researcher sources as research_citation facts in stable report order", () => {
+      const facts = classifyBriefingFacts({
+        report: researcherReport({ sources: sources(3) }),
+      });
+      const citations = facts.filter((f) => f.outcome === "research_citation");
+      expect(citations).toHaveLength(3);
+      expect(citations[0].content).toMatch(/Source A/);
+      expect(citations[1].content).toMatch(/Source B/);
+      expect(citations[2].content).toMatch(/Source C/);
+      expect(citations.every((f) => f.source_label === "sources")).toBe(true);
+    });
+
+    it("renders a single source as one research_citation fact with no omission marker", () => {
+      const facts = classifyBriefingFacts({
+        report: researcherReport({ sources: sources(1) }),
+      });
+      const citations = facts.filter((f) => f.outcome === "research_citation");
+      expect(citations).toHaveLength(1);
+      expect(citations[0].content).toMatch(/Source A/);
+      const omitted = facts.filter((f) => f.source_label === "sources.omitted");
+      expect(omitted).toHaveLength(0);
+    });
+
+    it("renders exactly 3 research_citation facts with no omission marker at the bound", () => {
+      const facts = classifyBriefingFacts({
+        report: researcherReport({ sources: sources(3) }),
+      });
+      const citations = facts.filter((f) => f.outcome === "research_citation");
+      expect(citations).toHaveLength(3);
+      const omitted = facts.filter((f) => f.source_label === "sources.omitted");
+      expect(omitted).toHaveLength(0);
+    });
+
+    it("renders at most 3 research_citation facts plus one deterministic omission marker above the bound", () => {
+      const facts = classifyBriefingFacts({
+        report: researcherReport({ sources: sources(6) }),
+      });
+      const citations = facts.filter(
+        (f) =>
+          f.outcome === "research_citation" && f.source_label === "sources",
+      );
+      expect(citations).toHaveLength(3);
+      expect(citations[0].content).toMatch(/Source A/);
+      expect(citations[1].content).toMatch(/Source B/);
+      expect(citations[2].content).toMatch(/Source C/);
+
+      const omitted = facts.filter((f) => f.source_label === "sources.omitted");
+      expect(omitted).toHaveLength(1);
+      expect(omitted[0].content).toMatch(/3/);
+      expect(omitted[0].outcome).toBe("research_citation");
+    });
+
+    it("omission marker content is deterministic for the same source count", () => {
+      const reportA = researcherReport({ sources: sources(7) });
+      const reportB = researcherReport({ sources: sources(7) });
+      const omittedA = classifyBriefingFacts({ report: reportA }).filter(
+        (f) => f.source_label === "sources.omitted",
+      );
+      const omittedB = classifyBriefingFacts({ report: reportB }).filter(
+        (f) => f.source_label === "sources.omitted",
+      );
+      expect(omittedA).toHaveLength(1);
+      expect(omittedB).toHaveLength(1);
+      expect(omittedA[0].content).toBe(omittedB[0].content);
+    });
+
+    it("research_citation facts do not appear as archive_only_evidence for sources", () => {
+      const facts = classifyBriefingFacts({
+        report: researcherReport({ sources: sources(2) }),
+      });
+      const sourceArchive = facts.filter(
+        (f) =>
+          f.outcome === "archive_only_evidence" && f.source_label === "sources",
+      );
+      expect(sourceArchive).toHaveLength(0);
+    });
+
+    it("adds no telemetry, ranking, or usage-tracking fields", () => {
+      const facts = classifyBriefingFacts({
+        report: researcherReport({ sources: sources(4) }),
+      });
+      const allowed = new Set([
+        "content",
+        "dispositioned",
+        "id",
+        "outcome",
+        "source_label",
+        "source_ref",
+      ]);
+      for (const fact of facts) {
+        for (const key of Object.keys(fact)) {
+          expect(
+            allowed.has(key),
+            `Unexpected key ${key} on briefing fact (telemetry/tracking forbidden by C1/DONT5)`,
+          ).toBe(true);
+        }
+      }
+    });
+
+    it("keeps architecture_assessment and recommendation in their existing outcomes", () => {
+      const facts = classifyBriefingFacts({
+        report: researcherReport({ sources: sources(2) }),
+      });
+      const assessment = facts.find(
+        (f) => f.source_label === "architecture_assessment",
+      );
+      expect(assessment?.outcome).toBe("archive_only_evidence");
+      const recommendation = facts.find(
+        (f) => f.source_label === "recommendation",
+      );
+      expect(recommendation?.outcome).toBe("transient_prompt_context");
+    });
   });
 });

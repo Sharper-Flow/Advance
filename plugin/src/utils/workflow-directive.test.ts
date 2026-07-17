@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import type { GateId, GateReadinessBlocker, Gates } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
+import { LightweightProfileOmissionPolicySchema } from "../types/lightweight-change-profile";
 import {
   deriveDirectiveSafe,
   deriveWorkflowDirective,
@@ -240,6 +241,182 @@ describe("deriveWorkflowDirective", () => {
     const b = deriveWorkflowDirective(state, EPOCH);
     expect(a).toEqual(b);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});
+
+describe("deriveWorkflowDirective lightweight profile routing", () => {
+  it("omits lightweight profile from directive when no profile exists", () => {
+    const d = deriveWorkflowDirective(makeState(), EPOCH);
+    expect(d.lightweightProfile).toBeUndefined();
+  });
+
+  it("surfaces latest qualified result and omission policy on directive", () => {
+    const omissionPolicy = LightweightProfileOmissionPolicySchema.parse({
+      omitDeepScans: true,
+      omitGenericExternalResearch: true,
+      omitOpportunityScouting: true,
+      omitDefaultSpecialistDelegation: true,
+    });
+    const state = makeState({
+      lightweight_profile: {
+        request: {
+          requestId: "req-1",
+          baselineRevision: "baseline-1",
+          requestedAt: FRESH,
+        },
+        omissionPolicy,
+        evaluations: [
+          {
+            evaluationKey: "req-1:initial:fp-1",
+            phase: "initial",
+            result: "qualified",
+            criteria: [],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "rev-1",
+            evaluatedAt: FRESH,
+          },
+        ],
+      },
+    });
+
+    const d = deriveWorkflowDirective(state, EPOCH);
+    expect(d.lightweightProfile).toBeDefined();
+    expect(d.lightweightProfile?.result).toBe("qualified");
+    expect(d.lightweightProfile?.omissionPolicy).toEqual(omissionPolicy);
+    expect(d.lightweightProfile?.evaluatedAt).toBe(FRESH);
+  });
+
+  it("suppresses a prior qualification when a completed boundary lacks its revalidation", () => {
+    const omissionPolicy = LightweightProfileOmissionPolicySchema.parse({
+      omitDeepScans: true,
+      omitGenericExternalResearch: true,
+      omitOpportunityScouting: true,
+      omitDefaultSpecialistDelegation: true,
+    });
+    const gates = markDone(
+      gatesWith("execution", "pending"),
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+    );
+    const state = makeState({
+      gates,
+      lightweight_profile: {
+        request: {
+          requestId: "req-1",
+          baselineRevision: "baseline-1",
+          requestedAt: FRESH,
+        },
+        omissionPolicy,
+        evaluations: [
+          {
+            evaluationKey: "req-1:initial:fp-1",
+            phase: "initial",
+            result: "qualified",
+            criteria: [],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "rev-1",
+            evaluatedAt: FRESH,
+          },
+        ],
+      },
+    });
+
+    const d = deriveWorkflowDirective(state, EPOCH);
+    expect(d.lightweightProfile?.result).toBe("ineligible");
+    expect(d.lightweightProfile?.downgradeReason).toContain(
+      "execution_boundary revalidation is missing",
+    );
+  });
+
+  it("suppresses an execution qualification when acceptance revalidation is missing", () => {
+    const gates = markDone(
+      gatesWith("acceptance", "pending"),
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+    );
+    const state = makeState({
+      gates,
+      lightweight_profile: {
+        request: {
+          requestId: "req-1",
+          baselineRevision: "baseline-1",
+          requestedAt: FRESH,
+        },
+        omissionPolicy: LightweightProfileOmissionPolicySchema.parse({
+          omitDeepScans: true,
+          omitGenericExternalResearch: true,
+          omitOpportunityScouting: true,
+          omitDefaultSpecialistDelegation: true,
+        }),
+        evaluations: [
+          {
+            evaluationKey: "req-1:execution_boundary:fp-1",
+            phase: "execution_boundary",
+            result: "qualified",
+            criteria: [],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "rev-1",
+            evaluatedAt: FRESH,
+          },
+        ],
+      },
+    });
+
+    const d = deriveWorkflowDirective(state, EPOCH);
+    expect(d.lightweightProfile?.result).toBe("ineligible");
+    expect(d.lightweightProfile?.downgradeReason).toContain(
+      "acceptance_boundary revalidation is missing",
+    );
+  });
+
+  it("surfaces downgrade reason on directive when revalidation failed", () => {
+    const state = makeState({
+      lightweight_profile: {
+        request: {
+          requestId: "req-1",
+          baselineRevision: "baseline-1",
+          requestedAt: FRESH,
+        },
+        omissionPolicy: LightweightProfileOmissionPolicySchema.parse({
+          omitDeepScans: true,
+          omitGenericExternalResearch: false,
+          omitOpportunityScouting: false,
+          omitDefaultSpecialistDelegation: false,
+        }),
+        evaluations: [
+          {
+            evaluationKey: "req-1:initial:fp-1",
+            phase: "initial",
+            result: "qualified",
+            criteria: [],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "rev-1",
+            evaluatedAt: FRESH,
+          },
+          {
+            evaluationKey: "req-1:execution_boundary:fp-2",
+            phase: "execution_boundary",
+            result: "downgraded",
+            criteria: [],
+            evidenceFingerprint: "fp-2",
+            observedRevision: "rev-2",
+            evaluatedAt: FRESH,
+            downgradeReason: "Revalidation at execution_boundary failed",
+          },
+        ],
+      },
+    });
+
+    const d = deriveWorkflowDirective(state, EPOCH);
+    expect(d.lightweightProfile?.result).toBe("downgraded");
+    expect(d.lightweightProfile?.downgradeReason).toBe(
+      "Revalidation at execution_boundary failed",
+    );
   });
 });
 

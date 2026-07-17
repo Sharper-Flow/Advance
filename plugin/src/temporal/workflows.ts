@@ -1,5 +1,6 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
+import { derivePhasePlanFromState } from "../utils/phase-plan";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
 import type { ChangeStatus, GateReadinessBlocker } from "../types";
 import { normalizeLegacyChangeStatus } from "../types";
@@ -51,12 +52,15 @@ import {
   applyGateInProgressToState,
   applyGateReenteredToState,
   applyGateStuckToState,
+  applyLightweightProfileEvaluatedToState,
+  applyLightweightProfileRequestedToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
   applyOpsRunEvidenceAppendedToState,
   applyOpsRunUpsertedToState,
   applyOriginRepairedToState,
   applyDesignConcernDispositionedToState,
+  applyVerificationEvidenceDispositionedToState,
   applyOpsFollowupSeededToState,
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
@@ -239,6 +243,9 @@ const getCurrentBucketQuery = wf.defineQuery<ReturnType<typeof deriveBucket>>(
 const getDirectiveQuery = wf.defineQuery<
   ReturnType<typeof deriveWorkflowDirective>
 >(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective);
+const getPhasePlanQuery = wf.defineQuery<
+  ReturnType<typeof derivePhasePlanFromState>
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan);
 const getInvestmentReportQuery = wf.defineQuery<{
   taskCounts: {
     total: number;
@@ -331,6 +338,9 @@ const taskCancelledSignal = wf.defineSignal<
 const designConcernDispositionedSignal = wf.defineSignal<
   [import("../types").DesignConcernDispositionedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.designConcernDispositioned);
+const verificationEvidenceDispositionedSignal = wf.defineSignal<
+  [import("../types").VerificationEvidenceDispositionedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.verificationEvidenceDispositioned);
 const gateInProgressSignal = wf.defineSignal<
   [import("../types").GateInProgressSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
@@ -406,6 +416,12 @@ const opsRunUpsertedSignal = wf.defineSignal<
 const opsRunEvidenceAppendedSignal = wf.defineSignal<
   [import("../types").OpsRunEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunEvidenceAppended);
+const lightweightProfileRequestedSignal = wf.defineSignal<
+  [import("../types").LightweightProfileRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileRequested);
+const lightweightProfileEvaluatedSignal = wf.defineSignal<
+  [import("../types").LightweightProfileEvaluatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileEvaluated);
 const epicMembershipSetSignal = wf.defineSignal<
   [import("../types").EpicMembershipSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
@@ -671,6 +687,11 @@ export async function changeWorkflow(
         ...input.seedState.design_concern_dispositions,
       ];
     }
+    if (input.seedState.verification_evidence_dispositions) {
+      state.verification_evidence_dispositions = [
+        ...input.seedState.verification_evidence_dispositions,
+      ];
+    }
     if (input.seedState.signal_rejections) {
       state.signal_rejections = [...input.seedState.signal_rejections];
     }
@@ -682,6 +703,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.ops_followup_links) {
       state.ops_followup_links = [...input.seedState.ops_followup_links];
+    }
+    if (input.seedState.lightweight_profile) {
+      state.lightweight_profile = input.seedState.lightweight_profile;
     }
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
@@ -716,6 +740,14 @@ export async function changeWorkflow(
   );
   wf.setHandler(getDirectiveQuery, () =>
     deriveWorkflowDirective(state, workflowEpoch),
+  );
+  // SC1/AC1/AC3: typed plan query — canonical PhasePlan derived on read from
+  // the same durable state as the directive. Read-only: no signals, no
+  // persistence, no mutation authority (DDC3). A derivation throw surfaces
+  // deterministically inside the workflow (never masked); tool-layer readers
+  // own safe degradation.
+  wf.setHandler(getPhasePlanQuery, () =>
+    derivePhasePlanFromState(state, workflowEpoch),
   );
   wf.setHandler(getInvestmentReportQuery, () =>
     deriveInvestmentReportFromState(state),
@@ -1348,6 +1380,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    verificationEvidenceDispositionedSignal,
+    signalMutation("verificationEvidenceDispositioned", (payload) =>
+      applyVerificationEvidenceDispositionedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     gateInProgressSignal,
     signalMutation("gateInProgress", (payload) =>
       applyGateInProgressToState(state, payload),
@@ -1601,6 +1639,18 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    lightweightProfileRequestedSignal,
+    signalMutation("lightweightProfileRequested", (payload) =>
+      applyLightweightProfileRequestedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    lightweightProfileEvaluatedSignal,
+    signalMutation("lightweightProfileEvaluated", (payload) =>
+      applyLightweightProfileEvaluatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     epicMembershipSetSignal,
     signalMutation("epicMembershipSet", (payload) =>
       applyEpicMembershipSetToState(state, payload),
@@ -1746,10 +1796,16 @@ export async function changeWorkflow(
       seenReportIds: state.seenReportIds,
       seenReportIdsTotal: state.seenReportIdsTotal,
       design_concern_dispositions: state.design_concern_dispositions,
+      // Continue-as-new seed must persist every seedState Pick key as a
+      // single-line `key: state.key` entry (workflows.signal-handlers structural
+      // invariant). This key exceeds the 80-col wrap, so hold it on one line.
+      // prettier-ignore
+      verification_evidence_dispositions: state.verification_evidence_dispositions,
       signal_rejections: state.signal_rejections,
       signal_rejections_total: state.signal_rejections_total,
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
+      lightweight_profile: state.lightweight_profile,
       epic_membership: state.epic_membership,
     },
   };

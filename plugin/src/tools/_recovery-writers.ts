@@ -27,8 +27,15 @@
  *   overwrite the disk repair. The Temporal read path treats archive bundles as
  *   terminal/dominant and invalidates stale active cache entries there.
  */
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Store } from "../storage/store-types";
-import type { Change, DesignConcernDisposition, Gates } from "../types";
+import type {
+  Change,
+  DesignConcernDisposition,
+  Gates,
+  VerificationEvidenceDisposition,
+} from "../types";
 import { saveChange } from "../storage/json";
 import type { ArtifactMetadata } from "../temporal/contracts";
 import {
@@ -239,6 +246,50 @@ export async function saveRecoveredDesignConcernDisposition(input: {
 }
 
 /**
+ * Record a typed verification-evidence disposition on the disk projection when
+ * the owning change workflow is already completed and cannot accept the normal
+ * `verificationEvidenceDispositionedSignal`.
+ *
+ * The same latest-wins semantics as
+ * `applyVerificationEvidenceDispositionedToState` are preserved for
+ * `(taskId, concernKey)`. This is intentionally disk-direct: completed-workflow
+ * recovery must not call `store.changes.save` because that can route back
+ * through the workflow being recovered.
+ */
+export async function saveRecoveredVerificationEvidenceDisposition(input: {
+  store: Store;
+  change: Change;
+  authorization: RecoveryWriteAuthorization;
+  disposition: VerificationEvidenceDisposition;
+}): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
+  const existing = input.change.verification_evidence_dispositions ?? [];
+  const next = existing.filter(
+    (d) =>
+      !(
+        d.taskId === input.disposition.taskId &&
+        d.concernKey === input.disposition.concernKey
+      ),
+  );
+  const updated = {
+    ...input.change,
+    verification_evidence_dispositions: [
+      ...next,
+      {
+        ...input.disposition,
+        recovery_audit: {
+          reason: input.authorization.reason,
+          evidence: input.authorization.evidence,
+          recovered_at: new Date().toISOString(),
+        },
+      },
+    ],
+  } as Change;
+  await saveChange(input.store.paths.changes, updated);
+  return updated;
+}
+
+/**
  * Structural shape of a sub-agent report sufficient for key computation and
  * persistence. Accepts the full ScopedSubagentReport without tight coupling.
  */
@@ -268,6 +319,104 @@ function recoveryReportTaskId(
 }
 
 /**
+ * Load the AUTHORITATIVE change projection from an archive bundle manifest.
+ *
+ * The bundle change.json is the durable terminal record
+ * (rq-terminalProjectionTruth01). During an active→archived race the caller's
+ * in-memory change may be a stale pre-archive shadow missing terminal
+ * status/gates/reports/archive-only fields; recovery mutations MUST therefore
+ * be computed from this projection, never from the shadow.
+ *
+ * Validation is deliberately structural (parseable JSON object + canonical id
+ * match + array-typed task/report carriers) rather than ChangeSchema: bundle
+ * manifests legitimately carry recovery-audited reports, which the strict
+ * ingest report schemas (`.strict()`, no recovery_audit field) reject.
+ * Full-schema parsing would fail closed on the very bundles this writer
+ * maintains. Every manifest field is preserved verbatim — no stripping.
+ *
+ * Fails closed on unreadable, unparseable, structurally-invalid, or
+ * id-mismatched manifests: rewriting a terminal bundle from a stale shadow
+ * would clobber terminal state (rq-subagentReports12 durability).
+ */
+async function loadAuthoritativeBundleProjection(
+  bundleDir: string,
+  changeId: string,
+): Promise<Change> {
+  const manifestPath = join(bundleDir, "change.json");
+  let raw: string;
+  try {
+    raw = await readFile(manifestPath, "utf-8");
+  } catch (error) {
+    throw new Error(
+      `Cannot persist recovered sub-agent report: archive bundle manifest unreadable at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(
+      `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} is not a change object`,
+    );
+  }
+  const manifest = parsed as Record<string, unknown>;
+  const assertReportCarrier = (reports: unknown, carrier: string): void => {
+    if (!Array.isArray(reports)) {
+      throw new Error(
+        `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has non-array ${carrier}`,
+      );
+    }
+    if (
+      reports.some(
+        (report) =>
+          !report || typeof report !== "object" || Array.isArray(report),
+      )
+    ) {
+      throw new Error(
+        `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has an invalid ${carrier} entry`,
+      );
+    }
+  };
+  if (manifest.id !== changeId) {
+    throw new Error(
+      `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} belongs to change ${String(manifest.id)}, not ${changeId}`,
+    );
+  }
+  if (!Array.isArray(manifest.tasks)) {
+    throw new Error(
+      `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has no array tasks carrier`,
+    );
+  }
+  for (const task of manifest.tasks) {
+    if (
+      !task ||
+      typeof task !== "object" ||
+      Array.isArray(task) ||
+      typeof (task as Record<string, unknown>).id !== "string"
+    ) {
+      throw new Error(
+        `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has an invalid task carrier`,
+      );
+    }
+    const taskReports = (task as Record<string, unknown>).subagent_reports;
+    if (taskReports !== undefined) {
+      assertReportCarrier(taskReports, "task subagent_reports");
+    }
+  }
+  if (manifest.subagent_reports !== undefined) {
+    assertReportCarrier(manifest.subagent_reports, "subagent_reports");
+  }
+  return manifest as unknown as Change;
+}
+
+/**
  * Persist a sub-agent report to a TERMINAL (archived/closed) change's disk
  * projection when the workflow can no longer accept `subagentReportSubmittedSignal`.
  *
@@ -286,6 +435,11 @@ function recoveryReportTaskId(
  *
  * Dedupe by report key (change_id, scope/task, agent, attempt) — idempotent,
  * matching active-workflow semantics.
+ *
+ * Mutation base: when an archive bundle exists, the mutation is computed from
+ * the AUTHORITATIVE bundle projection (loadAuthoritativeBundleProjection),
+ * never from the possibly-stale `input.change` shadow — the bundle carries
+ * terminal status/gates/reports/archive-only fields that the shadow may not.
  */
 export async function saveRecoveredSubagentReport(input: {
   store: Store;
@@ -306,6 +460,13 @@ export async function saveRecoveredSubagentReport(input: {
     ? await findArchiveBundle(input.store.paths.archive, input.change.id)
     : null;
   const persistedVia = bundleDir ? "archive-sidecar" : "active-projection";
+
+  // Mutate from the AUTHORITATIVE projection for the resolved write target.
+  // With a bundle on disk, that is the bundle manifest (terminal record);
+  // otherwise it is the caller's change (active/closed changes-dir path).
+  const base = bundleDir
+    ? await loadAuthoritativeBundleProjection(bundleDir, input.change.id)
+    : input.change;
 
   const taskId = recoveryReportTaskId(input.report);
   const key = subagentReportKey({
@@ -332,38 +493,38 @@ export async function saveRecoveredSubagentReport(input: {
 
   // Resolve target array + dedupe
   if (taskId) {
-    const idx = input.change.tasks.findIndex((t) => t.id === taskId);
+    const idx = base.tasks.findIndex((t) => t.id === taskId);
     if (idx < 0) {
       throw new Error(
-        `Cannot persist task-scoped report: task ${taskId} not in change ${input.change.id}`,
+        `Cannot persist task-scoped report: task ${taskId} not in change ${base.id}`,
       );
     }
-    const existing = input.change.tasks[idx].subagent_reports ?? [];
+    const existing = base.tasks[idx].subagent_reports ?? [];
     if (
       existing.some((r) => recoveryReportKey(r, input.report.change_id) === key)
     ) {
-      return input.change;
+      return base;
     }
-    const updatedTasks = [...input.change.tasks];
+    const updatedTasks = [...base.tasks];
     updatedTasks[idx] = {
       ...updatedTasks[idx],
       subagent_reports: [...existing, auditedReport] as never,
     };
-    const updated = { ...input.change, tasks: updatedTasks } as Change;
+    const updated = { ...base, tasks: updatedTasks } as Change;
     await persistTerminalProjection(input, updated, bundleDir);
     return updated;
   }
 
-  const existingSidecar = input.change.subagent_reports ?? [];
+  const existingSidecar = base.subagent_reports ?? [];
   if (
     existingSidecar.some(
       (r) => recoveryReportKey(r, input.report.change_id) === key,
     )
   ) {
-    return input.change;
+    return base;
   }
   const updated = {
-    ...input.change,
+    ...base,
     subagent_reports: [...existingSidecar, auditedReport] as never,
   } as Change;
   await persistTerminalProjection(input, updated, bundleDir);
@@ -404,7 +565,6 @@ async function persistTerminalProjection(
   bundleDir: string | null,
 ): Promise<void> {
   if (bundleDir) {
-    const { join } = await import("node:path");
     await atomicWriteFile(
       join(bundleDir, "change.json"),
       bundleJsonStringify(updated),

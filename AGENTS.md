@@ -42,7 +42,9 @@ bin/oc-test full
 
 ## Deployment and local runtime
 
-- OpenCode loads the deployed `~/.local/share/Advance/plugin/dist/index.js` at session start. Source edits do not change live `adv_*` behavior until `pnpm run build`, `./scripts/deploy-local.sh --fix`, and an OpenCode/plugin-host restart.
+- OpenCode loads the deployed `~/.local/share/Advance/plugin/dist/index.js` at session start. Source edits do not change live `adv_*` behavior until `pnpm run build`, `./scripts/deploy-local.sh --fix`, and an OpenCode/plugin-host restart. There is no hot reload; OpenCode does not live-reload host-loaded plugin modules.
+- `scripts/deploy-local.sh` publishes the plugin bundle manifest (`dist/plugin-bundle-manifest.json`) safely: it requires the manifest, excludes it from the payload rsync, validates the copied `dist/index.js` SHA-256 against the manifest, and copies the manifest last. The manifest generation/hash is the authoritative bundle identity; filesystem mtimes are advisory only.
 - `scripts/deploy-local.sh` mirrors supported plugin, command, agent, overlay, skill, and CLI assets. It needs `jq` to patch config and `rsync` for plugin deployment. Preview with `--dry-run --diff`.
+- The first deploy of this manifest-aware sequence requires one OpenCode restart to bootstrap the loaded plugin generation; after that, every system transform and health probe can report `PLUGIN_BUNDLE_STALE` when the deployed bundle is newer than the loaded one.
 - `.opencode/worktree.jsonc` installs `plugin/` dependencies after ADV worktree creation; `pnpm` must be on `PATH`.
 - Opt-in hooks run `deploy-local.sh --fix` after commits and before pushes when deployed ADV assets change. They do not block a push if deployment fails.

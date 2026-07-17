@@ -41,6 +41,48 @@ export const BRIEFING_PACKET_LANE_TO_AGENT: Record<
   visual_review: "adv-visual-review",
 };
 
+/**
+ * Exhaustive, discriminated grant-source descriptors for every briefing lane.
+ *
+ * - `manifest` lanes are backed by an agent manifest key in AGENT_TOOL_POLICY.
+ * - `virtual` lanes are orchestrator-submitted bundle identities (scanner /
+ *   verifier) and do NOT have independent manifests.
+ * - `archive` is a terminal read lane with no worker manifest grant.
+ */
+export interface ManifestLaneDescriptor {
+  readonly kind: "manifest";
+  /** Agent manifest key in AGENT_TOOL_POLICY. */
+  readonly agent: string;
+}
+
+export interface VirtualLaneDescriptor {
+  readonly kind: "virtual";
+  /** Orchestrator-submitted bundle identity; no independent manifest. */
+  readonly bundle: "adv-scanner-bundle" | "adv-verification-triage-bundle";
+}
+
+export interface ArchiveLaneDescriptor {
+  readonly kind: "archive";
+}
+
+export type BriefingPacketLaneDescriptor =
+  | ManifestLaneDescriptor
+  | VirtualLaneDescriptor
+  | ArchiveLaneDescriptor;
+
+export const BRIEFING_PACKET_LANE_DESCRIPTORS: Readonly<
+  Record<BriefingPacketLane, BriefingPacketLaneDescriptor>
+> = {
+  researcher: { kind: "manifest", agent: "adv-researcher" },
+  engineer: { kind: "manifest", agent: "adv-engineer" },
+  designer: { kind: "manifest", agent: "adv-designer" },
+  reviewer: { kind: "manifest", agent: "adv-reviewer" },
+  scanner: { kind: "virtual", bundle: "adv-scanner-bundle" },
+  verifier: { kind: "virtual", bundle: "adv-verification-triage-bundle" },
+  visual_review: { kind: "manifest", agent: "adv-visual-review" },
+  archive: { kind: "archive" },
+};
+
 export const BriefingFactOutcomeSchema = z.enum([
   "transient_prompt_context",
   // retireAgendaWorkflow: replaces the retired "agenda" label. Facts carrying
@@ -53,9 +95,22 @@ export const BriefingFactOutcomeSchema = z.enum([
   "epic_terminal_note",
   "archive_only_evidence",
   "unresolved_action",
+  "research_citation",
 ]);
 
 export type BriefingFactOutcome = z.infer<typeof BriefingFactOutcomeSchema>;
+
+/**
+ * Bounded rendering cap for `research_citation` facts derived from a single
+ * `adv-researcher` report's `sources` array. The first
+ * RESEARCH_CITATION_RENDER_LIMIT sources render as durable facts in stable
+ * report order; any remaining sources are summarized by exactly one
+ * deterministic omission marker (source_label `sources.omitted`).
+ *
+ * The bound is structural, not a heuristic ranking: order is preserved and
+ * no sources are dropped silently. See strengthenAgentEvidence AC4/SC3/C5/DONT4.
+ */
+export const RESEARCH_CITATION_RENDER_LIMIT = 3;
 
 export const BriefingFactSchema = z
   .object({

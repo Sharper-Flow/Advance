@@ -357,6 +357,26 @@ function checkChangeConflictsFromInventory(
     });
   }
 
+  // Non-conclusive inventory → warn but never allow a clean/pass verdict
+  if (inventory.completeness === "non-conclusive") {
+    issues.push({
+      code: ValidationCodes.CONFLICT_INVENTORY_DEGRADED,
+      severity: "warning",
+      message:
+        "Conflict inventory is non-conclusive — peer capabilities could not be fully established (deadline or truncation). " +
+        (inventory.warnings.length > 0
+          ? `Reasons: ${inventory.warnings.join("; ")}`
+          : "Insufficient data to conclude."),
+      path: "deltas",
+      details: {
+        completeness: inventory.completeness,
+        source: inventory.source,
+        warnings: inventory.warnings,
+        canConcludeClean: inventory.canConcludeClean ?? false,
+      },
+    });
+  }
+
   // Emit each inventory warning as a distinct validation warning
   for (const warning of inventory.warnings) {
     issues.push({
@@ -381,6 +401,10 @@ function checkChangeConflictsFromInventory(
 
     // Archived changes are related context, not authority
     if (entry.isArchived) continue;
+
+    // Skip entries whose capabilities were not exposed by the Store; the
+    // inventory completeness/warnings already account for them.
+    if (!entry.capabilities) continue;
 
     // Find overlapping capabilities
     const overlapping = entry.capabilities.filter((cap) =>

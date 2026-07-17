@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.24.1
-> **Updated:** 2026-07-15
+> **Version:** 1.26.0
+> **Updated:** 2026-07-16
 
 ## Purpose
 
@@ -203,13 +203,13 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 
 **ID:** `rq-deployWorkerBounce01` | **Priority:** **[MUST]**
 
-After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable local deploy path, it MUST prevent stale `dist/temporal/worker.js` processes for that exact deployed worker script from silently continuing to run old worker/workflow code. In mutating deploy modes, exact-path matching running workers are bounced with SIGTERM by default. If any exact-path target cannot be signaled or remains running after bounded handling, deploy MUST exit non-zero and print a multi-line `[ADV:ACTION_REQUIRED]` block with the worker script path, PID evidence when known, and restart/session instructions. The matcher MUST be scoped to the synced runtime worker script path and MUST NOT target unrelated Node/Bun processes.
+After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable local deploy path, it MUST prevent stale `dist/temporal/worker.js` processes for that exact deployed worker script from silently continuing to run old worker/workflow code. Worker refresh is marker-gated: each exact-path matching process is classified by its process environment. Processes that advertise `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are self-roll capable; in mutating deploy modes they are reported as advisory only and MUST NOT be signaled, because the worker coordinates its own reload. All other exact-path matching processes are treated as legacy and are bounced with SIGTERM in mutating deploy modes. If any legacy target cannot be signaled or remains running after bounded handling, deploy MUST exit non-zero and print a multi-line `[ADV:ACTION_REQUIRED]` block with the worker script path, PID evidence when known, and restart/session instructions. The matcher MUST be scoped to the synced runtime worker script path and MUST NOT target unrelated Node/Bun processes.
 
 **Tags:** `install`, `deploy-local`, `temporal`, `worker`, `runtime-refresh`
 
 #### Scenarios
 
-**Mutating deploy bounces exact-path runtime workers** (`rq-deployWorkerBounce01.1`)
+**Mutating deploy classifies exact-path workers by self-roll marker** (`rq-deployWorkerBounce01.1`)
 
 **Given:**
 - `scripts/deploy-local.sh` has successfully synced the runtime plugin bundle
@@ -218,16 +218,29 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 **When:** The deploy runs in a mutating mode
 
 **Then:**
-- Each exact-path matching worker process receives SIGTERM by default
-- The output reports the affected worker script path and PID evidence when known
+- Each exact-path matching worker process is classified by its environment
+- Processes advertising `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are reported as advisory and are not signaled
+- Legacy processes (missing or malformed marker) receive SIGTERM
 - Processes that do not use the exact synced worker script path are not signaled
 
-**Bounce failure is loud and non-zero** (`rq-deployWorkerBounce01.2`)
+**Self-roll capable workers are advisory and not signaled** (`rq-deployWorkerBounce01.2`)
 
 **Given:**
-- A mutating deploy finds exact-path matching runtime worker processes
+- A mutating deploy finds an exact-path running worker whose environment contains `ADV_TEMPORAL_WORKER_SELF_ROLL=1`
 
-**When:** Any target cannot be signaled or remains running after bounded handling
+**When:** The deploy classifies worker refresh candidates
+
+**Then:**
+- The worker is listed as self-roll capable advisory output
+- No signal is sent to the worker
+- The deploy does not fail because the worker remains running
+
+**Legacy bounce failure is loud and non-zero** (`rq-deployWorkerBounce01.3`)
+
+**Given:**
+- A mutating deploy finds exact-path matching legacy runtime worker processes
+
+**When:** Any legacy target cannot be signaled or remains running after bounded handling
 
 **Then:**
 - The deploy exits non-zero
@@ -235,30 +248,19 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 - The block includes the worker script path, PID evidence when known, and restart/session instructions
 - The deploy does not silently claim the new worker/workflow code is active
 
-**No broad process matching** (`rq-deployWorkerBounce01.3`)
-
-**Given:**
-- A host has Node or Bun processes that mention worker-like names but do not execute the synced runtime worker script path
-
-**When:** deploy-local enumerates worker bounce candidates
-
-**Then:**
-- Only processes tied to the exact synced `$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js` path are candidates
-- The detector process and unrelated Node/Bun processes are excluded
-
 ---
 
 ### Deploy-Local Read-Only Modes Never Signal Workers
 
 **ID:** `rq-deployWorkerBounce02` | **Priority:** **[MUST]**
 
-`scripts/deploy-local.sh --check` and `scripts/deploy-local.sh --dry-run` MUST NOT signal worker processes. When matching runtime worker processes exist, read-only modes may report the would-bounce or restart-required action, but they must not mutate process state or imply that stale worker code has been refreshed.
+`scripts/deploy-local.sh --check` and `scripts/deploy-local.sh --dry-run` MUST NOT signal worker processes. When matching runtime worker processes exist, read-only modes must classify each by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker: self-roll-capable workers may be reported as advisory, while legacy workers may be reported as requiring bounce or session restart. They must not mutate process state or imply that stale worker code has been refreshed.
 
 **Tags:** `install`, `deploy-local`, `temporal`, `worker`, `dry-run`
 
 #### Scenarios
 
-**Check mode is no-signal** (`rq-deployWorkerBounce02.1`)
+**Check mode is no-signal and classifies workers** (`rq-deployWorkerBounce02.1`)
 
 **Given:**
 - `scripts/deploy-local.sh --check` runs
@@ -268,10 +270,11 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 
 **Then:**
 - No worker process receives a signal
-- Output may report that running workers require bounce or session restart
+- Self-roll-capable workers (`ADV_TEMPORAL_WORKER_SELF_ROLL=1`) are reported as advisory
+- Legacy workers are reported as requiring bounce or session restart
 - The mode remains read-only
 
-**Dry-run previews worker refresh without signaling** (`rq-deployWorkerBounce02.2`)
+**Dry-run previews marker-gated worker refresh without signaling** (`rq-deployWorkerBounce02.2`)
 
 **Given:**
 - `scripts/deploy-local.sh --dry-run` runs
@@ -281,7 +284,7 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 
 **Then:**
 - No worker process receives a signal
-- Output describes the would-bounce or restart-required action
+- Output describes self-roll-capable workers as advisory and legacy workers as would-bounce or restart-required
 - The mode does not mutate files or process state
 
 ---
@@ -499,7 +502,7 @@ The default /adv-roadmap slash command must be a thin OpenCode shell-output brid
 
 **ID:** `rq-statusProbeCache01` | **Priority:** **[MUST]**
 
-ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.
+ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, snapshot health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, age_ms, ttl_ms, and optional error. Status-facing health diagnostics must expose an advisory forceRefresh path that bypasses fresh cached probe entries only for the selected health probes and never for gate, task, change, contract, archive, or release truth. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions.
 
 **Tags:** `diagnostics`, `temporal`, `cache`, `health`
 
@@ -508,14 +511,15 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Status health probes are coalesced and freshened** (`rq-statusProbeCache01.1`)
 
 **Given:**
-- Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, or worktree census within the probe TTL
+- Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, snapshot health, or worktree census within the probe TTL
 
 **When:** The probes execute
 
 **Then:**
 - Concurrent same-key probes are coalesced
 - Repeated calls within TTL return cached values
-- The health response includes _freshness metadata for each cached probe
+- The health response includes _freshness metadata for each cached probe with cached_at, stale, age_ms, ttl_ms, and optional error
+- age_ms is non-negative and ttl_ms identifies the probe cache TTL
 - Existing health fields remain present for legacy consumers
 
 **Stale probe data is diagnostic-only for recovery safety** (`rq-statusProbeCache01.2`)
@@ -526,9 +530,23 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **When:** A diagnostic or recovery tool builds recommendations
 
 **Then:**
-- The stale value may be returned with _freshness.stale=true and an error summary
+- The stale value may be returned with _freshness.stale=true, age_ms, ttl_ms, and an error summary
 - The stale value must not be treated as proof of worker serviceability
-- The stale value must not authorize worker-lock reclaim, restart success, override, unlock, or archive decisions
+- The stale value must not authorize worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions
+
+**Status force refresh is advisory-only** (`rq-statusProbeCache01.4`)
+
+**Given:**
+- adv_status is called with forceRefresh:true and a view that requests advisory health probes
+- Fresh cached values already exist for one or more selected probes
+
+**When:** The status read executes
+
+**Then:**
+- The selected advisory probe caches attempt fresh fetches instead of reusing fresh cached entries
+- The response freshness metadata still reports cached_at, stale, age_ms, ttl_ms, and optional error for each returned probe
+- forceRefresh does not bypass or cache gate, task, change, contract, archive, or release truth
+- Default summary output remains lightweight and does not expose detailed _freshness payloads
 
 **Probe timeout bounds underlying work or reports non-cancellable classification** (`rq-statusProbeCache01.3`)
 
@@ -1270,6 +1288,8 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 - The table routes code-edit rows to adv-engineer or adv-designer, not general
 - adv-apply.md does not duplicate the operational routing table
 
+---
+
 ### adv_archive_purge tool
 
 **ID:** `rq-archivePurge01` | **Priority:** **[MUST]**
@@ -1345,6 +1365,22 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 - The tool returns success:true only when serviceability is proven by local worker readiness and/or fresh server-side poller evidence
 - The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative
 - The tool is registered with an explicit safety-net timeout override that exceeds the verification budget with modest headroom
+
+**Worktree readers use bounded inventory with degraded partial response** (`rq-toolTimeoutOverride01.3`)
+
+**Given:**
+- A project with many active change workflows
+- `adv_wip_state` or `adv_worktree_triage` is invoked to read cross-change worktree inventory
+
+**When:**
+- The worktree inventory fan-out exceeds the default 10s tool safety net
+
+**Then:**
+- Each tool is registered with an explicit `{ timeoutMs: 60_000 }` outer safety net (`WIP_CALLER_TIMEOUT_MS`)
+- The inner worktree collector uses a 55s budget (`INVENTORY_INTERNAL_BUDGET_MS`), reserving 5s to render a partial response
+- If the collector stops early, WIP still contains `active_changes` and `peer_sessions`; triage returns inspected findings plus explicit omitted scope
+- A typed WIP `degradation.worktree` warning or triage partial response returns `complete: false`, `stopReason`, `stoppedStage`, `inspectedCount`, and `candidateCount`
+- The host abort signal is forwarded to the collector so caller cancellation stops new workflow queries without losing already-settled sections
 
 ---
 
@@ -2738,5 +2774,44 @@ Every registered ADV tool must have an explicit ownership/reachability classific
 **Then:**
 - Read actions are agent-reachable
 - Mutation or refresh surfaces remain operator-owned and are not invoked as routine autonomous agent actions
+
+---
+
+### Deploy Asset Synchronization Survives Worker Refresh Failure
+
+**ID:** `rq-deployAssetContinuation01` | **Priority:** **[MUST]**
+
+After a mutating deploy synchronizes the runtime plugin, a failed exact-path Temporal worker refresh must remain loud and produce a nonzero final deploy status, but it must not prevent synchronization of independent supported assets such as commands, bundled agents, shared-agent overlays, skills, the managed CLI payload, and configuration validation. The final output must preserve the restart remediation and must not claim runtime worker code is active until refresh succeeds.
+
+**Tags:** `deploy-local`, `worker-refresh`, `agent-sync`, `morph-worktree`
+
+#### Scenarios
+
+**Worker refresh failure continues independent asset synchronization** (`rq-deployAssetContinuation01.1`)
+
+**Given:**
+- A mutating deploy has synchronized the runtime plugin
+- An exact-path deployed Temporal worker remains alive after bounded SIGTERM handling
+- ADV commands or bundled agent profiles have source updates
+
+**When:** The deploy processes supported assets
+
+**Then:**
+- The commands and bundled agent profiles are synchronized
+- The deploy emits the existing worker restart remediation
+- The final deploy status is nonzero
+- The output does not claim runtime worker code is active
+
+**Successful worker refresh preserves normal deploy success** (`rq-deployAssetContinuation01.2`)
+
+**Given:**
+- A mutating deploy has synchronized the runtime plugin
+- No exact-path deployed Temporal worker remains after refresh
+
+**When:** The deploy processes supported assets
+
+**Then:**
+- Supported assets are synchronized
+- The deploy preserves its normal success behavior
 
 ---

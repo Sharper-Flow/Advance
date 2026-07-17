@@ -55,6 +55,8 @@ import type {
   OpsFollowupSeededSignalPayload,
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
+  LightweightProfileEvaluatedSignalPayload,
+  LightweightProfileRequestedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   Phase9StatusUpdatedSignalPayload,
@@ -71,6 +73,7 @@ import type {
   TaskRemovedSignalPayload,
   TaskUpdatedSignalPayload,
   TestRunRecordedSignalPayload,
+  VerificationEvidenceDispositionedSignalPayload,
   WisdomAddedSignalPayload,
   WorktreeAttachedSignalPayload,
   WorktreeAutoManagedSignalPayload,
@@ -85,6 +88,7 @@ import type {
   EpicWorkflowState,
 } from "./contracts";
 import type { WorkflowDirective } from "../utils/workflow-directive";
+import type { PhasePlan } from "../utils/phase-plan";
 import {
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
@@ -129,6 +133,9 @@ export const getCurrentBucketQuery = wf.defineQuery<string>(
 );
 export const getDirectiveQuery = wf.defineQuery<WorkflowDirective>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective,
+);
+export const getPhasePlanQuery = wf.defineQuery<PhasePlan>(
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan,
 );
 export const getReadyTasksQuery = wf.defineQuery<
   ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>
@@ -217,6 +224,9 @@ export const taskCancelledSignal = wf.defineSignal<
 export const designConcernDispositionedSignal = wf.defineSignal<
   [DesignConcernDispositionedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.designConcernDispositioned);
+export const verificationEvidenceDispositionedSignal = wf.defineSignal<
+  [VerificationEvidenceDispositionedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.verificationEvidenceDispositioned);
 export const gateInProgressSignal = wf.defineSignal<
   [GateInProgressSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
@@ -292,6 +302,12 @@ export const opsRunUpsertedSignal = wf.defineSignal<
 export const opsRunEvidenceAppendedSignal = wf.defineSignal<
   [OpsRunEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunEvidenceAppended);
+export const lightweightProfileRequestedSignal = wf.defineSignal<
+  [LightweightProfileRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileRequested);
+export const lightweightProfileEvaluatedSignal = wf.defineSignal<
+  [LightweightProfileEvaluatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileEvaluated);
 export const epicMembershipSetSignal = wf.defineSignal<
   [EpicMembershipSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);

@@ -8,6 +8,7 @@ import {
   applySubagentReportSubmittedToState,
   applyContractAmendedToState,
   applyDesignConcernDispositionedToState,
+  applyVerificationEvidenceDispositionedToState,
   applyGateReenteredToState,
   applyOriginRepairedToState,
   applyProposalUpdatedToState,
@@ -2063,5 +2064,72 @@ describe("applyDesignConcernDispositionedToState", () => {
     });
 
     expect(state.design_concern_dispositions).toHaveLength(2);
+  });
+});
+
+describe("applyVerificationEvidenceDispositionedToState", () => {
+  function baseState() {
+    return createChangeWorkflowState({
+      changeId: "strengthenAgentEvidence",
+      title: "Strengthen agent evidence",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+  }
+
+  const disposition = {
+    taskId: "tk-ver-1",
+    concernKey: "verification",
+    disposition: "rejected_with_evidence" as const,
+    evidence: "adv_run_test evidence captured under run id tr_abc.",
+    dispositionedAt: "2026-06-25T14:00:00.000Z",
+  };
+
+  it("appends a verification-evidence disposition to state", () => {
+    const state = applyVerificationEvidenceDispositionedToState(
+      baseState(),
+      disposition,
+    );
+    expect(state.verification_evidence_dispositions).toHaveLength(1);
+    expect(state.verification_evidence_dispositions![0].concernKey).toBe(
+      "verification",
+    );
+    expect(state.verification_evidence_dispositions![0].disposition).toBe(
+      "rejected_with_evidence",
+    );
+  });
+
+  it("latest-wins on the same (taskId, concernKey)", () => {
+    let state = applyVerificationEvidenceDispositionedToState(
+      baseState(),
+      disposition,
+    );
+    state = applyVerificationEvidenceDispositionedToState(state, {
+      ...disposition,
+      disposition: "fixed",
+      evidence: "Verification re-run and captured.",
+      dispositionedAt: "2026-06-25T15:00:00.000Z",
+    });
+
+    expect(state.verification_evidence_dispositions).toHaveLength(1);
+    expect(state.verification_evidence_dispositions![0].disposition).toBe(
+      "fixed",
+    );
+    expect(state.verification_evidence_dispositions![0].dispositionedAt).toBe(
+      "2026-06-25T15:00:00.000Z",
+    );
+  });
+
+  it("keeps distinct taskIds separate", () => {
+    let state = applyVerificationEvidenceDispositionedToState(
+      baseState(),
+      disposition,
+    );
+    state = applyVerificationEvidenceDispositionedToState(state, {
+      ...disposition,
+      taskId: "tk-ver-2",
+      disposition: "split",
+    });
+
+    expect(state.verification_evidence_dispositions).toHaveLength(2);
   });
 });

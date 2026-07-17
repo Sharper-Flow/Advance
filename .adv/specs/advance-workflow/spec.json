@@ -4847,6 +4847,43 @@
       ]
     },
     {
+      "id": "rq-verificationEvidence01",
+      "title": "Structural Verification-Evidence Enforcement at Acceptance and Release",
+      "body": "Verification-evidence warnings surfaced on typed worker reports MUST be enforced structurally at acceptance and release, not by reviewer prose and not by submit-time rejection. Reports remain submit-time advisory (warnings only; no hard block at adv_subagent_report_submit). A sandbox-safe gate-readiness evaluator MUST read the latest task-scoped report per agent for each completed task and the task's typed evidence_policy. For proof-bearing policies (test, static_check, review, artifact_reference), an unresolved verification_missing or verification_mismatch consumer warning on the latest task-scoped report MUST produce a typed VERIFICATION_EVIDENCE_MISSING blocker at both the acceptance and release gates. Non-proof policies (source_citation, source_audit, rubric_review, stakeholder_acceptance, design_proof, not_applicable) MUST remain warn-first so valid non-code and source-based workflows do not regress. A blocker clears only when (a) a newer warning-free report for that agent supersedes the warning-bearing report (latest-wins durable evidence), or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via adv_verification_evidence_disposition for the task's verification concernKey. The check MUST NOT be bypassed by compatibilityReason (no silent grandfathering of legacy changes). No accepted_debt terminal state exists. The mechanism adds no counters, dashboards, status metrics, adoption analytics, or other telemetry surfaces; enforcement state is the typed blocker plus the disposition record.",
+      "priority": "must",
+      "tags": ["workflow", "acceptance", "release", "verification", "evidence", "structural"],
+      "scenarios": [
+        {
+          "id": "rq-verificationEvidence01.1",
+          "title": "Unresolved verification evidence on a proof-bearing task blocks acceptance and release",
+          "given": ["A completed task has evidence_policy test, static_check, review, or artifact_reference", "The latest task-scoped report for any agent carries an unresolved verification_missing or verification_mismatch consumer warning", "No typed disposition exists for that task's verification concernKey"],
+          "when": "Gate readiness is evaluated for acceptance or release",
+          "then": ["The gate-readiness evaluator emits a VERIFICATION_EVIDENCE_MISSING blocker", "The gate is blocked by code, not by reviewer judgment", "The blocker identifies the task id, evidence policy, and warning kinds", "The evaluator reads only change state (sandbox-safe; no agenda or storage access)"]
+        },
+        {
+          "id": "rq-verificationEvidence01.2",
+          "title": "Non-proof evidence policies remain warn-first",
+          "given": ["A completed task has evidence_policy source_citation, source_audit, rubric_review, stakeholder_acceptance, design_proof, or not_applicable", "The latest task-scoped report carries verification_missing or verification_mismatch consumer warnings"],
+          "when": "Gate readiness is evaluated for acceptance or release",
+          "then": ["No VERIFICATION_EVIDENCE_MISSING blocker is emitted for that task", "Valid non-code and source-based workflows do not regress", "Other existing readiness rules continue to apply independently"]
+        },
+        {
+          "id": "rq-verificationEvidence01.3",
+          "title": "Warning-free superseding report or typed disposition clears the block",
+          "given": ["An unresolved verification warning blocks acceptance or release for a completed task"],
+          "when": "A newer warning-free task-scoped report for the same agent supersedes the warning-bearing report (latest-wins), or a typed disposition is recorded via adv_verification_evidence_disposition (fixed, rejected_with_evidence, split, or fast_follow)",
+          "then": ["The VERIFICATION_EVIDENCE_MISSING blocker is cleared", "No accepted_debt terminal state is used", "The disposition carries non-blank typed evidence"]
+        },
+        {
+          "id": "rq-verificationEvidence01.4",
+          "title": "No silent grandfathering; no submit-time hard block; no telemetry",
+          "given": ["A legacy in-flight change has a compatibilityReason", "An adv-engineer or adv-reviewer report would emit verification_missing or verification_mismatch warnings"],
+          "when": "The report is submitted and gate readiness is later evaluated",
+          "then": ["Submit-time behavior remains advisory; adv_subagent_report_submit does not hard-block on verification warnings", "compatibilityReason does not bypass the VERIFICATION_EVIDENCE_MISSING readiness check", "No counters, dashboards, status metrics, adoption analytics, or other telemetry surfaces are added as part of enforcement"]
+        }
+      ]
+    },
+    {
       "id": "rq-dupActiveCreate01",
       "title": "Active Duplicate Change Creation Rejection",
       "body": "adv_change_create MUST reject creation of a new active change whose generated change ID or exact summary title matches an existing active (in-flight) change. The rejection MUST return existing-change evidence including the existing change ID and title, MUST NOT create a suffixed active duplicate such as `fixOpenBugs2`, and MUST allow the operator to resume the existing change or archive it first.",

@@ -346,6 +346,7 @@ import {
   reconcileInRepoArchive,
 } from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import { withTimeout, TimeoutError } from "../utils/with-timeout";
 import {
   buildTodoProjection,
   formatValidationOutput,
@@ -358,6 +359,7 @@ import {
   normalizeChangeLifecycleState,
 } from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
+import { degradedPhasePlan, derivePhasePlanSafe } from "../utils/phase-plan";
 import {
   renderBriefingPacket,
   type BriefingPacketRendererInput,
@@ -433,6 +435,20 @@ function deriveChangePhase(row: {
 // =============================================================================
 // Tool Definitions
 // =============================================================================
+
+/**
+ * Internal time budget for adv_change_validate's authoritative input load
+ * (change read + validation context: specs, active peers, proposal).
+ *
+ * Sits below the safeExecute 10s tool ceiling (same safe-budget convention
+ * as WORKTREE_TOOL_SAFE_TIMEOUT_MS in tools/adv-worktree.ts) so a slow
+ * Temporal query or peer hydration surfaces as an explicit typed degraded
+ * response instead of an unclassified whole-tool ToolExecutionTimeout.
+ * When the budget is exceeded no validation verdict is produced — the
+ * response is typed degraded metadata, never a complete-looking partial.
+ */
+export const CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS = 8_000;
+
 export const changeTools = {
   adv_change_list: {
     description:
@@ -620,6 +636,9 @@ export const changeTools = {
       "context snapshot at top-level (matches mutation-tool convention); " +
       "include.readyTasks returns the unblocked ready queue (top-N " +
       "by priority then created_at; default 10, max 50). " +
+      "include.phasePlan attaches the typed PhasePlan read projection " +
+      "as `_phasePlan` (read-only; non-authorizing variants carry no " +
+      "route/command). " +
       "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary / include.acceptance " +
       "return the raw markdown content for each artifact (GH #21). " +
       "Defaults are unchanged when include is omitted.",
@@ -685,6 +704,12 @@ export const changeTools = {
             .max(50)
             .optional()
             .describe("Override default top-10 ready-task slice. Range 1-50."),
+          phasePlan: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches the typed PhasePlan read projection as `_phasePlan`. Read-only and non-authorizing: degraded/blocked/terminal variants carry provenance and no route/command.",
+            ),
           artifactOnly: z
             .boolean()
             .optional()
@@ -781,6 +806,7 @@ export const changeTools = {
           snapshot?: boolean;
           readyTasks?: boolean;
           readyTasksLimit?: number;
+          phasePlan?: boolean;
           artifactOnly?: boolean;
           proposal?: boolean;
           problemStatement?: boolean;
@@ -923,42 +949,56 @@ export const changeTools = {
         // include flags (AC3) — opt-in attachments. Defaults preserve
         // current behavior.
         if (include) {
+          // Lazy shared projection-state loader: the snapshot and phase-plan
+          // read projections derive from the SAME reconciled gates projection
+          // so one durable snapshot yields one consistent directive/plan view
+          // (SC1). Loaded at most once per call and only when a projection
+          // that needs it is requested.
+          const buildProjectionState = async () => {
+            let gates: Awaited<ReturnType<typeof activeStore.gates.get>> = null;
+            try {
+              const rawGates = await activeStore.gates.get(changeId);
+              if (rawGates) {
+                const reconciliation = await reconcileRecoveredGates({
+                  store: activeStore,
+                  changeId,
+                  current: rawGates,
+                });
+                gates = reconciliation.gates;
+              }
+            } catch {
+              // best-effort: missing gates → projections still useful
+            }
+            const normalizedGates = gates
+              ? await normalizeGateArtifactEvidenceForReadback(gates)
+              : undefined;
+            return {
+              directiveState: changeToDirectiveState({
+                projectId: displayChange.adv_project_id ?? "unknown",
+                change: displayChange,
+                gates: normalizedGates ?? undefined,
+              }),
+              normalizedGates,
+            };
+          };
+          let projectionStatePromise:
+            | ReturnType<typeof buildProjectionState>
+            | undefined;
+          const loadProjectionState = () =>
+            (projectionStatePromise ??= buildProjectionState());
           // Snapshot — matches mutation-tool convention (top-level
           // `_contextSnapshot`). Uses the same formatter live emission
           // and compaction use, ensuring fidelity parity.
           if (include.snapshot) {
             try {
-              let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
-                null;
-              try {
-                const rawGates = await activeStore.gates.get(changeId);
-                if (rawGates) {
-                  const reconciliation = await reconcileRecoveredGates({
-                    store: activeStore,
-                    changeId,
-                    current: rawGates,
-                  });
-                  gates = reconciliation.gates;
-                }
-              } catch {
-                // best-effort: missing gates → snapshot still useful
-              }
-              const normalizedGates = gates
-                ? await normalizeGateArtifactEvidenceForReadback(gates)
-                : undefined;
+              const { directiveState, normalizedGates } =
+                await loadProjectionState();
               // AC5: derive the authoritative directive from the same change
               // projection + gates the snapshot renders, so the change-show
               // packet carries the `Next:` orientation line. Best effort: a
               // derivation failure must not break change-show; the snapshot
               // omits the `Next:` line.
-              const directive = deriveDirectiveSafe(
-                changeToDirectiveState({
-                  projectId: displayChange.adv_project_id ?? "unknown",
-                  change: displayChange,
-                  gates: normalizedGates ?? undefined,
-                }),
-                Date.now(),
-              );
+              const directive = deriveDirectiveSafe(directiveState, Date.now());
               if (!directive) {
                 logger.warn(
                   `deriveWorkflowDirective failed in change-show for ${changeId}; snapshot omits Next line`,
@@ -974,6 +1014,25 @@ export const changeTools = {
             } catch (e) {
               output._contextSnapshotError =
                 e instanceof Error ? e.message : String(e);
+            }
+          }
+          // Phase plan — typed, read-only current-action projection (SC1,
+          // AC3, AC8). `derivePhasePlanSafe` never throws: missing,
+          // conflicting, or unsupported state degrades into a typed
+          // non-authorizing plan with provenance and no route/command.
+          if (include.phasePlan) {
+            try {
+              const { directiveState } = await loadProjectionState();
+              output._phasePlan = derivePhasePlanSafe(
+                directiveState,
+                Date.now(),
+              );
+            } catch (e) {
+              output._phasePlan = degradedPhasePlan(
+                changeId,
+                "missing_state",
+                e instanceof Error ? e.message : String(e),
+              );
             }
           }
           if (include.ledger) {
@@ -2398,21 +2457,77 @@ export const changeTools = {
       },
       store: Store,
     ) => {
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
+      // tk-f4a18a9705ef: bound the authoritative input load (change read +
+      // validation context) so a slow Temporal read degrades structurally
+      // below the 10s safeExecute ceiling instead of surfacing as an
+      // unclassified whole-tool ToolExecutionTimeout. Early-return
+      // responses travel through the union so existing error output shapes
+      // are preserved exactly.
+      type ValidateInputs =
+        | { kind: "response"; response: string }
+        | {
+            kind: "ok";
+            change: Change;
+            context: Awaited<ReturnType<typeof loadValidationContext>>;
+          };
+      let inputs: ValidateInputs;
+      try {
+        inputs = await withTimeout(
+          (async (): Promise<ValidateInputs> => {
+            const result = await store.changes.get(changeId);
+            if (!result.success) {
+              return {
+                kind: "response",
+                response: formatToolOutput({ error: result.error }),
+              };
+            }
+            if (!result.data) {
+              return {
+                kind: "response",
+                response: formatToolOutput({
+                  error: `Change not found: ${changeId}`,
+                }),
+              };
+            }
+            const change = result.data;
+            const context = await loadValidationContext(
+              store,
+              changeId,
+              change.title,
+            );
+            return { kind: "ok", change, context };
+          })(),
+          CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS,
+          `adv_change_validate input load exceeded ${CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS}ms budget`,
+        );
+      } catch (err) {
+        if (!(err instanceof TimeoutError)) throw err;
+        return formatToolOutput({
+          passed: false,
+          degraded: true,
+          error: "VALIDATION_TIME_BUDGET_EXHAUSTED",
+          reason: "time_budget_exhausted",
+          stage: "load-inputs",
+          timeoutMs: CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS,
+          changeId,
+          strict: strict === true,
+          hint:
+            "Validation input load exceeded its internal time budget (below the 10s tool ceiling). " +
+            "No validation verdict was produced and authoritative state is untouched. " +
+            "Likely a slow Temporal query or peer hydration — retry; if persistent, run adv_status and adv_temporal_diagnose to check worker/workflow health.",
+        });
       }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
+      if (inputs.kind === "response") {
+        return inputs.response;
       }
-      const change = result.data;
+      const { change, context } = inputs;
       const {
         specs,
         activeChanges,
         conflictInventory,
         proposalText,
         changedSpecFiles,
-      } = await loadValidationContext(store, changeId, change.title);
+      } = context;
       // Run full validation with typed conflict inventory for conflict detection
       const validationResult = await validateChange(change, {
         specs,

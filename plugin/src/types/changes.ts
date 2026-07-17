@@ -17,11 +17,13 @@ import {
   DesignConcernDispositionSchema,
   ReportFollowUpRefSchema,
   ScopedSubagentReportSchema,
+  VerificationEvidenceDispositionSchema,
 } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
+import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
 export {
   ContractEvidencePolicySchema,
   type ContractEvidencePolicy,
@@ -1064,6 +1066,16 @@ export const ChangeSchema = z
       .optional(),
 
     /**
+     * Typed dispositions for verification-evidence gaps on completed tasks
+     * with proof-bearing evidence policies. Persisted on the change projection
+     * so workflow re-seed / continue-as-new preserve the structural
+     * acceptance/release gate clearing state.
+     */
+    verification_evidence_dispositions: z
+      .array(VerificationEvidenceDispositionSchema)
+      .optional(),
+
+    /**
      * Persisted signal-rejection audit projection (e.g. T8 size-guard
      * rejections). Typed here so the read boundary needs no casts (AI-007).
      */
@@ -1078,6 +1090,12 @@ export const ChangeSchema = z
      * observe this field via adv_change_show to confirm completion.
      */
     phase9_status: Phase9FinalizationStatusSchema.optional(),
+
+    /**
+     * Lightweight change profile state: request, immutable omission policy, and
+     * append-only evaluation history. Optional for backward compatibility.
+     */
+    lightweight_profile: LightweightChangeProfileSchema.optional(),
 
     /**
      * Ops/enabler follow-up profile on this change (child/follow-up context).

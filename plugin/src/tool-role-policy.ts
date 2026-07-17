@@ -22,6 +22,8 @@
  * every non-orchestrator agent must carry the deny wildcard.
  */
 
+import { ADV_TOOL_NAMES } from "./tool-registry";
+
 export type ToolRoleClass = "orchestrator" | "operator-only" | "dual";
 
 export interface ToolRoleEntry {
@@ -46,7 +48,7 @@ export interface ToolRoleEntry {
  * tool-role-policy.test.ts — a registry change without a policy row fails CI.
  */
 export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
-  // ── Operator-only (8) ────────────────────────────────────────────────
+  // ── Operator-only (9) ────────────────────────────────────────────────
   // Maintenance/recovery tools with destructive, wedged-state, or store-level
   // blast radius. Grantable only to the ADV orchestrator, which invokes them
   // solely on explicit operator instruction with approval evidence (C6).
@@ -166,7 +168,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     operatorActions: [],
   },
 
-  // ── Orchestrator (62) ────────────────────────────────────────────────
+  // ── Orchestrator (63) ────────────────────────────────────────────────
   // Routine ADV command-workflow and agent tools. Several mutations remain
   // approval-gated, driven by the orchestrator through gate/command workflows
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
@@ -316,6 +318,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Gate read.",
   },
+  adv_lightweight_profile_evaluate: {
+    class: "orchestrator",
+    rationale:
+      "Host-side evidence collection + Temporal signal for lightweight profile evaluation; driven by gate workflow.",
+  },
   adv_ops_evidence_add: {
     class: "orchestrator",
     rationale: "Ops follow-up evidence append.",
@@ -396,6 +403,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "STSL reconnect without workflow-state mutation.",
   },
+  adv_verification_evidence_disposition: {
+    class: "orchestrator",
+    rationale:
+      "Verification-evidence disposition clearing a VERIFICATION_EVIDENCE_MISSING blocker on proof-bearing task policies; typed fixed/rejected_with_evidence/split/fast_follow with non-blank evidence (no accepted_debt), parallel to adv_design_concern_disposition.",
+  },
   adv_wisdom_add: {
     class: "orchestrator",
     rationale: "Wisdom capture.",
@@ -424,6 +436,16 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_worktree_triage: {
     class: "orchestrator",
     rationale: "Read-only worktree inventory.",
+  },
+  adv_tool_catalog: {
+    class: "orchestrator",
+    rationale:
+      "Read-only bounded catalog of canonical ADV tools; descriptive visibility metadata only.",
+  },
+  adv_tool_describe: {
+    class: "orchestrator",
+    rationale:
+      "Read-only single-tool schema and metadata projection; no handler invocation.",
   },
 } as const;
 
@@ -520,6 +542,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_followup_promote",
       "adv_gate_complete",
       "adv_gate_status",
+      "adv_lightweight_profile_evaluate",
       "adv_ops_evidence_add",
       "adv_ops_run_evidence_add",
       "adv_ops_run_upsert",
@@ -550,6 +573,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_temporal_reconnect",
       "adv_temporal_register_search_attributes",
       "adv_temporal_worker_restart",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_verification_evidence_disposition",
       "adv_wip_state",
       "adv_wisdom_add",
       "adv_wisdom_list",
@@ -850,3 +876,43 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "Repo-shipped override of the OpenCode plan agent: proposal/planning-phase change and gate surface only; execution, release, and operator-only tools stay out.",
   },
 ] as const;
+
+/**
+ * Authoritative spawnable roster: every shipped agent whose manifest carries
+ * `mode: subagent`. This is the source of truth for the runtime role firewall
+ * and manifest generator.
+ */
+export const SPAWNABLE_SUBAGENT_ROSTER: readonly string[] = Object.freeze([
+  "adv-ci-waiter",
+  "adv-designer",
+  "adv-engineer",
+  "adv-researcher",
+  "adv-reviewer",
+  "adv-temporal-repair",
+  "adv-tron",
+  "adv-verifier",
+  "adv-visual-review",
+]);
+
+function sortedUnique(values: readonly string[]): readonly string[] {
+  return Object.freeze([...new Set(values)].sort());
+}
+
+/** Pure union of the allowlists for every agent in SPAWNABLE_SUBAGENT_ROSTER. */
+export function subAgentUnionAllowlist(): readonly string[] {
+  const union = new Set<string>();
+  for (const agent of SPAWNABLE_SUBAGENT_ROSTER) {
+    const policy = AGENT_TOOL_POLICY.find((p) => p.agent === agent);
+    if (!policy) continue;
+    for (const tool of policy.allowed) {
+      union.add(tool);
+    }
+  }
+  return sortedUnique([...union]);
+}
+
+/** Pure complement: ADV tools that are NOT in the sub-agent union floor. */
+export function blockableFromSubAgentSession(): readonly string[] {
+  const allowed = new Set(subAgentUnionAllowlist());
+  return sortedUnique(ADV_TOOL_NAMES.filter((tool) => !allowed.has(tool)));
+}
