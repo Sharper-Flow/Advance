@@ -1996,7 +1996,7 @@ ADV protocol must be scoped to the single ADV runtime agent without globally reg
 
 **ID:** `rq-twf01` | **Priority:** **[MUST]**
 
-When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.
+When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Trunk evaluation is target-relative: each write target MUST be evaluated against the git worktree topology of the repository that owns the target, so a foreign repository's main (non-linked) checkout on its own default branch MUST be blocked exactly like the session project's trunk checkout, and a linked, non-prunable worktree of any repository MUST be allowed. Foreign-target defaults are conservative: when the target repository's worktree topology cannot be probed, the resolved git root MUST be evaluated as its own main checkout, and stale (prunable) worktree topology entries MUST NOT confer worktree eligibility on write targets. A narrow allowlist of ADV-generated trunk artifacts (ROADMAP.md, CHANGELOG.md, .adv/github-project.json, .adv/roadmap-snapshot.json) MAY bypass the block only as exact root-relative paths at the target repository's main checkout root; nested paths are never exempt. Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.
 
 **Tags:** `git`, `worktree`, `firewall`, `trunk`, `safety`
 
@@ -2103,6 +2103,62 @@ When features.worktree_guard_enforce is true (default) or omitted, the plugin MU
 - The firewall may not detect the indirect write target
 - This limitation is documented in ADV_INSTRUCTIONS.md as accepted residual risk
 - ADV instruction surfaces still prohibit intentional trunk-checkout file writes outside worktrees
+
+**Foreign main checkout blocked on its own default branch** (`rq-twf01.8`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- A tool call targets a path inside the main (non-linked) checkout of a repository other than the session project
+- That repository's HEAD is on its own default branch
+- No git recovery state is active in the target repository
+
+**When:** A write, edit, morph_edit, or known destructive bash write pattern is intercepted
+
+**Then:**
+- The tool execution is blocked with an actionable error message
+- Trunk-ness is decided by the repository that owns the target, not by the session project
+- A linked, non-prunable worktree of the same foreign repository is allowed instead
+
+**Unprobed foreign topology fails closed to main-checkout evaluation** (`rq-twf01.9`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- A tool call targets a path whose git root resolves outside the session project
+- The target repository's worktree topology cannot be probed (git worktree list fails or returns no records)
+
+**When:** The trunk write firewall evaluates the target
+
+**Then:**
+- The resolved git root is evaluated as its own main checkout
+- A default-branch HEAD blocks the write
+- The firewall does not assume worktree eligibility it cannot prove
+
+**Prunable worktree entries do not confer worktree eligibility** (`rq-twf01.10`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- The target repository's worktree topology lists the containing checkout as prunable (stale administrative data)
+
+**When:** The trunk write firewall evaluates a write target inside that checkout
+
+**Then:**
+- The prunable entry does not confer worktree eligibility
+- The target is evaluated on its own merits against its resolved git root
+- A default-branch HEAD in that checkout blocks the write
+
+**ADV-generated artifacts allowed only as exact target-root paths** (`rq-twf01.11`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- A write targets ROADMAP.md, CHANGELOG.md, .adv/github-project.json, or .adv/roadmap-snapshot.json
+- The target repository's main checkout is on its default branch
+
+**When:** The trunk write firewall evaluates the target path
+
+**Then:**
+- The write is allowed only when the path matches exactly at the target repository's main checkout root
+- Nested or otherwise non-exact paths (for example docs/ROADMAP.md) are not exempt
+- The allowlist applies identically to file-write tools and known destructive bash write patterns
 
 ---
 

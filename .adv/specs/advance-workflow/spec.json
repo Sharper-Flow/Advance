@@ -4,7 +4,7 @@
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
   "version": "1.28.1",
-  "updated_at": "2026-07-13T00:00:00.000Z",
+  "updated_at": "2026-07-15T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -2373,8 +2373,22 @@
           "when": "The target mutation readiness check runs",
           "then": [
             "The tool fails before constructing or mutating target project state",
-            "The failure reports the target queue name and typed serviceability blockers",
+            "The failure reports the target queue name, serviceability status, confidence, and typed serviceability blockers",
             "The failure includes an actionable recovery instruction for opening or restarting the target project ADV worker"
+          ]
+        },
+        {
+          "id": "rq-targetMutationReadiness04",
+          "title": "Registered-but-failed local queue does not short-circuit readiness",
+          "given": [
+            "A temporal-required target_path mutation is evaluated",
+            "Per-queue local worker diagnostics show the target queue registered but failed (not alive)"
+          ],
+          "when": "The target mutation readiness check runs",
+          "then": [
+            "Raw registration lists and aggregate worker aliveness do not admit the mutation; only per-queue diagnostics are local admission evidence",
+            "The failed local queue falls through to the bounded fresh server-poller probe before any fail-closed decision",
+            "A fresh server poller may admit the mutation as conservative server-confidence evidence without being reported as local worker liveness"
           ]
         },
         {
@@ -4972,7 +4986,7 @@
     {
       "id": "rq-archiveTargetPathRouting01",
       "title": "Target-Project Terminal Lifecycle Routing",
-      "body": "adv_change_archive and adv_task_checkpoint MUST support `target_path` to route terminal lifecycle and task checkpoint operations to a target project from a non-native session. Target mutation MUST require explicit `target_confirmed` and non-blank `confirmationEvidence` for untrusted targets, MUST use the target project's store and Temporal queue, MUST preserve same-project safety semantics (gate preflight, worktree validation, branch/HEAD guards, task-to-change resolution), and MUST fail closed with a same-project recovery packet when the target project is unreachable.",
+      "body": "adv_change_archive and adv_task_checkpoint MUST support `target_path` to route terminal lifecycle and task checkpoint operations to a target project from a non-native session. Target mutation MUST require explicit `target_confirmed` and non-blank `confirmationEvidence` for untrusted targets, MUST use the target project's store and Temporal queue, MUST preserve same-project safety semantics (gate preflight, worktree validation, branch/HEAD guards, task-to-change resolution), and MUST fail closed with a same-project recovery packet when the target project is unreachable. For adv_task_checkpoint, `target_path` selects the target project's Temporal store and default git workdir; it MUST NOT override an explicit `workdir`. An explicitly blank `workdir` MUST be rejected as a caller error. When `target_path` and an explicit `workdir` coexist, the `workdir` MUST belong to the target repository, verified by comparing git common directories before target task-state resolution, signaling, staging, or committing; a mismatch (or an unverifiable common directory) MUST fail closed as an unrelated-repository reject.",
       "priority": "must",
       "tags": ["workflow", "archive", "checkpoint", "target-path", "cross-project"],
       "scenarios": [
@@ -4994,7 +5008,7 @@
           "when": "adv_task_checkpoint is called with target_path",
           "then": [
             "The task is resolved from the target project's store",
-            "Git operations run in the target project's root",
+            "Git operations run in the explicit workdir when one is provided and verified as part of the target repository, otherwise in the target project's root",
             "The response carries target-project context"
           ]
         },
@@ -5006,6 +5020,44 @@
           "then": [
             "The call is rejected before filesystem or state mutation",
             "Same-project behavior remains unchanged"
+          ]
+        },
+        {
+          "id": "rq-archiveTargetPathRouting01.4",
+          "title": "Checkpoint target_path selects store, explicit workdir selects git cwd",
+          "given": [
+            "adv_task_checkpoint is called with both target_path and an explicit workdir",
+            "The explicit workdir is a linked worktree of the target repository (matching git common directory)"
+          ],
+          "when": "The checkpoint resolves its execution context",
+          "then": [
+            "Target task state, signaling, and store access use the target project selected by target_path",
+            "Git operations run in the explicit workdir",
+            "target_path never overrides the explicit workdir as the git cwd"
+          ]
+        },
+        {
+          "id": "rq-archiveTargetPathRouting01.5",
+          "title": "Explicit blank workdir is rejected before any git or state operation",
+          "given": ["adv_task_checkpoint is called with a workdir argument that is empty or whitespace-only"],
+          "when": "The checkpoint evaluates the call",
+          "then": [
+            "The call fails with a caller-error rejection naming the blank workdir",
+            "No git command runs, no task state is resolved, and no signal is fired"
+          ]
+        },
+        {
+          "id": "rq-archiveTargetPathRouting01.6",
+          "title": "Checkpoint refuses an explicit workdir outside the target repository",
+          "given": [
+            "adv_task_checkpoint is called with both target_path and an explicit workdir",
+            "The workdir's git common directory differs from the target repository's, or cannot be probed"
+          ],
+          "when": "The checkpoint compares git common directories",
+          "then": [
+            "The call fails closed as an unrelated-repository reject",
+            "The failure names the workdir and the target repository",
+            "No staging, committing, task-state resolution, or signaling occurs"
           ]
         }
       ]

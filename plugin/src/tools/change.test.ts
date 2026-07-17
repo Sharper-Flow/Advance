@@ -2133,9 +2133,16 @@ describe("change tools — signal-driven lifecycle", () => {
         const parsed = JSON.parse(result);
         expect(parsed.error).toBeUndefined();
         expect(parsed.designPath).toContain("design.md");
-        expect(parsed._projectContext).toMatchObject({ stateMode: "temporal" });
+        // Structural identity pin: the artifact mutation output addresses the
+        // resolved target project, not the source project.
+        expect(parsed._projectContext).toMatchObject({
+          root: "/tmp/target",
+          projectId: "target-project-id",
+          stateMode: "temporal",
+        });
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
+            currentProjectPath: "/tmp/test",
             target_path: "/tmp/target",
             stateRequirement: "temporal-required",
             target_confirmed: true,
@@ -3090,6 +3097,13 @@ describe("change tools — signal-driven lifecycle", () => {
 
         const parsed = JSON.parse(result);
         expect(parsed.success).toBe(true);
+        // Structural identity pin: the close output addresses the resolved
+        // target project, not the source project.
+        expect(parsed._projectContext).toMatchObject({
+          root: "/tmp/target",
+          projectId: "target-project-id",
+          stateMode: "temporal",
+        });
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
@@ -3101,9 +3115,17 @@ describe("change tools — signal-driven lifecycle", () => {
           expect.any(Function),
         );
         expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+        // Workflow identity: the close signal addresses the resolved target
+        // project's workflow, never the source project identity
+        // (mocks.getProjectId returns "test-project-id").
         expect(mocks.getChangeHandle).toHaveBeenCalledWith(
           mocks.temporalBundle.client,
           "target-project-id",
+          "test-change",
+        );
+        expect(mocks.getChangeHandle).not.toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "test-project-id",
           "test-change",
         );
         const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -3566,6 +3588,13 @@ describe("change tools — signal-driven lifecycle", () => {
 
         const parsed = JSON.parse(result);
         expect(parsed.success).toBe(true);
+        // Structural identity pin: the bulk close output addresses the
+        // resolved target project, not the source project.
+        expect(parsed._projectContext).toMatchObject({
+          root: "/tmp/target",
+          projectId: "target-project-id",
+          stateMode: "temporal",
+        });
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
@@ -3579,6 +3608,9 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.targetStore.changes.get).toHaveBeenCalledWith("chg-t1");
         expect(mocks.targetStore.changes.get).toHaveBeenCalledWith("chg-t2");
         expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
+        // Workflow identity: every close signal addresses the resolved target
+        // project's workflow, never the source project identity
+        // (mocks.getProjectId returns "test-project-id").
         expect(mocks.getChangeHandle).toHaveBeenCalledWith(
           mocks.temporalBundle.client,
           "target-project-id",
@@ -3588,6 +3620,11 @@ describe("change tools — signal-driven lifecycle", () => {
           mocks.temporalBundle.client,
           "target-project-id",
           "chg-t2",
+        );
+        expect(mocks.getChangeHandle).not.toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "test-project-id",
+          expect.anything(),
         );
         const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
         expect(signalCall[1]).toBe(mocks.targetStore);

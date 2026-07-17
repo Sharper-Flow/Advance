@@ -165,12 +165,18 @@ async function gitPathExists(
 /**
  * Detect the state of the git repo. Returns:
  * - "ok" — normal repo on a branch
- * - "detached" — detached HEAD
+ * - "detached" — detached HEAD with no recovery markers
  * - "merging" — MERGE_HEAD exists
  * - "rebasing" — REBASE_HEAD or rebase state directory exists
  * - "cherry-picking" — CHERRY_PICK_HEAD exists
  * - "reverting" — REVERT_HEAD exists
  * - "not_git" — not a git repo (or git unavailable)
+ *
+ * rq-twf01.3: recovery markers are probed BEFORE the detached-HEAD check.
+ * Rebase and sequencer (cherry-pick/revert) operations run with a detached
+ * HEAD by design, so classifying detached first would mask the active
+ * recovery state and silently drop the trunk write firewall's structural
+ * recovery allowance.
  */
 export async function detectRepoState(cwd: string): Promise<RepoState> {
   try {
@@ -178,13 +184,6 @@ export async function detectRepoState(cwd: string): Promise<RepoState> {
     await runGit(["rev-parse", "--git-dir"], cwd);
   } catch {
     return "not_git";
-  }
-
-  try {
-    // Check for detached HEAD (symbolic ref fails when detached)
-    await runGit(["symbolic-ref", "-q", "HEAD"], cwd);
-  } catch {
-    return "detached";
   }
 
   try {
@@ -221,6 +220,13 @@ export async function detectRepoState(cwd: string): Promise<RepoState> {
     return "reverting";
   } catch {
     // REVERT_HEAD doesn't exist — normal state
+  }
+
+  try {
+    // Check for detached HEAD (symbolic ref fails when detached)
+    await runGit(["symbolic-ref", "-q", "HEAD"], cwd);
+  } catch {
+    return "detached";
   }
 
   return "ok";
@@ -592,9 +598,63 @@ export const checkpointTools = {
         activeDefaultWorkdir: string,
       ): Promise<string> => {
         const store = activeStore;
-        const cwd = args.target_path
-          ? activeDefaultWorkdir
-          : args.workdir || activeDefaultWorkdir;
+
+        // An explicitly blank workdir is a caller error — reject rather than
+        // silently falling back to the default workdir.
+        if (args.workdir !== undefined && args.workdir.trim() === "") {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: args.workdir,
+            error:
+              "Explicit workdir must not be blank. Omit workdir to use the default working directory.",
+          } satisfies CheckpointResult);
+        }
+
+        // rq-archiveTargetPathRouting01.1: target_path selects the target
+        // Temporal store; it never overrides an explicit Git workdir.
+        const cwd = args.workdir ?? activeDefaultWorkdir;
+
+        // When target_path and an explicit workdir coexist, the workdir must
+        // belong to the same repository as the target root (linked worktrees
+        // share the git common dir). Compare common dirs BEFORE resolving
+        // target task state, signaling, or committing; reject unrelated repos.
+        if (args.target_path && args.workdir !== undefined) {
+          let targetCommonDir = "";
+          let workdirCommonDir = "";
+          try {
+            targetCommonDir = (
+              await runGit(
+                ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+                activeDefaultWorkdir,
+              )
+            ).stdout.trim();
+            workdirCommonDir = (
+              await runGit(
+                ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+                cwd,
+              )
+            ).stdout.trim();
+          } catch {
+            // Probe failure — fail closed as an unrelated-repository reject.
+          }
+          if (
+            !targetCommonDir ||
+            !workdirCommonDir ||
+            targetCommonDir !== workdirCommonDir
+          ) {
+            return formatToolOutput({
+              status: "failed",
+              classification: "SEMANTIC",
+              workdir: cwd,
+              error:
+                `workdir ${cwd} is not part of the target repository ${activeDefaultWorkdir} ` +
+                `(git common-dir mismatch). Run the checkpoint from a worktree linked to the ` +
+                `target repository, or omit workdir to use the target root.`,
+            } satisfies CheckpointResult);
+          }
+        }
+
         const mode = args.mode ?? "complete";
 
         // Validate cancel mode requires reason

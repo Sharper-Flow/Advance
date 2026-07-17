@@ -88,9 +88,12 @@ vi.mock("../temporal/queue-serviceability", async () => {
 });
 
 import {
+  ensureTargetMutationQueueReady,
   formatTargetProjectContext,
   resolveTargetProject,
+  TargetProjectError,
   targetPathSchema,
+  withOptionalTargetPathStore,
   withTargetPathStore,
 } from "./target-project";
 
@@ -215,7 +218,23 @@ describe("withTargetPathStore", () => {
     await mkdir(join(currentProjectPath, ".git"), { recursive: true });
     await mkdir(join(targetPath, ".git"), { recursive: true });
     mocks.getProjectId.mockResolvedValue(TARGET_PROJECT_ID);
-    mocks.ensureProjectTemporalQueue.mockResolvedValue(undefined);
+    // Simulate realistic post-registration state: a resolved registration
+    // means the worker diagnostics immediately show the queue as live
+    // (register-ack semantics), matching production worker behavior.
+    mocks.ensureProjectTemporalQueue.mockImplementation(async () => {
+      const queue = `advance-${TARGET_PROJECT_ID}`;
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([queue]);
+      mocks.getTemporalWorkerDiagnostics.mockReturnValue([
+        {
+          kind: "in_process" as const,
+          queues: [queue],
+          failedQueues: [] as string[],
+          alive: true,
+        },
+      ]);
+      mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+      mocks.getTemporalWorkerRole.mockReturnValue("host");
+    });
     mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
     mocks.getTemporalWorkerAliveness.mockReturnValue(false);
     mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
@@ -346,6 +365,14 @@ describe("withTargetPathStore", () => {
         freshPollerMs: 60_000,
       }),
     );
+    // Local registration was attempted before the server probe, and the
+    // server probe completed before any target store was created.
+    const registerOrder =
+      mocks.ensureProjectTemporalQueue.mock.invocationCallOrder[0]!;
+    const probeOrder = mocks.probeTaskQueuePollers.mock.invocationCallOrder[0]!;
+    const createOrder = mocks.createStore.mock.invocationCallOrder[0]!;
+    expect(registerOrder).toBeLessThan(probeOrder);
+    expect(probeOrder).toBeLessThan(createOrder);
     expect(mocks.createStore).toHaveBeenCalled();
   });
 
@@ -373,6 +400,7 @@ describe("withTargetPathStore", () => {
         new Error("no local worker"),
       );
       mocks.probeTaskQueuePollers.mockResolvedValueOnce(probe);
+      const callback = vi.fn(async () => null);
 
       await expect(
         withTargetPathStore(
@@ -383,15 +411,22 @@ describe("withTargetPathStore", () => {
             target_confirmed: true,
             confirmationEvidence: "user approved target mutation",
           },
-          async () => null,
+          callback,
         ),
       ).rejects.toThrow(
         new RegExp(
-          `Target project Temporal queue is not serviceable.*${blocker}.*open or restart`,
+          `Target project Temporal queue is not serviceable.*${blocker}.*remediation=open or restart`,
           "s",
         ),
       );
+      // Pre-mutation invariant: no target store creation, no store init, no
+      // workflow signal, and no mutation callback on readiness failure.
       expect(mocks.createStore).not.toHaveBeenCalled();
+      expect(mocks.temporalStore.init).not.toHaveBeenCalled();
+      expect(
+        mocks.temporalBundle.client.workflow.getHandle,
+      ).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
     },
   );
 
@@ -440,6 +475,361 @@ describe("withTargetPathStore", () => {
       ),
     ).rejects.toThrow(/Temporal service layer/);
   });
+});
+
+// rq-targetReadAuthority01: every snapshot-ok target read tool funnels through
+// withOptionalTargetPathStore / withTargetPathStore("snapshot-ok"). These tests
+// pin the structural contract at that shared seam: the returned target context
+// must explicitly identify the data as a non-authoritative disk snapshot, and
+// the snapshot path must not touch target worker lifecycle or Temporal state.
+describe("target snapshot read authority marking", () => {
+  const originalXdgDataHome = process.env.XDG_DATA_HOME;
+  let root: string;
+  let currentProjectPath: string;
+  let targetPath: string;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    root = await mkdtemp(join(tmpdir(), "adv-target-read-authority-"));
+    currentProjectPath = join(root, "source");
+    targetPath = join(root, "target");
+    await mkdir(join(currentProjectPath, ".git"), { recursive: true });
+    await mkdir(join(targetPath, ".git"), { recursive: true });
+    mocks.getProjectId.mockResolvedValue(TARGET_PROJECT_ID);
+    process.env.XDG_DATA_HOME = join(
+      root,
+      "opencode-projects",
+      SOURCE_PROJECT_ID,
+    );
+  });
+
+  afterEach(async () => {
+    if (originalXdgDataHome !== undefined)
+      process.env.XDG_DATA_HOME = originalXdgDataHome;
+    else delete process.env.XDG_DATA_HOME;
+    await rm(root, { recursive: true, force: true });
+  });
+
+  test("withOptionalTargetPathStore marks target snapshot reads as non-authoritative disk snapshots", async () => {
+    const sourceStore = { paths: { root: currentProjectPath } };
+
+    const seen = await withOptionalTargetPathStore(
+      { store: sourceStore as never, target_path: targetPath },
+      async (store, projectContext) => ({ store, projectContext }),
+    );
+
+    // Snapshot reads open the target as a legacy disk store rooted at the
+    // resolved target project's canonical external root — never a
+    // Temporal-backed store, never worker lifecycle mutation.
+    expect(mocks.createLegacyStore).toHaveBeenCalledWith(targetPath, {
+      externalRoot: join(
+        root,
+        "opencode-projects",
+        TARGET_PROJECT_ID,
+        "opencode/plugins/advance",
+        TARGET_PROJECT_ID,
+      ),
+    });
+    expect(mocks.createStore).not.toHaveBeenCalled();
+    expect(mocks.getService).not.toHaveBeenCalled();
+    expect(mocks.ensureProjectTemporalQueue).not.toHaveBeenCalled();
+    expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+    // The emitted context explicitly identifies the returned data as a
+    // non-authoritative disk snapshot of the resolved target project.
+    expect(seen.projectContext).toMatchObject({
+      root: targetPath,
+      projectId: TARGET_PROJECT_ID,
+      stateMode: "disk-snapshot",
+      authority: "disk_snapshot_non_authoritative",
+    });
+    expect(seen.projectContext?.warning).toContain(
+      "Non-authoritative disk snapshot",
+    );
+  });
+
+  test("withOptionalTargetPathStore without target_path emits no project context and opens no target store", async () => {
+    const sourceStore = { paths: { root: currentProjectPath } };
+
+    const seen = await withOptionalTargetPathStore(
+      { store: sourceStore as never },
+      async (store, projectContext) => ({ store, projectContext }),
+    );
+
+    expect(seen.store).toBe(sourceStore);
+    expect(seen.projectContext).toBeUndefined();
+    expect(mocks.createLegacyStore).not.toHaveBeenCalled();
+    expect(mocks.createStore).not.toHaveBeenCalled();
+  });
+
+  test("snapshot-ok target context formats as a non-authoritative disk snapshot", async () => {
+    const formatted = await withTargetPathStore(
+      {
+        currentProjectPath,
+        target_path: targetPath,
+        stateRequirement: "snapshot-ok",
+      },
+      async ({ context }) => formatTargetProjectContext(context),
+    );
+
+    expect(formatted).toMatchObject({
+      root: targetPath,
+      projectId: TARGET_PROJECT_ID,
+      stateMode: "disk-snapshot",
+      authority: "disk_snapshot_non_authoritative",
+    });
+    expect(formatted.warning).toContain("Non-authoritative disk snapshot");
+    // rq-targetReadAuthority01.2: snapshot reads must not register, restart,
+    // or otherwise mutate target worker lifecycle or Temporal state.
+    expect(mocks.ensureProjectTemporalQueue).not.toHaveBeenCalled();
+    expect(mocks.getService).not.toHaveBeenCalled();
+    expect(mocks.createStore).not.toHaveBeenCalled();
+  });
+
+  test("temporal-required target context is authoritative and carries no snapshot marker", async () => {
+    mocks.ensureProjectTemporalQueue.mockImplementation(async () => {
+      const queue = `advance-${TARGET_PROJECT_ID}`;
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([queue]);
+      mocks.getTemporalWorkerDiagnostics.mockReturnValue([
+        {
+          kind: "in_process" as const,
+          queues: [queue],
+          failedQueues: [] as string[],
+          alive: true,
+        },
+      ]);
+      mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+      mocks.getTemporalWorkerRole.mockReturnValue("host");
+    });
+
+    const formatted = await withTargetPathStore(
+      {
+        currentProjectPath,
+        target_path: targetPath,
+        stateRequirement: "temporal-required",
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+      },
+      async ({ context }) => formatTargetProjectContext(context),
+    );
+
+    expect(formatted.stateMode).toBe("temporal");
+    expect(formatted.authority).toBeUndefined();
+    expect(formatted.warning ?? "").not.toContain(
+      "Non-authoritative disk snapshot",
+    );
+  });
+});
+
+describe("ensureTargetMutationQueueReady", () => {
+  const expectedQueue = `advance-${TARGET_PROJECT_ID}`;
+
+  function liveLocalDiagnostics() {
+    return [
+      {
+        kind: "in_process" as const,
+        queues: [expectedQueue],
+        failedQueues: [] as string[],
+        alive: true,
+      },
+    ];
+  }
+
+  function failedLocalDiagnostics() {
+    return [
+      {
+        kind: "in_process" as const,
+        queues: [expectedQueue],
+        failedQueues: [expectedQueue],
+        alive: false,
+      },
+    ];
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.ensureProjectTemporalQueue.mockResolvedValue(undefined);
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalWorkerRole.mockReturnValue("client");
+    mocks.probeTaskQueuePollers.mockResolvedValue({
+      status: "unavailable",
+      lastAccessMs: null,
+      error: "mock unavailable",
+    });
+  });
+
+  test("admits an already-registered live local queue without server evidence", async () => {
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([expectedQueue]);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue(liveLocalDiagnostics());
+    mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+    mocks.getTemporalWorkerRole.mockReturnValue("host");
+
+    const result = await ensureTargetMutationQueueReady({
+      projectId: TARGET_PROJECT_ID,
+      temporalBundle: mocks.temporalBundle as any,
+    });
+
+    expect(result.status).toBe("serviceable");
+    expect(result.confidence).toBe("local");
+    expect(result.expectedQueue).toBe(expectedQueue);
+    expect(result.evidence.localRegistered).toBe(true);
+    expect(result.evidence.localWorkerAlive).toBe(true);
+    expect(mocks.ensureProjectTemporalQueue).not.toHaveBeenCalled();
+    expect(mocks.probeTaskQueuePollers).not.toHaveBeenCalled();
+  });
+
+  test("registers the local target queue before consulting server evidence", async () => {
+    mocks.ensureProjectTemporalQueue.mockImplementation(async () => {
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([expectedQueue]);
+      mocks.getTemporalWorkerDiagnostics.mockReturnValue(
+        liveLocalDiagnostics(),
+      );
+      mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+      mocks.getTemporalWorkerRole.mockReturnValue("host");
+    });
+
+    const result = await ensureTargetMutationQueueReady({
+      projectId: TARGET_PROJECT_ID,
+      temporalBundle: mocks.temporalBundle as any,
+    });
+
+    expect(result.status).toBe("serviceable");
+    expect(result.confidence).toBe("local");
+    expect(mocks.ensureProjectTemporalQueue).toHaveBeenCalledWith(
+      TARGET_PROJECT_ID,
+    );
+    expect(mocks.probeTaskQueuePollers).not.toHaveBeenCalled();
+  });
+
+  test("accepts a fresh server poller as conservative admission evidence without claiming local liveness", async () => {
+    mocks.ensureProjectTemporalQueue.mockRejectedValueOnce(
+      new Error("no local worker"),
+    );
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "fresh",
+      lastAccessMs: 12_000,
+    });
+
+    const result = await ensureTargetMutationQueueReady({
+      projectId: TARGET_PROJECT_ID,
+      temporalBundle: mocks.temporalBundle as any,
+    });
+
+    expect(result.status).toBe("serviceable");
+    expect(result.confidence).toBe("server");
+    // Admission only: fresh server poller evidence must not be reported as
+    // guaranteed local worker liveness.
+    expect(result.evidence.localRegistered).toBe(false);
+    expect(result.evidence.localWorkerAlive).toBe(false);
+    expect(result.blockers).toEqual([]);
+    const registerOrder =
+      mocks.ensureProjectTemporalQueue.mock.invocationCallOrder[0]!;
+    const probeOrder = mocks.probeTaskQueuePollers.mock.invocationCallOrder[0]!;
+    expect(registerOrder).toBeLessThan(probeOrder);
+    expect(mocks.probeTaskQueuePollers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskQueue: expectedQueue,
+        freshPollerMs: 60_000,
+      }),
+    );
+  });
+
+  test("does not admit a registered-but-failed local queue without fresh server evidence", async () => {
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([expectedQueue]);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue(
+      failedLocalDiagnostics(),
+    );
+    mocks.getTemporalWorkerRole.mockReturnValue("host");
+
+    const attempt = ensureTargetMutationQueueReady({
+      projectId: TARGET_PROJECT_ID,
+      temporalBundle: mocks.temporalBundle as any,
+    });
+
+    await expect(attempt).rejects.toThrow(TargetProjectError);
+    await expect(attempt).rejects.toThrow(/local_worker_not_alive/);
+    await expect(attempt).rejects.toThrow(/server_poller_probe_unavailable/);
+    // Registration state alone must not short-circuit readiness: the failed
+    // queue falls through to the bounded server probe before failing closed.
+    expect(mocks.probeTaskQueuePollers).toHaveBeenCalled();
+  });
+
+  test("treats a registered-but-failed local queue as inadmissible even when a fresh server poller admits", async () => {
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([expectedQueue]);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue(
+      failedLocalDiagnostics(),
+    );
+    mocks.getTemporalWorkerRole.mockReturnValue("host");
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "fresh",
+      lastAccessMs: 5_000,
+    });
+
+    const result = await ensureTargetMutationQueueReady({
+      projectId: TARGET_PROJECT_ID,
+      temporalBundle: mocks.temporalBundle as any,
+    });
+
+    expect(result.status).toBe("serviceable");
+    expect(result.confidence).toBe("server");
+    expect(result.evidence.localRegistered).toBe(false);
+    expect(result.evidence.localWorkerAlive).toBe(false);
+  });
+
+  test.each([
+    {
+      probe: { status: "stale" as const, lastAccessMs: 120_000 },
+      expectedStatus: "not_serviceable",
+      blocker: "server_poller_stale",
+    },
+    {
+      probe: { status: "none" as const, lastAccessMs: null },
+      expectedStatus: "not_serviceable",
+      blocker: "server_poller_absent",
+    },
+    {
+      probe: {
+        status: "unavailable" as const,
+        lastAccessMs: null,
+        error: "describeTaskQueue unavailable",
+      },
+      expectedStatus: "unknown",
+      blocker: "server_poller_probe_unavailable",
+    },
+  ])(
+    "fails with queue, status, confidence, blockers, and remediation when poller evidence is $probe.status",
+    async ({ probe, expectedStatus, blocker }) => {
+      mocks.ensureProjectTemporalQueue.mockRejectedValueOnce(
+        new Error("no local worker"),
+      );
+      mocks.probeTaskQueuePollers.mockResolvedValueOnce(probe);
+
+      const error: Error = await ensureTargetMutationQueueReady({
+        projectId: TARGET_PROJECT_ID,
+        temporalBundle: mocks.temporalBundle as any,
+      }).then(
+        () => {
+          throw new Error("expected readiness failure");
+        },
+        (err) => err as Error,
+      );
+
+      expect(error).toBeInstanceOf(TargetProjectError);
+      const segments = error.message.split("; ");
+      expect(segments).toHaveLength(5);
+      expect(segments[0]).toBe(
+        `Target project Temporal queue is not serviceable for target_path mutation: ${expectedQueue}`,
+      );
+      expect(segments[1]).toBe(`status=${expectedStatus}`);
+      expect(segments[2]).toBe("confidence=none");
+      expect(segments[3]).toContain("blockers=");
+      expect(segments[3]).toContain(blocker);
+      expect(segments[4]).toBe(
+        "remediation=open or restart the target project ADV worker, then retry the target_path mutation",
+      );
+    },
+  );
 });
 
 describe("targetPathSchema", () => {
