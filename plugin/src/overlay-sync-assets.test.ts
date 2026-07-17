@@ -10,6 +10,7 @@ import {
   symlinkSync,
 } from "fs";
 import { spawnSync } from "child_process";
+import { createHash } from "crypto";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 
@@ -681,8 +682,23 @@ cp -a "$src/." "$dest/"
         ),
         '{"schema_version":1}\n',
       );
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
+        JSON.stringify({
+          schema_version: 1,
+          generation:
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          files: {
+            index: createHash("sha256")
+              .update("// test dist is fresh\n")
+              .digest("hex"),
+          },
+          built_at: "2026-07-16T00:00:00.000Z",
+        }),
+      );
       for (const distFile of [
         join(tempWorktree, "plugin", "dist", "index.js"),
+        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
         join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
         join(

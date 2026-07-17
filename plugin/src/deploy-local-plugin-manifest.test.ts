@@ -333,6 +333,11 @@ describe("deploy-local plugin manifest publication", () => {
       expect(deployedManifestMtime.getTime()).toBeGreaterThan(
         INDEX_MTIME.getTime(),
       );
+      expect(
+        readdirSync(join(runtimePlugin, "dist")).filter((entry) =>
+          entry.endsWith(".tmp"),
+        ),
+      ).toEqual([]);
       const parsed = JSON.parse(readFileSync(deployedManifest, "utf8"));
       expect(parsed.generation).toBe(sourceManifest.generation);
       expect(parsed.files.index).toBe(FAKE_INDEX_SHA256);

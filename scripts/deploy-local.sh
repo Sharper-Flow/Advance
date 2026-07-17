@@ -1335,7 +1335,16 @@ else
 		echo "    ✗  refusing to publish plugin bundle manifest: copied index validation failed"
 		exit 1
 	fi
-	cp "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
+	# Copy to a same-directory temporary file and rename it into place. The
+	# manifest is the runtime publication marker, so readers must never observe
+	# a partially copied sidecar.
+	plugin_manifest_tmp="$(mktemp "$ADV_RUNTIME_PLUGIN_PATH/dist/.plugin-bundle-manifest.XXXXXX.tmp")"
+	if ! cp "$PLUGIN_BUNDLE_MANIFEST" "$plugin_manifest_tmp"; then
+		rm -f "$plugin_manifest_tmp"
+		echo "    ✗  refusing to publish plugin bundle manifest: temporary copy failed"
+		exit 1
+	fi
+	mv -f "$plugin_manifest_tmp" "$ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
 	echo "    published plugin bundle manifest: $ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
 	refresh_deployed_temporal_workers "after-sync" || worker_refresh_exit=$?
 fi
