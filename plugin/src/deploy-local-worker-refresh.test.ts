@@ -481,6 +481,29 @@ describe("deploy-local worker refresh regression", () => {
     }
   });
 
+  test("dry-run mode is signal-free and reports advisory self-roll workers", () => {
+    const fixture = setupDeployFixture();
+    const selfRoll = spawnSelfRollWorker(fixture.workerScriptPath);
+    try {
+      const result = fixture.runDeploy("dry-run");
+      try {
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("advisory");
+        expect(result.output).toContain(`PID ${selfRoll.pid}`);
+        expect(result.output).toContain("No worker processes were signaled.");
+        expect(result.output).not.toContain("SIGTERM sent");
+        expect(result.output).not.toContain("[ADV:ACTION_REQUIRED]");
+        expect(() => process.kill(selfRoll.pid, 0)).not.toThrow();
+      } catch (err) {
+        console.error(`--- deploy-local.sh output ---\n${result.output}`);
+        throw err;
+      }
+    } finally {
+      selfRoll.kill();
+      fixture.cleanup();
+    }
+  });
+
   test("successful worker refresh preserves normal deploy success", () => {
     const fixture = setupDeployFixture();
     try {
