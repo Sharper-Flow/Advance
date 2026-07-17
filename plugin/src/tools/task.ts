@@ -966,6 +966,21 @@ export const taskTools = {
       evidence_policy: ContractEvidencePolicySchema.optional().describe(
         "Evidence policy that governs what kind of proof satisfies task completion (e.g., 'test', 'review', 'source_citation', 'stakeholder_acceptance').",
       ),
+      evidence_rationale: z
+        .string()
+        .trim()
+        .optional()
+        .describe(
+          "Bounded rationale for a non-test evidence route on behavior-critical work. Required with review_conclusion for new code or verification tasks that do not use the test route.",
+        ),
+      review_conclusion: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe(
+          "Linked structured review conclusion for a non-test evidence route on behavior-critical work. Required with evidence_rationale for new code or verification tasks that do not use the test route.",
+        ),
       metadata: z
         .record(z.string(), z.string())
         .optional()
@@ -993,6 +1008,8 @@ export const taskTools = {
         content: string;
         type?: import("../types").TaskType;
         evidence_policy?: import("../types").ContractEvidencePolicy;
+        evidence_rationale?: string;
+        review_conclusion?: string;
         metadata?: Record<string, string>;
         contract_refs?: TaskContractRefs;
         blockedBy?: string[];
@@ -1018,6 +1035,8 @@ export const taskTools = {
           content,
           type,
           evidence_policy,
+          evidence_rationale,
+          review_conclusion,
           metadata,
           contract_refs,
           blockedBy,
@@ -1162,15 +1181,19 @@ export const taskTools = {
         const evidencePlan: TaskEvidencePlan = {
           policy: evidenceResolution.policy!,
           proof_target: evidenceResolution.proof_target!,
-          ...(evidenceResolution.rationale
-            ? { rationale: evidenceResolution.rationale }
-            : {}),
-          ...(evidenceResolution.review_conclusion
-            ? { review_conclusion: evidenceResolution.review_conclusion }
-            : {}),
+          ...(evidence_rationale ? { rationale: evidence_rationale } : {}),
+          ...(review_conclusion ? { review_conclusion } : {}),
           provenance: "new",
         };
         task.evidence_plan = evidencePlan;
+
+        const validatedEvidenceResolution = resolveTaskEvidence(task);
+        if (!validatedEvidenceResolution.valid) {
+          return formatToolOutput({
+            error: `Invalid evidence plan: ${validatedEvidenceResolution.errors.join("; ")}`,
+            changeId,
+          });
+        }
 
         let recoveredViaPoisoned = false;
         try {

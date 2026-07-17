@@ -986,6 +986,54 @@ describe("task tools — signal/query adapters", () => {
       });
     });
 
+    test("accepts a behavior-critical review route with its required proof", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Review-only behavior change",
+          type: "code",
+          evidence_policy: "review",
+          evidence_rationale:
+            "A focused review proves this configuration-only invariant.",
+          review_conclusion: "adv-reviewer attempt 1: READY",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.task.evidence_plan).toMatchObject({
+        policy: "review",
+        rationale: "A focused review proves this configuration-only invariant.",
+        review_conclusion: "adv-reviewer attempt 1: READY",
+        provenance: "new",
+      });
+    });
+
+    test("rejects a behavior-critical non-test route without its required proof", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Review-only behavior change",
+          type: "code",
+          evidence_policy: "review",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toMatch(
+        /Invalid evidence plan.*rationale.*review conclusion/i,
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
     test("derives metadata.tdd_intent from task type when missing", async () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue([]);

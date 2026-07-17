@@ -52,7 +52,11 @@ import {
   worktreeSetupFailedSignal,
 } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
-import { inspectArtifactActivity, writeArtifactActivity } from "./activities";
+import {
+  inspectArtifactActivity,
+  writeArtifactActivity,
+  writeChangeProjection,
+} from "./activities";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
@@ -181,7 +185,11 @@ async function withArtifactSignalWorker(
       connection: env.nativeConnection,
       workflowsPath,
       taskQueue,
-      activities: { inspectArtifactActivity, writeArtifactActivity },
+      activities: {
+        inspectArtifactActivity,
+        writeArtifactActivity,
+        writeChangeProjection,
+      },
     });
 
     await worker.runUntil(async () => {

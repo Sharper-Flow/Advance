@@ -199,6 +199,14 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
+    // Optional review proof: strict-mode blank fills must not masquerade as a
+    // real conclusion; route-specific evidence validation remains authoritative.
+    toolName: "adv_task_add",
+    field: "review_conclusion",
+    policy: "blank",
+    action: "omit",
+  },
+  {
     toolName: "adv_task_cancel",
     field: "recoveryEvidence",
     policy: "blank",
