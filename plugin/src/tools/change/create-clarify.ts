@@ -1020,7 +1020,11 @@ export async function loadValidationContext(
   // Legacy activeChanges array (non-archived, non-own, hydrated capabilities)
   const activeChanges = inventoryEntries
     .filter((e) => !e.isArchived && !e.isOwnChange)
-    .map((e) => ({ id: e.id, title: e.title, capabilities: e.capabilities }));
+    .map((e) => ({
+      id: e.id,
+      title: e.title,
+      capabilities: e.capabilities ?? [],
+    }));
 
   const { content: proposalText } = await loadProposalForContext(
     store,

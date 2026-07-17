@@ -331,6 +331,7 @@ export async function createDiskStore(
             taskCount: c.tasks.length,
             completedTasks: c.tasks.filter((t) => t.status === "done").length,
             fast_follow_of: c.fast_follow_of,
+            capabilities: Object.keys(c.deltas),
           })),
         };
       },
