@@ -168,6 +168,11 @@ export interface Store {
       titleContains?: string;
       createdBefore?: string;
       lastActivityBefore?: string;
+      /**
+       * Internal caller-specific cap for per-change hydration. Validation uses
+       * this to keep its request-wide Store work within its four-read budget.
+       */
+      validationConcurrency?: number;
     }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<LoadResult<Change | null>>;
     /**

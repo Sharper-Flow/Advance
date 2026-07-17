@@ -124,8 +124,12 @@ export interface ConflictInventoryEntry {
   id: string;
   title: string;
   status: string;
-  /** Capabilities this change touches (has deltas for) */
-  capabilities: string[];
+  /**
+   * Capabilities this change touches (has deltas for). Present when the Store
+   * exposed capability data in one pass; absent when the data was not available
+   * without a second read.
+   */
+  capabilities?: string[];
   /** Epic membership context when the change belongs to an Epic */
   epic?: {
     id: string;
@@ -146,8 +150,14 @@ export interface ConflictInventoryEntry {
  *   evicted); conflict detection proceeds but with reduced confidence.
  * - blocked: The inventory source failed or was unreachable; no reliable
  *   conflict detection is possible.
+ * - non-conclusive: The inventory was truncated or deadline-expired before all
+ *   peer capabilities could be established; no clean/pass verdict may be drawn.
  */
-export type ConflictInventoryCompleteness = "complete" | "degraded" | "blocked";
+export type ConflictInventoryCompleteness =
+  | "complete"
+  | "degraded"
+  | "blocked"
+  | "non-conclusive";
 
 /**
  * Complete paginated typed change inventory used for conflict detection.
@@ -163,6 +173,11 @@ export interface ConflictInventory {
   source: string;
   /** The change ID being validated (own-change) */
   ownChangeId: string;
+  /**
+   * When false, the inventory is incomplete and validation must not produce a
+   * clean/pass verdict. Structural fail-closed guard against false-clean output.
+   */
+  canConcludeClean?: boolean;
 }
 
 export interface ExistingSpec {
