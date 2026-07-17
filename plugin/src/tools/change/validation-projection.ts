@@ -30,7 +30,7 @@ export interface ValidationInventoryOptions {
  * rejects with TemporalQueryTimeoutError so callers can record typed
  * incompleteness rather than hanging or returning a misleading fallback.
  */
-async function raceWithDeadline<T>(
+export async function raceWithDeadline<T>(
   op: Promise<T>,
   deadline: TemporalReadDeadline | undefined,
 ): Promise<T> {

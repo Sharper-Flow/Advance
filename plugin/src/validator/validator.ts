@@ -198,8 +198,15 @@ export async function validateChange(
     warnings.push(...driftWarnings);
   }
 
+  // Structural fail-closed guard: an incomplete conflict inventory (blocked,
+  // degraded, or non-conclusive) must never produce a clean/pass verdict even
+  // when no other errors were found. This consumes the machine-enforced
+  // canConcludeClean flag produced by the validation input loader.
+  const canConcludeClean =
+    context.conflictInventory?.canConcludeClean !== false;
+
   return {
-    passed: errors.length === 0,
+    passed: errors.length === 0 && canConcludeClean,
     errors,
     warnings,
     checkedAt: new Date().toISOString(),

@@ -16,10 +16,7 @@ import {
   type ClarifyFindingSnapshot,
 } from "../../types";
 import type { ChangeCreateInitialMetadata, Store } from "../../storage/store";
-import type {
-  ConflictInventory,
-  ConflictInventoryEntry,
-} from "../../validator/types";
+import type { ConflictInventory } from "../../validator/types";
 import { generateChangeId } from "../../utils/change-id";
 import { isSyntheticValidationDraftPattern } from "../../utils/synthetic-fixture-detector";
 import { createLogger } from "../../utils/debug-log";
@@ -33,6 +30,15 @@ import {
 } from "../target-project";
 import { getService } from "../../temporal/service";
 import { loadProposalForContext } from "../change/artifacts";
+import {
+  loadValidationInventory,
+  raceWithDeadline,
+} from "./validation-projection";
+import {
+  createTemporalReadDeadline,
+  type TemporalReadDeadline,
+  TEMPORAL_READ_DEADLINE_BUDGET_MS,
+} from "../../temporal/retry-wrapper";
 const logger = createLogger("change");
 /**
  * rq-dupActiveCreate01 — Shared pre-create guard. Returns an error payload
@@ -904,6 +910,113 @@ export function productContextOutput(
   };
 }
 /**
+ * Options for building a validation input bundle.
+ */
+export interface LoadValidationContextOptions {
+  /**
+   * Request-scoped aggregate deadline. If omitted, a fresh 8-second deadline is
+   * created at the start of the call.
+   */
+  deadline?: TemporalReadDeadline;
+}
+
+/**
+ * Execute async work over an array with bounded concurrency while preserving
+ * input order. Used for spec hydration so validation never fans out without a
+ * cap.
+ */
+async function boundedMap<T, U>(
+  items: T[],
+  fn: (item: T, index: number) => Promise<U>,
+  concurrency: number,
+): Promise<U[]> {
+  if (concurrency <= 0) throw new Error("concurrency must be positive");
+  if (items.length === 0) return [];
+
+  const results: U[] = new Array(items.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: concurrency }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await fn(items[index], index);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
+async function loadSpecsForValidation(
+  store: Store,
+  deadline: TemporalReadDeadline | undefined,
+): Promise<Spec[]> {
+  const specList = await raceWithDeadline(store.specs.list(), deadline);
+  const specs = await boundedMap(
+    specList.specs,
+    async (specInfo) => {
+      const specResult = await raceWithDeadline(
+        store.specs.get(specInfo.name),
+        deadline,
+      );
+      return specResult.success && specResult.data ? specResult.data : null;
+    },
+    4,
+  );
+  return specs.filter((s): s is Spec => s !== null);
+}
+
+async function loadProposalForValidation(
+  store: Store,
+  changeId: string,
+  changeTitle: string,
+  deadline: TemporalReadDeadline | undefined,
+): Promise<string> {
+  const { content } = await raceWithDeadline(
+    loadProposalForContext(store, changeId, changeTitle),
+    deadline,
+  );
+  return content;
+}
+
+async function loadChangedSpecFilesForValidation(
+  rootDir: string,
+  deadline: TemporalReadDeadline | undefined,
+): Promise<string[] | null | undefined> {
+  let changedSpecFiles: string[] | null | undefined = undefined;
+  try {
+    const gitPath = join(rootDir, ".git");
+    const gitStat = await raceWithDeadline(stat(gitPath), deadline);
+    if (gitStat.isFile()) {
+      const gitFile = await raceWithDeadline(
+        readFile(gitPath, "utf-8"),
+        deadline,
+      );
+      if (gitFile.includes("gitdir:")) {
+        changedSpecFiles = await raceWithDeadline(
+          computeChangedSpecFiles(rootDir),
+          deadline,
+        );
+      }
+    }
+  } catch {
+    // best-effort only — changedSpecFiles stays undefined (not in worktree)
+  }
+  return changedSpecFiles;
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    for (const item of value) deepFreeze(item);
+  } else if (typeof value === "object") {
+    for (const key of Object.keys(value))
+      deepFreeze((value as Record<string, unknown>)[key]);
+  }
+  return Object.freeze(value);
+}
+
+/**
  * Build the validator input bundle for a change.
  *
  * Specs stay loaded from the current worktree through the store. When the
@@ -915,11 +1028,17 @@ export function productContextOutput(
  * with Epic/member context and explicit completeness state). Active changes
  * and Epic members are authoritative; archived changes are related context
  * only.
+ *
+ * All independent input reads (projection, specs, proposal, Git context) are
+ * started under a single request-scoped deadline with bounded spec concurrency.
+ * The returned snapshot is deep-frozen so late-settled background work cannot
+ * mutate it.
  */
 export async function loadValidationContext(
   store: Store,
   changeId: string,
   changeTitle: string,
+  options?: LoadValidationContextOptions,
 ): Promise<{
   specs: Spec[];
   activeChanges: {
@@ -931,94 +1050,60 @@ export async function loadValidationContext(
   proposalText: string;
   changedSpecFiles: string[] | null | undefined;
 }> {
-  const specList = await store.specs.list();
-  const specs: Spec[] = [];
-  for (const specInfo of specList.specs) {
-    const specResult = await store.specs.get(specInfo.name);
-    if (specResult.success && specResult.data) {
-      specs.push(specResult.data);
-    }
+  const deadline =
+    options?.deadline ??
+    createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS);
+
+  // Start all independent input reads concurrently under the same deadline.
+  const [inventoryResult, specsResult, proposalResult, gitResult] =
+    await Promise.allSettled([
+      loadValidationInventory(store, changeId, { deadline }),
+      loadSpecsForValidation(store, deadline),
+      loadProposalForValidation(store, changeId, changeTitle, deadline),
+      loadChangedSpecFilesForValidation(store.paths.root, deadline),
+    ]);
+
+  // Build the typed conflict inventory, defaulting to blocked if projection
+  // itself threw.
+  const conflictInventory: ConflictInventory =
+    inventoryResult.status === "fulfilled"
+      ? inventoryResult.value
+      : {
+          entries: [],
+          completeness: "blocked",
+          warnings: [
+            `Change inventory source unreachable: ${inventoryResult.reason instanceof Error ? inventoryResult.reason.message : String(inventoryResult.reason)}`,
+          ],
+          source: "validation-inventory-projection",
+          ownChangeId: changeId,
+          canConcludeClean: false,
+        };
+
+  const specs: Spec[] =
+    specsResult.status === "fulfilled" ? specsResult.value : [];
+
+  const proposalText: string =
+    proposalResult.status === "fulfilled"
+      ? proposalResult.value
+      : `# ${changeTitle}\n\n## Intent\n\n<!-- Auto-generated scaffold: proposal.md timed out or failed during validation input load. -->\n\n## Scope\n\n- (unknown — proposal.md not available)\n\n## User Outcomes\n\n- [ ] Users can see what outcome this change is meant to deliver\n- [ ] Discovery firms acceptance criteria and success criteria downstream\n`;
+
+  const changedSpecFiles: string[] | null | undefined =
+    gitResult.status === "fulfilled" ? gitResult.value : undefined;
+
+  // Any branch failure (timeout or unexpected error) structurally blocks a
+  // clean/pass verdict. Diagnostics from the inventory are still preserved.
+  const anyBranchFailed = [
+    inventoryResult,
+    specsResult,
+    proposalResult,
+    gitResult,
+  ].some((r) => r.status === "rejected");
+  if (anyBranchFailed) {
+    conflictInventory.canConcludeClean = false;
   }
 
-  // Build typed conflict inventory with complete enumeration
-  const inventoryEntries: ConflictInventoryEntry[] = [];
-  const inventoryWarnings: string[] = [];
-  let inventoryCompleteness: ConflictInventory["completeness"] = "complete";
-
-  // Load all changes (active + archived) for complete inventory
-  const changeList = await store.changes.list({
-    includeArchived: true,
-    includeClosed: true,
-  });
-
-  for (const changeSummary of changeList.changes) {
-    const isOwnChange = changeSummary.id === changeId;
-    const isArchived =
-      changeSummary.status === "archived" || changeSummary.status === "closed";
-
-    const entry: ConflictInventoryEntry = {
-      id: changeSummary.id,
-      title: changeSummary.title,
-      status: changeSummary.status,
-      capabilities: [],
-      isArchived,
-      isOwnChange,
-      ...(changeSummary.epic_membership
-        ? {
-            epic: {
-              id: changeSummary.epic_membership.epic_id,
-              title: changeSummary.epic_membership.title,
-              entry_id: changeSummary.epic_membership.entry_id,
-            },
-          }
-        : {}),
-    };
-
-    // Hydrate capabilities for non-archived, non-own changes
-    if (!isArchived && !isOwnChange) {
-      try {
-        const fullChangeResult = await store.changes.get(changeSummary.id);
-        if (fullChangeResult.success && fullChangeResult.data) {
-          entry.capabilities = Object.keys(fullChangeResult.data.deltas);
-        } else {
-          inventoryWarnings.push(
-            `Peer change ${changeSummary.id} could not be hydrated (no data)`,
-          );
-          inventoryCompleteness = "degraded";
-        }
-      } catch (err) {
-        inventoryWarnings.push(
-          `Peer change ${changeSummary.id} workflow unavailable: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        inventoryCompleteness = "degraded";
-      }
-    }
-
-    inventoryEntries.push(entry);
-  }
-
-  // If the store itself is unreachable, mark blocked
-  if (changeList.changes.length === 0 && inventoryWarnings.length === 0) {
-    try {
-      await store.changes.list({});
-    } catch (err) {
-      inventoryWarnings.push(
-        `Change inventory source unreachable: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      inventoryCompleteness = "blocked";
-    }
-  }
-
-  const conflictInventory: ConflictInventory = {
-    entries: inventoryEntries,
-    completeness: inventoryCompleteness,
-    warnings: inventoryWarnings,
-    source: "change-inventory",
-    ownChangeId: changeId,
-  };
-
-  // Legacy activeChanges array (non-archived, non-own, hydrated capabilities)
-  const activeChanges = inventoryEntries
+  // Legacy activeChanges array derived from the typed inventory.
+  const activeChanges = conflictInventory.entries
     .filter((e) => !e.isArchived && !e.isOwnChange)
     .map((e) => ({
       id: e.id,
@@ -1026,33 +1111,13 @@ export async function loadValidationContext(
       capabilities: e.capabilities ?? [],
     }));
 
-  const { content: proposalText } = await loadProposalForContext(
-    store,
-    changeId,
-    changeTitle,
-  );
-  // Detect worktree and compute merge-base-aware spec divergence
-  let changedSpecFiles: string[] | null | undefined = undefined;
-  try {
-    const gitPath = join(store.paths.root, ".git");
-    const gitStat = await stat(gitPath);
-    if (gitStat.isFile()) {
-      const gitFile = await readFile(gitPath, "utf-8");
-      if (gitFile.includes("gitdir:")) {
-        // We're in a worktree — compute spec divergence
-        changedSpecFiles = await computeChangedSpecFiles(store.paths.root);
-      }
-    }
-  } catch {
-    // best-effort only — changedSpecFiles stays undefined (not in worktree)
-  }
-  return {
+  return deepFreeze({
     specs,
     activeChanges,
     conflictInventory,
     proposalText,
     changedSpecFiles,
-  };
+  });
 }
 /**
  * Compute spec files that differ between current HEAD and the merge-base
