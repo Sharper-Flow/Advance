@@ -99,6 +99,7 @@ export function mapTemporalChangeStateToChange(
     ops_followup: safeState.ops_followup,
     ops_followup_links: safeState.ops_followup_links,
     epic_membership: safeState.epic_membership,
+    lightweight_profile: safeState.lightweight_profile,
   };
 }
 

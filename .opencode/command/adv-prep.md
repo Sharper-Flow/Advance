@@ -455,6 +455,10 @@ For each gap: resolve inline (read code, query docs, ask specific question). Re-
 
 `adv_gate_complete changeId: {change-id} gateId: planning userApproved: true` (no-op if Phase 8.5 already passed).
 
+### Lightweight Change Profile
+
+If the change has requested a lightweight profile, completing the planning gate triggers the host-side collector to perform the initial evaluation and the execution-boundary revalidation. The result is appended to `lightweight_profile.evaluations` and becomes available to the workflow directive for execution and acceptance routing. A non-qualified change continues under standard workflow requirements from the current gate.
+
 ### Completion
 
 Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):

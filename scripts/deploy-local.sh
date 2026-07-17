@@ -1471,6 +1471,21 @@ LEGACY_STALE_AGENT_FILES=(
 	refine.md
 	engineer.md
 )
+
+# Regenerate agent tool manifests from AGENT_TOOL_POLICY before syncing so
+# global copies never drift. Only --fix rewrites files; default sync and
+# --check rely on the committed baseline being already correct.
+if [ "$MODE" = "fix" ]; then
+	echo "    regenerating agent manifests from AGENT_TOOL_POLICY"
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run: would run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run generate:manifests)"
+	else
+		if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run generate:manifests); then
+			echo "    ⚠ agent manifest generation failed (continuing deploy)"
+		fi
+	fi
+fi
+
 if [ -d "$REPO_AGENTS" ]; then
 	for src in "$REPO_AGENTS"/*.md; do
 		[ -f "$src" ] || continue

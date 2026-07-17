@@ -119,6 +119,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   opsEvidenceAppended: "adv.change.opsEvidenceAppended",
   opsRunUpserted: "adv.change.opsRunUpserted",
   opsRunEvidenceAppended: "adv.change.opsRunEvidenceAppended",
+  lightweightProfileRequested: "adv.change.lightweightProfileRequested",
+  lightweightProfileEvaluated: "adv.change.lightweightProfileEvaluated",
   epicMembershipSet: "adv.change.epicMembershipSet",
   epicMembershipCleared: "adv.change.epicMembershipCleared",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
@@ -276,6 +278,7 @@ export interface ChangeWorkflowInput {
       | "signal_rejections_total"
       | "ops_followup"
       | "ops_followup_links"
+      | "lightweight_profile"
       | "epic_membership"
     >
   >;
@@ -563,6 +566,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * `opsFollowupLinkAddedSignal` (idempotent by link id).
    */
   ops_followup_links?: Change["ops_followup_links"];
+  /**
+   * Lightweight change profile state: request, immutable omission policy, and
+   * append-only evaluation history. Mirrors `ChangeSchema.lightweight_profile`.
+   * Set by `lightweightProfileRequestedSignal` and
+   * `lightweightProfileEvaluatedSignal`.
+   */
+  lightweight_profile?: Change["lightweight_profile"];
   /**
    * Per-gate criteria evaluated at completion time.
    * Advisory audit trail — criteria are not blocking.

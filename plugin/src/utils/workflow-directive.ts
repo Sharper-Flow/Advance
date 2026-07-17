@@ -24,7 +24,12 @@
 import type { GateId, GateReadinessBlocker } from "../types";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import type { Bucket } from "./buckets";
-import type { DirectiveContext, PhasePlan, PlanRecovery } from "./phase-plan";
+import type {
+  DirectiveContext,
+  DirectiveLightweightProfile,
+  PhasePlan,
+  PlanRecovery,
+} from "./phase-plan";
 import { derivePhasePlan, directiveCtxFromState } from "./phase-plan";
 
 // =============================================================================
@@ -68,6 +73,11 @@ export interface WorkflowDirective {
   blockers: GateReadinessBlocker[];
   canArchive: boolean;
   bucket: Bucket;
+  /**
+   * Lightweight change profile routing info. Undefined when the change has
+   * not requested a lightweight profile.
+   */
+  lightweightProfile?: DirectiveLightweightProfile;
 }
 
 // =============================================================================
@@ -134,6 +144,7 @@ export function directiveFromPlan(
     blockers: ctx.blockers,
     canArchive: ctx.canArchive,
     bucket: ctx.bucket,
+    lightweightProfile: ctx.lightweightProfile,
   };
 }
 
@@ -165,7 +176,7 @@ export function deriveWorkflowDirective(
  * Intentionally NOT used from `temporal/workflows.ts`: inside the workflow the
  * state is always well-formed and a throw must surface deterministically rather
  * than be masked. Logging is the caller's responsibility — this module stays
- * workflow-safe (no debug-log import, no `node:*`).
+ * workflow-safe (no debug-log import, no `node:`).
  */
 export function deriveDirectiveSafe(
   state: ChangeWorkflowState,

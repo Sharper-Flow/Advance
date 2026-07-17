@@ -75,6 +75,7 @@ import {
 import { existsSync } from "fs";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveGitSessionContext } from "./utils/git-session";
+import { roleFirewallCheck } from "./tool-role-firewall";
 import {
   evaluateTodoWriteGuard,
   extractTodoTaskIds,
@@ -605,6 +606,13 @@ const advancePluginImpl: Plugin = async (input) => {
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
+    roleFirewallCheck({
+      toolName,
+      callerSessionID:
+        typeof input.sessionID === "string" ? input.sessionID : undefined,
+      mainSessionId,
+    });
+
     if (toolName === "morph_edit") {
       const sessionID =
         typeof input.sessionID === "string" ? input.sessionID : "";

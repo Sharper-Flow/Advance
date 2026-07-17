@@ -29,10 +29,17 @@ vi.mock("../plugin-init", async () => {
   };
 });
 
-vi.mock("../tool-registry", () => ({
-  createToolMap: vi.fn(() => ({})),
-  createDegradedToolMap: vi.fn(() => ({})),
-}));
+vi.mock("../tool-registry", async () => {
+  const actual =
+    await vi.importActual<typeof import("../tool-registry")>(
+      "../tool-registry",
+    );
+  return {
+    ...actual,
+    createToolMap: vi.fn(() => ({})),
+    createDegradedToolMap: vi.fn(() => ({})),
+  };
+});
 
 const createMockPluginInput = (directory: string) => ({
   project: {
@@ -158,6 +165,14 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
 
   const createPlugin = async () => {
     hooks = await AdvancePlugin(createMockPluginInput(tempDir) as any);
+    await setMainSession("main");
+  };
+
+  const setMainSession = async (sessionID: string = "main") => {
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID } as any,
+      { system: [] } as any,
+    );
   };
 
   describe("T4 — recordTerminalChange post-output hook", () => {
@@ -271,7 +286,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       expect(getStatus().activeChangeId).toBe(activeId);
       await expect(
         hooks["tool.execute.before"]!(
-          { tool: "adv_change_forget" } as any,
+          { tool: "adv_change_forget", sessionID: "main" } as any,
           { args: { changeId: "wrongId" } } as any,
         ),
       ).rejects.toThrow(/FORGET_MISMATCH/);
@@ -281,7 +296,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       await createPlugin();
       await expect(
         hooks["tool.execute.before"]!(
-          { tool: "adv_change_forget" } as any,
+          { tool: "adv_change_forget", sessionID: "main" } as any,
           { args: { changeId: "anything" } } as any,
         ),
       ).resolves.toBeUndefined();
@@ -320,7 +335,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_change_show" } as any,
+        { tool: "adv_change_show", sessionID: "main" } as any,
         { args: { changeId: "realChange" } } as any,
       );
       expect(getStatus().activeChangeId).toBeNull();
@@ -342,7 +357,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       expect(getStatus().activeChangeId).toBe("activeA");
 
       await hooks["tool.execute.before"]!(
-        { tool: "adv_gate_status" } as any,
+        { tool: "adv_gate_status", sessionID: "main" } as any,
         { args: { changeId: "otherB" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("activeA");
@@ -364,7 +379,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       expect(getStatus().activeChangeId).toBe("activeA");
 
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
+        { tool: "adv_task_list", sessionID: "main" } as any,
         { args: { changeId: "otherB" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("activeA");
@@ -377,7 +392,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_update" } as any,
+        { tool: "adv_task_update", sessionID: "main" } as any,
         { args: { changeId: "realChange" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("realChange");
@@ -390,13 +405,13 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_update" } as any,
+        { tool: "adv_task_update", sessionID: "main" } as any,
         { args: { changeId: "existingChange" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("existingChange");
 
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_update" } as any,
+        { tool: "adv_task_update", sessionID: "main" } as any,
         { args: { changeId: "typoChange" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("existingChange");
@@ -413,7 +428,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       mockStore = makeFakeStore({ changesDir });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_update" } as any,
+        { tool: "adv_task_update", sessionID: "main" } as any,
         { args: { changeId: diskOnlyId } } as any,
       );
       expect(getStatus().activeChangeId).toBe(diskOnlyId);
@@ -426,7 +441,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_update" } as any,
+        { tool: "adv_task_update", sessionID: "main" } as any,
         {
           args: {
             changeId: "otherProjectChange",
@@ -454,7 +469,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       expect(getStatus().activeChangeId).toBe("ghost");
       // Forget should succeed even though the change is not reachable.
       await hooks["tool.execute.before"]!(
-        { tool: "adv_change_forget" } as any,
+        { tool: "adv_change_forget", sessionID: "main" } as any,
         { args: { changeId: "ghost" } } as any,
       );
       await hooks["tool.execute.after"]!(

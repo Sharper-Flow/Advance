@@ -28,16 +28,18 @@ tools:
   arxiv-mcp_*: true
   episode_recall: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools - spec/change queries + own optimized handoff report only
-  adv_spec: true
-  adv_status: true
   adv_change_list: true
   adv_change_show: true
-  adv_change_update: false
-  adv_snapshot_health: true
   adv_project_context: true
+  adv_snapshot_health: true
+  adv_spec: true
+  adv_status: true
   adv_subagent_report_submit: true
+  adv_change_update: false
+  # <<< ADV-GENERATED adv_* tools <<<
   # UX tools
   question: true
   # Disabled - research agents don't write code

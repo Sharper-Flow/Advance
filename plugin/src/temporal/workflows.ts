@@ -52,6 +52,8 @@ import {
   applyGateInProgressToState,
   applyGateReenteredToState,
   applyGateStuckToState,
+  applyLightweightProfileEvaluatedToState,
+  applyLightweightProfileRequestedToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
   applyOpsRunEvidenceAppendedToState,
@@ -414,6 +416,12 @@ const opsRunUpsertedSignal = wf.defineSignal<
 const opsRunEvidenceAppendedSignal = wf.defineSignal<
   [import("../types").OpsRunEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunEvidenceAppended);
+const lightweightProfileRequestedSignal = wf.defineSignal<
+  [import("../types").LightweightProfileRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileRequested);
+const lightweightProfileEvaluatedSignal = wf.defineSignal<
+  [import("../types").LightweightProfileEvaluatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileEvaluated);
 const epicMembershipSetSignal = wf.defineSignal<
   [import("../types").EpicMembershipSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
@@ -695,6 +703,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.ops_followup_links) {
       state.ops_followup_links = [...input.seedState.ops_followup_links];
+    }
+    if (input.seedState.lightweight_profile) {
+      state.lightweight_profile = input.seedState.lightweight_profile;
     }
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
@@ -1628,6 +1639,18 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    lightweightProfileRequestedSignal,
+    signalMutation("lightweightProfileRequested", (payload) =>
+      applyLightweightProfileRequestedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    lightweightProfileEvaluatedSignal,
+    signalMutation("lightweightProfileEvaluated", (payload) =>
+      applyLightweightProfileEvaluatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     epicMembershipSetSignal,
     signalMutation("epicMembershipSet", (payload) =>
       applyEpicMembershipSetToState(state, payload),
@@ -1782,6 +1805,7 @@ export async function changeWorkflow(
       signal_rejections_total: state.signal_rejections_total,
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
+      lightweight_profile: state.lightweight_profile,
       epic_membership: state.epic_membership,
     },
   };

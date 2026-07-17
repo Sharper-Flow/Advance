@@ -93,6 +93,12 @@ class rather than operator-only.
 | `adv_change_reenter` | orchestrator | Gate re-entry |
 | `adv_change_forget` | orchestrator | In-memory session active-change pointer clear; no persistent mutation |
 
+### Lightweight change profile
+
+| Tool | Class | Notes |
+|---|---|---|
+| `adv_lightweight_profile_evaluate` | orchestrator | Host-side evidence collection + Temporal signal for gate-bound lightweight profile evaluation |
+
 ### Epic
 
 | Tool | Class | Notes |
@@ -167,6 +173,8 @@ class rather than operator-only.
 | `adv_worktree_delete` | orchestrator | Worktree deletion (merge-before-delete) |
 | `adv_worktree_cleanup` | orchestrator | Worktree hygiene; `archived_branches` mode is operator-explicit (dry-run first) |
 | `adv_worktree_triage` | orchestrator | Read-only worktree inventory |
+| `adv_tool_catalog` | orchestrator | Bounded read-only catalog of canonical ADV tools with descriptive visibility metadata |
+| `adv_tool_describe` | orchestrator | Read-only single-tool schema/metadata projection; no handler invocation |
 
 ## Removed Tools and Replacements
 
@@ -200,6 +208,10 @@ This matrix is the documented view. The code-owned enforcement lives in
 `plugin/src/tool-role-policy.ts`: an exhaustive role classification of every
 retained canonical tool (including the action-level dual distinctions above)
 plus the intended ADV allowlist per shipped agent manifest.
+`plugin/src/tool-role-firewall.ts` is the runtime backstop: `tool.execute.before`
+derives its blockable set as the complement of the spawned-agent allowlist
+union, permits that set only for the captured main session, and fails closed
+when role or policy resolution is unavailable.
 `plugin/src/tool-role-policy.test.ts` fails CI when the policy and this
 document disagree, when an agent manifest's ADV grants diverge from the
 intended allowed set, or when a non-orchestrator agent can reach an

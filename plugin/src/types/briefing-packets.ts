@@ -41,6 +41,48 @@ export const BRIEFING_PACKET_LANE_TO_AGENT: Record<
   visual_review: "adv-visual-review",
 };
 
+/**
+ * Exhaustive, discriminated grant-source descriptors for every briefing lane.
+ *
+ * - `manifest` lanes are backed by an agent manifest key in AGENT_TOOL_POLICY.
+ * - `virtual` lanes are orchestrator-submitted bundle identities (scanner /
+ *   verifier) and do NOT have independent manifests.
+ * - `archive` is a terminal read lane with no worker manifest grant.
+ */
+export interface ManifestLaneDescriptor {
+  readonly kind: "manifest";
+  /** Agent manifest key in AGENT_TOOL_POLICY. */
+  readonly agent: string;
+}
+
+export interface VirtualLaneDescriptor {
+  readonly kind: "virtual";
+  /** Orchestrator-submitted bundle identity; no independent manifest. */
+  readonly bundle: "adv-scanner-bundle" | "adv-verification-triage-bundle";
+}
+
+export interface ArchiveLaneDescriptor {
+  readonly kind: "archive";
+}
+
+export type BriefingPacketLaneDescriptor =
+  | ManifestLaneDescriptor
+  | VirtualLaneDescriptor
+  | ArchiveLaneDescriptor;
+
+export const BRIEFING_PACKET_LANE_DESCRIPTORS: Readonly<
+  Record<BriefingPacketLane, BriefingPacketLaneDescriptor>
+> = {
+  researcher: { kind: "manifest", agent: "adv-researcher" },
+  engineer: { kind: "manifest", agent: "adv-engineer" },
+  designer: { kind: "manifest", agent: "adv-designer" },
+  reviewer: { kind: "manifest", agent: "adv-reviewer" },
+  scanner: { kind: "virtual", bundle: "adv-scanner-bundle" },
+  verifier: { kind: "virtual", bundle: "adv-verification-triage-bundle" },
+  visual_review: { kind: "manifest", agent: "adv-visual-review" },
+  archive: { kind: "archive" },
+};
+
 export const BriefingFactOutcomeSchema = z.enum([
   "transient_prompt_context",
   // retireAgendaWorkflow: replaces the retired "agenda" label. Facts carrying

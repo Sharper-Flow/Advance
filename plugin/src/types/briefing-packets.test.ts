@@ -6,6 +6,7 @@ import {
   BriefingPacketLaneSchema,
   BriefingPacketSchema,
   BriefingPacketSectionKindSchema,
+  BRIEFING_PACKET_LANE_DESCRIPTORS,
   BRIEFING_PACKET_LANE_SCHEMA_VERSION,
   BRIEFING_PACKET_LANE_TO_AGENT,
   getBriefingPacketArchiveAnchors,
@@ -15,6 +16,7 @@ import {
   getSubagentReportPacketAnchors,
   SubagentAgentSchema,
 } from "./subagent-reports";
+import { AGENT_TOOL_POLICY } from "../tool-role-policy";
 
 describe("Briefing packet type foundations", () => {
   it("defines the expected lane set including archive", () => {
@@ -166,5 +168,69 @@ describe("Briefing packet type foundations", () => {
       "unavailable_state",
     );
     expect(BriefingPacketSectionKindSchema.options).toContain("archive_digest");
+  });
+});
+
+describe("Briefing packet lane descriptors", () => {
+  it("defines a descriptor for every lane", () => {
+    for (const lane of BriefingPacketLaneSchema.options) {
+      expect(BRIEFING_PACKET_LANE_DESCRIPTORS[lane]).toBeDefined();
+    }
+  });
+
+  it("maps manifest lanes to AGENT_TOOL_POLICY keys", () => {
+    const manifestLanes = Object.entries(BRIEFING_PACKET_LANE_DESCRIPTORS)
+      .filter(([, d]) => d.kind === "manifest")
+      .map(([lane]) => lane)
+      .sort();
+    expect(manifestLanes).toEqual([
+      "designer",
+      "engineer",
+      "researcher",
+      "reviewer",
+      "visual_review",
+    ]);
+
+    for (const [lane, d] of Object.entries(BRIEFING_PACKET_LANE_DESCRIPTORS)) {
+      if (d.kind === "manifest") {
+        expect(
+          AGENT_TOOL_POLICY.map((p) => p.agent),
+          `lane ${lane} agent ${d.agent} is in AGENT_TOOL_POLICY`,
+        ).toContain(d.agent);
+      }
+    }
+  });
+
+  it("does not let virtual lanes claim manifest grants", () => {
+    expect(BRIEFING_PACKET_LANE_DESCRIPTORS.scanner).toEqual({
+      kind: "virtual",
+      bundle: "adv-scanner-bundle",
+    });
+    expect(BRIEFING_PACKET_LANE_DESCRIPTORS.verifier).toEqual({
+      kind: "virtual",
+      bundle: "adv-verification-triage-bundle",
+    });
+
+    for (const lane of ["scanner", "verifier"] as const) {
+      const d = BRIEFING_PACKET_LANE_DESCRIPTORS[lane];
+      expect(d.kind).toBe("virtual");
+      expect(d).not.toHaveProperty("agent");
+    }
+  });
+
+  it("does not let archive claim a manifest grant", () => {
+    expect(BRIEFING_PACKET_LANE_DESCRIPTORS.archive).toEqual({
+      kind: "archive",
+    });
+    expect(BRIEFING_PACKET_LANE_DESCRIPTORS.archive).not.toHaveProperty(
+      "agent",
+    );
+  });
+
+  it("kept virtual lane descriptors consistent with the bundle-to-agent map", () => {
+    expect(BRIEFING_PACKET_LANE_TO_AGENT.scanner).toBe("adv-scanner-bundle");
+    expect(BRIEFING_PACKET_LANE_TO_AGENT.verifier).toBe(
+      "adv-verification-triage-bundle",
+    );
   });
 });

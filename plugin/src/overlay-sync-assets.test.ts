@@ -219,9 +219,12 @@ describe("overlay sync script support", () => {
       writeFileSync(
         join(fakeBin, "pnpm"),
         `#!/usr/bin/env bash
-printf '%s %s\n' "$PWD" "$*" >> "$FAKE_PNPM_LOG"
+printf '%s %s\\n' "$PWD" "$*" >> "$FAKE_PNPM_LOG"
 if [ "\${FAKE_PNPM_FAIL:-}" = "1" ]; then
   exit 42
+fi
+if [ "$1 $2" = "run generate:manifests" ]; then
+  exit 0
 fi
 if [ "\${FAKE_PNPM_NO_REFRESH:-}" = "1" ]; then
   exit 0
@@ -303,7 +306,9 @@ exit 0
         FAKE_RSYNC_LOG: rsyncLog,
       });
       expect(freshResult.status).toBe(0);
-      expect(existsSync(pnpmLog)).toBe(false);
+      const freshPnpmLog = readFileSync(pnpmLog, "utf8");
+      expect(freshPnpmLog).toContain("run generate:manifests");
+      expect(freshPnpmLog).not.toContain("run build");
       expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
       rmSync(rsyncLog, { force: true });
 
@@ -350,7 +355,9 @@ exit 0
         FAKE_RSYNC_LOG: rsyncLog,
       });
       expect(successResult.status).toBe(0);
-      expect(readFileSync(pnpmLog, "utf8")).toContain("run build");
+      const successPnpmLog = readFileSync(pnpmLog, "utf8");
+      expect(successPnpmLog).toContain("run build");
+      expect(successPnpmLog).toContain("run generate:manifests");
       expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
     } finally {
       spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
