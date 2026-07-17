@@ -230,7 +230,10 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("check_rsync");
       expect(content).toContain("command -v rsync");
       expect(content).toContain(
-        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
+      );
+      expect(content).toContain(
+        '"$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
       );
     });
 
@@ -247,7 +250,7 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("list_deployed_temporal_worker_matches");
 
       const syncIndex = content.indexOf(
-        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
       );
       const refreshIndex = content.indexOf(
         'refresh_deployed_temporal_workers "after-sync"',

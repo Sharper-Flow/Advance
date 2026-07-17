@@ -418,6 +418,17 @@ Before TDD phases, evaluate each task for delegation eligibility:
 
 Step 1.5 (`metadata.frontend`) routes UI/component work to `adv-designer` instead of `adv-engineer`. Priority 1 (`metadata.delegation_hint`) remains the explicit user override and wins over Step 1.5; Step 4 risk signals still force inline. Step 4.5 does not override Step 1 or Step 4; priority order is authoritative.
 
+### Lightweight Change Profile (execution boundary)
+
+After `/adv-prep` completes, the lightweight profile is evaluated automatically. If the profile result is `qualified`, the change is eligible for the bounded omission policy exposed in the workflow directive (`_directive.lightweightProfile`):
+
+- `omitDeepScans` — skip optional deep codebase scans
+- `omitGenericExternalResearch` — skip generic external research
+- `omitOpportunityScouting` — skip opportunity scouting
+- `omitDefaultSpecialistDelegation` — skip default specialist delegation
+
+This omission policy never overrides explicit `delegation_hint` (Priority 1), risk-forced `inline_required`, spec/conflict checks, targeted verification, review, human approvals, worktree isolation, or release checks. If the profile result is `ineligible` or `downgraded`, apply standard workflow requirements with no omissions.
+
 Hint semantics:
 
 - `inline_required` → never delegate

@@ -19,11 +19,12 @@ tools:
   bash: true
 
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # Read-only ADV context only
-  adv_spec: true
-  adv_project_context: true
   adv_change_show: true
+  adv_project_context: true
+  adv_spec: true
   adv_task_list: true
 
   # Disabled — no edits, no nested delegation, no user prompts/todos
@@ -36,17 +37,18 @@ tools:
   todowrite: false
 
   # Disabled — no ADV orchestration mutation or report submission
-  adv_subagent_report_submit: false
+  adv_change_archive: false
+  adv_change_close: false
   adv_change_create: false
   adv_change_update: false
-  adv_change_close: false
-  adv_task_add: false
-  adv_task_update: false
-  adv_task_cancel: false
   adv_gate_complete: false
-  adv_change_archive: false
+  adv_subagent_report_submit: false
+  adv_task_add: false
+  adv_task_cancel: false
+  adv_task_update: false
   adv_worktree_create: false
   adv_worktree_delete: false
+  # <<< ADV-GENERATED adv_* tools <<<
 ---
 
 You are `adv-verifier`, a local verify-only sub-agent for ADV.

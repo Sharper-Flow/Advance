@@ -171,6 +171,14 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
+    // Tool catalog page limit: 0 placeholder fills normalize to omitted so
+    // the handler default (50) applies; bounded read, no safety impact.
+    toolName: "adv_tool_catalog",
+    field: "limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
     // dry_run page limit: 0 placeholder fills normalize to omitted so the
     // handler default (20) applies; bounded read, no safety impact.
     toolName: "adv_store_cleanup",

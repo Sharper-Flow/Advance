@@ -34,6 +34,8 @@ import type {
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
   OriginRepairedSignalPayload,
+  LightweightProfileEvaluatedSignalPayload,
+  LightweightProfileRequestedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
@@ -190,6 +192,7 @@ export function changeSeedStateFromChange(
     ops_followup: safeChange.ops_followup,
     ops_followup_links: safeChange.ops_followup_links,
     epic_membership: safeChange.epic_membership,
+    lightweight_profile: safeChange.lightweight_profile,
   };
 }
 
@@ -413,6 +416,40 @@ export function applyOpsRunEvidenceAppendedToState(
     updated_at: payload.appendedAt,
   };
   setLastSignalAt(state, payload.appendedAt);
+  return state;
+}
+
+export function applyLightweightProfileRequestedToState(
+  state: ChangeWorkflowState,
+  payload: LightweightProfileRequestedSignalPayload,
+): ChangeWorkflowState {
+  state.lightweight_profile = {
+    request: payload.request,
+    omissionPolicy: payload.omissionPolicy,
+    evaluations: [],
+  };
+  setLastSignalAt(state, payload.requestedAt);
+  return state;
+}
+
+export function applyLightweightProfileEvaluatedToState(
+  state: ChangeWorkflowState,
+  payload: LightweightProfileEvaluatedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.lightweight_profile;
+  if (!existing) {
+    throw new Error(
+      "Cannot append lightweight profile evaluation: no profile request exists",
+    );
+  }
+  const key = payload.evaluation.evaluationKey;
+  if (existing.evaluations.some((entry) => entry.evaluationKey === key)) {
+    // Stable idempotency: same request/phase/fingerprint retry is a no-op.
+    setLastSignalAt(state, payload.evaluatedAt);
+    return state;
+  }
+  existing.evaluations.push(payload.evaluation);
+  setLastSignalAt(state, payload.evaluatedAt);
   return state;
 }
 
