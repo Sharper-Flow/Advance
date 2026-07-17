@@ -12,11 +12,8 @@ tools:
   lgrep_get_file_outline: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
-  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
-  # Default-deny wildcard
   adv_*: false
   # ADV state reads and classifier tools
-  # Allowed
   adv_change_list: true
   adv_change_show: true
   adv_gate_status: true
@@ -34,7 +31,6 @@ tools:
   write: false
   edit: false
   morph_edit: false
-  # Explicitly blocked
   adv_change_archive: false
   adv_change_update: false
   adv_gate_complete: false

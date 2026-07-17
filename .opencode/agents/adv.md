@@ -33,8 +33,6 @@ tools:
   # === ADV tools — full suite for 7-gate orchestration ===
   # Specs + project context
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
-  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
-  # Allowed
   adv_archive_purge: true
   adv_archive_repair: true
   adv_backlog_add: true

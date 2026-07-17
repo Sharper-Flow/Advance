@@ -29,11 +29,8 @@ tools:
   episode_recall: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
-  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
-  # Default-deny wildcard
   adv_*: false
   # ADV tools - spec/change queries + own optimized handoff report only
-  # Allowed
   adv_change_list: true
   adv_change_show: true
   adv_project_context: true
@@ -41,7 +38,6 @@ tools:
   adv_spec: true
   adv_status: true
   adv_subagent_report_submit: true
-  # Explicitly blocked
   adv_change_update: false
   # <<< ADV-GENERATED adv_* tools <<<
   # UX tools

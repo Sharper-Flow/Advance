@@ -41,29 +41,24 @@ export function generateAdvToolsBlock(agent: string): string {
     );
   }
 
-  const lines: string[] = [
-    "  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)",
-  ];
+  const lines: string[] = [];
 
   if (policy.denyWildcard) {
-    lines.push("  # Default-deny wildcard");
     lines.push("  adv_*: false");
   }
 
   const allowed = sortedUnique(policy.allowed);
-  if (allowed.length > 0) {
-    lines.push("  # Allowed");
-    for (const tool of allowed) {
-      lines.push(`  ${tool}: true`);
-    }
+  for (const tool of allowed) {
+    lines.push(`  ${tool}: true`);
   }
 
   const blocked = sortedUnique(policy.explicitBlocked);
-  if (blocked.length > 0) {
-    lines.push("  # Explicitly blocked");
-    for (const tool of blocked) {
-      lines.push(`  ${tool}: false`);
-    }
+  for (const tool of blocked) {
+    lines.push(`  ${tool}: false`);
+  }
+
+  if (lines.length === 0) {
+    return "";
   }
 
   return lines.join("\n") + "\n";
@@ -141,13 +136,15 @@ function groupGeneratedBlock(
   return groups;
 }
 
-function managedCommentLines(agent: string): Set<string> {
-  const block = generateAdvToolsBlock(agent);
-  return new Set(
-    block
-      .split("\n")
-      .filter((line) => line.trim() !== "" && !isAdvEntry(line)),
-  );
+const GENERATED_COMMENT_LINES = new Set([
+  "  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)",
+  "  # Default-deny wildcard",
+  "  # Allowed",
+  "  # Explicitly blocked",
+]);
+
+function managedCommentLines(): Set<string> {
+  return GENERATED_COMMENT_LINES;
 }
 
 function mergeRegionWithGenerated(

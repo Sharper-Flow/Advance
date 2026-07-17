@@ -19,11 +19,8 @@ tools:
 
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
-  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
-  # Default-deny wildcard
   adv_*: false
   # ADV tools - read-only spec/change queries + own report submit
-  # Allowed
   adv_change_list: true
   adv_change_show: true
   adv_project_context: true
@@ -40,7 +37,6 @@ tools:
   task: false
 
   # Disabled - no ADV orchestration mutations beyond own optimized report submit
-  # Explicitly blocked
   adv_change_create: false
   adv_gate_complete: false
   adv_task_add: false

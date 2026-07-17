@@ -38,11 +38,8 @@ tools:
   playwright_*: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
-  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
-  # Default-deny wildcard
   adv_*: false
   # === ADV reads (narrow, read-only) ===
-  # Allowed
   adv_change_show: true
   adv_gate_status: true
   adv_project_context: true
@@ -57,7 +54,6 @@ tools:
   # === ADV evidence/test (task-level only) ===
   adv_wisdom_add: true
   adv_wisdom_list: true
-  # Explicitly blocked
   adv_change_archive: false
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   adv_change_close: false

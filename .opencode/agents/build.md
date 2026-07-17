@@ -43,11 +43,8 @@ tools:
   firecrawl_firecrawl_check_crawl_status: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
-  # ADV tool grants (generated from AGENT_TOOL_POLICY — do not edit by hand)
-  # Default-deny wildcard
   adv_*: false
   # === ADV reads ===
-  # Allowed
   adv_change_list: true
   adv_change_show: true
   adv_change_validate: true
@@ -65,7 +62,6 @@ tools:
   adv_wisdom_add: true
   adv_wisdom_list: true
   # === BLOCKED: Orchestration and gate management ===
-  # Explicitly blocked
   adv_change_archive: false
   adv_change_create: false
   adv_change_reenter: false
