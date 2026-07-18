@@ -61,6 +61,12 @@ export interface ArchiveOperationResult {
   wisdomPromoted?: number;
   /** Multi-repo archive refs/preflight metadata, when change has scope_repos */
   multiRepo?: MultiRepoArchiveMetadata;
+  /** Terminal summary degradation; present when the sidecar could not be
+   *  written but the change.json authority remains valid (legacy fallback). */
+  terminalSummaryDegradation?: {
+    reason: string;
+    fallback: "legacy_change_json";
+  };
 }
 
 export interface MultiRepoArchiveRepoMetadata {

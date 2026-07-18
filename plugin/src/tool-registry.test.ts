@@ -145,9 +145,12 @@ describe("createDegradedToolMap parity with createToolMap", () => {
           }),
         }),
       );
-      expect(
-        JSON.parse((result as { output: string }).output).sessions,
-      ).toEqual([]);
+      const parsed = JSON.parse((result as { output: string }).output) as {
+        sessions?: unknown[];
+        total?: number;
+      };
+      expect(Array.isArray(parsed.sessions)).toBe(true);
+      expect(typeof parsed.total).toBe("number");
     } finally {
       store.close();
     }
@@ -386,7 +389,7 @@ describe("KD-8 worktree + session tool registrations", () => {
     }
   });
 
-  test("adv_session_list smoke-test returns empty sessions in test fixture", async () => {
+  test("adv_session_list smoke-test returns a privacy-safe schema without leaking host details", async () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const tool = map.adv_session_list as {
       execute: (args: unknown) => Promise<string | { output: string }>;
@@ -398,10 +401,33 @@ describe("KD-8 worktree + session tool registrations", () => {
       sessions?: unknown[];
       total?: number;
     };
-    // After projectWorkflow retirement, initStateDb never throws;
-    // sessions are local-only and empty in test fixtures.
-    expect(parsed.sessions).toEqual([]);
-    expect(parsed.total).toBe(0);
+
+    // KD-8 uses live /proc peer detection, so a Linux host may see itself.
+    // Do not assert emptiness; verify the privacy contract and parseability.
+    expect(Array.isArray(parsed.sessions)).toBe(true);
+    expect(typeof parsed.total).toBe("number");
+
+    if (parsed.sessions && parsed.sessions.length > 0) {
+      for (const entry of parsed.sessions) {
+        expect(entry).toEqual(
+          expect.objectContaining({
+            sessionId: expect.any(String),
+            startedAt: expect.any(String),
+            worktree: expect.any(String),
+            isSelf: expect.any(Boolean),
+          }),
+        );
+        expect(entry).not.toHaveProperty("pid");
+        expect(entry).not.toHaveProperty("cwd");
+        expect(entry).not.toHaveProperty("worktreePath");
+        expect(entry).not.toHaveProperty("activeChangeId");
+        expect(entry).not.toHaveProperty("currentTaskId");
+        expect(entry).not.toHaveProperty("activeGate");
+        const { worktree } = entry as { worktree: string };
+        expect(worktree).not.toContain("/");
+      }
+      expect(parsed.total).toBe(parsed.sessions.length);
+    }
   });
 
   test("legacy standalone worktree aliases are not registered", async () => {
