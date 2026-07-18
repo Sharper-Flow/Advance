@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "vitest";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import {
@@ -9,6 +9,7 @@ import {
 } from "./terminal-history";
 import {
   buildTerminalArchiveSummary,
+  sha256HexString,
   serializeTerminalArchiveSummary,
 } from "./terminal-summary";
 import type { Change } from "../types";
@@ -72,15 +73,13 @@ async function writeArchiveBundle(
 ): Promise<void> {
   const archiveDir = join(tempDir, ".adv", "archive", change.id);
   await mkdir(archiveDir, { recursive: true });
-  await writeFile(
-    join(archiveDir, "change.json"),
-    JSON.stringify(change, null, 2) + "\n",
-  );
+  const changeJson = JSON.stringify(change, null, 2) + "\n";
+  await writeFile(join(archiveDir, "change.json"), changeJson);
   if (writeSummary) {
     const summary = buildTerminalArchiveSummary({
       change,
       archivedAt: "2026-07-18T12:00:00.000Z",
-      changeHash: "abc123",
+      changeHash: sha256HexString(changeJson),
     });
     await writeFile(
       join(archiveDir, "summary.v1.json"),
@@ -171,6 +170,28 @@ describe("renderTerminalHistory", () => {
 
     expect(result.changes).toHaveLength(1);
     expect(rowById(result, "archived-bad-summary")?.status).toBe("archived");
+  });
+
+  test("falls back to legacy change.json when summary hashes are incoherent", async () => {
+    const change = makeChange("archived-tampered-summary", "archived");
+    await writeArchiveBundle(tempDir!, change, true);
+    const summaryPath = join(
+      tempDir!,
+      ".adv",
+      "archive",
+      change.id,
+      "summary.v1.json",
+    );
+    const summary = JSON.parse(await readFile(summaryPath, "utf-8"));
+    summary.title = "Tampered title";
+    await writeFile(summaryPath, JSON.stringify(summary) + "\n");
+
+    const result = await renderTerminalHistory({
+      archivePath: join(tempDir!, ".adv", "archive"),
+      includeArchived: true,
+    });
+
+    expect(rowById(result, change.id)?.title).toBe(`Change ${change.id}`);
   });
 
   test("produces a typed omission when both summary and legacy change.json fail", async () => {

@@ -11,6 +11,7 @@
  * cache warmth for correctness.
  */
 
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -25,6 +26,7 @@ import {
   TERMINAL_SUMMARY_FILE,
   type TerminalArchiveSummary,
   validateTerminalArchiveSummary,
+  verifyTerminalArchiveSummaryHash,
 } from "./terminal-summary";
 import { createLogger } from "../utils/debug-log";
 import type {
@@ -159,7 +161,19 @@ async function loadArchiveBundleRow(
       deadline,
     );
     const summary = parseSummary(raw);
-    if (summary) {
+    if (summary && verifyTerminalArchiveSummaryHash(summary)) {
+      const changeJson = await raceWithDeadline(
+        readFile(join(bundlePath, "change.json"), "utf-8"),
+        deadline,
+      );
+      const changeHash = createHash("sha256")
+        .update(changeJson, "utf-8")
+        .digest("hex");
+      if (summary.change_hash !== changeHash) {
+        throw new Error(
+          "Terminal summary change_hash does not match change.json",
+        );
+      }
       return summaryToRow(summary);
     }
   } catch (err) {

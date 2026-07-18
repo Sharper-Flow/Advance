@@ -1352,9 +1352,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // directly. We deliberately avoid `legacy.changes.get` because it
         // performs archive-bundle dominance/self-heal reads for the general
         // listing path. The authority performs no unbounded archive scans:
-        // terminal-shadow reconciliation reads only the single terminal record
-        // needed to confirm a shadow and exclude it from active membership.
+        // terminal-shadow reconciliation uses only the active durable record;
+        // archive bundles never participate in conflict authority.
         let diskResult: Awaited<ReturnType<typeof loadChange>> | undefined;
+        let terminalProjection = false;
         try {
           diskResult = await raceWithTemporalDeadline(
             loadChange(legacy.paths.changes, changeId),
@@ -1383,53 +1384,23 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           // stale shadow. If the terminal record can be confirmed, exclude it
           // from active membership without making the authority incomplete.
           if (data.status === "archived" || data.status === "closed") {
-            if (data.status === "closed") {
-              // The closed disk sentinel is itself the durable terminal record.
-              return { kind: "shadow" };
-            }
-
-            // Archived shadows require the durable archive bundle to confirm
-            // terminal truth; the active disk `change.json` may be a stale
-            // leftover. Without a confirming bundle the authority is incomplete.
-            if (!legacy.paths.archive) {
-              return {
-                kind: "fail",
-                warning: `Active candidate ${changeId} has terminal durable projection (archived) but no archive path is configured; cannot reconcile shadow.`,
-              };
-            }
-            try {
-              const hasBundle = await raceWithTemporalDeadline(
-                hasArchiveBundle(legacy.paths.archive, changeId),
-                deadline,
-              );
-              if (hasBundle) {
-                return { kind: "shadow" };
-              }
-              return {
-                kind: "fail",
-                warning: `Active candidate ${changeId} has terminal durable projection (archived) but no archive bundle confirms it; cannot reconcile shadow.`,
-              };
-            } catch (err) {
-              const hitDeadline =
-                err instanceof TemporalQueryTimeoutError || expired();
-              return {
-                kind: "fail",
-                warning: `Active candidate ${changeId} archive-bundle shadow check failed${hitDeadline ? " (deadline)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
-              };
-            }
+            // Visibility and the durable projection disagree. Confirm terminal
+            // state through the already-authoritative active workflow fallback,
+            // never through non-authoritative archive history.
+            terminalProjection = true;
+          } else {
+            return {
+              kind: "fact",
+              fact: {
+                id: data.id,
+                title: data.title,
+                status: data.status,
+                capabilities: Object.keys(data.deltas ?? {}),
+                epic_membership: data.epic_membership,
+                fast_follow_of: data.fast_follow_of,
+              },
+            };
           }
-
-          return {
-            kind: "fact",
-            fact: {
-              id: data.id,
-              title: data.title,
-              status: data.status,
-              capabilities: Object.keys(data.deltas ?? {}),
-              epic_membership: data.epic_membership,
-              fast_follow_of: data.fast_follow_of,
-            },
-          };
         }
 
         // Optional workflow fallback: capped at min(1,000ms, remaining budget).
@@ -1459,9 +1430,19 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             };
           }
           if (state.status === "archived" || state.status === "closed") {
+            if (terminalProjection) {
+              return { kind: "shadow" };
+            }
             return {
               kind: "fail",
               warning: `Active candidate ${changeId} workflow fallback returned terminal status (${state.status}); cannot establish active authority.`,
+            };
+          }
+
+          if (terminalProjection) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} has a terminal durable projection but workflow fallback returned active status (${state.status}); cannot establish active authority.`,
             };
           }
 
