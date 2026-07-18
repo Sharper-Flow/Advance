@@ -176,6 +176,49 @@ function mockTemporalClient(opts: MockTemporalOptions = {}) {
   };
 }
 
+/**
+ * Settle a pending authority read that interleaves real disk I/O with
+ * fake-timer-delayed workflow-fallback queries.
+ *
+ * A single fixed `advanceTimersByTimeAsync` is flaky under slower CI: the
+ * fallback query/cap timers are registered only after a real `loadChange`
+ * macrotask resolves, so a one-shot advance can miss them entirely (hang) —
+ * while `runAllTimersAsync` overshoots and fires the 1,000ms cap even when the
+ * 650ms query should win. Instead advance the fake clock in small steps,
+ * flushing real I/O before each step so any newly-needed timer is registered
+ * first, and stop as soon as the read settles. Because the fallback query
+ * (regTime+650ms) always precedes the cap (regTime+1,000ms), the success case
+ * settles before the cap; the poison case (regTime+1,200ms query) settles when
+ * the cap fires. Bounded by `maxTotalMs` so a real hang still fails fast (DC10).
+ */
+async function settlePending<T>(
+  pending: Promise<T>,
+  {
+    stepMs = 50,
+    maxTotalMs = 5_000,
+  }: { stepMs?: number; maxTotalMs?: number } = {},
+): Promise<T> {
+  let settled = false;
+  void pending.then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    },
+  );
+  let total = 0;
+  while (!settled && total < maxTotalMs) {
+    // Flush real macro/microtasks (e.g. the missing-file loadChange) so the
+    // fallback timers exist before we advance the fake clock onto them.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(stepMs);
+    total += stepMs;
+  }
+  return pending;
+}
+
 describe("active conflict authority", () => {
   let tempDir: string | undefined;
 
@@ -323,12 +366,9 @@ describe("active conflict authority", () => {
     const pending = store.changes.listConflictAuthority!({
       deadline: createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS),
     });
-    // Yield to real I/O so the missing-file load resolves, then advance fake
-    // timers past the 650ms fallback delay.
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(800);
-    const result = await pending;
+    // Interleave real missing-file I/O with the 650ms fake-timer fallback
+    // delay deterministically (see settlePending rationale).
+    const result = await settlePending(pending);
 
     expect(result.completeness).toBe("complete");
     expect(result.canConcludeClean).toBe(true);
@@ -355,11 +395,10 @@ describe("active conflict authority", () => {
     const pending = store.changes.listConflictAuthority!({
       deadline: createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS),
     });
-    // Yield to real I/O, then advance past the 1,000ms fallback cap.
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(1_100);
-    const result = await pending;
+    // Both candidates fall back to a 1,200ms query; the 1,000ms cap must fire
+    // first. settlePending drains the real missing-file I/O and the fake
+    // fallback/cap timers deterministically.
+    const result = await settlePending(pending);
 
     expect(result.completeness).toBe("incomplete");
     expect(result.canConcludeClean).toBe(false);
