@@ -368,6 +368,19 @@ function acceptanceContractBlockers(
       }),
     ];
   }
+  const rowCoverage = validateReviewMatrixRowCoverage(state);
+  const rowCoverageBlockers = rowCoverage.valid
+    ? []
+    : [
+        makeBlocker({
+          code: "ACCEPTANCE_REVIEW_MATRIX_INVALID",
+          gateId,
+          artifactKind: "acceptance",
+          message: `Acceptance review matrix has invalid row coverage: ${rowCoverage.reason}.`,
+          remediation:
+            "Provide exactly one passing review row for each required contract item before retrying acceptance.",
+        }),
+      ];
   const executiveSummary = state.artifacts.executiveSummary;
   const executiveSummaryContent = state.documents?.executiveSummary;
   const executiveSummaryBlockers: GateReadinessBlocker[] = [];
@@ -416,7 +429,8 @@ function acceptanceContractBlockers(
   const rowsByContractId = new Map(
     state.contract.reviewMatrix.rows.map((row) => [row.contractId, row]),
   );
-  return executiveSummaryBlockers.concat(
+  return rowCoverageBlockers.concat(
+    executiveSummaryBlockers,
     state.contract.items
       .filter((item) => item.verificationRequired !== false)
       .flatMap((item) => {
