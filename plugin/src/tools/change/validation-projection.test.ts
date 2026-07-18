@@ -16,7 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import type { Store } from "../../storage/store-types";
+import type { Store, ChangeConflictAuthority } from "../../storage/store-types";
 import type { ChangeListResponse } from "../../types";
 import { createTemporalReadDeadline } from "../../temporal/retry-wrapper";
 import { loadValidationInventory } from "./validation-projection";
@@ -366,5 +366,80 @@ describe("loadValidationInventory", () => {
     // Advance further to let the late list promise settle; result must not change.
     await vi.advanceTimersByTimeAsync(1000);
     expect(inventory.entries).toHaveLength(0);
+  });
+
+  test("routes to active-only conflict authority when Store exposes it", async () => {
+    const authority: ChangeConflictAuthority = {
+      active: [
+        {
+          id: "own-change",
+          title: "Own Change",
+          status: "draft",
+          capabilities: ["cap-own"],
+        },
+        {
+          id: "peer-a",
+          title: "Peer A",
+          status: "draft",
+          capabilities: ["cap-a"],
+        },
+      ],
+      completeness: "complete",
+      canConcludeClean: true,
+      warnings: [],
+      source: "active-conflict-authority",
+      candidateCount: 2,
+      omittedCount: 0,
+    };
+    const listConflictAuthority = vi.fn().mockResolvedValue(authority);
+    const store = createMockStore([]) as Store & {
+      changes: { listConflictAuthority: typeof listConflictAuthority };
+    };
+    store.changes.listConflictAuthority = listConflictAuthority;
+
+    const inventory = await loadValidationInventory(store, "own-change");
+
+    expect(listConflictAuthority).toHaveBeenCalledTimes(1);
+    expect(inventory.completeness).toBe("complete");
+    expect(inventory.canConcludeClean).toBe(true);
+    expect(inventory.entries).toHaveLength(2);
+    expect(inventory.entries.every((e) => !e.isArchived)).toBe(true);
+    const peer = inventory.entries.find((e) => e.id === "peer-a");
+    expect(peer?.capabilities).toEqual(["cap-a"]);
+    expect(store.getCallCount()).toBe(0);
+    expect(store.listCallCount()).toBe(0);
+  });
+
+  test("returns non-conclusive when active conflict authority is incomplete", async () => {
+    const authority: ChangeConflictAuthority = {
+      active: [
+        {
+          id: "peer-a",
+          title: "Peer A",
+          status: "draft",
+          capabilities: ["cap-a"],
+        },
+      ],
+      completeness: "incomplete",
+      canConcludeClean: false,
+      warnings: [
+        "Visibility active enumeration failed: visibility unavailable",
+      ],
+      source: "active-conflict-authority",
+      candidateCount: 2,
+      omittedCount: 1,
+    };
+    const store = createMockStore([]) as Store & {
+      changes: { listConflictAuthority: ReturnType<typeof vi.fn> };
+    };
+    store.changes.listConflictAuthority = vi.fn().mockResolvedValue(authority);
+
+    const inventory = await loadValidationInventory(store, "own-change");
+
+    expect(inventory.completeness).toBe("non-conclusive");
+    expect(inventory.canConcludeClean).toBe(false);
+    expect(inventory.warnings.length).toBeGreaterThan(0);
+    expect(inventory.entries).toHaveLength(1);
+    expect(store.listCallCount()).toBe(0);
   });
 });
