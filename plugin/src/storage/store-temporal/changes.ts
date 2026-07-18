@@ -1489,7 +1489,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       };
 
       const FACT_LOAD_CONCURRENCY = 4;
-      for (let i = 0; i < activeIds.length; i += FACT_LOAD_CONCURRENCY) {
+      const loadConcurrency = Math.max(
+        1,
+        Math.min(32, Math.floor(options?.concurrency ?? FACT_LOAD_CONCURRENCY)),
+      );
+      for (let i = 0; i < activeIds.length; i += loadConcurrency) {
         if (expired()) {
           const remaining = activeIds.slice(i);
           warnings.push(
@@ -1498,7 +1502,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           omittedCount += remaining.length;
           break;
         }
-        const batch = activeIds.slice(i, i + FACT_LOAD_CONCURRENCY);
+        const batch = activeIds.slice(i, i + loadConcurrency);
         const loaded = await Promise.all(batch.map(loadActiveFact));
         for (const item of loaded) {
           if (item.kind === "fact") {
