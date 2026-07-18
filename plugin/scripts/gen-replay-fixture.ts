@@ -13,8 +13,11 @@
  * LEGACY branch reachable only when the STATE_BACKED_ACCEPTANCE_PROOF_PATCH
  * marker is absent, so it is generated with a controlled variant workflow
  * (current code with the state-backed-acceptance else-if removed) that takes
- * the preserved legacy disk-inspect path. See the committed fixture metadata
- * for full provenance.
+ * the preserved legacy disk-inspect path. The `acceptance-readiness-fence-legacy`
+ * branch is a LEGACY branch that predates the ACCEPTANCE_READINESS_FENCE_PATCH
+ * marker; it is generated with a controlled variant workflow that disables the
+ * fence check so the marker is not recorded.
+ * See the committed fixture metadata for full provenance.
  *
  * Identifiers are STABLE (no timestamps) so the exported history is
  * reproducible and needs only `identity` sanitization. Re-running terminates
@@ -27,6 +30,8 @@
  *   state-backed-gate-artifact   -> STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH (proposal gate)
  *   state-backed-acceptance      -> STATE_BACKED_ACCEPTANCE_PROOF_PATCH (acceptance gate)
  *   acceptance-executive-summary -> ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH (legacy acceptance)
+ *   acceptance-readiness-fence   -> ACCEPTANCE_READINESS_FENCE_PATCH (acceptance gate)
+ *   acceptance-readiness-fence-legacy -> ACCEPTANCE_READINESS_FENCE_PATCH (legacy acceptance gate)
  */
 
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -60,7 +65,9 @@ const workflowsPath = fileURLToPath(
 type BranchId =
   | "state-backed-gate-artifact"
   | "state-backed-acceptance"
-  | "acceptance-executive-summary";
+  | "acceptance-executive-summary"
+  | "acceptance-readiness-fence"
+  | "acceptance-readiness-fence-legacy";
 
 interface BranchConfig {
   gateId: "proposal" | "discovery" | "design" | "acceptance";
@@ -92,6 +99,20 @@ const BRANCHES: Record<BranchId, BranchConfig> = {
     patchMarker: "acceptance-executive-summary-proof-v1",
     label: "ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH",
     changeId: "replayFixtureLegacyAcceptanceExecSummary",
+    needsProjection: true,
+  },
+  "acceptance-readiness-fence": {
+    gateId: "acceptance",
+    patchMarker: "acceptance-readiness-revision-v1",
+    label: "ACCEPTANCE_READINESS_FENCE_PATCH",
+    changeId: "replayFixtureAcceptanceReadinessFence",
+    needsProjection: true,
+  },
+  "acceptance-readiness-fence-legacy": {
+    gateId: "acceptance",
+    patchMarker: "acceptance-readiness-revision-v1",
+    label: "ACCEPTANCE_READINESS_FENCE_PATCH (legacy)",
+    changeId: "replayFixtureAcceptanceReadinessFenceLegacy",
     needsProjection: true,
   },
 };
@@ -231,6 +252,29 @@ async function buildLegacyAcceptanceVariant(): Promise<string> {
   return variantPath;
 }
 
+async function buildLegacyFenceVariant(): Promise<string> {
+  const src = await readFile(workflowsPath, "utf8");
+  const marker =
+    'const acceptanceReadinessFenceActive =\n' +
+    '      payload.gateId === "acceptance" &&\n' +
+    '      wf.patched(ACCEPTANCE_READINESS_FENCE_PATCH);';
+  const replacement = 'const acceptanceReadinessFenceActive = false;';
+  if (!src.includes(marker)) {
+    throw new Error(
+      "Variant surgery failed: acceptance-readiness-fence block not found",
+    );
+  }
+  const variant = src.replace(marker, replacement);
+  const variantPath = fileURLToPath(
+    new URL(
+      "../src/temporal/workflows.gen-legacy-fence.ts",
+      import.meta.url,
+    ),
+  );
+  await writeFile(variantPath, variant, "utf8");
+  return variantPath;
+}
+
 async function main(): Promise<void> {
   const { branch } = parseArgs();
   const config = BRANCHES[branch];
@@ -261,6 +305,9 @@ async function main(): Promise<void> {
   let variantPath: string | undefined;
   if (branch === "acceptance-executive-summary") {
     variantPath = await buildLegacyAcceptanceVariant();
+    activeWorkflowsPath = variantPath;
+  } else if (branch === "acceptance-readiness-fence-legacy") {
+    variantPath = await buildLegacyFenceVariant();
     activeWorkflowsPath = variantPath;
   }
 

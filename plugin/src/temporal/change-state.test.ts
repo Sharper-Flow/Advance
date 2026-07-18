@@ -7,6 +7,8 @@ import {
   applyEpicMembershipSetToState,
   applySubagentReportSubmittedToState,
   applyContractAmendedToState,
+  applyContractReviewMatrixSetToState,
+  applyContractSetToState,
   applyDesignConcernDispositionedToState,
   applyVerificationEvidenceDispositionedToState,
   applyGateReenteredToState,
@@ -17,6 +19,7 @@ import {
   applyTaskCompletedToState,
   applyTestRunRecordedToState,
   changeSeedStateFromChange,
+  changeToWorkflowState,
   completeGateInChangeState,
   createChangeWorkflowState,
   normalizeChangeLifecycleState,
@@ -1702,6 +1705,227 @@ describe("change-state pure mutation helpers", () => {
     });
 
     expect(state.contract.reviewMatrix).toBeUndefined();
+  });
+
+  describe("acceptanceReadinessRevision", () => {
+    function makeContract() {
+      return {
+        version: 1 as const,
+        rigor: "standard" as const,
+        source: {
+          artifact: "agreement",
+          approvedAt: "2026-05-06T00:00:00.000Z",
+        },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion" as const,
+            text: "Criterion one",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+          },
+        ],
+        amendments: [],
+      };
+    }
+
+    function makeReviewMatrix() {
+      return {
+        reviewedAt: "2026-05-06T00:00:01.000Z",
+        rows: [
+          {
+            contractId: "AC1",
+            kind: "acceptance_criterion" as const,
+            status: "pass" as const,
+            evidencePolicy: "test",
+            evidence: "reviewed",
+          },
+        ],
+      };
+    }
+
+    it("initializes to zero", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-init",
+        title: "ARR init",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      expect(state.acceptanceReadinessRevision).toBe(0);
+    });
+
+    it("advances on contract set", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-contract-set",
+        title: "ARR contract set",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      applyContractSetToState(state, {
+        contract: makeContract(),
+        updatedAt: "2026-05-06T00:00:01.000Z",
+      });
+      expect(state.acceptanceReadinessRevision).toBe(1);
+      expect(state.acceptanceCriteria).toEqual(["Criterion one"]);
+    });
+
+    it("advances on every contract amendment and preserves matrix for non-invalidating amendments", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-contract-amend",
+        title: "ARR contract amend",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 1;
+
+      applyContractAmendedToState(state, {
+        amendments: [
+          {
+            id: "am-1",
+            actor: "tester",
+            reason: "typo fix",
+            approvalEvidence: "approved",
+            amendedAt: "2026-05-06T00:00:02.000Z",
+            affectedIds: ["AC1"],
+            invalidatesReviewMatrix: false,
+          },
+        ],
+        updatedAt: "2026-05-06T00:00:02.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(2);
+      expect(state.contract.reviewMatrix).toBeDefined();
+    });
+
+    it("advances on invalidating contract amendments and removes the review matrix", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-contract-amend-invalidating",
+        title: "ARR invalidating amend",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 3;
+
+      applyContractAmendedToState(state, {
+        amendments: [
+          {
+            id: "am-2",
+            actor: "tester",
+            reason: "substantive change",
+            approvalEvidence: "approved",
+            amendedAt: "2026-05-06T00:00:03.000Z",
+            affectedIds: ["AC1"],
+            invalidatesReviewMatrix: true,
+          },
+        ],
+        updatedAt: "2026-05-06T00:00:03.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(4);
+      expect(state.contract.reviewMatrix).toBeUndefined();
+    });
+
+    it("advances on review matrix set", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-matrix-set",
+        title: "ARR matrix set",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.acceptanceReadinessRevision = 4;
+
+      applyContractReviewMatrixSetToState(state, {
+        reviewMatrix: makeReviewMatrix(),
+        updatedAt: "2026-05-06T00:00:04.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(5);
+      expect(state.contract.reviewMatrix).toBeDefined();
+    });
+
+    it("advances on relevant non-release gate re-entry and removes the review matrix", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-reentry",
+        title: "ARR reentry",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 5;
+
+      applyGateReenteredToState(state, {
+        fromGateId: "execution",
+        reason: "scope changed",
+        reenteredBy: "tester",
+        reenteredAt: "2026-05-06T00:00:05.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(6);
+      expect(state.contract.reviewMatrix).toBeUndefined();
+      expect(state.gates.execution).toMatchObject({ status: "pending" });
+    });
+
+    it("does not advance on release gate re-entry", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-release-reentry",
+        title: "ARR release reentry",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 6;
+
+      applyGateReenteredToState(state, {
+        fromGateId: "release",
+        reason: "retry release",
+        reenteredBy: "tester",
+        reenteredAt: "2026-05-06T00:00:06.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(6);
+      expect(state.contract.reviewMatrix).toBeDefined();
+    });
+
+    it("preserves legacy default zero when seeding from a persisted change without the field", () => {
+      const change: Change = {
+        id: "arr-legacy",
+        title: "Legacy change",
+        status: "draft",
+        created_at: "2026-05-06T00:00:00.000Z",
+        tasks: [],
+        subagent_reports: [],
+        deltas: {},
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        contract: makeContract(),
+      };
+      const state = changeToWorkflowState({ projectId: "proj", change });
+      expect(state.acceptanceReadinessRevision).toBeUndefined();
+      applyContractAmendedToState(state, {
+        amendments: [
+          {
+            id: "am-legacy",
+            actor: "tester",
+            reason: "legacy amendment",
+            amendedAt: "2026-05-06T00:00:01.000Z",
+            affectedIds: ["AC1"],
+            invalidatesReviewMatrix: false,
+          },
+        ],
+        updatedAt: "2026-05-06T00:00:01.000Z",
+      });
+      expect(state.acceptanceReadinessRevision).toBe(1);
+    });
   });
 
   it("carries optional origin on ChangeWorkflowState (rq-backlogCoord01 prereq)", () => {

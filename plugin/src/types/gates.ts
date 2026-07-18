@@ -146,6 +146,51 @@ export const GateCriterionSchema = z.object({
 export type GateCriterion = z.infer<typeof GateCriterionSchema>;
 
 /**
+ * Acceptance criteria freshness — indicates whether a snapshot of acceptance
+ * criteria is still keyed to the current acceptance-readiness revision.
+ */
+export const AcceptanceCriteriaFreshnessSchema = z.enum([
+  "fresh",
+  "stale",
+  "pending",
+]);
+
+export type AcceptanceCriteriaFreshness = z.infer<
+  typeof AcceptanceCriteriaFreshnessSchema
+>;
+
+/**
+ * Persisted snapshot of acceptance criteria captured at gate-completion time.
+ * The basisRevision records the acceptanceReadinessRevision at capture so
+ * later reads can detect stale audit evidence without overwriting it.
+ */
+export const AcceptanceCriteriaSnapshotSchema = z.object({
+  criteria: z.array(GateCriterionSchema),
+  basisRevision: z.number().int().nonnegative(),
+});
+
+export type AcceptanceCriteriaSnapshot = z.infer<
+  typeof AcceptanceCriteriaSnapshotSchema
+>;
+
+/**
+ * Pure current/snapshot acceptance criteria projection surfaced by
+ * adv_gate_status. Freshness is derived from the recorded basisRevision, so a
+ * stale passing snapshot can never appear as current truth.
+ */
+export const AcceptanceCriteriaProjectionSchema = z.object({
+  current: z.array(GateCriterionSchema),
+  snapshot: z.array(GateCriterionSchema).optional(),
+  freshness: AcceptanceCriteriaFreshnessSchema,
+  basisRevision: z.number().int().nonnegative(),
+  staleReason: z.string().optional(),
+});
+
+export type AcceptanceCriteriaProjection = z.infer<
+  typeof AcceptanceCriteriaProjectionSchema
+>;
+
+/**
  * Criterion definition — static metadata for a gate criterion.
  * Evaluators are separate functions that inspect ChangeWorkflowState.
  */

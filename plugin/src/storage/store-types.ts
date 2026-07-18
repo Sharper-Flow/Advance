@@ -5,6 +5,7 @@
  * Extracted from store.ts to keep the composition root under 300 lines.
  */
 
+import type { TemporalReadDeadline } from "../temporal/retry-wrapper";
 import { GATE_ORDER } from "../types";
 import type {
   ArtifactPayload,
@@ -42,6 +43,52 @@ export interface ResolvedChangeList {
   changes: Change[];
   warnings?: import("../types").TerminalWarning[];
   hydrationStats?: import("../types").HydrationStats;
+}
+
+/**
+ * Single active change proven by the active conflict authority.
+ * Membership comes only from Visibility; facts come only from validated
+ * durable active projections or a capped workflow fallback.
+ */
+export interface ChangeConflictAuthorityEntry {
+  id: string;
+  title: string;
+  status: string;
+  /** Capability names derived from the change's deltas. */
+  capabilities: string[];
+  /** Optional Epic membership projection for conflict context. */
+  epic_membership?: Change["epic_membership"];
+  /** Same-project fast-follow lineage context. */
+  fast_follow_of?: Change["fast_follow_of"];
+}
+
+/**
+ * Result of the active-only conflict authority.
+ *
+ * Complete only when the Visibility enumeration succeeded, every page was
+ * consumed, and every Visibility-proven candidate had its durable active
+ * facts established or was reconciled to a confirmed terminal shadow.
+ * Any source/page error, deadline, missing/wrong projection, candidate
+ * omission, or terminal shadow that cannot be confirmed makes the result
+ * incomplete and sets `canConcludeClean` to false.
+ */
+export interface ChangeConflictAuthority {
+  /** Active changes proven by Visibility and validated durable facts. */
+  active: ChangeConflictAuthorityEntry[];
+  /** Complete only when every Visibility page and every candidate fact succeeded. */
+  completeness: "complete" | "incomplete";
+  /** Structural fail-closed guard: false when the authority is incomplete. */
+  canConcludeClean: boolean;
+  /** Typed warnings explaining why the authority is incomplete. */
+  warnings: string[];
+  /** Source identifier for auditability. */
+  source: string;
+  /** Number of Visibility-proven active candidates (including omitted ones). */
+  candidateCount: number;
+  /** Number of candidates whose facts could not be established. */
+  omittedCount: number;
+  /** Number of candidates reconciled to a confirmed terminal shadow. */
+  shadowCount?: number;
 }
 
 /**
@@ -244,6 +291,26 @@ export interface Store {
         clearedAt?: string;
       },
     ) => Promise<Change | null>;
+    /**
+     * rq-archiveInventoryActive01: active-only, fixed-8s, fail-closed conflict
+     * authority. Membership comes only from Visibility
+     * (`AdvLifecycleState="open" AND ExecutionStatus="Running"`); durable
+     * facts come only from Visibility-proven active IDs. Terminal history,
+     * archive bundles, cache, and memo cannot establish completeness.
+     *
+     * Returns complete only when Visibility pagination and every candidate
+     * fact load succeed. Any failure, deadline, or candidate omission makes
+     * the result incomplete with `canConcludeClean: false`.
+     */
+    listConflictAuthority?: (options?: {
+      deadline?: TemporalReadDeadline;
+      /**
+       * Benchmark-only fact-load concurrency. Defaults to the internal fixed
+       * concurrency used in production; callers should not pass this outside of
+       * performance regression fixtures.
+       */
+      concurrency?: number;
+    }) => Promise<ChangeConflictAuthority>;
     /**
      * rq-changeSummaryReadModel01 (advance-meta v1.12): lightweight summary
      * listing surface for default read paths (`adv_change_list`,

@@ -6,7 +6,7 @@
  * active-peer hydration loop from validation context loading.
  */
 
-import type { Store } from "../../storage/store-types";
+import type { Store, ChangeConflictAuthority } from "../../storage/store-types";
 import type {
   ConflictInventory,
   ConflictInventoryEntry,
@@ -104,6 +104,65 @@ export async function loadValidationInventory(
   options?: ValidationInventoryOptions,
 ): Promise<ConflictInventory> {
   const deadline = options?.deadline;
+
+  // Prefer the dedicated active-only conflict authority when the Store exposes
+  // it. This path performs zero terminal/archive enumeration and is the only
+  // structural source for validation conflict completeness.
+  if (store.changes.listConflictAuthority) {
+    let authority: ChangeConflictAuthority;
+    try {
+      authority = await raceWithDeadline(
+        store.changes.listConflictAuthority({ deadline }),
+        deadline,
+      );
+    } catch (err) {
+      return {
+        entries: [],
+        completeness: "blocked",
+        warnings: [
+          `Active conflict authority unreachable: ${err instanceof Error ? err.message : String(err)}`,
+        ],
+        source: "validation-inventory-projection",
+        ownChangeId: changeId,
+        canConcludeClean: false,
+      };
+    }
+
+    const entries: ConflictInventoryEntry[] = authority.active.map((peer) => {
+      const isOwnChange = peer.id === changeId;
+      const entry: ConflictInventoryEntry = {
+        id: peer.id,
+        title: peer.title,
+        status: peer.status,
+        isArchived: false,
+        isOwnChange,
+        capabilities: peer.capabilities,
+        ...(peer.epic_membership
+          ? {
+              epic: {
+                id: peer.epic_membership.epic_id,
+                title: peer.epic_membership.title,
+                entry_id: peer.epic_membership.entry_id,
+              },
+            }
+          : {}),
+      };
+      return entry;
+    });
+
+    const completeness: ConflictInventory["completeness"] =
+      authority.completeness === "complete" ? "complete" : "non-conclusive";
+
+    return {
+      entries,
+      completeness,
+      warnings: authority.warnings,
+      source: "validation-inventory-projection",
+      ownChangeId: changeId,
+      canConcludeClean: authority.canConcludeClean,
+    };
+  }
+
   const warnings: string[] = [];
 
   // 1. Enumerate changes with shared deadline admission.

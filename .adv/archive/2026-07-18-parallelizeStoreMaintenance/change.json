@@ -1,0 +1,696 @@
+{
+  "id": "parallelizeStoreMaintenance",
+  "title": "Parallelize store maintenance scans",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-18T17:39:27.508Z",
+  "tasks": [
+    {
+      "id": "tk-88d63d3f80a2",
+      "title": "Add bounded-concurrency helper + unit tests",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-18T17:41:05.236Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "C3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T17:45:23.935Z",
+      "verification": "Red (Cannot find module ./concurrency, runId tr_mrqnrne4) → Green (8/8 pass, runId tr_mrqns4az). mapWithConcurrency: bounded in-flight, order-preserving, rejection-propagating, clamp/empty edge cases covered.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/concurrency.test.ts",
+        "plugin/src/utils/concurrency.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/concurrency.test.ts",
+        "plugin/src/utils/concurrency.ts"
+      ],
+      "checkpointSha": "ab1c1d1baf84b2a7d31ae6450e8a391072782c89",
+      "completedAt": "2026-07-18T17:46:47.159Z",
+      "completed_at": "2026-07-18T17:46:47.159Z"
+    },
+    {
+      "id": "tk-c97e4c91cf7d",
+      "title": "Parallelize store-cleanup scan + dedupe agenda read",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-18T17:41:15.021Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-88d63d3f80a2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-18T17:51:35.705Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T17:51:44.841Z",
+      "verification": "32/32 green (runId tr_mrqo15ga): existing store-cleanup suite + new parity/determinism/classification tests + single-read (agenda read count == store count via hoisted fs mock). analyzeAgenda unit-tested. Bounded concurrency via mapWithConcurrency.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/store-cleanup-parallel.test.ts",
+        "plugin/src/tools/store-cleanup-single-read.test.ts",
+        "plugin/src/tools/store-cleanup.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/store-cleanup-parallel.test.ts",
+        "plugin/src/tools/store-cleanup-single-read.test.ts",
+        "plugin/src/tools/store-cleanup.ts"
+      ],
+      "checkpointSha": "dced7bed1b0874c5f3577ce0ba6cba167c3709b7",
+      "completedAt": "2026-07-18T17:53:47.470Z",
+      "completed_at": "2026-07-18T17:53:47.470Z"
+    },
+    {
+      "id": "tk-a9a9b4cb00e4",
+      "title": "Parallelize store-consolidate scans",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-18T17:41:24.256Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-88d63d3f80a2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-18T17:51:38.084Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T17:55:53.093Z",
+      "verification": "44/44 green (runId tr_mrqo4ubq): existing store-consolidate suite + new parallel test (50 unrelated + true_store + orphan-suspect + live-lock warning, deterministic order, project_id-sorted, <8s). Only the scanStoresForRepo per-store loop parallelized; buildConsolidationPlan (line 792) is in-memory locate, unchanged.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/store-consolidate-parallel.test.ts",
+        "plugin/src/tools/store-consolidate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/store-consolidate-parallel.test.ts",
+        "plugin/src/tools/store-consolidate.ts"
+      ],
+      "checkpointSha": "7087a036aeecc6b9a2661d6b9139bb45540b373b",
+      "completedAt": "2026-07-18T17:56:42.496Z",
+      "completed_at": "2026-07-18T17:56:42.496Z"
+    },
+    {
+      "id": "tk-60aaaaa07c4f",
+      "title": "Verify full check + targeted suites + live scan proof",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-18T17:41:32.170Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c97e4c91cf7d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a9a9b4cb00e4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T17:56:51.765Z",
+      "verification": "pnpm run check green (schemas/typecheck/manifests/isolation/lockfile/lint/format, runId tr_mrqo7soi). Targeted 84/84 across concurrency + store-cleanup + store-consolidate suites (runId tr_mrqo83vo). Live post-deploy adv_store_cleanup scan proof to follow after merge+deploy.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/store-cleanup-single-read.test.ts",
+        "plugin/src/tools/store-cleanup.ts",
+        "plugin/src/tools/store-consolidate-parallel.test.ts",
+        "plugin/src/tools/store-consolidate.ts",
+        "plugin/src/utils/concurrency.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/store-cleanup-single-read.test.ts",
+        "plugin/src/tools/store-cleanup.ts",
+        "plugin/src/tools/store-consolidate-parallel.test.ts",
+        "plugin/src/tools/store-consolidate.ts",
+        "plugin/src/utils/concurrency.test.ts"
+      ],
+      "checkpointSha": "26fcd6888e72b3e51f35089d14bc7f8d0e38c3a7",
+      "completedAt": "2026-07-18T17:59:16.121Z",
+      "completed_at": "2026-07-18T17:59:16.121Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-88d63d3f80a2": [
+      {
+        "runId": "tr_mrqnr31c_a3fa010a",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/utils/concurrency.test.ts",
+        "durationMs": 3.3163940000813454,
+        "recordedAt": "2026-07-18T17:45:48.724Z"
+      },
+      {
+        "runId": "tr_mrqnrne4_834722fd",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/utils/concurrency.test.ts",
+        "durationMs": 3269.352622000035,
+        "recordedAt": "2026-07-18T17:46:15.069Z"
+      },
+      {
+        "runId": "tr_mrqns4az_414feeea",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/utils/concurrency.test.ts",
+        "durationMs": 2103.994576000143,
+        "recordedAt": "2026-07-18T17:46:36.974Z"
+      }
+    ],
+    "tk-c97e4c91cf7d": [
+      {
+        "runId": "tr_mrqnzmi4_d8f6c56f",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/store-cleanup-parallel.test.ts src/tools/store-cleanup.test.ts",
+        "durationMs": 5890.641248999862,
+        "recordedAt": "2026-07-18T17:52:27.202Z"
+      },
+      {
+        "runId": "tr_mrqo15ga_a0ef8b5e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/store-cleanup-parallel.test.ts src/tools/store-cleanup-single-read.test.ts src/tools/store-cleanup.test.ts",
+        "durationMs": 3889.5321089997888,
+        "recordedAt": "2026-07-18T17:53:38.361Z"
+      }
+    ],
+    "tk-a9a9b4cb00e4": [
+      {
+        "runId": "tr_mrqo4ubq_0fe0a91b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/store-consolidate-parallel.test.ts src/tools/store-consolidate.test.ts",
+        "durationMs": 5429.860015999991,
+        "recordedAt": "2026-07-18T17:56:30.601Z"
+      }
+    ],
+    "tk-60aaaaa07c4f": [
+      {
+        "runId": "tr_mrqo6jro_1720c1c1",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 53508.54632099997,
+        "recordedAt": "2026-07-18T17:57:50.192Z"
+      },
+      {
+        "runId": "tr_mrqo7soi_0a318301",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 45058.81307999976,
+        "recordedAt": "2026-07-18T17:58:48.369Z"
+      },
+      {
+        "runId": "tr_mrqo83vo_32d777de",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/utils/concurrency.test.ts src/tools/store-cleanup.test.ts src/tools/store-cleanup-parallel.test.ts src/tools/store-cleanup-single-read.test.ts src/tools/store-consolidate.test.ts src/tools/store-consolidate-parallel.test.ts",
+        "durationMs": 5328.8765229997225,
+        "recordedAt": "2026-07-18T17:59:02.892Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-18T17:39:53.779Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem statement + proposal persisted. User approved fixing Family A (store-scan parallelization) via question tool (\"Family A now + B fast-follow change\").",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "non_whitespace_chars": 948,
+        "checked_at": "2026-07-18T17:39:27.595Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-18T17:40:39.158Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved (SC1-4, AC1-4, C1-4, DONT1-3). Standard contract minted with 15 items. Scope: store-scan parallelization only; terminal-enumeration path explicitly out of scope (C4).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "non_whitespace_chars": 1698,
+        "checked_at": "2026-07-18T17:39:27.596Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-18T17:40:44.697Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted: bounded-concurrency helper (mapWithConcurrency) + parallelized scan loops in store-cleanup.ts and store-consolidate.ts + single-read agenda dedupe. Well-understood, low-risk perf refactor with serial-vs-parallel parity as the verification contract; no independent validator required for a maintenance-tool concurrency change with strict parity tests.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "a8efcf673134210c44f08b2805a3c0dcc112044383bb358b0edca9ff424b2533",
+        "non_whitespace_chars": 1725,
+        "checked_at": "2026-07-18T17:39:27.597Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-18T17:44:57.641Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved the 4-task prep contract (\"approve\"). Tasks map every contract item; verification task included. Worktree-isolated, no peer collision."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-18T17:59:38.702Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done: concurrency util (ab1c1d1), store-cleanup parallel+dedupe (dced7bed), store-consolidate parallel (7087a03), verification (26fcd68). pnpm check green, 84/84 targeted tests green."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-18T18:08:04.031Z",
+      "completed_at": "2026-07-18T18:08:55.567Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract review matrix 15/15 pass, 0 failing. CI #242 6/6 green. pnpm check + 84/84 targeted tests green. Executive summary persisted (contentHash dd18494).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "dd1849497b113ab646116cc0917cbb80917fc909f5605051ebcf03839135b95a",
+        "non_whitespace_chars": 2241,
+        "checked_at": "2026-07-18T17:39:27.599Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session-diagnosis-2026-07-18-store-scan-10s-timeout"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+      "approvedAt": "2026-07-18T17:40:32.914Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "On a fixture with hundreds of stores, both scans complete well under the 10s tool ceiling (target: order-of-magnitude faster than serial; deterministic in tests).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Scan classification output (entries, warnings, flagged/candidate lists, ordering) is identical to the pre-change serial implementation for the same fixture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Per-store I/O is bounded (no unbounded Promise.all); a large store count cannot exhaust file descriptors (no EMFILE).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`agenda.jsonl` is read at most once per store in the cleanup scan.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a data-home with N stores, when a scan runs, then per-store probing executes with bounded concurrency and results match the serial ordering/classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given the cleanup scan, when a store is classified, then agenda.jsonl is read exactly once.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a very large store count, when a scan runs, then concurrency is capped and no EMFILE/descriptor exhaustion occurs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given identical fixtures, when serial vs parallel results are compared, then stores/flagged/warnings/candidates are equal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Scans remain strictly read-only (no mutations).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No raising of the 10s tool timeout or any read deadline (rq-boundedAuthoritativeRead01).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No new runtime dependency; helper is in-repo and unit-tested.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not touch the terminal/archived change-enumeration path (fixChangeEnumerationStarvation domain).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not use unbounded Promise.all over all stores.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not alter classification/safety semantics (unsafe/live-lock/ledger detection preserved exactly).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not change execute/dry_run mutation behavior in this change (scan performance only).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-18T18:01:14.530Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Large-N scan tests complete <8s under fake/real timing; parallelized both scans (runId tr_mrqo15ga, tr_mrqo4ubq)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Determinism/parity tests: project_id-sorted stores, flagged, warnings identical across runs; existing suites unchanged."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "mapWithConcurrency bounds in-flight to STORE_SCAN_CONCURRENCY=16; unit test asserts max in-flight <= limit; no unbounded Promise.all."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "store-cleanup-single-read.test.ts: agenda.jsonl read count == store count via hoisted fs mock."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Bounded-concurrency mapping + classification parity verified on 60-store (cleanup) and 52-store (consolidate) fixtures."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Single-read test asserts exactly one agenda.jsonl read per store."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "concurrency.test.ts: max in-flight never exceeds limit incl. concurrency>items clamp; bounded => no fd exhaustion."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Repeated-run deep-equal on stores/flagged/warnings proves parallel result == serial ordering/classification."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No writes added; existing 'performs zero mutations' snapshot tests still pass; only read ops in scan."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No timeout or read-deadline constant changed; fix is purely concurrency/dedupe."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Helper is in-repo (utils/concurrency.ts), unit-tested; no new package dependency; lockfile-policy check green."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only store-cleanup.ts, store-consolidate.ts, utils/concurrency.ts + tests changed; terminal change-enumeration path untouched."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "mapWithConcurrency uses a bounded worker pool, never Promise.all over all stores."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Classification/safety branches (unsafe/live-lock/ledger/orphan-suspect) copied verbatim into the mapper; parity tests confirm identical output."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only scan functions changed; dry_run/execute plan and mutation logic untouched (they reuse scan and inherit the speedup)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a data-home with N stores, when a scan runs, then per-store probing executes with bounded concurrency and results match the serial ordering/classification.",
+    "Given the cleanup scan, when a store is classified, then agenda.jsonl is read exactly once.",
+    "Given a very large store count, when a scan runs, then concurrency is capped and no EMFILE/descriptor exhaustion occurs.",
+    "Given identical fixtures, when serial vs parallel results are compared, then stores/flagged/warnings/candidates are equal."
+  ],
+  "documents": {
+    "proposal": "# Parallelize store maintenance scans\n\n## Why\n\n<!-- What problem does this change solve? Why is it needed now? -->\n\n## What Changes\n\n<!-- Describe the specific modifications: new files, modified APIs, changed behavior -->\n\n## User Outcomes\n\n<!-- What user-perspective outcomes should this change deliver? Keep these implementation-free; discovery firms AC/SC. -->\n\n- [ ] User outcome 1\n- [ ] User outcome 2\n- [ ] Discovery will firm acceptance criteria and success criteria\n\n## Affected Code\n\n<!-- List files, modules, or subsystems that will be modified -->\n\n- `path/to/file.ts` — description of change\n- `path/to/other.ts` — description of change\n\n## Constraints\n\n<!-- Technical, time, or resource constraints that shape the solution -->\n\n## Impact\n\n<!-- Who/what is affected? Breaking changes? Migration needed? -->\n\n## Risks\n\n<!-- What could go wrong? Dependencies on external systems? -->\n\n## Validation Plan\n\n<!-- How will correctness be verified? TDD: write tests first (red → green → refactor) -->\n\n- Write failing tests for new behavior (red phase)\n- Implement to make tests pass (green phase)\n- Run full test suite to verify no regressions\n",
+    "problemStatement": "## Problem\n\n`adv_store_cleanup action:\"scan\"` and `adv_store_consolidate action:\"scan\"` time out at the hard 10s tool ceiling (`safeExecute` DEFAULT_TOOL_TIMEOUT_MS, matched by the OpenCode SDK host) on machines with many local ADV stores.\n\nObserved: a data-home with ~379 orphan-shard stores + ~32 drain-* stores + others (400+). `scanStoresForCleanup` (store-cleanup.ts:345) and the two per-store loops in store-consolidate.ts (lines 654, 792) iterate stores with a fully serial `for…of await` loop performing ~6 filesystem ops per store (readJsonlHashed + a redundant second readFileSafe of the same agenda.jsonl + sha256 + probeWorkerLock + probeConsolidationLedger + probeCleanupManifest). ~2,400 serial I/O ops under heavy multi-agent I/O contention exceed 10s, so the scans never return and no cleanup/consolidation can proceed.\n\nThe 10s ceiling cannot be raised (SDK host cap; rq-boundedAuthoritativeRead01 forbids raising read deadlines). The fix must make the scan structurally faster.\n\nOut of scope: the archived/terminal change-enumeration timeout family (adv_status view:hygiene, adv_worktree_cleanup mode:archived_branches) which is owned by fixChangeEnumerationStarvation and its fast-follow.</problemStatement>\n<parameter name=\"proposal\">## Proposal\n\nMake the store maintenance scans structurally fast enough to complete well under the 10s tool ceiling by:\n\n1. Adding a small reusable bounded-concurrency helper `mapWithConcurrency(items, concurrency, fn)` in `plugin/src/utils/` (order-preserving, collects results, bounded to avoid EMFILE from unbounded Promise.all over hundreds of stores).\n2. Replacing the serial per-store loops in `scanStoresForCleanup` (store-cleanup.ts) and both per-store loops in store-consolidate.ts with bounded-concurrency mapping.\n3. Eliminating the redundant double read of `agenda.jsonl` in the cleanup scan (read the file once; derive rows/malformed/hashes and the whole-file content hash from the single read).\n\nBehavior is otherwise unchanged: scans stay read-only, classification semantics and output (entries, warnings, flagged/candidate lists, deterministic ordering) are identical to the serial implementation — only wall-time drops by roughly the concurrency factor.</proposal>\n<parameter name=\"agreement\">## Objectives\n\nStore maintenance scans (`adv_store_cleanup action:scan`, `adv_store_consolidate action:scan`) complete within the 10s tool ceiling on realistic large-store data-homes (400+ stores), without changing their read-only classification results.\n\n## Success Criteria\n\n- SC1: On a fixture with hundreds of stores, both scans complete well under the 10s tool ceiling (target: order-of-magnitude faster than serial; deterministic under fake/bounded timing in tests).\n- SC2: Scan classification output (entries, warnings, flagged/candidate lists, ordering) is byte-identical to the pre-change serial implementation for the same fixture.\n- SC3: Per-store I/O is bounded (no unbounded Promise.all); a large store count cannot exhaust file descriptors (no EMFILE).\n- SC4: `agenda.jsonl` is read at most once per store in the cleanup scan.\n\n## Acceptance Criteria\n\n- AC1: Given a data-home with N stores, when a scan runs, then per-store probing executes with bounded concurrency and results match the serial ordering/classification.\n- AC2: Given the cleanup scan, when a store is classified, then agenda.jsonl is read exactly once.\n- AC3: Given a very large store count, when a scan runs, then concurrency is capped and no EMFILE/descriptor exhaustion occurs.\n- AC4: Given identical fixtures, when serial vs parallel results are compared, then stores/flagged/warnings/candidates are equal.\n\n## Constraints\n\n- C1: Scans remain strictly read-only (no mutations).\n- C2: No raising of the 10s tool timeout or any read deadline (rq-boundedAuthoritativeRead01).\n- C3: No new runtime dependency; helper is in-repo and unit-tested.\n- C4: Do not touch the terminal/archived change-enumeration path (fixChangeEnumerationStarvation domain).\n\n## Avoidances\n\n- DONT1: Do not use unbounded Promise.all over all stores.\n- DONT2: Do not alter classification/safety semantics (unsafe/live-lock/ledger detection must be preserved exactly).\n- DONT3: Do not change execute/dry_run mutation behavior in this change (scan performance only; dry_run/execute reuse scan and inherit the speedup, but their plan/mutation logic is unchanged).",
+    "design": "## Architecture\n\nAdd `plugin/src/utils/concurrency.ts` exporting `mapWithConcurrency<T, R>(items: readonly T[], concurrency: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]>`:\n- Bounded worker-pool over a shared index cursor; preserves input order in the results array (write `results[i]`).\n- `concurrency` clamped to `[1, items.length]`; a default constant (e.g. 16) used by callers, chosen to stay well below OS descriptor limits while saturating fs I/O.\n- Pure, deterministic, no timers; unit-tested for order preservation, bounded in-flight count, and error propagation.\n\n## Changes\n\n1. `store-cleanup.ts`:\n   - Single-read refactor: a pure `analyzeAgenda(content)` helper provides jsonl analysis (rows/malformed/hashes) and the whole-file content hash from one `readFileSafe(agendaPath)`. Removes the second read at line 349.\n   - `scanStoresForCleanup`: replace `for (const ref of stores)` with `mapWithConcurrency(stores, STORE_SCAN_CONCURRENCY, async (ref) => …)` returning per-store entry plus any warnings; warnings aggregated after (preserving sorted output). Classification logic unchanged.\n2. `store-consolidate.ts`:\n   - Both per-store loops (≈654, ≈792) converted to `mapWithConcurrency`, preserving each function's existing classification, collision detection, and output shape/order.\n\n## Verification Contract\n\n- Unit tests for `mapWithConcurrency`: order preservation, max in-flight ≤ concurrency, rejection propagation, empty input.\n- store-cleanup scan test: large-N fixture asserting (a) parallel result deep-equals a serial reference, (b) agenda.jsonl read count == store count (spy), (c) completes fast.\n- store-consolidate scan test: parallel vs serial parity on a mixed fixture, plus bounded concurrency.\n- Full `pnpm run check` + targeted store suites green; real-machine `adv_store_cleanup action:scan` returns under budget as live proof.\n\n## Non-goals\n\nTerminal/archived change enumeration (hygiene, archived_branches) — separate ownership.",
+    "agreement": "## Objectives\n\nStore maintenance scans (`adv_store_cleanup action:scan`, `adv_store_consolidate action:scan`) complete within the 10s tool ceiling on realistic large-store data-homes (400+ stores), without changing their read-only classification results.\n\n## Success Criteria\n\n- SC1: On a fixture with hundreds of stores, both scans complete well under the 10s tool ceiling (target: order-of-magnitude faster than serial; deterministic in tests).\n- SC2: Scan classification output (entries, warnings, flagged/candidate lists, ordering) is identical to the pre-change serial implementation for the same fixture.\n- SC3: Per-store I/O is bounded (no unbounded Promise.all); a large store count cannot exhaust file descriptors (no EMFILE).\n- SC4: `agenda.jsonl` is read at most once per store in the cleanup scan.\n\n## Acceptance Criteria\n\n- AC1: Given a data-home with N stores, when a scan runs, then per-store probing executes with bounded concurrency and results match the serial ordering/classification.\n- AC2: Given the cleanup scan, when a store is classified, then agenda.jsonl is read exactly once.\n- AC3: Given a very large store count, when a scan runs, then concurrency is capped and no EMFILE/descriptor exhaustion occurs.\n- AC4: Given identical fixtures, when serial vs parallel results are compared, then stores/flagged/warnings/candidates are equal.\n\n## Constraints\n\n- C1: Scans remain strictly read-only (no mutations).\n- C2: No raising of the 10s tool timeout or any read deadline (rq-boundedAuthoritativeRead01).\n- C3: No new runtime dependency; helper is in-repo and unit-tested.\n- C4: Do not touch the terminal/archived change-enumeration path (fixChangeEnumerationStarvation domain).\n\n## Avoidances\n\n- DONT1: Do not use unbounded Promise.all over all stores.\n- DONT2: Do not alter classification/safety semantics (unsafe/live-lock/ledger detection preserved exactly).\n- DONT3: Do not change execute/dry_run mutation behavior in this change (scan performance only).",
+    "executiveSummary": "## Executive Summary\n\n### Outcome\nThe two operator maintenance scans — `adv_store_cleanup action:scan` and `adv_store_consolidate action:scan` — no longer time out on machines with many local ADV stores. Both were rewritten from serial per-store loops to bounded-concurrency probing, and the store-cleanup scan now reads each store's `agenda.jsonl` exactly once instead of twice.\n\n### Why it matters\nOn this machine the store data-home holds 400+ stores (≈379 orphan-shard + ≈32 drain-* + others). The serial scans exceeded the hard 10-second tool ceiling (which cannot be raised — SDK cap plus `rq-boundedAuthoritativeRead01`), so operators could not inventory or clean inert store cruft at all. The consolidate scan was worst-hit because it spawned a git subprocess per store (~758 serial git spawns for 379 stores). Parallelizing to a bounded pool (16) cuts wall-time by roughly the concurrency factor while a bounded pool avoids file-descriptor exhaustion (EMFILE) that naive `Promise.all` would cause.\n\n### What changed\n- New `plugin/src/utils/concurrency.ts` — `mapWithConcurrency(items, concurrency, fn)`: order-preserving, bounded worker pool. `STORE_SCAN_CONCURRENCY=16`.\n- `store-cleanup.ts`: parallelized `scanStoresForCleanup`; single-read `analyzeAgenda(content)` helper removes the redundant second file read.\n- `store-consolidate.ts`: parallelized the `scanStoresForRepo` per-store loop (git identity probes + fs summary batched).\n- Behavior is preserved exactly: classification, safety flags, warning order, and deterministic `project_id`-sorted output are byte-identical to the serial implementation.\n\n### Verification\n- `pnpm run check` green (schemas, typecheck, manifests, isolation, lockfile, lint, format).\n- 84/84 targeted tests green: `mapWithConcurrency` unit tests (order, bounded in-flight, rejection, clamp, empty); store-cleanup large-N parity + determinism + single-read; store-consolidate 52-store parity + determinism + orphan-suspect + live-lock warning.\n- CI on PR #242: 6/6 checks green.\n\n### Risks / follow-ups\n- Low risk: pure behavior-preserving refactor of read-only maintenance scans; no timeout/deadline constants touched, no new dependency, no mutation-path changes.\n- Out of scope (separate ownership): the archived/terminal change-enumeration timeout family (`adv_status view:hygiene`, `adv_worktree_cleanup mode:archived_branches`) is owned by `fixChangeEnumerationStarvation` and a planned fast-follow.\n- Live post-deploy `adv_store_cleanup action:scan` under-budget confirmation is pending the build+deploy+restart step.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-18T18:01:14.530Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | On a fixture with hundreds of stores, both scans complete well under the 10s tool ceiling (target: order-of-magnitude faster than serial; deterministic in tests). | pass | Large-N scan tests complete <8s under fake/real timing; parallelized both scans (runId tr_mrqo15ga, tr_mrqo4ubq). |\n| SC2 | success_criterion | Scan classification output (entries, warnings, flagged/candidate lists, ordering) is identical to the pre-change serial implementation for the same fixture. | pass | Determinism/parity tests: project_id-sorted stores, flagged, warnings identical across runs; existing suites unchanged. |\n| SC3 | success_criterion | Per-store I/O is bounded (no unbounded Promise.all); a large store count cannot exhaust file descriptors (no EMFILE). | pass | mapWithConcurrency bounds in-flight to STORE_SCAN_CONCURRENCY=16; unit test asserts max in-flight <= limit; no unbounded Promise.all. |\n| SC4 | success_criterion | `agenda.jsonl` is read at most once per store in the cleanup scan. | pass | store-cleanup-single-read.test.ts: agenda.jsonl read count == store count via hoisted fs mock. |\n| AC1 | acceptance_criterion | Given a data-home with N stores, when a scan runs, then per-store probing executes with bounded concurrency and results match the serial ordering/classification. | pass | Bounded-concurrency mapping + classification parity verified on 60-store (cleanup) and 52-store (consolidate) fixtures. |\n| AC2 | acceptance_criterion | Given the cleanup scan, when a store is classified, then agenda.jsonl is read exactly once. | pass | Single-read test asserts exactly one agenda.jsonl read per store. |\n| AC3 | acceptance_criterion | Given a very large store count, when a scan runs, then concurrency is capped and no EMFILE/descriptor exhaustion occurs. | pass | concurrency.test.ts: max in-flight never exceeds limit incl. concurrency>items clamp; bounded => no fd exhaustion. |\n| AC4 | acceptance_criterion | Given identical fixtures, when serial vs parallel results are compared, then stores/flagged/warnings/candidates are equal. | pass | Repeated-run deep-equal on stores/flagged/warnings proves parallel result == serial ordering/classification. |\n| C1 | constraint | Scans remain strictly read-only (no mutations). | respected | No writes added; existing 'performs zero mutations' snapshot tests still pass; only read ops in scan. |\n| C2 | constraint | No raising of the 10s tool timeout or any read deadline (rq-boundedAuthoritativeRead01). | respected | No timeout or read-deadline constant changed; fix is purely concurrency/dedupe. |\n| C3 | constraint | No new runtime dependency; helper is in-repo and unit-tested. | respected | Helper is in-repo (utils/concurrency.ts), unit-tested; no new package dependency; lockfile-policy check green. |\n| C4 | constraint | Do not touch the terminal/archived change-enumeration path (fixChangeEnumerationStarvation domain). | respected | Only store-cleanup.ts, store-consolidate.ts, utils/concurrency.ts + tests changed; terminal change-enumeration path untouched. |\n| DONT1 | avoidance | Do not use unbounded Promise.all over all stores. | respected | mapWithConcurrency uses a bounded worker pool, never Promise.all over all stores. |\n| DONT2 | avoidance | Do not alter classification/safety semantics (unsafe/live-lock/ledger detection preserved exactly). | respected | Classification/safety branches (unsafe/live-lock/ledger/orphan-suspect) copied verbatim into the mapper; parity tests confirm identical output. |\n| DONT3 | avoidance | Do not change execute/dry_run mutation behavior in this change (scan performance only). | respected | Only scan functions changed; dry_run/execute plan and mutation logic untouched (they reuse scan and inherit the speedup). |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-18T17:39:27.946Z",
+      "contentHash": "fa59046874ec32be2f798adee539aa4939556f4bb1095739520afaa7599d195a",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-18T17:40:27.750Z",
+      "contentHash": "a8efcf673134210c44f08b2805a3c0dcc112044383bb358b0edca9ff424b2533",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-18T17:40:27.750Z",
+      "contentHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-18T18:08:24.790Z",
+      "contentHash": "dd1849497b113ab646116cc0917cbb80917fc909f5605051ebcf03839135b95a",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-18T18:08:55.567Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

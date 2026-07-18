@@ -17,9 +17,15 @@ import { isWorkflowCompletedError } from "../../temporal/recovery-classification
 import { ChangeSummaryMemo } from "../store-temporal-memo";
 
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
+const renderTerminalHistory = vi.hoisted(() => vi.fn());
 
 vi.mock("../../temporal/workflow-start", () => ({
   ensureChangeWorkflowStarted,
+}));
+
+vi.mock("../../archive/terminal-history", () => ({
+  renderTerminalHistory,
+  TERMINAL_HISTORY_DEADLINE_BUDGET_MS: 20_000,
 }));
 
 describe("isWorkflowCompletedError", () => {
@@ -566,15 +572,15 @@ describe("createChangeOps", () => {
       expect(result.changes[0].completedTasks).toBe(1);
     });
 
-    test("defers to authoritative listResolvedChanges for archived/closed filters", async () => {
+    test("uses terminal-history render for archived/closed filters plus active-only hydration", async () => {
       const memo = new ChangeSummaryMemo();
       const listResolvedChanges = vi.fn().mockResolvedValue({
         changes: [
           {
-            id: "archivedC",
-            title: "Archived",
-            status: "archived",
-            created_at: "2026-05-10T00:00:00.000Z",
+            id: "activeC",
+            title: "Active",
+            status: "draft",
+            created_at: "2026-05-11T00:00:00.000Z",
             tasks: [],
             deltas: {},
             wisdom: [],
@@ -582,9 +588,43 @@ describe("createChangeOps", () => {
             reentry_history: [],
           },
         ],
+        warnings: [],
+      });
+      renderTerminalHistory.mockResolvedValue({
+        changes: [
+          {
+            id: "archivedC",
+            title: "Archived",
+            status: "archived",
+            currentGate: "done",
+            created_at: "2026-05-10T00:00:00.000Z",
+            lastActivityAt: "2026-05-10T00:00:00.000Z",
+            taskCount: 0,
+            completedTasks: 0,
+            capabilities: [],
+          },
+        ],
+        warnings: [
+          {
+            code: "TERMINAL_SOURCE_DEGRADED",
+            source: "archive",
+            message: "summary fallback",
+          },
+        ],
+        hydrationStats: {
+          terminalFromArchive: 1,
+          terminalFromDisk: 0,
+          terminalFromWorkflow: 0,
+          terminalCandidates: 1,
+          omitted: 0,
+        },
       });
       const legacy = {
-        paths: { changes: "/tmp/changes", root: "/tmp/project" },
+        paths: {
+          changes: "/tmp/changes",
+          root: "/tmp/project",
+          archive: "/tmp/project/archive",
+        },
         changes: { get: vi.fn() },
       };
       const workflowClient = { workflow: { getHandle: vi.fn() } };
@@ -611,13 +651,30 @@ describe("createChangeOps", () => {
 
       const result = await ops.listSummary!({ includeArchived: true });
 
+      expect(renderTerminalHistory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          archivePath: "/tmp/project/archive",
+          changesPath: "/tmp/changes",
+          includeArchived: true,
+          includeClosed: false,
+        }),
+      );
       expect(listResolvedChanges).toHaveBeenCalledWith(
-        expect.objectContaining({ includeArchived: true }),
+        { includeArchived: false, includeClosed: false },
         expect.objectContaining({ budgetMs: expect.any(Number) }),
       );
-      expect(result.changes.map((c) => c.id)).toEqual(["archivedC"]);
+      expect(result.changes.map((c) => c.id).sort()).toEqual([
+        "activeC",
+        "archivedC",
+      ]);
       expect(result.hydrationStats?.fromMemo).toBe(0);
-      expect(result.hydrationStats?.fromHydration).toBeGreaterThan(0);
+      expect(result.hydrationStats?.fromHydration).toBe(1);
+      expect(result.hydrationStats?.terminalFromArchive).toBe(1);
+      expect(result.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "TERMINAL_SOURCE_DEGRADED" }),
+        ]),
+      );
     });
 
     test("default active/in-flight listSummary excludes terminal rows and stays on the memo path", async () => {

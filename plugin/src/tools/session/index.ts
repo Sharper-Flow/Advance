@@ -12,26 +12,30 @@
  *   - PID, full workdir, activeChangeId, currentTaskId, activeGate are
  *     INTERNAL ONLY — leaked nowhere except own-session via `adv_session_show`.
  *
- * PID-liveness filter:
- *   - Each session entry's pid is checked via `process.kill(pid, 0)`.
- *   - Dead pids → entry omitted from output. Async cleanup is the
- *     responsibility of the periodic stale-session sweep (T8 migration);
- *     `adv_session_list` does not initiate workflow updates from a read.
+ * Live peer sessions are sourced from the Linux `/proc` scanner
+ * (`detectPeerSessions`) and projected without PID/full-path leakage. Dead
+ * or PID-reused entries are filtered via start-tick comparison.
  *
  * Citations: rq-multiSessionFraming01, rq-worktreeRegistry01.
  */
 
 import { basename } from "path";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 import {
   initStateDb,
-  listSessions,
   getSessionRecord,
   type WorktreeStateAccess,
 } from "../worktree/state";
-import type { SessionRecord } from "../../temporal/contracts";
-import { isProcessAlive } from "../../utils/process-liveness";
+import { isProcessAlive as isProcessAliveByPid } from "../../utils/process-liveness";
+import { detectPeerSessions, type PeerInfo } from "../../utils/peer-sessions";
+import {
+  readProcessStartTicks,
+  readBootTimeMs,
+  processStartTimeMs,
+  isProcessAlive as isProcessAliveByStartTicks,
+} from "../../migration/procfs";
 
 // =============================================================================
 // PID liveness
@@ -44,7 +48,7 @@ import { isProcessAlive } from "../../utils/process-liveness";
  * worktree leases, and worker-lock reclaim share one fail-safe contract
  * (ESRCH → dead; EPERM/other → alive). See rq-worktreeLeaseLiveness01.
  */
-export const isPidAlive = isProcessAlive;
+export const isPidAlive = isProcessAliveByPid;
 
 // =============================================================================
 // Public types
@@ -77,26 +81,46 @@ export interface SessionListResult {
    */
   deadFiltered: number;
   /**
-   * Set when the project workflow is unreachable; consumers should
-   * surface "Peer Sessions: unavailable (project workflow not reachable)".
+   * Set when the peer detector is unavailable (non-Linux or /proc scan
+   * failure); consumers should surface "Peer Sessions: unavailable".
    */
   unavailable?: true;
+}
+
+// =============================================================================
+// Opaque session identity
+// =============================================================================
+
+function deriveSessionId(pid: number, startTicks: string | null): string {
+  const entropy = startTicks ? `${pid}:${startTicks}` : `${pid}:unknown`;
+  return (
+    "sess_" + createHash("sha256").update(entropy).digest("hex").slice(0, 8)
+  );
 }
 
 // =============================================================================
 // Internal projection
 // =============================================================================
 
-export function projectSession(
-  record: SessionRecord,
-  selfPid: number,
+function projectPeerSession(
+  pid: number,
+  cwd: string,
+  isSelf: boolean,
+  startTicks: string | null,
+  bootTimeMs: number | null,
 ): SessionListEntry {
+  const startedAt =
+    startTicks && bootTimeMs
+      ? new Date(processStartTimeMs(startTicks, { bootTimeMs })).toISOString()
+      : new Date().toISOString();
+  const now = new Date().toISOString();
+
   return {
-    sessionId: record.sessionId,
-    startedAt: record.startedAt,
-    worktree: basename(record.worktreePath || ""),
-    isSelf: record.pid === selfPid,
-    lastSeenAt: record.lastSeenAt || record.startedAt,
+    sessionId: deriveSessionId(pid, startTicks),
+    startedAt,
+    worktree: basename(cwd),
+    isSelf,
+    lastSeenAt: now,
   };
 }
 
@@ -118,39 +142,71 @@ export type AdvSessionListArgs = z.infer<typeof advSessionListArgs>;
 /**
  * Implementation entry point for `adv_session_list`.
  *
+ * Sources live peers from the Linux `/proc` scanner (`detectPeerSessions`),
+ * includes the caller's own session first, and projects privacy-defensive
+ * entries. Non-Linux platforms or /proc scan failures degrade to
+ * `unavailable: true` rather than throwing.
+ *
  * Test seams:
- *   - `accessOverride` injects a `WorktreeStateAccess` (skips initStateDb)
- *   - `liveness` injects a custom PID-liveness predicate
  *   - `selfPid` injects the caller's PID (defaults to `process.pid`)
  */
 export async function listPeerSessions(
   args: AdvSessionListArgs,
   opts: {
-    accessOverride?: WorktreeStateAccess;
-    liveness?: (pid: number) => boolean;
+    accessOverride?: WorktreeStateAccess; // unused; kept for call-site compatibility
     selfPid?: number;
   } = {},
 ): Promise<SessionListResult> {
   const projectRoot = args.projectRoot ?? process.cwd();
-  const liveness = opts.liveness ?? isPidAlive;
   const selfPid = opts.selfPid ?? process.pid;
 
-  let access: WorktreeStateAccess;
+  if (process.platform !== "linux") {
+    return { sessions: [], total: 0, deadFiltered: 0, unavailable: true };
+  }
+
+  let peers: PeerInfo[];
   try {
-    access = opts.accessOverride ?? (await initStateDb(projectRoot));
+    peers = await detectPeerSessions(projectRoot);
   } catch {
     return { sessions: [], total: 0, deadFiltered: 0, unavailable: true };
   }
 
-  const records = await listSessions(access);
+  const bootTimeMs = readBootTimeMs();
   let deadFiltered = 0;
   const alive: SessionListEntry[] = [];
-  for (const record of records) {
-    if (!liveness(record.pid)) {
+
+  // The detector excludes the current process; add the self entry explicitly.
+  const selfStartTicks = readProcessStartTicks(selfPid);
+  if (!isProcessAliveByStartTicks(selfPid, { startTicks: selfStartTicks })) {
+    deadFiltered += 1;
+  } else {
+    alive.push(
+      projectPeerSession(
+        selfPid,
+        projectRoot,
+        true,
+        selfStartTicks,
+        bootTimeMs,
+      ),
+    );
+  }
+
+  for (const peer of peers) {
+    // Scan-time startTicks is the only identity-continuity proof we have for a
+    // peer. If the detector failed to capture it, a fresh read now could accept a
+    // PID-reused process, so treat the peer as unverifiable and omit it.
+    const startTicks = peer.startTicks;
+    if (startTicks == null) {
       deadFiltered += 1;
       continue;
     }
-    alive.push(projectSession(record, selfPid));
+    if (!isProcessAliveByStartTicks(peer.pid, { startTicks })) {
+      deadFiltered += 1;
+      continue;
+    }
+    alive.push(
+      projectPeerSession(peer.pid, peer.cwd, false, startTicks, bootTimeMs),
+    );
   }
 
   // Stable order: own session first, then others by startedAt ascending.

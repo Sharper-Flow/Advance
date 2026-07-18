@@ -979,6 +979,25 @@ export function createTemporalStoreBackend(
       }
     }
 
+    // rq-inventoryDiskBudget01 / fixArchiveConflictInventory: process archive
+    // candidates FIRST within the hydration set. An archive candidate resolves
+    // from its durable on-disk bundle (a cheap, bounded local read via
+    // getTemporalChange's terminal-projection short-circuit) with no live
+    // workflow round-trip, whereas non-archive candidates may issue slow or
+    // poisoned workflow queries that consume the shared aggregate read
+    // deadline. Loading the cheap archived candidates before the expensive
+    // live queries prevents a query budget exhausted by slow/poisoned
+    // workflows from STARVING archived changes that already exist on disk —
+    // the root cause of the 8s conflict-inventory / includeArchived
+    // enumeration timeout (74/118 archived candidates omitted despite their
+    // bundles being present on disk). Stable sort preserves within-partition
+    // order (recency for the memo-warm active set, enumeration order otherwise).
+    if (archiveIdSet.size > 0) {
+      hydrationIds = [...hydrationIds].sort(
+        (a, b) => (archiveIdSet.has(a) ? 0 : 1) - (archiveIdSet.has(b) ? 0 : 1),
+      );
+    }
+
     // Batch size for loading changes — balances Temporal query parallelism
     // against memory usage. 20 keeps per-batch latency under ~200ms with
     // typical Temporal backends while avoiding excessive concurrent signals.
