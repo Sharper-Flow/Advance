@@ -23,6 +23,7 @@ import { join } from "path";
 import { createHash } from "crypto";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
+import { mapWithConcurrency, STORE_SCAN_CONCURRENCY } from "../utils/concurrency";
 import {
   walkStoreDirs,
   defaultDataHomeRoot,
@@ -232,13 +233,23 @@ async function readFileSafe(path: string): Promise<string | null> {
   }
 }
 
-async function readJsonlHashed(path: string): Promise<{
+interface AgendaAnalysis {
   rows: number;
   malformed: number;
   hashes: Set<string>;
-}> {
-  const content = await readFileSafe(path);
-  if (content === null) return { rows: 0, malformed: 0, hashes: new Set() };
+  /** SHA-256 of the whole raw agenda.jsonl content, or null when absent. */
+  contentHash: string | null;
+}
+
+/**
+ * Pure analysis of a single `agenda.jsonl` payload. Callers read the file once
+ * (via {@link readFileSafe}) and pass the content here, so a store is never
+ * read twice during a scan (AC2, SC4).
+ */
+export function analyzeAgenda(content: string | null): AgendaAnalysis {
+  if (content === null) {
+    return { rows: 0, malformed: 0, hashes: new Set(), contentHash: null };
+  }
   const lines = content.split("\n").filter((l) => l.trim().length > 0);
   const hashes = new Set<string>();
   let malformed = 0;
@@ -251,7 +262,7 @@ async function readJsonlHashed(path: string): Promise<{
       malformed += 1;
     }
   }
-  return { rows: lines.length, malformed, hashes };
+  return { rows: lines.length, malformed, hashes, contentHash: sha256(content) };
 }
 
 async function probeWorkerLock(storePath: string): Promise<{
@@ -339,55 +350,66 @@ export async function scanStoresForCleanup(
   options: ScanStoresForCleanupOptions,
 ): Promise<StoreCleanupScanResult> {
   const { stores } = await walkStoreDirs(options.dataHomeRoot);
-  const warnings: string[] = [];
-  const entries: StoreCleanupStore[] = [];
 
-  for (const ref of stores) {
-    const agendaPath = join(ref.path, "agenda.jsonl");
-    const agenda = await readJsonlHashed(agendaPath);
-    const agendaExists = agenda.rows > 0 || agenda.malformed > 0;
-    const agendaContent = await readFileSafe(agendaPath);
-    const agendaHash = agendaContent !== null ? sha256(agendaContent) : null;
+  // Probe each store with bounded concurrency (DONT1: never unbounded). Within
+  // a store the four independent files are read in parallel, and agenda.jsonl
+  // is read exactly once (AC2, SC4). Ordering is deterministic because results
+  // are collected in input order and then sorted by project_id below.
+  const perStore = await mapWithConcurrency(
+    stores,
+    STORE_SCAN_CONCURRENCY,
+    async (ref) => {
+      const agendaPath = join(ref.path, "agenda.jsonl");
+      const [agendaContent, lock, ledger, manifest] = await Promise.all([
+        readFileSafe(agendaPath),
+        probeWorkerLock(ref.path),
+        probeConsolidationLedger(ref.path),
+        probeCleanupManifest(ref.path),
+      ]);
+      const agenda = analyzeAgenda(agendaContent);
+      const agendaExists = agenda.rows > 0 || agenda.malformed > 0;
 
-    const lock = await probeWorkerLock(ref.path);
-    const ledger = await probeConsolidationLedger(ref.path);
-    const manifest = await probeCleanupManifest(ref.path);
+      const warnings: string[] = [];
+      let classification: StoreCleanupStore["classification"];
+      if (!agendaExists) {
+        classification = manifest.manifest_exists
+          ? "already_cleaned"
+          : "no_agenda";
+      } else if (lock.present && lock.live) {
+        classification = "unsafe";
+        warnings.push(
+          `store ${ref.projectId} holds a live worker.lock (pid ${lock.pid}); cleanup refuses until stale sessions are closed`,
+        );
+      } else if (ledger.exists && ledger.agenda_rows > 0) {
+        classification = "unsafe";
+        warnings.push(
+          `store ${ref.projectId} has a consolidation ledger with ${ledger.agenda_rows} agenda_row entries; cleanup refuses to preserve consolidation evidence`,
+        );
+      } else {
+        classification = "has_agenda";
+      }
 
-    let classification: StoreCleanupStore["classification"];
-    if (!agendaExists) {
-      classification = manifest.manifest_exists
-        ? "already_cleaned"
-        : "no_agenda";
-    } else if (lock.present && lock.live) {
-      classification = "unsafe";
-      warnings.push(
-        `store ${ref.projectId} holds a live worker.lock (pid ${lock.pid}); cleanup refuses until stale sessions are closed`,
-      );
-    } else if (ledger.exists && ledger.agenda_rows > 0) {
-      classification = "unsafe";
-      warnings.push(
-        `store ${ref.projectId} has a consolidation ledger with ${ledger.agenda_rows} agenda_row entries; cleanup refuses to preserve consolidation evidence`,
-      );
-    } else {
-      classification = "has_agenda";
-    }
+      const entry: StoreCleanupStore = {
+        project_id: ref.projectId,
+        path: ref.path,
+        layout: ref.layout,
+        agenda: {
+          exists: agendaExists,
+          rows: agenda.rows,
+          content_hash: agenda.contentHash,
+          malformed: agenda.malformed,
+        },
+        worker_lock: lock,
+        consolidation_ledger: ledger,
+        cleanup: manifest,
+        classification,
+      };
+      return { entry, warnings };
+    },
+  );
 
-    entries.push({
-      project_id: ref.projectId,
-      path: ref.path,
-      layout: ref.layout,
-      agenda: {
-        exists: agendaExists,
-        rows: agenda.rows,
-        content_hash: agendaHash,
-        malformed: agenda.malformed,
-      },
-      worker_lock: lock,
-      consolidation_ledger: ledger,
-      cleanup: manifest,
-      classification,
-    });
-  }
+  const entries: StoreCleanupStore[] = perStore.map((p) => p.entry);
+  const warnings: string[] = perStore.flatMap((p) => p.warnings);
 
   return {
     action: "scan",
