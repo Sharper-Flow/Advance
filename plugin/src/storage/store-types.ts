@@ -21,6 +21,7 @@ import type {
   ProjectStatus,
   ChangeRecency,
   DeltaAdd,
+  DeltaModify,
   WisdomEntry,
   WisdomType,
   Cancellation,
@@ -416,7 +417,7 @@ export interface Store {
     }) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
   };
 
-  // Spec deltas (change-scoped, append-only writer).
+  // Spec deltas (change-scoped, append-only writers).
   //
   // Records an add-operation delta under `change.deltas[capability]`.
   // Existing and valid new kebab-case capability keys are accepted. Archive
@@ -430,6 +431,12 @@ export interface Store {
       delta: DeltaAdd,
       options?: { addedBy?: string },
     ) => Promise<DeltaAdd>;
+    modify: (
+      changeId: string,
+      capability: string,
+      delta: DeltaModify,
+      options?: { modifiedBy?: string },
+    ) => Promise<DeltaModify>;
   };
 
   // Gates

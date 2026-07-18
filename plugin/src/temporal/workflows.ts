@@ -77,6 +77,7 @@ import {
   applyTestRunRecordedToState,
   applyWisdomAddedToState,
   applySpecDeltaAddedToState,
+  applySpecDeltaModifiedToState,
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
@@ -362,6 +363,9 @@ const wisdomAddedSignal = wf.defineSignal<
 const specDeltaAddedSignal = wf.defineSignal<
   [import("../types").SpecDeltaAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAdded);
+const specDeltaModifiedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaModifiedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaModified);
 const reflectionRecordedSignal = wf.defineSignal<
   [import("../types").ReflectionRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
@@ -1439,6 +1443,12 @@ export async function changeWorkflow(
     specDeltaAddedSignal,
     signalMutation("specDeltaAdded", (payload) =>
       applySpecDeltaAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    specDeltaModifiedSignal,
+    signalMutation("specDeltaModified", (payload) =>
+      applySpecDeltaModifiedToState(state, payload),
     ),
   );
   wf.setHandler(

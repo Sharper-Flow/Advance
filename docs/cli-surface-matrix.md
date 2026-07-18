@@ -74,6 +74,7 @@
 | `adv_backlog_archive` | `no-cli-dangerous` | Backlog archive mutation |
 | `adv_spec` | `mcp+cli-additive` | Agents query specs mid-workflow; CLI read additive |
 | `adv_delta_add` | `no-cli-dangerous` | Change-scoped spec-delta mutation; archive remains sole global-spec writer |
+| `adv_delta_modify` | `no-cli-dangerous` | Typed change-scoped spec modification; archive remains sole global-spec writer |
 | `adv_change_list` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_show` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_validate` | `mcp+cli-additive` | Gates/archive need MCP; CLI/CI verdict additive (C5 path) |

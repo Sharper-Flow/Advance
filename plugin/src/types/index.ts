@@ -71,6 +71,10 @@ export {
   type Delta,
   DeltaAddSchema,
   type DeltaAdd,
+  DeltaModifyChangesSchema,
+  type DeltaModifyChanges,
+  DeltaModifySchema,
+  type DeltaModify,
 } from "./specs";
 
 // =============================================================================

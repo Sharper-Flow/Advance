@@ -25,7 +25,13 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store";
-import { CapabilityKeySchema, DeltaAddSchema, type DeltaAdd } from "../types";
+import {
+  CapabilityKeySchema,
+  DeltaAddSchema,
+  DeltaModifySchema,
+  type DeltaAdd,
+  type DeltaModify,
+} from "../types";
 import { formatToolOutput } from "../utils/tool-output";
 import { isPreciseWorkflowRecoveryEvidence } from "../temporal/recovery-classification";
 import {
@@ -158,6 +164,33 @@ function validateDeltaArg(input: DeltaValidation): {
   return { delta };
 }
 
+function validateModifyDeltaArg(input: DeltaValidation): {
+  delta?: DeltaModify;
+  error?: string;
+} {
+  if (input.delta === undefined || input.delta === null) {
+    return { error: "delta is required and must be a modify-operation delta" };
+  }
+  const parsed = DeltaModifySchema.safeParse(input.delta);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.join(".") ?? "delta";
+    return {
+      error: `Invalid modify delta: ${path} ${issue?.message ?? "failed schema validation"}`,
+    };
+  }
+  const delta = parsed.data;
+  if (!DELTA_ID_PATTERN.test(delta.id)) {
+    return { error: 'delta.id must match the "dl-{nanoid}" format' };
+  }
+  if (!REQUIREMENT_ID_PATTERN.test(delta.target_id)) {
+    return {
+      error: 'delta.target_id must match the "rq-{nanoid}" format',
+    };
+  }
+  return { delta };
+}
+
 interface CapabilityValidation {
   capability?: unknown;
 }
@@ -243,6 +276,111 @@ async function runAdd(
       return formatToolOutput({
         success: false,
         error: `Spec delta add failed and recovery was requested, but adv_delta_add refuses the disk-projection recovery write because it would bypass the workflow reducer's duplicate-detection invariants and the archive-as-sole-global-writer boundary. Recover the workflow (see adv_temporal_diagnose / adv_change_status_repair) and retry the add from a healthy workflow. Underlying error: ${message}`,
+        changeId: input.changeId,
+        capability: input.capability,
+        recoveryMode: input.recoveryMode,
+        recoveryEvidence: input.recoveryEvidence,
+        recoveryReason: input.recoveryReason,
+        ...(projectContext ? { _projectContext: projectContext } : {}),
+      });
+    }
+    return formatToolOutput({
+      success: false,
+      error: message,
+      changeId: input.changeId,
+      capability: input.capability,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+    });
+  }
+}
+
+async function runModify(
+  activeStore: Store,
+  input: {
+    changeId: string;
+    capability: string;
+    delta: DeltaModify;
+    modifiedBy?: string;
+    recoveryMode?: "normal" | "poisoned_history";
+    recoveryEvidence?: string;
+    recoveryReason?: string;
+  },
+  projectContext?: TargetProjectOutputContext,
+): Promise<string> {
+  try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) throw new Error(`Change ${input.changeId} not found`);
+    if (change.data.status !== "draft") {
+      throw new Error(
+        `Spec delta modify requires a draft change; ${input.changeId} is ${change.data.status}`,
+      );
+    }
+    const existingSpec = await activeStore.specs.get(input.capability);
+    if (!existingSpec.success) {
+      throw new Error(
+        `Unable to validate existing spec for capability ${input.capability}: ${existingSpec.error}`,
+      );
+    }
+    if (!existingSpec.data) {
+      throw new Error(
+        `Spec ${input.capability} not found; modify requires an existing capability`,
+      );
+    }
+    if (
+      !existingSpec.data.requirements.some(
+        (requirement) => requirement.id === input.delta.target_id,
+      )
+    ) {
+      throw new Error(
+        `Requirement ${input.delta.target_id} not found in spec ${input.capability}`,
+      );
+    }
+    for (const [existingCapability, entries] of Object.entries(
+      change.data.deltas ?? {},
+    )) {
+      for (const entry of entries) {
+        if (entry.id === input.delta.id) {
+          throw new Error(
+            `Duplicate spec delta id ${input.delta.id} under capability ${existingCapability}`,
+          );
+        }
+        if (
+          existingCapability === input.capability &&
+          entry.operation === "modify" &&
+          entry.target_id === input.delta.target_id
+        ) {
+          throw new Error(
+            `Conflicting modify delta target ${input.delta.target_id} under capability ${input.capability}`,
+          );
+        }
+      }
+    }
+    const appended = await activeStore.specDeltas.modify(
+      input.changeId,
+      input.capability,
+      input.delta,
+      input.modifiedBy ? { modifiedBy: input.modifiedBy } : undefined,
+    );
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      capability: input.capability,
+      delta: appended,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+      message: `Recorded modify-only spec delta ${appended.id} for requirement ${appended.target_id} under capability ${input.capability}`,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to modify spec delta";
+    if (input.recoveryMode === "poisoned_history") {
+      return formatToolOutput({
+        success: false,
+        error: `Spec delta modify failed and recovery was requested, but adv_delta_modify refuses the disk-projection recovery write because it would bypass the workflow reducer's conflict-detection invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the modification from a healthy workflow. Underlying error: ${message}`,
         changeId: input.changeId,
         capability: input.capability,
         recoveryMode: input.recoveryMode,
@@ -387,6 +525,133 @@ export const specDeltaTools = {
         capability: validatedCapability,
         delta: validatedDelta,
         addedBy,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+    },
+  },
+  adv_delta_modify: {
+    description:
+      "Record a typed modify-operation spec delta for an existing requirement under `change.deltas[capability]`. Rejects empty or malformed changes, unknown requirements, duplicate delta IDs, and conflicting capability-local modify targets atomically. Archive remains the sole global-spec writer; remove, rename, and direct global-spec writes are out of scope.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID whose modification delta is appended"),
+      capability: CapabilityKeySchema.describe(
+        "Existing kebab-case capability key whose global spec contains the target requirement.",
+      ),
+      delta: DeltaModifySchema.describe(
+        "Modify-operation delta. target_id must name an existing requirement and changes must be a non-empty strict partial requirement update.",
+      ),
+      modifiedBy: z
+        .string()
+        .optional()
+        .describe("Optional audit identity recorded on the signal."),
+      ...targetArgs,
+      ...recoveryArgs,
+    },
+    execute: async (
+      {
+        changeId,
+        capability,
+        delta,
+        modifiedBy,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      }: {
+        changeId: string;
+        capability: string;
+        delta: DeltaModify;
+        modifiedBy?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        recoveryReason?: string;
+      },
+      store: Store,
+    ) => {
+      const capabilityCheck = validateCapabilityArg({ capability });
+      if (capabilityCheck.error || !capabilityCheck.capability) {
+        return formatToolOutput({
+          success: false,
+          error: capabilityCheck.error ?? "Invalid capability",
+          changeId,
+        });
+      }
+      const deltaCheck = validateModifyDeltaArg({ delta });
+      if (deltaCheck.error || !deltaCheck.delta) {
+        return formatToolOutput({
+          success: false,
+          error: deltaCheck.error ?? "Invalid modify delta",
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const recoveryError = validateRecoveryArgs({
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+      if (recoveryError) {
+        return formatToolOutput({
+          success: false,
+          error: recoveryError,
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const validatedCapability = capabilityCheck.capability;
+      const validatedDelta = deltaCheck.delta;
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runModify(
+                targetStore,
+                {
+                  changeId,
+                  capability: validatedCapability,
+                  delta: validatedDelta,
+                  modifiedBy,
+                  recoveryMode,
+                  recoveryEvidence,
+                  recoveryReason,
+                },
+                formatTargetProjectContext(context),
+              ),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project spec delta modify unavailable: ${errorText}`,
+            changeId,
+            capability: validatedCapability,
+            target_path,
+          });
+        }
+      }
+      return runModify(store, {
+        changeId,
+        capability: validatedCapability,
+        delta: validatedDelta,
+        modifiedBy,
         recoveryMode,
         recoveryEvidence,
         recoveryReason,

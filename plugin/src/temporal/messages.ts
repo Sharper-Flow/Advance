@@ -64,6 +64,7 @@ import type {
   ShellAddedSignalPayload,
   ShellPromotedSignalPayload,
   SpecDeltaAddedSignalPayload,
+  SpecDeltaModifiedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
@@ -248,6 +249,9 @@ export const wisdomAddedSignal = wf.defineSignal<[WisdomAddedSignalPayload]>(
 export const specDeltaAddedSignal = wf.defineSignal<
   [SpecDeltaAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAdded);
+export const specDeltaModifiedSignal = wf.defineSignal<
+  [SpecDeltaModifiedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaModified);
 export const reflectionRecordedSignal = wf.defineSignal<
   [ReflectionRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);

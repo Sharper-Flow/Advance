@@ -40,6 +40,7 @@ import type {
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
   SpecDeltaAddedSignalPayload,
+  SpecDeltaModifiedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
@@ -59,7 +60,11 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
-import { createDefaultGates, GATE_ORDER } from "../types";
+import {
+  createDefaultGates,
+  GATE_ORDER,
+  SpecDeltaModifiedSignalPayloadSchema,
+} from "../types";
 import { CAPABILITY_KEY_PATTERN } from "../types/specs";
 import {
   normalizePersistedSubagentReportState,
@@ -1399,6 +1404,53 @@ export function applySpecDeltaAddedToState(
     ],
   };
   setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+/**
+ * Modify-only spec-delta reducer. The tool proves target existence against the
+ * current global spec before signaling; this reducer owns the durable conflict
+ * boundary. It validates the payload again, rejects duplicate delta identifiers
+ * globally, and permits only one modify intent per capability/requirement pair.
+ */
+export function applySpecDeltaModifiedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaModifiedSignalPayload,
+): ChangeWorkflowState {
+  const parsed = SpecDeltaModifiedSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid modify spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+    );
+  }
+  const validated = parsed.data;
+  const deltas = state.deltas ?? {};
+  for (const [capability, entries] of Object.entries(deltas)) {
+    for (const entry of entries) {
+      if (entry.id === validated.delta.id) {
+        throw new Error(
+          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+        );
+      }
+      if (
+        capability === validated.capability &&
+        entry.operation === "modify" &&
+        entry.target_id === validated.delta.target_id
+      ) {
+        throw new Error(
+          `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
+        );
+      }
+    }
+  }
+  state.deltas = {
+    ...deltas,
+    [validated.capability]: [
+      ...(deltas[validated.capability] ?? []),
+      validated.delta,
+    ],
+  };
+  setLastSignalAt(state, validated.modifiedAt);
   return state;
 }
 
