@@ -92,14 +92,6 @@ function archivedChange(id: string): Change {
   };
 }
 
-function closedChange(id: string): Change {
-  return {
-    ...activeChange(id, []),
-    title: `Closed ${id}`,
-    status: "closed",
-  };
-}
-
 function workflowStateFor(change: Change) {
   return {
     id: change.id,
