@@ -109,11 +109,6 @@ export const statusSearchAttributesProbeCache = createProbeCache<
   fetch: async () => computeSearchAttributesSnapshot(),
 });
 
-export const statusQueueServiceabilityInputs = new Map<
-  string,
-  { projectId: string | undefined; health: TemporalHealthSnapshot }
->();
-
 export type SnapshotHealthSnapshot = Awaited<
   ReturnType<typeof scanSnapshotHealth>
 >;
@@ -133,20 +128,6 @@ export const snapshotHealthProbeCache = createProbeCache<
       scope: "project",
       projectId: key === MISSING_PROJECT_ID_CACHE_KEY ? "unknown" : key,
     }),
-});
-
-export const statusQueueServiceabilityProbeCache = createProbeCache<
-  StatusQueueServiceabilitySnapshot | null,
-  string
->({
-  name: "status.queue_serviceability",
-  ttlMs: STATUS_PROBE_TTL_MS,
-  timeoutMs: STATUS_PROBE_TIMEOUT_MS,
-  fetch: async (key) => {
-    const input = statusQueueServiceabilityInputs.get(key);
-    if (!input) return null;
-    return computeStatusQueueServiceability(input);
-  },
 });
 
 // =============================================================================
@@ -183,10 +164,8 @@ export const _statusProbeCaches = {
     statusTemporalHealthProbeCache.clear();
     statusWorktreeCensusProbeCache.clear();
     statusSearchAttributesProbeCache.clear();
-    statusQueueServiceabilityProbeCache.clear();
     snapshotHealthProbeCache.clear();
     statusWorkerProcessesProbeCache.clear();
-    statusQueueServiceabilityInputs.clear();
   },
 };
 
@@ -253,14 +232,22 @@ export async function fetchStatusQueueServiceability(
     projectId: string | undefined;
     health: TemporalHealthSnapshot;
   },
-  options: StatusProbeFetchOptions = {},
+  _options: StatusProbeFetchOptions = {},
 ): Promise<{
   value: StatusQueueServiceabilitySnapshot | null;
   freshness: ProbeCacheFreshness;
 }> {
-  const key = input.projectId ?? MISSING_PROJECT_ID_CACHE_KEY;
-  statusQueueServiceabilityInputs.set(key, input);
-  return statusQueueServiceabilityProbeCache.fetch(key, options);
+  const value = await computeStatusQueueServiceability(input);
+  const cachedAt = Date.now();
+  return {
+    value,
+    freshness: {
+      cached_at: new Date(cachedAt).toISOString(),
+      stale: false,
+      age_ms: 0,
+      ttl_ms: STATUS_PROBE_TTL_MS,
+    },
+  };
 }
 
 export async function computeHealthSnapshot(
