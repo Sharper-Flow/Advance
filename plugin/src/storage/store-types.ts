@@ -304,6 +304,12 @@ export interface Store {
      */
     listConflictAuthority?: (options?: {
       deadline?: TemporalReadDeadline;
+      /**
+       * Benchmark-only fact-load concurrency. Defaults to the internal fixed
+       * concurrency used in production; callers should not pass this outside of
+       * performance regression fixtures.
+       */
+      concurrency?: number;
     }) => Promise<ChangeConflictAuthority>;
     /**
      * rq-changeSummaryReadModel01 (advance-meta v1.12): lightweight summary

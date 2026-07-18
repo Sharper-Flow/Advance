@@ -27,6 +27,9 @@ let tempCounter = 0;
 /**
  * Atomically write a file by writing to a temp file first, then renaming.
  * This prevents corrupted files from interrupted writes.
+ *
+ * After the rename, the parent directory is fsynced so the directory entry
+ * is durable on disk (POSIX crash-recovery semantics).
  */
 export async function atomicWriteFile(
   filePath: string,
@@ -49,6 +52,7 @@ export async function atomicWriteFile(
     }
 
     await rename(tempPath, filePath);
+    await syncDir(dirname(filePath));
   } catch (error) {
     try {
       await unlink(tempPath);
@@ -56,6 +60,20 @@ export async function atomicWriteFile(
       // Ignore cleanup errors
     }
     throw error;
+  }
+}
+
+/**
+ * Open a directory and fsync it so newly-created or renamed entries inside
+ * it are durable on disk. Required after atomic writes and directory creation
+ * for crash-recoverable archive publication.
+ */
+export async function syncDir(dirPath: string): Promise<void> {
+  const handle = await open(dirPath, "r");
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
   }
 }
 

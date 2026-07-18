@@ -6,8 +6,8 @@
  */
 
 import { join, dirname } from "path";
-import { readdir, readFile } from "fs/promises";
-import { atomicWriteFile } from "../utils/fs";
+import { readdir, readFile, mkdir } from "fs/promises";
+import { atomicWriteFile, syncDir } from "../utils/fs";
 import { ChangeSchema, type Spec, type Change } from "../types";
 import {
   buildTerminalArchiveSummary,
@@ -65,10 +65,23 @@ async function archiveBundlePathForWrite(
   archiveDir: string,
   changeId: string,
 ): Promise<string> {
-  return (
-    (await findArchiveBundle(archiveDir, changeId)) ??
-    archiveBundlePath(archiveDir, changeId)
-  );
+  const existing = await findArchiveBundle(archiveDir, changeId);
+  if (existing) {
+    return existing;
+  }
+  const bundlePath = archiveBundlePath(archiveDir, changeId);
+  await mkdir(bundlePath, { recursive: true });
+  // Durability: fsync the parent directory so the new bundle directory entry
+  // is crash-recoverable before any files are written inside it.
+  await syncDir(archiveDir);
+  return bundlePath;
+}
+
+interface ArchiveBundleWriteResult {
+  terminalSummaryDegradation?: {
+    reason: string;
+    fallback: "legacy_change_json";
+  };
 }
 
 /**
@@ -84,7 +97,7 @@ async function writeArchiveBundleFiles(
   archivePath: string,
   multiRepo: MultiRepoArchiveMetadata | undefined,
   archivedAt: string,
-): Promise<void> {
+): Promise<ArchiveBundleWriteResult> {
   const archivedChange: Change = { ...change, status: "archived" };
 
   // Sentinel: change.json is the durable archive authority and is written first.
@@ -93,17 +106,29 @@ async function writeArchiveBundleFiles(
   const changeHash = sha256HexString(changeJson);
 
   // Terminal summary is derived from the validated archived Change and bound to
-  // the exact change.json bytes via changeHash.
+  // the exact change.json bytes via changeHash. Summary failure does NOT
+  // invalidate the archived change.json authority; it yields typed
+  // terminal-summary degradation and a legacy change.json fallback.
   const validatedChange = ChangeSchema.parse(archivedChange);
   const terminalSummary = buildTerminalArchiveSummary({
     change: validatedChange,
     archivedAt,
     changeHash,
   });
-  await atomicWriteFile(
-    join(archivePath, TERMINAL_SUMMARY_FILE),
-    serializeTerminalArchiveSummary(terminalSummary),
-  );
+  try {
+    await atomicWriteFile(
+      join(archivePath, TERMINAL_SUMMARY_FILE),
+      serializeTerminalArchiveSummary(terminalSummary),
+    );
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return {
+      terminalSummaryDegradation: {
+        reason: `Terminal summary write failed: ${reason}`,
+        fallback: "legacy_change_json",
+      },
+    };
+  }
 
   // Human-readable archive summary.
   const summary = generateArchiveSummary(change);
@@ -140,6 +165,8 @@ async function writeArchiveBundleFiles(
       bundleJsonStringify(multiRepo),
     );
   }
+
+  return {};
 }
 
 function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {
@@ -850,7 +877,7 @@ export async function archiveChange(
     ? join(paths.changes, change.id)
     : undefined;
   const archivedAt = new Date().toISOString();
-  const archivePath = await createArchive(
+  const { path: archivePath, terminalSummaryDegradation } = await createArchive(
     change,
     paths.archive,
     dryRun,
@@ -887,6 +914,7 @@ export async function archiveChange(
     archivedAt,
     ...(multiRepo.metadata ? { multiRepo: multiRepo.metadata } : {}),
     ...(wisdomPromoted > 0 && { wisdomPromoted }),
+    ...(terminalSummaryDegradation && { terminalSummaryDegradation }),
   };
 }
 
@@ -911,13 +939,29 @@ async function createArchive(
   errors?: string[],
   multiRepo?: MultiRepoArchiveMetadata,
   archivedAt: string = new Date().toISOString(),
-): Promise<string> {
+): Promise<{
+  path: string;
+  terminalSummaryDegradation?: {
+    reason: string;
+    fallback: "legacy_change_json";
+  };
+}> {
   const archivePath = dryRun
     ? archiveBundlePath(archiveDir, change.id)
     : await archiveBundlePathForWrite(archiveDir, change.id);
 
+  let terminalSummaryDegradation:
+    | { reason: string; fallback: "legacy_change_json" }
+    | undefined;
+
   if (!dryRun) {
-    await writeArchiveBundleFiles(change, archivePath, multiRepo, archivedAt);
+    const writeResult = await writeArchiveBundleFiles(
+      change,
+      archivePath,
+      multiRepo,
+      archivedAt,
+    );
+    terminalSummaryDegradation = writeResult.terminalSummaryDegradation;
 
     // Copy sibling files from source change directory (proposal.md, problem-statement.md, etc.)
     if (sourceChangeDir) {
@@ -945,7 +989,7 @@ async function createArchive(
     }
   }
 
-  return archivePath;
+  return { path: archivePath, terminalSummaryDegradation };
 }
 
 /**

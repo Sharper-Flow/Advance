@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-07-18T21:03:06.528Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "071d25ea23309f6ef03f8c02de8cffb576a8f0c64bd848bed5b292073bb25331",
+  "change_id": "fixChangeEnumerationStarvation",
+  "completed_tasks": 4,
+  "created_at": "2026-07-18T00:31:12.808Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-18T21:00:36.129Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "945c806b904966a46e10d86c2f762a035a30fe8c397cbbf9fde058fa6e848e0c",
+  "task_count": 4,
+  "title": "fix change enumeration starvation",
+  "version": "1"
+}

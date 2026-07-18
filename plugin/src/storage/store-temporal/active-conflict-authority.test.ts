@@ -4,21 +4,19 @@
  * Verifies:
  *  1. `listConflictAuthority` enumerates only Visibility-proven active IDs
  *     (`AdvLifecycleState="open" AND ExecutionStatus="Running"`), reconciles
- *     any terminal shadow to a confirmed terminal record, and returns a complete
+ *     any terminal shadow through the active workflow authority, and returns a complete
  *     or typed-incomplete result under the 8s aggregate deadline.
- *  2. No unbounded archive-directory/terminal-bundle scans are performed;
- *     terminal-shadow reconciliation reads only the single confirming record
- *     for a shadow candidate (AC1 / AC3 / DC1).
+ *  2. No archive-directory or terminal-bundle reads are performed by active
+ *     authority, including terminal-shadow reconciliation (AC1 / AC3 / DC1).
  *  3. Full Visibility pagination is required for completeness.
  *  4. Visibility source/page errors and deadline expiry are typed incomplete.
- *  5. A wrong-id durable projection, missing durable projection, or terminal
- *     shadow that cannot be confirmed makes the authority incomplete.
+ *  5. A wrong-id or missing durable projection makes the authority incomplete.
  *  6. The optional workflow fallback is capped at min(1,000ms, remaining budget),
  *     so a poisoned 650ms candidate cannot consume the whole request.
  *  7. Cache/memo warmth cannot establish completeness; only Visibility + durable
  *     active facts are authoritative.
  *  8. Terminal shadows are excluded from active membership without producing
- *     false incompleteness when the terminal record is confirmed.
+ *     false incompleteness when active workflow authority confirms terminal state.
  *
  * Timing tests use vi fake timers and controllable promises — no wall-clock
  * sleeps (DC10).
@@ -422,6 +420,31 @@ describe("active conflict authority", () => {
     expect(result.completeness).toBe("incomplete");
     expect(result.canConcludeClean).toBe(false);
     expect(result.warnings.some((w) => w.includes("terminal"))).toBe(true);
+  });
+
+  it("excludes an archived terminal shadow without reading archive history", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(archivedChange("archived-shadow"));
+
+    const temporal = mockTemporalClient({
+      ids: ["archived-shadow"],
+      queryStates: {
+        "archived-shadow": workflowStateFor(archivedChange("archived-shadow")),
+      },
+    });
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.listConflictAuthority!();
+
+    expect(result.completeness).toBe("complete");
+    expect(result.active).toEqual([]);
+    expect(result.shadowCount).toBe(1);
+    expect(archiveReadCalls).toHaveLength(0);
   });
 
   it("returns incomplete when a durable projection has a mismatched id", async () => {

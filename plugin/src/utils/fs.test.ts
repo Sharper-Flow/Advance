@@ -1,8 +1,32 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { acquireFileLock } from "./fs";
 import { mkdir, rm, writeFile } from "fs/promises";
-import { join } from "path";
+import { join, dirname } from "path";
 import { tmpdir } from "os";
+
+const syncCalls: Array<{ path: string; flags: string | number | undefined }> =
+  [];
+const openCalls: Array<{ path: string; flags: string | number | undefined }> =
+  [];
+
+vi.mock("fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("fs/promises")>();
+  return {
+    ...actual,
+    open: async (path: string, flags?: string | number) => {
+      openCalls.push({ path, flags });
+      const handle = await actual.open(path, flags);
+      const originalSync = handle.sync.bind(handle);
+      (handle as { sync: () => Promise<void> }).sync = async () => {
+        syncCalls.push({ path, flags });
+        return originalSync();
+      };
+      return handle;
+    },
+  };
+});
+
+import { atomicWriteFile } from "./fs";
 
 describe("acquireFileLock", () => {
   let testDir: string;
@@ -163,5 +187,54 @@ describe("acquireFileLock", () => {
     await import("fs/promises").then((fs) =>
       fs.unlink(lockPath).catch(() => {}),
     );
+  });
+});
+
+describe("atomicWriteFile", () => {
+  let testDir: string;
+
+  afterEach(async () => {
+    syncCalls.length = 0;
+    openCalls.length = 0;
+    vi.restoreAllMocks();
+    if (testDir) {
+      await rm(testDir, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  async function makeTestDir(): Promise<string> {
+    testDir = join(
+      tmpdir(),
+      `atomic-write-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    await mkdir(testDir, { recursive: true });
+    return testDir;
+  }
+
+  it("fsyncs the parent directory after rename", async () => {
+    const dir = await makeTestDir();
+    const filePath = join(dir, "nested", "file.txt");
+    const parentDir = dirname(filePath);
+
+    await atomicWriteFile(filePath, "hello");
+
+    // file handle sync before rename (on temp path)
+    expect(syncCalls.some((c) => c.path.startsWith(filePath))).toBe(true);
+    // directory sync after rename
+    expect(openCalls.some((c) => c.path === parentDir && c.flags === "r")).toBe(
+      true,
+    );
+    expect(syncCalls.some((c) => c.path === parentDir)).toBe(true);
+  });
+
+  it("creates missing parent directories", async () => {
+    const dir = await makeTestDir();
+    const filePath = join(dir, "deeply", "nested", "file.txt");
+
+    await atomicWriteFile(filePath, "content");
+
+    const fs = await import("fs/promises");
+    const read = await fs.readFile(filePath, "utf-8");
+    expect(read).toBe("content");
   });
 });
