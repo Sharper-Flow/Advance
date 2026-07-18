@@ -177,45 +177,27 @@ function mockTemporalClient(opts: MockTemporalOptions = {}) {
 }
 
 /**
- * Settle a pending authority read that interleaves real disk I/O with
- * fake-timer-delayed workflow-fallback queries.
+ * Settle a pending authority read whose workflow fallback interleaves real
+ * disk I/O with fake-timer-delayed queries.
  *
- * A single fixed `advanceTimersByTimeAsync` is flaky under slower CI: the
- * fallback query/cap timers are registered only after a real `loadChange`
- * macrotask resolves, so a one-shot advance can miss them entirely (hang) —
- * while `runAllTimersAsync` overshoots and fires the 1,000ms cap even when the
- * 650ms query should win. Instead advance the fake clock in small steps,
- * flushing real I/O before each step so any newly-needed timer is registered
- * first, and stop as soon as the read settles. Because the fallback query
- * (regTime+650ms) always precedes the cap (regTime+1,000ms), the success case
- * settles before the cap; the poison case (regTime+1,200ms query) settles when
- * the cap fires. Bounded by `maxTotalMs` so a real hang still fails fast (DC10).
+ * The fallback timers (the mock query delay and the `min(5000ms, remaining)`
+ * per-attempt/deadline cap) are registered only after the real missing-file
+ * `loadChange` macrotask resolves. To make timing deterministic, first drain
+ * real I/O with pure `setImmediate` hops WITHOUT advancing the fake clock, so
+ * every fallback timer registers at fake-time 0. A single bounded advance then
+ * fires exactly the intended timers: 800ms fires a 650ms success query but not
+ * the 1,000ms cap; 1,100ms fires the 1,000ms cap for a 1,200ms poison query.
+ * No wall-clock sleeps (DC10). The `setImmediate` count is generous — a missing
+ * file `fs.access` rejects in a couple of hops regardless of machine speed.
  */
-async function settlePending<T>(
+async function settleFallback<T>(
   pending: Promise<T>,
-  {
-    stepMs = 50,
-    maxTotalMs = 5_000,
-  }: { stepMs?: number; maxTotalMs?: number } = {},
+  advanceMs: number,
 ): Promise<T> {
-  let settled = false;
-  void pending.then(
-    () => {
-      settled = true;
-    },
-    () => {
-      settled = true;
-    },
-  );
-  let total = 0;
-  while (!settled && total < maxTotalMs) {
-    // Flush real macro/microtasks (e.g. the missing-file loadChange) so the
-    // fallback timers exist before we advance the fake clock onto them.
+  for (let i = 0; i < 20; i++) {
     await new Promise<void>((resolve) => setImmediate(resolve));
-    await Promise.resolve();
-    await vi.advanceTimersByTimeAsync(stepMs);
-    total += stepMs;
   }
+  await vi.advanceTimersByTimeAsync(advanceMs);
   return pending;
 }
 
@@ -366,9 +348,9 @@ describe("active conflict authority", () => {
     const pending = store.changes.listConflictAuthority!({
       deadline: createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS),
     });
-    // Interleave real missing-file I/O with the 650ms fake-timer fallback
-    // delay deterministically (see settlePending rationale).
-    const result = await settlePending(pending);
+    // Drain the missing-file I/O, then fire the 650ms fallback query (below
+    // the 1,000ms cap) so the fallback succeeds deterministically.
+    const result = await settleFallback(pending, 800);
 
     expect(result.completeness).toBe("complete");
     expect(result.canConcludeClean).toBe(true);
@@ -395,10 +377,9 @@ describe("active conflict authority", () => {
     const pending = store.changes.listConflictAuthority!({
       deadline: createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS),
     });
-    // Both candidates fall back to a 1,200ms query; the 1,000ms cap must fire
-    // first. settlePending drains the real missing-file I/O and the fake
-    // fallback/cap timers deterministically.
-    const result = await settlePending(pending);
+    // Both candidates fall back to a 1,200ms query; advancing past the
+    // 1,000ms cap (but not the query) proves the cap fires first.
+    const result = await settleFallback(pending, 1_100);
 
     expect(result.completeness).toBe("incomplete");
     expect(result.canConcludeClean).toBe(false);
