@@ -1,4 +1,5 @@
 import type {
+  AcceptanceCriteriaSnapshot,
   ChangeClosure,
   ChangeContract,
   Change,
@@ -50,6 +51,7 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getTasks: "adv.change.getTasks",
   getGateStatus: "adv.change.getGateStatus",
   getGateCriteria: "adv.change.getGateCriteria",
+  getAcceptanceCriteriaProjection: "adv.change.getAcceptanceCriteriaProjection",
   getWorktrees: "adv.change.getWorktrees",
   getConformanceState: "adv.change.getConformanceState",
 } as const;
@@ -258,6 +260,7 @@ export interface ChangeWorkflowInput {
       | "acceptanceCriteria"
       | "contract"
       | "acceptanceReadinessRevision"
+      | "acceptanceCriteriaSnapshot"
       | "documents"
       | "reflections"
       | "worktrees"
@@ -590,6 +593,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   gateCriteria?: Partial<
     Record<import("../types").GateId, import("../types").GateCriterion[]>
   >;
+  /**
+   * Snapshot of acceptance criteria captured at acceptance gate completion.
+   * The basisRevision records the acceptanceReadinessRevision at capture time
+   * so `deriveAcceptanceCriteriaProjection` can distinguish fresh audit evidence
+   * from stale criteria without mutating the snapshot.
+   */
+  acceptanceCriteriaSnapshot?: AcceptanceCriteriaSnapshot;
   /**
    * Per-task test-run records, keyed by taskId. Ring-buffered to last 20
    * per task. Used by rq-TDD009seq ordering enforcement at task-completion

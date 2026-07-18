@@ -9,6 +9,7 @@ import {
   ARTIFACT_BACKED_GATES,
   evaluateGateReadiness,
   evaluateGateCriteria,
+  deriveAcceptanceCriteriaProjection,
   MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS,
   renderAcceptanceProjection,
   stateBackedAcceptanceProof,
@@ -221,6 +222,10 @@ const getGateCriteriaQuery = wf.defineQuery<
   ChangeWorkflowState["gateCriteria"],
   []
 >(CHANGE_WORKFLOW_QUERY_NAMES.getGateCriteria);
+const getAcceptanceCriteriaProjectionQuery = wf.defineQuery<
+  import("../types").AcceptanceCriteriaProjection,
+  []
+>(CHANGE_WORKFLOW_QUERY_NAMES.getAcceptanceCriteriaProjection);
 const getWorktreesQuery = wf.defineQuery<
   NonNullable<ChangeWorkflowState["worktrees"]>
 >(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);
@@ -645,6 +650,10 @@ export async function changeWorkflow(
       state.acceptanceReadinessRevision =
         input.seedState.acceptanceReadinessRevision;
     }
+    if (input.seedState.acceptanceCriteriaSnapshot) {
+      state.acceptanceCriteriaSnapshot =
+        input.seedState.acceptanceCriteriaSnapshot;
+    }
     if (input.seedState.documents) state.documents = input.seedState.documents;
     if (input.seedState.reflections) {
       state.reflections = input.seedState.reflections;
@@ -729,6 +738,9 @@ export async function changeWorkflow(
     gateId ? state.gates[gateId] : state.gates,
   );
   wf.setHandler(getGateCriteriaQuery, () => state.gateCriteria);
+  wf.setHandler(getAcceptanceCriteriaProjectionQuery, () =>
+    deriveAcceptanceCriteriaProjection(state),
+  );
   wf.setHandler(getWorktreesQuery, () => ({ ...(state.worktrees ?? {}) }));
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
   wf.setHandler(
@@ -1785,6 +1797,7 @@ export async function changeWorkflow(
       acceptanceCriteria: state.acceptanceCriteria,
       contract: state.contract,
       acceptanceReadinessRevision: state.acceptanceReadinessRevision,
+      acceptanceCriteriaSnapshot: state.acceptanceCriteriaSnapshot,
       documents: state.documents,
       reflections: state.reflections,
       worktrees: state.worktrees,

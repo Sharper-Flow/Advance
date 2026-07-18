@@ -176,6 +176,7 @@ export function changeSeedStateFromChange(
     acceptanceCriteria: safeChange.acceptanceCriteria,
     contract: safeChange.contract,
     acceptanceReadinessRevision: safeChange.acceptanceReadinessRevision,
+    acceptanceCriteriaSnapshot: safeChange.acceptanceCriteriaSnapshot,
     documents: safeChange.documents,
     origin: safeChange.origin,
     cross_project_origin: safeChange.cross_project_origin,
@@ -1328,6 +1329,14 @@ export function applyGateCompletedToState(
     state.gateCriteria = {
       ...(state.gateCriteria ?? {}),
       [payload.gateId]: payload.criteria,
+    };
+  }
+  // Capture acceptance criteria snapshot keyed to the current readiness
+  // revision so stale audit evidence can never be surfaced as current pass.
+  if (payload.gateId === "acceptance" && payload.criteria) {
+    state.acceptanceCriteriaSnapshot = {
+      criteria: payload.criteria,
+      basisRevision: state.acceptanceReadinessRevision ?? 0,
     };
   }
   setLastSignalAt(state, payload.completedAt);

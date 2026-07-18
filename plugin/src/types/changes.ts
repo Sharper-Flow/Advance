@@ -22,6 +22,7 @@ import {
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
+import { AcceptanceCriteriaSnapshotSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
 import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
 export {
@@ -944,6 +945,12 @@ export const ChangeSchema = z
      * defaults to 0.
      */
     acceptanceReadinessRevision: z.number().int().nonnegative().optional(),
+    /**
+     * Snapshot of acceptance criteria captured at gate-completion time, keyed
+     * to the acceptanceReadinessRevision at capture. Preserved as audit evidence
+     * while the live projection recomputes current criteria on every read.
+     */
+    acceptanceCriteriaSnapshot: AcceptanceCriteriaSnapshotSchema.optional(),
     /**
      * Workflow document content — authoritative source for the six change
      * artifacts (proposal, problemStatement, agreement, design,

@@ -13,6 +13,8 @@ import {
   type OpsFollowupStatus,
   type ScopedSubagentReport,
   type VerificationEvidenceDisposition,
+  type AcceptanceCriteriaFreshness,
+  type AcceptanceCriteriaProjection,
 } from "../types";
 import type { ChangeWorkflowState } from "./contracts";
 import { isFailingContractReviewStatus } from "./recovery-classification";
@@ -965,6 +967,61 @@ import type { GateCriterion, CriterionDef } from "../types";
 import { GATE_CRITERIA_DEFINITIONS } from "../types";
 
 /**
+ * Validate that the contract review matrix has exactly one row per expected
+ * contract item. Fail-closed on missing, duplicate, or unknown rows.
+ *
+ * Expected items are those with verificationRequired !== false, matching the
+ * acceptance readiness blocker semantics.
+ */
+function validateReviewMatrixRowCoverage(
+  state: ChangeWorkflowState,
+):
+  | { valid: true; rowCount: number; itemCount: number }
+  | { valid: false; reason: string } {
+  const contract = state.contract;
+  if (!contract?.reviewMatrix) {
+    return { valid: false, reason: "No review matrix" };
+  }
+
+  const expectedItems = contract.items.filter(
+    (item) => item.verificationRequired !== false,
+  );
+  const expectedIds = new Set(expectedItems.map((item) => item.id));
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+  for (const row of contract.reviewMatrix.rows) {
+    if (seen.has(row.contractId)) {
+      if (!duplicates.includes(row.contractId)) {
+        duplicates.push(row.contractId);
+      }
+    } else {
+      seen.add(row.contractId);
+    }
+  }
+  const missing = expectedItems
+    .filter((item) => !seen.has(item.id))
+    .map((item) => item.id);
+  const unknown = contract.reviewMatrix.rows
+    .filter((row) => !expectedIds.has(row.contractId))
+    .map((row) => row.contractId);
+
+  if (duplicates.length > 0 || missing.length > 0 || unknown.length > 0) {
+    const parts: string[] = [];
+    if (missing.length > 0) parts.push(`missing: ${missing.join(", ")}`);
+    if (duplicates.length > 0)
+      parts.push(`duplicate: ${duplicates.join(", ")}`);
+    if (unknown.length > 0) parts.push(`unknown: ${unknown.join(", ")}`);
+    return { valid: false, reason: parts.join("; ") };
+  }
+
+  return {
+    valid: true,
+    rowCount: contract.reviewMatrix.rows.length,
+    itemCount: expectedItems.length,
+  };
+}
+
+/**
  * Criterion evaluator function.
  * Inspects ChangeWorkflowState and returns pass/fail/na with optional evidence.
  * Must be synchronous and deterministic for Temporal replay safety.
@@ -1101,27 +1158,21 @@ export const CRITERION_EVALUATORS: Record<string, CriterionEvaluator> = {
     return { status: "pass", evidence: "Contract exists" };
   },
   REVIEW_MATRIX_COMPLETE: (state) => {
-    if (!state.contract?.reviewMatrix) {
-      return { status: "fail", evidence: "No review matrix" };
-    }
-    const itemCount = state.contract.items.length;
-    const rowCount = state.contract.reviewMatrix.rows.length;
-    if (rowCount < itemCount) {
-      return {
-        status: "fail",
-        evidence: `${rowCount} rows < ${itemCount} items`,
-      };
+    const coverage = validateReviewMatrixRowCoverage(state);
+    if (!coverage.valid) {
+      return { status: "fail", evidence: coverage.reason };
     }
     return {
       status: "pass",
-      evidence: `${rowCount} rows for ${itemCount} items`,
+      evidence: `${coverage.rowCount} rows for ${coverage.itemCount} items`,
     };
   },
   ALL_ROWS_PASSING: (state) => {
-    if (!state.contract?.reviewMatrix) {
-      return { status: "na", evidence: "No review matrix" };
+    const coverage = validateReviewMatrixRowCoverage(state);
+    if (!coverage.valid) {
+      return { status: "fail", evidence: coverage.reason };
     }
-    const failing = state.contract.reviewMatrix.rows.filter((row) =>
+    const failing = state.contract!.reviewMatrix!.rows.filter((row) =>
       isFailingContractReviewStatus(row.status),
     ).length;
     if (failing > 0) {
@@ -1208,4 +1259,40 @@ export function evaluateGateCriteria(
       };
     }
   });
+}
+
+/**
+ * Derive a pure current/snapshot/freshness acceptance criteria projection.
+ *
+ * The current criteria are recomputed from live workflow state on every read.
+ * The persisted snapshot (if any) is preserved as audit evidence and keyed to
+ * the acceptanceReadinessRevision at capture. If the revision has advanced,
+ * the snapshot is explicitly marked stale so a stale passing snapshot can
+ * never appear as current truth.
+ */
+export function deriveAcceptanceCriteriaProjection(
+  state: ChangeWorkflowState,
+): AcceptanceCriteriaProjection {
+  const current = evaluateGateCriteria(state, "acceptance");
+  const basisRevision = state.acceptanceReadinessRevision ?? 0;
+  const snapshot = state.acceptanceCriteriaSnapshot;
+
+  let freshness: AcceptanceCriteriaFreshness = "pending";
+  let staleReason: string | undefined;
+  if (snapshot) {
+    if (snapshot.basisRevision === basisRevision) {
+      freshness = "fresh";
+    } else {
+      freshness = "stale";
+      staleReason = `Acceptance criteria snapshot captured at revision ${snapshot.basisRevision}; current revision is ${basisRevision}`;
+    }
+  }
+
+  return {
+    current,
+    ...(snapshot ? { snapshot: snapshot.criteria } : {}),
+    freshness,
+    basisRevision,
+    ...(staleReason ? { staleReason } : {}),
+  };
 }

@@ -12,6 +12,56 @@
       },
       "type": "array"
     },
+    "acceptanceCriteriaSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "basisRevision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "criteria": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "evaluatedAt": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "na"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "status",
+              "evaluatedAt"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "criteria",
+        "basisRevision"
+      ],
+      "type": "object"
+    },
     "acceptanceReadinessRevision": {
       "maximum": 9007199254740991,
       "minimum": 0,

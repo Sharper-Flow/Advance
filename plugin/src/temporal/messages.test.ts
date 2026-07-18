@@ -123,6 +123,7 @@ const designQueryKeys = [
   "getTasks",
   "getGateStatus",
   "getGateCriteria",
+  "getAcceptanceCriteriaProjection",
   "getWorktrees",
   "getConformanceState",
 ] as const;
