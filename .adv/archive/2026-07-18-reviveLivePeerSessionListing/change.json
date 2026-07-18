@@ -1,0 +1,1301 @@
+{
+  "id": "reviveLivePeerSessionListing",
+  "title": "Revive live peer session listing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-18T18:52:01.096Z",
+  "tasks": [
+    {
+      "id": "tk-a4dd083aae2a",
+      "title": "Rewire listPeerSessions to live /proc detector",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-18T18:53:17.381Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T18:55:49.387Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "reviveLivePeerSessionListing",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+          "task_id": "tk-a4dd083aae2a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a4dd083aae2a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/session/index.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/session/index.test.ts",
+              "exit_code": 1,
+              "summary": "13 tests, 5 failed (new adv_session_list live-source assertions), 8 passed (preserved isPidAlive + adv_session_show ACL). Failures are semantic: production still returns empty listSessions stub and does not set unavailable."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Mocked detectPeerSessions and procfs helpers with vi.mock + importActual instead of using the raw __setProcessScannerForTests seam.",
+              "why": "Keeps the listPeerSessions tests deterministic and isolated from git-common-dir matching; the peer-sessions module already has its own tests for matching logic."
+            },
+            {
+              "what": "Preserved the existing adv_session_show tests and the isPidAlive helper test unchanged.",
+              "why": "The approved design explicitly excludes adv_session_show/ACL changes; keeping them green validates no accidental regression."
+            },
+            {
+              "what": "Computed expected sessionId and startedAt deterministically in the test helpers.",
+              "why": "Makes the stable-ID and timestamp contracts explicit without relying on the implementation."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Rewrote plugin/src/tools/session/index.test.ts to express the approved live /proc design. The 5 new adv_session_list tests fail red because production still sources from the retired listSessions stub and returns empty. The 8 preserved tests (isPidAlive + adv_session_show ACL) pass. Typecheck is clean.",
+            "suggested_next_action": "Implement listPeerSessions in plugin/src/tools/session/index.ts using detectPeerSessions, procfs-derived startedAt/sessionId, self-first sorting, dead/PID-reused filtering, and non-Linux unavailable handling; then rerun pnpm exec vitest run src/tools/session/index.test.ts to move from red to green."
+          }
+        }
+      ],
+      "verification": "TDD RED tr_mrqql84z_23849850 (5 expected failures); GREEN tr_mrqr6sij_079f670b (13/13 pass). Engineer also verified 83 consumer/helper tests plus lint and typecheck.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/session/index.test.ts",
+        "plugin/src/tools/session/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/session/index.test.ts",
+        "plugin/src/tools/session/index.ts"
+      ],
+      "checkpointSha": "91d2a2aefa768a423beff39ab6c700d71f26c4b4",
+      "completedAt": "2026-07-18T19:22:11.566Z",
+      "completed_at": "2026-07-18T19:22:11.566Z"
+    },
+    {
+      "id": "tk-06b820fa9081",
+      "title": "Wire adv_wip_state.peer_sessions to live source",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-18T18:53:25.002Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a4dd083aae2a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T19:22:29.226Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "reviveLivePeerSessionListing",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+          "task_id": "tk-06b820fa9081",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-06b820fa9081"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/backlog.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/backlog.test.ts",
+              "exit_code": 1,
+              "summary": "Expected RED failure: 1 failed (uses live peer-session detection terminology when sessions are unavailable), 10 passed. Failure: production emits 'session registry unavailable' but test expects 'live peer-session detection unavailable'."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added the terminology assertion as a hard equality rather than a loose substring match",
+              "why": "The existing test used expect.objectContaining({ source: 'peer_sessions' }), which allowed the stale 'session registry' wording to pass. A hard equality forces the terminology update and makes the RED failure unambiguous."
+            },
+            {
+              "what": "Did not edit production code despite the RED failure",
+              "why": "Task is explicitly TDD RED PHASE ONLY; production fix is intentionally left for the next task/attempt so the RED failure is the deliverable."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed backlog.ts already assigns value.sessions (line 373) and passes through sessions unchanged; no source rewire needed. Existing tests in the file still pass (10 passed). The only new failure is the terminology assertion.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added three focused tests to plugin/src/tools/backlog.test.ts proving peer_sessions receives live projection entries, preserves per-section failure isolation, and uses correct 'live peer-session detection' terminology. Ran the narrow backlog test; it produced the expected RED semantic failure because production code still emits the retired 'session registry unavailable' warning. No production code was modified.",
+            "suggested_next_action": "Apply the minimal production fix in plugin/src/tools/backlog.ts line 370 (change 'session registry unavailable' to 'live peer-session detection unavailable'), then re-run bin/oc-test targeted -- src/tools/backlog.test.ts to enter GREEN phase."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/backlog.test.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "reviveLivePeerSessionListing",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+          "task_id": "tk-06b820fa9081",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-06b820fa9081"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/backlog.test.ts",
+            "plugin/src/tools/backlog.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/backlog.test.ts",
+              "exit_code": 0,
+              "summary": "12 passed (1 test file), GREEN: live peer-session detection terminology and projection mapping verified"
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Evidence refresh for tk-06b820fa9081: backlog test suite passes (12/12) including live peer-session detection terminology and projection mapping. Durable GREEN adv_run_test evidence tr_mrqrchcq_99f4181e already exists. No code edits, commits, or sub-agents invoked.",
+            "suggested_next_action": "Proceed to next task or acceptance gate for change reviveLivePeerSessionListing."
+          }
+        }
+      ],
+      "verification": "TDD RED tr_mrqr9y7k_f4da2919 (stale registry terminology); GREEN tr_mrqrchcq_99f4181e (12/12 backlog tests). Verified live projection mapping, unavailable terminology, provider failure isolation, and retained parallel-source test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "checkpointSha": "a6fe02ac55341df58972b460e15becb0b73921c6",
+      "completedAt": "2026-07-18T19:26:39.083Z",
+      "completed_at": "2026-07-18T19:26:39.083Z"
+    },
+    {
+      "id": "tk-6b57206d5912",
+      "title": "Verify check + targeted suites",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-18T18:53:31.967Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a4dd083aae2a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-06b820fa9081"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T19:26:49.978Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "reviveLivePeerSessionListing",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+          "task_id": "tk-6b57206d5912",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6b57206d5912"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/session/index.test.ts",
+            "plugin/src/tools/session/index.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "All matched files use Prettier code style; only the two target files changed."
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Prettier formatting applied to the two failing session files; format check now passes and no other files were touched.",
+            "suggested_next_action": "Re-run full `pnpm run check` if further CI-like validation is desired; otherwise task is complete."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "reviveLivePeerSessionListing",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+          "task_id": "tk-6b57206d5912",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6b57206d5912"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [],
+          "verification": [
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Passed: schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/session/index.test.ts src/tools/backlog.test.ts src/utils/peer-sessions.test.ts src/migration/procfs.test.ts",
+              "exit_code": 0,
+              "summary": "Passed: 4 test files, 45 tests."
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Evidence-report refresh completed. pnpm run check and targeted oc-test suite both pass with no blockers or consumer warnings.",
+            "suggested_next_action": "Evidence refreshed; no further action required."
+          }
+        }
+      ],
+      "verification": "Release hardening blocker fixed: peers without scan-time startTicks are omitted as unverifiable, preventing PID-reuse acceptance. Engineer reports pnpm run check pass; durable focused run tr_mrqslg6y_2aa56c87 passed 46/46.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/session/index.test.ts",
+        "plugin/src/tools/session/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/session/index.test.ts",
+        "plugin/src/tools/session/index.ts"
+      ],
+      "checkpointSha": "a3bea83d8fbc182928a9d893bbe46e4cb3cecdd4",
+      "completedAt": "2026-07-18T20:01:39.249Z",
+      "completed_at": "2026-07-18T20:01:39.249Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "task_id": "tk-a4dd083aae2a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a4dd083aae2a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/session/index.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/session/index.test.ts",
+          "exit_code": 1,
+          "summary": "13 tests, 5 failed (new adv_session_list live-source assertions), 8 passed (preserved isPidAlive + adv_session_show ACL). Failures are semantic: production still returns empty listSessions stub and does not set unavailable."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Mocked detectPeerSessions and procfs helpers with vi.mock + importActual instead of using the raw __setProcessScannerForTests seam.",
+          "why": "Keeps the listPeerSessions tests deterministic and isolated from git-common-dir matching; the peer-sessions module already has its own tests for matching logic."
+        },
+        {
+          "what": "Preserved the existing adv_session_show tests and the isPidAlive helper test unchanged.",
+          "why": "The approved design explicitly excludes adv_session_show/ACL changes; keeping them green validates no accidental regression."
+        },
+        {
+          "what": "Computed expected sessionId and startedAt deterministically in the test helpers.",
+          "why": "Makes the stable-ID and timestamp contracts explicit without relying on the implementation."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Rewrote plugin/src/tools/session/index.test.ts to express the approved live /proc design. The 5 new adv_session_list tests fail red because production still sources from the retired listSessions stub and returns empty. The 8 preserved tests (isPidAlive + adv_session_show ACL) pass. Typecheck is clean.",
+        "suggested_next_action": "Implement listPeerSessions in plugin/src/tools/session/index.ts using detectPeerSessions, procfs-derived startedAt/sessionId, self-first sorting, dead/PID-reused filtering, and non-Linux unavailable handling; then rerun pnpm exec vitest run src/tools/session/index.test.ts to move from red to green."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "task_id": "tk-06b820fa9081",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-06b820fa9081"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/backlog.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/backlog.test.ts",
+          "exit_code": 1,
+          "summary": "Expected RED failure: 1 failed (uses live peer-session detection terminology when sessions are unavailable), 10 passed. Failure: production emits 'session registry unavailable' but test expects 'live peer-session detection unavailable'."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added the terminology assertion as a hard equality rather than a loose substring match",
+          "why": "The existing test used expect.objectContaining({ source: 'peer_sessions' }), which allowed the stale 'session registry' wording to pass. A hard equality forces the terminology update and makes the RED failure unambiguous."
+        },
+        {
+          "what": "Did not edit production code despite the RED failure",
+          "why": "Task is explicitly TDD RED PHASE ONLY; production fix is intentionally left for the next task/attempt so the RED failure is the deliverable."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed backlog.ts already assigns value.sessions (line 373) and passes through sessions unchanged; no source rewire needed. Existing tests in the file still pass (10 passed). The only new failure is the terminology assertion.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added three focused tests to plugin/src/tools/backlog.test.ts proving peer_sessions receives live projection entries, preserves per-section failure isolation, and uses correct 'live peer-session detection' terminology. Ran the narrow backlog test; it produced the expected RED semantic failure because production code still emits the retired 'session registry unavailable' warning. No production code was modified.",
+        "suggested_next_action": "Apply the minimal production fix in plugin/src/tools/backlog.ts line 370 (change 'session registry unavailable' to 'live peer-session detection unavailable'), then re-run bin/oc-test targeted -- src/tools/backlog.test.ts to enter GREEN phase."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/backlog.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "task_id": "tk-6b57206d5912",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6b57206d5912"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/session/index.test.ts",
+        "plugin/src/tools/session/index.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "All matched files use Prettier code style; only the two target files changed."
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Prettier formatting applied to the two failing session files; format check now passes and no other files were touched.",
+        "suggested_next_action": "Re-run full `pnpm run check` if further CI-like validation is desired; otherwise task is complete."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/utils/peer-sessions.ts",
+          "summary": "Captured each scanned process's /proc start ticks before executable/CWD reads and preserved them as internal peer metadata, creating a scan-time identity snapshot for PID-reuse validation.",
+          "verification": "bin/oc-test targeted -- src/tools/session/index.test.ts src/utils/peer-sessions.test.ts src/tools/backlog.test.ts (33 passed); pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/session/index.ts",
+          "summary": "Validated detected peers against scan-time start ticks rather than a post-scan-only read, preventing a reused PID from being projected with stale peer metadata.",
+          "verification": "Focused PID-reuse test initially failed before remediation and passed after; 33 focused tests passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/session/index.test.ts",
+          "summary": "Added regression coverage proving list projection supplies scan-time ticks to PID-reuse-safe liveness validation.",
+          "verification": "bin/oc-test targeted -- src/tools/session/index.test.ts src/utils/peer-sessions.test.ts src/tools/backlog.test.ts (33 passed)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "PID-reuse-safe liveness needs a start-tick snapshot captured during process discovery. Reading start ticks only after a scan completes compares a process to itself and can accept a newly reused PID with stale discovery metadata."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/session/index.test.ts",
+          "bin/oc-test targeted -- src/tools/session/index.test.ts src/utils/peer-sessions.test.ts src/tools/backlog.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Added regression test failed before remediation (0 sessions where self plus peer expected because post-scan ticks were used). Final focused suite: 3 files, 33 tests passed. pnpm run check passed schemas, typecheck, manifests, isolation, lockfile policy, lint, and format checks. git diff --check passed for branch and reviewer edits."
+      },
+      "scope_drift": null,
+      "risks": [
+        "If /proc stat is unreadable at scan time, the established procfs liveness fallback remains best-effort; no snapshot comparison is possible for that restricted process."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "task_id": "tk-06b820fa9081",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-06b820fa9081"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/backlog.test.ts",
+          "exit_code": 0,
+          "summary": "12 passed (1 test file), GREEN: live peer-session detection terminology and projection mapping verified"
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Evidence refresh for tk-06b820fa9081: backlog test suite passes (12/12) including live peer-session detection terminology and projection mapping. Durable GREEN adv_run_test evidence tr_mrqrchcq_99f4181e already exists. No code edits, commits, or sub-agents invoked.",
+        "suggested_next_action": "Proceed to next task or acceptance gate for change reviveLivePeerSessionListing."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "task_id": "tk-6b57206d5912",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6b57206d5912"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [],
+      "verification": [
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Passed: schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/session/index.test.ts src/tools/backlog.test.ts src/utils/peer-sessions.test.ts src/migration/procfs.test.ts",
+          "exit_code": 0,
+          "summary": "Passed: 4 test files, 45 tests."
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Evidence-report refresh completed. pnpm run check and targeted oc-test suite both pass with no blockers or consumer warnings.",
+        "suggested_next_action": "Evidence refreshed; no further action required."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "production-readiness-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/session/index.ts",
+          "line": 197,
+          "what": "Peer entries missing scan-time startTicks are re-read after detection and accepted using the new ticks.",
+          "why": "If the original peer exits before (or during) /proc scanning and its PID is reused, readProcessStartTicks at line 197 captures the replacement process. isProcessAlive then compares that fresh value to itself and accepts it. This violates AC5 PID-reuse-safe liveness and can list an unrelated process.",
+          "fix": "For peer entries, require a non-null scan-time startTicks snapshot; when absent, increment deadFiltered and omit the entry. Add a focused test where a detected peer has startTicks: null and a later fresh tick, asserting omission."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "test-coverage-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/session/index.test.ts",
+          "line": 226,
+          "what": "PID-reuse test covers a supplied snapshot only, not the null-snapshot fallback path.",
+          "why": "Current fixture peers omit startTicks in most tests, masking the unsafe fallback used in production."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "PID-reuse safety requires preserving a scan-time process-identity snapshot. Re-reading /proc start ticks after discovery cannot distinguish a replacement process from the discovered process."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/session/index.test.ts src/tools/backlog.test.ts src/utils/peer-sessions.test.ts src/migration/procfs.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "45/45 focused tests passed. Latest attempt-2 reports also show pnpm run check passed and this focused suite passed. The passing suite lacks null scan-time startTicks coverage, so it does not discharge AC5."
+      },
+      "scope_drift": null,
+      "risks": [
+        "AC5 remains violated whenever a scan candidate cannot yield startTicks but PID is reused before list projection.",
+        "No uncommitted changes: git status --short empty; git diff --check clean.",
+        "Privacy projection, Linux unavailable behavior, retired-registry avoidance, and current status/backlog runtime wiring appear intact in inspected diff."
+      ],
+      "required_main_agent_actions": [
+        "Route production-readiness-1 for an in-scope remediation: reject peer candidates without scan-time startTicks and add regression coverage; rerun focused session/backlog/procfs tests.",
+        "Do not release until AC5 regression test and remediation are accepted."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reviveLivePeerSessionListing",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reviveLivePeerSessionListing",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Fail-closed omission of peers without scan-time start ticks preserves PID-reuse safety: missing identity evidence is not replaced with a fresh /proc read."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/session/index.test.ts src/tools/backlog.test.ts src/utils/peer-sessions.test.ts src/migration/procfs.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Durable focused evidence tr_mrqslg6y_2aa56c87 passed 46/46 after the AC5 regression test; latest engineer report states pnpm run check passed. Re-review confirmed lines 194-205 omit and count peers with null scan-time startTicks without a fresh tick read. git status --porcelain empty and git diff --check trunk...HEAD clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Linux-only detector intentionally reports unavailable on non-Linux; verified non-Linux path remains guarded.",
+        "Peer candidates lacking scan-time identity are intentionally omitted, favoring privacy/correctness over incomplete peer visibility."
+      ],
+      "required_main_agent_actions": [
+        "Release hardening clear; proceed with normal release gate actions."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-a4dd083aae2a": [
+      {
+        "runId": "tr_mrqqf3fk_88bdc7fc",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/tools/session/index.test.ts",
+        "durationMs": 30248.247932000086,
+        "recordedAt": "2026-07-18T19:00:28.186Z"
+      },
+      {
+        "runId": "tr_mrqqi5te_0e8ec7d1",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- --reporter=basic src/tools/session/index.test.ts",
+        "durationMs": 120079.71692200005,
+        "recordedAt": "2026-07-18T19:02:51.190Z"
+      },
+      {
+        "runId": "tr_mrqqjocw_d2ba94d6",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/session/index.test.ts",
+        "durationMs": 2203.462559999898,
+        "recordedAt": "2026-07-18T19:04:02.007Z"
+      },
+      {
+        "runId": "tr_mrqql84z_23849850",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/session/index.test.ts",
+        "durationMs": 1954.4823669996113,
+        "recordedAt": "2026-07-18T19:05:14.230Z"
+      },
+      {
+        "runId": "tr_mrqr3cfo_b51b2db6",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/session/index.test.ts",
+        "durationMs": 1441.8460419997573,
+        "recordedAt": "2026-07-18T19:19:19.584Z"
+      },
+      {
+        "runId": "tr_mrqr5u80_567e1745",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/session/index.test.ts",
+        "durationMs": 1450.2311049997807,
+        "recordedAt": "2026-07-18T19:21:15.910Z"
+      },
+      {
+        "runId": "tr_mrqr6sij_079f670b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/session/index.test.ts",
+        "durationMs": 1494.9786860002205,
+        "recordedAt": "2026-07-18T19:22:00.351Z"
+      }
+    ],
+    "tk-06b820fa9081": [
+      {
+        "runId": "tr_mrqr9y7k_f4da2919",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/backlog.test.ts",
+        "durationMs": 2777.333639000077,
+        "recordedAt": "2026-07-18T19:24:27.716Z"
+      },
+      {
+        "runId": "tr_mrqrchcq_99f4181e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/backlog.test.ts",
+        "durationMs": 3640.0672389995307,
+        "recordedAt": "2026-07-18T19:26:25.894Z"
+      }
+    ],
+    "tk-6b57206d5912": [
+      {
+        "runId": "tr_mrqre8jd_86720943",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 49880.93101799954,
+        "recordedAt": "2026-07-18T19:27:47.772Z"
+      },
+      {
+        "runId": "tr_mrqrgx9r_8b5e6bee",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 48515.148101000115,
+        "recordedAt": "2026-07-18T19:29:53.109Z"
+      },
+      {
+        "runId": "tr_mrqrh49j_227b65d5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/session/index.test.ts src/tools/backlog.test.ts src/utils/peer-sessions.test.ts src/migration/procfs.test.ts",
+        "durationMs": 2647.890204999596,
+        "recordedAt": "2026-07-18T19:30:02.155Z"
+      },
+      {
+        "runId": "tr_mrqrq6t1_245761b5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/session/index.test.ts src/utils/peer-sessions.test.ts src/migration/procfs.test.ts",
+        "durationMs": 2560.824366000481,
+        "recordedAt": "2026-07-18T19:37:05.340Z"
+      },
+      {
+        "runId": "tr_mrqslg6y_2aa56c87",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/session/index.test.ts src/tools/backlog.test.ts src/utils/peer-sessions.test.ts src/migration/procfs.test.ts",
+        "durationMs": 4530.441731000319,
+        "recordedAt": "2026-07-18T20:01:23.916Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-18T18:52:42.611Z",
+      "completed_by": "agent",
+      "approval_evidence": "User directed \"fix now\" after reviewing the diagnosis (adv_session_list wired to retired listSessions() stub; live /proc detectPeerSessions exists but only logs at init) and approving backlog item bl-sLx-gkhQ.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8b252d9917fbf28276f921e70c404957b7cc3b136459f0a4109fff05d887170f",
+        "non_whitespace_chars": 890,
+        "checked_at": "2026-07-18T18:52:01.135Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-18T18:52:52.446Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved (SC1-5, AC1-5, C1-4, DONT1-3). Standard contract minted (17 items). Live /proc detector (detectPeerSessions) + procfs helpers already exist; no new subsystem, no retired-registry resurrection.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "non_whitespace_chars": 1628,
+        "checked_at": "2026-07-18T18:52:01.136Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-18T18:52:57.794Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted: rewire listPeerSessions → detectPeerSessions /proc scanner + procfs-derived startedAt/opaque sessionId; self entry included; privacy projection preserved; non-Linux → unavailable; wip_state peer_sessions same source. Low-risk, uses existing helpers; test contract via injectable detector/procfs seams.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "beaefa21ea990a4ad2adc271378bb1f3aeece35bfffa5cfdcd4d0d9680076f8f",
+        "non_whitespace_chars": 1496,
+        "checked_at": "2026-07-18T18:52:01.137Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-18T18:53:41.268Z",
+      "completed_by": "agent",
+      "approval_evidence": "User directed \"fix now\" for the peer-session revival after reviewing the diagnosis and approving backlog bl-sLx-gkhQ. 3-task plan: (1) rewire listPeerSessions to /proc detector, (2) wire wip_state peer_sessions, (3) verify. Every contract item mapped."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-18T19:30:54.584Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks complete in isolated worktree. TDD evidence: session RED tr_mrqql84z_23849850 → GREEN tr_mrqr6sij_079f670b; backlog RED tr_mrqr9y7k_f4da2919 → GREEN tr_mrqrchcq_99f4181e. Final check tr_mrqrgx9r_8b5e6bee passed; targeted 44/44 tr_mrqrh49j_227b65d5. Strict validation passed with only expected NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-18T19:49:03.677Z",
+      "completed_at": "2026-07-18T19:51:26.566Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly accepted: \"ok yes execute\". Independent reviewer READY; contract 17/17 pass/respected. Fresh warning-free task reports confirm backlog 12/12, focused 45/45, and pnpm run check pass.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "280089c4809812cf5b670171d28656ae6c6f70bd14d4d7a49f1063b7c2148755",
+        "non_whitespace_chars": 1174,
+        "checked_at": "2026-07-18T18:52:01.139Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "bl-sLx-gkhQ"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+      "approvedAt": "2026-07-18T18:52:48.002Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "When peer OpenCode sessions share the project, `adv_session_list` returns one entry per live peer plus the caller's own (`isSelf: true`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Output exposes only sessionId (opaque), startedAt (ISO), worktree (basename), isSelf, lastSeenAt — never PID or full cwd.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "`sessionId` is stable for a given process across repeated calls and opaque (PID not recoverable in plaintext).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "On non-Linux, the tools return `unavailable: true` (no throw).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "`adv_wip_state.peer_sessions` reflects the same live peers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given N live peer OpenCode processes in the project, when adv_session_list runs, then N+1 entries (peers + self) are returned, self first.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a detected peer, when projected, then the entry contains no pid/full-path fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given the same process, when adv_session_list is called twice, then its sessionId is identical.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given process.platform !== 'linux', when the tools run, then result.unavailable === true and no exception propagates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a dead/exited PID surfaced by a race, when projected, then it is filtered (PID-reuse-safe liveness).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do NOT resurrect the retired Temporal projectWorkflow session registry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve the privacy-defensive projection (KD-4): no PID/full-path leak.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Linux-only detection (existing detector platform guard); other platforms degrade to unavailable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Reads only; no workflow mutations from a list call.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not surface PID or full cwd in any public entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not re-add registerSession/heartbeat writes (detector is registration-free).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not change adv_session_show ACL semantics in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-18T19:37:35.728Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY; session tests tr_mrqrq6t1_245761b5 prove self plus detected peers."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed privacy projection; session tests assert no PID/full-path fields."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Stable opaque SHA-256-derived session IDs verified by session tests."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Non-Linux unavailable behavior verified by session tests."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "backlog tests tr_mrqrchcq_99f4181e verify adv_wip_state maps listPeerSessions live projection."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrqrq6t1_245761b5: 33/33 focused tests; self first plus N peers."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Session projection tests assert no pid, cwd, or worktreePath fields."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Repeated-call stable opaque sessionId test passed in tr_mrqrq6t1_245761b5."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Non-Linux detector-unavailable test passed in tr_mrqrq6t1_245761b5."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dead and PID-reused peer filtering tests passed; scan-time startTicks race fixed by reviewer."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff replaces listSessions read with detectPeerSessions; no registry writes or resurrection."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Public SessionListEntry projection excludes PID and full cwd; tests enforce."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Explicit process.platform Linux guard returns unavailable on other platforms."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Listing path performs process/procfs reads only; reviewer found no workflow mutation."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; public entries contain only opaque ID, timestamps, basename, isSelf."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed no registerSession or heartbeat writes added."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed adv_session_show ACL unchanged; existing ACL tests remain green."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given N live peer OpenCode processes in the project, when adv_session_list runs, then N+1 entries (peers + self) are returned, self first.",
+    "Given a detected peer, when projected, then the entry contains no pid/full-path fields.",
+    "Given the same process, when adv_session_list is called twice, then its sessionId is identical.",
+    "Given process.platform !== 'linux', when the tools run, then result.unavailable === true and no exception propagates.",
+    "Given a dead/exited PID surfaced by a race, when projected, then it is filtered (PID-reuse-safe liveness)."
+  ],
+  "documents": {
+    "proposal": "## Proposal\n\nRewire `listPeerSessions()` to source live peers from the existing `detectPeerSessions()` `/proc` scanner instead of the retired `listSessions()` stub, and populate the privacy-defensive `SessionListEntry` schema from process metadata using the existing `migration/procfs.ts` helpers.\n\n- Include the caller's own session (`detectPeerSessions` excludes self) with `isSelf: true`.\n- Derive `startedAt` from `/proc/<pid>/stat` start ticks + `/proc/stat` btime (`processStartTimeMs`).\n- Derive an opaque `sessionId` deterministically from a hash of `pid:startTicks` (PID stays internal — never surfaced).\n- `worktree` = basename(cwd); PID and full cwd remain internal (privacy contract KD-4 preserved).\n- Non-Linux (detector throws) → `unavailable: true` (unchanged consumer contract).\n- Point `adv_wip_state.peer_sessions` at the same live source.\n\nNo resurrection of the retired projectWorkflow/registry; `registerSession`/`updateSessionActivity` stay no-ops (the /proc detector needs no registration).",
+    "problemStatement": "## Problem\n\n`adv_session_list` and `adv_wip_state.peer_sessions` always return an empty list, so agents cannot see which peer OpenCode sessions are live in the same project. This looked like a slow/undercounting bug but is actually a retired capability: `tools/session/index.ts listPeerSessions()` sources records from `tools/worktree/state.ts listSessions()`, which is a stub that always returns `[]` (\"Session registry retired with projectWorkflow\"). `registerSession`/`updateSessionActivity`/`getSessionRecord` are likewise no-op/null stubs.\n\nA working live detector already exists — `utils/peer-sessions.ts detectPeerSessions()` — a Linux `/proc` scanner that matches peer OpenCode processes to the current project by git-common-dir or ADV project-id. But it is only invoked once at plugin init to emit an informational log line (`[ADV:PEER_SESSIONS] N ...`); it is wired to NO tool response.\n\nImpact: peer-session visibility is dead. Coordination still works via change-level signals (adv_wip_state.active_changes + hot annotations), but the session surface is misleading (always empty), which nearly caused a collision earlier in an ADV session.\n\nOut of scope: the retired Temporal projectWorkflow session registry is NOT resurrected; this change wires the existing live /proc detector into the read tools.</problemStatement>\n<parameter name=\"proposal\">## Proposal\n\nRewire `listPeerSessions()` to source live peers from the existing `detectPeerSessions()` `/proc` scanner instead of the retired `listSessions()` stub, and populate the privacy-defensive `SessionListEntry` schema from process metadata using the existing `migration/procfs.ts` helpers.\n\n- Include the caller's own session (`detectPeerSessions` excludes self) with `isSelf: true`.\n- Derive `startedAt` from `/proc/<pid>/stat` start ticks + `/proc/stat` btime (`processStartTimeMs`).\n- Derive an opaque `sessionId` deterministically from a hash of `pid:startTicks` (PID stays internal — never surfaced).\n- `worktree` = basename(cwd); PID and full cwd remain internal (privacy contract KD-4 preserved).\n- Non-Linux (detector throws) → `unavailable: true` (unchanged consumer contract).\n- Point `adv_wip_state.peer_sessions` at the same live source.\n\nNo resurrection of the retired projectWorkflow/registry; `registerSession`/`updateSessionActivity` stay no-ops (the /proc detector needs no registration).",
+    "agreement": "## Objectives\n\n`adv_session_list` and `adv_wip_state.peer_sessions` return live same-project peer OpenCode sessions, using the existing `/proc` detector, without leaking PID or full path.\n\n## Success Criteria\n- SC1: When peer OpenCode sessions share the project, `adv_session_list` returns one entry per live peer plus the caller's own (`isSelf: true`).\n- SC2: Output exposes only sessionId (opaque), startedAt (ISO), worktree (basename), isSelf, lastSeenAt — never PID or full cwd.\n- SC3: `sessionId` is stable for a given process across repeated calls and opaque (PID not recoverable in plaintext).\n- SC4: On non-Linux, the tools return `unavailable: true` (no throw).\n- SC5: `adv_wip_state.peer_sessions` reflects the same live peers.\n\n## Acceptance Criteria\n- AC1: Given N live peer OpenCode processes in the project, when adv_session_list runs, then N+1 entries (peers + self) are returned, self first.\n- AC2: Given a detected peer, when projected, then the entry contains no pid/full-path fields.\n- AC3: Given the same process, when adv_session_list is called twice, then its sessionId is identical.\n- AC4: Given process.platform !== 'linux', when the tools run, then result.unavailable === true and no exception propagates.\n- AC5: Given a dead/exited PID surfaced by a race, when projected, then it is filtered (PID-reuse-safe liveness).\n\n## Constraints\n- C1: Do NOT resurrect the retired Temporal projectWorkflow session registry.\n- C2: Preserve the privacy-defensive projection (KD-4): no PID/full-path leak.\n- C3: Linux-only detection (existing detector platform guard); other platforms degrade to unavailable.\n- C4: Reads only; no workflow mutations from a list call.\n\n## Avoidances\n- DONT1: Do not surface PID or full cwd in any public entry.\n- DONT2: Do not re-add registerSession/heartbeat writes (detector is registration-free).\n- DONT3: Do not change adv_session_show ACL semantics in this change.",
+    "design": "## Architecture\n\n`listPeerSessions(args, opts)` (plugin/src/tools/session/index.ts) is rewritten to:\n1. Resolve `projectRoot = args.projectRoot ?? process.cwd()` and `selfPid`.\n2. If `process.platform !== 'linux'` → return `{ sessions: [], total: 0, deadFiltered: 0, unavailable: true }`.\n3. Collect peers via `detectPeerSessions(projectRoot)` (PeerInfo[] = {pid, cwd, matchVia}); on throw → unavailable.\n4. Build the self entry from `selfPid` + `projectRoot`.\n5. Map each {pid, cwd} → SessionListEntry via a new pure `projectProcessSession({pid, cwd, isSelf}, procDeps)`:\n   - `startTicks = readProcessStartTicks(pid)`, `bootMs = readBootTimeMs()` → `startedAt = new Date(processStartTimeMs(startTicks, {bootTimeMs: bootMs})).toISOString()` (fallback: now when unreadable).\n   - `sessionId = 'sess_' + sha256(pid:startTicks).slice(0,8)` (opaque; pid hashed).\n   - `worktree = basename(cwd)`; `isSelf`.\n   - `lastSeenAt = now`.\n6. Dead-PID filter via `isProcessAlive(pid, {startTicks})` (procfs, PID-reuse-safe).\n7. Sort: self first, then startedAt asc.\n\nInjectable seams for tests: an optional `procDeps` (start-ticks/boot/scan) and existing `__setProcessScannerForTests` on the detector.\n\n`adv_wip_state` peer_sessions (tools/backlog.ts): source from the same live projection so both surfaces agree.\n\n## Test Contract\n- Detector mocked (`__setProcessScannerForTests`) to inject peers; assert N+1 entries, self-first, opaque sessionId, no pid/path fields, stable sessionId across calls, dead-PID filtered, non-Linux → unavailable.\n- procfs helpers exercised with a fixture /proc root for startedAt derivation.\n\n## Non-goals\nRetired projectWorkflow registry, registerSession writes, adv_session_show ACL changes.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nLive peer-session visibility now uses the existing Linux `/proc` detector instead of the retired session-registry stub. `adv_session_list` returns the caller plus same-project peers, self-first. `adv_wip_state.peer_sessions` reflects the same projection.\n\n## Value\nOperators regain accurate multi-session coordination without registration or heartbeat writes. Public output remains privacy-defensive: opaque session ID, timestamps, worktree basename, and `isSelf`; no PID or full cwd.\n\n## Verification\n- TDD session behavior: RED `tr_mrqql84z_23849850` → GREEN `tr_mrqr6sij_079f670b`.\n- WIP aggregation: RED `tr_mrqr9y7k_f4da2919` → GREEN `tr_mrqrchcq_99f4181e` (12/12).\n- Repository check: `tr_mrqrgx9r_8b5e6bee` passed schemas, typecheck, generated manifests, isolation, lockfile policy, lint, and formatting; latest evidence refresh also passed.\n- Final focused verification after release remediation: `tr_mrqslg6y_2aa56c87` passed 46/46.\n- Contract review: all 17 rows pass/respected; zero failing rows.\n\n## Release Readiness Summary\nIndependent acceptance review returned READY after fixing scan-time PID identity capture. Release hardening then identified one fail-open edge case for peers lacking scan-time start ticks; remediation now omits those unverifiable peers and counts them as filtered rather than accepting possible PID reuse. Harden re-review attempt 2 returned READY. Worktree and diff are clean.\n\n## Risks and Follow-ups\n- Detection remains Linux-only by design; other platforms return `unavailable: true`.\n- If `/proc` start ticks cannot be captured for a peer, that peer is safely omitted until detectable.\n- No migration, data backfill, frontend preview, deployment configuration, or operational follow-up required.\n- Changes are committed in the isolated branch but not yet released or deployed. No OpenCode restart has been forced.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-18T19:37:35.728Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | When peer OpenCode sessions share the project, `adv_session_list` returns one entry per live peer plus the caller's own (`isSelf: true`). | pass | Reviewer verdict READY; session tests tr_mrqrq6t1_245761b5 prove self plus detected peers. |\n| SC2 | success_criterion | Output exposes only sessionId (opaque), startedAt (ISO), worktree (basename), isSelf, lastSeenAt — never PID or full cwd. | pass | Reviewer confirmed privacy projection; session tests assert no PID/full-path fields. |\n| SC3 | success_criterion | `sessionId` is stable for a given process across repeated calls and opaque (PID not recoverable in plaintext). | pass | Stable opaque SHA-256-derived session IDs verified by session tests. |\n| SC4 | success_criterion | On non-Linux, the tools return `unavailable: true` (no throw). | pass | Non-Linux unavailable behavior verified by session tests. |\n| SC5 | success_criterion | `adv_wip_state.peer_sessions` reflects the same live peers. | pass | backlog tests tr_mrqrchcq_99f4181e verify adv_wip_state maps listPeerSessions live projection. |\n| AC1 | acceptance_criterion | Given N live peer OpenCode processes in the project, when adv_session_list runs, then N+1 entries (peers + self) are returned, self first. | pass | tr_mrqrq6t1_245761b5: 33/33 focused tests; self first plus N peers. |\n| AC2 | acceptance_criterion | Given a detected peer, when projected, then the entry contains no pid/full-path fields. | pass | Session projection tests assert no pid, cwd, or worktreePath fields. |\n| AC3 | acceptance_criterion | Given the same process, when adv_session_list is called twice, then its sessionId is identical. | pass | Repeated-call stable opaque sessionId test passed in tr_mrqrq6t1_245761b5. |\n| AC4 | acceptance_criterion | Given process.platform !== 'linux', when the tools run, then result.unavailable === true and no exception propagates. | pass | Non-Linux detector-unavailable test passed in tr_mrqrq6t1_245761b5. |\n| AC5 | acceptance_criterion | Given a dead/exited PID surfaced by a race, when projected, then it is filtered (PID-reuse-safe liveness). | pass | Dead and PID-reused peer filtering tests passed; scan-time startTicks race fixed by reviewer. |\n| C1 | constraint | Do NOT resurrect the retired Temporal projectWorkflow session registry. | respected | Diff replaces listSessions read with detectPeerSessions; no registry writes or resurrection. |\n| C2 | constraint | Preserve the privacy-defensive projection (KD-4): no PID/full-path leak. | respected | Public SessionListEntry projection excludes PID and full cwd; tests enforce. |\n| C3 | constraint | Linux-only detection (existing detector platform guard); other platforms degrade to unavailable. | respected | Explicit process.platform Linux guard returns unavailable on other platforms. |\n| C4 | constraint | Reads only; no workflow mutations from a list call. | respected | Listing path performs process/procfs reads only; reviewer found no workflow mutation. |\n| DONT1 | avoidance | Do not surface PID or full cwd in any public entry. | respected | Reviewer READY; public entries contain only opaque ID, timestamps, basename, isSelf. |\n| DONT2 | avoidance | Do not re-add registerSession/heartbeat writes (detector is registration-free). | respected | Reviewer confirmed no registerSession or heartbeat writes added. |\n| DONT3 | avoidance | Do not change adv_session_show ACL semantics in this change. | respected | Reviewer confirmed adv_session_show ACL unchanged; existing ACL tests remain green. |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-18T18:52:01.281Z",
+      "contentHash": "8000d5a6e1ad1102497a2a9de5239a82cb464b15361f5862e526752c7cbad8d7",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-18T18:52:35.623Z",
+      "contentHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-18T18:52:35.623Z",
+      "contentHash": "beaefa21ea990a4ad2adc271378bb1f3aeece35bfffa5cfdcd4d0d9680076f8f",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-07-18T18:52:35.623Z",
+      "contentHash": "8b252d9917fbf28276f921e70c404957b7cc3b136459f0a4109fff05d887170f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-18T20:03:00.257Z",
+      "contentHash": "1f0b1be35ee76e6323bdb92fa63faf285c98cdfb585cafe927430acb073f4511",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-18T20:03:00.257Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-18T18:55:25.888Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-18T18:55:25.888Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
