@@ -106,7 +106,10 @@ afterAll(async () => {
 describe("scanStoresForRepo (parallel)", () => {
   test("classifies a large store set and completes fast", async () => {
     const start = Date.now();
-    const result = await scanStoresForRepo({ directory: repoDir, dataHomeRoot });
+    const result = await scanStoresForRepo({
+      directory: repoDir,
+      dataHomeRoot,
+    });
     const elapsed = Date.now() - start;
 
     expect(result.identity.kind).toBe("ok");
@@ -126,9 +129,9 @@ describe("scanStoresForRepo (parallel)", () => {
       expect(byId[id]!.relation).toBe("unrelated");
     }
     // Live worker.lock surfaces exactly one warning.
-    expect(result.warnings.filter((w) => w.includes("holds a live"))).toHaveLength(
-      1,
-    );
+    expect(
+      result.warnings.filter((w) => w.includes("holds a live")),
+    ).toHaveLength(1);
   });
 
   test("output is deterministic across repeated runs", async () => {

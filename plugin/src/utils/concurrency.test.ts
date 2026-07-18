@@ -18,7 +18,11 @@ describe("mapWithConcurrency", () => {
 
   it("passes the index to the mapper", async () => {
     const input = ["a", "b", "c"];
-    const result = await mapWithConcurrency(input, 2, async (v, i) => `${v}${i}`);
+    const result = await mapWithConcurrency(
+      input,
+      2,
+      async (v, i) => `${v}${i}`,
+    );
     expect(result).toEqual(["a0", "b1", "c2"]);
   });
 

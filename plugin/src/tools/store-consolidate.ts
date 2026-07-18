@@ -41,7 +41,10 @@ import { basename, dirname, join } from "path";
 import { createHash } from "crypto";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
-import { mapWithConcurrency, STORE_SCAN_CONCURRENCY } from "../utils/concurrency";
+import {
+  mapWithConcurrency,
+  STORE_SCAN_CONCURRENCY,
+} from "../utils/concurrency";
 import { getDataHome, resolveProjectIdentity } from "../utils/project-id";
 import { execFileGitAsync } from "../utils/git-binary";
 import { isProcessAlive } from "../utils/process-liveness";
@@ -695,15 +698,21 @@ export async function scanStoresForRepo(
         }
       }
 
-      const [lock, changes, archiveBundles, retiredEpics, wisdomRows, reflRows] =
-        await Promise.all([
-          probeWorkerLock(ref.path),
-          readdirSafe(join(ref.path, "changes")).then((d) => d.length),
-          readdirSafe(join(ref.path, "archive")).then((d) => d.length),
-          readdirSafe(join(ref.path, "retired-epics")).then((d) => d.length),
-          countJsonlRows(join(ref.path, "wisdom.jsonl")),
-          countJsonlRows(join(ref.path, "reflections.jsonl")),
-        ]);
+      const [
+        lock,
+        changes,
+        archiveBundles,
+        retiredEpics,
+        wisdomRows,
+        reflRows,
+      ] = await Promise.all([
+        probeWorkerLock(ref.path),
+        readdirSafe(join(ref.path, "changes")).then((d) => d.length),
+        readdirSafe(join(ref.path, "archive")).then((d) => d.length),
+        readdirSafe(join(ref.path, "retired-epics")).then((d) => d.length),
+        countJsonlRows(join(ref.path, "wisdom.jsonl")),
+        countJsonlRows(join(ref.path, "reflections.jsonl")),
+      ]);
 
       const warnings: string[] = [];
       if (lock.present && lock.live) {

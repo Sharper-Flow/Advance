@@ -17,10 +17,7 @@ vi.mock("fs/promises", async (importActual) => {
     ...actual,
     readFile: (path: unknown, ...rest: unknown[]) => {
       if (typeof path === "string") readFileCalls.push(path);
-      return (actual.readFile as (...a: unknown[]) => unknown)(
-        path,
-        ...rest,
-      );
+      return (actual.readFile as (...a: unknown[]) => unknown)(path, ...rest);
     },
   };
 });
@@ -68,9 +65,7 @@ describe("scanStoresForCleanup single-read", () => {
     readFileCalls.length = 0;
     const result = await scanStoresForCleanup({ dataHomeRoot });
     expect(result.stores).toHaveLength(N);
-    const agendaReads = readFileCalls.filter((p) =>
-      p.endsWith("agenda.jsonl"),
-    );
+    const agendaReads = readFileCalls.filter((p) => p.endsWith("agenda.jsonl"));
     expect(agendaReads).toHaveLength(N);
   });
 });

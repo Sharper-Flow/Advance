@@ -23,7 +23,10 @@ import { join } from "path";
 import { createHash } from "crypto";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
-import { mapWithConcurrency, STORE_SCAN_CONCURRENCY } from "../utils/concurrency";
+import {
+  mapWithConcurrency,
+  STORE_SCAN_CONCURRENCY,
+} from "../utils/concurrency";
 import {
   walkStoreDirs,
   defaultDataHomeRoot,
@@ -262,7 +265,12 @@ export function analyzeAgenda(content: string | null): AgendaAnalysis {
       malformed += 1;
     }
   }
-  return { rows: lines.length, malformed, hashes, contentHash: sha256(content) };
+  return {
+    rows: lines.length,
+    malformed,
+    hashes,
+    contentHash: sha256(content),
+  };
 }
 
 async function probeWorkerLock(storePath: string): Promise<{
