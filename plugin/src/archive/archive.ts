@@ -8,7 +8,13 @@
 import { join, dirname } from "path";
 import { readdir, readFile } from "fs/promises";
 import { atomicWriteFile } from "../utils/fs";
-import type { Spec, Change } from "../types";
+import { ChangeSchema, type Spec, type Change } from "../types";
+import {
+  buildTerminalArchiveSummary,
+  serializeTerminalArchiveSummary,
+  sha256HexString,
+  TERMINAL_SUMMARY_FILE,
+} from "./terminal-summary";
 import type {
   ArchiveContext,
   ArchiveOperationResult,
@@ -65,6 +71,77 @@ async function archiveBundlePathForWrite(
   );
 }
 
+/**
+ * Write the generated archive bundle artifacts for a change.
+ *
+ * This is the single source of truth for the files that are produced from
+ * workflow state (change.json, terminal summary, digest, traceability, etc.).
+ * Sibling copy loops elsewhere skip GENERATED_BUNDLE_FILES so that hand-written
+ * or legacy source files never clobber generated ones.
+ */
+async function writeArchiveBundleFiles(
+  change: Change,
+  archivePath: string,
+  multiRepo: MultiRepoArchiveMetadata | undefined,
+  archivedAt: string,
+): Promise<void> {
+  const archivedChange: Change = { ...change, status: "archived" };
+
+  // Sentinel: change.json is the durable archive authority and is written first.
+  const changeJson = bundleJsonStringify(archivedChange);
+  await atomicWriteFile(join(archivePath, "change.json"), changeJson);
+  const changeHash = sha256HexString(changeJson);
+
+  // Terminal summary is derived from the validated archived Change and bound to
+  // the exact change.json bytes via changeHash.
+  const validatedChange = ChangeSchema.parse(archivedChange);
+  const terminalSummary = buildTerminalArchiveSummary({
+    change: validatedChange,
+    archivedAt,
+    changeHash,
+  });
+  await atomicWriteFile(
+    join(archivePath, TERMINAL_SUMMARY_FILE),
+    serializeTerminalArchiveSummary(terminalSummary),
+  );
+
+  // Human-readable archive summary.
+  const summary = generateArchiveSummary(change);
+  await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
+
+  // Archive-lane briefing digest (idempotent overwrite).
+  const digest = generateBriefingDigest(change);
+  await atomicWriteFile(join(archivePath, BRIEFING_DIGEST_FILE), digest);
+
+  // Contract traceability, when present.
+  const traceability = generateContractTraceability(change);
+  if (traceability) {
+    await atomicWriteFile(
+      join(archivePath, "CONTRACT_TRACEABILITY.md"),
+      traceability,
+    );
+  }
+
+  // Wisdom sidecar, when present.
+  if (change.wisdom && change.wisdom.length > 0) {
+    await atomicWriteFile(
+      join(archivePath, "wisdom.json"),
+      bundleJsonStringify({
+        entries: change.wisdom,
+        count: change.wisdom.length,
+      }),
+    );
+  }
+
+  // Multi-repo archive metadata, when present.
+  if (multiRepo) {
+    await atomicWriteFile(
+      join(archivePath, "multi-repo-archive.json"),
+      bundleJsonStringify(multiRepo),
+    );
+  }
+}
+
 function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {
   return [...(change.scope_repos ?? [])].sort((a, b) => {
     const aOrder = a.merge_order ?? Number.MAX_SAFE_INTEGER;
@@ -75,6 +152,16 @@ function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {
 }
 
 const BRIEFING_DIGEST_FILE = "BRIEFING_DIGEST.md";
+
+const GENERATED_BUNDLE_FILES = new Set([
+  "change.json",
+  TERMINAL_SUMMARY_FILE,
+  "ARCHIVE_SUMMARY.md",
+  "BRIEFING_DIGEST.md",
+  "CONTRACT_TRACEABILITY.md",
+  "wisdom.json",
+  "multi-repo-archive.json",
+]);
 
 function buildTerminalGateSummary(change: Change): Record<string, string> {
   const gates = change.gates ?? createDefaultGates();
@@ -762,6 +849,7 @@ export async function archiveChange(
   const sourceChangeDir = paths.changes
     ? join(paths.changes, change.id)
     : undefined;
+  const archivedAt = new Date().toISOString();
   const archivePath = await createArchive(
     change,
     paths.archive,
@@ -769,6 +857,7 @@ export async function archiveChange(
     sourceChangeDir,
     errors,
     multiRepo.metadata,
+    archivedAt,
   );
 
   // In-repo archive: write identical bundle to in-repo path (warning-only on failure)
@@ -779,6 +868,7 @@ export async function archiveChange(
         paths.inRepoArchive,
         sourceChangeDir,
         multiRepo.metadata,
+        archivedAt,
       );
     } catch {
       // In-repo failure is warning-only — do NOT add to errors array
@@ -794,7 +884,7 @@ export async function archiveChange(
     docsGenerated,
     archivePath,
     errors,
-    archivedAt: new Date().toISOString(),
+    archivedAt,
     ...(multiRepo.metadata ? { multiRepo: multiRepo.metadata } : {}),
     ...(wisdomPromoted > 0 && { wisdomPromoted }),
   };
@@ -820,63 +910,23 @@ async function createArchive(
   sourceChangeDir?: string,
   errors?: string[],
   multiRepo?: MultiRepoArchiveMetadata,
+  archivedAt: string = new Date().toISOString(),
 ): Promise<string> {
   const archivePath = dryRun
     ? archiveBundlePath(archiveDir, change.id)
     : await archiveBundlePathForWrite(archiveDir, change.id);
 
   if (!dryRun) {
-    // Write the change as archived
-    const archivedChange: Change = {
-      ...change,
-      status: "archived",
-    };
-    await atomicWriteFile(
-      join(archivePath, "change.json"),
-      bundleJsonStringify(archivedChange),
-    );
-
-    // Write archive summary
-    const summary = generateArchiveSummary(change);
-    await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
-
-    // Write archive-lane briefing digest (idempotent overwrite)
-    const digest = generateBriefingDigest(change);
-    await atomicWriteFile(join(archivePath, BRIEFING_DIGEST_FILE), digest);
-
-    const traceability = generateContractTraceability(change);
-    if (traceability) {
-      await atomicWriteFile(
-        join(archivePath, "CONTRACT_TRACEABILITY.md"),
-        traceability,
-      );
-    }
-
-    // Copy wisdom entries to archive if present
-    if (change.wisdom && change.wisdom.length > 0) {
-      await atomicWriteFile(
-        join(archivePath, "wisdom.json"),
-        bundleJsonStringify({
-          entries: change.wisdom,
-          count: change.wisdom.length,
-        }),
-      );
-    }
-
-    if (multiRepo) {
-      await atomicWriteFile(
-        join(archivePath, "multi-repo-archive.json"),
-        bundleJsonStringify(multiRepo),
-      );
-    }
+    await writeArchiveBundleFiles(change, archivePath, multiRepo, archivedAt);
 
     // Copy sibling files from source change directory (proposal.md, problem-statement.md, etc.)
     if (sourceChangeDir) {
       try {
         const entries = await readdir(sourceChangeDir, { withFileTypes: true });
         for (const entry of entries) {
-          // Skip change.json (already written above with stripped evidence)
-          if (entry.name === "change.json" || !entry.isFile()) continue;
+          // Skip generated bundle files (already written from validated state)
+          if (GENERATED_BUNDLE_FILES.has(entry.name) || !entry.isFile())
+            continue;
           try {
             const content = await readFile(
               join(sourceChangeDir, entry.name),
@@ -960,61 +1010,21 @@ export async function createInRepoArchive(
   inRepoArchiveDir: string,
   sourceChangeDir?: string,
   multiRepo?: MultiRepoArchiveMetadata,
+  archivedAt: string = new Date().toISOString(),
 ): Promise<string> {
   const archivePath = await archiveBundlePathForWrite(
     inRepoArchiveDir,
     change.id,
   );
 
-  const archivedChange: Change = {
-    ...change,
-    status: "archived",
-  };
-  await atomicWriteFile(
-    join(archivePath, "change.json"),
-    bundleJsonStringify(archivedChange),
-  );
-
-  // Write archive summary
-  const summary = generateArchiveSummary(change);
-  await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
-
-  // Write archive-lane briefing digest (idempotent overwrite)
-  const digest = generateBriefingDigest(change);
-  await atomicWriteFile(join(archivePath, BRIEFING_DIGEST_FILE), digest);
-
-  const traceability = generateContractTraceability(change);
-  if (traceability) {
-    await atomicWriteFile(
-      join(archivePath, "CONTRACT_TRACEABILITY.md"),
-      traceability,
-    );
-  }
-
-  // Copy wisdom entries to archive if present
-  if (change.wisdom && change.wisdom.length > 0) {
-    await atomicWriteFile(
-      join(archivePath, "wisdom.json"),
-      bundleJsonStringify({
-        entries: change.wisdom,
-        count: change.wisdom.length,
-      }),
-    );
-  }
-
-  if (multiRepo) {
-    await atomicWriteFile(
-      join(archivePath, "multi-repo-archive.json"),
-      bundleJsonStringify(multiRepo),
-    );
-  }
+  await writeArchiveBundleFiles(change, archivePath, multiRepo, archivedAt);
 
   // Copy sibling files from source change directory
   if (sourceChangeDir) {
     try {
       const entries = await readdir(sourceChangeDir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name === "change.json" || !entry.isFile()) continue;
+        if (GENERATED_BUNDLE_FILES.has(entry.name) || !entry.isFile()) continue;
         try {
           const content = await readFile(
             join(sourceChangeDir, entry.name),

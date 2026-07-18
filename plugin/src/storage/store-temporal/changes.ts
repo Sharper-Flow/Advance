@@ -1,4 +1,4 @@
-import type { Store } from "../store-types";
+import type { Store, ChangeConflictAuthority } from "../store-types";
 import {
   type ArtifactKind,
   type ArtifactPayload,
@@ -27,11 +27,18 @@ import {
   crossProjectCoordinationUpdatedSignal,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
-import { hasArchiveBundle, listChangeDirs, removeChangeDir } from "../json";
+import {
+  hasArchiveBundle,
+  listChangeDirs,
+  loadChange,
+  removeChangeDir,
+} from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity, firstOpenGate } from "../store-types";
 import {
   runTemporal,
+  runTemporalQuery,
+  getChangeHandle,
   getGuardedChangeHandle,
   createTemporalReadDeadline,
   raceWithTemporalDeadline,
@@ -1168,6 +1175,249 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
         },
         ...(warnings.length > 0 ? { warnings } : {}),
+      };
+    },
+    /**
+     * rq-archiveInventoryActive01: active-only, fixed-8s, fail-closed conflict
+     * authority. Membership comes only from Visibility
+     * (`AdvLifecycleState="open" AND ExecutionStatus="Running"`); facts come
+     * from the durable active projection (disk `change.json`) or a capped
+     * workflow fallback. Terminal history, archive bundles, cache, and memo
+     * cannot establish completeness.
+     */
+    listConflictAuthority: async (options) => {
+      const deadline = options?.deadline ?? createTemporalReadDeadline();
+      const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
+      const warnings: string[] = [];
+
+      const bundle = input.temporal as {
+        client?: { workflow?: { list?: unknown } };
+      };
+      let visibilityIds: string[] = [];
+      if (typeof bundle.client?.workflow?.list === "function") {
+        try {
+          visibilityIds = await raceWithTemporalDeadline(
+            listChangeWorkflowIds(
+              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+              { projectId: input.projectId },
+            ),
+            deadline,
+          );
+        } catch (err) {
+          const hitDeadline =
+            err instanceof TemporalQueryTimeoutError || expired();
+          warnings.push(
+            `Visibility active enumeration ${hitDeadline ? "exceeded the aggregate read deadline" : "failed"}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      } else {
+        warnings.push(
+          "Temporal client does not expose workflow.list; active conflict authority cannot enumerate Visibility.",
+        );
+      }
+
+      const activeIds = Array.from(new Set(visibilityIds)).sort((a, b) =>
+        a.localeCompare(b),
+      );
+
+      type FactRow = {
+        id: string;
+        title: string;
+        status: string;
+        capabilities: string[];
+        epic_membership?: Change["epic_membership"];
+        fast_follow_of?: Change["fast_follow_of"];
+      };
+      const active: FactRow[] = [];
+      let omittedCount = 0;
+      let shadowCount = 0;
+
+      type LoadActiveResult =
+        | { kind: "fact"; fact: FactRow }
+        | { kind: "shadow" }
+        | { kind: "fail"; warning: string };
+
+      const loadActiveFact = async (
+        changeId: string,
+      ): Promise<LoadActiveResult> => {
+        // Durable active projection: read disk changes/<id>/change.json
+        // directly. We deliberately avoid `legacy.changes.get` because it
+        // performs archive-bundle dominance/self-heal reads for the general
+        // listing path. The authority performs no unbounded archive scans:
+        // terminal-shadow reconciliation reads only the single terminal record
+        // needed to confirm a shadow and exclude it from active membership.
+        let diskResult: Awaited<ReturnType<typeof loadChange>> | undefined;
+        try {
+          diskResult = await raceWithTemporalDeadline(
+            loadChange(legacy.paths.changes, changeId),
+            deadline,
+          );
+        } catch (err) {
+          const hitDeadline =
+            err instanceof TemporalQueryTimeoutError || expired();
+          return {
+            kind: "fail",
+            warning: `Active fact load for ${changeId} failed${hitDeadline ? " (deadline)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+
+        if (diskResult?.success && diskResult.data) {
+          const data = diskResult.data;
+          if (data.id !== changeId) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} durable projection has mismatched id (${data.id}); cannot establish active authority.`,
+            };
+          }
+
+          // Terminal-shadow reconciliation (rq-terminalAwareTruth01): a
+          // Visibility-proven active ID with a terminal durable projection is a
+          // stale shadow. If the terminal record can be confirmed, exclude it
+          // from active membership without making the authority incomplete.
+          if (data.status === "archived" || data.status === "closed") {
+            if (data.status === "closed") {
+              // The closed disk sentinel is itself the durable terminal record.
+              return { kind: "shadow" };
+            }
+
+            // Archived shadows require the durable archive bundle to confirm
+            // terminal truth; the active disk `change.json` may be a stale
+            // leftover. Without a confirming bundle the authority is incomplete.
+            if (!legacy.paths.archive) {
+              return {
+                kind: "fail",
+                warning: `Active candidate ${changeId} has terminal durable projection (archived) but no archive path is configured; cannot reconcile shadow.`,
+              };
+            }
+            try {
+              const hasBundle = await raceWithTemporalDeadline(
+                hasArchiveBundle(legacy.paths.archive, changeId),
+                deadline,
+              );
+              if (hasBundle) {
+                return { kind: "shadow" };
+              }
+              return {
+                kind: "fail",
+                warning: `Active candidate ${changeId} has terminal durable projection (archived) but no archive bundle confirms it; cannot reconcile shadow.`,
+              };
+            } catch (err) {
+              const hitDeadline =
+                err instanceof TemporalQueryTimeoutError || expired();
+              return {
+                kind: "fail",
+                warning: `Active candidate ${changeId} archive-bundle shadow check failed${hitDeadline ? " (deadline)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
+              };
+            }
+          }
+
+          return {
+            kind: "fact",
+            fact: {
+              id: data.id,
+              title: data.title,
+              status: data.status,
+              capabilities: Object.keys(data.deltas ?? {}),
+              epic_membership: data.epic_membership,
+              fast_follow_of: data.fast_follow_of,
+            },
+          };
+        }
+
+        // Optional workflow fallback: capped at min(1,000ms, remaining budget).
+        try {
+          const remaining = remainingDeadlineMs(deadline);
+          if (remaining <= 0) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} has no durable projection and the aggregate deadline is exhausted; cannot establish active authority.`,
+            };
+          }
+          const fallbackBudget = Math.min(1_000, Math.max(0, remaining));
+          const fallbackDeadline = {
+            budgetMs: fallbackBudget,
+            deadlineAt: Date.now() + fallbackBudget,
+          };
+          const state = (await runTemporalQuery(
+            async () =>
+              getChangeHandle(input, changeId).query(changeStateQuery),
+            { deadline: fallbackDeadline },
+          )) as ChangeWorkflowState;
+
+          if (state.changeId !== changeId) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} workflow fallback returned mismatched id (${state.changeId}); cannot establish active authority.`,
+            };
+          }
+          if (state.status === "archived" || state.status === "closed") {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} workflow fallback returned terminal status (${state.status}); cannot establish active authority.`,
+            };
+          }
+
+          return {
+            kind: "fact",
+            fact: {
+              id: state.changeId,
+              title: state.title,
+              status: state.status,
+              capabilities: Object.keys(state.deltas ?? {}),
+              epic_membership: (
+                state as { epic_membership?: Change["epic_membership"] }
+              ).epic_membership,
+              fast_follow_of: state.fast_follow_of,
+            },
+          };
+        } catch (err) {
+          const hitDeadline =
+            err instanceof TemporalQueryTimeoutError || expired();
+          return {
+            kind: "fail",
+            warning: `Active candidate ${changeId} workflow fallback failed${hitDeadline ? " (deadline)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+      };
+
+      const FACT_LOAD_CONCURRENCY = 4;
+      for (let i = 0; i < activeIds.length; i += FACT_LOAD_CONCURRENCY) {
+        if (expired()) {
+          const remaining = activeIds.slice(i);
+          warnings.push(
+            `Aggregate deadline expired before all active candidates could be loaded; omitted ${remaining.length} candidate(s).`,
+          );
+          omittedCount += remaining.length;
+          break;
+        }
+        const batch = activeIds.slice(i, i + FACT_LOAD_CONCURRENCY);
+        const loaded = await Promise.all(batch.map(loadActiveFact));
+        for (const item of loaded) {
+          if (item.kind === "fact") {
+            active.push(item.fact);
+          } else if (item.kind === "shadow") {
+            shadowCount += 1;
+          } else {
+            warnings.push(item.warning);
+            omittedCount += 1;
+          }
+        }
+      }
+
+      active.sort((a, b) => a.id.localeCompare(b.id));
+
+      const completeness: ChangeConflictAuthority["completeness"] =
+        warnings.length === 0 && omittedCount === 0 ? "complete" : "incomplete";
+
+      return {
+        active,
+        completeness,
+        canConcludeClean: completeness === "complete",
+        warnings,
+        source: "active-conflict-authority",
+        candidateCount: activeIds.length,
+        omittedCount,
+        shadowCount,
       };
     },
   };
