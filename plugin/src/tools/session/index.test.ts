@@ -19,10 +19,9 @@ vi.mock("../worktree/state", () => ({
 }));
 
 vi.mock("../../utils/peer-sessions", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../utils/peer-sessions")>(
-      "../../utils/peer-sessions",
-    );
+  const actual = await vi.importActual<
+    typeof import("../../utils/peer-sessions")
+  >("../../utils/peer-sessions");
   return {
     ...actual,
     detectPeerSessions: vi.fn(),
@@ -30,10 +29,9 @@ vi.mock("../../utils/peer-sessions", async () => {
 });
 
 vi.mock("../../migration/procfs", async () => {
-  const actual =
-    await vi.importActual<typeof import("../../migration/procfs")>(
-      "../../migration/procfs",
-    );
+  const actual = await vi.importActual<typeof import("../../migration/procfs")>(
+    "../../migration/procfs",
+  );
   return {
     ...actual,
     readProcessStartTicks: vi.fn(),
@@ -42,11 +40,7 @@ vi.mock("../../migration/procfs", async () => {
   };
 });
 
-import {
-  listPeerSessions,
-  showOwnSession,
-  isPidAlive,
-} from "./index";
+import { listPeerSessions, showOwnSession, isPidAlive } from "./index";
 import { detectPeerSessions } from "../../utils/peer-sessions";
 import {
   readProcessStartTicks,
@@ -85,9 +79,7 @@ function expectSessionId(pid: number, startTicks: string): string {
 }
 
 function expectStartedAt(bootTimeMs: number, startTicks: string): string {
-  return new Date(
-    bootTimeMs + (Number(startTicks) / 100) * 1000,
-  ).toISOString();
+  return new Date(bootTimeMs + (Number(startTicks) / 100) * 1000).toISOString();
 }
 
 const baseRecord = (override: Partial<SessionRecord> = {}): SessionRecord => ({
@@ -206,8 +198,12 @@ describe("adv_session_list (T19 — live /proc source)", () => {
 
     const result = await listPeerSessions({ projectRoot }, { selfPid });
 
-    expect(result.sessions[0].startedAt).toBe(expectStartedAt(bootTimeMs, "100"));
-    expect(result.sessions[1].startedAt).toBe(expectStartedAt(bootTimeMs, "200"));
+    expect(result.sessions[0].startedAt).toBe(
+      expectStartedAt(bootTimeMs, "100"),
+    );
+    expect(result.sessions[1].startedAt).toBe(
+      expectStartedAt(bootTimeMs, "200"),
+    );
   });
 
   it("filters dead / PID-reused peers and reports deadFiltered count", async () => {

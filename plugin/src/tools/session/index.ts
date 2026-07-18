@@ -93,7 +93,9 @@ export interface SessionListResult {
 
 function deriveSessionId(pid: number, startTicks: string | null): string {
   const entropy = startTicks ? `${pid}:${startTicks}` : `${pid}:unknown`;
-  return "sess_" + createHash("sha256").update(entropy).digest("hex").slice(0, 8);
+  return (
+    "sess_" + createHash("sha256").update(entropy).digest("hex").slice(0, 8)
+  );
 }
 
 // =============================================================================
@@ -179,7 +181,13 @@ export async function listPeerSessions(
     deadFiltered += 1;
   } else {
     alive.push(
-      projectPeerSession(selfPid, projectRoot, true, selfStartTicks, bootTimeMs),
+      projectPeerSession(
+        selfPid,
+        projectRoot,
+        true,
+        selfStartTicks,
+        bootTimeMs,
+      ),
     );
   }
 
