@@ -1871,6 +1871,24 @@ Vague in-flight work.
       expect(statusSpy).toHaveBeenCalledWith({ recentLimit: 10 });
     });
 
+    test("view:health passes 7,500 ms cutoff and candidate limit 10 into store.status", async () => {
+      const statusSpy = vi.spyOn(store, "status");
+
+      const result = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.view).toBe("health");
+      expect(statusSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recentLimit: 10,
+          deadline: expect.objectContaining({ budgetMs: 7500 }),
+        }),
+      );
+    });
+
     test("full views call store.status without a recent bound", async () => {
       const statusSpy = vi.spyOn(store, "status");
 

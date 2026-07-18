@@ -77,6 +77,11 @@ import {
   type StatusRecommendationCarrier,
 } from "./status-enrich";
 import { buildStatusViewPlan, applyStatusView } from "./status-view";
+import {
+  runHealthStatus,
+  buildHealthStatusReadOptions,
+  buildHealthExecutionMeta,
+} from "./status-health-plan";
 export { _test } from "./status-enrich";
 export { _healthSnapshotCache, _statusProbeCaches } from "./status-health";
 export {
@@ -264,7 +269,9 @@ export const statusTools = {
           const statusReadOptions: StatusReadOptions | undefined =
             view === "summary"
               ? { recentLimit: STATUS_SUMMARY_RECENT_LIMIT }
-              : undefined;
+              : view === "health"
+                ? buildHealthStatusReadOptions()
+                : undefined;
           const { status, bootstrapDiagnostic } = await withRecordedPhase(
             "adv_status",
             "statusLoad",
@@ -301,161 +308,6 @@ export const statusTools = {
           const projectId = activeStore.paths.external
             ? basename(activeStore.paths.external)
             : undefined;
-
-          const probeFreshness: Record<string, ProbeCacheFreshness> = {};
-          let temporalHealth: TemporalHealthSnapshot | undefined;
-          if (plan.temporalHealth) {
-            try {
-              const temporalProbe = await fetchStatusTemporalHealth(projectId, {
-                forceRefresh,
-              });
-              temporalHealth = temporalProbe.value;
-              probeFreshness.temporal_health = temporalProbe.freshness;
-            } catch (err) {
-              temporalHealth = buildTemporalHealthFallback(err);
-              probeFreshness.temporal_health = {
-                cached_at: new Date().toISOString(),
-                stale: true,
-                age_ms: 0,
-                ttl_ms: STATUS_PROBE_TTL_MS,
-                error: err instanceof Error ? err.message : String(err),
-              };
-            }
-          }
-
-          let queueServiceability:
-            | StatusQueueServiceabilitySnapshot
-            | null
-            | undefined;
-          if (plan.queueServiceability && temporalHealth) {
-            const queueServiceabilityProbe =
-              await fetchStatusQueueServiceability(
-                {
-                  projectId,
-                  health: temporalHealth,
-                },
-                { forceRefresh },
-              );
-            queueServiceability = queueServiceabilityProbe.value;
-            probeFreshness.queue_serviceability =
-              queueServiceabilityProbe.freshness;
-
-            pushQueueServiceabilityRecommendations({
-              status,
-              temporalHealth,
-              queueServiceability,
-            });
-          }
-
-          let workerProcesses: WorkerProcessesSnapshot | undefined;
-          if (plan.workerProcesses) {
-            try {
-              const workerProcessesProbe = await fetchStatusWorkerProcesses({
-                forceRefresh,
-              });
-              workerProcesses = workerProcessesProbe.value;
-              probeFreshness.worker_processes = workerProcessesProbe.freshness;
-            } catch (err) {
-              // Advisory section — enumeration failure (or a slow /proc
-              // scan hitting the probe timeout) must never fail the health
-              // probe. Omit the section.
-              workerProcesses = undefined;
-              probeFreshness.worker_processes = {
-                cached_at: new Date().toISOString(),
-                stale: true,
-                age_ms: 0,
-                ttl_ms: STATUS_PROBE_TTL_MS,
-                error: err instanceof Error ? err.message : String(err),
-              };
-            }
-
-            if (workerProcesses && workerProcesses.orphanCount > 0) {
-              const orphanPids = workerProcesses.processes
-                .filter((p) => p.orphan)
-                .map((p) => p.pid)
-                .slice(0, 5);
-              const message =
-                `⚠️ ${workerProcesses.orphanCount} orphaned ADV Temporal worker process(es) detected ` +
-                `(pid ${orphanPids.join(", ")}${workerProcesses.orphanCount > orphanPids.length ? ", …" : ""}) — ` +
-                "parent plugin-host is gone; kill them to stop task-queue saturation.";
-              pushStatusRecommendation(status, {
-                kind: "health",
-                priority: "high",
-                title: "Orphaned ADV worker process(es)",
-                detail: `${workerProcesses.orphanCount} worker process(es) whose parent is dead`,
-                action: `kill ${orphanPids.join(" ")} — or see docs/temporal-recovery.md`,
-                source: "health",
-                message,
-              });
-            }
-          }
-
-          let searchAttributes: SearchAttributesSnapshot | undefined;
-          if (plan.searchAttributes) {
-            const searchAttributesProbe =
-              await statusSearchAttributesProbeCache.fetch(
-                projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-                { forceRefresh },
-              );
-            searchAttributes = searchAttributesProbe.value;
-            probeFreshness.search_attributes = searchAttributesProbe.freshness;
-
-            if (!searchAttributes.ok) {
-              const message =
-                "⚠️ Temporal search attributes not verified — " +
-                "run `adv_temporal_register_search_attributes` to register missing search attributes.";
-              pushStatusRecommendation(status, {
-                kind: "health",
-                priority: "high",
-                title: "Temporal search attributes not verified",
-                detail: "required search attributes may be missing",
-                action:
-                  "run `adv_temporal_register_search_attributes` to register missing search attributes",
-                source: "health",
-                message,
-              });
-            }
-          }
-
-          let featureFlags: Record<string, unknown> =
-            withStabilityFeatureDefaults(undefined);
-          let rawFeatures: Record<string, unknown> | undefined;
-          if (plan.projectConfig) {
-            const configResult = await loadProjectConfigWithDiagnostics(
-              activeStore.paths.root,
-            );
-
-            if (!activeStore.paths.external) {
-              status.recommendations.unshift(
-                "⚠️  Running without external state — ADV state is stored in-repo (.adv/). " +
-                  "Worktree sharing and state isolation are unavailable. " +
-                  "Ensure OpenCode is started from a git repository.",
-              );
-            }
-
-            if (!configResult.success) {
-              const prefix =
-                configResult.type === "not_found"
-                  ? "⚠️  Config warning"
-                  : "❌ Config error";
-              status.recommendations.unshift(
-                `${prefix}: ${configResult.error}`,
-              );
-            } else {
-              rawFeatures = configResult.data.features as
-                | Record<string, unknown>
-                | undefined;
-              featureFlags = withStabilityFeatureDefaults(rawFeatures);
-            }
-          }
-
-          const featureFlagSources: Record<string, "default" | "explicit"> = {};
-          for (const key of Object.keys(featureFlags)) {
-            featureFlagSources[key] =
-              rawFeatures && typeof rawFeatures[key] !== "undefined"
-                ? "explicit"
-                : "default";
-          }
 
           const recentForCensus = status.changes.recent ?? [];
           const autoManagedCensus = computeAutoManagedCensus(
@@ -517,52 +369,23 @@ export const statusTools = {
             );
           }
 
+          let probeFreshness: Record<string, ProbeCacheFreshness> = {};
+          let temporalHealth: TemporalHealthSnapshot | undefined;
+          let queueServiceability:
+            | StatusQueueServiceabilitySnapshot
+            | null
+            | undefined;
+          let workerProcesses: WorkerProcessesSnapshot | undefined;
+          let searchAttributes: SearchAttributesSnapshot | undefined;
+          let featureFlags: Record<string, unknown> =
+            withStabilityFeatureDefaults(undefined);
+          let rawFeatures: Record<string, unknown> | undefined;
+          let featureFlagSources: Record<string, "default" | "explicit"> = {};
           let terminalCleanupRetained: PendingDeleteSummary = {
             total: 0,
             classes: {},
           };
-          if (plan.worktreeCleanup) {
-            await withRecordedPhase(
-              "adv_status",
-              "worktreeCleanup",
-              async () => {
-                try {
-                  const worktreeAccess = await initWorktreeStateDb(
-                    activeStore.paths.root,
-                  );
-                  await advWorktreeCleanup("status", {
-                    projectRoot: activeStore.paths.root,
-                    database: worktreeAccess,
-                    log: {
-                      debug: () => undefined,
-                      info: () => undefined,
-                      warn: () => undefined,
-                      error: () => undefined,
-                    },
-                    store: activeStore,
-                    forceAttempts: false,
-                  });
-                  terminalCleanupRetained = summarizePendingDeletes(
-                    await getPendingDeletes(worktreeAccess),
-                  );
-                } catch {
-                  // Status cleanup discovery is best-effort; status itself must remain available.
-                }
-              },
-            );
-          }
-
           let worktreeCensus: WorktreeCensusSnapshot | undefined;
-          if (plan.worktreeCensus) {
-            const worktreeCensusProbe =
-              await statusWorktreeCensusProbeCache.fetch(
-                activeStore.paths.root,
-                { forceRefresh },
-              );
-            worktreeCensus = worktreeCensusProbe.value;
-            probeFreshness.worktree_census = worktreeCensusProbe.freshness;
-          }
-
           let opencodeSessionDebt: Awaited<
             ReturnType<typeof scanOpenCodeSessionDebt>
           > | null = null;
@@ -574,82 +397,413 @@ export const statusTools = {
             liveToolPart: number;
             idleToolPart: number;
           } | null = null;
-          if (plan.sessionDebt) {
-            opencodeSessionDebt = await withRecordedPhase(
-              "adv_status",
-              "sessionDebtScan",
-              () => scanOpenCodeSessionDebt(),
-            );
-            opencodeDebtCounts = deriveOpencodeDebtCounts(opencodeSessionDebt);
-            if (
-              opencodeSessionDebt.available &&
-              opencodeDebtCounts &&
-              (opencodeDebtCounts.orphanGhost > 0 ||
-                opencodeDebtCounts.repairableToolPart > 0)
-            ) {
-              const message = `[doctor] OpenCode blank assistant session debt detected (${opencodeDebtCounts.orphanGhost} orphan ghost blank assistant row(s), ${opencodeDebtCounts.repairableToolPart} repairable stale tool part row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`;
-              pushStatusRecommendation(status, {
-                kind: "cleanup",
-                priority: "medium",
-                title: "OpenCode session debt detected",
-                detail: `${opencodeDebtCounts.orphanGhost} orphan ghost row(s), ${opencodeDebtCounts.repairableToolPart} stale tool part row(s)`,
-                action:
-                  "run `bun scripts/opencode-session-doctor.ts --dry-run` to classify live vs orphan rows",
-                source: "session_debt",
-                message,
-              });
-            }
-          }
-
           let healthSnapshot: HealthSnapshot | undefined;
-          if (plan.healthSnapshot) {
-            healthSnapshot = await withRecordedPhase(
-              "adv_status",
-              "healthSnapshot",
-              () => computeHealthSnapshot(activeStore),
+          let externalStateHygiene:
+            | Awaited<ReturnType<typeof computeExternalStateHygiene>>
+            | undefined;
+          let archivedBranchHygiene: ArchivedBranchHygieneSection | undefined;
+          let snapshotHealth: SnapshotHealthSnapshot | undefined;
+          let requirementCount = 0;
+          let peerSessions:
+            | Array<{
+                sessionId: string;
+                startedAt: string;
+                worktree: string;
+                isSelf: boolean;
+              }>
+            | { unavailable: true }
+            | undefined;
+          let pluginRuntimeInfo:
+            | Awaited<ReturnType<typeof getPluginRuntimeInfo>>
+            | undefined;
+          let healthExecution: Record<string, unknown> | undefined;
+
+          if (view !== "health") {
+            if (plan.temporalHealth) {
+              try {
+                const temporalProbe = await fetchStatusTemporalHealth(
+                  projectId,
+                  {
+                    forceRefresh,
+                  },
+                );
+                temporalHealth = temporalProbe.value;
+                probeFreshness.temporal_health = temporalProbe.freshness;
+              } catch (err) {
+                temporalHealth = buildTemporalHealthFallback(err);
+                probeFreshness.temporal_health = {
+                  cached_at: new Date().toISOString(),
+                  stale: true,
+                  age_ms: 0,
+                  ttl_ms: STATUS_PROBE_TTL_MS,
+                  error: err instanceof Error ? err.message : String(err),
+                };
+              }
+            }
+
+            if (plan.queueServiceability && temporalHealth) {
+              const queueServiceabilityProbe =
+                await fetchStatusQueueServiceability(
+                  {
+                    projectId,
+                    health: temporalHealth,
+                  },
+                  { forceRefresh },
+                );
+              queueServiceability = queueServiceabilityProbe.value;
+              probeFreshness.queue_serviceability =
+                queueServiceabilityProbe.freshness;
+
+              pushQueueServiceabilityRecommendations({
+                status,
+                temporalHealth,
+                queueServiceability,
+              });
+            }
+
+            if (plan.workerProcesses) {
+              try {
+                const workerProcessesProbe = await fetchStatusWorkerProcesses({
+                  forceRefresh,
+                });
+                workerProcesses = workerProcessesProbe.value;
+                probeFreshness.worker_processes =
+                  workerProcessesProbe.freshness;
+              } catch (err) {
+                workerProcesses = undefined;
+                probeFreshness.worker_processes = {
+                  cached_at: new Date().toISOString(),
+                  stale: true,
+                  age_ms: 0,
+                  ttl_ms: STATUS_PROBE_TTL_MS,
+                  error: err instanceof Error ? err.message : String(err),
+                };
+              }
+
+              if (workerProcesses && workerProcesses.orphanCount > 0) {
+                const orphanPids = workerProcesses.processes
+                  .filter((p) => p.orphan)
+                  .map((p) => p.pid)
+                  .slice(0, 5);
+                const message =
+                  `⚠️ ${workerProcesses.orphanCount} orphaned ADV Temporal worker process(es) detected ` +
+                  `(pid ${orphanPids.join(", ")}${workerProcesses.orphanCount > orphanPids.length ? ", …" : ""}) — ` +
+                  "parent plugin-host is gone; kill them to stop task-queue saturation.";
+                pushStatusRecommendation(status, {
+                  kind: "health",
+                  priority: "high",
+                  title: "Orphaned ADV worker process(es)",
+                  detail: `${workerProcesses.orphanCount} worker process(es) whose parent is dead`,
+                  action: `kill ${orphanPids.join(" ")} — or see docs/temporal-recovery.md`,
+                  source: "health",
+                  message,
+                });
+              }
+            }
+
+            if (plan.searchAttributes) {
+              const searchAttributesProbe =
+                await statusSearchAttributesProbeCache.fetch(
+                  projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+                  { forceRefresh },
+                );
+              searchAttributes = searchAttributesProbe.value;
+              probeFreshness.search_attributes =
+                searchAttributesProbe.freshness;
+
+              if (!searchAttributes.ok) {
+                const message =
+                  "⚠️ Temporal search attributes not verified — " +
+                  "run `adv_temporal_register_search_attributes` to register missing search attributes.";
+                pushStatusRecommendation(status, {
+                  kind: "health",
+                  priority: "high",
+                  title: "Temporal search attributes not verified",
+                  detail: "required search attributes may be missing",
+                  action:
+                    "run `adv_temporal_register_search_attributes` to register missing search attributes",
+                  source: "health",
+                  message,
+                });
+              }
+            }
+
+            if (plan.projectConfig) {
+              const configResult = await loadProjectConfigWithDiagnostics(
+                activeStore.paths.root,
+              );
+
+              if (!activeStore.paths.external) {
+                status.recommendations.unshift(
+                  "⚠️  Running without external state — ADV state is stored in-repo (.adv/). " +
+                    "Worktree sharing and state isolation are unavailable. " +
+                    "Ensure OpenCode is started from a git repository.",
+                );
+              }
+
+              if (!configResult.success) {
+                const prefix =
+                  configResult.type === "not_found"
+                    ? "⚠️  Config warning"
+                    : "❌ Config error";
+                status.recommendations.unshift(
+                  `${prefix}: ${configResult.error}`,
+                );
+              } else {
+                rawFeatures = configResult.data.features as
+                  | Record<string, unknown>
+                  | undefined;
+                featureFlags = withStabilityFeatureDefaults(rawFeatures);
+              }
+            }
+
+            for (const key of Object.keys(featureFlags)) {
+              featureFlagSources[key] =
+                rawFeatures && typeof rawFeatures[key] !== "undefined"
+                  ? "explicit"
+                  : "default";
+            }
+
+            if (plan.worktreeCleanup) {
+              await withRecordedPhase(
+                "adv_status",
+                "worktreeCleanup",
+                async () => {
+                  try {
+                    const worktreeAccess = await initWorktreeStateDb(
+                      activeStore.paths.root,
+                    );
+                    await advWorktreeCleanup("status", {
+                      projectRoot: activeStore.paths.root,
+                      database: worktreeAccess,
+                      log: {
+                        debug: () => undefined,
+                        info: () => undefined,
+                        warn: () => undefined,
+                        error: () => undefined,
+                      },
+                      store: activeStore,
+                      forceAttempts: false,
+                    });
+                    terminalCleanupRetained = summarizePendingDeletes(
+                      await getPendingDeletes(worktreeAccess),
+                    );
+                  } catch {
+                    // Status cleanup discovery is best-effort; status itself must remain available.
+                  }
+                },
+              );
+            }
+
+            if (plan.worktreeCensus) {
+              const worktreeCensusProbe =
+                await statusWorktreeCensusProbeCache.fetch(
+                  activeStore.paths.root,
+                  { forceRefresh },
+                );
+              worktreeCensus = worktreeCensusProbe.value;
+              probeFreshness.worktree_census = worktreeCensusProbe.freshness;
+            }
+
+            if (plan.sessionDebt) {
+              opencodeSessionDebt = await withRecordedPhase(
+                "adv_status",
+                "sessionDebtScan",
+                () => scanOpenCodeSessionDebt(),
+              );
+              opencodeDebtCounts =
+                deriveOpencodeDebtCounts(opencodeSessionDebt);
+              if (
+                opencodeSessionDebt.available &&
+                opencodeDebtCounts &&
+                (opencodeDebtCounts.orphanGhost > 0 ||
+                  opencodeDebtCounts.repairableToolPart > 0)
+              ) {
+                const message = `[doctor] OpenCode blank assistant session debt detected (${opencodeDebtCounts.orphanGhost} orphan ghost blank assistant row(s), ${opencodeDebtCounts.repairableToolPart} repairable stale tool part row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`;
+                pushStatusRecommendation(status, {
+                  kind: "cleanup",
+                  priority: "medium",
+                  title: "OpenCode session debt detected",
+                  detail: `${opencodeDebtCounts.orphanGhost} orphan ghost row(s), ${opencodeDebtCounts.repairableToolPart} stale tool part row(s)`,
+                  action:
+                    "run `bun scripts/opencode-session-doctor.ts --dry-run` to classify live vs orphan rows",
+                  source: "session_debt",
+                  message,
+                });
+              }
+            }
+
+            if (plan.healthSnapshot) {
+              healthSnapshot = await withRecordedPhase(
+                "adv_status",
+                "healthSnapshot",
+                () => computeHealthSnapshot(activeStore),
+              );
+              if (healthSnapshot.closed_to_active_ratio > 5) {
+                const ratio = healthSnapshot.closed_to_active_ratio;
+                const message = `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`;
+                pushStatusRecommendation(status, {
+                  kind: "cleanup",
+                  priority: "medium",
+                  title: "Closed-change disk leak detected",
+                  detail: `ratio ${ratio}:1`,
+                  action: "Run `adv_cleanup` to inspect stale changes",
+                  source: "session_debt",
+                  message,
+                });
+              }
+            }
+
+            externalStateHygiene = plan.externalStateHygiene
+              ? await computeExternalStateHygiene(activeStore)
+              : undefined;
+
+            if (plan.archivedBranchHygiene) {
+              try {
+                const mainCheckout = resolveMainCheckout(
+                  activeStore.paths.root,
+                );
+                const hygieneStatus: StatusRecommendationCarrier & {
+                  archived_branch_hygiene?: ArchivedBranchHygieneSection;
+                } = {
+                  recommendations: status.recommendations,
+                  recommendation_items: (status as StatusRecommendationCarrier)
+                    .recommendation_items,
+                };
+                await appendArchivedBranchHygieneRecommendations(
+                  hygieneStatus,
+                  activeStore,
+                  mainCheckout,
+                );
+                status.recommendations = hygieneStatus.recommendations;
+                (status as StatusRecommendationCarrier).recommendation_items =
+                  hygieneStatus.recommendation_items;
+                archivedBranchHygiene = hygieneStatus.archived_branch_hygiene;
+              } catch {
+                // Archived branch hygiene is advisory and git-backed. Non-git
+                // project fixtures and degraded runtimes must still get status.
+              }
+            }
+
+            if (plan.snapshotHealth) {
+              const snapshotHealthProbe = await withRecordedPhase(
+                "adv_status",
+                "snapshotHealth",
+                () => fetchStatusSnapshotHealth(projectId, { forceRefresh }),
+              );
+              snapshotHealth = snapshotHealthProbe.value;
+              probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
+            }
+
+            if (plan.specRequirementCount) {
+              const specsList = await activeStore.specs.list();
+              requirementCount = specsList.specs.reduce(
+                (sum, s) => sum + (s.requirementCount ?? 0),
+                0,
+              );
+            }
+
+            if (plan.peerSessions) {
+              try {
+                const peerResult = await listPeerSessions({
+                  projectRoot: activeStore.paths.root,
+                });
+                if (peerResult.unavailable) {
+                  peerSessions = { unavailable: true };
+                } else {
+                  peerSessions = peerResult.sessions;
+                }
+              } catch {
+                peerSessions = { unavailable: true };
+              }
+            }
+
+            pluginRuntimeInfo = plan.pluginRuntime
+              ? await getPluginRuntimeInfo()
+              : undefined;
+          } else {
+            const healthResult = await runHealthStatus({
+              store: activeStore,
+              projectId,
+              forceRefresh,
+              autoManagedCensus,
+            });
+
+            temporalHealth = healthResult.temporal_health;
+            queueServiceability = healthResult.temporal_queue_serviceability
+              ? {
+                  expectedQueue: healthResult.expected_queue ?? "",
+                  serviceability: healthResult.temporal_queue_serviceability,
+                  workerDiagnostics: healthResult.worker_diagnostics ?? [],
+                }
+              : undefined;
+            workerProcesses = healthResult.worker_processes;
+            searchAttributes = healthResult.search_attributes;
+            featureFlags = healthResult.feature_flags;
+            featureFlagSources = healthResult.feature_flag_sources;
+            terminalCleanupRetained = healthResult.terminal_cleanup_retained;
+            worktreeCensus = healthResult.worktree_census;
+            snapshotHealth = healthResult.snapshot_health;
+            peerSessions = healthResult.peer_sessions;
+            pluginRuntimeInfo = healthResult.plugin_runtime as Awaited<
+              ReturnType<typeof getPluginRuntimeInfo>
+            >;
+            probeFreshness = healthResult._freshness;
+            healthExecution = buildHealthExecutionMeta(
+              status,
+              healthResult._health_execution,
             );
-            if (healthSnapshot.closed_to_active_ratio > 5) {
-              const ratio = healthSnapshot.closed_to_active_ratio;
-              const message = `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`;
+
+            if (plan.specRequirementCount) {
+              const specsList = await activeStore.specs.list();
+              requirementCount = specsList.specs.reduce(
+                (sum, s) => sum + (s.requirementCount ?? 0),
+                0,
+              );
+            }
+
+            if (queueServiceability && temporalHealth) {
+              pushQueueServiceabilityRecommendations({
+                status,
+                temporalHealth,
+                queueServiceability,
+              });
+            }
+
+            if (workerProcesses && workerProcesses.orphanCount > 0) {
+              const orphanPids = workerProcesses.processes
+                .filter((p) => p.orphan)
+                .map((p) => p.pid)
+                .slice(0, 5);
+              const message =
+                `⚠️ ${workerProcesses.orphanCount} orphaned ADV Temporal worker process(es) detected ` +
+                `(pid ${orphanPids.join(", ")}${workerProcesses.orphanCount > orphanPids.length ? ", …" : ""}) — ` +
+                "parent plugin-host is gone; kill them to stop task-queue saturation.";
               pushStatusRecommendation(status, {
-                kind: "cleanup",
-                priority: "medium",
-                title: "Closed-change disk leak detected",
-                detail: `ratio ${ratio}:1`,
-                action: "Run `adv_cleanup` to inspect stale changes",
-                source: "session_debt",
+                kind: "health",
+                priority: "high",
+                title: "Orphaned ADV worker process(es)",
+                detail: `${workerProcesses.orphanCount} worker process(es) whose parent is dead`,
+                action: `kill ${orphanPids.join(" ")} — or see docs/temporal-recovery.md`,
+                source: "health",
                 message,
               });
             }
-          }
 
-          const externalStateHygiene = plan.externalStateHygiene
-            ? await computeExternalStateHygiene(activeStore)
-            : undefined;
-
-          let archivedBranchHygiene: ArchivedBranchHygieneSection | undefined;
-          if (plan.archivedBranchHygiene) {
-            try {
-              const mainCheckout = resolveMainCheckout(activeStore.paths.root);
-              const hygieneStatus: StatusRecommendationCarrier & {
-                archived_branch_hygiene?: ArchivedBranchHygieneSection;
-              } = {
-                recommendations: status.recommendations,
-                recommendation_items: (status as StatusRecommendationCarrier)
-                  .recommendation_items,
-              };
-              await appendArchivedBranchHygieneRecommendations(
-                hygieneStatus,
-                activeStore,
-                mainCheckout,
-              );
-              status.recommendations = hygieneStatus.recommendations;
-              (status as StatusRecommendationCarrier).recommendation_items =
-                hygieneStatus.recommendation_items;
-              archivedBranchHygiene = hygieneStatus.archived_branch_hygiene;
-            } catch {
-              // Archived branch hygiene is advisory and git-backed. Non-git
-              // project fixtures and degraded runtimes must still get status.
+            if (searchAttributes && !searchAttributes.ok) {
+              const message =
+                "⚠️ Temporal search attributes not verified — " +
+                "run `adv_temporal_register_search_attributes` to register missing search attributes.";
+              pushStatusRecommendation(status, {
+                kind: "health",
+                priority: "high",
+                title: "Temporal search attributes not verified",
+                detail: "required search attributes may be missing",
+                action:
+                  "run `adv_temporal_register_search_attributes` to register missing search attributes",
+                source: "health",
+                message,
+              });
             }
           }
 
@@ -673,54 +827,6 @@ export const statusTools = {
               view,
             );
           }
-
-          let snapshotHealth: SnapshotHealthSnapshot | undefined;
-          if (plan.snapshotHealth) {
-            const snapshotHealthProbe = await withRecordedPhase(
-              "adv_status",
-              "snapshotHealth",
-              () => fetchStatusSnapshotHealth(projectId, { forceRefresh }),
-            );
-            snapshotHealth = snapshotHealthProbe.value;
-            probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
-          }
-
-          let requirementCount = 0;
-          if (plan.specRequirementCount) {
-            const specsList = await activeStore.specs.list();
-            requirementCount = specsList.specs.reduce(
-              (sum, s) => sum + (s.requirementCount ?? 0),
-              0,
-            );
-          }
-
-          let peerSessions:
-            | Array<{
-                sessionId: string;
-                startedAt: string;
-                worktree: string;
-                isSelf: boolean;
-              }>
-            | { unavailable: true }
-            | undefined;
-          if (plan.peerSessions) {
-            try {
-              const peerResult = await listPeerSessions({
-                projectRoot: activeStore.paths.root,
-              });
-              if (peerResult.unavailable) {
-                peerSessions = { unavailable: true };
-              } else {
-                peerSessions = peerResult.sessions;
-              }
-            } catch {
-              peerSessions = { unavailable: true };
-            }
-          }
-
-          const pluginRuntimeInfo = plan.pluginRuntime
-            ? await getPluginRuntimeInfo()
-            : undefined;
 
           const formatted = await withRecordedPhase(
             "adv_status",
@@ -841,6 +947,7 @@ export const statusTools = {
             auto_managed_changes: autoManagedCensus,
             worker_role: getTemporalWorkerRole(),
             _freshness: probeFreshness,
+            _health_execution: healthExecution,
             temporal_health: temporalHealth,
             ...(queueServiceability
               ? {
