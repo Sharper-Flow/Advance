@@ -516,6 +516,127 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.degradation?.worktree?.stopReason).toBe("caller_cancelled");
   });
 
+  it("maps live peer-session projection entries into peer_sessions", async () => {
+    const store = makeMockStore([]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_live_1",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: false,
+              worktree: "change/changeA",
+            },
+            {
+              sessionId: "sess_live_2",
+              startedAt: "2026-05-11T04:00:00.000Z",
+              isSelf: true,
+            },
+          ],
+          total: 2,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.peer_sessions).toHaveLength(2);
+    expect(parsed.peer_sessions[0]).toEqual({
+      sessionId: "sess_live_1",
+      startedAt: "2026-05-11T03:00:00.000Z",
+      lastSeenAt: "2026-05-11T03:15:00.000Z",
+      isSelf: false,
+      worktree: "change/changeA",
+    });
+    expect(parsed.peer_sessions[1]).toEqual({
+      sessionId: "sess_live_2",
+      startedAt: "2026-05-11T04:00:00.000Z",
+      isSelf: true,
+    });
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("uses live peer-session detection terminology when sessions are unavailable", async () => {
+    const store = makeMockStore([]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+          unavailable: true,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.peer_sessions).toEqual([]);
+    expect(parsed.warnings).toContainEqual({
+      source: "peer_sessions",
+      reason: "live peer-session detection unavailable",
+    });
+    expect(parsed.warnings).not.toContainEqual(
+      expect.objectContaining({
+        reason: expect.stringContaining("session registry"),
+      }),
+    );
+  });
+
+  it("preserves active_changes and worktrees when peer sessions provider fails", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [
+          {
+            changeId: "changeA",
+            branch: "change/changeA",
+            path: "/wt/changeA",
+            status: "active",
+            materialized: true,
+          },
+        ],
+        sessionsProvider: async () => {
+          throw new Error("live peer-session detection failed");
+        },
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.active_changes).toHaveLength(1);
+    expect(parsed.worktrees).toHaveLength(1);
+    expect(parsed.peer_sessions).toEqual([]);
+    expect(parsed.warnings).toContainEqual({
+      source: "peer_sessions",
+      reason: "live peer-session detection failed",
+    });
+  });
+
   it("calls all three sources in parallel (no sequential dependency)", async () => {
     const store = makeMockStore([]);
     const calls: string[] = [];
