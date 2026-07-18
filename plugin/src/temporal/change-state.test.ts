@@ -23,11 +23,17 @@ import {
   updateArtifactMetadataInChangeState,
 } from "./change-state";
 import type { Change, ChangeOrigin } from "../types";
+import { subagentReportKey } from "../types/subagent-reports";
 import type { ChangeWorkflowInput } from "./contracts";
 
 const sourcePath = fileURLToPath(new URL("./change-state.ts", import.meta.url));
 
-function makeEngineerReport(changeId: string, taskId: string, attempt = 1) {
+function makeEngineerReport(
+  changeId: string,
+  taskId: string,
+  attempt = 1,
+  implementationCycleId?: string,
+) {
   return {
     schema_version: "1.0" as const,
     change_id: changeId,
@@ -53,6 +59,17 @@ function makeEngineerReport(changeId: string, taskId: string, attempt = 1) {
       what_ads_needs_to_know: "Report persisted",
       suggested_next_action: "Continue",
     },
+    ...(implementationCycleId
+      ? {
+          apply_context: {
+            implementation_cycle_id: implementationCycleId,
+            implementation_provenance: {
+              kind: "engineer" as const,
+              baseline_head_sha: "abc123",
+            },
+          },
+        }
+      : {}),
   };
 }
 
@@ -927,6 +944,63 @@ describe("change-state pure mutation helpers", () => {
     });
 
     expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("rejects a designer engineer-report receipt without successful same-cycle engineer evidence", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-receipt-guard",
+      title: "Frontend receipt guard",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-frontend",
+        report: {
+          ...makeDesignerReport(
+            "frontend-receipt-guard",
+            "tk-frontend",
+            "ic-frontend",
+          ),
+          apply_context: {
+            implementation_cycle_id: "ic-frontend",
+            implementation_provenance: {
+              kind: "engineer_report",
+              report_key: subagentReportKey({
+                changeId: "frontend-receipt-guard",
+                taskId: "tk-frontend",
+                agent: "adv-engineer",
+                attempt: 1,
+                implementationCycleId: "ic-frontend",
+              }),
+            },
+          },
+        },
+        submittedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_PROVENANCE_REJECTED/);
   });
 
   it("rejects frontend completion when designer evidence matches a different cycle", () => {

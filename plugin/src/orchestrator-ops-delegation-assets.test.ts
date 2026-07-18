@@ -87,10 +87,10 @@ describe("orchestrator operational delegation assets", () => {
       /\|\s*code edits after task scope known\s*\|\s*`adv-engineer`/i,
     );
     expect(content).toMatch(
-      /\|\s*frontend\/component edits\s*\|\s*`adv-designer`/i,
+      /\|\s*frontend\/component implementation\s*\|\s*`adv-engineer` first; `adv-designer` matching-cycle follow-up\s*\|/i,
     );
     expect(content).not.toMatch(
-      /\|\s*(code edits after task scope known|frontend\/component edits)\s*\|\s*`general`/i,
+      /\|\s*(code edits after task scope known|frontend\/component implementation)\s*\|\s*`general`/i,
     );
   });
 

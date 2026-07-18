@@ -965,6 +965,17 @@ export function applyTaskCompletedToState(
         `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.`,
       );
     }
+    if (
+      !hasMatchingFrontendImplementationReceipt({
+        taskId: payload.taskId,
+        implementationCycleId,
+        reports,
+      })
+    ) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires matching successful adv-engineer evidence or an inline provenance receipt for implementation cycle ${implementationCycleId}.`,
+      );
+    }
   }
 
   // rq-TDD009seq: red-then-green ordering enforcement for inline TDD tasks.
@@ -1109,6 +1120,62 @@ function hasMatchingDesignerApplyEvidence(input: {
   );
 }
 
+function hasMatchingSuccessfulEngineerEvidence(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): SubagentReportSubmittedSignalPayload["report"] | undefined {
+  return input.reports.find(
+    (report) =>
+      report.agent === "adv-engineer" &&
+      report.status === "complete" &&
+      report.blockers.length === 0 &&
+      report.verification.length > 0 &&
+      report.verification.every((entry) => entry.exit_code === 0) &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+}
+
+function hasMatchingFrontendImplementationReceipt(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): boolean {
+  const successfulEngineers = input.reports.filter(
+    (report) =>
+      report.agent === "adv-engineer" &&
+      report.status === "complete" &&
+      report.blockers.length === 0 &&
+      report.verification.length > 0 &&
+      report.verification.every((entry) => entry.exit_code === 0) &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+
+  return input.reports.some((report) => {
+    if (
+      report.agent !== "adv-designer" ||
+      report.status !== "complete" ||
+      taskIdFromReport(report) !== input.taskId ||
+      subagentReportImplementationCycleId(report) !==
+        input.implementationCycleId
+    ) {
+      return false;
+    }
+    const provenance = report.apply_context?.implementation_provenance;
+    if (provenance?.kind === "inline") return true;
+    return (
+      provenance?.kind === "engineer_report" &&
+      successfulEngineers.some(
+        (engineer) => reportKey(engineer) === provenance.report_key,
+      )
+    );
+  });
+}
+
 function reportKey(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): string {
@@ -1166,6 +1233,24 @@ export function applySubagentReportSubmittedToState(
         throw new Error(
           `SUBAGENT_REPORT_ANCHOR_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} claims implementation cycle ${claimedCycleId} but the task has no matching active implementation cycle${activeCycleId ? ` (active cycle: ${activeCycleId})` : ""}.`,
         );
+      }
+      const provenance =
+        payload.report.apply_context?.implementation_provenance;
+      if (provenance?.kind === "engineer_report") {
+        const reports = [
+          ...(state.subagent_reports ?? []),
+          ...(task?.subagent_reports ?? []),
+        ];
+        const engineer = hasMatchingSuccessfulEngineerEvidence({
+          taskId: taskId ?? "",
+          implementationCycleId: claimedCycleId,
+          reports,
+        });
+        if (!engineer || reportKey(engineer) !== provenance.report_key) {
+          throw new Error(
+            `SUBAGENT_REPORT_PROVENANCE_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} must cite a successful same-cycle adv-engineer report key.`,
+          );
+        }
       }
     }
   }
