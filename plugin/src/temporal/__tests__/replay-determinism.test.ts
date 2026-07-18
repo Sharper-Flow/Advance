@@ -97,6 +97,40 @@ const replayFixtures: ReplayFixture[] = [
     patchMarker: "acceptance-executive-summary-proof-v1",
     coversIncludes: "ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH",
   },
+  {
+    // ACCEPTANCE_READINESS_FENCE_PATCH (acceptance-readiness-revision-v1):
+    // new history completing the acceptance gate via the state-backed proof
+    // branch, recording the fence marker before checking the readiness revision
+    // and before the final completion.
+    metadataUrl: new URL(
+      "./replay/histories/fixAcceptanceReadiness.acceptance-readiness-fence.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/fixAcceptanceReadiness.acceptance-readiness-fence.history.json",
+      import.meta.url,
+    ),
+    patchMarker: "acceptance-readiness-revision-v1",
+    coversIncludes: "ACCEPTANCE_READINESS_FENCE_PATCH",
+  },
+  {
+    // ACCEPTANCE_READINESS_FENCE_PATCH (acceptance-readiness-revision-v1):
+    // legacy history completing the acceptance gate before the fence marker
+    // existed. Current patched code skips the fence check because the marker is
+    // absent, preserving replay determinism for pre-fence acceptance histories.
+    metadataUrl: new URL(
+      "./replay/histories/fixAcceptanceReadiness.acceptance-readiness-fence-legacy.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/fixAcceptanceReadiness.acceptance-readiness-fence-legacy.history.json",
+      import.meta.url,
+    ),
+    // Pre-patch poisoned history: no fence marker; it proves the patched code
+    // replays a pre-fence acceptance history deterministically.
+    coversIncludes:
+      "ACCEPTANCE_READINESS_FENCE_PATCH (acceptance-readiness-revision-v1) (legacy)",
+  },
 ];
 
 async function readJson<T>(url: URL): Promise<T> {
