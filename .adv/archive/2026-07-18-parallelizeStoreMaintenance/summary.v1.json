@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-18T18:12:57.685Z",
+  "capabilities": [],
+  "change_hash": "d2a97f85ac6ebe7bfe782ef94563ca3f1c88da2a8dce520641cbf19aafcbb7c4",
+  "change_id": "parallelizeStoreMaintenance",
+  "completed_tasks": 4,
+  "created_at": "2026-07-18T17:39:27.508Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-18T18:08:55.567Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "2257d1adb09b3686e1085546dcf00176d6b3acb680aee368358901cec219d7e3",
+  "task_count": 4,
+  "title": "Parallelize store maintenance scans",
+  "version": "1"
+}

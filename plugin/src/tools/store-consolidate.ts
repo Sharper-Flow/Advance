@@ -41,6 +41,10 @@ import { basename, dirname, join } from "path";
 import { createHash } from "crypto";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
+import {
+  mapWithConcurrency,
+  STORE_SCAN_CONCURRENCY,
+} from "../utils/concurrency";
 import { getDataHome, resolveProjectIdentity } from "../utils/project-id";
 import { execFileGitAsync } from "../utils/git-binary";
 import { isProcessAlive } from "../utils/process-liveness";
@@ -648,76 +652,100 @@ export async function scanStoresForRepo(
           };
 
   const { stores, layouts } = await walkStoreDirs(options.dataHomeRoot);
-  const warnings: string[] = [];
-  const entries: ConsolidationScanStore[] = [];
 
-  for (const ref of stores) {
-    const isSha = SHA40.test(ref.projectId);
-    let relation: ConsolidationScanStore["relation"] = "malformed";
-    let isCommit: boolean | null = null;
-    let isRoot: boolean | null = null;
-    let suspect = false;
-    let note: string | null = null;
+  // Classify each store with bounded concurrency (DONT1: never unbounded). The
+  // per-store git identity probes (gitIsCommit/gitIsRootCommit) spawn a git
+  // process each; a serial loop over hundreds of orphan stores blows the tool
+  // budget. Results are collected in input order (mapWithConcurrency preserves
+  // it), so warnings retain their original order and entries sort deterministically.
+  const perStore = await mapWithConcurrency(
+    stores,
+    STORE_SCAN_CONCURRENCY,
+    async (ref) => {
+      const isSha = SHA40.test(ref.projectId);
+      let relation: ConsolidationScanStore["relation"] = "malformed";
+      let isCommit: boolean | null = null;
+      let isRoot: boolean | null = null;
+      let suspect = false;
+      let note: string | null = null;
 
-    if (!isSha) {
-      note = "directory name is not a 40-hex project id";
-    } else if (identity.kind !== "ok") {
-      relation = "identity_unresolved";
-      note =
-        "repo identity could not be resolved; structural comparison skipped";
-    } else {
-      isCommit = await gitIsCommit(options.directory, ref.projectId);
-      if (!isCommit) {
-        relation = "unrelated";
-        note = "not a commit of this repository (belongs to another repo)";
+      if (!isSha) {
+        note = "directory name is not a 40-hex project id";
+      } else if (identity.kind !== "ok") {
+        relation = "identity_unresolved";
+        note =
+          "repo identity could not be resolved; structural comparison skipped";
       } else {
-        isRoot = await gitIsRootCommit(options.directory, ref.projectId);
-        if (ref.projectId === identity.project_id) {
-          relation = "true_store";
+        isCommit = await gitIsCommit(options.directory, ref.projectId);
+        if (!isCommit) {
+          relation = "unrelated";
+          note = "not a commit of this repository (belongs to another repo)";
         } else {
-          relation = "orphan_candidate";
-          if (!isRoot) {
-            suspect = true;
-            note =
-              "store id is a non-root commit of this repo — the shallow-boundary / graft unstable-identity class; consolidation candidate";
+          isRoot = await gitIsRootCommit(options.directory, ref.projectId);
+          if (ref.projectId === identity.project_id) {
+            relation = "true_store";
           } else {
-            note =
-              "store id is a root commit but not the canonical identity root (multi-root repo); review before consolidating";
+            relation = "orphan_candidate";
+            if (!isRoot) {
+              suspect = true;
+              note =
+                "store id is a non-root commit of this repo — the shallow-boundary / graft unstable-identity class; consolidation candidate";
+            } else {
+              note =
+                "store id is a root commit but not the canonical identity root (multi-root repo); review before consolidating";
+            }
           }
         }
       }
-    }
 
-    const lock = await probeWorkerLock(ref.path);
-    if (lock.present && lock.live) {
-      warnings.push(
-        `store ${ref.projectId} holds a live ${WORKER_LOCK_FILENAME} (pid ${lock.pid}) — stale sessions may still write; execute refuses while present`,
-      );
-    }
+      const [
+        lock,
+        changes,
+        archiveBundles,
+        retiredEpics,
+        wisdomRows,
+        reflRows,
+      ] = await Promise.all([
+        probeWorkerLock(ref.path),
+        readdirSafe(join(ref.path, "changes")).then((d) => d.length),
+        readdirSafe(join(ref.path, "archive")).then((d) => d.length),
+        readdirSafe(join(ref.path, "retired-epics")).then((d) => d.length),
+        countJsonlRows(join(ref.path, "wisdom.jsonl")),
+        countJsonlRows(join(ref.path, "reflections.jsonl")),
+      ]);
 
-    entries.push({
-      project_id: ref.projectId,
-      path: ref.path,
-      layout: ref.layout,
-      shard: ref.shard,
-      relation,
-      is_commit_in_repo: isCommit,
-      is_root_commit: isRoot,
-      unstable_identity_suspect: suspect,
-      note,
-      worker_lock: lock,
-      summary: {
-        changes: (await readdirSafe(join(ref.path, "changes"))).length,
-        archive_bundles: (await readdirSafe(join(ref.path, "archive"))).length,
-        retired_epics: (await readdirSafe(join(ref.path, "retired-epics")))
-          .length,
-        wisdom_rows: await countJsonlRows(join(ref.path, "wisdom.jsonl")),
-        reflections_rows: await countJsonlRows(
-          join(ref.path, "reflections.jsonl"),
-        ),
-      },
-    });
-  }
+      const warnings: string[] = [];
+      if (lock.present && lock.live) {
+        warnings.push(
+          `store ${ref.projectId} holds a live ${WORKER_LOCK_FILENAME} (pid ${lock.pid}) — stale sessions may still write; execute refuses while present`,
+        );
+      }
+
+      const entry: ConsolidationScanStore = {
+        project_id: ref.projectId,
+        path: ref.path,
+        layout: ref.layout,
+        shard: ref.shard,
+        relation,
+        is_commit_in_repo: isCommit,
+        is_root_commit: isRoot,
+        unstable_identity_suspect: suspect,
+        note,
+        worker_lock: lock,
+        summary: {
+          changes,
+          archive_bundles: archiveBundles,
+          retired_epics: retiredEpics,
+          wisdom_rows: wisdomRows,
+          reflections_rows: reflRows,
+        },
+      };
+      return { entry, warnings };
+    },
+  );
+
+  const entries: ConsolidationScanStore[] = perStore.map((p) => p.entry);
+  const warnings: string[] = perStore.flatMap((p) => p.warnings);
 
   return {
     action: "scan",
