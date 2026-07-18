@@ -289,6 +289,12 @@ export {
   type GateCriterion,
   type CriterionDef,
   GATE_CRITERIA_DEFINITIONS,
+  AcceptanceCriteriaFreshnessSchema,
+  type AcceptanceCriteriaFreshness,
+  AcceptanceCriteriaSnapshotSchema,
+  type AcceptanceCriteriaSnapshot,
+  AcceptanceCriteriaProjectionSchema,
+  type AcceptanceCriteriaProjection,
 } from "./gates";
 
 // =============================================================================

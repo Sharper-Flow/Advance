@@ -52,7 +52,11 @@ import {
   worktreeSetupFailedSignal,
 } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
-import { inspectArtifactActivity, writeArtifactActivity } from "./activities";
+import {
+  inspectArtifactActivity,
+  writeArtifactActivity,
+  writeChangeProjection,
+} from "./activities";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
@@ -1261,6 +1265,335 @@ describe("changeWorkflow signal handlers", () => {
           );
         },
       );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  it("fences acceptance completion when an invalidating amendment interleaves (ACCEPTANCE_READINESS_CHANGED)", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-fence-interleave");
+      const executiveSummaryContent =
+        "# Executive Summary\n\nAcceptance readiness fence interleave test.";
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "executive-summary.md"),
+        executiveSummaryContent,
+      );
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-fence-interleave"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-fence-interleave").seedState,
+          gates,
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: createHash("sha256")
+                .update(executiveSummaryContent)
+                .digest("hex"),
+            },
+          },
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "Acceptance readiness fence is enforced.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+        const taskQueue = "acceptance-fence-interleave";
+        let workflowIdForActivity: string | undefined;
+        let amendmentSent = false;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+          activities: {
+            inspectArtifactActivity,
+            writeChangeProjection,
+            writeArtifactActivity: async (activityInput) => {
+              if (!workflowIdForActivity) {
+                throw new Error("workflowIdForActivity not set");
+              }
+              if (!amendmentSent) {
+                amendmentSent = true;
+                const handle = env.client.workflow.getHandle(
+                  workflowIdForActivity,
+                );
+                await handle.signal(contractAmendedSignal, {
+                  amendments: [
+                    {
+                      id: "am-fence-interleave",
+                      actor: "tester",
+                      reason: "interleaved invalidating amendment",
+                      approvalEvidence: "approved",
+                      amendedAt: "2026-05-05T00:01:45.000Z",
+                      affectedIds: ["AC1"],
+                      invalidatesReviewMatrix: true,
+                    },
+                  ],
+                  updatedAt: "2026-05-05T00:01:45.000Z",
+                });
+              }
+              return writeArtifactActivity(activityInput);
+            },
+          },
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `signal-acceptance-fence-interleave-${Date.now()}`,
+            taskQueue,
+            args: [input],
+          });
+          workflowIdForActivity = handle.workflowId;
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "acceptance", "stuck");
+          expect(state.gates.acceptance.status).toBe("stuck");
+          expect(state.gates.acceptance.stuck_reason).toContain(
+            "ACCEPTANCE_READINESS_CHANGED",
+          );
+          expect(state.gates.acceptance.readiness_blockers).toContainEqual(
+            expect.objectContaining({
+              code: "ACCEPTANCE_READINESS_CHANGED",
+            }),
+          );
+          expect(state.acceptanceReadinessRevision).toBe(1);
+          expect(state.contract?.reviewMatrix).toBeUndefined();
+        });
+      });
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  it("acceptance retry after fenced interleave resolves to done with a replacement contract", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-fence-retry");
+      const executiveSummaryContent =
+        "# Executive Summary\n\nAcceptance readiness fence retry test.";
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "executive-summary.md"),
+        executiveSummaryContent,
+      );
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-fence-retry"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-fence-retry").seedState,
+          gates,
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: createHash("sha256")
+                .update(executiveSummaryContent)
+                .digest("hex"),
+            },
+          },
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "Acceptance readiness fence retry works.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+        const taskQueue = "acceptance-fence-retry";
+        let workflowIdForActivity: string | undefined;
+        let amendmentSent = false;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+          activities: {
+            inspectArtifactActivity,
+            writeChangeProjection,
+            writeArtifactActivity: async (activityInput) => {
+              if (!workflowIdForActivity) {
+                throw new Error("workflowIdForActivity not set");
+              }
+              if (!amendmentSent) {
+                amendmentSent = true;
+                const handle = env.client.workflow.getHandle(
+                  workflowIdForActivity,
+                );
+                await handle.signal(contractAmendedSignal, {
+                  amendments: [
+                    {
+                      id: "am-fence-retry",
+                      actor: "tester",
+                      reason: "interleaved invalidating amendment before retry",
+                      approvalEvidence: "approved",
+                      amendedAt: "2026-05-05T00:01:45.000Z",
+                      affectedIds: ["AC1"],
+                      invalidatesReviewMatrix: true,
+                    },
+                  ],
+                  updatedAt: "2026-05-05T00:01:45.000Z",
+                });
+              }
+              return writeArtifactActivity(activityInput);
+            },
+          },
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `signal-acceptance-fence-retry-${Date.now()}`,
+            taskQueue,
+            args: [input],
+          });
+          workflowIdForActivity = handle.workflowId;
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          let state = await waitForGateStatus(handle, "acceptance", "stuck");
+          expect(state.gates.acceptance.readiness_blockers).toContainEqual(
+            expect.objectContaining({
+              code: "ACCEPTANCE_READINESS_CHANGED",
+            }),
+          );
+
+          await handle.signal(contractSetSignal, {
+            contract: {
+              version: 2 as const,
+              rigor: "standard" as const,
+              source: {
+                artifact: "agreement" as const,
+                approvedAt: "2026-05-05T00:00:00.000Z",
+              },
+              items: [
+                {
+                  id: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  text: "Acceptance readiness fence retry works.",
+                  sourceArtifact: "agreement" as const,
+                  verificationRequired: true,
+                  evidencePolicy: "test" as const,
+                  status: "approved" as const,
+                },
+              ],
+              reviewMatrix: {
+                reviewedAt: "2026-05-05T00:03:00.000Z",
+                rows: [
+                  {
+                    contractId: "AC1",
+                    kind: "acceptance_criterion" as const,
+                    status: "pass" as const,
+                    evidencePolicy: "test" as const,
+                    evidence: "retry workflow tests pass",
+                  },
+                ],
+              },
+              amendments: [],
+            },
+            updatedAt: "2026-05-05T00:03:00.000Z",
+          });
+
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:04:00.000Z",
+          });
+
+          state = await waitForGateStatus(handle, "acceptance", "done");
+          expect(state.gates.acceptance.status).toBe("done");
+          expect(state.gates.acceptance.artifact_evidence).toMatchObject({
+            kind: "acceptance",
+          });
+          expect(state.acceptanceReadinessRevision).toBe(2);
+        });
+      });
     } finally {
       await cleanupTempDir(dir);
     }

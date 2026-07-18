@@ -18,6 +18,7 @@
 import * as wf from "@temporalio/workflow";
 
 import type {
+  AcceptanceCriteriaProjection,
   AcceptanceCriteriaSetSignalPayload,
   AcceptanceUpdatedSignalPayload,
   AgreementUpdatedSignalPayload,
@@ -122,6 +123,10 @@ export const getGateCriteriaQuery = wf.defineQuery<
   ChangeWorkflowState["gateCriteria"],
   []
 >(CHANGE_WORKFLOW_QUERY_NAMES.getGateCriteria);
+export const getAcceptanceCriteriaProjectionQuery = wf.defineQuery<
+  AcceptanceCriteriaProjection,
+  []
+>(CHANGE_WORKFLOW_QUERY_NAMES.getAcceptanceCriteriaProjection);
 export const getWorktreesQuery = wf.defineQuery<
   NonNullable<ChangeWorkflowState["worktrees"]>
 >(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);

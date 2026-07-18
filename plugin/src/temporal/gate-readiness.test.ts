@@ -531,6 +531,65 @@ describe("gate readiness", () => {
     );
   });
 
+  it("fails closed when an acceptance review matrix duplicates a contract row", () => {
+    const contract = passingContract();
+    contract.reviewMatrix!.rows.push({ ...contract.reviewMatrix!.rows[0] });
+
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: "/tmp/changes",
+        contract,
+        artifacts: {
+          executiveSummary: {
+            path: "/tmp/changes/change-1/executive-summary.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+          },
+        },
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ACCEPTANCE_REVIEW_MATRIX_INVALID",
+      }),
+    );
+  });
+
+  it("fails closed when an acceptance review matrix includes an unknown row", () => {
+    const contract = passingContract();
+    contract.reviewMatrix!.rows.push({
+      ...contract.reviewMatrix!.rows[0],
+      contractId: "AC_UNKNOWN",
+    });
+
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: "/tmp/changes",
+        contract,
+        artifacts: {
+          executiveSummary: {
+            path: "/tmp/changes/change-1/executive-summary.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+          },
+        },
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ACCEPTANCE_REVIEW_MATRIX_INVALID",
+      }),
+    );
+  });
+
   it("blocks acceptance when workflow-visible executive summary metadata is missing", () => {
     const result = evaluateGateReadiness(
       makeState({
