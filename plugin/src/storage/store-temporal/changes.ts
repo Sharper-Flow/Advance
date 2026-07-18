@@ -54,6 +54,10 @@ import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import type { ChangeSummary } from "../store-temporal-memo";
+import {
+  renderTerminalHistory,
+  TERMINAL_HISTORY_DEADLINE_BUDGET_MS,
+} from "../../archive/terminal-history";
 import type {
   ChangeWorkflowState,
   SignalRejection,
@@ -834,11 +838,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       );
 
       // Compatibility envelope: when callers exercise paths whose
-      // correctness depends on full state (terminal-status sweeps, content
-      // filters that need created_at/lastActivityAt), defer to the full
-      // `list` projection. The hydrationStats field is still returned so
-      // telemetry callers can identify the fallback path.
-      if (wantsTerminal || hasContentFilters) {
+      // correctness depends on full state (content filters that need
+      // created_at/lastActivityAt), defer to the full `list` projection.
+      // Terminal-status sweeps are handled by the non-authoritative history
+      // renderer below under a separate 20-second deadline.
+      if (hasContentFilters) {
         const fallback = await listResolvedChanges(
           {
             includeArchived: wantsArchived,
@@ -856,18 +860,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         if (!wantsClosed) {
           filtered = filtered.filter((c) => c.status !== "closed");
         }
-        if (hasContentFilters) {
-          const enriched = filtered.map((c) => ({
-            ...c,
-            lastActivityAt: computeLastActivity(c),
-          }));
-          filtered = filterChanges(enriched, {
-            prefix: filter?.prefix,
-            titleContains: filter?.titleContains,
-            createdBefore: filter?.createdBefore,
-            lastActivityBefore: filter?.lastActivityBefore,
-          });
-        }
+        const enriched = filtered.map((c) => ({
+          ...c,
+          lastActivityAt: computeLastActivity(c),
+        }));
+        filtered = filterChanges(enriched, {
+          prefix: filter?.prefix,
+          titleContains: filter?.titleContains,
+          createdBefore: filter?.createdBefore,
+          lastActivityBefore: filter?.lastActivityBefore,
+        });
         filtered.sort((a, b) => {
           const cmp = b.created_at.localeCompare(a.created_at);
           return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
@@ -893,14 +895,120 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fromMemo: 0,
             fromCache: 0,
             fromHydration: filtered.length,
-            ...(wantsTerminal ? fallback.hydrationStats : {}),
             ...(fallback.hydrationStats?.deadlineExceeded
               ? { deadlineExceeded: true }
               : {}),
           },
-          // Forward typed degradation on every path — terminal source
-          // warnings for terminal reads, deadline incompleteness always.
           ...(fallback.warnings ? { warnings: fallback.warnings } : {}),
+        };
+      }
+
+      // Explicit non-authoritative archived/closed history. Active rows are
+      // still resolved under the default 8-second authoritative deadline; the
+      // terminal subset runs under a separate 20-second deadline so large
+      // history cannot starve active conflict authority.
+      if (wantsTerminal) {
+        const activeResolved = await listResolvedChanges(
+          { includeArchived: false, includeClosed: false },
+          deadline,
+        );
+        const activeRows = activeResolved.changes
+          .filter((c) => c.status !== "archived" && c.status !== "closed")
+          .map((change) => ({
+            id: change.id,
+            title: change.title,
+            status: change.status,
+            currentGate: firstOpenGate(change.gates),
+            lifecycleState: change.lifecycleState,
+            created_at: change.created_at,
+            lastActivityAt: computeLastActivity(change),
+            taskCount: change.tasks.length,
+            completedTasks: change.tasks.filter((t) => t.status === "done")
+              .length,
+            fast_follow_of: change.fast_follow_of,
+            ops_followup: change.ops_followup,
+            ops_followup_links: change.ops_followup_links,
+            epic_membership: change.epic_membership,
+          }));
+
+        const history = await renderTerminalHistory({
+          archivePath: legacy.paths.archive,
+          changesPath: legacy.paths.changes,
+          includeArchived: wantsArchived,
+          includeClosed: wantsClosed,
+          deadline: createTemporalReadDeadline(
+            TERMINAL_HISTORY_DEADLINE_BUDGET_MS,
+          ),
+        });
+
+        const byId = new Map<string, SummaryRow>();
+        for (const row of activeRows) {
+          byId.set(row.id, row);
+        }
+        for (const row of history.changes) {
+          byId.set(row.id, {
+            id: row.id,
+            title: row.title,
+            status: row.status,
+            currentGate: row.currentGate,
+            lifecycleState: row.lifecycleState,
+            created_at: row.created_at,
+            lastActivityAt: row.lastActivityAt,
+            taskCount: row.taskCount,
+            completedTasks: row.completedTasks,
+            fast_follow_of: row.fast_follow_of,
+            ops_followup: row.ops_followup,
+            ops_followup_links: row.ops_followup_links,
+            epic_membership: row.epic_membership,
+          });
+        }
+
+        let filtered = Array.from(byId.values());
+        if (filter?.status) {
+          filtered = filtered.filter((c) => c.status === filter.status);
+        }
+        if (!wantsArchived) {
+          filtered = filtered.filter((c) => c.status !== "archived");
+        }
+        if (!wantsClosed) {
+          filtered = filtered.filter((c) => c.status !== "closed");
+        }
+        if (hasContentFilters) {
+          const enriched = filtered.map((c) => ({
+            ...c,
+            lastActivityAt: c.lastActivityAt,
+          }));
+          filtered = filterChanges(enriched, {
+            prefix: filter?.prefix,
+            titleContains: filter?.titleContains,
+            createdBefore: filter?.createdBefore,
+            lastActivityBefore: filter?.lastActivityBefore,
+          });
+        }
+        filtered.sort((a, b) => {
+          const cmp = b.created_at.localeCompare(a.created_at);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+
+        const allWarnings = [
+          ...(activeResolved.warnings ?? []),
+          ...history.warnings,
+        ];
+        const allDeadlineExceeded =
+          activeResolved.hydrationStats?.deadlineExceeded === true ||
+          history.hydrationStats.deadlineExceeded === true;
+
+        return {
+          changes: filtered,
+          hydrationStats: {
+            totalIds: filtered.length,
+            fromMemo: 0,
+            fromCache: 0,
+            fromHydration: activeRows.length,
+            ...history.hydrationStats,
+            ...(allDeadlineExceeded ? { deadlineExceeded: true } : {}),
+          },
+          ...(allWarnings.length > 0 ? { warnings: allWarnings } : {}),
         };
       }
 
