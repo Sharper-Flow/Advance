@@ -367,7 +367,7 @@ export const backlogTools = {
           if (value.unavailable) {
             warnings.push({
               source: "peer_sessions",
-              reason: "session registry unavailable",
+              reason: "live peer-session detection unavailable",
             });
           } else {
             peer_sessions = value.sessions;
