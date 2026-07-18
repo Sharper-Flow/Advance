@@ -938,6 +938,13 @@ export const ChangeSchema = z
     /** Legacy acceptance criteria projection derived from contract items. */
     acceptanceCriteria: z.array(z.string()).optional(),
     /**
+     * Monotonic revision counter for acceptance-readiness state. Advanced
+     * when the contract, contract amendments, review matrix, or relevant
+     * re-entry change. Optional for backward compatibility; legacy state
+     * defaults to 0.
+     */
+    acceptanceReadinessRevision: z.number().int().nonnegative().optional(),
+    /**
      * Workflow document content — authoritative source for the six change
      * artifacts (proposal, problemStatement, agreement, design,
      * executiveSummary, acceptance). Populated by content signals into

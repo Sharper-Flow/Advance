@@ -641,6 +641,10 @@ export async function changeWorkflow(
     if (input.seedState.contract) {
       state.contract = input.seedState.contract;
     }
+    if (typeof input.seedState.acceptanceReadinessRevision !== "undefined") {
+      state.acceptanceReadinessRevision =
+        input.seedState.acceptanceReadinessRevision;
+    }
     if (input.seedState.documents) state.documents = input.seedState.documents;
     if (input.seedState.reflections) {
       state.reflections = input.seedState.reflections;
@@ -1780,6 +1784,7 @@ export async function changeWorkflow(
       terminated: state.terminated,
       acceptanceCriteria: state.acceptanceCriteria,
       contract: state.contract,
+      acceptanceReadinessRevision: state.acceptanceReadinessRevision,
       documents: state.documents,
       reflections: state.reflections,
       worktrees: state.worktrees,

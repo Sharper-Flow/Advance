@@ -145,6 +145,7 @@ export function createChangeWorkflowState(input: {
     reflections: [],
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
+    acceptanceReadinessRevision: 0,
   };
 }
 
@@ -174,6 +175,7 @@ export function changeSeedStateFromChange(
     lastSignalAt: safeChange.lastSignalAt,
     acceptanceCriteria: safeChange.acceptanceCriteria,
     contract: safeChange.contract,
+    acceptanceReadinessRevision: safeChange.acceptanceReadinessRevision,
     documents: safeChange.documents,
     origin: safeChange.origin,
     cross_project_origin: safeChange.cross_project_origin,
@@ -241,6 +243,11 @@ export function changeToDirectiveState(input: {
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
   if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;
+}
+
+function advanceAcceptanceReadinessRevision(state: ChangeWorkflowState): void {
+  state.acceptanceReadinessRevision =
+    (state.acceptanceReadinessRevision ?? 0) + 1;
 }
 
 export function applyCrossProjectCoordinationUpdatedToState(
@@ -803,6 +810,7 @@ export function applyContractSetToState(
 ): ChangeWorkflowState {
   state.contract = payload.contract;
   state.acceptanceCriteria = acceptanceCriteriaFromContract(payload.contract);
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -825,6 +833,7 @@ export function applyContractAmendedToState(
   ) {
     delete state.contract.reviewMatrix;
   }
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -837,6 +846,7 @@ export function applyContractReviewMatrixSetToState(
     throw new Error("Cannot set contract review matrix: no contract is set");
   }
   state.contract.reviewMatrix = payload.reviewMatrix;
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -1333,6 +1343,7 @@ export function applyGateReenteredToState(
 ): ChangeWorkflowState {
   if (state.contract && payload.fromGateId !== "release") {
     delete state.contract.reviewMatrix;
+    advanceAcceptanceReadinessRevision(state);
   }
   reopenFromGateInChangeState(state, payload.fromGateId, {
     now: payload.reenteredAt,

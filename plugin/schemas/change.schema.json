@@ -12,6 +12,11 @@
       },
       "type": "array"
     },
+    "acceptanceReadinessRevision": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
     "adv_project_id": {
       "type": "string"
     },

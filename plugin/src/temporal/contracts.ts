@@ -257,6 +257,7 @@ export interface ChangeWorkflowInput {
       | "terminated"
       | "acceptanceCriteria"
       | "contract"
+      | "acceptanceReadinessRevision"
       | "documents"
       | "reflections"
       | "worktrees"
@@ -416,6 +417,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   terminated?: boolean;
   acceptanceCriteria?: string[];
   contract?: ChangeContract;
+  /**
+   * Monotonic revision counter for acceptance-readiness state. Advanced when
+   * the contract, contract amendments, review matrix, or relevant re-entry
+   * change. Optional for replay-safety — histories predating this extension
+   * replay cleanly with it undefined; legacy state defaults to 0.
+   */
+  acceptanceReadinessRevision?: number;
   /**
    * Authoritative artifact content for the change, keyed by canonical
    * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/
