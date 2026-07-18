@@ -25,6 +25,7 @@ import { readdir, readlink } from "fs/promises";
 
 import { execFileGitAsync } from "./git-binary";
 import { getProjectId } from "./project-id";
+import { readProcessStartTicks } from "../migration/procfs";
 
 // =============================================================================
 // Public types
@@ -45,6 +46,11 @@ export interface PeerInfo {
   pid: number;
   /** Resolved CWD of the peer process (from `/proc/<pid>/cwd`). Internal only. */
   cwd: string;
+  /**
+   * Start ticks captured while scanning `/proc`. The public list projection
+   * compares this snapshot with a fresh read to reject PID reuse.
+   */
+  startTicks?: string | null;
   /** Why this peer matched the current session's project. */
   matchVia: "common-dir" | "project-id";
 }
@@ -73,31 +79,41 @@ async function getGitCommonDir(cwd: string): Promise<string | null> {
  * Mockable via `__setProcessScannerForTests` for unit tests.
  */
 async function defaultScanOpencodeProcesses(): Promise<
-  Array<{ pid: number; cwd: string }>
+  Array<{ pid: number; cwd: string; startTicks: string | null }>
 > {
-  const candidates: Array<{ pid: number; cwd: string }> = [];
+  const candidates: Array<{
+    pid: number;
+    cwd: string;
+    startTicks: string | null;
+  }> = [];
   const procDirs = await readdir("/proc").catch(() => [] as string[]);
   for (const dir of procDirs) {
     if (!/^\d+$/.test(dir)) continue;
     const pid = Number(dir);
+    // Snapshot before reading the executable/CWD. A later liveness check can
+    // reject a PID that exits and is reused during the scan.
+    const startTicks = readProcessStartTicks(pid);
     const exe = await readlink(`/proc/${pid}/exe`).catch(() => "");
     if (!exe.includes("opencode")) continue;
     const cwd = await readlink(`/proc/${pid}/cwd`).catch(() => "");
     if (!cwd) continue;
-    candidates.push({ pid, cwd });
+    candidates.push({ pid, cwd, startTicks });
   }
   return candidates;
 }
 
-let processScanner: () => Promise<Array<{ pid: number; cwd: string }>> =
-  defaultScanOpencodeProcesses;
+let processScanner: () => Promise<
+  Array<{ pid: number; cwd: string; startTicks?: string | null }>
+> = defaultScanOpencodeProcesses;
 
 /**
  * Test seam — replace process scanner. Tests must restore the default
  * after each case via `__resetProcessScannerForTests()`.
  */
 export function __setProcessScannerForTests(
-  scanner: () => Promise<Array<{ pid: number; cwd: string }>>,
+  scanner: () => Promise<
+    Array<{ pid: number; cwd: string; startTicks?: string | null }>
+  >,
 ): void {
   processScanner = scanner;
 }

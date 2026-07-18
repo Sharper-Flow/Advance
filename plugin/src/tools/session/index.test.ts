@@ -223,6 +223,31 @@ describe("adv_session_list (T19 — live /proc source)", () => {
     ]);
   });
 
+  it("uses the scan-time start ticks when validating a peer against PID reuse", async () => {
+    mockedDetectPeerSessions.mockResolvedValue([
+      {
+        pid: 2000,
+        cwd: join(projectRoot, "feature"),
+        matchVia: "common-dir",
+        startTicks: "200",
+      },
+    ]);
+    mockedReadStartTicks.mockImplementation((pid: number) =>
+      pid === selfPid ? "100" : "300",
+    );
+    mockedIsProcessAlive.mockImplementation(
+      (_pid, options) =>
+        options?.startTicks === "100" || options?.startTicks === "200",
+    );
+
+    const result = await listPeerSessions({ projectRoot }, { selfPid });
+
+    expect(result.sessions).toHaveLength(2);
+    expect(mockedIsProcessAlive).toHaveBeenCalledWith(2000, {
+      startTicks: "200",
+    });
+  });
+
   it("returns unavailable:true when the live detector is not usable", async () => {
     Object.defineProperty(process, "platform", { value: "win32" });
     mockedDetectPeerSessions.mockRejectedValue(

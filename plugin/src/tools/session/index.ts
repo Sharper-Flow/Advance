@@ -192,7 +192,9 @@ export async function listPeerSessions(
   }
 
   for (const peer of peers) {
-    const startTicks = readProcessStartTicks(peer.pid);
+    // Use scan-time ticks when available: reading ticks only after the
+    // detector returns would accept a different process that reused the PID.
+    const startTicks = peer.startTicks ?? readProcessStartTicks(peer.pid);
     if (!isProcessAliveByStartTicks(peer.pid, { startTicks })) {
       deadFiltered += 1;
       continue;
