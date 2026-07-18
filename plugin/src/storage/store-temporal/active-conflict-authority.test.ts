@@ -37,6 +37,13 @@ import { TEMPORAL_READ_DEADLINE_BUDGET_MS } from "./shared";
 
 const archiveReadCalls: { fn: string; args: unknown[] }[] = [];
 
+/**
+ * Change IDs whose active durable projection must resolve as `not_found`
+ * deterministically (no real `fs.access`), so the workflow-fallback path is
+ * driven purely by fake timers with no real-I/O timing nondeterminism.
+ */
+const forceNotFound = new Set<string>();
+
 vi.mock("../json", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../json")>();
   return {
@@ -56,6 +63,13 @@ vi.mock("../json", async (importOriginal) => {
         throw new Error(
           "archive bundle read should not happen in active conflict authority",
         );
+      }
+      if (forceNotFound.has(id)) {
+        return {
+          success: false as const,
+          error: `forced not_found: ${id}`,
+          type: "not_found" as const,
+        };
       }
       return actual.loadChange(root, id);
     },
@@ -177,25 +191,22 @@ function mockTemporalClient(opts: MockTemporalOptions = {}) {
 }
 
 /**
- * Settle a pending authority read whose workflow fallback interleaves real
- * disk I/O with fake-timer-delayed queries.
- *
- * The fallback timers (the mock query delay and the `min(5000ms, remaining)`
- * per-attempt/deadline cap) are registered only after the real missing-file
- * `loadChange` macrotask resolves. To make timing deterministic, first drain
- * real I/O with pure `setImmediate` hops WITHOUT advancing the fake clock, so
- * every fallback timer registers at fake-time 0. A single bounded advance then
+ * Settle a pending authority read whose workflow fallback is driven by fake
+ * timers. The durable projection resolves as `not_found` via `forceNotFound`
+ * (no real `fs.access`), so all fallback timers register deterministically at
+ * fake-time 0 after a short microtask flush. A single bounded advance then
  * fires exactly the intended timers: 800ms fires a 650ms success query but not
  * the 1,000ms cap; 1,100ms fires the 1,000ms cap for a 1,200ms poison query.
- * No wall-clock sleeps (DC10). The `setImmediate` count is generous — a missing
- * file `fs.access` rejects in a couple of hops regardless of machine speed.
+ * No wall-clock sleeps and no real-I/O timing dependency (DC10).
  */
 async function settleFallback<T>(
   pending: Promise<T>,
   advanceMs: number,
 ): Promise<T> {
-  for (let i = 0; i < 20; i++) {
-    await new Promise<void>((resolve) => setImmediate(resolve));
+  // Flush the microtask chain (visibility enumeration + not_found load) so the
+  // fallback timers are registered before advancing the fake clock.
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
   }
   await vi.advanceTimersByTimeAsync(advanceMs);
   return pending;
@@ -207,6 +218,7 @@ describe("active conflict authority", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     archiveReadCalls.length = 0;
+    forceNotFound.clear();
   });
 
   afterEach(async () => {
@@ -330,7 +342,9 @@ describe("active conflict authority", () => {
   it("uses the optional workflow fallback for a missing durable record", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
-    // active-01 is NOT saved to disk, so the durable projection is missing.
+    // active-01 durable projection resolves not_found deterministically, so
+    // the workflow fallback path runs with no real-fs timing dependency.
+    forceNotFound.add("active-01");
 
     const temporal = mockTemporalClient({
       ids: ["active-01"],
@@ -362,7 +376,10 @@ describe("active conflict authority", () => {
   it("caps the workflow fallback so a poisoned candidate cannot consume the whole request", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
-    // No disk records; both candidates must fall back to workflow query.
+    // Both durable projections resolve not_found deterministically, so both
+    // candidates fall back to the workflow query with no real-fs timing.
+    forceNotFound.add("slow-01");
+    forceNotFound.add("slow-02");
 
     const temporal = mockTemporalClient({
       ids: ["slow-01", "slow-02"],
