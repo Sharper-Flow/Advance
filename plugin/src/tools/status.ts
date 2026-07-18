@@ -68,6 +68,8 @@ import {
   type ArchivedBranchHygieneSection,
 } from "./status-hygiene";
 import {
+  applyCandidateEnrichmentPatches,
+  buildCandidateEnrichmentPatch,
   enrichRecentChangeStatus,
   filterRecentChangesForProductScope,
   buildProductContextOutput,
@@ -75,6 +77,7 @@ import {
   pushStatusRecommendation,
   type StatusSummaryOmissions,
   type StatusRecommendationCarrier,
+  type CandidateEnrichmentPatch,
 } from "./status-enrich";
 import { buildStatusViewPlan, applyStatusView } from "./status-view";
 import {
@@ -350,20 +353,51 @@ export const statusTools = {
               "recentChangeEnrichment",
               async () => {
                 let primaryAssigned = false;
-                for (const rc of recentChanges) {
-                  const isPrimary = !primaryAssigned && rc.status === "draft";
-                  if (isPrimary) primaryAssigned = true;
-                  await enrichRecentChangeStatus(
-                    rc,
+                if (view === "health") {
+                  const cutoffAt =
+                    statusReadOptions?.deadline?.deadlineAt ??
+                    Date.now() + 7_500;
+                  const patches: CandidateEnrichmentPatch[] = [];
+                  let rank = 0;
+                  for (const rc of recentChanges) {
+                    const isPrimary = !primaryAssigned && rc.status === "draft";
+                    if (isPrimary) primaryAssigned = true;
+                    const patch = await buildCandidateEnrichmentPatch({
+                      rc,
+                      store: activeStore,
+                      clarifyMode,
+                      isPrimary,
+                      resolved: {
+                        change: resolvedChanges?.get(String(rc.id)),
+                        resolvedChanges,
+                      },
+                      cutoffAt,
+                      rank,
+                    });
+                    patches.push(patch);
+                    rank++;
+                  }
+                  applyCandidateEnrichmentPatches({
+                    patches,
+                    candidates: recentChanges,
                     status,
-                    activeStore,
-                    clarifyMode,
-                    isPrimary,
-                    {
-                      change: resolvedChanges?.get(String(rc.id)),
-                      resolvedChanges,
-                    },
-                  );
+                  });
+                } else {
+                  for (const rc of recentChanges) {
+                    const isPrimary = !primaryAssigned && rc.status === "draft";
+                    if (isPrimary) primaryAssigned = true;
+                    await enrichRecentChangeStatus(
+                      rc,
+                      status,
+                      activeStore,
+                      clarifyMode,
+                      isPrimary,
+                      {
+                        change: resolvedChanges?.get(String(rc.id)),
+                        resolvedChanges,
+                      },
+                    );
+                  }
                 }
               },
             );
