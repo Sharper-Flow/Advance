@@ -139,8 +139,18 @@ describe("adv_session_list (T19 — live /proc source)", () => {
 
   it("returns self first plus one entry per detected peer (N+1)", async () => {
     mockedDetectPeerSessions.mockResolvedValue([
-      { pid: 2000, cwd: join(projectRoot, "feature"), matchVia: "common-dir" },
-      { pid: 3000, cwd: join(projectRoot, "docs"), matchVia: "common-dir" },
+      {
+        pid: 2000,
+        cwd: join(projectRoot, "feature"),
+        matchVia: "common-dir",
+        startTicks: "200",
+      },
+      {
+        pid: 3000,
+        cwd: join(projectRoot, "docs"),
+        matchVia: "common-dir",
+        startTicks: "300",
+      },
     ]);
 
     const result = await listPeerSessions({ projectRoot }, { selfPid });
@@ -158,7 +168,12 @@ describe("adv_session_list (T19 — live /proc source)", () => {
 
   it("projects privacy-safe fields only (no PID, no full cwd)", async () => {
     mockedDetectPeerSessions.mockResolvedValue([
-      { pid: 2000, cwd: join(projectRoot, "feature"), matchVia: "common-dir" },
+      {
+        pid: 2000,
+        cwd: join(projectRoot, "feature"),
+        matchVia: "common-dir",
+        startTicks: "200",
+      },
     ]);
 
     const result = await listPeerSessions({ projectRoot }, { selfPid });
@@ -176,7 +191,12 @@ describe("adv_session_list (T19 — live /proc source)", () => {
 
   it("derives a stable opaque sessionId from pid + startTicks", async () => {
     mockedDetectPeerSessions.mockResolvedValue([
-      { pid: 2000, cwd: join(projectRoot, "feature"), matchVia: "common-dir" },
+      {
+        pid: 2000,
+        cwd: join(projectRoot, "feature"),
+        matchVia: "common-dir",
+        startTicks: "200",
+      },
     ]);
 
     const first = await listPeerSessions({ projectRoot }, { selfPid });
@@ -193,7 +213,12 @@ describe("adv_session_list (T19 — live /proc source)", () => {
 
   it("derives startedAt from /proc startTicks + boot time", async () => {
     mockedDetectPeerSessions.mockResolvedValue([
-      { pid: 2000, cwd: join(projectRoot, "feature"), matchVia: "common-dir" },
+      {
+        pid: 2000,
+        cwd: join(projectRoot, "feature"),
+        matchVia: "common-dir",
+        startTicks: "200",
+      },
     ]);
 
     const result = await listPeerSessions({ projectRoot }, { selfPid });
@@ -208,8 +233,18 @@ describe("adv_session_list (T19 — live /proc source)", () => {
 
   it("filters dead / PID-reused peers and reports deadFiltered count", async () => {
     mockedDetectPeerSessions.mockResolvedValue([
-      { pid: 2000, cwd: join(projectRoot, "feature"), matchVia: "common-dir" },
-      { pid: 3000, cwd: join(projectRoot, "docs"), matchVia: "common-dir" },
+      {
+        pid: 2000,
+        cwd: join(projectRoot, "feature"),
+        matchVia: "common-dir",
+        startTicks: "200",
+      },
+      {
+        pid: 3000,
+        cwd: join(projectRoot, "docs"),
+        matchVia: "common-dir",
+        startTicks: "300",
+      },
     ]);
     mockedIsProcessAlive.mockImplementation((pid: number) => pid !== 2000);
 
@@ -246,6 +281,36 @@ describe("adv_session_list (T19 — live /proc source)", () => {
     expect(mockedIsProcessAlive).toHaveBeenCalledWith(2000, {
       startTicks: "200",
     });
+  });
+
+  it("filters peers that lack scan-time startTicks instead of reading fresh ticks", async () => {
+    // Regression: a missing scan-time startTicks means we cannot prove
+    // identity continuity. Falling back to a fresh read would accept a
+    // PID-reused process, so the peer must be omitted and counted as
+    // deadFiltered/unverifiable.
+    mockedDetectPeerSessions.mockResolvedValue([
+      {
+        pid: 2000,
+        cwd: join(projectRoot, "feature"),
+        matchVia: "common-dir",
+        // Intentionally omit startTicks.
+      },
+    ]);
+    mockedReadStartTicks.mockImplementation((pid: number) =>
+      pid === selfPid ? "100" : "999",
+    );
+    mockedIsProcessAlive.mockReturnValue(true);
+
+    const result = await listPeerSessions({ projectRoot }, { selfPid });
+
+    expect(result.sessions).toHaveLength(1);
+    expect(result.sessions[0].isSelf).toBe(true);
+    expect(result.deadFiltered).toBe(1);
+    // Must not read fresh ticks for an unverifiable peer.
+    expect(mockedReadStartTicks).not.toHaveBeenCalledWith(2000);
+    // Should only be called for self.
+    expect(mockedReadStartTicks).toHaveBeenCalledTimes(1);
+    expect(mockedReadStartTicks).toHaveBeenCalledWith(selfPid);
   });
 
   it("returns unavailable:true when the live detector is not usable", async () => {
