@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.26.0
-> **Updated:** 2026-07-07
+> **Version:** 1.29.0
+> **Updated:** 2026-07-18
 
 ## Purpose
 
@@ -53,75 +53,6 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 **Then:**
 - It does not create or mutate changes, tasks, gates, or spec files
 - It hands off to /adv-proposal for artifact creation
-
----
-
-### Structural Design-Quality Enforcement at Acceptance and Release
-
-**ID:** `rq-designQualityEvidence01` | **Priority:** **[MUST]**
-
-Design-quality concerns raised by adv-designer reports MUST be enforced structurally, not by reviewer prose. A sandbox-safe gate-readiness evaluator MUST read persisted adv-designer reports from change state and block the acceptance and release gates while the latest designer report for any task carries an undispositioned design_dimensions concern or neighboring_recommendation. A concern clears only when (a) a later all-pass designer report supersedes it, or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via the designConcernDispositioned signal path (adv_design_concern_disposition). On report submission, each concern and neighboring recommendation MUST also surface an advisory design_concern_promoted consumer warning with an attempt-stable dedupe key; this consumer warning is ADVISORY routing only and MUST NOT be the gate authority. No accepted_debt terminal state exists anywhere in specs, contract, commands, or agents. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
-
-**Tags:** `workflow`, `review`, `acceptance`, `release`, `frontend`, `design-proof`, `adv-designer`, `structural`
-
-#### Scenarios
-
-**Unresolved designer concern structurally blocks acceptance and release** (`rq-designQualityEvidence01.1`)
-
-**Given:**
-
-- A task's latest adv-designer report contains a design_dimensions concern
-- No typed disposition exists for that concern
-
-**When:** Gate readiness is evaluated for acceptance or release
-
-**Then:**
-
-- The gate-readiness evaluator emits a DESIGN_CONCERN_UNRESOLVED blocker
-- The gate is blocked by code, not by reviewer judgment
-- The evaluator reads only change state (sandbox-safe; no storage access)
-
-**Concerns and neighboring recommendations are advisably promoted, never silently dropped** (`rq-designQualityEvidence01.2`)
-
-**Given:**
-
-- An adv-designer report includes a design_dimensions concern or a neighboring_recommendation
-
-**When:** The report is submitted
-
-**Then:**
-
-- Each concern/recommendation surfaces an advisory design_concern_promoted consumer warning with an attempt-stable dedupe key
-- Re-submission at a higher attempt does not duplicate the warning
-- The consumer warning is advisory and is not the gate authority
-
-**Typed disposition clears the block; no accepted_debt state** (`rq-designQualityEvidence01.3`)
-
-**Given:**
-
-- An unresolved design concern blocks acceptance
-
-**When:** A disposition is recorded via adv_design_concern_disposition (fixed, rejected_with_evidence, split, or fast_follow), or a later all-pass designer report supersedes the concern
-
-**Then:**
-
-- The DESIGN_CONCERN_UNRESOLVED blocker is cleared
-- No accepted_debt terminal state is used
-- The disposition carries non-blank typed evidence
-
-**Runnable visual surface evidence is bounded** (`rq-designQualityEvidence01.4`)
-
-**Given:**
-
-- A frontend change has a runnable visual surface or preview
-
-**When:** /adv-review evaluates design-quality proof
-
-**Then:**
-
-- Browser/design evidence includes viewport context
-- A missing runnable surface records an explicit fallback rationale
-- Advance does not add Storybook as a plugin dependency to satisfy proof
 
 ---
 
@@ -626,6 +557,167 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - Interruption after dispatch resumes to the same durable shipped-or-failed state rather than losing merge work, with no automatic retry
 - Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release
 - PR-mode finalization and wedged-workflow recovery remain unchanged
+
+---
+
+### Auto-Drive Pending-PR Archive Completion
+
+**ID:** `rq-releaseFinalization02` | **Priority:** **[MUST]**
+
+When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queue” with auto-merge armed (i.e. the archive tool would otherwise return “phase9: ‘pending_merge’”), ADV orchestrates the remaining completion rather than handing back to the human. The orchestration spawns “adv-ci-waiter”, the bounded-poll exception to P37, and waits for it to report a terminal result. `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state. CI success alone is not sufficient for release completion. Release completion requires either (a) explicit PR merge-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit` returning `state == MERGED`) or (b) unchanged `origin/{default-branch}` reachability proof. On terminal `MERGED` (verified separately) it syncs the local default branch in place and re-runs “verifyReleaseEvidenceFromMain” (which already proves reachability through “pr_merged” proof and is branch-ref-independent via the persisted tip SHA delivered by parent change “fixPhase9SquashMergeRedetect”). The auto-drive applies only to “pr_auto_merge” and “merge_queue” routes; direct-push, no-remote, and “ff-only” paths remain unchanged. Auto-drive orchestration lives in “adv-archive.md”; the trunk-sync helper lives in “plugin/src/tools/archive-helpers/git-finalize.ts”; the worker-bundle boundary (“workflow-bundle-boundary.test.ts”) must remain green.
+
+**Tags:** `workflow`, `archive`, `git`
+
+#### Scenarios
+
+**Auto-drive triggers on pending_merge** (`rq-releaseFinalization02.1`)
+
+**Given:**
+- ADV calls “adv_change_archive phase9:“run””
+- The archive tool returns “phase9: ‘pending_merge’” with the route coerced from “pr_auto_merge” or “merge_queue”
+
+**When:** The orchestrator inspects the archive tool return
+
+**Then:**
+- ADV spawns “adv-ci-waiter” against the PR via the Task tool
+- The main agent does not poll CI status itself
+- ADV reads “finalization.prNumber”, “finalization.prUrl”, “finalization.mainCheckout”, “finalization.defaultBranch” from the structured return (fields are nested inside “finalization”, not top-level)
+
+**Auto-drive completes end-to-end on merge** (`rq-releaseFinalization02.2`)
+
+**Given:**
+- The spawned waiter reports terminal “MERGED”
+
+**When:** ADV continues the auto-drive flow
+
+**Then:**
+- ADV invokes “syncDefaultBranchAfterMerge” against local trunk
+- ADV re-calls “adv_change_archive phase9:“run”” and lets “verifyReleaseEvidenceFromMain” return “Shipped.” via the “pr_merged” proof branch-ref-independent
+- No second human turn is required; the change reaches the “Shipped.” state end-to-end
+
+**Non-pending-PR paths are untouched** (`rq-releaseFinalization02.3`)
+
+**Given:**
+- A change is archived via direct push, no-remote local fast path, or “ff-only” reconcile
+
+**When:** Phase 9 Git Finalization runs
+
+**Then:**
+- The auto-drive does NOT trigger (no “pending_merge” is returned)
+- The route return and ordering match the pre-existing direct/no-remote/ff-only behavior
+- The change continues to reach its existing terminal state synchronously
+
+**Layer-boundary: no CI-wait imports in worker-bundle-reachable modules** (`rq-releaseFinalization02.4`)
+
+**Given:**
+- The auto-drive orchestration is added
+
+**When:** “pnpm test -- src/temporal/workflow-bundle-boundary.test.ts” is run
+
+**Then:**
+- No new CI-wait or Task-spawn import appears in modules reachable from the Temporal worker bundle
+- “git-finalize.ts” imports nothing additional from “temporal/” (it keeps only the existing “CHANGE_BRANCH_PREFIX” import)
+- The worker-bundle boundary test stays green
+
+---
+
+### Post-Merge Local Default-Branch Sync
+
+**ID:** `rq-releaseFinalization03` | **Priority:** **[MUST]**
+
+After the watched PR reaches “MERGED”, ADV updates the local default branch in place to match “origin/{default}” so the human does not have to run a manual “git pull”. The sync must NEVER mutate the working tree destructively: it MUST NOT switch branches, run “reset”, or run a blind “pull” (the diverged-with-conflict case verified during discovery wedges the main checkout in a half-merge state, violating the main-clean-on-default-branch invariant). When the local default branch already equals “origin/{default}” (the common case after a fetch), the sync fast-forwards via “git merge --ff-only origin/{default}”. When the local default branch has commits absent from “origin/{default}” (e.g. an ADV checkpoint that did not push), the sync MUST NOT auto-merge, MUST NOT reset, and MUST surface the divergence with reconcile instructions; release still completes on the proven origin reachability. The sync helper NEVER records release-done — release completion remains gated solely by “verifyReleaseEvidenceFromMain” and the persisted tip + origin/PR proof chain. The helper is a pure “runGit”-injected function co-located with “reconcileChangeBranchWithDefault” in “plugin/src/tools/archive-helpers/git-finalize.ts”.
+
+**Tags:** `workflow`, `archive`, `git`
+
+#### Scenarios
+
+**Clean ff-only sync** (`rq-releaseFinalization03.1`)
+
+**Given:**
+- The watched PR reached “MERGED”
+- “git -C {main} rev-list origin/{default}..HEAD” returns zero commits
+- “git -C {main} rev-list HEAD..origin/{default}” returns N>0 commits ahead
+
+**When:** ADV calls “syncDefaultBranchAfterMerge”
+
+**Then:**
+- The helper returns “status: ‘synced’”
+- Local “{default}” now points at “origin/{default}” (verified by “git -C {main} rev-parse HEAD” matching “origin/{default}” tip)
+- The set of new commits brought in by the fast-forward is captured in the “ffCommits” field for audit
+
+**Diverged: surface, do not mutate** (`rq-releaseFinalization03.2`)
+
+**Given:**
+- The watched PR reached “MERGED”
+- “git -C {main} rev-list origin/{default}..HEAD” returns N>0 commits (local-only commits)
+
+**When:** ADV calls “syncDefaultBranchAfterMerge”
+
+**Then:**
+- The helper returns “status: ‘diverged’”
+- Local “{default}” is UNCHANGED (HEAD SHA identical pre- and post-call)
+- The helper returns a bounded list of local-only SHAs and a reconcile remediation message; release still completes on the proven origin reachability
+
+**Helper never records release-done** (`rq-releaseFinalization03.3`)
+
+**Given:**
+- The helper signature and body are reviewed
+
+**When:** ADV inspects “syncDefaultBranchAfterMerge” (e.g. via review/harden)
+
+**Then:**
+- The return type contains no “releaseDone”/“recorded”/equivalent field
+- The helper does not invoke any store-mutation surface (no “store.X” calls, no signal writes)
+- Release completion remains gated solely by “verifyReleaseEvidenceFromMain”; the sync helper cannot shortcut the origin/PR proof chain
+
+**Fetch failure is surfaced** (`rq-releaseFinalization03.4`)
+
+**Given:**
+- “git -C {main} fetch origin {default}” exits non-zero
+
+**When:** ADV calls “syncDefaultBranchAfterMerge”
+
+**Then:**
+- The helper returns “status: ‘blocked’” with “reason: ‘FETCH_FAILED’”
+- The remediation string instructs the human to verify network/origin and re-invoke the archive flow
+- No destructive mutation runs after fetch fails
+
+---
+
+### Auto-Drive Non-Terminal Reporting
+
+**ID:** `rq-releaseFinalization04` | **Priority:** **[MUST]**
+
+When the spawned “adv-ci-waiter” returns a non-terminal outcome (timeout, blocked, red CI it cannot fix, missing credentials, ambiguous/partial report, or CI success while PR state is not yet `MERGED`), ADV MUST NOT escalate to release completion. The change MUST stay active; the terminal report MUST be “Pending auto-merge.” or “Blocked.” with the PR URL and the exact retry command. CI success alone is necessary but not sufficient; a “Shipped.” verdict requires `gh pr view <number> --json state` returning `MERGED` or unchanged `origin/{default-branch}` reachability. A false “Shipped.” contradicts the shipped-invariant bar carried by “rq-releaseFinalization01”. The retry command rendered in the report MUST match a copy-pasteable invocation that the user can run to resume the archive after fixing the upstream cause.
+
+**Tags:** `workflow`, `archive`, `git`
+
+#### Scenarios
+
+**Timeout leaves change active** (`rq-releaseFinalization04.1`)
+
+**Given:**
+- Auto-drive is running
+- The waiter exceeds its bounded watch budget without reaching “MERGED”
+
+**When:** ADV must conclude the auto-drive
+
+**Then:**
+- The change stays active (status remains “draft”/“pending_merge”, archive not retired)
+- The report renders “Pending auto-merge.” with the PR URL
+- The render includes the exact retry command: “adv_change_archive changeId:{id} worktreePath:{worktree} phase9:“run””
+
+**Blocked (no PR / no auth / red CI) preserves active state** (`rq-releaseFinalization04.2`)
+
+**Given:**
+- The waiter reports blocked: no PR exists, GitHub auth is missing, or red CI cannot be remediated after the waiter’s bounded attempt budget
+
+**When:** ADV concludes the auto-drive
+
+**Then:**
+- The change stays active
+- The report renders “Blocked.” with reason and remediation
+- “Shipped.” is NEVER emitted as the terminal verb for this scenario
 
 ---
 
@@ -1246,6 +1338,176 @@ Default active or in-flight change listing MUST preserve the summary/memo/cache 
 
 ---
 
+### Authoritative Change Reads Bound to an 8-Second Aggregate Deadline
+
+**ID:** `rq-boundedAuthoritativeRead01` | **Priority:** **[MUST]**
+
+Authoritative change-read surfaces (`adv_change_list`, `adv_status`) MUST resolve state inside a single request-scoped 8,000 ms aggregate deadline (`TEMPORAL_READ_DEADLINE_BUDGET_MS`). The deadline context is created per request (`createTemporalReadDeadline`) and threaded through source enumeration, archive pre-scan, candidate hydration, fallback classification, and Temporal retry/query admission; it is never shared across projects or calls. A result is complete only when every required source and candidate resolves before expiry; otherwise it is explicitly degraded and names the incomplete candidates or sources through typed metadata (`SOURCE_DEADLINE_EXCEEDED`, `hydrationStats.deadlineExceeded`, `omittedIds`), and MUST never claim completeness or let a caller infer completeness from row count or cache warmth. `safeExecute` remains outer containment (defense in depth), not the normal timeout-control mechanism; the existing `TemporalQueryTimeoutError`/retry machinery is extended with remaining-budget admission rather than replaced by a second timer abstraction. This requirement generalizes the terminal degradation semantics of `rq-terminalAggregateRead01` to the authoritative read path while preserving existing terminal warning codes (`TERMINAL_SOURCE_DEGRADED`, `TERMINAL_CANDIDATE_OMITTED`) and the active fast path (`rq-activeListFastPath01`) unchanged. No worker restart, poisoned-workflow mutation, or timeout-ceiling increase may be used as a read-path workaround. Deadline behavior MUST be proven with deterministic tests that use controlled timers/promises, not elapsed wall-clock timing.
+
+**Tags:** `workflow`, `read-model`, `performance`, `degraded`, `deadline`
+
+#### Scenarios
+
+**Slow candidate or source degrades explicitly within the aggregate deadline** (`rq-boundedAuthoritativeRead01.1`)
+
+**Given:**
+- adv_change_list or adv_status is resolving authoritative change state
+- One or more candidate workflows or sources exceed the internal read budget
+
+**When:** The aggregate 8-second internal deadline is reached
+
+**Then:**
+- The read returns within the 8-second aggregate deadline
+- The response carries typed degraded metadata (SOURCE_DEADLINE_EXCEEDED, hydrationStats.deadlineExceeded) naming the incomplete candidates or sources via omittedIds
+- The result never claims completeness
+- The read does not fail only as an unclassified whole-tool ToolExecutionTimeout
+
+**Fully-resolved reads stay complete and preserve the fast path** (`rq-boundedAuthoritativeRead01.2`)
+
+**Given:**
+- All required sources and candidates resolve within the aggregate deadline
+
+**When:** adv_change_list or adv_status runs
+
+**Then:**
+- The read returns a complete result preserving existing authoritative state
+- The active summary/memo fast path (rq-activeListFastPath01) is preserved
+- No deadline degradation metadata is emitted
+
+**safeExecute is containment and deadline tests are deterministic** (`rq-boundedAuthoritativeRead01.3`)
+
+**Given:**
+- The bounded read path and its tests are implemented
+
+**When:** Timeout behavior is exercised
+
+**Then:**
+- safeExecute remains outer containment, not the normal timeout-control path
+- No worker restart, poisoned-workflow mutation, or timeout-ceiling increase is used as a read-path workaround
+- Deadline tests use controlled timers/promises and assert typed results rather than elapsed wall-clock timing
+
+---
+
+### Archive and Visibility Read Sources Are Bounded and Attributed
+
+**ID:** `rq-readSourceAttribution01` | **Priority:** **[MUST]**
+
+Archive and Visibility candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). Visibility enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory × candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory × candidate scan is allowed. Existing terminal source-failure warnings stay terminal-only, while deadline and bound degradation are typed on both active and terminal paths.
+
+**Tags:** `workflow`, `read-model`, `archive`, `visibility`, `degraded`
+
+#### Scenarios
+
+**Slow or failed Visibility/Archive source is named in degraded evidence** (`rq-readSourceAttribution01.1`)
+
+**Given:**
+- Archive inventory or Visibility pagination contributes candidates to an authoritative read
+
+**When:** That source is slow, fails, or reaches the aggregate deadline
+
+**Then:**
+- The result identifies the source in typed degraded evidence (SOURCE_DEADLINE_EXCEEDED with omittedIds)
+- Further unbounded source work stops
+- Successfully resolved rows are still returned
+
+**Archive inventory x candidate scan is bounded** (`rq-readSourceAttribution01.2`)
+
+**Given:**
+- An authoritative read must reconcile archive inventory against candidates
+
+**When:** The archive-bundle pre-scan and archive-inventory x candidate scan run
+
+**Then:**
+- Each iteration performs a deadline admission check
+- The scan is bounded and records omissionReason 'deadline' on expiry
+- No unbounded archive-inventory x candidate scan is performed
+
+---
+
+### Summary Status Bounds Deep Hydration and Reuses Request-Local Documents
+
+**ID:** `rq-summaryReadBound01` | **Priority:** **[MUST]**
+
+`adv_status` with `view: "summary"` MUST apply the existing `STATUS_SUMMARY_RECENT_LIMIT` bound before non-required deep hydration, artifact reads, or recent-change enrichment, truncating the tail with typed bounded degradation (`SOURCE_BOUND_EXCEEDED`, `hydrationStats.boundedOmitted`, `omittedIds`) rather than paying full hydration cost. The bound is applied in the shared resolver (`listResolvedChanges` candidateLimit) with memo-recency ordering so the bounded recent set stays meaningful; complete summary counts/recency semantics are preserved when data resolves within the bound, and otherwise the result publishes explicit degradation instead of inaccurate totals. Changes already hydrated during the request MUST be reused for recent-change, proposal-derived, product-scope, and fast-follow context via a request-local resolved-document map that is transport-only and stripped before serialization; the request MUST NOT issue a duplicate per-change Temporal read or `readArtifact` call for an already-resolved row. This requirement governs change-resolution ordering and complements the provider-group planning of `rq-statusSummaryLazy01` (advance-meta); full views retain their explicit behavior but share the aggregate deadline.
+
+**Tags:** `status`, `read-model`, `performance`, `degraded`
+
+#### Scenarios
+
+**Summary applies the recent-limit bound before deep hydration** (`rq-summaryReadBound01.1`)
+
+**Given:**
+- adv_status is called with view: "summary"
+
+**When:** Status resolution starts
+
+**Then:**
+- The STATUS_SUMMARY_RECENT_LIMIT bound is applied before non-required deep hydration, artifact reads, or recent-change enrichment
+- The truncated tail is reported as typed bounded degradation (SOURCE_BOUND_EXCEEDED, hydrationStats.boundedOmitted, omittedIds)
+- A bound-truncated result never looks complete
+
+**Already-hydrated changes are not re-read** (`rq-summaryReadBound01.2`)
+
+**Given:**
+- A change was hydrated for the status request
+
+**When:** Recent-change, proposal-derived, product-scope, or fast-follow context renders
+
+**Then:**
+- The request reuses the hydrated document/projection from the request-local resolved map
+- No duplicate per-change Temporal read or readArtifact call is issued for the already-resolved row
+- A regression test verifies the call count
+
+**Complete summary semantics preserved within the bound** (`rq-summaryReadBound01.3`)
+
+**Given:**
+- Summary-relevant data resolves within the applied bound
+
+**When:** The summary projection is built
+
+**Then:**
+- Counts and recency remain complete and accurate
+- The request-local resolved map is transport-only and stripped before serialization
+- When a bounded source cannot establish complete semantics, explicit degradation is published instead of inaccurate totals
+
+---
+
+### List and Status Read Cache Is Advisory, Never the Authoritative Truth Source
+
+**ID:** `rq-readCacheAdvisory01` | **Priority:** **[MUST]**
+
+Change/task/gate state MUST remain authoritative for `adv_change_list` and `adv_status`; TTL cache data MUST NOT become the primary list/status truth source for lifecycle, gate, or task state. The memo/summary fast path (`rq-activeListFastPath01`) serves only rows that were resolved authoritatively for the request or remain valid projections; warm memo/summary rows MAY still be served after deadline expiry, but the result MUST then be marked degraded and never complete. Completeness MUST never be inferred from cache warmth or row count. This requirement scopes the change-read cache and is distinct from the bounded health-probe cache of `rq-statusProbeCache01` (advance-meta), which governs diagnostic probes only.
+
+**Tags:** `workflow`, `read-model`, `cache`, `authoritative`
+
+#### Scenarios
+
+**TTL cache is not the primary list/status truth source** (`rq-readCacheAdvisory01.1`)
+
+**Given:**
+- adv_change_list or adv_status resolves lifecycle, gate, or task state
+
+**When:** A TTL or memo cache holds candidate row data
+
+**Then:**
+- The cache does not become the primary list/status truth source for lifecycle, gate, or task state
+- Authoritative change/task/gate state remains the source of truth
+- Completeness is not inferred from cache warmth
+
+**Warm fast-path rows served after expiry stay degraded** (`rq-readCacheAdvisory01.2`)
+
+**Given:**
+- The aggregate deadline expired while warm memo/summary fast-path rows are available
+
+**When:** The read returns
+
+**Then:**
+- Warm memo/summary rows may still be served
+- The result is marked degraded, never complete
+- Completeness is not inferred from row count or cache warmth
+
+---
+
 ### Human Checkpoint Contract
 
 **ID:** `rq-autonomy01` | **Priority:** **[MUST]**
@@ -1402,8 +1664,8 @@ Acceptance and success criteria that presume a capability surface exists (a tool
 **Mint fails on a warrant naming a nonexistent surface** (`rq-acWarrant01.1`)
 
 **Given:**
-- An approved agreement declares a criterion with [warrant: tool:adv_change_archive#nonexistent_arg]
-- adv_change_archive has no `nonexistent_arg` argument in the live tool surface
+- An approved agreement declares a criterion with [warrant: tool:adv_change_archive#target_path]
+- adv_change_archive has no target_path argument in the live tool surface
 
 **When:** adv_contract_mint mints the contract
 
@@ -2527,6 +2789,8 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 - The hardstop is advisory only
 - It does not auto-trigger split or adv_change_reenter
 
+---
+
 ### Search-Attribute Registration Must Use Correct OperatorService Method
 
 **ID:** `rq-searchAttrHealth01` | **Priority:** **[MUST]**
@@ -3590,7 +3854,7 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 
 **ID:** `rq-acceptancePreviewUrl01` | **Priority:** **[MUST]**
 
-/adv-discover MUST capture preview applicability for each change as visual_surface: true, false, or unknown with rationale. /adv-review MUST surface a Preview URL line before the acceptance Inline Approval prompt. For changes with visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work, the Preview URL line MUST include a user-facing dev-environment URL and reachability evidence. Preview URLs MUST target visual output only, MUST be sanitized before durable recording, and MUST NOT point at internal services, dashboards, databases, admin panels, CI systems, Temporal UI, or other non-visual infrastructure. A bare unverified URL MUST NOT satisfy acceptance proof. Acceptable reachability evidence is bounded to agent-observed dev-server output, CI/deploy log URL assignment, user-confirmed URL, or browser-open evidence for the intended visual surface; agents MUST NOT perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement. Missing URL, missing reachability evidence, unknown applicability, or visual-surface drift MUST block acceptance before user sign-off. Non-visual changes MAY use Preview URL: not_applicable with rationale. Durable preview proof MUST be represented through contract review evidence and included in acceptance or executive-summary evidence; generated acceptance.md remains projection-only and MUST NOT be hand-edited as authoritative proof. Archived preview URLs are point-in-time evidence and MUST include verification context rather than being treated as maintained current URLs.
+/adv-discover MUST capture preview applicability for each change as visual_surface: true, false, or unknown with rationale and preview_expectation fields for exact route, data-state expectation, viewport expectation, and rationale. /adv-review MUST surface a Preview URL line before the acceptance Inline Approval prompt. For changes with visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work, the Preview URL line MUST include a user-facing dev-environment URL and preview proof for the exact route/path and affected state/data source the user will open. Preview proof MUST include verification method, result/status, hydration/readiness signal or fallback rationale, reviewed timestamp/context, and viewport context; runnable visual surfaces MUST include a 375px width viewport check or documented project equivalent unless unavailable with rationale. Preview URLs MUST target visual output only, MUST be sanitized before durable recording, and MUST NOT point at internal services, dashboards, databases, admin panels, CI systems, Temporal UI, or other non-visual infrastructure. A bare unverified URL MUST NOT satisfy acceptance proof. URL-source evidence such as agent-observed dev-server output, CI/deploy URL assignment, or user-confirmed URL may establish where a URL came from, but is insufficient by itself for visual preview proof; browser-open evidence or equivalent reviewed visual-surface evidence is required for the intended visual surface when runnable. Fixture/mock URLs or seeded sample states MUST be explicitly labeled as fixture/mock evidence and MUST NOT be presented as user-facing live preview proof unless the approved agreement allows that state. Stale/cache/error-page evidence MUST NOT pass acceptance; /adv-review MUST require fresh-session, cache-busted, or equivalent freshness context when stale, cached, or error-page state is suspected. Agents MUST NOT perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement. Missing URL, missing exact route proof, missing hydration/readiness evidence, missing required viewport evidence, unknown applicability, visual-surface drift, fixture/mock evidence presented as live, stale/cache/error-page proof, or missing matrix evidence MUST block acceptance before user sign-off. Non-visual changes MAY use Preview URL: not_applicable with rationale. Durable preview proof MUST be represented through contract review evidence and included in acceptance or executive-summary evidence; generated acceptance.md remains projection-only and MUST NOT be hand-edited as authoritative proof. Archived preview URLs are point-in-time evidence and MUST include verification context rather than being treated as maintained current URLs.
 
 **Tags:** `workflow`, `acceptance`, `preview-url`, `front-end`
 
@@ -3606,9 +3870,10 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Then:**
 - The agreement records visual_surface as true, false, or unknown
 - The agreement records rationale for the preview applicability value
+- The agreement records preview_expectation fields for exact_route_required, data_state_expectation, viewport_expectation, and rationale
 - visual_surface unknown is carried forward as an acceptance blocker until clarified
 
-**Applicable visual work shows reachable preview before acceptance** (`rq-acceptancePreviewUrl01.2`)
+**Applicable visual work shows exact-route preview before acceptance** (`rq-acceptancePreviewUrl01.2`)
 
 **Given:**
 - A change has visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work
@@ -3617,7 +3882,9 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 
 **Then:**
 - The summary includes Preview URL: {url}
-- The summary includes reachability evidence with verification method, result, and reviewed timestamp or equivalent context
+- The summary includes exact route/path and affected state/data source for the preview the user will open
+- The summary includes verification method, result, hydration/readiness evidence or fallback rationale, reviewed timestamp or equivalent context, and viewport context including 375px width or documented project equivalent when runnable
+- Fixture/mock preview evidence is explicitly labeled and is not presented as user-facing live proof unless allowed by the agreement
 - The contract review evidence records the preview proof
 
 **Missing applicable preview blocks acceptance** (`rq-acceptancePreviewUrl01.3`)
@@ -3625,12 +3892,24 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Given:**
 - A change requires preview proof because visual_surface is true or visual-output work is detected
 
-**When:** No dev-environment URL or reachability evidence is available
+**When:** No dev-environment URL, exact route proof, hydration/readiness evidence, required viewport evidence, or freshness evidence is available
+
+**Then:**
+- /adv-review reports Preview URL: blocked with a concrete reason and remediation hint
+- The acceptance checkpoint is not presented
+- The acceptance gate remains pending
+
+**URL-source-only and stale evidence do not satisfy visual proof** (`rq-acceptancePreviewUrl01.6`)
+
+**Given:**
+- A change requires preview proof because visual_surface is true or visual-output work is detected
+
+**When:** Only URL-source evidence, fixture/mock evidence presented as live, or stale/cache/error-page evidence is available
 
 **Then:**
 - /adv-review reports Preview URL: blocked with a concrete reason
 - The acceptance checkpoint is not presented
-- The acceptance gate remains pending
+- The contract review evidence does not mark visual preview proof as passing
 
 **Visual-surface drift blocks acceptance until agreement is updated** (`rq-acceptancePreviewUrl01.4`)
 
@@ -4502,6 +4781,132 @@ Large non-code deliverables such as market research, design improvement, competi
 
 ---
 
+### Structural Design-Quality Enforcement at Acceptance and Release
+
+**ID:** `rq-designQualityEvidence01` | **Priority:** **[MUST]**
+
+Design-quality concerns raised by adv-designer reports MUST be enforced structurally, not by reviewer prose. A sandbox-safe gate-readiness evaluator MUST read persisted adv-designer reports from change state and block the acceptance and release gates while the latest designer report for any task carries an undispositioned design_dimensions concern or neighboring_recommendation. A concern clears only when (a) a later all-pass designer report supersedes it, or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via the designConcernDispositioned signal path (adv_design_concern_disposition). On report submission, each concern and neighboring recommendation MUST also surface an advisory design_concern_promoted consumer warning with an attempt-stable dedupe key; this consumer warning is ADVISORY routing only and MUST NOT be the gate authority. No accepted_debt terminal state exists anywhere in specs, contract, commands, or agents. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
+
+**Tags:** `workflow`, `review`, `acceptance`, `release`, `frontend`, `design-proof`, `adv-designer`, `structural`
+
+#### Scenarios
+
+**Unresolved designer concern structurally blocks acceptance and release** (`rq-designQualityEvidence01.1`)
+
+**Given:**
+- A task's latest adv-designer report contains a design_dimensions concern
+- No typed disposition exists for that concern
+
+**When:** Gate readiness is evaluated for acceptance or release
+
+**Then:**
+- The gate-readiness evaluator emits a DESIGN_CONCERN_UNRESOLVED blocker
+- The gate is blocked by code, not by reviewer judgment
+- The evaluator reads only change state (sandbox-safe; no storage access)
+
+**Concerns and neighboring recommendations are advisably promoted, never silently dropped** (`rq-designQualityEvidence01.2`)
+
+**Given:**
+- An adv-designer report includes a design_dimensions concern or a neighboring_recommendation
+
+**When:** The report is submitted
+
+**Then:**
+- Each concern/recommendation surfaces an advisory design_concern_promoted consumer warning with an attempt-stable dedupe key
+- Re-submission at a higher attempt does not duplicate the warning
+- The consumer warning is advisory and is not the gate authority
+
+**Typed disposition clears the block; no accepted_debt state** (`rq-designQualityEvidence01.3`)
+
+**Given:**
+- An unresolved design concern blocks acceptance
+
+**When:** A disposition is recorded via adv_design_concern_disposition (fixed, rejected_with_evidence, split, or fast_follow), or a later all-pass designer report supersedes the concern
+
+**Then:**
+- The DESIGN_CONCERN_UNRESOLVED blocker is cleared
+- No accepted_debt terminal state is used
+- The disposition carries non-blank typed evidence
+
+**Runnable visual surface evidence is bounded** (`rq-designQualityEvidence01.4`)
+
+**Given:**
+- A frontend change has a runnable visual surface or preview
+
+**When:** /adv-review evaluates design-quality proof
+
+**Then:**
+- Browser/design evidence includes viewport context
+- A missing runnable surface records an explicit fallback rationale
+- Advance does not add Storybook as a plugin dependency to satisfy proof
+
+---
+
+### Structural Verification-Evidence Enforcement at Acceptance and Release
+
+**ID:** `rq-verificationEvidence01` | **Priority:** **[MUST]**
+
+Verification-evidence warnings surfaced on typed worker reports MUST be enforced structurally at acceptance and release, not by reviewer prose and not by submit-time rejection. Reports remain submit-time advisory (warnings only; no hard block at adv_subagent_report_submit). A sandbox-safe gate-readiness evaluator MUST read the latest task-scoped report per agent for each completed task and the task's typed evidence_policy. For proof-bearing policies (test, static_check, review, artifact_reference), an unresolved verification_missing or verification_mismatch consumer warning on the latest task-scoped report MUST produce a typed VERIFICATION_EVIDENCE_MISSING blocker at both the acceptance and release gates. Non-proof policies (source_citation, source_audit, rubric_review, stakeholder_acceptance, design_proof, not_applicable) MUST remain warn-first so valid non-code and source-based workflows do not regress. A blocker clears only when (a) a newer warning-free report for that agent supersedes the warning-bearing report (latest-wins durable evidence), or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via adv_verification_evidence_disposition for the task's verification concernKey. The check MUST NOT be bypassed by compatibilityReason (no silent grandfathering of legacy changes). No accepted_debt terminal state exists. The mechanism adds no counters, dashboards, status metrics, adoption analytics, or other telemetry surfaces; enforcement state is the typed blocker plus the disposition record.
+
+**Tags:** `workflow`, `acceptance`, `release`, `verification`, `evidence`, `structural`
+
+#### Scenarios
+
+**Unresolved verification evidence on a proof-bearing task blocks acceptance and release** (`rq-verificationEvidence01.1`)
+
+**Given:**
+- A completed task has evidence_policy test, static_check, review, or artifact_reference
+- The latest task-scoped report for any agent carries an unresolved verification_missing or verification_mismatch consumer warning
+- No typed disposition exists for that task's verification concernKey
+
+**When:** Gate readiness is evaluated for acceptance or release
+
+**Then:**
+- The gate-readiness evaluator emits a VERIFICATION_EVIDENCE_MISSING blocker
+- The gate is blocked by code, not by reviewer judgment
+- The blocker identifies the task id, evidence policy, and warning kinds
+- The evaluator reads only change state (sandbox-safe; no agenda or storage access)
+
+**Non-proof evidence policies remain warn-first** (`rq-verificationEvidence01.2`)
+
+**Given:**
+- A completed task has evidence_policy source_citation, source_audit, rubric_review, stakeholder_acceptance, design_proof, or not_applicable
+- The latest task-scoped report carries verification_missing or verification_mismatch consumer warnings
+
+**When:** Gate readiness is evaluated for acceptance or release
+
+**Then:**
+- No VERIFICATION_EVIDENCE_MISSING blocker is emitted for that task
+- Valid non-code and source-based workflows do not regress
+- Other existing readiness rules continue to apply independently
+
+**Warning-free superseding report or typed disposition clears the block** (`rq-verificationEvidence01.3`)
+
+**Given:**
+- An unresolved verification warning blocks acceptance or release for a completed task
+
+**When:** A newer warning-free task-scoped report for the same agent supersedes the warning-bearing report (latest-wins), or a typed disposition is recorded via adv_verification_evidence_disposition (fixed, rejected_with_evidence, split, or fast_follow)
+
+**Then:**
+- The VERIFICATION_EVIDENCE_MISSING blocker is cleared
+- No accepted_debt terminal state is used
+- The disposition carries non-blank typed evidence
+
+**No silent grandfathering; no submit-time hard block; no telemetry** (`rq-verificationEvidence01.4`)
+
+**Given:**
+- A legacy in-flight change has a compatibilityReason
+- An adv-engineer or adv-reviewer report would emit verification_missing or verification_mismatch warnings
+
+**When:** The report is submitted and gate readiness is later evaluated
+
+**Then:**
+- Submit-time behavior remains advisory; adv_subagent_report_submit does not hard-block on verification warnings
+- compatibilityReason does not bypass the VERIFICATION_EVIDENCE_MISSING readiness check
+- No counters, dashboards, status metrics, adoption analytics, or other telemetry surfaces are added as part of enforcement
+
+---
+
 ### Active Duplicate Change Creation Rejection
 
 **ID:** `rq-dupActiveCreate01` | **Priority:** **[MUST]**
@@ -4741,7 +5146,7 @@ adv_change_archive MUST detect when a change is already archived and the archive
 
 **ID:** `rq-briefingPacketReadProjection01` | **Priority:** **[MUST]**
 
-ADV MUST generate briefing packets as read-only projections from existing structured workflow state when requested through existing change/handoff read surfaces. A standalone `adv_briefing_packet` tool MUST NOT be introduced. Packet generation MUST NOT mutate workflow state, complete gates, override release proof, or independently persist live packet bodies. Session and tool-read metadata MUST remain audit-only and MUST NOT become live briefing packet state.
+ADV MUST generate briefing packets as read-only projections from existing structured workflow state when requested through existing change/handoff read surfaces. A standalone adv_briefing_packet tool MUST NOT be introduced. Packet generation MUST NOT mutate workflow state, complete gates, override release proof, or independently persist live packet bodies. Session and tool-read metadata MUST remain audit-only and MUST NOT become live briefing packet state.
 
 **Tags:** `workflow`, `briefing_packets`, `read_projection`, `no_tool`
 
@@ -4756,7 +5161,7 @@ ADV MUST generate briefing packets as read-only projections from existing struct
 
 **Then:**
 - The packet is included as a generated projection
-- No new `adv_briefing_packet` tool is invoked
+- No new adv_briefing_packet tool is invoked
 
 **Packet generation does not mutate state** (`rq-briefingPacketReadProjection01.2`)
 
@@ -4808,47 +5213,148 @@ At archive, ADV MUST generate a compact archive-lane briefing digest from final 
 
 ---
 
-### Workflow Directive Is a Single-Source-of-Truth Projection
+### Archive Conflict Validation Uses Active Authority Only
 
-**ID:** `rq-workflowDirective01` | **Priority:** **[MUST]**
+**ID:** `rq-archiveInventoryActive01` | **Priority:** **[MUST]**
 
-ADV MUST derive the agent-facing next action from one authoritative projection. `deriveWorkflowDirective(state, epoch)` in `plugin/src/utils/workflow-directive.ts` is the sole producer; the workflow's `getDirectiveQuery`, `adv-gate-status`, gate-completion and change-show/create context snapshots, status enrichment, recovery handoff, and compaction context MUST all consume the same `WorkflowDirective`. Every surface that orients the agent MUST render a compact `Next:` line from the directive — `Next: <gate> → /<command>` for `continue`/`never_started`, or `Next: archived` / `Next: recovery` / `Next: blocked` / `Next: approval` for the non-command kinds — so the context snapshot, gate status, and status recommendations always agree. The directive is derive-on-read: no persistence, no caching, no `defineUpdate`; equal `(state, epoch)` inputs yield structurally equal output. Terminal statuses (`archived` and `closed`) MUST collapse to a safe `archived` action kind with no command, so a closed change with all gates done never routes to a misleading `Next: release → /adv-archive`. Tool-layer callers (outside the workflow) MUST consume the projection through `deriveDirectiveSafe`, which returns `undefined` on a derivation failure; surfaces degrade gracefully (snapshots omit the `Next:` line, load-bearing reads fall back to gate-derived next-action) rather than breaking the tool response. The workflow itself calls `deriveWorkflowDirective` directly — its state is always well-formed and a throw there must surface deterministically.
+Archive conflict validation MUST use a dedicated active-authority projection under the fixed 8-second aggregate deadline. Terminal rows MUST NOT participate in conflict authority or consume its read budget. Every required active source, candidate, and capability projection MUST resolve before the result can conclude clean; omissions, deadline expiry, source failure, or missing active capability data MUST produce typed fail-closed incompleteness. Discovery MAY continue to request archived rows separately as related context under rq-disc04, but that contextual history MUST NOT establish conflict authority.
 
-**Tags:** `workflow`, `directive`, `single-source-of-truth`, `context-snapshot`, `gate-status`
+**Tags:** `archive`, `validation`, `authority`, `deadline`
 
 #### Scenarios
 
-**One producer feeds every next-action surface** (`rq-workflowDirective01.1`)
+**Terminal volume cannot block clean active authority** (`rq-archiveInventoryActive01.1`)
 
 **Given:**
-- A change has durable workflow state with gates and status
+- Archive validation has complete active source and capability data
+- The project also has many terminal archive bundles
 
-**When:** Gate status, a context snapshot, status enrichment, or compaction renders the next action
+**When:** Conflict inventory loads
 
 **Then:**
-- Each surface consumes the same `deriveWorkflowDirective` projection
-- The rendered `Next:` line matches across surfaces for identical state
+- Only active authority is used for the clean conclusion
+- Terminal archive directories are not enumerated by the authority projection
+- Validation completes within the fixed 8-second aggregate deadline
 
-**Terminal statuses route to a safe directive** (`rq-workflowDirective01.2`)
+**Incomplete active authority fails closed** (`rq-archiveInventoryActive01.2`)
 
 **Given:**
-- A change is `archived` or `closed`
+- A required active source, candidate, or capability projection is missing, failed, or deadline-truncated
 
-**When:** The directive is derived
+**When:** Conflict inventory evaluates completeness
 
 **Then:**
-- The action kind is `archived` and no `Next: <gate> → /<command>` is emitted
-- A closed change with all gates done does not route to `continue(release, adv-archive)`
+- The result carries typed incomplete evidence
+- canConcludeClean is false
+- Cache or terminal context cannot repair the incomplete authority
 
-**Derivation failure degrades gracefully outside the workflow** (`rq-workflowDirective01.3`)
+**Archived discovery context remains separate** (`rq-archiveInventoryActive01.3`)
 
 **Given:**
-- Tool-layer state is partially hydrated or carries a poisoned-history fallback
+- Discovery runs its required includeArchived related-work scan
 
-**When:** `deriveWorkflowDirective` would throw
+**When:** It also invokes validation
 
 **Then:**
-- `deriveDirectiveSafe` returns `undefined` and the tool still responds
-- Snapshots omit the `Next:` line; load-bearing reads fall back to gate-derived next-action
+- Archived rows may be shown as related context
+- Validation conflict authority remains active-only
+- Archived context does not establish a clean conflict result
+
+---
+
+### Terminal History Uses Versioned Lightweight Summaries
+
+**ID:** `rq-terminalSummary01` | **Priority:** **[MUST]**
+
+New archive bundles MUST contain a versioned, schema-validated lightweight terminal summary sufficient to construct the terminal ChangeListResponse row without hydrating tasks, reports, artifacts, or narrative documents. External and in-repo bundles MUST write equivalent summaries from the same validated archived Change. Missing, corrupt, unknown-version, or incoherent summaries MUST fall back once to the durable legacy change.json bundle; dual failure MUST produce typed terminal omission. Canonical change ID deduplication and terminal dominance over stale active shadows MUST apply identically to summary and legacy inputs.
+
+**Tags:** `archive`, `history`, `summary`, `compatibility`
+
+#### Scenarios
+
+**Valid summary renders terminal row** (`rq-terminalSummary01.1`)
+
+**Given:**
+- An archive bundle contains a valid supported terminal summary
+
+**When:** Terminal history is listed
+
+**Then:**
+- The row is built from the summary without full change hydration
+- All required ChangeListResponse fields are present
+- The canonical summary ID owns deduplication
+
+**Invalid summary falls back to legacy bundle** (`rq-terminalSummary01.2`)
+
+**Given:**
+- A terminal summary is missing, corrupt, unknown-version, stale against bundle identity, or otherwise invalid
+
+**When:** Terminal history loads that bundle
+
+**Then:**
+- The loader attempts change.json exactly once
+- A valid legacy Change produces the compatible row
+- If legacy loading also fails, typed omission is returned
+
+**Archive destinations receive coherent summaries** (`rq-terminalSummary01.3`)
+
+**Given:**
+- Archive writes external and in-repo bundle destinations
+
+**When:** Bundle generation succeeds
+
+**Then:**
+- Both destinations contain equivalent schema-valid terminal summaries
+- The summary is derived from the same archived Change as change.json
+- Copied sibling files cannot overwrite generated summary or change files
+
+---
+
+### Explicit Terminal History Has a Separate Bounded Budget
+
+**ID:** `rq-terminalHistoryBudget01` | **Priority:** **[MUST]**
+
+The existing 8-second authoritative list/status deadline remains mandatory for active conflict authority and default authoritative reads. An explicit non-authoritative archived/closed history request MAY use one separately named fixed 20-second aggregate deadline as a narrow exception to rq-boundedAuthoritativeRead01. That history result MUST return every row resolved before expiry plus typed source-specific partial-result warnings and bounded omitted IDs; it MUST NOT claim completeness after expiry, start new work after expiry, or feed archive conflict authority.
+
+**Tags:** `history`, `deadline`, `degradation`, `exception`
+
+#### Scenarios
+
+**History deadline does not alter authority deadline** (`rq-terminalHistoryBudget01.1`)
+
+**Given:**
+- Archive validation and an explicit terminal-history view exist
+
+**When:** Each creates its request deadline
+
+**Then:**
+- Archive validation uses the fixed 8-second aggregate deadline
+- Explicit terminal history uses the separately named fixed 20-second aggregate deadline
+- The history deadline is never passed into conflict authority
+
+**Expired history returns visible partial result** (`rq-terminalHistoryBudget01.2`)
+
+**Given:**
+- An explicit terminal-history read cannot resolve every source or candidate within 20 seconds
+
+**When:** The history deadline expires
+
+**Then:**
+- Already resolved rows are returned
+- Typed source-specific deadline warning and bounded omitted IDs are returned
+- No new source or candidate work begins
+- The result is not represented as complete
+
+**Default list/status stays within existing law** (`rq-terminalHistoryBudget01.3`)
+
+**Given:**
+- A caller requests the default active list or project status without explicit terminal history
+
+**When:** The read runs
+
+**Then:**
+- The request uses the existing 8-second aggregate deadline
+- The 20-second history exception is not selected
+- Existing typed degradation semantics remain
 
 ---
