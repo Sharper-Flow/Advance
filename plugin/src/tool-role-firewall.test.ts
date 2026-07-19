@@ -1,9 +1,8 @@
 // Tests for the runtime role firewall (Decision 3, AC4/AC6/AC7/AC8).
 //
 // Covers both the pure predicate in tool-role-firewall.ts and the
-// integration through the plugin's tool.execute.before hook. Main session ID
-// is set via the experimental.chat.system.transform hook, matching the
-// production capture path.
+// integration through the plugin's tool.execute.before hook. Runtime role is
+// resolved from the caller session's SDK parentID ancestry.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { join } from "node:path";
 
@@ -14,6 +13,7 @@ import type { Store } from "./storage/store-types";
 import {
   RoleFirewallError,
   resolveBlockableSet,
+  resolveRootSessionId,
   roleFirewallCheck,
 } from "./tool-role-firewall";
 import * as policyModule from "./tool-role-policy";
@@ -21,6 +21,16 @@ import * as policyModule from "./tool-role-policy";
 process.setMaxListeners(20);
 
 let mockStore: Store | null = null;
+const sessionParents = new Map<string, string | null>();
+const sessionGet = vi.fn(async ({ path }: { path: { id: string } }) => {
+  if (!sessionParents.has(path.id)) return { data: undefined };
+  return {
+    data: {
+      id: path.id,
+      parentID: sessionParents.get(path.id) ?? null,
+    },
+  };
+});
 
 vi.mock("./plugin-init", async () => {
   const actual =
@@ -53,6 +63,11 @@ const createMockPluginInput = (directory: string) => ({
   directory,
   worktree: directory,
   serverUrl: new URL("http://localhost:3000"),
+  client: {
+    session: {
+      get: sessionGet,
+    },
+  },
 });
 
 function makeFakeStore(
@@ -269,12 +284,70 @@ describe("roleFirewallCheck predicate", () => {
   });
 });
 
+describe("resolveRootSessionId", () => {
+  it("resolves and caches the root for a descendant session", async () => {
+    const cache = new Map<string, string>();
+    const client = {
+      session: {
+        get: vi.fn(async ({ path }: { path: { id: string } }) => ({
+          data:
+            path.id === "child"
+              ? { id: "child", parentID: "root" }
+              : { id: "root", parentID: null },
+        })),
+      },
+    };
+
+    await expect(
+      resolveRootSessionId({ callerSessionID: "child", client, cache }),
+    ).resolves.toBe("root");
+    expect(cache.get("child")).toBe("root");
+    expect(cache.get("root")).toBe("root");
+  });
+
+  it("fails closed on cyclic ancestry", async () => {
+    const client = {
+      session: {
+        get: vi.fn(async ({ path }: { path: { id: string } }) => ({
+          data: {
+            id: path.id,
+            parentID: path.id === "left" ? "right" : "left",
+          },
+        })),
+      },
+    };
+
+    await expect(
+      resolveRootSessionId({ callerSessionID: "left", client }),
+    ).resolves.toBeNull();
+  });
+
+  it("fails closed when the SDK lookup throws", async () => {
+    const client = {
+      session: {
+        get: vi.fn(async () => {
+          throw new Error("session service unavailable");
+        }),
+      },
+    };
+
+    await expect(
+      resolveRootSessionId({ callerSessionID: "root", client }),
+    ).resolves.toBeNull();
+  });
+});
+
 describe("Runtime role firewall in tool.execute.before", () => {
   let tempDir: string;
   let hooks: any;
 
   beforeEach(async () => {
     resetStatusForTest();
+    sessionParents.clear();
+    sessionGet.mockClear();
+    sessionParents.set("main", null);
+    sessionParents.set("main-session", null);
+    sessionParents.set("sub-agent", "main");
     tempDir = await createTempDir();
     mockStore = makeFakeStore({ changesDir: join(tempDir, ".adv/changes") });
   });
@@ -348,7 +421,7 @@ describe("Runtime role firewall in tool.execute.before", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("allows blockable adv_gate_complete from the main session", async () => {
+  it("allows blockable adv_gate_complete from the root session", async () => {
     await createPlugin();
     await setMainSession("main");
     await expect(
@@ -356,18 +429,39 @@ describe("Runtime role firewall in tool.execute.before", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("blocks blockable tools when mainSessionId is unresolved", async () => {
+  it("allows the root orchestrator before any system transform runs", async () => {
     await createPlugin();
-    // No transform call, so mainSessionId stays null.
     await expect(
-      callToolBefore("adv_gate_complete", "some-session", { changeId: "x" }),
+      callToolBefore("adv_gate_complete", "main", { changeId: "x" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("does not let a sub-agent transform steal root orchestrator authority", async () => {
+    await createPlugin();
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "sub-agent" } as any,
+      { system: [] } as any,
+    );
+
+    await expect(
+      callToolBefore("adv_gate_complete", "main", { changeId: "x" }),
+    ).resolves.toBeUndefined();
+    await expect(
+      callToolBefore("adv_gate_complete", "sub-agent", { changeId: "x" }),
     ).rejects.toThrow(RoleFirewallError);
   });
 
-  it("allows union-floor reads when mainSessionId is unresolved", async () => {
+  it("blocks blockable tools when session ancestry cannot be resolved", async () => {
     await createPlugin();
     await expect(
-      callToolBefore("adv_status", "some-session"),
+      callToolBefore("adv_gate_complete", "unknown-session", { changeId: "x" }),
+    ).rejects.toThrow(RoleFirewallError);
+  });
+
+  it("allows union-floor reads when session ancestry cannot be resolved", async () => {
+    await createPlugin();
+    await expect(
+      callToolBefore("adv_status", "unknown-session"),
     ).resolves.toBeUndefined();
   });
 

@@ -28,6 +28,9 @@ function makeMockStore(
     changes: {
       list: vi.fn().mockResolvedValue({ changes: changesList }),
     },
+    tasks: {
+      list: vi.fn().mockResolvedValue([]),
+    },
   } as unknown as Store;
 }
 
@@ -637,24 +640,170 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     });
   });
 
-  it("calls all three sources in parallel (no sequential dependency)", async () => {
-    const store = makeMockStore([]);
-    const calls: string[] = [];
+  it("emits orphan warnings for in_progress tasks assigned to non-live peers", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 2,
+        completedTasks: 0,
+      },
+    ]);
 
-    await backlogTools.adv_wip_state.execute({}, store, undefined, {
-      worktreesProvider: async () => {
-        calls.push("worktrees");
-        return [];
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_live",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: true,
+            },
+          ],
+          total: 1,
+          deadFiltered: 0,
+        }),
+        tasksProvider: async () => [
+          {
+            id: "tk-orphan",
+            title: "Orphan task",
+            status: "in_progress",
+            assignedTo: "sess_dead",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+          {
+            id: "tk-live",
+            title: "Live task",
+            status: "in_progress",
+            assignedTo: "sess_live",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+          {
+            id: "tk-agent",
+            title: "Agent task",
+            status: "in_progress",
+            assignedTo: "agent",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+        ],
       },
-      sessionsProvider: async () => {
-        calls.push("sessions");
-        return { sessions: [], total: 0, deadFiltered: 0 };
-      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.orphan_warnings).toHaveLength(1);
+    expect(parsed.orphan_warnings[0]).toMatchObject({
+      changeId: "changeA",
+      taskId: "tk-orphan",
+      assignedTo: "sess_dead",
     });
+    expect(parsed.orphan_warnings[0].recovery).toContain(
+      "no automatic status mutation",
+    );
+    expect(parsed.warnings).toEqual([]);
+  });
 
-    // All three should have been initiated; the changes mock is synchronous-ish
-    // so just verify worktrees + sessions both ran.
-    expect(calls).toContain("worktrees");
-    expect(calls).toContain("sessions");
+  it("annotates unavailable peer sessions instead of guessing orphan status", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+          unavailable: true,
+        }),
+        tasksProvider: async () => [
+          {
+            id: "tk-x",
+            title: "Maybe orphan",
+            status: "in_progress",
+            assignedTo: "sess_unknown",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+        ],
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.orphan_warnings).toBeUndefined();
+    expect(parsed.warnings).toContainEqual({
+      source: "orphan_tasks",
+      reason:
+        "Live peer-session data unavailable; orphan task detection skipped.",
+    });
+  });
+
+  it("caps orphan warnings at 50 and adds a bounded notice", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 60,
+        completedTasks: 0,
+      },
+    ]);
+
+    const tasks = Array.from({ length: 60 }, (_, i) => ({
+      id: `tk-${i}`,
+      title: `Task ${i}`,
+      status: "in_progress",
+      assignedTo: `sess-dead-${i}`,
+      created_at: "2026-05-11T00:00:00.000Z",
+    })) as any[];
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_live",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: true,
+            },
+          ],
+          total: 1,
+          deadFiltered: 0,
+        }),
+        tasksProvider: async () => tasks,
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.orphan_warnings).toHaveLength(50);
+    expect(parsed.warnings).toContainEqual({
+      source: "orphan_tasks",
+      reason: "Orphan task warnings capped at 50; additional tasks omitted.",
+    });
   });
 });

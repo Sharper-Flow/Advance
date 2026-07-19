@@ -19,6 +19,14 @@ import {
   createTestProject,
 } from "../__tests__/setup";
 
+const ROOT_CLIENT = {
+  session: {
+    get: async ({ path }: { path: { id: string } }) => ({
+      data: { id: path.id, parentID: null },
+    }),
+  },
+};
+
 interface ToolCase {
   tool: "write" | "edit" | "morph_edit" | "bash";
   buildArgs: (targetPath: string) => Record<string, unknown>;
@@ -101,6 +109,7 @@ describe("Regression: trunk-write-firewall behavior matrix", () => {
 
   async function bootPlugin(directory: string) {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: trunk, time: { created: Date.now() } },
       directory,
       worktree: directory,

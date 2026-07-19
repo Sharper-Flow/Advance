@@ -18,6 +18,7 @@
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
+import type { Task } from "../types";
 import {
   createInventoryBudget,
   INVENTORY_INTERNAL_BUDGET_MS,
@@ -105,6 +106,14 @@ export interface WipStateResponse {
   poisoned_workflows: WipPoisonedWorkflowEntry[];
   generated_at: string;
   warnings: Array<{ source: string; reason: string }>;
+  /** Warning-only rows for in-progress tasks assigned to non-live peer sessions. */
+  orphan_warnings?: Array<{
+    changeId: string;
+    taskId: string;
+    taskTitle: string;
+    assignedTo: string;
+    recovery: string;
+  }>;
   /** Typed degradation metadata for slow or incomplete sources. */
   degradation?: WipStateDegradation;
 }
@@ -142,6 +151,7 @@ export interface WipStateProviders {
     deadFiltered: number;
     unavailable?: boolean;
   }>;
+  tasksProvider?: (changeId: string) => Promise<Task[]>;
 }
 
 /**
@@ -154,6 +164,10 @@ export interface WipStateProviders {
  * safety-net timeout overrides.
  */
 export const WIP_CALLER_TIMEOUT_MS = 60_000;
+
+const MAX_ORPHAN_WARNINGS = 50;
+const ORPHAN_RECOVERY =
+  "Reassign the task via adv_task_update or resume the owning session; no automatic status mutation occurred.";
 
 /**
  * Production execution context for `adv_wip_state`. Tests may still pass a bare
@@ -212,6 +226,14 @@ async function defaultSessionsProvider(
   projectRoot: string,
 ): ReturnType<NonNullable<WipStateProviders["sessionsProvider"]>> {
   return listPeerSessions({ projectRoot });
+}
+
+async function defaultTasksProvider(
+  store: Store,
+  changeId: string,
+): Promise<Task[]> {
+  if (!store.tasks?.list) return [];
+  return store.tasks.list(changeId);
 }
 
 function normalizeWorktreesProviderValue(
@@ -362,6 +384,7 @@ export const backlogTools = {
         }
 
         let peer_sessions: WipPeerSessionEntry[] = [];
+        const liveSessionIds = new Map<string, WipPeerSessionEntry>();
         if (sessionsResult.status === "fulfilled") {
           const value = sessionsResult.value;
           if (value.unavailable) {
@@ -369,8 +392,14 @@ export const backlogTools = {
               source: "peer_sessions",
               reason: "live peer-session detection unavailable",
             });
+            warnings.push({
+              source: "orphan_tasks",
+              reason:
+                "Live peer-session data unavailable; orphan task detection skipped.",
+            });
           } else {
             peer_sessions = value.sessions;
+            for (const s of peer_sessions) liveSessionIds.set(s.sessionId, s);
           }
         } else {
           warnings.push({
@@ -380,6 +409,48 @@ export const backlogTools = {
                 ? sessionsResult.reason.message
                 : String(sessionsResult.reason),
           });
+          warnings.push({
+            source: "orphan_tasks",
+            reason: "Peer session list failed; orphan task detection skipped.",
+          });
+        }
+
+        const orphan_warnings: NonNullable<
+          WipStateResponse["orphan_warnings"]
+        > = [];
+        if (liveSessionIds.size > 0 && active_changes.length > 0) {
+          const tasksProvider =
+            providers.tasksProvider ??
+            ((changeId: string) => defaultTasksProvider(store, changeId));
+          const taskLists = await Promise.allSettled(
+            active_changes.map((c) => tasksProvider(c.id)),
+          );
+          for (let i = 0; i < active_changes.length; i += 1) {
+            const change = active_changes[i];
+            const listResult = taskLists[i];
+            if (listResult.status !== "fulfilled") continue;
+            for (const task of listResult.value) {
+              if (task.status !== "in_progress") continue;
+              const assignedTo = task.assignedTo?.trim();
+              if (!assignedTo || assignedTo === "agent") continue;
+              if (liveSessionIds.has(assignedTo)) continue;
+              if (orphan_warnings.length >= MAX_ORPHAN_WARNINGS) break;
+              orphan_warnings.push({
+                changeId: change.id,
+                taskId: task.id,
+                taskTitle: task.title,
+                assignedTo,
+                recovery: ORPHAN_RECOVERY,
+              });
+            }
+            if (orphan_warnings.length >= MAX_ORPHAN_WARNINGS) break;
+          }
+          if (orphan_warnings.length >= MAX_ORPHAN_WARNINGS) {
+            warnings.push({
+              source: "orphan_tasks",
+              reason: `Orphan task warnings capped at ${MAX_ORPHAN_WARNINGS}; additional tasks omitted.`,
+            });
+          }
         }
 
         const response: WipStateResponse = {
@@ -389,6 +460,7 @@ export const backlogTools = {
           poisoned_workflows,
           generated_at: new Date().toISOString(),
           warnings,
+          ...(orphan_warnings.length > 0 ? { orphan_warnings } : {}),
           ...(Object.keys(degradation).length > 0 ? { degradation } : {}),
         };
 
