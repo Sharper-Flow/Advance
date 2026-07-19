@@ -30,6 +30,45 @@ export interface TestEnvironmentLike {
   teardown: () => Promise<void>;
 }
 
+/**
+ * A worker-like object whose lifecycle the harness can own. Only objects the
+ * caller explicitly hands to `context.registerWorker(...)` qualify — the
+ * harness never infers workers from inside `fn` (no undisclosed-worker
+ * inference). `shutdown()` must be idempotent; the harness may invoke it
+ * after the worker's own settlement path (e.g. an awaited `runUntil`) has
+ * already returned.
+ */
+export interface SettleableWorker {
+  shutdown: () => Promise<void>;
+}
+
+export interface TemporalTestContext {
+  signal: AbortSignal;
+  /**
+   * Disclose a worker to the harness so its `shutdown()` is awaited before
+   * env teardown. The contract: registered workers are settled first; env
+   * teardown runs only after every registered worker has finished shutting
+   * down. If `fn` throws and a registered worker's `shutdown()` then also
+   * throws, the callback error remains the primary failure and the
+   * shutdown error is attached as secondary evidence (see `TEARDOWN_ERROR`).
+   */
+  registerWorker: (worker: SettleableWorker) => void;
+}
+
+export interface WithTestWorkflowEnvironmentOptions {
+  signal?: AbortSignal;
+}
+
+/**
+ * Secondary teardown-error marker attached to the primary callback error when
+ * both the test callback and environment teardown fail. Keeps the original
+ * failure actionable while preserving teardown evidence for debugging.
+ */
+export const TEARDOWN_ERROR: unique symbol = Symbol.for(
+  "advance:teardownError",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+) as any;
+
 function getStableTemporalTestCwd(): string {
   return join(tmpdir(), "advance-temporal-test-cwd");
 }
@@ -73,14 +112,81 @@ export async function withTestWorkflowEnvironment<
   TResult,
 >(
   createEnv: () => Promise<TEnv>,
-  fn: (env: TEnv) => Promise<TResult>,
+  fn: (env: TEnv, context?: TemporalTestContext) => Promise<TResult>,
+  options: WithTestWorkflowEnvironmentOptions = {},
 ): Promise<TResult> {
   const env = await createTestWorkflowEnvironment(createEnv);
+  const controller = new AbortController();
+  // Workers the caller explicitly disclosed to the harness. The harness
+  // awaits `shutdown()` on each one before env teardown so callback/worker
+  // settlement is structurally owned, not inferred from `fn`'s shape.
+  const ownedWorkers: SettleableWorker[] = [];
+  const context: TemporalTestContext = {
+    signal: options.signal ?? controller.signal,
+    registerWorker: (worker: SettleableWorker) => {
+      ownedWorkers.push(worker);
+    },
+  };
+
+  let callbackThrew = false;
+  let callbackError: unknown;
+  let callbackResult: TResult | undefined;
+
+  // Run `fn`; capture any throw but keep cleanup on the path either way.
   try {
-    return await fn(env);
-  } finally {
-    await env.teardown();
+    callbackResult = await fn(env, context);
+  } catch (err) {
+    callbackThrew = true;
+    callbackError = err;
   }
+
+  // Lifecycle order is fixed: settle every owned worker first (so callback
+  // abort/timeout can complete its shutdown path), THEN tear the env down.
+  // The first worker-shutdown error is captured as secondary evidence so
+  // the primary callback error is never hidden.
+  let workerShutdownError: unknown;
+  for (const worker of ownedWorkers) {
+    try {
+      await worker.shutdown();
+    } catch (err) {
+      if (workerShutdownError === undefined) {
+        workerShutdownError = err;
+      }
+    }
+  }
+
+  let teardownError: unknown;
+  try {
+    await env.teardown();
+  } catch (err) {
+    teardownError = err;
+  }
+
+  // Single secondary-error slot: worker-shutdown evidence wins over
+  // env-teardown evidence (it surfaces earlier in the lifecycle chain).
+  // If both fail, the earlier (worker-shutdown) one is attached to the
+  // callback error so the primary failure stays actionable while the
+  // secondary is still inspectable.
+  const secondaryError =
+    workerShutdownError !== undefined ? workerShutdownError : teardownError;
+
+  // Throws happen here, AFTER cleanup, so no `finally`-mask risk: cleanup
+  // is complete and these throws represent the helper's terminal verdict,
+  // not an interruption of in-flight teardown.
+  if (callbackThrew) {
+    if (secondaryError !== undefined && callbackError instanceof Error) {
+      (callbackError as Error & { [TEARDOWN_ERROR]?: unknown })[
+        TEARDOWN_ERROR
+      ] = secondaryError;
+    }
+    throw callbackError;
+  }
+
+  if (secondaryError !== undefined) {
+    throw secondaryError;
+  }
+
+  return callbackResult as TResult;
 }
 
 /**
@@ -114,10 +220,15 @@ export function createLocalTestWorkflowEnvironment(): Promise<TestWorkflowEnviro
  * with construction owned by this module.
  */
 export function withTimeSkippingTestWorkflowEnvironment<TResult>(
-  fn: (env: TestWorkflowEnvironment) => Promise<TResult>,
+  fn: (
+    env: TestWorkflowEnvironment,
+    context?: TemporalTestContext,
+  ) => Promise<TResult>,
+  options?: WithTestWorkflowEnvironmentOptions,
 ): Promise<TResult> {
   return withTestWorkflowEnvironment(
     createTimeSkippingTestWorkflowEnvironment,
     fn,
+    options,
   );
 }

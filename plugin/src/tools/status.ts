@@ -88,6 +88,7 @@ import {
 } from "./status-health-plan";
 export { _test } from "./status-enrich";
 export { _healthSnapshotCache, _statusProbeCaches } from "./status-health";
+export { resetStatusHealthForTest } from "./status-health-test-reset";
 export {
   computeAutoManagedCensus,
   deriveOpencodeDebtCounts,

@@ -64,6 +64,38 @@ const SLOW_LOAD_CHANGE = new Map<string, number>();
  */
 const HAS_ARCHIVE_BUNDLE_CALLS = new Map<string, number>();
 
+/**
+ * Path-scoped single-shot start-barriers (AC5 explicit-barrier fix).
+ * Each slow-read listChangeDirs mock call resolves the barrier mapped to
+ * its directory path before scheduling its slow fake setTimeout, so
+ * tests can `await awaitListChangeDirsStart(path)` to deterministically
+ * observe the moment the mocked op is in flight. This replaces the
+ * previous `runAllTimersAsync` spin-loops that guessed how many
+ * event-loop turns the fs chain needed before the slow-read setTimeout
+ * even existed.
+ *
+ * The barrier is single-shot per (test, path): a fresh barrier must be
+ * registered before each test calls `awaitListChangeDirsStart`, and the
+ * map is cleared in `beforeEach`/`afterEach`.
+ */
+const LIST_CHANGE_DIRS_START_BARRIERS = new Map<string, () => void>();
+
+/**
+ * Register a one-shot promise for the next `listChangeDirs` call against
+ * `path`. The slow-read mock resolves the promise the instant it enters
+ * its delay branch, releasing the awaiting test without any
+ * microtask-flight-spinning.
+ */
+function awaitListChangeDirsStart(path: string): Promise<void> {
+  return new Promise<void>((resolve) => {
+    LIST_CHANGE_DIRS_START_BARRIERS.set(path, resolve);
+  });
+}
+
+function clearListChangeDirsStartBarriers(): void {
+  LIST_CHANGE_DIRS_START_BARRIERS.clear();
+}
+
 vi.mock("../json", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../json")>();
   return {
@@ -71,6 +103,12 @@ vi.mock("../json", async (importOriginal) => {
     listChangeDirs: async (path: string): Promise<string[]> => {
       const delay = SLOW_LIST_CHANGE_DIRS.get(path);
       if (delay !== undefined) {
+        // Release the explicit test barrier synchronously before
+        // scheduling the slow fake-timer setTimeout. Without this
+        // handshake the test has no deterministic signal that the
+        // mocked op has started — it would have to loop
+        // `runAllTimersAsync` until the chain happens to settle.
+        LIST_CHANGE_DIRS_START_BARRIERS.get(path)?.();
         // Look up setTimeout at call time so vitest's fake-timer install
         // (in beforeEach) is observed; binding it at mock-factory time
         // would capture the real timer and break advanceTimersByTimeAsync.
@@ -200,12 +238,14 @@ describe("bounded one-pass change-list resolution", () => {
     SLOW_LIST_CHANGE_DIRS.clear();
     SLOW_LOAD_CHANGE.clear();
     HAS_ARCHIVE_BUNDLE_CALLS.clear();
+    clearListChangeDirsStartBarriers();
   });
 
   afterEach(async () => {
     SLOW_LIST_CHANGE_DIRS.clear();
     SLOW_LOAD_CHANGE.clear();
     HAS_ARCHIVE_BUNDLE_CALLS.clear();
+    clearListChangeDirsStartBarriers();
     vi.useRealTimers();
     if (tempDir) await cleanupTempDir(tempDir);
     tempDir = undefined;
@@ -519,25 +559,18 @@ describe("bounded one-pass change-list resolution", () => {
       TEMPORAL_READ_DEADLINE_BUDGET_MS + 2_000,
     );
 
+    // Explicit one-shot start-barrier (AC5): the slow-read mock fires
+    // `LIST_CHANGE_DIRS_START_BARRIERS.get(path)` synchronously when it
+    // enters the delay branch, so the `await` below releases only once
+    // the mocked op has actually scheduled its fake-timer setTimeout.
+    // This replaces the runAllTimersAsync spin-loop — no more guessing
+    // how many event-loop turns the fs chain needs.
+    const startBarrier = awaitListChangeDirsStart(legacy.paths.changes);
     const pending = ops.listSummary!({});
-    // Settle async work in rounds (see the listResolvedChanges
-    // active-disk test for rationale): the slow-read mock's setTimeout is
-    // scheduled only after earlier awaits resolve, so one
-    // runAllTimersAsync may miss it.
-    let settled = false;
-    void pending.then(
-      () => {
-        settled = true;
-      },
-      () => {
-        settled = true;
-      },
-    );
-    for (let i = 0; i < 10 && !settled; i++) {
-      await vi.runAllTimersAsync();
-      await Promise.resolve();
-      await Promise.resolve();
-    }
+    await startBarrier;
+    // Advance past the aggregate budget. The deadline wrapper rejects
+    // the slow read.
+    await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1000);
     const result = await pending;
 
     // Typed source-specific deadline degradation on the active-disk
@@ -620,6 +653,10 @@ describe("bounded one-pass change-list resolution", () => {
       "not valid json",
     );
 
+    let queryStarted: (() => void) | undefined;
+    const queryStartBarrier = new Promise<void>((resolve) => {
+      queryStarted = resolve;
+    });
     let queryCount = 0;
     const temporal = {
       client: {
@@ -627,6 +664,7 @@ describe("bounded one-pass change-list resolution", () => {
           getHandle: () => ({
             query: async () => {
               queryCount += 1;
+              queryStarted?.();
               return new Promise<never>(() => {});
             },
           }),
@@ -647,14 +685,11 @@ describe("bounded one-pass change-list resolution", () => {
     });
 
     const pending = store.changes.list({ includeArchived: true });
-    // Settle timer-free stages (enumeration, terminal-projection checks)
-    // at t=0 by waiting until the hung query's first attempt has actually
-    // started — fixture-driven synchronization instead of guessing how
-    // many event-loop turns the fs chain needs. The fake clock is frozen
-    // during this wait, so the aggregate deadline cannot expire here.
-    for (let i = 0; i < 5000 && queryCount === 0; i++) {
-      await new Promise<void>((resolve) => setImmediate(resolve));
-    }
+    // Wait until the hung query's first attempt has actually started —
+    // fixture-driven one-shot barrier instead of guessing how many
+    // event-loop turns the fs chain needs. The fake clock is frozen during
+    // this wait, so the aggregate deadline cannot expire here.
+    await queryStartBarrier;
     expect(queryCount).toBe(1);
     // Attempt-1 per-attempt timeout (5s) fires.
     await vi.advanceTimersByTimeAsync(5000);
@@ -721,6 +756,10 @@ describe("bounded one-pass change-list resolution", () => {
     // Without the deadline wrapper the fallback read never resolves and the
     // test times out (RED); with the wrapper the aggregate deadline rejects
     // it and the candidate becomes a typed omission (GREEN).
+    let fallbackStarted: (() => void) | undefined;
+    const fallbackStartBarrier = new Promise<void>((resolve) => {
+      fallbackStarted = resolve;
+    });
     const diskGetCalls = new Map<string, number>();
     const realGet = legacy.changes.get.bind(legacy.changes);
     legacy.changes.get = (async (changeId: string) => {
@@ -731,6 +770,7 @@ describe("bounded one-pass change-list resolution", () => {
         return realGet(changeId);
       }
       // loadCandidate fallback — hang indefinitely
+      fallbackStarted?.();
       return new Promise<never>(() => {});
     }) as typeof legacy.changes.get;
 
@@ -745,13 +785,7 @@ describe("bounded one-pass change-list resolution", () => {
     // Temporal failure, the terminal-projection disk read, the owner-guard
     // disk read, and the reseed disk read have already happened. The fourth
     // diskGet call is the loadCandidate fallback.
-    for (
-      let i = 0;
-      i < 5000 && (diskGetCalls.get("slowDiskFallback") ?? 0) < 4;
-      i++
-    ) {
-      await new Promise<void>((resolve) => setImmediate(resolve));
-    }
+    await fallbackStartBarrier;
     expect(diskGetCalls.get("slowDiskFallback")).toBe(4);
     // Advance past the budget. The deadline wrapper (if present) rejects
     // the fallback read. Without the wrapper, the read hangs and the test
@@ -805,9 +839,14 @@ describe("bounded one-pass change-list resolution", () => {
 
     // No disk shadow — legacy.changes.get returns success: false so the
     // archive-only fallback (loadChange) is exercised.
+    let diskGetStarted: (() => void) | undefined;
+    const diskGetStartBarrier = new Promise<void>((resolve) => {
+      diskGetStarted = resolve;
+    });
     let diskGetCalls = 0;
     const realGet = legacy.changes.get.bind(legacy.changes);
     legacy.changes.get = (async (changeId: string) => {
+      diskGetStarted?.();
       diskGetCalls += 1;
       const result = await realGet(changeId);
       if (!result.success) {
@@ -831,9 +870,7 @@ describe("bounded one-pass change-list resolution", () => {
     const pending = store.changes.list({ includeArchived: true });
     // Wait for the disk fallback read to start — source enumeration and
     // the fast Temporal failure have already happened.
-    for (let i = 0; i < 5000 && diskGetCalls === 0; i++) {
-      await new Promise<void>((resolve) => setImmediate(resolve));
-    }
+    await diskGetStartBarrier;
     expect(diskGetCalls).toBe(1);
     // Advance past the budget. The deadline wrapper (if present) rejects
     // the fallback read. Without the wrapper, the read hangs and the test
@@ -897,24 +934,14 @@ describe("bounded one-pass change-list resolution", () => {
       TEMPORAL_READ_DEADLINE_BUDGET_MS + 2_000,
     );
 
+    // Explicit one-shot start-barrier (AC5): the slow-read mock fires
+    // the barrier the instant it enters its delay branch, releasing the
+    // test from scheduler-turn spinning. Then we advance past the
+    // aggregate budget so the deadline wrapper rejects.
+    const startBarrier = awaitListChangeDirsStart(legacy.paths.changes);
     const pending = store.changes.list({});
-    // Settle async work in rounds (see archive test for rationale):
-    // the mock's slow-read setTimeout is scheduled only after earlier
-    // awaits resolve, so one advanceTimersByTimeAsync may miss it.
-    let settled = false;
-    void pending.then(
-      () => {
-        settled = true;
-      },
-      () => {
-        settled = true;
-      },
-    );
-    for (let i = 0; i < 10 && !settled; i++) {
-      await vi.runAllTimersAsync();
-      await Promise.resolve();
-      await Promise.resolve();
-    }
+    await startBarrier;
+    await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1000);
     const result = await pending;
 
     // Typed source-specific deadline degradation on the active path —
@@ -973,31 +1000,20 @@ describe("bounded one-pass change-list resolution", () => {
       TEMPORAL_READ_DEADLINE_BUDGET_MS + 2_000,
     );
 
+    // Explicit one-shot start-barrier (AC5): wait for the archive
+    // mock to enter its delay branch — visibility and active-disk
+    // enumeration resolve first, then the archive slow-read
+    // setTimeout is scheduled. The barrier fires once the archive
+    // mock is in flight, so we no longer loop runAllTimersAsync
+    // waiting for the slow-read timer to materialize.
+    const startBarrier = awaitListChangeDirsStart(legacy.paths.archive);
     const pending = store.changes.list({ includeArchived: true });
-    // Settle async work in rounds: the archive mock's slow-read
-    // setTimeout is only scheduled once earlier awaits (visibility,
-    // active-disk enumeration) have resolved, so a single
-    // runAllTimersAsync may return before the slow-read timer exists.
-    // Looping keeps advancing until the pending read either resolves
-    // (unfixed RED path) or the aggregate deadline wrapper rejects
-    // (GREEN path).
-    let settled = false;
-    void pending.then(
-      () => {
-        settled = true;
-      },
-      () => {
-        settled = true;
-      },
-    );
-    for (let i = 0; i < 10 && !settled; i++) {
-      await vi.runAllTimersAsync();
-      // Yield to the microtask queue so real fs.promises callbacks
-      // queued via process.nextTick can run between fake-timer rounds.
-      // (process.nextTick is NOT faked by default; setImmediate IS.)
-      await Promise.resolve();
-      await Promise.resolve();
-    }
+    await startBarrier;
+    // Advance past the aggregate budget so the deadline wrapper
+    // rejects the slow archive enumeration (GREEN). Without the
+    // wrapper, the archive read hangs and the test times out
+    // (RED).
+    await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1000);
     const result = await pending;
 
     // Archive-source deadline is typed with source identity; the active

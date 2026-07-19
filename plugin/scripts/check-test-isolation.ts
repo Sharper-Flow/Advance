@@ -64,7 +64,7 @@ export async function* walkTestFiles(dir: string): AsyncGenerator<string> {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
       yield* walkTestFiles(fullPath);
-    } else if (entry.isFile() && entry.name.endsWith(".test.ts")) {
+    } else if (entry.isFile() && (entry.name.endsWith(".test.ts") || entry.name.endsWith(".itest.ts"))) {
       yield fullPath;
     }
   }
