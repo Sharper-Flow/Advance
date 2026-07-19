@@ -54,10 +54,10 @@ import {
   fetchStatusTemporalHealth,
   fetchStatusWorkerProcesses,
   healthSnapshotCache,
-  resetStatusHealthForTest,
   statusSearchAttributesProbeCache,
   statusWorktreeCensusProbeCache,
 } from "./status-health";
+import { resetStatusHealthForTest } from "./status-health-test-reset";
 import { getTemporalHealth } from "../temporal/health-probe";
 import { getWorktreeCensus } from "../utils/worktree-census";
 import { enumerateAdvWorkerProcesses } from "../utils/worker-process-probe";

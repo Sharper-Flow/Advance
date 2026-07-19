@@ -182,8 +182,8 @@ export async function fetchStatusSnapshotHealth(
   );
 }
 
-/** Exported for test isolation only */
-export function resetStatusHealthForTest(): void {
+/** Clears cache state owned by this module; composed by the test reset owner. */
+export function resetStatusHealthModuleForTest(): void {
   healthSnapshotCache.clear();
   _statusProbeCaches.clear();
 }

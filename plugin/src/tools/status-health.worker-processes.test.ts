@@ -23,7 +23,7 @@ vi.mock("../utils/worker-process-probe", () => ({
 }));
 
 import { applyStatusView } from "./status-view";
-import { resetStatusHealthForTest } from "./status-health";
+import { resetStatusHealthForTest } from "./status-health-test-reset";
 
 describe("fetchStatusWorkerProcesses", () => {
   beforeEach(() => {
