@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readdirSync, readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import { ADV_TOOL_NAMES } from "./tool-registry";
 import {
@@ -313,6 +313,36 @@ describe("mode-neutral MCP prompt contract", () => {
         synced,
         `${name}.md inline ADV_SYNC block drifted from overlay`,
       ).toBe(agent);
+    }
+  });
+
+  test("overlay-only sources each carry the canonical contract exactly once", () => {
+    // Overlay-only managed agents are those WITHOUT a matching advance-source
+    // agent file at `.opencode/agents/{name}.md`. For these agents the overlay
+    // is the only advance-authored surface, so the mode-neutral contract must
+    // ride there verbatim. Source-backed shared agents (adv, build, plan) may
+    // carry the contract in the source body or the overlay; this test does not
+    // constrain them (the effective-prompt test above does).
+    //
+    // rq: fixSubAgentMcpRouting — closes the gap that allowed explore.md to
+    // silently miss the contract under CodeMode-on sessions.
+    const overlayDir = join(REPO_ROOT, ".opencode/overlays");
+    const agentsDir = join(REPO_ROOT, ".opencode/agents");
+    const overlayOnly = readdirSync(overlayDir)
+      .filter((name) => name.endsWith(".overlay.md"))
+      .filter((name) => {
+        const agentName = name.replace(/\.overlay\.md$/, ".md");
+        return !existsSync(join(agentsDir, agentName));
+      })
+      .sort();
+    // Today: explore.overlay.md (new) and general.overlay.md.
+    expect(overlayOnly).toEqual(["explore.overlay.md", "general.overlay.md"]);
+    for (const name of overlayOnly) {
+      const content = readFileSync(join(overlayDir, name), "utf8");
+      expect(
+        countContractOccurrences(content),
+        `${name} must carry the canonical contract exactly once`,
+      ).toBe(1);
     }
   });
 });

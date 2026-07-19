@@ -436,7 +436,7 @@ Hint semantics:
 
 **If delegated to `adv-engineer` (`delegate_allowed` or `delegate_preferred`):** Spawn `adv-engineer` sub-agent with the Apply Context Packet below.
 
-**For a classified frontend follow-up:** After a successful same-cycle `adv-engineer` report or classified inline implementation, spawn `adv-designer` with the Designer Apply Context Packet and its `IMPLEMENTATION_RECEIPT`. `adv-designer` validates UI/a11y/polish only; review/harden ownership remains with `adv-reviewer`.
+**For a classified frontend follow-up:** After a successful same-cycle `adv-engineer` report or classified inline implementation, spawn `adv-designer` with the Designer Apply Context Packet and its `IMPLEMENTATION_RECEIPT`. `adv-designer` **remediates in scope** (UI/a11y/polish fixes, then verifies) — it is **not** review-only; review/harden ownership remains with `adv-reviewer`.
 
 If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
 
