@@ -88,7 +88,14 @@ const mocks = vi.hoisted(() => {
     closeLinkedIssue: vi.fn(() =>
       Promise.resolve({ issue_closed: [], close_eligible: false }),
     ),
-    validateChange: vi.fn(() => Promise.resolve({ errors: [], warnings: [] })),
+    validateChange: vi.fn(() =>
+      Promise.resolve({
+        errors: [],
+        warnings: [],
+        passed: true,
+        canConcludeClean: true,
+      }),
+    ),
     getArchiveContractProofErrors: vi.fn(() => []),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
@@ -352,6 +359,45 @@ describe("adv_change_archive Phase 9 behavior", () => {
       completed_by: "adv-archive",
     });
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
+  });
+
+  test("complete authority reaches Phase 9 finalization; incomplete authority blocks archive", async () => {
+    // Default fixture models a complete authority inventory (canConcludeClean:true).
+    const store = createMockStore();
+    const completeResult = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+    const completeParsed = JSON.parse(completeResult);
+    expect(completeParsed.success).toBe(true);
+    expect(completeParsed.finalization).toMatchObject({
+      status: "shipped",
+      mergeCommitSha: "abc123",
+      pushStatus: "pushed",
+    });
+    expect(mocks.finalizeRelease).toHaveBeenCalledTimes(1);
+
+    // Incomplete authority explicitly sets canConcludeClean:false; archive must
+    // fail-closed before any Phase 9 finalization.
+    mocks.validateChange.mockResolvedValueOnce({
+      errors: [],
+      warnings: [],
+      passed: false,
+      canConcludeClean: false,
+    });
+    const blockedStore = createMockStore();
+    const blockedResult = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      blockedStore,
+    );
+    const blockedParsed = JSON.parse(blockedResult);
+    expect(blockedParsed.success).toBe(false);
+    expect(blockedParsed.error).toContain("Archive blocked");
+    expect(blockedParsed.error).toContain(
+      "validation could not conclude clean",
+    );
+    // No additional Phase 9 finalization was attempted.
+    expect(mocks.finalizeRelease).toHaveBeenCalledTimes(1);
   });
 
   test("projects terminal summary to parent Epic after durable archive proof", async () => {
