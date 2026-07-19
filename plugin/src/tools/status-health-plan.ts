@@ -10,8 +10,15 @@
  */
 
 import type { Store } from "../storage/store";
-import type { ProbeCacheFreshness } from "./probe-cache";
-import { createTemporalReadDeadline } from "../temporal/retry-wrapper";
+import type { ProbeCacheFreshness, ProbeCacheResult } from "./probe-cache";
+import {
+  createHealthProbeCache,
+  type HealthProbeCache,
+} from "./health-probe-cache";
+import { getTemporalHealth } from "../temporal/health-probe";
+import { getWorktreeCensus } from "../utils/worktree-census";
+import { enumerateAdvWorkerProcesses } from "../utils/worker-process-probe";
+import { scanSnapshotHealth } from "./snapshot-scan";
 import {
   executeHealthPlan,
   type HealthProviderDescriptor,
@@ -27,6 +34,7 @@ import {
   fetchStatusWorkerProcesses,
   fetchStatusSnapshotHealth,
   statusSearchAttributesProbeCache,
+  computeSearchAttributesSnapshot,
   buildTemporalHealthFallback,
   MISSING_PROJECT_ID_CACHE_KEY,
   type TemporalHealthSnapshot,
@@ -54,11 +62,20 @@ export const HEALTH_MAX_CONCURRENCY = 4;
 export const HEALTH_CANDIDATE_LIMIT = 10;
 const DEFAULT_PROVIDER_CAP_MS = 1_500;
 
+export interface HealthRequestContext {
+  startTime: number;
+  cutoffTime: number;
+  deadlineTime: number;
+  signal?: AbortSignal;
+}
+
 export interface HealthStatusInput {
   store: Store;
   projectId: string | undefined;
   forceRefresh: boolean;
   autoManagedCensus: Record<string, number>;
+  request: HealthRequestContext;
+  loadMigrationStatus: () => Promise<unknown>;
 }
 
 export interface HealthStatusOutput {
@@ -88,6 +105,8 @@ export interface HealthStatusOutput {
   feature_flag_sources: Record<string, "default" | "explicit">;
   auto_managed_changes: Record<string, number>;
   terminal_cleanup_retained: PendingDeleteSummary;
+  migration_status: unknown;
+  requirement_count: number;
   configResult: Awaited<ReturnType<typeof loadProjectConfigWithDiagnostics>>;
   _health_execution: Record<string, unknown>;
   _freshness: Record<string, ProbeCacheFreshness>;
@@ -96,6 +115,96 @@ export interface HealthStatusOutput {
 interface ProviderValue<T> {
   value: T;
   freshness?: ProbeCacheFreshness;
+}
+
+const requestTemporalHealthCache = createHealthProbeCache<
+  TemporalHealthSnapshot,
+  string
+>({
+  name: "health.temporal_health",
+  ttlMs: 2_000,
+  fetch: (key, { signal }) =>
+    getTemporalHealth(key === MISSING_PROJECT_ID_CACHE_KEY ? undefined : key, {
+      signal,
+    }),
+});
+const requestSearchAttributesCache = createHealthProbeCache<
+  SearchAttributesSnapshot,
+  string
+>({
+  name: "health.search_attributes",
+  ttlMs: 2_000,
+  fetch: async () => computeSearchAttributesSnapshot(),
+});
+const requestWorkerProcessesCache = createHealthProbeCache<
+  WorkerProcessesSnapshot,
+  string
+>({
+  name: "health.worker_processes",
+  ttlMs: 2_000,
+  fetch: async (_key, { signal }) => enumerateAdvWorkerProcesses({ signal }),
+});
+const requestWorktreeCensusCache = createHealthProbeCache<
+  WorktreeCensusSnapshot,
+  string
+>({
+  name: "health.worktree_census",
+  ttlMs: 2_000,
+  fetch: (root, { signal }) => getWorktreeCensus(root, { signal }),
+});
+const requestSnapshotHealthCache = createHealthProbeCache<
+  SnapshotHealthSnapshot,
+  string
+>({
+  name: "health.snapshot_health",
+  ttlMs: 60_000,
+  fetch: (key) =>
+    scanSnapshotHealth({
+      scope: "project",
+      projectId: key === MISSING_PROJECT_ID_CACHE_KEY ? "unknown" : key,
+    }),
+});
+
+function directFreshness(ttlMs: number): ProbeCacheFreshness {
+  return {
+    cached_at: new Date().toISOString(),
+    stale: false,
+    age_ms: 0,
+    ttl_ms: ttlMs,
+  };
+}
+
+async function fetchForHealth<T>(input: {
+  forceRefresh: boolean;
+  key: string;
+  cache: HealthProbeCache<T, string>;
+  legacy: () => Promise<ProbeCacheResult<T>>;
+  signal: AbortSignal;
+  cutoffTime: number;
+  ttlMs: number;
+}): Promise<ProbeCacheResult<T>> {
+  if (!input.forceRefresh) {
+    const cached = input.cache.read(input.key);
+    if (cached) {
+      return { value: cached.value, freshness: directFreshness(input.ttlMs) };
+    }
+    return input.legacy();
+  }
+  const refreshed = await input.cache.refresh(input.key, {
+    signal: input.signal,
+    cutoffTime: input.cutoffTime,
+  });
+  return { value: refreshed.value, freshness: directFreshness(input.ttlMs) };
+}
+
+export function createHealthRequestContext(
+  now: number = Date.now(),
+): HealthRequestContext {
+  return {
+    startTime: now,
+    cutoffTime: now + HEALTH_EXECUTION_CUTOFF_MS,
+    deadlineTime: now + HEALTH_RESPONSE_DEADLINE_MS,
+  };
 }
 
 export async function runHealthStatus(
@@ -140,10 +249,16 @@ export async function runHealthStatus(
       async run(ctx): Promise<HealthProviderOutcome> {
         const providerStart = ctx.clock.now();
         try {
-          const { value, freshness } = await fetchStatusTemporalHealth(
-            projectId,
-            { forceRefresh },
-          );
+          const { value, freshness } = await fetchForHealth({
+            forceRefresh,
+            key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+            cache: requestTemporalHealthCache,
+            legacy: () =>
+              fetchStatusTemporalHealth(projectId, { forceRefresh }),
+            signal: ctx.signal,
+            cutoffTime: ctx.cutoffTime,
+            ttlMs: 2_000,
+          });
           captureValue("temporal_health", { value, freshness });
           return {
             kind: freshness.stale ? "stale" : "ok",
@@ -170,11 +285,19 @@ export async function runHealthStatus(
       async run(ctx): Promise<HealthProviderOutcome> {
         const providerStart = ctx.clock.now();
         try {
-          const { value, freshness } =
-            await statusSearchAttributesProbeCache.fetch(
-              projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-              { forceRefresh },
-            );
+          const { value, freshness } = await fetchForHealth({
+            forceRefresh,
+            key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+            cache: requestSearchAttributesCache,
+            legacy: () =>
+              statusSearchAttributesProbeCache.fetch(
+                projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+                { forceRefresh },
+              ),
+            signal: ctx.signal,
+            cutoffTime: ctx.cutoffTime,
+            ttlMs: 2_000,
+          });
           captureValue("search_attributes", { value, freshness });
           return {
             kind: freshness.stale ? "stale" : "ok",
@@ -246,8 +369,14 @@ export async function runHealthStatus(
       async run(ctx): Promise<HealthProviderOutcome> {
         const providerStart = ctx.clock.now();
         try {
-          const { value, freshness } = await fetchStatusWorkerProcesses({
+          const { value, freshness } = await fetchForHealth({
             forceRefresh,
+            key: "__host_workers__",
+            cache: requestWorkerProcessesCache,
+            legacy: () => fetchStatusWorkerProcesses({ forceRefresh }),
+            signal: ctx.signal,
+            cutoffTime: ctx.cutoffTime,
+            ttlMs: 2_000,
           });
           captureValue("worker_processes", { value, freshness });
           return {
@@ -273,10 +402,18 @@ export async function runHealthStatus(
       async run(ctx): Promise<HealthProviderOutcome> {
         const providerStart = ctx.clock.now();
         try {
-          const { value, freshness } =
-            await statusWorktreeCensusProbeCache.fetch(store.paths.root, {
-              forceRefresh,
-            });
+          const { value, freshness } = await fetchForHealth({
+            forceRefresh,
+            key: store.paths.root,
+            cache: requestWorktreeCensusCache,
+            legacy: () =>
+              statusWorktreeCensusProbeCache.fetch(store.paths.root, {
+                forceRefresh,
+              }),
+            signal: ctx.signal,
+            cutoffTime: ctx.cutoffTime,
+            ttlMs: 2_000,
+          });
           captureValue("worktree_census", { value, freshness });
           return {
             kind: freshness.stale ? "stale" : "ok",
@@ -301,10 +438,16 @@ export async function runHealthStatus(
       async run(ctx): Promise<HealthProviderOutcome> {
         const providerStart = ctx.clock.now();
         try {
-          const { value, freshness } = await fetchStatusSnapshotHealth(
-            projectId,
-            { forceRefresh },
-          );
+          const { value, freshness } = await fetchForHealth({
+            forceRefresh,
+            key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+            cache: requestSnapshotHealthCache,
+            legacy: () =>
+              fetchStatusSnapshotHealth(projectId, { forceRefresh }),
+            signal: ctx.signal,
+            cutoffTime: ctx.cutoffTime,
+            ttlMs: 60_000,
+          });
           captureValue("snapshot_health", { value, freshness });
           return {
             kind: freshness.stale ? "stale" : "ok",
@@ -358,6 +501,82 @@ export async function runHealthStatus(
         try {
           const value = await getPluginRuntimeInfo();
           captureValue("plugin_runtime", { value });
+          return {
+            kind: "ok",
+            value,
+            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
+          };
+        } catch (err) {
+          return {
+            kind: "error",
+            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
+            evidence: err instanceof Error ? err.message : String(err),
+          };
+        }
+      },
+    },
+    {
+      source: "terminal_cleanup_retained",
+      dependencies: [],
+      cap: DEFAULT_PROVIDER_CAP_MS,
+      cancellability: "bounded_non_cancellable",
+      async run(ctx): Promise<HealthProviderOutcome> {
+        const providerStart = ctx.clock.now();
+        try {
+          const value = await readOnlyTerminalCleanup();
+          captureValue("terminal_cleanup_retained", { value });
+          return {
+            kind: "ok",
+            value,
+            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
+          };
+        } catch (err) {
+          return {
+            kind: "error",
+            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
+            evidence: err instanceof Error ? err.message : String(err),
+          };
+        }
+      },
+    },
+    {
+      source: "migration_status",
+      dependencies: [],
+      cap: DEFAULT_PROVIDER_CAP_MS,
+      cancellability: "bounded_non_cancellable",
+      async run(ctx): Promise<HealthProviderOutcome> {
+        const providerStart = ctx.clock.now();
+        try {
+          const value = await input.loadMigrationStatus();
+          captureValue("migration_status", { value });
+          return {
+            kind: "ok",
+            value,
+            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
+          };
+        } catch (err) {
+          return {
+            kind: "error",
+            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
+            evidence: err instanceof Error ? err.message : String(err),
+          };
+        }
+      },
+    },
+    {
+      source: "spec_requirement_count",
+      dependencies: [],
+      cap: DEFAULT_PROVIDER_CAP_MS,
+      cancellability: "bounded_non_cancellable",
+      async run(ctx): Promise<HealthProviderOutcome> {
+        const providerStart = ctx.clock.now();
+        try {
+          const specsList = await store.specs.list();
+          const value = specsList.specs.reduce(
+            (sum, spec) => sum + (spec.requirementCount ?? 0),
+            0,
+          );
+          captureValue("spec_requirement_count", { value });
           return {
             kind: "ok",
             value,
@@ -428,6 +647,10 @@ export async function runHealthStatus(
     providers,
     clock,
     timer,
+    requestSignal: input.request.signal,
+    requestStartTime: input.request.startTime,
+    cutoffTime: input.request.cutoffTime,
+    deadlineTime: input.request.deadlineTime,
   });
 
   const projectConfig = getCaptured<{
@@ -496,7 +719,14 @@ export async function runHealthStatus(
       projectConfig?.featureFlags ?? withStabilityFeatureDefaults(undefined),
     feature_flag_sources: projectConfig?.featureFlagSources ?? {},
     auto_managed_changes: input.autoManagedCensus,
-    terminal_cleanup_retained: await readOnlyTerminalCleanup(),
+    terminal_cleanup_retained: getCaptured<PendingDeleteSummary>(
+      "terminal_cleanup_retained",
+    ) ?? {
+      total: 0,
+      classes: {},
+    },
+    migration_status: getCaptured<unknown>("migration_status") ?? null,
+    requirement_count: getCaptured<number>("spec_requirement_count") ?? 0,
     configResult: projectConfig?.configResult ?? {
       success: false,
       type: "not_found",
@@ -507,19 +737,31 @@ export async function runHealthStatus(
   };
 }
 
-export function buildHealthStatusDeadline(): {
+export function buildHealthStatusDeadline(
+  request: HealthRequestContext = createHealthRequestContext(),
+): {
   budgetMs: number;
   deadlineAt: number;
 } {
-  return createTemporalReadDeadline(HEALTH_EXECUTION_CUTOFF_MS);
+  return {
+    budgetMs: HEALTH_EXECUTION_CUTOFF_MS,
+    deadlineAt: request.cutoffTime,
+  };
 }
 
-export function buildHealthStatusReadOptions():
-  | { recentLimit: number; deadline: { budgetMs: number; deadlineAt: number } }
+export function buildHealthStatusReadOptions(
+  request: HealthRequestContext = createHealthRequestContext(),
+):
+  | {
+      recentLimit: number;
+      deadline: { budgetMs: number; deadlineAt: number };
+      sourceRanked: true;
+    }
   | undefined {
   return {
     recentLimit: HEALTH_CANDIDATE_LIMIT,
-    deadline: buildHealthStatusDeadline(),
+    deadline: buildHealthStatusDeadline(request),
+    sourceRanked: true,
   };
 }
 

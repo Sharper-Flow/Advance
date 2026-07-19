@@ -444,6 +444,9 @@ describe("health view bounded pressure contract", () => {
       "snapshot_health",
       "peer_sessions",
       "plugin_runtime",
+      "terminal_cleanup_retained",
+      "migration_status",
+      "spec_requirement_count",
       "temporal_queue_serviceability",
     ];
     expect(sources).toEqual(expectedOrder);
@@ -488,5 +491,73 @@ describe("health view bounded pressure contract", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test("one request deadline owns delayed status, probes, and spec counting", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const baseStatus = await store.status();
+      store.status = vi.fn().mockImplementation(
+        async () =>
+          new Promise((resolve) => {
+            setTimeout(() => resolve(baseStatus), 7_400);
+          }),
+      );
+      store.specs.list = vi.fn().mockImplementation(
+        async () =>
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ specs: [] }), 10_000);
+          }),
+      );
+
+      const start = Date.now();
+      const executePromise = statusTools.adv_status.execute(
+        { view: "health", forceRefresh: true },
+        store,
+      );
+      await vi.advanceTimersByTimeAsync(8_000);
+      const result = await executePromise;
+      const parsed = parseToolOutput(result);
+
+      expect(Date.now() - start).toBeLessThanOrEqual(8_000);
+      expect(parsed._health_execution.degraded).toBe(true);
+      expect(parsed._health_execution.execution_cutoff_ms).toBe(7_500);
+      expect(store.specs.list).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("concurrent force refreshes do not share inflight probe publication", async () => {
+    let calls = 0;
+    let resolveFirst!: (value: any) => void;
+    mockGetTemporalHealth.mockImplementation(async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Promise((resolve) => {
+          resolveFirst = resolve;
+        });
+      }
+      return { ...buildTemporalHealth(true), request_marker: "newer" };
+    });
+
+    const first = statusTools.adv_status.execute(
+      { view: "health", forceRefresh: true },
+      store,
+    );
+    await vi.waitFor(() => expect(calls).toBeGreaterThanOrEqual(1));
+    const second = statusTools.adv_status.execute(
+      { view: "health", forceRefresh: true },
+      store,
+    );
+    await vi.waitFor(() => expect(calls).toBeGreaterThanOrEqual(2));
+    resolveFirst({ ...buildTemporalHealth(true), request_marker: "older" });
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    const firstParsed = parseToolOutput(firstResult);
+    const secondParsed = parseToolOutput(secondResult);
+    expect(calls).toBeGreaterThanOrEqual(2);
+    expect(firstParsed.temporal_health.request_marker).toBe("older");
+    expect(secondParsed.temporal_health.request_marker).toBe("newer");
   });
 });

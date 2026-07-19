@@ -82,6 +82,7 @@ import {
 import { buildStatusViewPlan, applyStatusView } from "./status-view";
 import {
   runHealthStatus,
+  createHealthRequestContext,
   buildHealthStatusReadOptions,
   buildHealthExecutionMeta,
 } from "./status-health-plan";
@@ -257,6 +258,8 @@ export const statusTools = {
         { store, target_path },
         async (activeStore, projectContext) => {
           const plan = buildStatusViewPlan(view);
+          const healthRequest =
+            view === "health" ? createHealthRequestContext() : undefined;
           const summaryOmissions: StatusSummaryOmissions = {
             recentChanges: 0,
             recommendations: 0,
@@ -273,7 +276,7 @@ export const statusTools = {
             view === "summary"
               ? { recentLimit: STATUS_SUMMARY_RECENT_LIMIT }
               : view === "health"
-                ? buildHealthStatusReadOptions()
+                ? buildHealthStatusReadOptions(healthRequest)
                 : undefined;
           const { status, bootstrapDiagnostic } = await withRecordedPhase(
             "adv_status",
@@ -302,7 +305,7 @@ export const statusTools = {
             });
           }
           const migrationStatus =
-            view === "health" || view === "hygiene"
+            view === "hygiene"
               ? await withRecordedPhase("adv_status", "migrationStatus", () =>
                   loadMigrationStatus(activeStore),
                 )
@@ -438,6 +441,7 @@ export const statusTools = {
           let archivedBranchHygiene: ArchivedBranchHygieneSection | undefined;
           let snapshotHealth: SnapshotHealthSnapshot | undefined;
           let requirementCount = 0;
+          let healthMigrationStatus: unknown = null;
           let peerSessions:
             | Array<{
                 sessionId: string;
@@ -761,6 +765,8 @@ export const statusTools = {
               projectId,
               forceRefresh,
               autoManagedCensus,
+              request: healthRequest!,
+              loadMigrationStatus: () => loadMigrationStatus(activeStore),
             });
 
             temporalHealth = healthResult.temporal_health;
@@ -783,18 +789,12 @@ export const statusTools = {
               ReturnType<typeof getPluginRuntimeInfo>
             >;
             probeFreshness = healthResult._freshness;
+            requirementCount = healthResult.requirement_count;
+            healthMigrationStatus = healthResult.migration_status;
             healthExecution = buildHealthExecutionMeta(
               status,
               healthResult._health_execution,
             );
-
-            if (plan.specRequirementCount) {
-              const specsList = await activeStore.specs.list();
-              requirementCount = specsList.specs.reduce(
-                (sum, s) => sum + (s.requirementCount ?? 0),
-                0,
-              );
-            }
 
             if (queueServiceability && temporalHealth) {
               pushQueueServiceabilityRecommendations({
@@ -994,7 +994,8 @@ export const statusTools = {
             search_attributes: searchAttributes,
             worker_processes: workerProcesses,
             opencode_session_debt: opencodeSessionDebt,
-            migration_status: migrationStatus,
+            migration_status:
+              view === "health" ? healthMigrationStatus : migrationStatus,
             project_metadata: projectMetadata,
             external_state_hygiene: externalStateHygiene,
             worktree_census: worktreeCensus,

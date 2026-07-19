@@ -49,6 +49,8 @@ export interface ListSourceRankedCandidatesResult {
   omittedCount: number;
   /** Bounded deterministic sample of omitted IDs. */
   omittedIds: string[];
+  /** Complete internal omitted set; callers must bound any public projection. */
+  omittedCandidates: SourceRankedCandidate[];
   /** True when one or more candidates lacked valid source-backed timestamps. */
   degraded: boolean;
   /** IDs of candidates with missing or invalid timestamps. */
@@ -175,6 +177,7 @@ export async function listSourceRankedCandidates(
     admitted,
     omittedCount: omitted.length,
     omittedIds,
+    omittedCandidates: omitted,
     degraded: missingTimestampIds.length > 0,
     missingTimestampIds,
   };

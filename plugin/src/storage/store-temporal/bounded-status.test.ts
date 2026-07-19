@@ -64,7 +64,15 @@ function workflowStateFor(change: Change) {
   };
 }
 
-function makeTemporal(queried: string[], createdAtById?: Map<string, string>) {
+function makeTemporal(
+  queried: string[],
+  createdAtById?: Map<string, string>,
+  visibilityRows: Array<{
+    id: string;
+    lastSignalAt?: string;
+    createdAt?: string;
+  }> = [],
+) {
   return {
     client: {
       workflow: {
@@ -75,7 +83,19 @@ function makeTemporal(queried: string[], createdAtById?: Map<string, string>) {
             return workflowStateFor(activeChange(id, createdAtById?.get(id)));
           },
         }),
-        list: async function* () {},
+        list: async function* () {
+          for (const row of visibilityRows) {
+            yield {
+              workflowId: `adv/change/project-1/${row.id}`,
+              searchAttributes: {
+                ...(row.lastSignalAt
+                  ? { AdvLastSignalAt: [row.lastSignalAt] }
+                  : {}),
+                ...(row.createdAt ? { AdvCreatedAt: [row.createdAt] } : {}),
+              },
+            };
+          }
+        },
         start: async () => {
           throw new Error("start should not be called");
         },
@@ -236,5 +256,52 @@ describe("bounded summary status reads", () => {
     expect(boundWarning?.omittedIds).not.toContain("change01");
     expect(boundWarning?.omittedIds).not.toContain("change02");
     expect(boundWarning?.omittedIds).toContain("change00");
+  });
+
+  it("source-ranks cold health candidates before hydrating only the newest ten", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const rows = Array.from({ length: 57 }, (_, index) => {
+      const id = `ranked${String(index).padStart(2, "0")}`;
+      const createdAt = new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString();
+      return { id, createdAt, lastSignalAt: createdAt };
+    });
+    for (const row of rows) {
+      await legacy.changes.save(activeChange(row.id, row.createdAt));
+    }
+
+    const queried: string[] = [];
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal: makeTemporal(
+        queried,
+        new Map(rows.map((row) => [row.id, row.createdAt])),
+        [...rows].reverse(),
+      ),
+      projectId: "project-1",
+    });
+
+    const status = await store.status({
+      recentLimit: 10,
+      sourceRanked: true,
+    });
+
+    const expected = rows
+      .slice()
+      .sort(
+        (a, b) =>
+          b.lastSignalAt.localeCompare(a.lastSignalAt) ||
+          a.id.localeCompare(b.id),
+      )
+      .slice(0, 10)
+      .map((row) => row.id);
+    expect(queried).toHaveLength(10);
+    expect(status.changes.recent.map((row) => row.id)).toEqual(expected);
+    expect(status.hydrationStats?.boundedOmitted).toBe(47);
+    expect(
+      status.warnings?.find(
+        (warning) => warning.code === "SOURCE_BOUND_EXCEEDED",
+      )?.omittedCount,
+    ).toBe(47);
   });
 });

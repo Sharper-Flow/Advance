@@ -110,6 +110,8 @@ export interface ChangeConflictAuthority {
 export interface StatusReadOptions {
   recentLimit?: number;
   deadline?: import("../temporal/retry-wrapper").TemporalReadDeadline;
+  /** Use source-backed global recency before bounded hydration (health view). */
+  sourceRanked?: boolean;
 }
 
 export interface ProductOriginTags {

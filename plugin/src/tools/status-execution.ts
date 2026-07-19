@@ -64,6 +64,10 @@ export interface HealthExecutionPlanConfig {
   clock: Clock;
   timer: TimerService;
   requestSignal?: AbortSignal;
+  /** Absolute request timestamps let status loading and providers share one budget. */
+  requestStartTime?: number;
+  cutoffTime?: number;
+  deadlineTime?: number;
 }
 
 export interface HealthExecutionMeta {
@@ -159,9 +163,10 @@ function composeRequestSignal(
 export async function executeHealthPlan(
   config: HealthExecutionPlanConfig,
 ): Promise<HealthExecutionResult> {
-  const startTime = config.clock.now();
-  const cutoffTime = startTime + config.executionCutoffMs;
-  const deadlineTime = startTime + config.responseDeadlineMs;
+  const startTime = config.requestStartTime ?? config.clock.now();
+  const cutoffTime = config.cutoffTime ?? startTime + config.executionCutoffMs;
+  const deadlineTime =
+    config.deadlineTime ?? startTime + config.responseDeadlineMs;
 
   const outcomes: Record<string, HealthProviderOutcome> = {};
   const running = new Set<string>();
@@ -314,28 +319,37 @@ export async function executeHealthPlan(
     }
   }
 
-  cutoffTimer = config.timer.setTimeout(() => {
-    scheduleNext();
-  }, config.executionCutoffMs);
+  cutoffTimer = config.timer.setTimeout(
+    () => {
+      scheduleNext();
+    },
+    Math.max(0, cutoffTime - config.clock.now()),
+  );
 
-  deadlineTimer = config.timer.setTimeout(() => {
-    // Final guard: force finish at the absolute response deadline.
-    for (const p of [...pending]) {
-      setOutcome(
-        p.source,
-        notAdmittedOutcome("response deadline", config.clock.now() - startTime),
-      );
-      const idx = pending.indexOf(p);
-      if (idx >= 0) pending.splice(idx, 1);
-    }
-    for (const source of [...running]) {
-      setOutcome(
-        source,
-        timeoutOutcome("response deadline", config.clock.now() - startTime),
-      );
-    }
-    finish();
-  }, config.responseDeadlineMs);
+  deadlineTimer = config.timer.setTimeout(
+    () => {
+      // Final guard: force finish at the absolute response deadline.
+      for (const p of [...pending]) {
+        setOutcome(
+          p.source,
+          notAdmittedOutcome(
+            "response deadline",
+            config.clock.now() - startTime,
+          ),
+        );
+        const idx = pending.indexOf(p);
+        if (idx >= 0) pending.splice(idx, 1);
+      }
+      for (const source of [...running]) {
+        setOutcome(
+          source,
+          timeoutOutcome("response deadline", config.clock.now() - startTime),
+        );
+      }
+      finish();
+    },
+    Math.max(0, deadlineTime - config.clock.now()),
+  );
 
   // Begin execution synchronously.
   scheduleNext();

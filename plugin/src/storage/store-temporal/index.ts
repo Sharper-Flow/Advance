@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
@@ -17,6 +19,11 @@ import { SpecSchema } from "../../types";
 import { listSpecsActivity, showSpecActivity } from "../../temporal/activities";
 import type { LoadResult } from "../json";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
+import {
+  listSourceRankedCandidates,
+  type SourceRankedCandidate,
+} from "../../temporal/list-source-ranked-candidates";
+import { mapWithConcurrency } from "../../utils/concurrency";
 import {
   ChangeSummaryMemo,
   asGateStatus,
@@ -804,7 +811,11 @@ export function createTemporalStoreBackend(
       includeClosed?: boolean;
     },
     deadline: TemporalReadDeadline = createTemporalReadDeadline(),
-    options?: { candidateLimit?: number; hydrationConcurrency?: number },
+    options?: {
+      candidateLimit?: number;
+      hydrationConcurrency?: number;
+      sourceRanked?: boolean;
+    },
   ): Promise<import("../store-types").ResolvedChangeList> => {
     const wantsTerminalStatuses = Boolean(
       filter?.includeArchived || filter?.includeClosed,
@@ -859,7 +870,10 @@ export function createTemporalStoreBackend(
       client?: { workflow?: { list?: unknown } };
     };
     let visibilityIds: string[] = [];
-    if (typeof bundle.client?.workflow?.list === "function") {
+    if (
+      !options?.sourceRanked &&
+      typeof bundle.client?.workflow?.list === "function"
+    ) {
       try {
         visibilityIds = await raceWithTemporalDeadline(
           listChangeWorkflowIds(
@@ -943,17 +957,84 @@ export function createTemporalStoreBackend(
     );
     const archiveIdSet = new Set(archiveIds);
 
-    // Caller-supplied read bound (fixChangeListTimeouts KD4 / AC3): the
-    // summary view bounds deep hydration UPSTREAM instead of hydrating
-    // every candidate and slicing the output afterwards. Memo-warm
-    // candidates sort by recency first so the bounded set is the most
-    // recent one rather than an arbitrary enumeration prefix; candidates
-    // without a memo signal keep their (stable) enumeration order. The
-    // truncated tail becomes typed bounded omissions — never silently
-    // dropped, never counted as complete (C2).
     const candidateLimit = options?.candidateLimit;
     let hydrationIds = changeIds;
-    if (candidateLimit !== undefined && changeIds.length > candidateLimit) {
+
+    if (
+      options?.sourceRanked &&
+      candidateLimit !== undefined &&
+      typeof bundle.client?.workflow?.list === "function" &&
+      !wantsTerminalStatuses
+    ) {
+      const diskCandidates = await mapWithConcurrency(
+        diskIds,
+        4,
+        async (id): Promise<SourceRankedCandidate> => {
+          if (expired()) return { id, source: "disk" };
+          try {
+            const raw = await raceWithTemporalDeadline(
+              readFile(join(legacy.paths.changes, id, "change.json"), "utf8"),
+              deadline,
+            );
+            const parsed = JSON.parse(raw) as Record<string, unknown>;
+            return {
+              id,
+              source: "disk",
+              lastSignalAt:
+                typeof parsed.lastSignalAt === "string"
+                  ? parsed.lastSignalAt
+                  : undefined,
+              createdAt:
+                typeof parsed.created_at === "string"
+                  ? parsed.created_at
+                  : undefined,
+            };
+          } catch {
+            return { id, source: "disk" };
+          }
+        },
+      );
+      try {
+        const ranked = await raceWithTemporalDeadline(
+          listSourceRankedCandidates(
+            bundle.client as Parameters<typeof listSourceRankedCandidates>[0],
+            {
+              projectId: input.projectId,
+              statuses: undefined,
+              limit: candidateLimit,
+              diskCandidates,
+            },
+          ),
+          deadline,
+        );
+        hydrationIds = ranked.admitted.map((candidate) => candidate.id);
+        for (const candidate of ranked.omittedCandidates) {
+          candidateResolutions.push({
+            id: candidate.id,
+            terminal: false,
+            omitted: true,
+            omissionReason: "bounded",
+          });
+        }
+      } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
+        degradedSources.add("visibility");
+        if (hitDeadline) markDeadline("visibility");
+        hydrationIds = [];
+        for (const id of diskIds) {
+          candidateResolutions.push({
+            id,
+            terminal: false,
+            omitted: true,
+            omissionReason: hitDeadline ? "deadline" : "bounded",
+          });
+        }
+      }
+    } else if (
+      candidateLimit !== undefined &&
+      changeIds.length > candidateLimit
+    ) {
       const memoActivity = new Map(
         memoAll.map((summary) => [summary.id, summary.lastActivityAt] as const),
       );
@@ -1380,7 +1461,10 @@ export function createTemporalStoreBackend(
       undefined,
       deadline,
       options?.recentLimit !== undefined
-        ? { candidateLimit: options.recentLimit }
+        ? {
+            candidateLimit: options.recentLimit,
+            sourceRanked: options.sourceRanked === true,
+          }
         : undefined,
     );
     const { changes, warnings, hydrationStats } = resolved;
