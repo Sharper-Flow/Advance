@@ -111,11 +111,19 @@ describe("_adapters", () => {
 
     test("rejects when handle.signal throws", async () => {
       const handle = createMockHandle();
+      // 'signal failed' does not match any SC4 mutation-ineligible regex
+      // (no poller/unregistered-query/deadline/query-rejected/permission/
+      // resource-exhaustion/TMPRL1100), so it falls through to the
+      // `unknown` class and the SC4 guard surfaces a typed
+      // `TemporalMutationIneligibleError`. This proves every signal
+      // dispatch is funneled through the guard, even for unrecognized
+      // error shapes.
       handle.signal.mockRejectedValue(new Error("signal failed"));
-
-      await expect(fireSignal(handle, { name: "bad" }, {})).rejects.toThrow(
-        "signal failed",
-      );
+      const { TemporalMutationIneligibleError } =
+        await import("../temporal/mutation-safety");
+      await expect(
+        fireSignal(handle, { name: "bad" }, {}),
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
     });
 
     test("resolves a guarded workflow handle from store input", async () => {
@@ -131,6 +139,55 @@ describe("_adapters", () => {
         "adv/change/proj-123/chg-456",
       );
       expect(handle.signal).toHaveBeenCalledWith(signalDef, payload);
+    });
+
+    test("SC4: no_poller signal error → throws TemporalMutationIneligibleError", async () => {
+      const handle = createMockHandle();
+      handle.signal.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const { TemporalMutationIneligibleError } =
+        await import("../temporal/mutation-safety");
+      await expect(
+        fireSignal(handle, { name: "sc4-no-poller" }, {}),
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
+    });
+
+    test("SC4: deadline signal error → throws TemporalMutationIneligibleError", async () => {
+      const handle = createMockHandle();
+      handle.signal.mockRejectedValue(new Error("deadline exceeded"));
+      const { TemporalMutationIneligibleError } =
+        await import("../temporal/mutation-safety");
+      await expect(
+        fireSignal(handle, { name: "sc4-deadline" }, {}),
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
+    });
+
+    test("SC4: 'Failed to query Workflow' signal error → throws TemporalMutationIneligibleError (unknown class)", async () => {
+      const handle = createMockHandle();
+      handle.signal.mockRejectedValue(
+        new Error("Failed to query Workflow: changeStateQuery"),
+      );
+      const { TemporalMutationIneligibleError } =
+        await import("../temporal/mutation-safety");
+      await expect(
+        fireSignal(handle, { name: "sc4-unknown-query" }, {}),
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
+    });
+
+    test("SC4: 'workflow execution already completed' signal error passes through (not_found is SC4-pass)", async () => {
+      const handle = createMockHandle();
+      handle.signal.mockRejectedValue(
+        new Error("workflow execution already completed"),
+      );
+      const { TemporalMutationIneligibleError } =
+        await import("../temporal/mutation-safety");
+      // Must NOT be an ineligibility error: not_found is intentionally
+      // not blocked by SC4 — the caller is responsible for surgical
+      // recovery (e.g. adv_change_status_repair / adv_archive_repair).
+      await expect(
+        fireSignal(handle, { name: "sc4-pass-not-found" }, {}),
+      ).rejects.not.toBeInstanceOf(TemporalMutationIneligibleError);
     });
   });
 
@@ -229,11 +286,16 @@ describe("_adapters", () => {
 
     test("rejects if signal fails without querying", async () => {
       const handle = createMockHandle();
-      handle.signal.mockRejectedValue(new Error("signal refused"));
+      // 'network reset' falls through to the SC4 `unknown` class — the
+      // guard fires, so the call surfaces a typed
+      // `TemporalMutationIneligibleError`.
+      handle.signal.mockRejectedValue(new Error("network reset"));
+      const { TemporalMutationIneligibleError } =
+        await import("../temporal/mutation-safety");
 
       await expect(
         fireSignalAndQuery(handle, { name: "bad" }, [{}], { name: "getState" }),
-      ).rejects.toThrow("signal refused");
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
 
       expect(handle.query).not.toHaveBeenCalled();
     });
@@ -311,7 +373,10 @@ describe("_adapters", () => {
     test("does NOT refresh when signal fails", async () => {
       const handle = createMockHandle();
       const store = createMockStore();
-      handle.signal.mockRejectedValue(new Error("signal refused"));
+      // 'network reset' falls through to SC4 `unknown` → guard fires.
+      handle.signal.mockRejectedValue(new Error("network reset"));
+      const { TemporalMutationIneligibleError } =
+        await import("../temporal/mutation-safety");
 
       await expect(
         fireSignalAndRefresh(
@@ -322,7 +387,7 @@ describe("_adapters", () => {
           { name: "bad" },
           {},
         ),
-      ).rejects.toThrow("signal refused");
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
 
       expect(store.changes.refresh).not.toHaveBeenCalled();
     });
