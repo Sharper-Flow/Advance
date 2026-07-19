@@ -3647,6 +3647,13 @@
                     },
                     "type": "array"
                   },
+                  "evidence_binding_version": {
+                    "enum": [
+                      "typed-v1",
+                      "legacy-command-v0"
+                    ],
+                    "type": "string"
+                  },
                   "files_touched": {
                     "items": {
                       "minLength": 1,
@@ -3800,7 +3807,15 @@
                           "minimum": -9007199254740991,
                           "type": "integer"
                         },
+                        "run_id": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
                         "summary": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "test_run_id": {
                           "minLength": 1,
                           "type": "string"
                         }
@@ -4487,6 +4502,13 @@
                     ],
                     "type": "object"
                   },
+                  "evidence_binding_version": {
+                    "enum": [
+                      "typed-v1",
+                      "legacy-command-v0"
+                    ],
+                    "type": "string"
+                  },
                   "files_touched": {
                     "items": {
                       "minLength": 1,
@@ -4670,7 +4692,15 @@
                           "minimum": -9007199254740991,
                           "type": "integer"
                         },
+                        "run_id": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
                         "summary": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "test_run_id": {
                           "minLength": 1,
                           "type": "string"
                         }
@@ -6991,6 +7021,13 @@
                       },
                       "type": "array"
                     },
+                    "evidence_binding_version": {
+                      "enum": [
+                        "typed-v1",
+                        "legacy-command-v0"
+                      ],
+                      "type": "string"
+                    },
                     "files_touched": {
                       "items": {
                         "minLength": 1,
@@ -7144,7 +7181,15 @@
                             "minimum": -9007199254740991,
                             "type": "integer"
                           },
+                          "run_id": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
                           "summary": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "test_run_id": {
                             "minLength": 1,
                             "type": "string"
                           }
@@ -7831,6 +7876,13 @@
                       ],
                       "type": "object"
                     },
+                    "evidence_binding_version": {
+                      "enum": [
+                        "typed-v1",
+                        "legacy-command-v0"
+                      ],
+                      "type": "string"
+                    },
                     "files_touched": {
                       "items": {
                         "minLength": 1,
@@ -8014,7 +8066,15 @@
                             "minimum": -9007199254740991,
                             "type": "integer"
                           },
+                          "run_id": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
                           "summary": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "test_run_id": {
                             "minLength": 1,
                             "type": "string"
                           }

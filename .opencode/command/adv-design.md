@@ -175,7 +175,18 @@ architecture_judgement:
 validation:
   # validation.status: pass | caution | fail | unknown — single source of truth verdict
   status: pass | caution | fail | unknown   # single source of truth verdict
-  blockers: [{short text}]
+  blockers:
+    # rq-fixWorkflowReliabilityDefects/AC13: design-validation blockers MUST be
+    # typed objects in scope. Each blocker requires finding, source, approved
+    # contract_ids (referencing items on the change's approved contract),
+    # scope: "in_scope", and concrete in_scope_remediation. Out-of-scope
+    # alternatives (e.g. changes to another repository, unactionable
+    # recommendations) belong only in architecture_judgement.alternatives_considered.
+    - finding: {string}
+      source: {label, locator, summary}
+      contract_ids: [{string}]   # MUST reference items on the change's contract
+      scope: "in_scope"
+      in_scope_remediation: {string}
   notes: {string}
 recommendation: {one paragraph}
 
@@ -191,6 +202,16 @@ EXPECTED OUTPUT: call adv_subagent_report_submit with RESEARCHER_REPORT per .ope
 ```
 
 Researcher `fail` is advisory-only — it surfaces `architecture_judgement.risk` and `validation.status: fail` but MUST NOT auto-block the design gate. Other gates may apply (e.g. contract compromise, security/release blockers).
+
+### Validator scope enforcement (AC13)
+
+The validator cannot classify out-of-scope alternatives as blockers or otherwise halt the design gate. Enforced boundaries:
+
+- `validation.status: fail` is **advisory-only**. It never holds or completes the gate. Pause only for independently established contract compromise, security/release blocker, or user-discovered cross-validation `CONFLICT`.
+- Every blocker row on a `researcher:design-validation` report MUST be an in-scope typed object: `finding`, `source`, approved `contract_ids[]` (must reference items on the change's contract), `scope: "in_scope"`, and `in_scope_remediation`. Malformed blocker authority (missing fields, scope ≠ `"in_scope"`, or unknown contract IDs) is rejected by `adv_subagent_report_submit` with `INVALID_REPORT` — no gate mutation, no auto-block.
+- Out-of-scope alternatives (including changes to another repository, hand-wavy "consider rewriting", or recommendations that contradict the approved scope) belong only in `architecture_judgement.alternatives_considered`. They never promote to blocker status and never appear in `validation.blockers`.
+
+When the validator wants to challenge the design, prefer `caution` with cited evidence, or surface a single typed blocker tied to a specific `contract_id` and `in_scope_remediation`. Anything beyond in-scope authority is rejected by ingest; routing it as blocker authority is structurally impossible.
 
 ---
 

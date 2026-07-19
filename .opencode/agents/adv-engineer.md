@@ -230,9 +230,11 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "agent": "adv-engineer",
   "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "status": "complete | error",
+  "evidence_binding_version": "typed-v1",
   "files_touched": ["{relative/path/to/file}"],
   "verification": [
     {
+      "test_run_id": "{runId returned by adv_run_test}",
       "command": "{command run}",
       "exit_code": 0,
       "summary": "{pass/fail + what was checked}"
@@ -268,6 +270,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
 - `follow_ups`: Empty array if nothing deferred. Otherwise list out-of-scope items discovered.
 - `required_main_agent_actions`: Empty array if no orchestrator action is required. Otherwise list follow-up actions the main ADV orchestrator must handle.
 - `verification`: At least one entry showing a test/build/lint command and its result.
+- `evidence_binding_version`: Use `"typed-v1"` for new reports. Every verification row MUST set `test_run_id` to the `runId` returned by the same task's `adv_run_test`; command text is descriptive, not evidence identity.
 - `decisions`: Empty array if no non-obvious choices made. Otherwise document tradeoffs.
 - `files_touched`: Every file you created, modified, or deleted.
 - `context_update_for_adv.what_ads_needs_to_know`: Concise summary the parent ADV orchestrator needs to continue.
@@ -292,9 +295,11 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "agent": "adv-engineer",
   "scope": { "kind": "task", "task_id": "tk-abc123" },
   "status": "complete",
+  "evidence_binding_version": "typed-v1",
   "files_touched": ["src/routes/users.ts", "src/routes/users.test.ts"],
   "verification": [
     {
+      "test_run_id": "tr_example_green",
       "command": "pnpm test -- src/routes/users.test.ts",
       "exit_code": 0,
       "summary": "All 12 tests pass"

@@ -556,7 +556,7 @@ VERIFICATION:
 BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, EPIC CONTEXT (`epic_context`), verification_expectations, durable_facts, unavailable_state
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
+EXPECTED OUTPUT: implement the task, run tests, then call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test
 ```
 
 `PROJECT STRUCTURE` provides the sub-agent with a ground-truth file manifest so it can self-correct path assumptions. Populate it from the Phase 0.1 path verification output. Example: `"Directories: repositories/, api/schemas/, services/; Pattern files: repositories/base.py, api/schemas/analytics.py"`.
@@ -604,7 +604,7 @@ NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI 
 BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate `scope_drift.recommendation: "stop_and_report"` and `required_main_agent_actions` with a handoff to `adv-engineer`. Do NOT edit backend files.
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
+EXPECTED OUTPUT: implement the UI/component task, run tests, then call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test
 ```
 
 The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). `IMPLEMENTATION_RECEIPT` is mandatory: `engineer_report` provenance must reference a successful same-task/same-cycle ENGINEER_REPORT; inline provenance must bind the active cycle to a baseline and diff reference. The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.

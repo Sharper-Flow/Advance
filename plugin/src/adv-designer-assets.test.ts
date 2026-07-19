@@ -318,6 +318,14 @@ describe("adv-designer assets", () => {
     });
   });
 
+  test("DESIGNER_REPORT binds verification rows to typed same-task test runs", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain('"evidence_binding_version": "typed-v1"');
+    expect(reportSection).toContain('"test_run_id"');
+    expect(reportSection).toContain("same task's `adv_run_test`");
+  });
+
   test("DESIGNER_REPORT prompt examples use structural scope, not legacy string scope", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";

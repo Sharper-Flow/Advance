@@ -472,6 +472,83 @@ describe("Subagent report schemas", () => {
     ).toThrow();
   });
 
+  it("requires run IDs for typed-v1 engineer verification while reading legacy rows", () => {
+    expect(EngineerSubagentReportSchema.safeParse(engineerReport).success).toBe(
+      true,
+    );
+    expect(
+      EngineerSubagentReportSchema.safeParse({
+        ...engineerReport,
+        evidence_binding_version: "typed-v1",
+      }).success,
+    ).toBe(false);
+    expect(
+      EngineerSubagentReportSchema.safeParse({
+        ...engineerReport,
+        evidence_binding_version: "typed-v1",
+        verification: engineerReport.verification.map((entry) => ({
+          ...entry,
+          run_id: "tr_green",
+        })),
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts test_run_id as the canonical typed-v1 run reference for engineer and designer reports", () => {
+    // rq-subagentReports25: `test_run_id` is the canonical typed-binding
+    // field; `run_id` is preserved as an additive alias. Both engineer
+    // and designer reports MUST accept either field on each verification
+    // entry and MUST NOT require both. Reports without either field on a
+    // typed-v1 row are rejected.
+    const withTestRunId = (report: typeof engineerReport) => ({
+      ...report,
+      evidence_binding_version: "typed-v1" as const,
+      verification: report.verification.map((entry) => ({
+        ...entry,
+        test_run_id: "tr_canonical",
+      })),
+    });
+
+    expect(
+      EngineerSubagentReportSchema.safeParse(withTestRunId(engineerReport))
+        .success,
+    ).toBe(true);
+    expect(
+      DesignerSubagentReportSchema.safeParse(withTestRunId(designerReport))
+        .success,
+    ).toBe(true);
+
+    // Mixed: one entry uses test_run_id, another uses run_id. Both must be
+    // accepted under the same typed-v1 binding.
+    const mixed = {
+      ...engineerReport,
+      evidence_binding_version: "typed-v1" as const,
+      verification: [
+        {
+          command: "pnpm test --filter alpha",
+          exit_code: 0,
+          summary: "alpha",
+          test_run_id: "tr_alpha",
+        },
+        {
+          command: "pnpm test --filter beta",
+          exit_code: 0,
+          summary: "beta",
+          run_id: "tr_beta",
+        },
+      ],
+    };
+    expect(EngineerSubagentReportSchema.safeParse(mixed).success).toBe(true);
+
+    // Typed-v1 with NEITHER run_id nor test_run_id on an entry is rejected.
+    expect(
+      EngineerSubagentReportSchema.safeParse({
+        ...engineerReport,
+        evidence_binding_version: "typed-v1",
+      }).success,
+    ).toBe(false);
+  });
+
   it("parses verification triage bundle reports for local verify and CI checks", () => {
     const parsedLocal = VerificationTriageBundleSubagentReportSchema.parse(
       verificationTriageBundleReport,
