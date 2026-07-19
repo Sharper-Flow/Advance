@@ -1,15 +1,17 @@
 /**
  * Spec Delta Writer Tool (addSpecDeltaWriter change, roadmap #64)
  *
- * Append-only `adv_delta_add` tool. Records an add-operation spec delta
- * under `change.deltas[capability]` via the supported store boundary
- * (`store.specDeltas.add`). Existing and valid new kebab-case capability
- * keys are accepted; archive remains the sole global-spec writer.
+ * `adv_delta_add` records add-operation deltas, while `adv_delta_modify`
+ * records narrow typed changes to an existing requirement. Both write only
+ * change-owned deltas through supported store boundaries
+ * (`store.specDeltas.add` / `store.specDeltas.modify`); add accepts existing
+ * or valid new kebab-case capability keys, and modify validates an existing
+ * capability-local target. Archive remains the sole global-spec writer.
  *
- * Scope is intentionally narrow (add-only, no modify/remove/rename, no
- * direct global spec write, no direct disk workaround). Modify/remove/
- * rename deltas and any global-spec write remain archive-internal until
- * their target-resolution and overwrite semantics are separately designed.
+ * Scope remains intentionally narrow: add supports additions and modify
+ * supports validated, non-empty partial changes to an existing requirement.
+ * Remove, rename, full CRUD, direct global-spec writes, and direct disk
+ * workarounds remain out of scope; archive applies recorded deltas.
  *
  * Target-path and recovery contract mirrors existing change-mutating tools
  * (adv_contract_mint, adv_change_repair_origin): target_path mutations

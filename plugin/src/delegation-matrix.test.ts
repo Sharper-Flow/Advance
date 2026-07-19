@@ -739,16 +739,28 @@ describe("delegation matrix coverage", () => {
       "rq-delDefaults10.3",
     ]);
 
-    const text = [
-      requirement?.body ?? "",
-      ...(requirement?.scenarios ?? []).flatMap(
-        (scenario) => scenario.then ?? [],
-      ),
-    ].join("\n");
+    expect(requirement?.body).toContain(
+      "MUST route initial implementation to adv-engineer",
+    );
+    expect(requirement?.body).toContain("MUST NOT select adv-designer first");
 
-    for (const expected of ["frontend", "adv-engineer", "adv-designer"]) {
-      expect(text).toContain(expected);
-    }
+    const initialLane = requirement?.scenarios?.find(
+      (scenario) => scenario.id === "rq-delDefaults10.1",
+    );
+    expect(initialLane?.when).toBe(
+      "ADV selects an initial implementation lane",
+    );
+    expect(initialLane?.then).toEqual([
+      "ADV dispatches adv-engineer before adv-designer",
+      "ADV does not dispatch adv-designer as the initial implementation lane",
+    ]);
+
+    const followUp = requirement?.scenarios?.find(
+      (scenario) => scenario.id === "rq-delDefaults10.2",
+    );
+    expect(followUp?.then).toContain(
+      "ADV dispatches a matching-cycle adv-designer follow-up",
+    );
   });
 
   // rq-delDefaults06: provider-eval GPT prompt anchors a delegation regression test.
