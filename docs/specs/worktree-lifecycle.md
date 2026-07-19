@@ -1,7 +1,7 @@
 # Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation
 
-> **Version:** 1.7.0
-> **Updated:** 2026-07-02
+> **Version:** 1.8.0
+> **Updated:** 2026-07-19
 
 ## Purpose
 
@@ -709,5 +709,53 @@ adv_worktree_delete MUST safely clear worktree registry entries reported as `mis
 
 **Then:**
 - The orphans list does not contain the cleared branch/path entry
+
+---
+
+### Health Worktree Diagnostics Are Read-Only
+
+**ID:** `rq-healthReadOnlyWorktree01` | **Priority:** **[MUST]**
+
+`adv_status view:health` MUST limit worktree diagnostics to bounded read-only census and retained-state aggregates. It MUST NOT discover cleanup candidates for mutation, drain pending deletions, delete worktrees, or delete branches. Exact cleanup actions remain owned by `adv_worktree_cleanup` and related typed cleanup tools. Hygiene MAY expose bounded read-only archaeology and recommendations without mutating worktree state.
+
+**Tags:** `status`, `health`, `worktree`, `read-only`
+
+#### Scenarios
+
+**Health reports retained state without cleanup** (`rq-healthReadOnlyWorktree01.1`)
+
+**Given:**
+- Pending or retained worktree cleanup state exists
+
+**When:** The health view reads worktree diagnostics
+
+**Then:**
+- Bounded counts and classes are reported
+- No cleanup queue is drained
+- No worktree or branch is deleted
+
+**Explicit cleanup remains mutation owner** (`rq-healthReadOnlyWorktree01.2`)
+
+**Given:**
+- A safe terminal cleanup candidate exists
+
+**When:** A caller only requests health status
+
+**Then:**
+- Health recommends the typed cleanup surface
+- Mutation does not run from status
+- Explicit cleanup tooling retains its safety checks
+
+**Hygiene archaeology remains advisory** (`rq-healthReadOnlyWorktree01.3`)
+
+**Given:**
+- Detailed retained-state archaeology is requested
+
+**When:** The hygiene view renders it
+
+**Then:**
+- The read is bounded
+- Exact paths remain privacy-safe and scope-appropriate
+- No deletion is authorized by the diagnostic read
 
 ---

@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.27.0
-> **Updated:** 2026-07-17
+> **Version:** 1.28.0
+> **Updated:** 2026-07-19
 
 ## Purpose
 
@@ -2856,5 +2856,54 @@ When the session project enables worktree_guard_enforce, the trunk write firewal
 **Then:**
 - The nearest existing ancestor is used for classification
 - A prunable record does not grant linked-worktree allowance
+
+---
+
+### Health Providers Return Typed Partial Outcomes
+
+**ID:** `rq-statusHealthTypedDegradation01` | **Priority:** **[MUST]**
+
+Every provider admitted by `adv_status view:health` MUST produce a discriminated outcome of `ok`, `stale`, `timeout`, `error`, `unavailable`, or `not_admitted`. Completed sections MUST remain available when another provider degrades. Existing required response fields and freshness metadata MUST remain compatible. Cached or stale provider evidence is advisory only and MUST NOT independently establish authoritative completeness or authorize mutation. Request-aborted force-refresh work MUST NOT publish late request-scoped cache state.
+
+**Tags:** `status`, `health`, `degradation`, `cache`
+
+#### Scenarios
+
+**Slow provider degrades without whole-result failure** (`rq-statusHealthTypedDegradation01.1`)
+
+**Given:**
+- One health provider exceeds its bounded allowance
+- Other providers have completed
+
+**When:** Health output is composed
+
+**Then:**
+- The slow source reports timeout
+- Completed diagnostic sections remain present
+- Overall completeness is degraded rather than falsely complete
+
+**Every incomplete source is explicit** (`rq-statusHealthTypedDegradation01.2`)
+
+**Given:**
+- A provider errors, is unavailable, is stale, or is not admitted
+
+**When:** Health renders execution metadata
+
+**Then:**
+- The source has the matching discriminated outcome
+- Evidence is bounded and secret-safe
+- No omission is silent
+
+**Aborted refresh cannot publish late state** (`rq-statusHealthTypedDegradation01.3`)
+
+**Given:**
+- A force-refresh fetch is aborted by the request deadline
+
+**When:** Its underlying non-cancellable work settles later
+
+**Then:**
+- The completed request output is unchanged
+- Request-scoped cache publication does not occur
+- Cached data cannot establish authoritative truth
 
 ---
