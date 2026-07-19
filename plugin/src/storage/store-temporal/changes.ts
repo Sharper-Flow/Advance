@@ -46,6 +46,7 @@ import {
   createTemporalReadContext,
   isTemporalReadExpired,
   raceWithTemporalDeadline,
+  remainingDeadlineMs,
   TemporalQueryTimeoutError,
   type StoreDeps,
 } from "./shared";
