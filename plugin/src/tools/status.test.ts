@@ -135,6 +135,7 @@ describe("Status Tools", () => {
       warnings: [],
     });
     resetStatusHealthForTest();
+    _healthRequestProbeCaches.clear();
     mockScanSnapshotHealth.mockReset();
     mockScanSnapshotHealth.mockResolvedValue({
       schema_version: 1,

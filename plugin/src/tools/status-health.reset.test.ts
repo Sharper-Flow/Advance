@@ -6,15 +6,14 @@
  * module load and survives across Vitest cases — when a test mutates the
  * mock of the underlying fetch function the next case must not see the
  * stale value. `resetStatusHealthForTest()` clears each cache (LRU +
- * `lastErrorByKey`) and the two supporting maps (`healthSnapshotCache`,
- * `statusQueueServiceabilityInputs`) in one call so no test reaches
- * around it with ad-hoc `.clear()` calls.
+ * `lastErrorByKey`) and the supporting map (`healthSnapshotCache`)
+ * in one call so no test reaches around it with ad-hoc `.clear()` calls.
  *
  * The tests below inspect the module-level handles (`healthSnapshotCache`,
- * `statusQueueServiceabilityInputs`, the six probe caches) directly so
- * the assertions are structural: a regression that splits the reset
- * across multiple owners or forgets one of the caches is caught here
- * even when the behavior under production usage looks unchanged.
+ * the five probe caches) directly so the assertions are structural: a
+ * regression that splits the reset across multiple owners or forgets one
+ * of the caches is caught here even when the behavior under production
+ * usage looks unchanged.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -51,13 +50,11 @@ vi.mock("./snapshot-scan", () => ({
 }));
 
 import {
-  fetchStatusQueueServiceability,
   fetchStatusSnapshotHealth,
   fetchStatusTemporalHealth,
   fetchStatusWorkerProcesses,
   healthSnapshotCache,
   resetStatusHealthForTest,
-  statusQueueServiceabilityInputs,
   statusSearchAttributesProbeCache,
   statusWorktreeCensusProbeCache,
 } from "./status-health";
@@ -174,18 +171,6 @@ describe("resetStatusHealthForTest (AC4 reset owner)", () => {
     expect(healthSnapshotCache.size).toBe(0);
   });
 
-  it("clears statusQueueServiceabilityInputs (the queue-serviceability inputs Map)", async () => {
-    statusQueueServiceabilityInputs.set("project-1", {
-      projectId: "project-1",
-      health: HEALTHY_TEMPORAL,
-    });
-    expect(statusQueueServiceabilityInputs.size).toBe(1);
-
-    resetStatusHealthForTest();
-
-    expect(statusQueueServiceabilityInputs.size).toBe(0);
-  });
-
   it("clears statusTemporalHealthProbeCache (LRU + lastErrorByKey) so the next fetch observes a new mock", async () => {
     vi.mocked(getTemporalHealth).mockResolvedValue(HEALTHY_TEMPORAL);
     const first = await fetchStatusTemporalHealth("project-1");
@@ -287,39 +272,6 @@ describe("resetStatusHealthForTest (AC4 reset owner)", () => {
     expect(second.value.summary.critical).toBe(4);
   });
 
-  it("clears statusQueueServiceabilityProbeCache (and its inputs map) so the next fetch observes an empty input set", async () => {
-    // With an inputs entry present, the cache resolves the populated
-    // snapshot. After reset, both the inputs map and the cache are
-    // empty — proving both pieces of state are cleared through one
-    // deterministic reset owner. The fetch helper itself re-writes
-    // the inputs map, so we assert the post-reset state BEFORE the
-    // second fetch (the second fetch is what re-establishes the
-    // inputs entry).
-    statusQueueServiceabilityInputs.set("project-1", {
-      projectId: "project-1",
-      health: HEALTHY_TEMPORAL,
-    });
-    const first = await fetchStatusQueueServiceability({
-      projectId: "project-1",
-      health: HEALTHY_TEMPORAL,
-    });
-    expect(first.value).not.toBeNull();
-    expect(first.value?.expectedQueue).toBeTruthy();
-
-    resetStatusHealthForTest();
-
-    // Both the supporting inputs map and the probe cache are empty.
-    // The next fetch would re-populate the inputs map; we want to
-    // assert that reset cleared them so the assertion is observable
-    // without the re-population.
-    expect(statusQueueServiceabilityInputs.size).toBe(0);
-
-    // Without an inputs entry, the cache.fetch returns null. Calling
-    // fetchStatusQueueServiceability here would re-write the inputs
-    // map (then cache.fetch would resolve); we deliberately do not
-    // call it so the structural reset assertion is unambiguous.
-  });
-
   it("clears lastErrorByKey on the probe cache via the status-health reset surface", async () => {
     // Populate the temporal-health probe cache with a successful
     // value, then force a fetch failure on a fresh key so the
@@ -362,10 +314,6 @@ describe("resetStatusHealthForTest (AC4 reset owner)", () => {
       },
       computedAt: 0,
     });
-    statusQueueServiceabilityInputs.set("k", {
-      projectId: "k",
-      health: HEALTHY_TEMPORAL,
-    });
     vi.mocked(getTemporalHealth).mockResolvedValue(HEALTHY_TEMPORAL);
     vi.mocked(getWorktreeCensus).mockResolvedValue(HEALTHY_CENSUS);
     vi.mocked(enumerateAdvWorkerProcesses).mockResolvedValue(WORKERS_PRESENT);
@@ -374,11 +322,10 @@ describe("resetStatusHealthForTest (AC4 reset owner)", () => {
     await statusWorktreeCensusProbeCache.fetch("k");
     await fetchStatusWorkerProcesses({ forceRefresh: true });
 
-    // All eight caches now carry residue. A single reset must drop it.
+    // All caches now carry residue. A single reset must drop it.
     resetStatusHealthForTest();
 
     expect(healthSnapshotCache.size).toBe(0);
-    expect(statusQueueServiceabilityInputs.size).toBe(0);
 
     // Behavioral check: switching the mocks and re-fetching yields the
     // new values. None of the probe caches are allowed to replay stale
