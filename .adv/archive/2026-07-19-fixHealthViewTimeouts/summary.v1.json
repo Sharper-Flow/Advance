@@ -1,0 +1,24 @@
+{
+  "archived_at": "2026-07-19T02:59:24.607Z",
+  "capabilities": [
+    "advance-meta",
+    "advance-workflow",
+    "worktree-lifecycle"
+  ],
+  "change_hash": "be53b81941f4c6d5bcec0b79f0097b04029671cc98688f8e2fe1bcdf0b3effb7",
+  "change_id": "fixHealthViewTimeouts",
+  "completed_tasks": 6,
+  "created_at": "2026-07-18T21:04:53.483Z",
+  "current_gate": "release",
+  "fast_follow_of": {
+    "linked_at": "2026-07-18T21:04:44.855Z",
+    "parent_change_id": "fixChangeEnumerationStarvation"
+  },
+  "last_activity_at": "2026-07-19T02:18:04.017Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "f70a5c83acf82af9f226bab2ef6f3b0733ec86581e393da046e49752eb217b5d",
+  "task_count": 6,
+  "title": "Fix health view timeouts",
+  "version": "1"
+}
