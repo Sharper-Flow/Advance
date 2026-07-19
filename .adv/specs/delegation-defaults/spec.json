@@ -3,8 +3,8 @@
   "name": "delegation-defaults",
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
-  "version": "1.3.0",
-  "updated_at": "2026-07-15T18:38:37.930Z",
+  "version": "1.3.1",
+  "updated_at": "2026-07-19T04:34:15.401Z",
   "requirements": [
     {
       "id": "rq-delDefaults01",
@@ -464,42 +464,41 @@
     },
     {
       "id": "rq-delDefaults10",
-      "title": "Designer-Direct Frontend Dispatch",
-      "body": "For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation directly to adv-designer via the Priority 1.5 frontend branch instead of adv-engineer, unless step-4 risk signals force inline implementation. An explicit metadata.delegation_hint (Priority 1) remains the user override and wins over the frontend branch; the routing-table priority order is authoritative. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership for changes that include frontend scope.",
+      "title": "Engineer-First Frontend Dispatch with Designer Follow-up",
+      "body": "For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.",
       "priority": "must",
       "tags": [
         "delegation",
         "frontend",
-        "designer-direct",
-        "apply-phase"
+        "engineer-first",
+        "designer-follow-up"
       ],
       "scenarios": [
         {
           "id": "rq-delDefaults10.1",
-          "title": "Frontend task dispatches designer directly",
+          "title": "Classified frontend task starts with engineer",
           "given": [
-            "A delegated code task has metadata.frontend set to true",
-            "No metadata.delegation_hint is set",
-            "No step-4 risk signals force inline implementation"
+            "A code task has metadata.frontend set to true",
+            "No step-4 risk signal forces inline implementation"
           ],
-          "when": "ADV applies the task",
+          "when": "ADV selects an initial implementation lane",
           "then": [
-            "ADV selects adv-designer for initial implementation via the Priority 1.5 frontend branch",
-            "ADV does not dispatch adv-engineer before adv-designer for the task",
-            "adv-designer receives the Designer Apply Context Packet"
+            "ADV dispatches adv-engineer before adv-designer",
+            "ADV does not dispatch adv-designer as the initial implementation lane"
           ]
         },
         {
           "id": "rq-delDefaults10.2",
-          "title": "Explicit hint and risk signals take precedence over the frontend branch",
+          "title": "Matching implementation receipt drives designer follow-up",
           "given": [
-            "A code task has metadata.frontend set to true"
+            "A code task has metadata.frontend set to true",
+            "A same-task same-cycle adv-engineer report completed with passing verification and no blockers, or a classified inline implementation has bounded provenance"
           ],
-          "when": "metadata.delegation_hint is set, or step-4 risk signals are present",
+          "when": "Initial implementation completes",
           "then": [
-            "An explicit metadata.delegation_hint (Priority 1) wins over the frontend branch",
-            "Step-4 risk signals force inline_required implementation",
-            "The delegation routing table priority order remains authoritative"
+            "ADV dispatches a matching-cycle adv-designer follow-up",
+            "Designer provenance references the engineer report or inline receipt",
+            "Missing, stale, or mismatched provenance is rejected"
           ]
         },
         {
@@ -508,10 +507,10 @@
           "given": [
             "A change includes frontend scope"
           ],
-          "when": "ADV enters review or harden",
+          "when": "The change reaches review or harden",
           "then": [
-            "adv-reviewer remains the review and harden owner",
-            "adv-designer is not routed as a review or harden worker"
+            "adv-designer does not own review or harden",
+            "adv-reviewer retains review and harden ownership"
           ]
         }
       ]

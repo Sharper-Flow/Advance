@@ -1,7 +1,7 @@
 # Delegation Defaults
 
-> **Version:** 1.3.0
-> **Updated:** 2026-07-15
+> **Version:** 1.3.1
+> **Updated:** 2026-07-19
 
 ## Purpose
 
@@ -426,51 +426,50 @@ When ADV presents formatted ready-task output (for example via adv_task_ready), 
 
 ---
 
-### Designer-Direct Frontend Dispatch
+### Engineer-First Frontend Dispatch with Designer Follow-up
 
 **ID:** `rq-delDefaults10` | **Priority:** **[MUST]**
 
-For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation directly to adv-designer via the Priority 1.5 frontend branch instead of adv-engineer, unless step-4 risk signals force inline implementation. An explicit metadata.delegation_hint (Priority 1) remains the user override and wins over the frontend branch; the routing-table priority order is authoritative. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership for changes that include frontend scope.
+For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.
 
-**Tags:** `delegation`, `frontend`, `designer-direct`, `apply-phase`
+**Tags:** `delegation`, `frontend`, `engineer-first`, `designer-follow-up`
 
 #### Scenarios
 
-**Frontend task dispatches designer directly** (`rq-delDefaults10.1`)
-
-**Given:**
-- A delegated code task has metadata.frontend set to true
-- No metadata.delegation_hint is set
-- No step-4 risk signals force inline implementation
-
-**When:** ADV applies the task
-
-**Then:**
-- ADV selects adv-designer for initial implementation via the Priority 1.5 frontend branch
-- ADV does not dispatch adv-engineer before adv-designer for the task
-- adv-designer receives the Designer Apply Context Packet
-
-**Explicit hint and risk signals take precedence over the frontend branch** (`rq-delDefaults10.2`)
+**Classified frontend task starts with engineer** (`rq-delDefaults10.1`)
 
 **Given:**
 - A code task has metadata.frontend set to true
+- No step-4 risk signal forces inline implementation
 
-**When:** metadata.delegation_hint is set, or step-4 risk signals are present
+**When:** ADV selects an initial implementation lane
 
 **Then:**
-- An explicit metadata.delegation_hint (Priority 1) wins over the frontend branch
-- Step-4 risk signals force inline_required implementation
-- The delegation routing table priority order remains authoritative
+- ADV dispatches adv-engineer before adv-designer
+- ADV does not dispatch adv-designer as the initial implementation lane
+
+**Matching implementation receipt drives designer follow-up** (`rq-delDefaults10.2`)
+
+**Given:**
+- A code task has metadata.frontend set to true
+- A same-task same-cycle adv-engineer report completed with passing verification and no blockers, or a classified inline implementation has bounded provenance
+
+**When:** Initial implementation completes
+
+**Then:**
+- ADV dispatches a matching-cycle adv-designer follow-up
+- Designer provenance references the engineer report or inline receipt
+- Missing, stale, or mismatched provenance is rejected
 
 **Reviewer retains review and harden ownership** (`rq-delDefaults10.3`)
 
 **Given:**
 - A change includes frontend scope
 
-**When:** ADV enters review or harden
+**When:** The change reaches review or harden
 
 **Then:**
-- adv-reviewer remains the review and harden owner
-- adv-designer is not routed as a review or harden worker
+- adv-designer does not own review or harden
+- adv-reviewer retains review and harden ownership
 
 ---
