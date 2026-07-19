@@ -1605,8 +1605,9 @@ sync_adv_runtime_agent
 # `adv` is intentionally NOT in this list — see SHARED_OVERLAY_ONLY note above.
 if [ -d "$REPO_OVERLAYS" ]; then
 	echo "    syncing shared-agent overlays"
-	apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
 	apply_overlay_block "build" "$GLOBAL_AGENTS/build.md" "$REPO_AGENTS/build.md"
+	apply_overlay_block "explore" "$GLOBAL_AGENTS/explore.md"
+	apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
 	apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md" "$REPO_AGENTS/plan.md"
 fi
 
