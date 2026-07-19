@@ -710,6 +710,53 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.warnings).toEqual([]);
   });
 
+  it("emits orphan warnings when an available peer-session snapshot is empty", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+        }),
+        tasksProvider: async () => [
+          {
+            id: "tk-orphan",
+            title: "Orphan task",
+            status: "in_progress",
+            assignedTo: "sess_dead",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+        ],
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.peer_sessions).toEqual([]);
+    expect(parsed.orphan_warnings).toHaveLength(1);
+    expect(parsed.orphan_warnings[0]).toMatchObject({
+      changeId: "changeA",
+      taskId: "tk-orphan",
+      assignedTo: "sess_dead",
+    });
+    expect(parsed.warnings).toEqual([]);
+  });
+
   it("annotates unavailable peer sessions instead of guessing orphan status", async () => {
     const store = makeMockStore([
       {

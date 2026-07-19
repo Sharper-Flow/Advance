@@ -418,7 +418,11 @@ export const backlogTools = {
         const orphan_warnings: NonNullable<
           WipStateResponse["orphan_warnings"]
         > = [];
-        if (liveSessionIds.size > 0 && active_changes.length > 0) {
+        if (
+          sessionsResult.status === "fulfilled" &&
+          !sessionsResult.value.unavailable &&
+          active_changes.length > 0
+        ) {
           const tasksProvider =
             providers.tasksProvider ??
             ((changeId: string) => defaultTasksProvider(store, changeId));
