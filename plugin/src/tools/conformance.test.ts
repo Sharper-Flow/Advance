@@ -103,7 +103,7 @@ function expectSignalWarning(
     recoverable: true,
   });
   expect((parsed.signalWarning as { reason?: string }).reason).toContain(
-    "Temporal unavailable",
+    "mutation-ineligible (unknown)",
   );
 }
 
@@ -255,7 +255,7 @@ describe("adv_conformance action: lock", () => {
       join(externalRoot, "conformance.json"),
       JSON.stringify(state),
     );
-    mocks.signal.mockRejectedValue(new Error("Temporal unavailable"));
+    mocks.signal.mockRejectedValue(new Error("mutation-ineligible (unknown)"));
 
     const result = await tool.execute(
       {
@@ -422,7 +422,7 @@ describe("adv_conformance action: override", () => {
       join(externalRoot, "conformance.json"),
       JSON.stringify(state),
     );
-    mocks.signal.mockRejectedValue(new Error("Temporal unavailable"));
+    mocks.signal.mockRejectedValue(new Error("mutation-ineligible (unknown)"));
 
     const result = await tool.execute(
       {
@@ -591,7 +591,7 @@ describe("adv_conformance action: run", () => {
       join(externalRoot, "conformance.json"),
       JSON.stringify(preState),
     );
-    mocks.signal.mockRejectedValue(new Error("Temporal unavailable"));
+    mocks.signal.mockRejectedValue(new Error("mutation-ineligible (unknown)"));
 
     const result = await tool.execute(
       {
