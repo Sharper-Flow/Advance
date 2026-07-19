@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.29.0",
-  "updated_at": "2026-07-18T21:03:06.487Z",
+  "version": "1.30.0",
+  "updated_at": "2026-07-19T02:59:24.570Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -5462,6 +5462,48 @@
       ]
     },
     {
+      "id": "rq-reviewBadTestCleanup01",
+      "title": "Reviewer-Owned Safe Local Cleanup of Evidence-Backed Bad Tests",
+      "body": "/adv-review and /adv-harden MUST remediate clearly bad tests (flaky, tautological, permanently skipped, or implementation-coupled) in the directly touched subsystem when the remediation is safe and local. The finding must be evidence-backed and the scope bounded to the change's touched subsystem; broader consumer-repository cleanup remains out of scope. Review and harden MUST NOT use a bad-test finding to bypass a valid non-test evidence route or create a repo-wide cleanup obligation.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "review",
+        "harden",
+        "cleanup",
+        "evidence",
+        "touched-scope"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-reviewBadTestCleanup01.1",
+          "title": "Evidence-backed bad test in touched subsystem is remediated locally",
+          "given": [
+            "Review or harden identifies a flaky, tautological, permanently skipped, or implementation-coupled test",
+            "The test is in the directly touched subsystem of the change"
+          ],
+          "when": "The finding is evaluated for remediation",
+          "then": [
+            "The test is remediated when the fix is safe and local",
+            "Remediation is verified with the relevant evidence path",
+            "Broader cleanup beyond the touched subsystem is not required"
+          ]
+        },
+        {
+          "id": "rq-reviewBadTestCleanup01.2",
+          "title": "Broader cleanup remains out of scope",
+          "given": [
+            "A bad test is identified outside the directly touched subsystem"
+          ],
+          "when": "Review or harden evaluates the finding",
+          "then": [
+            "The finding is recorded as a follow-up or rejected with evidence",
+            "No repo-wide cleanup obligation is created for the current change"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-dupActiveCreate01",
       "title": "Active Duplicate Change Creation Rejection",
       "body": "adv_change_create MUST reject creation of a new active change whose generated change ID or exact summary title matches an existing active (in-flight) change. The rejection MUST return existing-change evidence including the existing change ID and title, MUST NOT create a suffixed active duplicate such as `fixOpenBugs2`, and MUST allow the operator to resume the existing change or archive it first.",
@@ -5958,6 +6000,119 @@
             "The request uses the existing 8-second aggregate deadline",
             "The 20-second history exception is not selected",
             "Existing typed degradation semantics remain"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-statusHealthAggregateBudget01",
+      "title": "Health Status Uses One Aggregate Execution Budget",
+      "body": "`adv_status view:health` MUST execute authoritative loading, candidate orientation, advisory probes, and deterministic composition under one request-scoped absolute deadline no greater than 8,000 ms. Provider admission MUST stop early enough to reserve bounded composition time. Candidate hydration and read-only provider concurrency MUST be fixed and explicit. Deadline expiry MUST return typed partial output; no new work may start after admission closes, and late provider completion MUST NOT mutate the returned result or authoritative state.",
+      "priority": "must",
+      "tags": [
+        "status",
+        "health",
+        "deadline",
+        "concurrency"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-statusHealthAggregateBudget01.1",
+          "title": "Cold health pressure stays below host timeout",
+          "given": [
+            "Health force-refresh has cold probe caches",
+            "The project exposes 57 change candidates"
+          ],
+          "when": "The health view executes",
+          "then": [
+            "At most 10 recent candidates are admitted",
+            "Provider admission stops by 7,500 ms",
+            "Deterministic composition completes by 8,000 ms",
+            "Omitted candidates are explicit"
+          ]
+        },
+        {
+          "id": "rq-statusHealthAggregateBudget01.2",
+          "title": "Independent providers do not serialize latency",
+          "given": [
+            "Multiple independent read-only health providers are admitted"
+          ],
+          "when": "They execute under the request plan",
+          "then": [
+            "Concurrency never exceeds 4",
+            "Latency follows admitted critical-path duration rather than sequential sum",
+            "Dependent providers are admitted only after their prerequisites"
+          ]
+        },
+        {
+          "id": "rq-statusHealthAggregateBudget01.3",
+          "title": "Expired request cannot admit or mutate late",
+          "given": [
+            "The request admission cutoff or deadline has elapsed",
+            "Some provider work is unresolved"
+          ],
+          "when": "The work later settles",
+          "then": [
+            "No new provider starts",
+            "Returned output remains unchanged",
+            "Authoritative state remains unchanged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-statusHealthCandidateOrientation01",
+      "title": "Health Candidate Orientation Is Source-Ranked Before Hydration",
+      "body": "Health status candidate orientation MUST establish deterministic source-backed global recency before selecting or hydrating candidates. Running workflow timestamps MUST come from registered Visibility activity/creation attributes; durable disk-only active candidates MAY use durable projection activity/creation metadata. Memo or cache warmth MUST NOT independently rank or introduce candidates. Health MUST hydrate only the first ten ranked canonical IDs and report exact omission count plus a bounded deterministic omitted-ID sample. All ranking, selection, and hydration MUST finish or degrade by the shared 7,500 ms non-composition cutoff.",
+      "priority": "must",
+      "tags": [
+        "status",
+        "health",
+        "recency",
+        "hydration",
+        "deadline"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-statusHealthCandidateOrientation01.1",
+          "title": "Shuffled enumeration still selects globally newest ten",
+          "given": [
+            "Fifty-seven candidates arrive in shuffled enumeration order",
+            "Visibility and durable projection timestamps identify global recency"
+          ],
+          "when": "Health selects candidates",
+          "then": [
+            "Candidates are sorted by source-backed timestamp descending with canonical-ID tie-break",
+            "The globally newest ten are selected",
+            "Only selected IDs are hydrated",
+            "Omission metadata reports count 47 plus bounded stable ID sample"
+          ]
+        },
+        {
+          "id": "rq-statusHealthCandidateOrientation01.2",
+          "title": "Memo warmth cannot bias recency",
+          "given": [
+            "An older candidate is memo-warm",
+            "A newer candidate is not memo-warm"
+          ],
+          "when": "Health ranks candidates",
+          "then": [
+            "Memo warmth does not outrank source-backed activity",
+            "The newer candidate retains precedence",
+            "Cache data does not establish completeness"
+          ]
+        },
+        {
+          "id": "rq-statusHealthCandidateOrientation01.3",
+          "title": "Incomplete ranking degrades visibly",
+          "given": [
+            "A candidate lacks valid source-backed ranking metadata or ranking exceeds the cutoff"
+          ],
+          "when": "Health composes orientation",
+          "then": [
+            "The candidate is represented through typed omission/degradation",
+            "Enumeration order is not treated as recency",
+            "Health does not claim globally complete orientation"
           ]
         }
       ]

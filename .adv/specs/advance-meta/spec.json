@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.27.0",
-  "updated_at": "2026-07-17T17:27:16.904Z",
+  "version": "1.28.0",
+  "updated_at": "2026-07-19T02:59:24.500Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -3109,6 +3109,60 @@
           "then": [
             "The nearest existing ancestor is used for classification",
             "A prunable record does not grant linked-worktree allowance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-statusHealthTypedDegradation01",
+      "title": "Health Providers Return Typed Partial Outcomes",
+      "body": "Every provider admitted by `adv_status view:health` MUST produce a discriminated outcome of `ok`, `stale`, `timeout`, `error`, `unavailable`, or `not_admitted`. Completed sections MUST remain available when another provider degrades. Existing required response fields and freshness metadata MUST remain compatible. Cached or stale provider evidence is advisory only and MUST NOT independently establish authoritative completeness or authorize mutation. Request-aborted force-refresh work MUST NOT publish late request-scoped cache state.",
+      "priority": "must",
+      "tags": [
+        "status",
+        "health",
+        "degradation",
+        "cache"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-statusHealthTypedDegradation01.1",
+          "title": "Slow provider degrades without whole-result failure",
+          "given": [
+            "One health provider exceeds its bounded allowance",
+            "Other providers have completed"
+          ],
+          "when": "Health output is composed",
+          "then": [
+            "The slow source reports timeout",
+            "Completed diagnostic sections remain present",
+            "Overall completeness is degraded rather than falsely complete"
+          ]
+        },
+        {
+          "id": "rq-statusHealthTypedDegradation01.2",
+          "title": "Every incomplete source is explicit",
+          "given": [
+            "A provider errors, is unavailable, is stale, or is not admitted"
+          ],
+          "when": "Health renders execution metadata",
+          "then": [
+            "The source has the matching discriminated outcome",
+            "Evidence is bounded and secret-safe",
+            "No omission is silent"
+          ]
+        },
+        {
+          "id": "rq-statusHealthTypedDegradation01.3",
+          "title": "Aborted refresh cannot publish late state",
+          "given": [
+            "A force-refresh fetch is aborted by the request deadline"
+          ],
+          "when": "Its underlying non-cancellable work settles later",
+          "then": [
+            "The completed request output is unchanged",
+            "Request-scoped cache publication does not occur",
+            "Cached data cannot establish authoritative truth"
           ]
         }
       ]

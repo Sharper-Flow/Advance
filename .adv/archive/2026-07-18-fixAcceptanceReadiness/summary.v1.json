@@ -1,0 +1,20 @@
+{
+  "archived_at": "2026-07-18T21:28:57.587Z",
+  "capabilities": [],
+  "change_hash": "c3978873367fba47d3e53b3256e47b170f020951bac9f60bc1de186f1fb66bef",
+  "change_id": "fixAcceptanceReadiness",
+  "completed_tasks": 4,
+  "created_at": "2026-07-18T18:21:10.582Z",
+  "current_gate": "release",
+  "fast_follow_of": {
+    "linked_at": "2026-07-18T18:21:06.658Z",
+    "parent_change_id": "fixChangeEnumerationStarvation"
+  },
+  "last_activity_at": "2026-07-18T21:09:28.438Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "70541932612f6de5a83909d3b5bc5ecc5ad98b227db25513dc683edb0bd1c439",
+  "task_count": 4,
+  "title": "Fix acceptance readiness staleness",
+  "version": "1"
+}

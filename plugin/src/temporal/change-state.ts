@@ -74,6 +74,7 @@ import {
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
+import { resolveTaskEvidence } from "../validator/task-classifier";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
@@ -150,6 +151,7 @@ export function createChangeWorkflowState(input: {
     reflections: [],
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
+    acceptanceReadinessRevision: 0,
   };
 }
 
@@ -179,6 +181,8 @@ export function changeSeedStateFromChange(
     lastSignalAt: safeChange.lastSignalAt,
     acceptanceCriteria: safeChange.acceptanceCriteria,
     contract: safeChange.contract,
+    acceptanceReadinessRevision: safeChange.acceptanceReadinessRevision,
+    acceptanceCriteriaSnapshot: safeChange.acceptanceCriteriaSnapshot,
     documents: safeChange.documents,
     origin: safeChange.origin,
     cross_project_origin: safeChange.cross_project_origin,
@@ -246,6 +250,11 @@ export function changeToDirectiveState(input: {
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
   if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;
+}
+
+function advanceAcceptanceReadinessRevision(state: ChangeWorkflowState): void {
+  state.acceptanceReadinessRevision =
+    (state.acceptanceReadinessRevision ?? 0) + 1;
 }
 
 export function applyCrossProjectCoordinationUpdatedToState(
@@ -808,6 +817,7 @@ export function applyContractSetToState(
 ): ChangeWorkflowState {
   state.contract = payload.contract;
   state.acceptanceCriteria = acceptanceCriteriaFromContract(payload.contract);
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -830,6 +840,7 @@ export function applyContractAmendedToState(
   ) {
     delete state.contract.reviewMatrix;
   }
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -842,6 +853,7 @@ export function applyContractReviewMatrixSetToState(
     throw new Error("Cannot set contract review matrix: no contract is set");
   }
   state.contract.reviewMatrix = payload.reviewMatrix;
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -1021,6 +1033,35 @@ export function applyTaskCompletedToState(
     }
   }
 
+  // rq-evidencePlan01: validate the normalized evidence plan before completing.
+  // The resolver is the sole compatibility authority; unsupported routes fail
+  // structurally, and behavior-critical non-test routes require a linked review
+  // conclusion.
+  const evidenceResolution = resolveTaskEvidence(task);
+  if (!evidenceResolution.valid) {
+    throw new Error(
+      `TASK_COMPLETION_BLOCKED: task ${payload.taskId} has an invalid evidence plan: ${evidenceResolution.errors.join("; ")}`,
+    );
+  }
+  const effectiveType = task.type ?? "code";
+  const behaviorCritical =
+    effectiveType === "code" || effectiveType === "verification";
+  if (
+    behaviorCritical &&
+    evidenceResolution.policy &&
+    evidenceResolution.policy !== "test" &&
+    evidenceResolution.policy !== "not_applicable"
+  ) {
+    const reviewConclusion =
+      evidenceResolution.review_conclusion ??
+      task.evidence_plan?.review_conclusion;
+    if (!reviewConclusion) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: task ${payload.taskId} uses evidence policy '${evidenceResolution.policy}' but has no linked review conclusion. Add evidence_plan.review_conclusion or submit an adv-reviewer report.`,
+      );
+    }
+  }
+
   task.status = "done";
   task.verification = payload.verification;
   task.summary = payload.summary;
@@ -1032,6 +1073,22 @@ export function applyTaskCompletedToState(
   task.completed_at = payload.completedAt;
   if (payload.structured_output) {
     task.structured_output = payload.structured_output;
+  }
+  // Preserve the resolved evidence plan as typed completion proof (additive to
+  // verification prose and run IDs). For legacy tasks this materializes the
+  // normalized legacy plan for the first time.
+  if (evidenceResolution.policy && evidenceResolution.proof_target) {
+    task.evidence_plan = {
+      policy: evidenceResolution.policy,
+      proof_target: evidenceResolution.proof_target,
+      ...(evidenceResolution.rationale
+        ? { rationale: evidenceResolution.rationale }
+        : {}),
+      ...(evidenceResolution.review_conclusion
+        ? { review_conclusion: evidenceResolution.review_conclusion }
+        : {}),
+      provenance: evidenceResolution.compatibility ?? "legacy",
+    };
   }
   setLastSignalAt(state, payload.completedAt);
   return state;
@@ -1410,6 +1467,14 @@ export function applyGateCompletedToState(
       [payload.gateId]: payload.criteria,
     };
   }
+  // Capture acceptance criteria snapshot keyed to the current readiness
+  // revision so stale audit evidence can never be surfaced as current pass.
+  if (payload.gateId === "acceptance" && payload.criteria) {
+    state.acceptanceCriteriaSnapshot = {
+      criteria: payload.criteria,
+      basisRevision: state.acceptanceReadinessRevision ?? 0,
+    };
+  }
   setLastSignalAt(state, payload.completedAt);
   return state;
 }
@@ -1423,6 +1488,7 @@ export function applyGateReenteredToState(
 ): ChangeWorkflowState {
   if (state.contract && payload.fromGateId !== "release") {
     delete state.contract.reviewMatrix;
+    advanceAcceptanceReadinessRevision(state);
   }
   reopenFromGateInChangeState(state, payload.fromGateId, {
     now: payload.reenteredAt,

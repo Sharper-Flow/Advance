@@ -200,6 +200,56 @@
       ]
     },
     {
+      "id": "rq-ADVEXEC06",
+      "title": "Normalized Evidence Plan Compatibility Boundary and Advisory Proxies",
+      "body": "ADV execution guidance MUST align with the normalized task evidence plan (rq-TDD013evp). The plan's policy and proof target are the structural compatibility boundary for task execution; non-test routes for logic-bearing work require a bounded rationale and a linked review conclusion. Test-quality proxies (assertion density, mock surface, coverage, flake indicators) are advisory inputs only and MUST NOT be used as independent authority for task completion, gate progression, or acceptance. Legacy in-flight tasks remain readable via explicit compatibility provenance without heuristic cutover.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "execution",
+        "evidence",
+        "structural-correctness"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-ADVEXEC06.1",
+          "title": "Quality proxies are advisory only",
+          "given": [
+            "A task has low assertion density, high mock surface, or low file-level coverage"
+          ],
+          "when": "Evidence is evaluated",
+          "then": [
+            "The quality signal is surfaced as advisory input",
+            "The signal does not by itself complete or block the task or gate"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC06.2",
+          "title": "Non-test route for logic-bearing work requires rationale and review conclusion",
+          "given": [
+            "A behavior-critical task selects a non-test evidence route"
+          ],
+          "when": "The task is executed and completed",
+          "then": [
+            "A bounded rationale is recorded in the evidence plan",
+            "A linked review conclusion is recorded before completion"
+          ]
+        },
+        {
+          "id": "rq-ADVEXEC06.3",
+          "title": "Legacy tasks remain readable with explicit compatibility",
+          "given": [
+            "An in-flight task predates the normalized evidence-plan model"
+          ],
+          "when": "The task is executed or completed",
+          "then": [
+            "The task is normalized on read with compatibility `legacy`",
+            "No heuristic cutover is performed"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-bulkClose01",
       "title": "Filter-Aware Bulk Close",
       "body": "adv_change_bulk_close must support closing multiple changes in a single approved tool call, using either an explicit ID list or filter-based selection, with fail-all semantics on invalid targets and a structured result envelope.",

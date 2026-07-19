@@ -100,7 +100,7 @@ Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) fo
 
 ### Non-Code Deliverable Evidence Policy
 
-For tasks whose deliverable is non-code (`docs`, `research`, `approval`, `verification`, `ops`, writing, analysis, design improvement, competitive research), set a machine-readable `evidence_policy` and trace the task to approved contract items instead of forcing fake red/green TDD.
+For tasks whose deliverable is non-code (`docs`, `research`, `approval`, `verification`, `ops`, writing, analysis, design improvement, competitive research), set a normalized `evidence_plan` with a machine-readable `evidence_policy`, a concrete `proof_target`, and trace the task to approved contract items instead of forcing fake red/green TDD. The evidence plan is the structural authority; title/path heuristics are advisory only.
 
 | Deliverable | Suggested evidence policy | TDD intent |
 | --- | --- | --- |
@@ -117,6 +117,7 @@ Rules:
 - `evidence_policy: not_applicable` is allowed only with `contract_refs.not_applicable_reason`.
 - Every non-code task MUST have `contract_refs` (`implements`/`verifies`/`respects`) or a bounded `not_applicable_reason`.
 - Use the shared `ContractEvidencePolicy` vocabulary: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, `test`, `design_proof`, `not_applicable`.
+- Every task (code and non-code) SHOULD carry an `evidence_plan` with exactly one policy and a non-empty `proof_target`. Legacy tasks without a plan are normalized on read; do not synthesize a plan from title or path heuristics. <!-- rq-PR010evidencePlan -->
 
 #### Ops Runbook Task Policy
 
@@ -240,15 +241,17 @@ Action: `adv_task_cancel` (with approval) → update parent description → redi
 
 #### B. TDD Ordering
 
-Inline TDD is default. Use `metadata.tdd_intent` and a concrete `evidence_policy`:
+Inline TDD is default. Use `metadata.tdd_intent` and a concrete `evidence_plan` (policy + `proof_target`):
 
-| Value                   | Meaning                 | Evidence policy | Evidence? |
-| ----------------------- | ----------------------- | --------------- | --------- |
-| `inline` (or unset)     | Red/green within task   | `test` or `review` | Yes       |
-| `separate_verification` | Cross-cutting test      | `test`, `review`, or `static_check` | No        |
-| `not_applicable`        | Non-code (docs, config, research, approval, ops) | `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, or `not_applicable` with rationale | No        |
+| Value                   | Meaning                 | Evidence policy / plan | Evidence? |
+| ----------------------- | ----------------------- | ---------------------- | --------- |
+| `inline` (or unset)     | Red/green within task   | `test` or `review`; proof target names the regression being proved | Yes       |
+| `separate_verification` | Cross-cutting test      | `test`, `review`, or `static_check` with a non-empty proof target | No        |
+| `not_applicable`        | Non-code (docs, config, research, approval, ops) | `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, or `not_applicable` with rationale; proof target names the deliverable or check | No        |
 
-For non-code tasks, use `evidence_policy` instead of fake TDD. See **Non-Code Deliverable Evidence Policy** above.
+Behavior-critical tasks (`type: code` or `verification`) MUST NOT use `not_applicable` as their evidence route. A non-test route for logic-bearing work requires a bounded rationale and a linked `review_conclusion` in the evidence plan. <!-- rq-TDD013evp -->
+
+For non-code tasks, use an `evidence_plan` with a valid `evidence_policy` instead of fake TDD. See **Non-Code Deliverable Evidence Policy** above.
 
 Anti-pattern: same-scope test task blocked_by impl task (code-first, not test-first). Fix: merge test into impl, cancel test task.
 

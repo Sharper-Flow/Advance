@@ -401,7 +401,7 @@ If any required approval/evidence field is missing, keep the task `in_progress` 
 | "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
 | Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`. When a task's `evidence_plan` selects a non-test route for logic-bearing work, record a bounded rationale, a concrete `proof_target`, and a linked `review_conclusion` before completion. Test-quality proxies (assertion density, mock surface, coverage, flake indicators) are advisory only and do not gate completion. <!-- rq-TDD013evp rq-ADVEXEC06 -->
 
 ### Delegation Routing
 

@@ -42,6 +42,8 @@ import type { ProductContext } from "./product-context";
 
 export interface ResolvedChangeList {
   changes: Change[];
+  /** Source-backed candidate order used by bounded health orientation. */
+  rankedIds?: string[];
   warnings?: import("../types").TerminalWarning[];
   hydrationStats?: import("../types").HydrationStats;
 }
@@ -111,6 +113,8 @@ export interface ChangeConflictAuthority {
 export interface StatusReadOptions {
   recentLimit?: number;
   deadline?: import("../temporal/retry-wrapper").TemporalReadDeadline;
+  /** Use source-backed global recency before bounded hydration (health view). */
+  sourceRanked?: boolean;
 }
 
 export interface ProductOriginTags {

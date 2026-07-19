@@ -164,7 +164,7 @@ Prep readiness MUST validate frontend applicability using structured task metada
 
 **ID:** `rq-PR008nonCodeEvidence` | **Priority:** **[MUST]**
 
-Prep readiness MUST fail when a non-cancelled non-code deliverable task lacks a valid machine-readable evidence policy or uses metadata.tdd_intent='not_applicable' without a task evidence-policy rationale. The check MUST apply to docs, research, approval, ops, and verification tasks as applicable while preserving existing inline TDD enforcement for code tasks.
+Prep readiness MUST fail when a non-cancelled non-code deliverable task lacks a valid machine-readable evidence plan (a declared evidence policy plus a non-empty proof target) or uses metadata.tdd_intent='not_applicable' without a task evidence-policy rationale. The check MUST apply to docs, research, approval, ops, and verification tasks as applicable while preserving existing inline TDD enforcement for code tasks.
 
 **Tags:** `prep`, `readiness`, `non-code`, `evidence`, `tdd`
 
@@ -265,7 +265,7 @@ Requirements added via deltas must have at least one scenario defined. This is a
 
 **ID:** `rq-PR003tdd` | **Priority:** **[MUST]**
 
-Prep-readiness owns enforcement of TDD inversion at planning time. A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks. Canonical TDD semantics and classifier expectations are defined by tdd-contract/rq-TDD005inv; this requirement defines the prep gate readiness behavior and failure surface.
+Prep-readiness owns enforcement of TDD inversion at planning time. A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks. On the title-heuristic (metadata-less) path the inversion finding is advisory (severity 'warning') and does NOT by itself block the prep gate: a title regex must not solely own a hard gate-block (P33 structural-correctness). The structural evidence plan (rq-TDD013evp) governs the valid evidence route for new and reclassified tasks; title-based detection is advisory and does not override the plan. The authoritative gate-block for missing or invalid TDD intent is TASK_TDD_INTENT_MISSING (rq-PR006tdi). Canonical TDD semantics and classifier expectations are defined by tdd-contract/rq-TDD005inv and rq-TDD002sep; this requirement defines the prep gate readiness behavior and failure surface.
 
 **Tags:** `prep`, `tdd`, `task-graph`, `metadata`
 
@@ -604,5 +604,44 @@ During prep finalization, every non-cancelled task MUST have an explicit metadat
 
 - A TASK_TDD_INTENT_MISSING error is returned for that task
 - The error message indicates the invalid value
+
+---
+
+### Normalized Evidence Plan Readiness
+
+**ID:** `rq-PR010evidencePlan` | **Priority:** **[MUST]**
+
+Prep readiness MUST verify that every non-cancelled task has a valid normalized evidence plan: a declared evidence policy and a non-empty proof target. Legacy tasks without evidence_plan provenance are normalized on read with compatibility `legacy` and MUST NOT be blocked by this check. New or reclassified tasks missing a plan or proof target produce a TASK_EVIDENCE_PLAN_MISSING readiness error. Title, path, and quality heuristics MUST NOT substitute for a valid evidence plan.
+
+**Tags:** `prep`, `readiness`, `evidence`, `structural-correctness`
+
+#### Scenarios
+
+**New task missing evidence plan or proof target blocks prep** (`rq-PR010evidencePlan.1`)
+
+**Given:**
+
+- A non-cancelled task is new or reclassified
+- The task has no evidence_plan or the plan lacks a proof target
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+
+- A TASK_EVIDENCE_PLAN_MISSING error is returned
+- The planning gate remains blocked until the task has a valid evidence plan
+
+**Legacy task without plan provenance normalizes on read** (`rq-PR010evidencePlan.2`)
+
+**Given:**
+
+- A non-cancelled in-flight task predates the normalized evidence-plan model
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+
+- The task is normalized on read with compatibility `legacy`
+- No TASK_EVIDENCE_PLAN_MISSING error is emitted solely because the task lacks plan provenance
 
 ---

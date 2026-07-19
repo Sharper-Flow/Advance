@@ -38,7 +38,8 @@ export type TerminalWarningCode =
   | "TERMINAL_SOURCE_DEGRADED"
   | "TERMINAL_CANDIDATE_OMITTED"
   | "SOURCE_DEADLINE_EXCEEDED"
-  | "SOURCE_BOUND_EXCEEDED";
+  | "SOURCE_BOUND_EXCEEDED"
+  | "SOURCE_RANKING_DEGRADED";
 
 export interface TerminalWarning {
   code: TerminalWarningCode;

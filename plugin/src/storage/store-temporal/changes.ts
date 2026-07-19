@@ -813,6 +813,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     // state; warm rows served after deadline expiry stay degraded, and
     // completeness is never inferred from cache warmth or row count.
     listSummary: async (filter) => {
+      // rq-statusHealthAggregateBudget01: request-scoped aggregate deadline
+      // covers enumeration and hydration, degrading typed output on expiry.
       // Request-scoped aggregate deadline (KD1). One budget covers
       // source enumeration, the archive-bundle pre-scan, and every
       // cold-miss hydration below; expiry produces typed degradation

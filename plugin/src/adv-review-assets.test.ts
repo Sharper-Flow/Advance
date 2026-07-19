@@ -26,6 +26,11 @@ describe("adv-review non-code evidence policy surface", () => {
     expect(block).toContain("evidence_policy: {evidence_policy}");
   });
 
+  test("review scanner context packet surfaces task evidence plan", () => {
+    expect(command).toContain("evidence_plan");
+    expect(command).toContain("proof_target");
+  });
+
   test("declares a non-code deliverables / evidence policy dimension", () => {
     expect(command).toContain("Non-Code Deliverables / Evidence Policy");
   });
@@ -72,6 +77,22 @@ describe("adv-review non-code evidence policy surface", () => {
     expect(command).toMatch(
       /Failing, `unknown`, or missing evidence blocks acceptance/,
     );
+  });
+});
+
+describe("adv-review touched-scope bad-test cleanup", () => {
+  const command = readFileSync(REVIEW_PATH, "utf8");
+
+  test("declares a touched-scope bad-test cleanup dimension", () => {
+    expect(command).toContain("Touched-Scope Bad-Test Cleanup");
+    expect(command).toContain("flaky");
+    expect(command).toContain("tautological");
+    expect(command).toContain("implementation-coupled");
+  });
+
+  test("limits cleanup to safe and local touched scope", () => {
+    expect(command).toMatch(/safe and local/i);
+    expect(command).toMatch(/broader cleanup.*out of scope/is);
   });
 });
 

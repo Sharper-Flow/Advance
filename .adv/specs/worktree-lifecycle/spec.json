@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, cleanup eligibility tracking, and bounded cleanup.",
-  "version": "1.7.0",
-  "updated_at": "2026-07-02T03:30:00.000Z",
+  "version": "1.8.0",
+  "updated_at": "2026-07-19T02:59:24.559Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -729,12 +729,21 @@
       "title": "Stale Missing-From-Disk Registry Cleanup",
       "body": "adv_worktree_delete MUST safely clear worktree registry entries reported as `missing_from_disk` when the owning change is terminal (archived or closed) and the on-disk worktree is absent. The cleanup MUST dispatch `worktreeDeletedSignal` with reason `missing_from_disk_cleanup`, refresh the owning change's cache, and leave unsafe cases (non-terminal owning change, dirty/unmerged branch, in-use worktree) retained with a typed blocker. Subsequent `adv_worktree_triage` MUST NOT report the same cleared stale entry.",
       "priority": "must",
-      "tags": ["worktree", "cleanup", "registry", "missing-from-disk"],
+      "tags": [
+        "worktree",
+        "cleanup",
+        "registry",
+        "missing-from-disk"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreeStaleRegistryCleanup01.1",
           "title": "Archived missing-from-disk entry is cleared",
-          "given": ["A worktree_registry entry exists for branch change/x", "The owning change is archived", "No on-disk worktree exists for change/x"],
+          "given": [
+            "A worktree_registry entry exists for branch change/x",
+            "The owning change is archived",
+            "No on-disk worktree exists for change/x"
+          ],
           "when": "adv_worktree_delete is called for change/x",
           "then": [
             "worktreeDeletedSignal is dispatched with reason missing_from_disk_cleanup",
@@ -745,7 +754,11 @@
         {
           "id": "rq-worktreeStaleRegistryCleanup01.2",
           "title": "Non-terminal missing-from-disk entry is retained",
-          "given": ["A worktree_registry entry exists for branch change/y", "The owning change is active", "No on-disk worktree exists for change/y"],
+          "given": [
+            "A worktree_registry entry exists for branch change/y",
+            "The owning change is active",
+            "No on-disk worktree exists for change/y"
+          ],
           "when": "adv_worktree_delete is called for change/y",
           "then": [
             "The tool returns ok: false with reason change_not_terminal",
@@ -755,10 +768,65 @@
         {
           "id": "rq-worktreeStaleRegistryCleanup01.3",
           "title": "Triage no longer reports cleared entry",
-          "given": ["A missing_from_disk registry entry for an archived change was just cleared"],
+          "given": [
+            "A missing_from_disk registry entry for an archived change was just cleared"
+          ],
           "when": "adv_worktree_triage runs afterward",
           "then": [
             "The orphans list does not contain the cleared branch/path entry"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-healthReadOnlyWorktree01",
+      "title": "Health Worktree Diagnostics Are Read-Only",
+      "body": "`adv_status view:health` MUST limit worktree diagnostics to bounded read-only census and retained-state aggregates. It MUST NOT discover cleanup candidates for mutation, drain pending deletions, delete worktrees, or delete branches. Exact cleanup actions remain owned by `adv_worktree_cleanup` and related typed cleanup tools. Hygiene MAY expose bounded read-only archaeology and recommendations without mutating worktree state.",
+      "priority": "must",
+      "tags": [
+        "status",
+        "health",
+        "worktree",
+        "read-only"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-healthReadOnlyWorktree01.1",
+          "title": "Health reports retained state without cleanup",
+          "given": [
+            "Pending or retained worktree cleanup state exists"
+          ],
+          "when": "The health view reads worktree diagnostics",
+          "then": [
+            "Bounded counts and classes are reported",
+            "No cleanup queue is drained",
+            "No worktree or branch is deleted"
+          ]
+        },
+        {
+          "id": "rq-healthReadOnlyWorktree01.2",
+          "title": "Explicit cleanup remains mutation owner",
+          "given": [
+            "A safe terminal cleanup candidate exists"
+          ],
+          "when": "A caller only requests health status",
+          "then": [
+            "Health recommends the typed cleanup surface",
+            "Mutation does not run from status",
+            "Explicit cleanup tooling retains its safety checks"
+          ]
+        },
+        {
+          "id": "rq-healthReadOnlyWorktree01.3",
+          "title": "Hygiene archaeology remains advisory",
+          "given": [
+            "Detailed retained-state archaeology is requested"
+          ],
+          "when": "The hygiene view renders it",
+          "then": [
+            "The read is bounded",
+            "Exact paths remain privacy-safe and scope-appropriate",
+            "No deletion is authorized by the diagnostic read"
           ]
         }
       ]

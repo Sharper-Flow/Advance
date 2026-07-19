@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.29.0
-> **Updated:** 2026-07-18
+> **Version:** 1.30.0
+> **Updated:** 2026-07-19
 
 ## Purpose
 
@@ -4907,6 +4907,42 @@ Verification-evidence warnings surfaced on typed worker reports MUST be enforced
 
 ---
 
+### Reviewer-Owned Safe Local Cleanup of Evidence-Backed Bad Tests
+
+**ID:** `rq-reviewBadTestCleanup01` | **Priority:** **[MUST]**
+
+/adv-review and /adv-harden MUST remediate clearly bad tests (flaky, tautological, permanently skipped, or implementation-coupled) in the directly touched subsystem when the remediation is safe and local. The finding must be evidence-backed and the scope bounded to the change's touched subsystem; broader consumer-repository cleanup remains out of scope. Review and harden MUST NOT use a bad-test finding to bypass a valid non-test evidence route or create a repo-wide cleanup obligation.
+
+**Tags:** `workflow`, `review`, `harden`, `cleanup`, `evidence`, `touched-scope`
+
+#### Scenarios
+
+**Evidence-backed bad test in touched subsystem is remediated locally** (`rq-reviewBadTestCleanup01.1`)
+
+**Given:**
+- Review or harden identifies a flaky, tautological, permanently skipped, or implementation-coupled test
+- The test is in the directly touched subsystem of the change
+
+**When:** The finding is evaluated for remediation
+
+**Then:**
+- The test is remediated when the fix is safe and local
+- Remediation is verified with the relevant evidence path
+- Broader cleanup beyond the touched subsystem is not required
+
+**Broader cleanup remains out of scope** (`rq-reviewBadTestCleanup01.2`)
+
+**Given:**
+- A bad test is identified outside the directly touched subsystem
+
+**When:** Review or harden evaluates the finding
+
+**Then:**
+- The finding is recorded as a follow-up or rejected with evidence
+- No repo-wide cleanup obligation is created for the current change
+
+---
+
 ### Active Duplicate Change Creation Rejection
 
 **ID:** `rq-dupActiveCreate01` | **Priority:** **[MUST]**
@@ -5356,5 +5392,107 @@ The existing 8-second authoritative list/status deadline remains mandatory for a
 - The request uses the existing 8-second aggregate deadline
 - The 20-second history exception is not selected
 - Existing typed degradation semantics remain
+
+---
+
+### Health Status Uses One Aggregate Execution Budget
+
+**ID:** `rq-statusHealthAggregateBudget01` | **Priority:** **[MUST]**
+
+`adv_status view:health` MUST execute authoritative loading, candidate orientation, advisory probes, and deterministic composition under one request-scoped absolute deadline no greater than 8,000 ms. Provider admission MUST stop early enough to reserve bounded composition time. Candidate hydration and read-only provider concurrency MUST be fixed and explicit. Deadline expiry MUST return typed partial output; no new work may start after admission closes, and late provider completion MUST NOT mutate the returned result or authoritative state.
+
+**Tags:** `status`, `health`, `deadline`, `concurrency`
+
+#### Scenarios
+
+**Cold health pressure stays below host timeout** (`rq-statusHealthAggregateBudget01.1`)
+
+**Given:**
+- Health force-refresh has cold probe caches
+- The project exposes 57 change candidates
+
+**When:** The health view executes
+
+**Then:**
+- At most 10 recent candidates are admitted
+- Provider admission stops by 7,500 ms
+- Deterministic composition completes by 8,000 ms
+- Omitted candidates are explicit
+
+**Independent providers do not serialize latency** (`rq-statusHealthAggregateBudget01.2`)
+
+**Given:**
+- Multiple independent read-only health providers are admitted
+
+**When:** They execute under the request plan
+
+**Then:**
+- Concurrency never exceeds 4
+- Latency follows admitted critical-path duration rather than sequential sum
+- Dependent providers are admitted only after their prerequisites
+
+**Expired request cannot admit or mutate late** (`rq-statusHealthAggregateBudget01.3`)
+
+**Given:**
+- The request admission cutoff or deadline has elapsed
+- Some provider work is unresolved
+
+**When:** The work later settles
+
+**Then:**
+- No new provider starts
+- Returned output remains unchanged
+- Authoritative state remains unchanged
+
+---
+
+### Health Candidate Orientation Is Source-Ranked Before Hydration
+
+**ID:** `rq-statusHealthCandidateOrientation01` | **Priority:** **[MUST]**
+
+Health status candidate orientation MUST establish deterministic source-backed global recency before selecting or hydrating candidates. Running workflow timestamps MUST come from registered Visibility activity/creation attributes; durable disk-only active candidates MAY use durable projection activity/creation metadata. Memo or cache warmth MUST NOT independently rank or introduce candidates. Health MUST hydrate only the first ten ranked canonical IDs and report exact omission count plus a bounded deterministic omitted-ID sample. All ranking, selection, and hydration MUST finish or degrade by the shared 7,500 ms non-composition cutoff.
+
+**Tags:** `status`, `health`, `recency`, `hydration`, `deadline`
+
+#### Scenarios
+
+**Shuffled enumeration still selects globally newest ten** (`rq-statusHealthCandidateOrientation01.1`)
+
+**Given:**
+- Fifty-seven candidates arrive in shuffled enumeration order
+- Visibility and durable projection timestamps identify global recency
+
+**When:** Health selects candidates
+
+**Then:**
+- Candidates are sorted by source-backed timestamp descending with canonical-ID tie-break
+- The globally newest ten are selected
+- Only selected IDs are hydrated
+- Omission metadata reports count 47 plus bounded stable ID sample
+
+**Memo warmth cannot bias recency** (`rq-statusHealthCandidateOrientation01.2`)
+
+**Given:**
+- An older candidate is memo-warm
+- A newer candidate is not memo-warm
+
+**When:** Health ranks candidates
+
+**Then:**
+- Memo warmth does not outrank source-backed activity
+- The newer candidate retains precedence
+- Cache data does not establish completeness
+
+**Incomplete ranking degrades visibly** (`rq-statusHealthCandidateOrientation01.3`)
+
+**Given:**
+- A candidate lacks valid source-backed ranking metadata or ranking exceeds the cutoff
+
+**When:** Health composes orientation
+
+**Then:**
+- The candidate is represented through typed omission/degradation
+- Enumeration order is not treated as recency
+- Health does not claim globally complete orientation
 
 ---

@@ -68,7 +68,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         workerProcesses: true,
         projectConfig: true,
         recentEnrichment: true,
-        worktreeCleanup: true,
+        worktreeCleanup: false,
         worktreeCensus: true,
         sessionDebt: false,
         healthSnapshot: false,
@@ -108,7 +108,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         workerProcesses: false,
         projectConfig: true,
         recentEnrichment: true,
-        worktreeCleanup: false,
+        worktreeCleanup: true,
         worktreeCensus: true,
         sessionDebt: true,
         healthSnapshot: true,
@@ -212,8 +212,10 @@ export function applyStatusView(
       break;
     }
     case "health": {
+      projection.changes = full.changes;
       projection.temporal_health = full.temporal_health;
       projection._freshness = full._freshness;
+      projection._health_execution = full._health_execution;
       projection.expected_queue = full.expected_queue;
       projection.temporal_queue_serviceability =
         full.temporal_queue_serviceability;
@@ -246,6 +248,7 @@ export function applyStatusView(
       if (full.metrics) projection.metrics = full.metrics;
       projection.plugin_runtime = full.plugin_runtime;
       projection.snapshot_health = full.snapshot_health;
+      projection.worktree_census = full.worktree_census;
       projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       break;
     }

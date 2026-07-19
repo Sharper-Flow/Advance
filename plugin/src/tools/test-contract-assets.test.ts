@@ -76,6 +76,39 @@ describe("adv_run_test contract assets", () => {
     expect(scenario!.then?.join("\n")).toContain("verify");
   });
 
+  test("tdd-contract spec defines normalized evidence plan boundaries", () => {
+    const spec = readSpec(".adv/specs/tdd-contract/spec.json");
+    const requirement = spec.requirements.find(
+      (req) => req.id === "rq-TDD013evp",
+    );
+
+    expect(requirement).toBeDefined();
+    expect(requirement!.body).toContain("exactly one evidence policy");
+    expect(requirement!.body).toContain("non-empty proof target");
+    expect(requirement!.body).toContain("compatibility provenance");
+    expect(requirement!.body).toContain("advisory inputs only");
+    expect(requirement!.body).toContain("not_applicable");
+    expect(requirement!.body).toContain("review_conclusion");
+
+    const scenario = requirement!.scenarios?.find(
+      (entry) => entry.id === "rq-TDD013evp.3",
+    );
+    expect(scenario).toBeDefined();
+    expect(scenario!.then?.join("\n")).toContain("rationale");
+    expect(scenario!.then?.join("\n")).toContain("review_conclusion");
+  });
+
+  test("agent-facing instructions describe normalized evidence plan", () => {
+    const applyCommand = readRepoFile(".opencode/command/adv-apply.md");
+    const tddDoc = readRepoFile("docs/specs/tdd-contract.md");
+
+    for (const doc of [applyCommand, tddDoc]) {
+      expect(doc).toContain("evidence_plan");
+      expect(doc).toContain("proof_target");
+      expect(doc).toContain("review_conclusion");
+    }
+  });
+
   test("agent-facing instructions describe the same phase semantics", () => {
     const instructions = readRepoFile("ADV_INSTRUCTIONS.md");
     const applyCommand = readRepoFile(".opencode/command/adv-apply.md");

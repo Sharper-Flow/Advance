@@ -19,7 +19,9 @@ import {
   type TaskContractRefs,
   type TddReclassification,
   type Task,
+  type TaskEvidencePlan,
 } from "../types";
+import { resolveTaskEvidence } from "../validator/task-classifier";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import {
@@ -964,6 +966,21 @@ export const taskTools = {
       evidence_policy: ContractEvidencePolicySchema.optional().describe(
         "Evidence policy that governs what kind of proof satisfies task completion (e.g., 'test', 'review', 'source_citation', 'stakeholder_acceptance').",
       ),
+      evidence_rationale: z
+        .string()
+        .trim()
+        .optional()
+        .describe(
+          "Bounded rationale for a non-test evidence route on behavior-critical work. Required with review_conclusion for new code or verification tasks that do not use the test route.",
+        ),
+      review_conclusion: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe(
+          "Linked structured review conclusion for a non-test evidence route on behavior-critical work. Required with evidence_rationale for new code or verification tasks that do not use the test route.",
+        ),
       metadata: z
         .record(z.string(), z.string())
         .optional()
@@ -991,6 +1008,8 @@ export const taskTools = {
         content: string;
         type?: import("../types").TaskType;
         evidence_policy?: import("../types").ContractEvidencePolicy;
+        evidence_rationale?: string;
+        review_conclusion?: string;
         metadata?: Record<string, string>;
         contract_refs?: TaskContractRefs;
         blockedBy?: string[];
@@ -1016,6 +1035,8 @@ export const taskTools = {
           content,
           type,
           evidence_policy,
+          evidence_rationale,
+          review_conclusion,
           metadata,
           contract_refs,
           blockedBy,
@@ -1153,6 +1174,26 @@ export const taskTools = {
           ...(contract_refs ? { contract_refs } : {}),
           ...(evidence_policy ? { evidence_policy } : {}),
         };
+
+        // Normalize evidence plan so every newly planned task carries exactly
+        // one policy, one proof target, and explicit compatibility provenance.
+        const evidenceResolution = resolveTaskEvidence(task);
+        const evidencePlan: TaskEvidencePlan = {
+          policy: evidenceResolution.policy!,
+          proof_target: evidenceResolution.proof_target!,
+          ...(evidence_rationale ? { rationale: evidence_rationale } : {}),
+          ...(review_conclusion ? { review_conclusion } : {}),
+          provenance: "new",
+        };
+        task.evidence_plan = evidencePlan;
+
+        const validatedEvidenceResolution = resolveTaskEvidence(task);
+        if (!validatedEvidenceResolution.valid) {
+          return formatToolOutput({
+            error: `Invalid evidence plan: ${validatedEvidenceResolution.errors.join("; ")}`,
+            changeId,
+          });
+        }
 
         let recoveredViaPoisoned = false;
         try {
@@ -1571,23 +1612,6 @@ export const taskTools = {
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
 
-        await fireSignalAndRefresh(
-          handle,
-          activeStore,
-          changeId,
-          taskUpdatedSignal,
-          {
-            taskId: args.taskId,
-            partial: {
-              metadata: {
-                ...task.metadata,
-                tdd_intent: args.toIntent,
-              },
-            },
-            updatedAt: now,
-          },
-        );
-
         const reclassification: TddReclassification = {
           from_intent: currentIntent ?? "none",
           to_intent: args.toIntent,
@@ -1597,10 +1621,57 @@ export const taskTools = {
           approved_at: now,
         };
 
+        // Recompute the normalized evidence plan for the reclassified intent.
+        // Materially reclassified tasks carry provenance 'reclassified' and one
+        // explicit policy/proof target.
+        const updatedTask: Task = {
+          ...task,
+          metadata: {
+            ...task.metadata,
+            tdd_intent: args.toIntent,
+          },
+          tdd_reclassification: reclassification,
+        };
+        const evidenceResolution = resolveTaskEvidence(updatedTask);
+        if (!evidenceResolution.valid) {
+          return formatToolOutput({
+            error: `Invalid evidence plan: ${evidenceResolution.errors.join("; ")}`,
+            changeId,
+          });
+        }
+        const evidencePlan: TaskEvidencePlan = {
+          policy: evidenceResolution.policy!,
+          proof_target: evidenceResolution.proof_target!,
+          ...(evidenceResolution.rationale
+            ? { rationale: evidenceResolution.rationale }
+            : {}),
+          ...(evidenceResolution.review_conclusion
+            ? { review_conclusion: evidenceResolution.review_conclusion }
+            : {}),
+          provenance: "reclassified",
+        };
+
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          taskUpdatedSignal,
+          {
+            taskId: args.taskId,
+            partial: {
+              metadata: updatedTask.metadata,
+              tdd_reclassification: reclassification,
+              evidence_plan: evidencePlan,
+            },
+            updatedAt: now,
+          },
+        );
+
         return formatToolOutput({
           success: true,
           taskId: args.taskId,
           reclassification,
+          evidence_plan: evidencePlan,
           message: `Reclassified tdd_intent from "${currentIntent}" to "${args.toIntent}" with user approval.`,
           ...(projectContext ? { _projectContext: projectContext } : {}),
         });

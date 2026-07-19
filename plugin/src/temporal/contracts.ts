@@ -1,4 +1,5 @@
 import type {
+  AcceptanceCriteriaSnapshot,
   ChangeClosure,
   ChangeContract,
   Change,
@@ -50,6 +51,7 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getTasks: "adv.change.getTasks",
   getGateStatus: "adv.change.getGateStatus",
   getGateCriteria: "adv.change.getGateCriteria",
+  getAcceptanceCriteriaProjection: "adv.change.getAcceptanceCriteriaProjection",
   getWorktrees: "adv.change.getWorktrees",
   getConformanceState: "adv.change.getConformanceState",
 } as const;
@@ -258,6 +260,8 @@ export interface ChangeWorkflowInput {
       | "terminated"
       | "acceptanceCriteria"
       | "contract"
+      | "acceptanceReadinessRevision"
+      | "acceptanceCriteriaSnapshot"
       | "documents"
       | "reflections"
       | "worktrees"
@@ -417,6 +421,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   terminated?: boolean;
   acceptanceCriteria?: string[];
   contract?: ChangeContract;
+  /**
+   * Monotonic revision counter for acceptance-readiness state. Advanced when
+   * the contract, contract amendments, review matrix, or relevant re-entry
+   * change. Optional for replay-safety — histories predating this extension
+   * replay cleanly with it undefined; legacy state defaults to 0.
+   */
+  acceptanceReadinessRevision?: number;
   /**
    * Authoritative artifact content for the change, keyed by canonical
    * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/
@@ -583,6 +594,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   gateCriteria?: Partial<
     Record<import("../types").GateId, import("../types").GateCriterion[]>
   >;
+  /**
+   * Snapshot of acceptance criteria captured at acceptance gate completion.
+   * The basisRevision records the acceptanceReadinessRevision at capture time
+   * so `deriveAcceptanceCriteriaProjection` can distinguish fresh audit evidence
+   * from stale criteria without mutating the snapshot.
+   */
+  acceptanceCriteriaSnapshot?: AcceptanceCriteriaSnapshot;
   /**
    * Per-task test-run records, keyed by taskId. Ring-buffered to last 20
    * per task. Used by rq-TDD009seq ordering enforcement at task-completion

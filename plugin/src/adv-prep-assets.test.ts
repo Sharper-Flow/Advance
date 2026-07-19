@@ -27,6 +27,11 @@ describe("adv-prep non-code evidence policy surface", () => {
     expect(command).toContain("For tasks whose deliverable is non-code");
   });
 
+  test("requires evidence_plan and proof_target on tasks", () => {
+    expect(command).toContain("evidence_plan");
+    expect(command).toContain("proof_target");
+  });
+
   test("requires evidence_policy on non-code tasks", () => {
     expect(command).toContain("evidence_policy");
     expect(command).toMatch(
@@ -59,6 +64,7 @@ describe("adv-prep non-code evidence policy surface", () => {
     expect(section).toContain("Evidence policy");
     expect(section).toContain("source_citation");
     expect(section).toContain("not_applicable");
+    expect(section).toContain("proof_target");
   });
 
   test("non-code tasks require contract refs or bounded not_applicable_reason", () => {

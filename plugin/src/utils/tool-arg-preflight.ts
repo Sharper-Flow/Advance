@@ -169,6 +169,10 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_task_add: {
     content: { blank: "reject" }, // required-when-present
+    // Optional review proof; omit strict-mode placeholder fills so the
+    // evidence-plan validator, rather than preflight, enforces it when the
+    // selected route requires a conclusion.
+    review_conclusion: { blank: "omit" },
     target_path: { blank: "omit" },
     // Contextually-validated (rq-toolPlaceholderPolicy01.6).
     confirmationEvidence: { blank: "omit" },

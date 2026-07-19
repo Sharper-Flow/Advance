@@ -52,6 +52,7 @@ import {
   gateCompletedSignal,
   getGateStatusQuery,
   getGateCriteriaQuery,
+  getAcceptanceCriteriaProjectionQuery,
 } from "../temporal/messages";
 import {
   type WorktreeIsolationDeps,
@@ -1227,6 +1228,9 @@ export const gateTools = {
             let gateCriteria:
               | Partial<Record<GateId, import("../types").GateCriterion[]>>
               | undefined;
+            let acceptanceCriteriaProjection:
+              | import("../types").AcceptanceCriteriaProjection
+              | undefined;
             let poisonedFallback = false;
             const bundle = getService();
             const projectId = bundle
@@ -1260,6 +1264,10 @@ export const gateTools = {
                 gateCriteria = await querySignal<
                   Partial<Record<GateId, import("../types").GateCriterion[]>>
                 >(handle, getGateCriteriaQuery);
+                // Query fresh acceptance criteria projection keyed to readiness revision
+                acceptanceCriteriaProjection = await querySignal<
+                  import("../types").AcceptanceCriteriaProjection
+                >(handle, getAcceptanceCriteriaProjectionQuery);
               } catch (queryError) {
                 // rq-fix-gate-tools-recovery AC1: poisoned-history fallback.
                 // The store's changes.get already returned a disk projection
@@ -1350,6 +1358,9 @@ export const gateTools = {
                   }
                 : {}),
               ...(gateCriteria ? { gateCriteria } : {}),
+              ...(acceptanceCriteriaProjection
+                ? { acceptanceCriteriaProjection }
+                : {}),
               ...(poisonedFallback
                 ? { _recovery: { reason: "poisoned_history" } }
                 : {}),

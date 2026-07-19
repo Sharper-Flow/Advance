@@ -6,7 +6,10 @@
  */
 
 import { z } from "zod";
-import { ContractEvidencePolicySchema } from "./evidence-policy";
+import {
+  ContractEvidencePolicySchema,
+  TaskEvidencePlanSchema,
+} from "./evidence-policy";
 import { DependencySchema } from "./specs";
 import {
   ReportFollowUpRefSchema,
@@ -222,6 +225,13 @@ export const TaskSchema = z
      * report follow-up. Text matching is never authority — this ref is.
      */
     followup_ref: ReportFollowUpRefSchema.optional(),
+    /**
+     * Normalized evidence plan for the task. Contains exactly one evidence
+     * policy, one proof target, and compatibility provenance. Added at task
+     * creation or material reclassification; legacy tasks are normalized
+     * on read without heuristic cutover.
+     */
+    evidence_plan: TaskEvidencePlanSchema.optional(),
     /**
      * Evidence policy that governs what kind of proof satisfies task completion.
      * Uses the shared contract evidence-policy vocabulary.
