@@ -1,0 +1,1917 @@
+{
+  "id": "restoreDesignerFollowUp",
+  "title": "Restore designer follow-up",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-18T20:08:30.101Z",
+  "tasks": [
+    {
+      "id": "tk-1a77938283ba",
+      "title": "Add safe modify delta path",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-18T21:09:52.707Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC8",
+          "AC9"
+        ],
+        "verifies": [
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C5",
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T21:14:27.436Z",
+      "verification": "CI=true bin/oc-test targeted -- src/tools/spec-delta.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts (3 files, 61 passed); CI=true pnpm run schemas:generate && CI=true pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        "docs/cli-surface-matrix.md",
+        "docs/tool-ownership.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/index.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.spec-delta.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/spec-delta.test.ts",
+        "plugin/src/tools/spec-delta.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/types/specs.ts",
+        "plugin/src/utils/banner.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        "docs/cli-surface-matrix.md",
+        "docs/tool-ownership.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/index.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.spec-delta.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/spec-delta.test.ts",
+        "plugin/src/tools/spec-delta.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/types/specs.ts",
+        "plugin/src/utils/banner.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "ad94e284fa1ae7c58e7644ff6d9295b67e8f078d",
+      "completedAt": "2026-07-18T21:34:08.596Z",
+      "completed_at": "2026-07-18T21:34:08.596Z"
+    },
+    {
+      "id": "tk-c58dd4445d55",
+      "title": "Restore engineer-first designer follow-up",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-18T21:10:05.663Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1a77938283ba"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T21:34:23.785Z",
+      "verification": "CI=true bin/oc-test targeted -- src/temporal/change-state.test.ts src/adv-designer-assets.test.ts src/subagent-reports-spec-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/delegation-matrix.test.ts (5 files, 150 passed); CI=true pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "checkpointSha": "24bb5411564f20334dc1a47493ed43af57e48a36",
+      "completedAt": "2026-07-18T21:48:55.330Z",
+      "completed_at": "2026-07-18T21:48:55.330Z"
+    },
+    {
+      "id": "tk-97453ce00c9c",
+      "title": "Verify restored dispatch contract",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-18T21:10:17.121Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1a77938283ba"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c58dd4445d55"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-18T21:49:20.444Z",
+      "verification": "CI=true bin/oc-test full: 405 files passed, 6176 tests passed, 1 expected fail (6177 total); CI=true pnpm run check passed. Isolated timing-sensitive tests also passed (18 tests). Durable modify delta dl-RestoreDel10 recorded for delegation-defaults/rq-delDefaults10.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/archive/terminal-history.ts",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/archive/terminal-history.ts",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts"
+      ],
+      "checkpointSha": "b62f1eabd7367c76ee608472864d2af663ca8b03",
+      "completedAt": "2026-07-18T22:20:58.225Z",
+      "completed_at": "2026-07-18T22:20:58.225Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "restoreDesignerFollowUp",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Engineer-first to designer-follow-up design leverage scout",
+      "sources": [
+        {
+          "label": "Typed implementation provenance schema",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L82-L109",
+          "summary": "Existing discriminated union already supports engineer, engineer_report, and inline provenance under a shared implementation cycle."
+        },
+        {
+          "label": "Stable report identity and cycle suffix",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L1057-L1101",
+          "summary": "subagentReportKey is shared, byte-stable identity and includes implementation cycle when present."
+        },
+        {
+          "label": "Report submit response",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/subagent-report.ts#L857-L879",
+          "summary": "Successful submission already returns reportId, enabling direct engineer_report handoff without reconstructing report identity."
+        },
+        {
+          "label": "Frontend completion guard",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L937-L963",
+          "summary": "Frontend completion already requires successful matching-cycle designer evidence."
+        },
+        {
+          "label": "Designer evidence matcher and persistence guard",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L1092-L1105",
+          "summary": "Completion evidence is matched structurally by agent, status, task, and implementation cycle."
+        },
+        {
+          "label": "Stale or mismatched report rejection",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L1150-L1166",
+          "summary": "Designer reports claiming a cycle are rejected unless that exact task cycle is active."
+        },
+        {
+          "label": "Current routing and packet surfaces",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446",
+          "summary": "Current command separates direct designer, engineer, and inline paths; restoration can converge successful implementation paths into one follow-up funnel."
+        },
+        {
+          "label": "Existing designer packet fields",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L565-L604",
+          "summary": "Designer packet already carries task scope, visual context, evidence expectation, quality dimensions, neighboring recommendations, and backend boundary."
+        },
+        {
+          "label": "Designer report schema",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L253-L323",
+          "summary": "Existing verification, design dimensions with required notes for concern or n/a, neighboring recommendations, and optional apply_context cover the follow-up evidence shape."
+        },
+        {
+          "label": "Contradictory neighboring policy",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.opencode/agents/adv-designer.md#L221-L228",
+          "summary": "Current agent contract says adjacent inconsistencies must be surfaced and not silently fixed, which conflicts with the approved same-surface adjacent-alignment allowance and needs synchronization."
+        },
+        {
+          "label": "Weak and contradictory routing regressions",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/delegation-matrix.test.ts#L726-L752",
+          "summary": "Matrix test claims engineer-first but only checks token presence."
+        },
+        {
+          "label": "Designer-direct regression assertion",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/adv-designer-assets.test.ts#L377-L400",
+          "summary": "A second test explicitly enforces designer-direct routing and rejects engineer-first wording."
+        },
+        {
+          "label": "Cycle guard regression coverage",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.test.ts#L843-L1045",
+          "summary": "Existing tests cover absent, matching, mismatched, and stale designer cycle evidence and should be retained."
+        }
+      ],
+      "architecture_assessment": "Core design is sound: restore upstream engineer-first routing, then reuse existing typed provenance, stable report identity, and reducer cycle guards. Highest leverage comes from one post-implementation follow-up funnel shared by delegated and inline success paths. Do not add another state machine, provenance union, preview schema, or designer-specific completion guard. Design still needs explicit packet/report wiring and semantic-test strengthening. Current designer neighboring-policy prose contradicts the approved same-surface alignment allowance and must be reconciled across synchronized surfaces.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Proceed after incorporating four low-risk contract-tied adjustments: shared follow-up funnel, direct reuse of returned reportId for engineer_report provenance, explicit apply_context packet/report requirements, and semantic lifecycle tests. Also reconcile current designer neighboring-policy prose with AC5. No security or release blocker found."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "One shared follow-up funnel reduces duplicated routing prose but makes that funnel a critical orchestration seam requiring delegated and inline scenario coverage.",
+          "Reusing existing optional apply_context preserves legacy report ingestion, but new engineer/designer packet contracts must make cycle context mandatory for this classified lifecycle.",
+          "Stronger semantic tests cost more fixture maintenance than substring checks, but prevent designer-direct regressions that token-presence tests miss.",
+          "Reusing design_dimensions.notes and verification avoids schema growth, but packet prose must state exactly where unavailable-preview rationale and source/a11y evidence belong."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add a new designer-follow-up state machine or provenance variant",
+            "disposition": "rejected",
+            "rationale": "Existing apply cycle, provenance union, report identity, report persistence guard, and completion guard already encode required structure."
+          },
+          {
+            "option": "Duplicate follow-up dispatch separately in engineer and inline branches",
+            "disposition": "rejected",
+            "rationale": "A single post-success funnel is simpler and reduces drift between AC2 and AC3."
+          },
+          {
+            "option": "Reconstruct engineer report keys in orchestration prose",
+            "disposition": "rejected",
+            "rationale": "adv_subagent_report_submit already returns the canonical reportId."
+          },
+          {
+            "option": "Add dedicated unavailable-preview report fields",
+            "disposition": "rejected",
+            "rationale": "Existing verification entries and required notes for n/a or concern dimensions can carry bounded rationale and source/a11y evidence."
+          },
+          {
+            "option": "Retain token-presence routing tests",
+            "disposition": "rejected",
+            "rationale": "Current tests demonstrate that contradictory designer-direct and engineer-first descriptions can coexist while token checks pass."
+          }
+        ],
+        "recommendation": "Auto-adopt four bounded adjustments: converge delegated and inline implementation success into one designer-follow-up packet builder/funnel; seed engineer apply_context with the active cycle and engineer provenance, then pass submit response reportId as designer engineer_report provenance; require designer apply_context in new classified follow-up packets/reports while retaining legacy schema compatibility; replace token-presence checks with semantic scenarios covering initial worker, ordering, delegated/inline provenance, stale-cycle rejection, and reviewer ownership. Synchronize adjacent same-surface alignment language. Treat new provenance/state/preview schema proposals as no-op."
+      },
+      "recommendation": "Adopt shared follow-up funnel and existing typed mechanisms; strengthen packet contracts and semantic tests; reconcile adjacent-UI wording before validator review.",
+      "follow_ups": [
+        "Episode recall returned no relevant project decision; conclusions rely on current repository source and packet-provided agreement.",
+        "lgrep semantic search timed out twice, including required hybrid:false retry; exact lgrep text search and targeted file reads provided source evidence.",
+        "No user-surface candidate identified: approved agreement resolves preview fallback and adjacent-alignment tradeoffs, and all recommended changes are contract-tied, low-risk design adjustments or explicit no-ops."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "restoreDesignerFollowUp",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Engineer-first to designer-follow-up design validation",
+      "sources": [
+        {
+          "label": "Approved agreement and design, retrieved through ADV",
+          "locator": "adv://change/restoreDesignerFollowUp",
+          "summary": "Agreement requires engineer-first behavior for every metadata.frontend=true task, no initial designer-direct route, matching-cycle designer evidence, explicit incomplete/failure behavior, reviewer ownership, bounded same-surface designer scope, and fallback evidence. Design proposes one shared follow-up funnel using existing typed provenance."
+        },
+        {
+          "label": "Current adv-apply routing",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446",
+          "summary": "Current Priority 1 metadata.delegation_hint wins; Priority 1.5 metadata.frontend routes directly to adv-designer. This precedence must be changed or constrained, not merely the Priority 1.5 row."
+        },
+        {
+          "label": "Current designer packet contract",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L565-L607",
+          "summary": "Current packet already carries bounded visual context, unavailable markers, quality dimensions, neighboring recommendations, and backend boundary, providing a simple base for a follow-up packet."
+        },
+        {
+          "label": "Typed implementation provenance schema",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L82-L109",
+          "summary": "Existing strict discriminated union already supports engineer, engineer_report, and inline provenance with implementation_cycle_id."
+        },
+        {
+          "label": "Designer and engineer report schemas",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L230-L323",
+          "summary": "Both report variants support complete/error status and optional apply_context for backward compatibility; new classified packet contracts can require apply_context without adding a union arm."
+        },
+        {
+          "label": "Durable report identity returned by submit tool",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/subagent-report.ts#L694-L715",
+          "summary": "Submission computes and returns reportId, including duplicate submissions, so packet construction can consume returned durable identity rather than reconstructing it."
+        },
+        {
+          "label": "Reducer completion and cycle-anchor guards",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L937-L963",
+          "summary": "Classified frontend completion requires successful matching-cycle designer evidence."
+        },
+        {
+          "label": "Reducer report-anchor rejection",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L1120-L1166",
+          "summary": "Task ownership mismatch and stale/mismatched designer implementation cycles are rejected before persistence."
+        },
+        {
+          "label": "Current delegation law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.adv/specs/delegation-defaults/spec.json#L465-L518",
+          "summary": "rq-delDefaults10 still mandates designer-direct initial dispatch and explicit-hint precedence, so authoritative spec update is required."
+        },
+        {
+          "label": "Current semantic-test gap",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/delegation-matrix.test.ts#L726-L752",
+          "summary": "Existing engineer-first test only checks presence of frontend, adv-engineer, and adv-designer; current contradictory designer-direct law can satisfy it."
+        },
+        {
+          "label": "Existing direct-routing regression assertions",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/adv-designer-assets.test.ts#L377-L400",
+          "summary": "Current tests explicitly reject engineer-first wording and require direct designer routing, confirming necessary semantic test replacement."
+        },
+        {
+          "label": "Zod discriminated union documentation",
+          "locator": "https://github.com/colinhacks/zod/blob/main/packages/docs/content/api.mdx",
+          "summary": "Zod documents discriminated unions as object variants selected by a literal discriminator, supporting reuse of the existing typed provenance union."
+        },
+        {
+          "label": "Temporal TypeScript signal semantics",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts",
+          "summary": "Temporal signal calls return after server acceptance rather than waiting for Workflow processing, reinforcing the need to rely on persisted report identity and reducer guards instead of assumed sequencing."
+        }
+      ],
+      "architecture_assessment": "Core shape is correct and simpler than adding another state machine or provenance variant: reuse the existing strict provenance union, consume returned reportId, and preserve reducer cycle guards (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L82-L109; https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/subagent-report.ts#L694-L715; https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L937-L963). However, design is not yet spec-law complete. Current routing gives Priority 1 metadata.delegation_hint precedence over frontend classification, while design implementation strategy explicitly mentions replacing only Priority 1.5; that leaves a path for an adv-designer hint to violate SC1/AC1/DONT1 unless precedence/allowed-hint semantics are explicitly changed and tested (https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446). Design also lacks an explicit orchestrator transition for designer spawn/report failure, despite SC2 requiring incomplete state with explicit failure; report schemas can durably represent status:error, but packet/funnel handling must require that outcome and forbid completion (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L230-L323).",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "Routing precedence is unresolved: current Priority 1 metadata.delegation_hint wins over metadata.frontend, and design only names replacement of Priority 1.5. Without explicit frontend-safe hint semantics plus a semantic regression case, initial direct adv-designer dispatch remains possible, violating SC1, AC1, and DONT1 (https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446).",
+          "Designer follow-up failure handling is underspecified. SC2 requires explicit failure while remaining incomplete; existing status:error and completion guards provide primitives, but design must define funnel behavior for spawn failure, malformed/missing report, status:error, and submit failure, and test that no path marks task done (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L298-L323; https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L937-L963)."
+        ],
+        "notes": "No security or release blocker found. Spec-law blockers should be resolved before design gate approval."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "One shared follow-up funnel reduces delegated/inline drift but becomes a mandatory orchestration choke point whose failure behavior must be explicit.",
+          "Keeping apply_context optional preserves legacy report readability, but correctness for new classified work must come from required packet contracts plus existing completion guards.",
+          "Reusing returned reportId avoids duplicate identity logic, but orchestrator must branch only on successful submit output and must not infer identity after submit failure."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add a new workflow state machine or provenance union arm",
+            "disposition": "rejected",
+            "rationale": "Existing implementation_cycle_id, engineer/engineer_report/inline provenance, durable reportId, and reducer guards already encode required authority (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L82-L109)."
+          },
+          {
+            "option": "Keep designer-direct initial implementation",
+            "disposition": "rejected",
+            "rationale": "Contradicts approved SC1/AC1/DONT1 and current direct-routing law is the regression being corrected (https://github.com/Sharper-Flow/Advance/blob/main/.adv/specs/delegation-defaults/spec.json#L465-L518)."
+          },
+          {
+            "option": "Separate engineer and inline designer packet builders",
+            "disposition": "rejected",
+            "rationale": "Equivalent lifecycle behavior with two builders creates avoidable drift; provenance is already the typed variation point (https://github.com/colinhacks/zod/blob/main/packages/docs/content/api.mdx)."
+          },
+          {
+            "option": "Make apply_context globally required in persisted schema",
+            "disposition": "rejected",
+            "rationale": "Would break stated legacy compatibility; current completion guard already prevents legacy unanchored reports from completing newly classified work (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L937-L963)."
+          },
+          {
+            "option": "Preserve explicit delegation_hint precedence unchanged",
+            "disposition": "rejected",
+            "rationale": "Allows an adv-designer hint to bypass engineer-first lifecycle and conflicts with approved universal frontend classification behavior (https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446)."
+          }
+        ],
+        "recommendation": "Do not approve design gate yet. Amend design to define metadata.frontend-safe Priority 1 hint handling and explicit follow-up failure transitions, then require semantic tests for frontend+adv-designer hint, designer spawn/report/submit failure, delegated provenance, inline provenance, stale/mismatched cycles, and reviewer ownership."
+      },
+      "recommendation": "Retain core architecture, but close two spec-law gaps before planning: (1) explicitly prevent any metadata.delegation_hint from selecting adv-designer as initial worker for classified tasks, while preserving valid inline/risk semantics; (2) define and test explicit incomplete/error handling for every designer-follow-up failure mode. Keep existing provenance union, durable reportId, reducer guards, and optional-schema legacy compatibility.",
+      "follow_ups": [
+        "After design amendment, rerun design validation against exact Priority 1 semantics and failure-path assertions.",
+        "Semantic tests must assert ordering and outcomes, not token presence; current weak test accepts contradictory law (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/delegation-matrix.test.ts#L726-L752)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "restoreDesignerFollowUp",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Revalidation of revised engineer-first designer-follow-up design",
+      "sources": [
+        {
+          "label": "Revised approved design and agreement",
+          "locator": "adv://change/restoreDesignerFollowUp",
+          "summary": "Revision explicitly bounds Priority-1 hints to eligibility, requires engineer-first delegated classified work, routes successful delegated and inline implementation through one designer follow-up funnel, and defines no-completion structured recovery for dispatch/report/verification failures."
+        },
+        {
+          "label": "Current routing precedence requiring change",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446",
+          "summary": "Current source gives metadata.delegation_hint Priority 1 and direct designer routing Priority 1.5; revised DDC3 and implementation strategy now explicitly constrain this precedence for classified work."
+        },
+        {
+          "label": "Existing typed provenance",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L82-L109",
+          "summary": "Existing implementation_cycle_id plus engineer, engineer_report, and inline provenance variants support revised funnel without new schema arms."
+        },
+        {
+          "label": "Existing report status and compatibility surface",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L230-L323",
+          "summary": "Engineer/designer reports support complete/error status while apply_context remains optional for legacy compatibility; revised new-packet contract requires apply_context for classified follow-ups."
+        },
+        {
+          "label": "Durable report identity output",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/subagent-report.ts#L694-L715",
+          "summary": "Submit output returns stable reportId, including duplicate handling, supporting revised no-reconstruction requirement."
+        },
+        {
+          "label": "Frontend completion guard",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L937-L963",
+          "summary": "Task completion already requires a complete matching-cycle designer report, preventing unresolved designer failures or missing provenance from checkpointing done."
+        },
+        {
+          "label": "Designer ownership and cycle-anchor rejection",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L1120-L1166",
+          "summary": "Report/task ownership mismatches and stale or mismatched claimed designer cycles are rejected before persistence."
+        },
+        {
+          "label": "Existing reducer regression evidence",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.test.ts#L843-L1117",
+          "summary": "Tests cover missing matching evidence, matching evidence, mismatched cycles, stale cycles, and stale duplicate resubmission."
+        }
+      ],
+      "architecture_assessment": "Revised design resolves both prior blockers. Priority-1 hints are now eligibility-only and cannot select the initial worker for metadata.frontend=true tasks, directly satisfying SC1/AC1/DONT1 at design level when paired with DDC3/DDC5 semantic tests (adv://change/restoreDesignerFollowUp; https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446). Designer dispatch, malformed/error report, and verification failures now follow one explicit no-checkpoint recovery path with bounded remediation and unresolved retry/escalation, satisfying SC2 while relying on the existing matching-cycle completion authority (adv://change/restoreDesignerFollowUp; https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L937-L963). AC4 is satisfied architecturally by requiring apply_context in every new classified follow-up packet, retaining stale/mismatch ingestion rejection, and preventing missing-context evidence from satisfying completion while preserving readability of legacy optional-context reports (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L230-L323; https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/change-state.ts#L1120-L1166).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Revised design satisfies SC1/AC1/DONT1 and SC2/AC4. Implementation must preserve the stated distinction between legacy readability and strict validation of new classified follow-up packets."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Eligibility-only hints simplify classified worker ordering but intentionally reduce hint authority for frontend tasks.",
+          "A shared failure path reduces divergent behavior but requires semantic coverage across spawn, malformed report, status:error, submit, and verification failures.",
+          "Optional apply_context preserves legacy readability, while new classified packets and completion authority must enforce cycle context structurally."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Retain unrestricted Priority-1 worker selection",
+            "disposition": "rejected",
+            "rationale": "Would preserve a designer-direct bypass contrary to SC1/AC1/DONT1 (https://github.com/Sharper-Flow/Advance/blob/main/.opencode/command/adv-apply.md#L406-L446)."
+          },
+          {
+            "option": "Add a new state machine or provenance arm",
+            "disposition": "rejected",
+            "rationale": "Existing typed provenance and completion guards already represent required ordering and authority (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L82-L109)."
+          },
+          {
+            "option": "Make apply_context globally mandatory in persisted schema",
+            "disposition": "rejected",
+            "rationale": "Would unnecessarily break legacy report readability; strict new packet validation plus matching-cycle completion guards provides a simpler compatibility boundary (https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/types/subagent-reports.ts#L230-L323)."
+          }
+        ],
+        "recommendation": "Approve design gate. During planning/execution, require semantic tests for all supported Priority-1 hint values, missing/stale/mismatched apply_context, designer spawn/malformed/status:error/submit/verification failures, bounded remediation, and no checkpoint while unresolved."
+      },
+      "recommendation": "Approve revised design. Preserve exact DDC3-DDC7 semantics in plan and tests; specifically prove missing apply_context is rejected for new classified follow-ups or otherwise cannot persist as valid new evidence, while legacy persisted reports remain readable.",
+      "follow_ups": [
+        "Caution: AC4 wording says classified reports reject missing provenance. Tests should explicitly prove the chosen new-report boundary rejects missing apply_context, not merely that completion later fails, while legacy stored reports remain readable.",
+        "Caution: bounded remediation must have finite retry/escalation assertions so failure recovery cannot loop or silently complete."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "restoreDesignerFollowUp",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout-reentry"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: modify-only adv_delta_modify restoration and engineer-first designer follow-up",
+      "sources": [
+        {
+          "label": "Current modify delta schema",
+          "locator": "file:///home/jon/dev/advance/plugin/src/types/specs.ts#L127-L185",
+          "summary": "DeltaModifySchema exists but is private; its strict changes object permits an empty object and does not refine replacement scenario IDs against target_id."
+        },
+        {
+          "label": "Current add-only public tool boundary",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/spec-delta.ts#L1-L23",
+          "summary": "adv_delta_add intentionally excludes modify and protects Temporal reducer/archive ownership boundaries."
+        },
+        {
+          "label": "Current Temporal add/read-back path",
+          "locator": "file:///home/jon/dev/advance/plugin/src/storage/store-temporal/spec-deltas.ts#L15-L73",
+          "summary": "Existing operation validates payload, signals workflow, queries authoritative state, and updates projections only after confirming append."
+        },
+        {
+          "label": "Current archive modify engine",
+          "locator": "file:///home/jon/dev/advance/plugin/src/archive/delta.ts#L72-L105",
+          "summary": "Archive already applies modify deltas by exact target_id and remains reusable."
+        },
+        {
+          "label": "Current designer cycle guards",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/change-state.ts#L1092-L1165",
+          "summary": "Designer evidence is checked by task and cycle, but engineer_report provenance report_key is not referentially validated here."
+        },
+        {
+          "label": "Submit tool stable report identity",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/subagent-report.ts#L694-L715",
+          "summary": "Report submission computes and returns stable reportId, including on duplicate success."
+        },
+        {
+          "label": "Task completion designer evidence guard",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/change-state.ts#L921-L963",
+          "summary": "Frontend task completion already fails without same-cycle successful designer evidence."
+        },
+        {
+          "label": "Zod strict object and safeParse documentation",
+          "locator": "https://github.com/colinhacks/zod/blob/main/packages/docs/content/api.mdx",
+          "summary": "Zod 4 documents strict objects for unknown-key rejection; safeParse provides explicit success/error branching."
+        },
+        {
+          "label": "Temporal TypeScript message passing documentation",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "Signals mutate Workflow state without returning a result; Updates add trackable acceptance/results and validators when synchronous client-visible rejection is needed."
+        },
+        {
+          "label": "Temporal TypeScript signal example",
+          "locator": "https://github.com/temporalio/samples-typescript/blob/fb0aa23d75394a132646de883842dfacdacd5aa0/message-passing/introduction/src/workflows.ts#L53-L57",
+          "summary": "Official sample uses a signal handler for simple deterministic Workflow-state mutation."
+        }
+      ],
+      "architecture_assessment": "Existing shape is sound: narrow change-owned delta intent, Temporal durable state, and archive-only global writes; engineer/designer evidence already has implementation-cycle anchoring. Bounded candidates, sorted by payoff/risk: (1) AUTO-ADOPT — export a modify-only schema/type and strengthen it with non-empty changes, delta/requirement ID validation, and target-consistent replacement scenario IDs; payoff high, risk low, ties AC8/DDC1, prior consideration new. (2) AUTO-ADOPT — when designer provenance kind is engineer_report, reducer must resolve report_key to a successful same-task, same-cycle adv-engineer report before persisting designer evidence; payoff high, risk low, ties AC2/AC4, prior consideration new. (3) AUTO-ADOPT — shared follow-up builder must consume reportId returned by adv_subagent_report_submit rather than reconstructing report keys; payoff medium, risk low, ties AC2/AC4, prior consideration new. (4) NO-OP — retain operation-specific Signal/store/read-back plumbing and existing task-completion guard; do not introduce Temporal Updates or a second designer-follow-up state machine for this restoration. Existing signal rejection records plus same-cycle completion guard provide the needed durable safety; payoff medium, risk low, ties AC8/AC2, prior consideration archived:updateSubagentDispatch/addSpecDeltaWriter. No user-value tradeoff candidate found, so nothing requires user surfacing.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Design direction is valid, but schema emptiness/scenario invariants and engineer_report referential integrity should be explicit design-derived criteria before implementation. Semantic search timed out twice; exact lgrep text/symbol search and direct source reads provided local evidence."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Stronger modify refinements reject previously schema-valid no-op payloads, intentionally narrowing compatibility.",
+          "Referential engineer-report checks add reducer lookup/test work but prevent fabricated or stale report-key provenance.",
+          "Reusing Signals preserves one mutation pattern but does not provide Update-style synchronous result semantics; current signal-plus-query contract remains simpler for this bounded restoration."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Expose full add/modify/remove/rename CRUD",
+            "disposition": "rejected",
+            "rationale": "Exceeds approved modify-only scope and expands destructive safety surface."
+          },
+          {
+            "option": "Use Temporal Updates for adv_delta_modify",
+            "disposition": "deferred",
+            "rationale": "Updates provide validator-backed acceptance/results, but introducing a second message pattern is unnecessary while established signal-plus-authoritative-query behavior meets bounded change-owned recording needs."
+          },
+          {
+            "option": "Add a separate durable designer-follow-up workflow state machine",
+            "disposition": "rejected",
+            "rationale": "Existing apply_cycle, typed reports, signal rejections, and task-completion guard already encode ordering and incompletion structurally."
+          },
+          {
+            "option": "Trust non-empty engineer_report.report_key without lookup",
+            "disposition": "rejected",
+            "rationale": "String shape alone does not prove successful same-task, same-cycle engineer provenance."
+          }
+        ],
+        "recommendation": "Adopt candidates 1-3 into design and tests; retain candidate 4 as explicit no-op. Proceed after adding criteria for non-empty/target-consistent modify payloads and referential engineer-report provenance."
+      },
+      "recommendation": "Update design before planning: strengthen/export modify schema, require same-cycle engineer-report referential integrity, and mandate use of submit-returned reportId in the shared designer follow-up builder. Keep existing Signal/archive/completion architecture; no user decision needed.",
+      "follow_ups": [
+        "Packet omitted STOP_WHEN and VERIFICATION anchors; research continued under supplied scope per transport contract and used evidence-backed source inspection.",
+        "Semantic lgrep search timed out with hybrid on and off; fallback exact lgrep search plus direct source reads succeeded."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "restoreDesignerFollowUp",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation-reentry"
+      },
+      "agent": "adv-researcher",
+      "topic": "Expanded design validation: modify-only spec delta and engineer-first designer follow-up",
+      "sources": [
+        {
+          "label": "Change agreement and design packet",
+          "locator": "adv://change/restoreDesignerFollowUp/design",
+          "summary": "Defines AC1-AC10, C1-C6, DONT1-DONT5, modify-only scope, archive-only global writes, engineer-first follow-up, returned reportId provenance, and incomplete-on-failure behavior."
+        },
+        {
+          "label": "Existing add-only delta tool",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/tools/spec-delta.ts",
+          "summary": "Existing public tool validates add shape and target context, mutates only change-owned delta state through Store.specDeltas, and refuses direct disk recovery writes."
+        },
+        {
+          "label": "Existing Temporal spec-delta store path",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/storage/store-temporal/spec-deltas.ts",
+          "summary": "Existing add path validates payload, signals workflow, queries authoritative state, then updates cache/projection."
+        },
+        {
+          "label": "Existing generic archive delta engine",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/archive/delta.ts",
+          "summary": "Archive engine already dispatches typed add/modify/remove/rename operations, applies modify through shallow merge, stops on failure, and returns updatedSpec only when the batch succeeds."
+        },
+        {
+          "label": "Archive clone-and-write boundary",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/archive/archive.ts#L771-L815",
+          "summary": "Existing archive clones an existing spec before applying deltas and writes only a successful updatedSpec, supporting reuse without a second modify engine."
+        },
+        {
+          "label": "Existing delta schemas",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/types/specs.ts#L127-L183",
+          "summary": "Modify schema already limits changes to typed requirement fields and rejects unknown change keys, but currently permits an empty changes object and is not exported."
+        },
+        {
+          "label": "Current designer completion and persistence guards",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/temporal/change-state.ts#L921-L963",
+          "summary": "Frontend completion currently requires matching task/cycle designer evidence; report persistence rejects owner and active-cycle mismatches, but successful designer evidence currently checks status/task/cycle only."
+        },
+        {
+          "label": "Typed apply provenance schemas",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/types/subagent-reports.ts#L82-L109",
+          "summary": "Existing discriminated provenance supports engineer_report with report_key and inline provenance within a typed implementation cycle."
+        },
+        {
+          "label": "Returned durable reportId",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/tools/subagent-report.ts#L694-L715",
+          "summary": "Report submission computes and returns reportId for both duplicate and new successful submissions, enabling a non-reconstructed handoff."
+        },
+        {
+          "label": "Agent-tool contract checklist",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/docs/agent-tool-contracts.md",
+          "summary": "Project architecture requires schema, preflight, packet, prompt, transport, tests, and specs to change together, matching the expanded lifecycle plan."
+        },
+        {
+          "label": "Temporal TypeScript workflow message passing",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "Official docs define Signals as asynchronous workflow-state changes and Queries as synchronous read-only state retrieval; object payloads are preferred for evolvable signatures."
+        },
+        {
+          "label": "Zod official documentation",
+          "locator": "https://github.com/colinhacks/zod/blob/v3.24.2/README.md",
+          "summary": "Official Zod docs support strict objects for unknown-key rejection, discriminated unions, safeParse, and refine/superRefine for custom non-empty and cross-field invariants."
+        },
+        {
+          "label": "Temporal official TypeScript samples",
+          "locator": "https://github.com/temporalio/samples-typescript/tree/fb0aa23d75394a132646de883842dfacdacd5aa0",
+          "summary": "Public official samples use defineSignal/setHandler for workflow-state mutation and defineQuery/setHandler for state reads, matching the existing Advance pattern."
+        }
+      ],
+      "architecture_assessment": "Design is structurally correct and simpler than alternatives. Modify-only adv_delta_modify reuses the existing typed modify variant, Store/Signal/Query/read-back lifecycle, and sole archive writer rather than introducing CRUD, direct spec edits, Temporal Updates, or a second archive engine (https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/archive/delta.ts; https://docs.temporal.io/develop/typescript/workflows/message-passing). Engineer-first then same-cycle designer follow-up aligns with existing implementation-cycle and report-key primitives, and returned reportId avoids heuristic key reconstruction (https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/tools/subagent-report.ts#L694-L715; https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/types/subagent-reports.ts#L82-L109). AC1-AC10, C1-C6, and DONT1-DONT5 are covered at design level. Two implementation-defining cautions must be made explicit before planning: (1) successful designer evidence must structurally require status=complete, empty blockers, and all required verification exit codes zero; current completion helper checks only status/task/cycle (https://github.com/Sharper-Flow/Advance/blob/fa33e04c17579d5f56d3e8a2f13f6b063b1bcb48/plugin/src/temporal/change-state.ts#L1092-L1105); (2) modify validation must run at both tool preflight and workflow reducer boundaries, verify the target exists in the named capability, reject empty changes, malformed/empty/duplicate scenario IDs and wrong scenario parents, and reject any existing same-target modify/remove/rename before state mutation. Strict/refined schemas are the canonical mechanism (https://github.com/colinhacks/zod/blob/v3.24.2/README.md).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No architecture blocker. Resolve two cautions in design-derived planning/tests: define the complete designer-success predicate, and enumerate reducer-level modify invariants/atomicity. Current packet omitted labeled TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors; research continued under explicit user objective and this omission is recorded as a follow-up."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "A dedicated adv_delta_modify duplicates some adv_delta_add lifecycle plumbing, but preserves a narrow, discoverable, modify-only public contract and avoids widening the established add-only tool.",
+          "Strict pre-signal plus reducer validation adds duplicated checks, but protects Temporal replay/alternate callers and keeps malformed/conflicting writes out of durable change state.",
+          "Mandatory designer follow-up adds latency and a second worker/report dependency for every structurally classified frontend task, but provides enforceable UI quality and preserves reviewer ownership.",
+          "Referential integrity against returned reportId adds lookup and tests, but prevents spoofed, stale, reconstructed, or cross-task/cycle implementation provenance."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Expand adv_delta_add to accept add|modify",
+            "disposition": "rejected",
+            "rationale": "The tool name and accepted add-only contract would become misleading, existing add-only regression law would weaken, and callers would receive a broader mutation surface than needed."
+          },
+          {
+            "option": "Expose generic CRUD delta writer",
+            "disposition": "rejected",
+            "rationale": "Remove and rename semantics are unnecessary for AC8-AC9 and materially widen destructive/conflict behavior."
+          },
+          {
+            "option": "Directly edit rq-delDefaults10 in global spec files",
+            "disposition": "rejected",
+            "rationale": "Violates archive-as-sole-global-writer boundary and DONT5; bypasses durable change evidence and validation."
+          },
+          {
+            "option": "Add a second modify archive engine",
+            "disposition": "rejected",
+            "rationale": "Existing generic archive engine already applies typed modify deltas; duplication would create drift."
+          },
+          {
+            "option": "Route frontend work directly to adv-designer",
+            "disposition": "rejected",
+            "rationale": "Contradicts AC1 and loses engineer ownership for code/business boundaries."
+          },
+          {
+            "option": "Reconstruct engineer report keys from task/attempt fields",
+            "disposition": "rejected",
+            "rationale": "Returned reportId already provides durable identity; reconstruction invites stale or mismatched provenance."
+          },
+          {
+            "option": "Create a new designer-follow-up state machine",
+            "disposition": "rejected",
+            "rationale": "Existing apply-cycle, report persistence, and task-completion guard primitives can enforce the lifecycle with less state and fewer failure modes."
+          }
+        ],
+        "recommendation": "Proceed after amending planning/test obligations to name both structural predicates: (a) designer evidence is completion-authorizing only when same task/cycle, status complete, blockers empty, and required verification passes; (b) adv_delta_modify validates strict non-empty changes, exact capability-local target, scenario parent/format/non-empty/uniqueness, global delta-id uniqueness, and same-target conflict uniqueness at tool and reducer boundaries before mutation. Keep one shared follow-up builder for delegated engineer reportId and inline provenance; prove dispatch/report/verification failures leave task in_progress with recovery evidence."
+      },
+      "recommendation": "Advance design gate with caution, not failure. Before planning, add explicit matrix tests for every AC/C/DONT plus malformed/empty/scenario/conflict modify cases, successful and unsuccessful engineer reportId references, delegated and inline lifecycle order, designer verification failure, completion blocking, hint non-override, reviewer ownership, registry/policy/CLI/preflight/docs drift, and archive-only rq-delDefaults10 application.",
+      "follow_ups": [
+        "Packet warning: labeled TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors were absent; identity anchors were present, so research continued under the explicit user objective.",
+        "Specify whether a designer report with status=complete but any non-zero verification exit_code, non-empty blockers, or blocking consumer warning is rejected at report ingest or simply non-authorizing at completion; prefer structural ingest consistency plus completion defense-in-depth.",
+        "Specify that modified scenarios, when supplied, must be non-empty, unique by ID, exact children of target_id, and fully valid Given/When/Then records before signaling.",
+        "Ensure no direct disk-projection recovery path is introduced for adv_delta_modify; mirror adv_delta_add refusal semantics."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "restoreDesignerFollowUp",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/restoreDesignerFollowUp",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-prep.md",
+          "summary": "Corrected stale designer-direct frontend-routing prose to match engineer-first classified UI implementation and matching-cycle designer follow-up.",
+          "verification": "CI=true bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-designer-assets.test.ts src/temporal/change-state.test.ts src/temporal/change-state.spec-delta.test.ts src/tools/spec-delta.test.ts (165 passed)."
+        },
+        {
+          "file": "plugin/src/adv-prep-assets.test.ts",
+          "summary": "Added regression assertions preventing stale designer-direct routing language in the prep command.",
+          "verification": "Targeted asset and lifecycle/spec-delta suite passed (165 tests)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Frontend routing is documented in both apply and prep command contracts; changing the execution path requires a stale-language scan across both surfaces, not only agent packets."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-designer-assets.test.ts src/temporal/change-state.test.ts src/temporal/change-state.spec-delta.test.ts src/tools/spec-delta.test.ts",
+          "CI=true bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-designer-assets.test.ts src/temporal/change-state.test.ts src/temporal/change-state.spec-delta.test.ts src/tools/spec-delta.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Initial throttled test invocation stopped before tests because pnpm required CI confirmation to recreate the missing worktree modules directory. Diagnosed environment setup; reran with CI=true: 5 files, 165 tests passed. git diff --check passed. Reviewed typed modify validation/reducer atomicity, matching-cycle designer provenance and completion guards, and command/agent contract surfaces."
+      },
+      "scope_drift": null,
+      "risks": [
+        "docs/specs/delegation-defaults.md intentionally remains the pre-archive global-spec text; the recorded typed modify delta is the approved path that archive must materialize."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "restoreDesignerFollowUp",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/restoreDesignerFollowUp",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "DOC-M1-1",
+          "label": "blocker",
+          "file": "plugin/src/delegation-matrix.test.ts",
+          "line": 742,
+          "what": "The semantic rq-delDefaults10 regression test correctly fails because the current global spec still mandates direct adv-designer initial routing.",
+          "why": "AC7 and AC9 require the archived global law to be engineer-first. The approved change-owned dl-RestoreDel10 is present but archive has not yet applied it.",
+          "fix": "Apply the recorded dl-RestoreDel10 through the normal archive path; do not directly edit .adv/specs or docs/specs."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-prep.md",
+          "summary": "Aligned frontend metadata wording with engineer-first implementation and mandatory designer follow-up.",
+          "verification": "Covered by adv-prep-assets.test.ts assertions; targeted suite ran with this file passing."
+        },
+        {
+          "file": "plugin/src/adv-prep-assets.test.ts",
+          "summary": "Added regression assertions rejecting designer-direct routing wording.",
+          "verification": "Targeted suite passed this test file."
+        },
+        {
+          "file": "plugin/src/tools/spec-delta.ts",
+          "summary": "Corrected top-level documentation for typed add and narrow modify paths while preserving global-write and CRUD boundaries.",
+          "verification": "pnpm --dir plugin run check passed."
+        },
+        {
+          "file": "plugin/src/delegation-matrix.test.ts",
+          "summary": "Replaced loose agent-name substring assertions with engineer-first body and scenario semantics.",
+          "verification": "Targeted suite intentionally exposes the unarchived global-spec mismatch."
+        },
+        {
+          "file": "CHANGELOG.md",
+          "summary": "Added concise Unreleased entries for adv_delta_modify and engineer-first designer follow-up behavior.",
+          "verification": "pnpm --dir plugin run check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A semantic regression test for archive-owned spec changes must assert the approved post-archive requirement semantics; before archive it should fail rather than silently accept a stale global spec through loose agent-name substrings."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-prep-assets.test.ts src/tools/spec-delta.test.ts src/delegation-matrix.test.ts",
+          "CI=true bin/oc-test targeted -- src/adv-prep-assets.test.ts src/tools/spec-delta.test.ts src/delegation-matrix.test.ts",
+          "CI=true pnpm --dir plugin run check"
+        ],
+        "results": "fail",
+        "evidence": "Initial targeted command could not install dependencies without TTY. CI=true rerun executed 68 tests: 67 passed; delegation-matrix rq-delDefaults10 failed deterministically because current global spec is still designer-direct. pnpm check passed after Prettier formatting."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The committed semantic test remains red until archive applies dl-RestoreDel10 to the global spec.",
+        "Post-commit deployment hook failed because pnpm install refused non-TTY module removal without CI=true; commit itself succeeded."
+      ],
+      "required_main_agent_actions": [
+        "Run the normal archive flow so dl-RestoreDel10 updates the global delegation-defaults spec; do not directly edit .adv/specs or docs/specs.",
+        "After archive, rerun CI=true bin/oc-test targeted -- src/adv-prep-assets.test.ts src/tools/spec-delta.test.ts src/delegation-matrix.test.ts and confirm rq-delDefaults10 passes.",
+        "If deployment is required, rerun the source deployment/build with CI=true after confirming the worktree dependency state; the post-commit deploy hook did not deploy stale dist.",
+        "Leave plugin/src/tools/change.ts untouched; it remains the sole dirty, unstaged unrelated recovery change."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-1a77938283ba": [
+      {
+        "runId": "tr_mrqvs0y0_475a48b2",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/spec-delta.test.ts plugin/src/temporal/change-state.spec-delta.test.ts plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "durationMs": 1987.1799709999468,
+        "assertionDensity": 1.1857142857142857,
+        "mockSurface": [
+          {
+            "pattern": "vi.mock",
+            "count": 4
+          },
+          {
+            "pattern": "vi.fn",
+            "count": 19
+          }
+        ],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-18T21:30:29.567Z"
+      },
+      {
+        "runId": "tr_mrqvshkt_679cef46",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/spec-delta.test.ts plugin/src/temporal/change-state.spec-delta.test.ts plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "durationMs": 2322.042846999946,
+        "assertionDensity": 1.1857142857142857,
+        "mockSurface": [
+          {
+            "pattern": "vi.mock",
+            "count": 4
+          },
+          {
+            "pattern": "vi.fn",
+            "count": 19
+          }
+        ],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-18T21:30:51.112Z"
+      },
+      {
+        "runId": "tr_mrqvspuy_b7a66e92",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "CI=true bin/oc-test targeted -- plugin/src/tools/spec-delta.test.ts plugin/src/temporal/change-state.spec-delta.test.ts plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "durationMs": 1463.4493790001143,
+        "assertionDensity": 1.1857142857142857,
+        "mockSurface": [
+          {
+            "pattern": "vi.mock",
+            "count": 4
+          },
+          {
+            "pattern": "vi.fn",
+            "count": 19
+          }
+        ],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-18T21:31:01.861Z"
+      },
+      {
+        "runId": "tr_mrqvszbw_14395e66",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true bin/oc-test targeted -- src/tools/spec-delta.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts",
+        "durationMs": 4697.603096000035,
+        "recordedAt": "2026-07-18T21:31:14.127Z"
+      },
+      {
+        "runId": "tr_mrqvw7m9_0daffbab",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true bin/oc-test targeted -- src/tools/spec-delta.test.ts src/temporal/change-state.spec-delta.test.ts src/storage/store-temporal/spec-deltas.test.ts",
+        "durationMs": 5525.879533999949,
+        "recordedAt": "2026-07-18T21:33:44.937Z"
+      }
+    ],
+    "tk-c58dd4445d55": [
+      {
+        "runId": "tr_mrqw8zs9_f4eef7ce",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "CI=true bin/oc-test targeted -- src/temporal/change-state.test.ts src/adv-designer-assets.test.ts src/subagent-reports-spec-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/delegation-matrix.test.ts",
+        "durationMs": 2481.1170669998974,
+        "recordedAt": "2026-07-18T21:43:41.213Z"
+      },
+      {
+        "runId": "tr_mrqwcf0u_8989ffdf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true bin/oc-test targeted -- src/temporal/change-state.test.ts src/adv-designer-assets.test.ts src/subagent-reports-spec-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/delegation-matrix.test.ts",
+        "durationMs": 2460.7962269999553,
+        "recordedAt": "2026-07-18T21:46:20.896Z"
+      },
+      {
+        "runId": "tr_mrqwf3me_346daa8c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true bin/oc-test targeted -- src/temporal/change-state.test.ts src/adv-designer-assets.test.ts src/subagent-reports-spec-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/delegation-matrix.test.ts",
+        "durationMs": 2227.9617159999907,
+        "recordedAt": "2026-07-18T21:48:26.072Z"
+      }
+    ],
+    "tk-97453ce00c9c": [
+      {
+        "runId": "tr_mrqwsin8_01cbaabf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true bin/oc-test targeted -- src/temporal/messages.test.ts",
+        "durationMs": 10934.763255000114,
+        "recordedAt": "2026-07-18T21:58:52.493Z"
+      },
+      {
+        "runId": "tr_mrqwvsfc_0fc690e2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true bin/oc-test targeted -- src/__tests__/no-psw-references.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/temporal/__tests__/continue-as-new.itest.ts",
+        "durationMs": 21963.64885500027,
+        "recordedAt": "2026-07-18T22:01:24.817Z"
+      },
+      {
+        "runId": "tr_mrqwxc9d_ae268c78",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "CI=true bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 2208.7015390000306,
+        "recordedAt": "2026-07-18T22:02:37.202Z"
+      },
+      {
+        "runId": "tr_mrqwzekt_c1de18ea",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/ops-follow-up-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/deploy-local.test.ts src/tool-name-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 8832.576256999746,
+        "recordedAt": "2026-07-18T22:04:13.440Z"
+      },
+      {
+        "runId": "tr_mrqx626u_e50a84a8",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "CI=true bin/oc-test full",
+        "durationMs": 300167.31884400034,
+        "recordedAt": "2026-07-18T22:09:23.980Z"
+      },
+      {
+        "runId": "tr_mrr8p615_d74ccf24",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/spec-delta.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 1737.8698159999913,
+        "recordedAt": "2026-07-19T03:32:11.239Z"
+      },
+      {
+        "runId": "tr_mrr8pn9l_82b1db89",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true ../bin/oc-test targeted -- src/tools/spec-delta.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 4390.749489000009,
+        "recordedAt": "2026-07-19T03:32:33.528Z"
+      },
+      {
+        "runId": "tr_mrr8qtnk_5d0b1bf9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "CI=true ../bin/oc-test targeted -- src/adv-designer-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+        "durationMs": 2003.5916060000018,
+        "recordedAt": "2026-07-19T03:33:28.509Z"
+      }
+    ]
+  },
+  "deltas": {
+    "delegation-defaults": [
+      {
+        "id": "dl-RestoreDel10",
+        "operation": "modify",
+        "target_id": "rq-delDefaults10",
+        "changes": {
+          "title": "Engineer-First Frontend Dispatch with Designer Follow-up",
+          "body": "For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.",
+          "tags": [
+            "delegation",
+            "frontend",
+            "engineer-first",
+            "designer-follow-up"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-delDefaults10.1",
+              "title": "Classified frontend task starts with engineer",
+              "given": [
+                "A code task has metadata.frontend set to true",
+                "No step-4 risk signal forces inline implementation"
+              ],
+              "when": "ADV selects an initial implementation lane",
+              "then": [
+                "ADV dispatches adv-engineer before adv-designer",
+                "ADV does not dispatch adv-designer as the initial implementation lane"
+              ]
+            },
+            {
+              "id": "rq-delDefaults10.2",
+              "title": "Matching implementation receipt drives designer follow-up",
+              "given": [
+                "A code task has metadata.frontend set to true",
+                "A same-task same-cycle adv-engineer report completed with passing verification and no blockers, or a classified inline implementation has bounded provenance"
+              ],
+              "when": "Initial implementation completes",
+              "then": [
+                "ADV dispatches a matching-cycle adv-designer follow-up",
+                "Designer provenance references the engineer report or inline receipt",
+                "Missing, stale, or mismatched provenance is rejected"
+              ]
+            },
+            {
+              "id": "rq-delDefaults10.3",
+              "title": "Reviewer retains review and harden ownership",
+              "given": [
+                "A change includes frontend scope"
+              ],
+              "when": "The change reaches review or harden",
+              "then": [
+                "adv-designer does not own review or harden",
+                "adv-reviewer retains review and harden ownership"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-18T20:10:41.049Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem framing confirmed by user; full proposal records scope, constraints, and discovery agenda. User invoked the exact discovery continuation workflow.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "c9e707e51863da7cf19f6a2dfacaf9b94d1be2d010461fe497b9942ca82fa7e3",
+        "non_whitespace_chars": 2744,
+        "checked_at": "2026-07-18T20:08:30.242Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-18T20:56:23.572Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry discovery separated the add-only tool-scope cause from the later delegation-law flip, adopted modify-only safe delta restoration, and reminted strict 30-item contract.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "non_whitespace_chars": 4524,
+        "checked_at": "2026-07-18T20:08:30.245Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-18T21:09:03.704Z",
+      "completed_by": "agent",
+      "approval_evidence": "Expanded design adopts modify-only safe delta surface and engineer-first lifecycle. Independent validator returned caution/no blockers; completion predicate and dual-boundary modify invariants are explicit planning obligations.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "462efe0a1b7a87cb552bd1707c0d38429d964802e0688ed66798ee56ea42eec4",
+        "non_whitespace_chars": 3331,
+        "checked_at": "2026-07-18T20:08:30.246Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-18T21:14:16.269Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved ordered three-task graph: safe modify delta path, engineer-first designer follow-up restoration, then contract verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-18T22:21:20.546Z",
+      "completed_by": "agent",
+      "approval_evidence": "All three tasks checkpointed. Full suite passed: 405 files, 6176 tests, 1 expected fail. pnpm run check passed. Typed modify delta dl-RestoreDel10 recorded for rq-delDefaults10."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-19T03:36:52.833Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted the reviewed delivery. Contract matrix: 30 rows, zero failed/violated/unknown. Executive summary persisted with required consequence context.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Completed/poisoned workflow acceptance recovery: normal workflow cannot safely replay after WorkflowTaskFailedCauseNonDeterministicError, while the typed contract matrix and executive-summary artifact are durable and verified."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "User approved expanding the fix to restore the missing safe spec-modification mechanism before correcting the delegation law, and requested root-cause investigation of the regression/removal.",
+      "scope_delta": "Add restoration and tests for the typed modify/replace spec-delta path required to change existing requirement rq-delDefaults10; investigate and document why that mechanism and the engineer-first law were altered; perform all work in /home/jon/dev/advance so source, tests, and eventual deployment persist together.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-18T20:47:52.469Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-18T20:08:24.192Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+      "approvedAt": "2026-07-18T20:56:17.088Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Every task with `metadata.frontend: \"true\"` has an engineer-first, designer-follow-up lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Delegated and risk-forced inline UI/UX implementation both produce verifiable designer follow-up or remain incomplete with explicit recovery state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "A later edit cannot silently restore designer-direct initial implementation without semantic regression failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "An existing named requirement can be safely changed through a typed, audited modification delta and archive application.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A delegated `type: code` task with `metadata.frontend: \"true\"` starts with `adv-engineer`; no initial direct-designer route remains.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Successful classified implementation produces matching-cycle `adv-designer` follow-up with bounded engineer-result context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Successful inline classified implementation produces the same follow-up with bounded inline provenance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Classified designer reports reject missing, stale, or mismatched implementation-cycle provenance; existing completion guards remain enforced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Designer work remains UI-scoped, may align adjacent UI in the same surface, and reports broader work as follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Unavailable preview evidence records reason plus bounded source/a11y review evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Delegation law, command/agent packets, documentation mirror, and semantic regression tests agree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`adv_delta_modify` accepts only a valid existing requirement target and validated change shape; unknown, duplicate, malformed, or conflicting target changes fail atomically.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`rq-delDefaults10` is restored through the typed modify-delta path; archive is the sole global-spec writer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Durable change evidence records the separate causes of the add-only delta scope and the later designer-direct dispatch flip.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "UI/UX classification is structural (`metadata.frontend`), never authoritative path/title/prose inference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Designer follow-up receives implementation-cycle provenance and stays outside backend, API, storage, and business-logic scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Existing matching-cycle completion and stale-report rejection guards remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`adv-reviewer` remains sole review/harden owner.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Source changes land in `/home/jon/dev/advance`; deployed artifacts remain deploy-script outputs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Scope is modify-only. Remove/rename/full CRUD delta operations remain out of scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not route initial frontend implementation directly to `adv-designer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not weaken typed report validation or cycle provenance to make designer-direct routing pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not treat filename, component name, title, or free-form wording as authoritative UI/UX classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not expand designer corrections beyond adjacent UI alignment in the same surface without surfaced follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not directly edit global specs or add duplicate contradictory requirements as a substitute for modification support.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Model-routing policy or model selection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Product-facing UI implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Review/harden ownership changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Non-UI worker lane routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Remove, rename, or full CRUD spec-delta tooling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-19T03:35:27.213Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state + delegation asset suites passed; classified frontend route test proves engineer-first dispatch."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Lifecycle tests cover delegated and inline designer-follow-up paths plus failed-follow-up completion guard."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Semantic delegation regression tests passed; direct-designer initial route is rejected."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec-delta suites passed; modify delta recorded for existing rq-delDefaults10."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Delegation tests prove metadata.frontend=true selects adv-engineer first."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Matching engineer report and cycle provenance tests passed for designer follow-up."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Risk-forced inline receipt path and designer follow-up tests passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Report reducer tests reject missing, stale, and mismatched implementation-cycle provenance."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed designer packet remains UI-scoped and broader work is follow-up only."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Designer guidance requires unavailable-preview reason with bounded source/a11y fallback."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Asset and semantic suites passed; reviewer corrected stale SETUP mirror in b0d58aa4."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "61 spec-delta tests validate unknown, duplicate, malformed, and conflicting targets fail atomically."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Durable delta dl-RestoreDel10 modifies delegation-defaults/rq-delDefaults10; archive remains global writer."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_audit",
+          "evidence": "Design Root-Cause Record preserves separate add-only cancellation and 669f124a delegation flip chains."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Routing predicates use metadata.frontend; review found no authoritative title/path/prose classifier."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Designer follow-up consumes bounded receipt provenance and retains UI-only scope."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Matching-cycle and stale-report rejection tests passed."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Delegation law and command assets retain adv-reviewer as review/harden owner."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Execution checkpoints and reviewer commit exist on change/restoreDesignerFollowUp worktree."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Registry tests confirm only modify delta operation added; no remove/rename/full CRUD surface."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Semantic lifecycle tests reject initial direct adv-designer route for classified tasks."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Provenance validation tests retain strict typed report and cycle checks."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Classification remains structural metadata.frontend only."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed designer scope permits adjacent same-surface alignment only."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Typed modify delta is change-owned; no direct global spec write used."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review found no model-routing policy or selection changes."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review found no product-facing UI implementation."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review/harden ownership remains adv-reviewer."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review found no non-UI worker lane routing changes."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tool registry exposes modify only; remove, rename, and full CRUD absent."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A delegated `type: code` task with `metadata.frontend: \"true\"` starts with `adv-engineer`; no initial direct-designer route remains.",
+    "Successful classified implementation produces matching-cycle `adv-designer` follow-up with bounded engineer-result context.",
+    "Successful inline classified implementation produces the same follow-up with bounded inline provenance.",
+    "Classified designer reports reject missing, stale, or mismatched implementation-cycle provenance; existing completion guards remain enforced.",
+    "Designer work remains UI-scoped, may align adjacent UI in the same surface, and reports broader work as follow-up.",
+    "Unavailable preview evidence records reason plus bounded source/a11y review evidence.",
+    "Delegation law, command/agent packets, documentation mirror, and semantic regression tests agree.",
+    "`adv_delta_modify` accepts only a valid existing requirement target and validated change shape; unknown, duplicate, malformed, or conflicting target changes fail atomically.",
+    "`rq-delDefaults10` is restored through the typed modify-delta path; archive is the sole global-spec writer.",
+    "Durable change evidence records the separate causes of the add-only delta scope and the later designer-direct dispatch flip."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|---|---|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n# Proposal: Restore designer follow-up\n\n## Why\nThe accepted `updateSubagentDispatch` contract requires one initial code implementation lane (`adv-engineer`) and a subsequent design-focused pass (`adv-designer`) for explicitly classified UI/UX work. Current apply routing regressed to direct frontend implementation by `adv-designer`.\n\n## What Changes\n- Restore engineer-first dispatch for delegated code tasks, including explicitly classified UI/UX tasks.\n- Run the designer after implementation for classified UI/UX work, with implementation-result and visual-context handoff.\n- Reconcile command routing, worker packets, agent contracts, delegation specification, generated documentation, and regression coverage.\n\n## User Outcomes\n- UI work has predictable implementation ownership.\n- Shipped interfaces receive a bounded, dedicated quality pass after code exists.\n- Backend/business logic stays with engineering; review and hardening stay independent.\n\n## Affected Code\n- `.opencode/command/adv-apply.md`\n- `.opencode/command/adv-prep.md`\n- `.opencode/agents/adv-engineer.md`\n- `.opencode/agents/adv-designer.md`\n- delegation-defaults documentation and dispatch regression tests\n\n## Related Repositories\n- Advance source: `/home/jon/dev/advance`\n- Deployed Advance artifacts remain deploy-script outputs.\n\n## Constraints\n- UI/UX classification must remain structural (`metadata.frontend`), not title/path inference.\n- Designer follow-up receives engineer outcome and remains within frontend/UI scope.\n- `adv-reviewer` remains sole review/harden owner.\n\n## Impact\nClassified UI/UX work gains an ordered quality pass after implementation. Non-UI code retains existing engineer routing.\n\n## Scope\n### In Scope\n- Engineer-first UI/UX implementation routing.\n- Ordered designer follow-up dispatch and packet context.\n- Relevant agent/command/spec/documentation/test alignment.\n\n### Out of Scope\n- Model-routing policy.\n- Product-facing UI implementation.\n- Review/harden ownership changes.\n\n### Must Not\n- Must not route initial frontend implementation directly to `adv-designer`.\n- Must not use filename, path, title, or prose heuristics as authoritative UI/UX classification.\n- Must not give `adv-designer` backend, API, storage, or business-logic authority.\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Result | Evidence |\n|---|---|---|\n| Skills considered | PASS | `adv-agent-tool-contracts` loaded; no pending global skill review found. |\n| Prior research extension | PASS | Archived `updateSubagentDispatch` and `docs/adv-agents-design-skills-prep.md` consulted. |\n| Conflict scan | DEGRADED | Target inventory returned 95 changes but transport was truncated; no active same-purpose change observed in returned inventory. |\n| Edge cases | PASS | Inline implementation, provenance, stale assertions, and delegation-hint behavior analyzed. |\n| Design question depth | PASS | Questions are bounded below with trust model, blast radius, and alternatives. |\n| Draft spec deltas | PASS | `rq-delDefaults10` restoration drafted below. |\n| Related-pattern scan | PASS | Seven direct-designer routing/documentation/test surfaces found. |\n| LBP check | PASS | Internal contract restoration; no external solution is viable or required. |\n| Completeness verification | PASS | Multiple routing surfaces verified; no sole-entry claim is relied on. |\n\n### Skills Considered\n- `adv-agent-tool-contracts` — direct match; packet, typed-report, specification, and regression-test alignment is required.\n- `adv-frontend-review` — relevant to designer quality bar but not to this dispatch-contract restoration; not loaded.\n\n### Extends\n- `updateSubagentDispatch` — accepted contract established engineer-first implementation and matching-cycle designer follow-up.\n- `docs/adv-agents-design-skills-prep.md` — identified frontend routing metadata and need for structural quality evidence.\n- New finding: commit `669f124a` on 2026-07-15 changed `rq-delDefaults10` from engineer-first to designer-direct while cycle-anchor guards remained aligned to a follow-up model.\n\n### Conflict Scan\n- `updateSubagentDispatch` is the relevant archived precedent.\n- No active same-purpose restoration change was observed in the returned target inventory.\n- Inventory completeness is degraded because the cross-project list response was truncated; discovery must not treat this as a clean global no-conflict assertion.\n\n### Current State\n- `.opencode/command/adv-apply.md` Priority 1.5 directly routes `metadata.frontend == \"true\"` to `adv-designer`.\n- `ADV_INSTRUCTIONS.md`, worker contracts, prep guidance, the delegation documentation mirror, and regression assets repeat that direct-designer law.\n- Reducer guards already require matching-cycle designer evidence before frontend task completion and reject stale designer-cycle evidence. They are the structural seam to preserve, not weaken.\n\n### Edge Cases\n1. Risk-forced inline UI implementation must still emit a designer follow-up packet with inline provenance; otherwise task completion blocks without a reachable follow-up.\n2. Engineer-first dispatch must produce `engineer` provenance for the engineer report and `engineer_report` provenance for the designer follow-up; those schema arms are currently under-produced.\n3. A stale matrix test comment currently says engineer-first while its assertions permit designer-direct behavior; assertions must test the semantic then-clauses.\n4. `delegation_hint: \"delegate_preferred\"` must not bypass engineer-first ordering for classified UI/UX tasks.\n\n### Open Design Questions\n1. **Technical, agent-resolved.** How should inline UI work seed follow-up provenance? Trust: agent-only. Blast radius: blocked completion if wrong. Alternatives: use existing inline provenance arm; do not weaken cycle guards. Recommendation: existing inline arm.\n2. **Technical, agent-resolved.** How should engineer and designer reports prove ordered handoff? Trust: agent-only. Blast radius: designer could appear first. Alternatives: new heuristic versus existing typed `engineer` and `engineer_report` provenance. Recommendation: wire existing typed arms and add packet/schema tests.\n3. **Outcome scope, user confirmation needed.** Which classified UI/UX tasks require a designer pass, and whether unavailable visual verification may be explicitly deferred. Trust: joint. Blast radius: quality guarantees and blocked delivery. Alternatives are presented in the discovery questions.\n\n### Draft Spec Deltas\n- `rq-delDefaults10` — restore Engineer-First Frontend Dispatch.\n  - Given a delegated code task with `metadata.frontend == \"true\"`, when apply dispatch begins, then the initial implementation worker is `adv-engineer`.\n  - Given successful classified UI/UX implementation, when the engineer result is available, then a same-cycle `adv-designer` follow-up receives the engineer outcome and UI scope.\n  - Given an inline classified UI/UX implementation, when implementation succeeds, then the designer follow-up receives bounded inline provenance.\n\n### Related Pattern Scan\nDirect-designer behavior repeats across the apply command, session routing instructions, prep metadata guidance, agent contracts, delegation documentation, and four regression assets. These are one policy family and must change together; no unrelated worker lane was found with the same UI lifecycle contract.\n\n### Completeness Verification\n- **Problem completeness — high confidence:** evidence identifies the regression commit, direct routing, packet semantics, and downstream cycle guards; this is more than a single prompt-text symptom.\n- **Solution scope — high confidence:** routing is not a single chokepoint. Required surfaces are command dispatch, orchestrator instructions, worker packets/contracts, spec mirror, and tests. Reducer guards are explicitly retained in scope as invariants, not rewritten.\n- **Secondary surfaces:** prep metadata law and report-packet schema are in scope because they control classification and ordering proof. Review/harden and non-UI worker routing remain out of scope.\n\n### LBP Check\nRestore the accepted structural contract using typed metadata, matching-cycle provenance, and regression tests. No external product/library choice exists; external-solution check skipped.\n\n### Discovery Opportunity Scout\nSkipped — narrow internal contract restoration; opportunity surface outside the accepted scope is zero.\n\n### Recommended Objectives\n1. Make `adv-engineer` the first implementation worker for classified UI/UX tasks.\n2. Require a matching-cycle `adv-designer` correction/polish/alignment follow-up after successful implementation.\n3. Make ordering and provenance machine-checkable without weakening completion or review gates.\n4. Keep all policy surfaces and tests synchronized with the authoritative delegation law.\n\n### AMBIGUITY ANALYSIS\nNo blocking ambiguity findings.\n\nCoverage: B:C F:C S:C M:C\n\n## Discovery Agenda Resolved\n1. Regression identified: `669f124a` flipped the accepted routing law.\n2. Current policy is multi-surface; the accepted engineer-first contract is the restoration target.\n3. Inline, engineer-report, stale-cycle, and hint edge cases have explicit dispositions.\n4. Ordering proof uses typed provenance and existing reducer guards.\n5. Regression tests must assert semantics rather than stale text presence.",
+    "problemStatement": "# Problem statement\n\nThe archived `updateSubagentDispatch` change established an engineer-first lifecycle for UI/UX work: `adv-engineer` implements code, then `adv-designer` performs a bounded UI/UX repair, polish, and alignment pass. Current Advance source instead routes `metadata.frontend == \"true\"` directly to `adv-designer`, contradicting that accepted dispatch contract.\n\nRestore a structural, tested engineer-first → designer-follow-up lifecycle for explicitly classified UI/UX work. Preserve `adv-reviewer` as review/harden owner and keep the designer outside backend, API, storage, and business-logic scope.",
+    "agreement": "# Agreement — Restore designer follow-up\n\n## Objectives\n\n1. Restore engineer-first, designer-follow-up lifecycle for every structurally classified UI/UX task.\n2. Provide the smallest audited typed spec-delta operation needed to modify an existing requirement safely.\n3. Restore the delegation law through that operation, not a direct global-spec edit.\n4. Make ordering, provenance, delta validation, and failure behavior machine-checkable.\n5. Preserve the root-cause evidence so future work does not mistake add-only delta support for complete spec-editing support.\n\n## Success Criteria\n\n- SC1: Every task with `metadata.frontend: \"true\"` has an engineer-first, designer-follow-up lifecycle.\n- SC2: Delegated and risk-forced inline UI/UX implementation both produce verifiable designer follow-up or remain incomplete with explicit recovery state.\n- SC3: A later edit cannot silently restore designer-direct initial implementation without semantic regression failure.\n- SC4: An existing named requirement can be safely changed through a typed, audited modification delta and archive application.\n\n## Acceptance Criteria\n\n- AC1: A delegated `type: code` task with `metadata.frontend: \"true\"` starts with `adv-engineer`; no initial direct-designer route remains.\n- AC2: Successful classified implementation produces matching-cycle `adv-designer` follow-up with bounded engineer-result context.\n- AC3: Successful inline classified implementation produces the same follow-up with bounded inline provenance.\n- AC4: Classified designer reports reject missing, stale, or mismatched implementation-cycle provenance; existing completion guards remain enforced.\n- AC5: Designer work remains UI-scoped, may align adjacent UI in the same surface, and reports broader work as follow-up.\n- AC6: Unavailable preview evidence records reason plus bounded source/a11y review evidence.\n- AC7: Delegation law, command/agent packets, documentation mirror, and semantic regression tests agree.\n- AC8: `adv_delta_modify` accepts only a valid existing requirement target and validated change shape; unknown, duplicate, malformed, or conflicting target changes fail atomically.\n- AC9: `rq-delDefaults10` is restored through the typed modify-delta path; archive is the sole global-spec writer.\n- AC10: Durable change evidence records the separate causes of the add-only delta scope and the later designer-direct dispatch flip.\n\n## Constraints\n\n- C1: UI/UX classification is structural (`metadata.frontend`), never authoritative path/title/prose inference.\n- C2: Designer follow-up receives implementation-cycle provenance and stays outside backend, API, storage, and business-logic scope.\n- C3: Existing matching-cycle completion and stale-report rejection guards remain intact.\n- C4: `adv-reviewer` remains sole review/harden owner.\n- C5: Source changes land in `/home/jon/dev/advance`; deployed artifacts remain deploy-script outputs.\n- C6: Scope is modify-only. Remove/rename/full CRUD delta operations remain out of scope.\n\n## Avoidances\n\n- DONT1: Do not route initial frontend implementation directly to `adv-designer`.\n- DONT2: Do not weaken typed report validation or cycle provenance to make designer-direct routing pass.\n- DONT3: Do not treat filename, component name, title, or free-form wording as authoritative UI/UX classification.\n- DONT4: Do not expand designer corrections beyond adjacent UI alignment in the same surface without surfaced follow-up.\n- DONT5: Do not directly edit global specs or add duplicate contradictory requirements as a substitute for modification support.\n\n## Out of Scope\n\n- OOS1: Model-routing policy or model selection.\n- OOS2: Product-facing UI implementation.\n- OOS3: Review/harden ownership changes.\n- OOS4: Non-UI worker lane routing.\n- OOS5: Remove, rename, or full CRUD spec-delta tooling.\n\n## Preview Applicability\n\n- visual_surface: false\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- Rationale: orchestration/tooling change only; no product browser surface.\n\n## Decisions\n\n### User Decisions\n\n- All tasks marked `metadata.frontend: \"true\"` receive mandatory designer follow-up.\n- Unavailable preview permits documented bounded source/a11y fallback evidence.\n- Designer may align adjacent UI only in the same surface.\n- Restore safe modify support first, investigate why it was absent, and perform source work from `/home/jon/dev/advance`.\n\n### Agent Decisions (LBP)\n\n- Implement only `adv_delta_modify`, not full CRUD: current need is a validated existing-requirement modification; broader operations add unneeded safety surface.\n- Reuse existing archive delta engine and typed modify schema; expose a narrow orchestrator tool, Temporal signal/store operation, registry/policy entries, and tests.\n- Reuse existing implementation-cycle provenance and reducer guards; restore upstream routing and packet production.\n- Treat two causal chains separately: `adv_delta_add` was intentionally add-only and its follow-up was cancelled; later commit `669f124a` independently flipped delegation law and related test/mirror text.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nExpanded criteria approved by user in this session on 2026-07-18.",
+    "design": "# Design — Restore designer follow-up and safe spec modification\n\n## Architecture Overview\n\nRestore engineer-first → designer-follow-up UI delivery and add a narrow typed `adv_delta_modify` path. Modify records change-owned intent; archive remains sole global-spec writer and uses its existing generic modify engine.\n\n## Key Decisions\n\n1. Expose only `adv_delta_modify`; remove/rename/full CRUD stay out of scope.\n2. Export and strengthen strict modify schemas: reject empty changes; validate capability-local target and replacement-scenario parents.\n3. Mirror add-only lifecycle: validate → Signal → authoritative Query/read-back → projection. No direct global-spec write, Temporal Update, or second archive engine.\n4. Classified UI work starts with engineer. Successful engineer and inline paths share one designer-follow-up builder.\n5. Builder consumes returned durable `reportId`; `engineer_report` provenance must reference successful same-task/same-cycle engineer evidence.\n6. Designer dispatch/report/verification failure records recovery and prevents task checkpoint completion.\n\n## Implementation Strategy\n\n1. Add modify schema exports/refinements, tool, tests, signal/payload, reducer appender, Temporal store operation, registry/policy/repoint/CLI/title/banner/preflight/doc entries.\n2. Reuse archive modify application; record typed modification for `rq-delDefaults10`.\n3. Restore engineer-first routing, hint boundary, shared follow-up builder, provenance referential checks, and failure handling.\n4. Synchronize commands, agents, packet contracts, law/mirror, root-cause record, and semantic tests.\n\n## Design-Derived Criteria\n\n- DDC1: Non-empty, valid, capability-local modify changes reject invalid/unknown/duplicate/conflicting targets atomically at tool and reducer boundaries.\n- DDC2: Only change-owned delta state mutates before archive; no direct global write.\n- DDC3: No remove/rename/full-CRUD tools are registered.\n- DDC4: Engineer-report provenance requires same task/cycle, `status: complete`, empty blockers, and successful required verification.\n- DDC5: Delegated and inline classified UI work prove engineer-first → designer-follow-up; hints cannot select designer first.\n- DDC6: Failed follow-up cannot checkpoint completion; stale/mismatch guards remain unchanged.\n- DDC7: Tests cover delta validation/application, lifecycle order, provenance, hints, failures, and reviewer ownership.\n\n## LBP Analysis\n\nExpose the smallest missing control over existing typed archive capability. Reuse signals, read-back, report identity, implementation-cycle state, and archive dispatch; avoid heuristics, direct edits, second state machines, and full CRUD.\n\n## Risks / Mitigations\n\n- Invalid delta target → strict tool and reducer invariants.\n- Incomplete engineer evidence → require completed status, no blockers, and passing required verification before designer handoff.\n- Tool-surface drift → registry/policy/CLI/preflight/doc tests.\n- False task completion → recovery evidence and no checkpoint after follow-up failure.\n\n## Root-Cause Record\n\nAdd-only delta support was intentional and its modify follow-up was cancelled. `669f124a` separately flipped delegation law/mirror/test without touching delta tooling. Proven chains are distinct.\n\n## Design Leverage Scout\n\nAdopted: strict non-empty modify schema; target/scenario validation; returned report-ID handoff; same-task/cycle engineer referential check. Rejected: direct edits, Temporal Updates, new state machine, full CRUD.\n\n## Independent Validation\n\nCaution, no blockers. Validator confirmed modify-only path and existing archive/Temporal mechanisms are correct. Planning must implement and test: complete engineer-evidence predicate; tool and reducer modify invariants; unresolved designer failure cannot checkpoint completion.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nRestore a safe way to correct an existing specification rule and restore engineer-first delivery for classified frontend work. Release sign-off authorizes archive-time application of the reviewed typed delta and Git finalization.\n\n## Why It Matters\n\nThe prior add-only delta surface could not safely correct the existing delegation requirement, and classified frontend work could start with the designer rather than the engineer. This change restores an auditable modify path and a verified engineer-result provenance chain before UI/UX follow-up.\n\n## Verdict\n\nREADY FOR ARCHIVE SIGN-OFF\n\n## What Was Built\n\n1. Added `adv_delta_modify`, a typed change-owned modification record for existing requirements; global specs remain archive-owned.\n2. Restored engineer-first routing for `metadata.frontend: \"true\"`, followed by bounded `adv-designer` work only after matching engineer or inline provenance.\n3. Preserved strict task/cycle provenance validation and stale-report completion guards.\n4. Restored `rq-delDefaults10` through durable delta `dl-RestoreDel10` and recorded the two distinct regression causes.\n5. Corrected stale prep guidance, tool documentation, changelog, and semantic regression coverage in `148e4a9a` and `fc929c8d`.\n\n## What Was Verified\n\n- Acceptance review: APPROVED; contract matrix has 30 required rows passed or respected, with zero failures.\n- Full suite: 405 files, 6176 tests passed; 1 expected fail. `pnpm run check` passed.\n- Hardening: 68 targeted tests passed across prep assets, spec-delta, and delegation matrix after remediation; `git diff --check` passed.\n- Archive dry run: one `delegation-defaults` modify delta will update spec version `1.3.0 → 1.3.1` and generate `docs/specs/delegation-defaults.md`.\n- Preview URL: not applicable — agreement declares `visual_surface: false`; this is orchestration/tooling work with no product browser surface.\n\n## Remaining Concerns\n\n- Workflow history is non-deterministic (`WorkflowTaskFailedCauseNonDeterministicError`); acceptance proof used audited recovery, and archive must use the same evidence-aware recovery only if normal processing fails.\n- `plugin/src/tools/change.ts` remains dirty and unstaged in the worktree. It is unrelated recovery work and must not enter this archive release.\n\n## Supporting Evidence\n\n- Execution checkpoints: `tk-1a77938283ba`, `tk-c58dd4445d55`, `tk-97453ce00c9c`.\n- Durable requirement delta: `dl-RestoreDel10` for `delegation-defaults/rq-delDefaults10`.\n- Review/hardening commits: `b0d58aa4`, `148e4a9a`, `fc929c8d`.\n- Contract review matrix: 30 rows, zero failures.\n\n## Consequence Context\n\n1. **Delivered value — ready:** Restores safe modification of the delegation rule and engineer-first frontend delivery; source: tasks, review, and matrix.\n2. **Enabling-only/follow-up dependency — n/a:** No required child or ops follow-up exists; source: change follow-up links.\n3. **Ops readiness — ready:** No production runbook, service, or deployment obligation was introduced; source: hardening source scan and agreement scope.\n4. **Migration/data impact — n/a:** No migration, production data, or backfill behavior changed; source: implementation and archive dry run.\n5. **Frontend/preview impact — not applicable:** No product visual surface changed; source: agreement `visual_surface: false` and review.\n6. **Collision/release risk — warning:** One unrelated dirty unstaged `change.ts` file remains isolated; non-deterministic workflow history may require audited recovery; source: hardening status and durable workflow record.\n7. **Open follow-ups — n/a:** No open required follow-up or blocking ops obligation; source: change links and hardening review.\n8. **Next action — ready:** archive dry run passed; user sign-off can run archive and Phase 9 finalization.\n\n## Release Readiness Summary\n\n- **Test coverage — ready:** structural modify validation, engineer-first routing, matching-cycle provenance, and archive-time semantic application are covered; hardening target suite passed 68/68.\n- **Residual slop/maintainability — ready:** no debug instrumentation, skipped tests, dead imports, or type-eroding workaround was found in committed scope; tool code keeps typed boundaries and refuses direct disk recovery for deltas.\n- **Documentation hygiene — ready:** prep packet, agent/command mirrors, tool documentation, changelog, and semantic guard were reconciled. Global spec/docs remain intentionally pre-archive and dry run proves their archive-owned update.\n- **Production/deployment readiness — ready:** no credentials, environment variables, migrations, external services, infrastructure, or CI/CD behavior added; public tool is registered through existing typed registry and role-policy surfaces.\n- **Cleanup — warning:** unrelated `plugin/src/tools/change.ts` remains dirty/unstaged and is excluded from release staging. Archive must retain that isolation.\n- **Release proof — pending sign-off:** archive dry run plans one delta and one generated docs projection; Phase 9 still must prove merge/push or local merge before shipment.\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-18T20:24:36.228Z",
+      "contentHash": "fa7390e216e48ef204109e528296e33f59b4afd0cce5831deab768176ec05a18",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-18T20:08:30.347Z",
+      "contentHash": "bbc73553c40148c71c7cd63fd3a7e36a10eec2232c7c84f56c5c9d5adbe9cafb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-18T20:56:11.114Z",
+      "contentHash": "f3385c387e56e00110c0b04fc0b8cef357f6eed0bb5969bbd94d3f20fa949c80",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-18T21:08:55.997Z",
+      "contentHash": "462efe0a1b7a87cb552bd1707c0d38429d964802e0688ed66798ee56ea42eec4",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-19T03:58:13.239Z",
+      "contentHash": "ace596f51ff29a67ad9422498f60f74a53370ec32d804c6479190f8988fb9d14",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-19T03:58:13.239Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-19T03:29:43.975Z"
+    }
+  ]
+}

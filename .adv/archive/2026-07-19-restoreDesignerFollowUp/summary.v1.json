@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-07-19T04:34:15.473Z",
+  "capabilities": [
+    "delegation-defaults"
+  ],
+  "change_hash": "472edd6ee1d7d29bcb4a773c3e206aa183a88a6dc49c9c9a7d07aeda86b0a824",
+  "change_id": "restoreDesignerFollowUp",
+  "completed_tasks": 3,
+  "created_at": "2026-07-18T20:08:30.101Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-19T03:36:52.833Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "f8f74eea1d1c4e6f30e171628549eaaba058a1c52cb1237eb8b3443ed6266986",
+  "task_count": 3,
+  "title": "Restore designer follow-up",
+  "version": "1"
+}
