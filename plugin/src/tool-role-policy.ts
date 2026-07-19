@@ -452,6 +452,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Read-only single-tool schema and metadata projection; no handler invocation.",
   },
+  adv_tool_invoke: {
+    class: "orchestrator",
+    rationale:
+      "Strict in-process dispatcher through the canonical wrapped ToolDefinition.execute; preserves ToolContext, validation, authorization, approvals, recovery restrictions, and timeouts. Recursion exclusion (adv_tool_invoke, adv_tool_catalog, adv_tool_describe, execute) is enforced before any lookup or dispatch (addProviderToolSearch AC1-AC4).",
+  },
 } as const;
 
 function namesByClass(className: ToolRoleClass): readonly string[] {

@@ -61,6 +61,7 @@ import { epicTools } from "./tools/epic";
 import { storeConsolidateTools } from "./tools/store-consolidate";
 import { storeCleanupTools } from "./tools/store-cleanup";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
+import { advInvokeTools } from "./tools/adv-invoke";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -291,7 +292,7 @@ export function createToolMap(
   serverUrl?: URL,
   client?: OpencodeClient,
 ) {
-  return {
+  const baseToolMap = {
     // Spec Tools
     adv_spec: bindToolWithContext(specTools.adv_spec, "adv_spec", store),
 
@@ -1004,6 +1005,41 @@ export function createToolMap(
       store,
     ),
   };
+
+  // Tool Invoke Facade (addProviderToolSearch AC1-AC4).
+  // Dispatches to the same wrapped ToolDefinition.execute used by direct
+  // calls, preserving ToolContext, validation, authorization, approvals,
+  // recovery restrictions, and timeouts. The outer 10-minute safety net
+  // is longer than any current tool timeout (max 420s for adv_change_archive)
+  // so inner target timeouts remain authoritative.
+  const adv_tool_invoke = registerTool(
+    advInvokeTools.adv_tool_invoke.description,
+    advInvokeTools.adv_tool_invoke.args,
+    namedExecute(
+      "adv_tool_invoke",
+      safeExecute(
+        async (args, sdkContext) =>
+          advInvokeTools.adv_tool_invoke.execute(
+            args as { name: string; args: Record<string, unknown> },
+            (name): import("./tools/adv-invoke").ToolLookupResult | undefined => {
+              const entry = PUBLIC_TOOL_ENTRIES.find((e) => e.name === name);
+              const def = (baseToolMap as Record<string, import("@opencode-ai/plugin").ToolDefinition>)[name];
+              if (!entry || !def) return undefined;
+              return { definition: def, rawArgs: entry.args };
+            },
+            sdkContext,
+          ),
+        "adv_tool_invoke",
+        undefined,
+        { timeoutMs: 600_000 },
+      ),
+    ),
+  );
+
+  return {
+    ...baseToolMap,
+    adv_tool_invoke,
+  };
 }
 
 /**
@@ -1263,6 +1299,7 @@ const PUBLIC_TOOL_GROUPS = [
   storeConsolidateTools,
   storeCleanupTools,
   toolCatalogTools,
+  advInvokeTools,
 ] as const satisfies readonly PublicToolGroup[];
 
 const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(

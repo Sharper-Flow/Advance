@@ -176,6 +176,7 @@ class rather than operator-only.
 | `adv_worktree_triage` | orchestrator | Read-only worktree inventory |
 | `adv_tool_catalog` | orchestrator | Bounded read-only catalog of canonical ADV tools with descriptive visibility metadata |
 | `adv_tool_describe` | orchestrator | Read-only single-tool schema/metadata projection; no handler invocation |
+| `adv_tool_invoke` | orchestrator | Strict in-process dispatcher through the canonical wrapped `ToolDefinition.execute`; preserves ToolContext, validation, authorization, approvals, recovery restrictions, and timeouts. Recursion-exclusion (`adv_tool_invoke`, `adv_tool_catalog`, `adv_tool_describe`, `execute`) is enforced before any lookup or dispatch (`addProviderToolSearch` AC1–AC4) |
 
 ## Removed Tools and Replacements
 
