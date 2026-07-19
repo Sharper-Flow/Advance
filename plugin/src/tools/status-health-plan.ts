@@ -434,7 +434,7 @@ export async function runHealthStatus(
     {
       source: "snapshot_health",
       dependencies: [],
-      cap: 4_000,
+      cap: DEFAULT_PROVIDER_CAP_MS,
       cancellability: "abortable",
       async run(ctx): Promise<HealthProviderOutcome> {
         const providerStart = ctx.clock.now();
