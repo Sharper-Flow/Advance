@@ -412,6 +412,44 @@ describe("Subagent report schemas", () => {
       }),
     ).toThrow();
 
+    const designValidationReport = {
+      ...researcherReport,
+      scope: {
+        kind: "change" as const,
+        scope_key: "researcher:design-validation",
+      },
+      validation: {
+        status: "fail" as const,
+        blockers: ["Change OpenCode core instead."],
+        notes: "Out-of-scope blocker.",
+      },
+      architecture_judgement: applicableJudgement,
+    };
+    expect(() =>
+      ResearcherSubagentReportSchema.parse(designValidationReport),
+    ).toThrow(/typed contract IDs/);
+    expect(
+      ResearcherSubagentReportSchema.parse({
+        ...designValidationReport,
+        validation: {
+          ...designValidationReport.validation,
+          blockers: [
+            {
+              finding: "Report schema permits unscoped blockers.",
+              contract_ids: ["AC13"],
+              scope: "in_scope",
+              in_scope_remediation: "Require typed blocker scope metadata.",
+              source: {
+                label: "report schema",
+                locator: "plugin/src/types/subagent-reports.ts",
+                summary: "Validation blockers lacked structural scope.",
+              },
+            },
+          ],
+        },
+      }).validation.blockers,
+    ).toHaveLength(1);
+
     expect(() =>
       ResearcherSubagentReportSchema.parse({
         ...researcherReport,

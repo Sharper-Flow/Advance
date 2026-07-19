@@ -397,10 +397,22 @@ export const SubagentSourceReferenceSchema = z
   })
   .strict();
 
+export const ResearcherValidationBlockerSchema = z
+  .object({
+    finding: z.string().min(1),
+    contract_ids: z.array(z.string().min(1)).min(1),
+    scope: z.literal("in_scope"),
+    in_scope_remediation: z.string().min(1),
+    source: SubagentSourceReferenceSchema,
+  })
+  .strict();
+
 export const ResearcherValidationSchema = z
   .object({
     status: z.enum(["pass", "caution", "fail", "unknown"]),
-    blockers: z.array(z.string().min(1)),
+    blockers: z.array(
+      z.union([z.string().min(1), ResearcherValidationBlockerSchema]),
+    ),
     notes: z.string().min(1),
   })
   .strict();
@@ -475,6 +487,19 @@ export const ResearcherSubagentReportSchema =
           code: "custom",
           path: ["validation", "blockers"],
           message: "fail validation requires at least one blocker",
+        });
+      }
+
+      if (report.scope.scope_key.startsWith("researcher:design-validation")) {
+        report.validation.blockers.forEach((blocker, index) => {
+          if (typeof blocker === "string") {
+            ctx.addIssue({
+              code: "custom",
+              path: ["validation", "blockers", index],
+              message:
+                "new design-validation blockers require typed contract IDs, in-scope remediation, and source evidence",
+            });
+          }
         });
       }
 

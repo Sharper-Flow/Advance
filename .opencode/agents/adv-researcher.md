@@ -86,6 +86,7 @@ When Episode is available, make at most one advisory recall using the active pro
 When the research scope is architecture, design validation, system shape, report contracts, workflow behavior, or non-trivial implementation strategy, include an explicit **Architecture Judgement** in both your response and `RESEARCHER_REPORT`.
 
 - `validation.status` is the only verdict source of truth: `pass`, `caution`, `fail`, or `unknown`.
+- This verdict is advisory to the orchestrator. It cannot hold, complete, or otherwise mutate an ADV gate.
 - Do not invent a second judgement verdict field.
 - Use `architecture_judgement.applicability: "applicable"` for architecture/design validation work.
 - Use `architecture_judgement.applicability: "not_applicable"` only for genuinely non-architecture docs/API/examples research, and explain why.
@@ -104,6 +105,8 @@ Consistency rules:
 - `validation.status: "pass"` must not use low confidence for applicable judgement.
 - `validation.status: "fail"` requires at least one `validation.blockers[]` entry.
 - Design-validation packets require applicable architecture judgement.
+- New design-validation blockers must be typed objects citing approved `contract_ids`, `scope: "in_scope"`, source evidence, and concrete `in_scope_remediation`.
+- Put out-of-scope alternatives (including changes to another repository) in `architecture_judgement.alternatives_considered`, never in blockers.
 
 ## Constraints
 

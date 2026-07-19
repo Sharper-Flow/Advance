@@ -72,7 +72,18 @@ export function registerTool(
   description: string,
   args: ToolArgsSchema,
   execute: ToolExecute<unknown>,
+  transportArgs?: ToolArgsSchema,
 ) {
+  const sdkArgs = transportArgs ?? args;
+  if (transportArgs) {
+    const canonicalKeys = Object.keys(args).sort();
+    const transportKeys = Object.keys(transportArgs).sort();
+    if (JSON.stringify(canonicalKeys) !== JSON.stringify(transportKeys)) {
+      throw new Error(
+        `Tool transport args must have the same top-level keys as canonical args (canonical: ${canonicalKeys.join(", ")}; transport: ${transportKeys.join(", ")}).`,
+      );
+    }
+  }
   // Structural cast at the SDK boundary: tool files import Zod directly
   // (via `import { z } from "zod"`) while the SDK's `tool()` signature
   // expects its own Zod import. With `pnpm.overrides.zod` pinning a
@@ -96,7 +107,7 @@ export function registerTool(
   // silently accepted. Validation is test-only to avoid production
   // overhead.
   if (process.env.NODE_ENV === "test") {
-    for (const [key, schema] of Object.entries(args)) {
+    for (const [key, schema] of Object.entries(sdkArgs)) {
       if (!schema || typeof schema.safeParse !== "function") {
         throw new Error(
           `[rq-zodParseValidation01] Tool args["${key}"] is not a Zod type — check the tool definition in the tools/ file. Received: ${typeof schema}`,
@@ -162,7 +173,7 @@ export function registerTool(
   return tool({
     description,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args: args as any,
+    args: sdkArgs as any,
     execute: executeWithPreflight,
   });
 }
@@ -214,6 +225,7 @@ function namedExecute<TArgs>(
 interface ToolDef<TArgs, TStore> {
   description: string;
   args: ToolArgsSchema;
+  transportArgs?: ToolArgsSchema;
   execute: (args: TArgs, store: TStore) => Promise<string>;
 }
 
@@ -243,6 +255,7 @@ function bindTool<TArgs, TStore>(
       name,
       safeExecute(async (args) => def.execute(args as TArgs, store), name),
     ),
+    def.transportArgs,
   );
 }
 

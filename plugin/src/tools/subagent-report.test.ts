@@ -1042,7 +1042,7 @@ describe("subagentReportTools", () => {
     expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
   });
 
-  test("rejects malformed reports at the Zod boundary and records task error_recovery", async () => {
+  test("rejects malformed reports at the Zod boundary without mutating workflow state (AC4)", async () => {
     const store = storeFor(change());
 
     const output = parse(
@@ -1060,30 +1060,28 @@ describe("subagentReportTools", () => {
       ),
     );
 
+    // rq-fixWorkflowReliabilityDefects/AC4: malformed input returns bounded
+    // diagnostics only. error_recovery is itself a workflow mutation, so the
+    // handler-level defense-in-depth path MUST NOT silently record it for
+    // INVALID_REPORT. SUBMIT_SIGNAL_FAILED keeps its failureRecord path
+    // because that case happens after a successful parse.
     expect(output.error).toBe("Invalid sub-agent report payload");
     expect(output.code).toBe("INVALID_REPORT");
-    expect(output.failureRecord).toEqual({ recorded: true });
+    expect(output.failureRecord).toBeUndefined();
     expect(output.details).toEqual(expect.any(Array));
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
       mocks.workflowHandle,
       store,
       "change-1",
       taskUpdatedSignal,
-      expect.objectContaining({
-        taskId: "tk-1",
-        partial: {
-          error_recovery: expect.objectContaining({
-            last_error: "Invalid sub-agent report payload",
-            error_class: "SEMANTIC",
-            attempts: expect.arrayContaining([
-              expect.objectContaining({
-                diagnosis: "INVALID_REPORT",
-                strategy_label: "adv-engineer-report-submit-failure",
-              }),
-            ]),
-          }),
-        },
-      }),
+      expect.anything(),
+    );
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.anything(),
     );
   });
 
@@ -1135,10 +1133,10 @@ describe("subagentReportTools", () => {
 
     expect(output.error).toBe("Invalid sub-agent report payload");
     expect(output.code).toBe("INVALID_REPORT");
-    expect(output.failureRecord).toEqual({
-      recorded: false,
-      reason: "report identity unavailable",
-    });
+    // rq-fixWorkflowReliabilityDefects/AC4: malformed input never records task
+    // error_recovery, even via the handler-level defense-in-depth parseReport
+    // path. There is no failureRecord at all on the response.
+    expect(output.failureRecord).toBeUndefined();
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 

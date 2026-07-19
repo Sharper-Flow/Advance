@@ -644,6 +644,14 @@ function appendProjectContext(
   return JSON.stringify(parsed);
 }
 
+// rq-fixWorkflowReliabilityDefects/AC4: malformed report input returns bounded
+// diagnostics from the canonical plugin preflight and never mutates workflow
+// state. The handler-level parseReport path is defense-in-depth for callers
+// that bypass the wrapper (tests, plugins); it MUST NOT silently record task
+// error_recovery on malformed input either, because error_recovery is itself a
+// workflow mutation. SUBMIT_SIGNAL_FAILED and INVALID_TASK_ANCHOR keep their
+// failureRecord path — those are post-parse workflow errors, not malformed
+// input, and the orchestrator needs that signal.
 async function executeSubmit(
   args: SubmitArgs,
   store: Store,
@@ -651,21 +659,11 @@ async function executeSubmit(
 ): Promise<string> {
   const parsedReport = parseReport(args.report);
   if (!parsedReport.ok) {
-    const failureRecord =
-      !args.dryRun && parsedReport.code === "INVALID_REPORT"
-        ? await recordSubmitFailure({
-            store,
-            rawReport: args.report,
-            code: parsedReport.code,
-            message: parsedReport.message,
-          })
-        : undefined;
     return appendProjectContext(
       formatToolOutput({
         error: parsedReport.message,
         code: parsedReport.code,
         details: parsedReport.details,
-        ...(failureRecord ? { failureRecord } : {}),
       }),
       projectContext,
     );
@@ -681,6 +679,32 @@ async function executeSubmit(
     // Best-effort: a refresh failure must never block report submission.
   }
   const change = await loadChange(store, parsedReport.report.change_id);
+  if (
+    parsedReport.report.agent === "adv-researcher" &&
+    parsedReport.report.scope.scope_key.startsWith(
+      "researcher:design-validation",
+    )
+  ) {
+    const approvedIds = new Set(
+      (change.contract?.items ?? []).map((item) => item.id),
+    );
+    const unknownIds = parsedReport.report.validation.blockers.flatMap(
+      (blocker) =>
+        typeof blocker === "string"
+          ? []
+          : blocker.contract_ids.filter((id) => !approvedIds.has(id)),
+    );
+    if (unknownIds.length > 0) {
+      return appendProjectContext(
+        formatToolOutput({
+          error: "Design-validator blocker cites unknown contract IDs",
+          code: "INVALID_REPORT",
+          details: { unknownContractIds: [...new Set(unknownIds)] },
+        }),
+        projectContext,
+      );
+    }
+  }
   const taskId = reportTaskId(parsedReport.report);
   const task = taskId ? findTask(change, taskId) : undefined;
   if (taskId && !task) {
@@ -895,6 +919,14 @@ export const subagentReportTools = {
         .describe(
           "Preview validation, dedupe, and consumers without signaling or writing state.",
         ),
+      ...targetArgs,
+    },
+    // OpenCode otherwise rejects the strict report union before ADV can return
+    // nested issue paths. This schema admits only the report object envelope;
+    // canonical args above remain ADV catalog/preflight authority.
+    transportArgs: {
+      report: z.record(z.string(), z.unknown()),
+      dryRun: z.boolean().optional(),
       ...targetArgs,
     },
     execute: async (args: SubmitArgs, store: Store): Promise<string> => {
