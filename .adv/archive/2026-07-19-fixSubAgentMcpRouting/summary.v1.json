@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-19T22:51:28.665Z",
+  "capabilities": [],
+  "change_hash": "b99181edf40c84f16c3f8b0db1f81f349d388d51717752db82250b2eb65e264c",
+  "change_id": "fixSubAgentMcpRouting",
+  "completed_tasks": 5,
+  "created_at": "2026-07-19T18:46:01.446Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-19T22:43:59.660Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "df857804576c0cbeca11861c24eaf804037dcebdd064596436ff9795cc54eaf8",
+  "task_count": 8,
+  "title": "Fix sub-agent MCP routing",
+  "version": "1"
+}
