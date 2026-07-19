@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-19T23:17:32.089Z",
+  "capabilities": [],
+  "change_hash": "2e66256147c0a6f5a8363f2e2e08310da0929b301128f83ae3de26c5db6a3e56",
+  "change_id": "fixTemporalQueryRecovery",
+  "completed_tasks": 4,
+  "created_at": "2026-07-16T01:56:49.546Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-19T21:09:30.743Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "10e8ac8fe5d5a93331662e05f2fbad11803669e61213f0f7c3a77288b2dc5db8",
+  "task_count": 4,
+  "title": "Fix Temporal query recovery",
+  "version": "1"
+}
