@@ -226,7 +226,7 @@ describe("active conflict authority", () => {
     tempDir = undefined;
   });
 
-  it("completes with 78 terminal bundles and 13 active candidates without reading archives", async () => {
+  it("completes with 250 terminal bundles and 13 active candidates without reading archives", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
 
@@ -236,7 +236,7 @@ describe("active conflict authority", () => {
       activeIds.push(id);
       await legacy.changes.save(activeChange(id));
     }
-    for (let i = 0; i < 78; i++) {
+    for (let i = 0; i < 250; i++) {
       await writeArchiveBundle(tempDir, archivedChange(`archived-${i}`));
     }
 

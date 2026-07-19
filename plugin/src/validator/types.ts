@@ -6,6 +6,8 @@
 
 import { z } from "zod";
 
+import type { AuthorityDiagnostics } from "../storage/store-types";
+
 // =============================================================================
 // Validation Error/Warning Types
 // =============================================================================
@@ -27,6 +29,8 @@ export interface ValidationResult {
   warnings: ValidationIssue[];
   checkedAt: string;
   checksPerformed: string[];
+  /** Stable diagnostics from the active project authority used during validation. */
+  authorityDiagnostics?: AuthorityDiagnostics;
 }
 
 // =============================================================================
@@ -171,6 +175,8 @@ export interface ConflictInventory {
   warnings: string[];
   /** Source identifier for auditability */
   source: string;
+  /** Stable diagnostics from the active project authority, when one was used. */
+  authorityDiagnostics?: AuthorityDiagnostics;
   /** The change ID being validated (own-change) */
   ownChangeId: string;
   /**

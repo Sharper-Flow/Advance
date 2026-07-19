@@ -3888,6 +3888,42 @@ describe("change tools — signal-driven lifecycle", () => {
       );
     });
 
+    test("strict mode does not turn a non-clean validation result into pass", async () => {
+      const store = createMockStore({
+        tasks: [
+          { id: "tk-1", title: "Task", status: "done" },
+        ] as Change["tasks"],
+      });
+      store.changes.listConflictAuthority = vi.fn().mockResolvedValue({
+        active: [],
+        completeness: "incomplete",
+        canConcludeClean: false,
+        warnings: ["Visibility active enumeration failed"],
+        source: "active-conflict-authority",
+        candidateCount: 0,
+        omittedCount: 0,
+        authorityDiagnostics: {
+          source: "active-conflict-authority",
+          activeCandidateCount: null,
+          omittedCount: null,
+          shadowCount: null,
+          elapsedMs: 1,
+        },
+      });
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "test-change", strict: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.authorityDiagnostics).toMatchObject({
+        source: "active-conflict-authority",
+        activeCandidateCount: null,
+      });
+    });
+
     test("non-strict mode preserves clean validation result", async () => {
       const store = createMockStore({
         title: "Implement new requirement",
@@ -3948,7 +3984,12 @@ describe("change tools — signal-driven lifecycle", () => {
       vi.mocked(store.changes.list).mockResolvedValue({
         changes: [
           { id: "test-change", title: "Test Change", status: "active" },
-          { id: "danglingPeer", title: "Dangling Peer", status: "draft" },
+          {
+            id: "danglingPeer",
+            title: "Dangling Peer",
+            status: "draft",
+            capabilities: [],
+          },
         ],
       } as Awaited<ReturnType<Store["changes"]["list"]>>);
       vi.mocked(store.changes.get).mockImplementation(async (id: string) => {
@@ -4102,7 +4143,12 @@ describe("change tools — signal-driven lifecycle", () => {
       vi.mocked(store.changes.list).mockResolvedValue({
         changes: [
           { id: "test-change", title: "Test Change", status: "active" },
-          { id: "danglingPeer", title: "Dangling Peer", status: "draft" },
+          {
+            id: "danglingPeer",
+            title: "Dangling Peer",
+            status: "draft",
+            capabilities: [],
+          },
         ],
       } as Awaited<ReturnType<Store["changes"]["list"]>>);
       vi.mocked(store.changes.get).mockImplementation(async (id: string) => {
@@ -4124,6 +4170,41 @@ describe("change tools — signal-driven lifecycle", () => {
 
       expect(parsed.validationErrors).toBeUndefined();
       expect(parsed.error ?? "").not.toContain("validation could not run");
+    });
+
+    test("blocks archive when validationResult.passed is false with no errors", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      store.changes.listConflictAuthority = vi.fn().mockResolvedValue({
+        active: [],
+        completeness: "incomplete",
+        canConcludeClean: false,
+        warnings: ["Visibility active enumeration failed"],
+        source: "active-conflict-authority",
+        candidateCount: 0,
+        omittedCount: 0,
+        authorityDiagnostics: {
+          source: "active-conflict-authority",
+          activeCandidateCount: null,
+          omittedCount: null,
+          shadowCount: null,
+          elapsedMs: 1,
+        },
+      });
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error).toContain("Archive blocked");
+      expect(parsed.validationErrors).toEqual([]);
+      expect(parsed.authorityDiagnostics).toMatchObject({
+        source: "active-conflict-authority",
+        activeCandidateCount: null,
+      });
     });
 
     test("allows archive when only release gate is pending (finalization completes it)", async () => {

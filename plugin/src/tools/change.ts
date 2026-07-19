@@ -2539,12 +2539,14 @@ export const changeTools = {
       // Check for requirement smells in spec deltas
       const smellIssues = checkRequirementSmells(change);
       const hasSmells = smellIssues.length > 0;
-      // In strict mode, fail on blocking errors by default. Warnings remain
-      // advisory unless caller explicitly opts into warning escalation.
-      const passed = strict
-        ? validationResult.errors.length === 0 &&
-          (!strictWarnings || validationResult.warnings.length === 0)
-        : validationResult.passed;
+      // Strict mode can escalate warnings to failures, but it can NEVER
+      // override a non-clean validation result and turn it into a pass. The
+      // validator's `passed` flag already consumes `canConcludeClean`.
+      const passed =
+        validationResult.passed &&
+        (!strict ||
+          (validationResult.errors.length === 0 &&
+            (!strictWarnings || validationResult.warnings.length === 0)));
       const formatted = formatValidationOutput({
         passed,
         errors: validationResult.errors,
@@ -2569,6 +2571,7 @@ export const changeTools = {
         strictWarnings: strict ? Boolean(strictWarnings) : undefined,
         checksPerformed: validationResult.checksPerformed,
         checkedAt: validationResult.checkedAt,
+        authorityDiagnostics: validationResult.authorityDiagnostics,
         formatted,
       });
     },
@@ -2763,14 +2766,19 @@ export const changeTools = {
             changeId,
           });
         }
-        if (validationResult.errors.length > 0) {
+        if (validationResult.errors.length > 0 || !validationResult.passed) {
           return formatToolOutput({
-            error: `Archive blocked: ${validationResult.errors.length} validation error(s). Fix errors and retry.`,
+            success: false,
+            error:
+              validationResult.errors.length > 0
+                ? `Archive blocked: ${validationResult.errors.length} validation error(s). Fix errors and retry.`
+                : `Archive blocked: validation could not conclude clean. Fix the conflict inventory and retry.`,
             validationErrors: validationResult.errors.map((e) => ({
               code: e.code,
               message: e.message,
               path: e.path,
             })),
+            authorityDiagnostics: validationResult.authorityDiagnostics,
             changeId,
           });
         }
@@ -3323,6 +3331,7 @@ export const changeTools = {
           archivePath: archiveResult.archivePath,
           errors: archiveResult.errors,
           dryRun: dryRun ?? false,
+          authorityDiagnostics: validationResult.authorityDiagnostics,
           ...(archiveResult.multiRepo
             ? { multiRepo: archiveResult.multiRepo }
             : {}),
