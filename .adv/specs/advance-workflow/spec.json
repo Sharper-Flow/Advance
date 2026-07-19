@@ -5462,6 +5462,41 @@
       ]
     },
     {
+      "id": "rq-reviewBadTestCleanup01",
+      "title": "Reviewer-Owned Safe Local Cleanup of Evidence-Backed Bad Tests",
+      "body": "/adv-review and /adv-harden MUST remediate clearly bad tests (flaky, tautological, permanently skipped, or implementation-coupled) in the directly touched subsystem when the remediation is safe and local. The finding must be evidence-backed and the scope bounded to the change's touched subsystem; broader consumer-repository cleanup remains out of scope. Review and harden MUST NOT use a bad-test finding to bypass a valid non-test evidence route or create a repo-wide cleanup obligation.",
+      "priority": "must",
+      "tags": ["workflow", "review", "harden", "cleanup", "evidence", "touched-scope"],
+      "scenarios": [
+        {
+          "id": "rq-reviewBadTestCleanup01.1",
+          "title": "Evidence-backed bad test in touched subsystem is remediated locally",
+          "given": [
+            "Review or harden identifies a flaky, tautological, permanently skipped, or implementation-coupled test",
+            "The test is in the directly touched subsystem of the change"
+          ],
+          "when": "The finding is evaluated for remediation",
+          "then": [
+            "The test is remediated when the fix is safe and local",
+            "Remediation is verified with the relevant evidence path",
+            "Broader cleanup beyond the touched subsystem is not required"
+          ]
+        },
+        {
+          "id": "rq-reviewBadTestCleanup01.2",
+          "title": "Broader cleanup remains out of scope",
+          "given": [
+            "A bad test is identified outside the directly touched subsystem"
+          ],
+          "when": "Review or harden evaluates the finding",
+          "then": [
+            "The finding is recorded as a follow-up or rejected with evidence",
+            "No repo-wide cleanup obligation is created for the current change"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-dupActiveCreate01",
       "title": "Active Duplicate Change Creation Rejection",
       "body": "adv_change_create MUST reject creation of a new active change whose generated change ID or exact summary title matches an existing active (in-flight) change. The rejection MUST return existing-change evidence including the existing change ID and title, MUST NOT create a suffixed active duplicate such as `fixOpenBugs2`, and MUST allow the operator to resume the existing change or archive it first.",

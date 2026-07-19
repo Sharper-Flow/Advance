@@ -949,6 +949,11 @@ describe("task tools — signal/query adapters", () => {
           title: "New Task",
           status: "pending",
           metadata: { tdd_intent: "inline" },
+          evidence_plan: expect.objectContaining({
+            policy: "test",
+            proof_target: expect.any(String),
+            provenance: "new",
+          }),
         }),
       });
     });
@@ -979,6 +984,54 @@ describe("task tools — signal/query adapters", () => {
           evidence_policy: "source_citation",
         }),
       });
+    });
+
+    test("accepts a behavior-critical review route with its required proof", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Review-only behavior change",
+          type: "code",
+          evidence_policy: "review",
+          evidence_rationale:
+            "A focused review proves this configuration-only invariant.",
+          review_conclusion: "adv-reviewer attempt 1: READY",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.task.evidence_plan).toMatchObject({
+        policy: "review",
+        rationale: "A focused review proves this configuration-only invariant.",
+        review_conclusion: "adv-reviewer attempt 1: READY",
+        provenance: "new",
+      });
+    });
+
+    test("rejects a behavior-critical non-test route without its required proof", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Review-only behavior change",
+          type: "code",
+          evidence_policy: "review",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toMatch(
+        /Invalid evidence plan.*rationale.*review conclusion/i,
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("derives metadata.tdd_intent from task type when missing", async () => {
@@ -1408,10 +1461,49 @@ describe("task tools — signal/query adapters", () => {
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
-        partial: {
+        partial: expect.objectContaining({
           metadata: { tdd_intent: "not_applicable" },
-        },
+          evidence_plan: expect.objectContaining({
+            provenance: "reclassified",
+          }),
+        }),
       });
+    });
+
+    test("rejects reclassification that would create an invalid evidence plan", async () => {
+      const store = createMockStore();
+      const task = {
+        id: "tk-review-route",
+        title: "Review-only behavior change",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-07-17T00:00:00.000Z",
+        metadata: { tdd_intent: "inline" },
+        evidence_policy: "review",
+      } as import("../types").Task;
+
+      vi.mocked(store.tasks.show).mockResolvedValue({
+        task,
+        changeId: "test-change",
+      });
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-review-route",
+          toIntent: "not_applicable",
+          reason: "Reassess evidence route",
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toMatch(
+        /Invalid evidence plan.*rationale.*review conclusion/i,
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("routes target_path TDD reclassification through the target store", async () => {
@@ -1461,9 +1553,9 @@ describe("task tools — signal/query adapters", () => {
         expect.anything(),
         expect.objectContaining({
           taskId: "tk-target",
-          partial: {
+          partial: expect.objectContaining({
             metadata: { tdd_intent: "not_applicable" },
-          },
+          }),
         }),
       );
     });

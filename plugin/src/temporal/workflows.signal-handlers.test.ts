@@ -185,7 +185,11 @@ async function withArtifactSignalWorker(
       connection: env.nativeConnection,
       workflowsPath,
       taskQueue,
-      activities: { inspectArtifactActivity, writeArtifactActivity },
+      activities: {
+        inspectArtifactActivity,
+        writeArtifactActivity,
+        writeChangeProjection,
+      },
     });
 
     await worker.runUntil(async () => {

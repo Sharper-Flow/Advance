@@ -131,6 +131,22 @@ export {
 } from "./tasks";
 
 // =============================================================================
+// Evidence Policy
+// =============================================================================
+export {
+  PROOF_BEARING_EVIDENCE_POLICIES,
+  WARN_FIRST_EVIDENCE_POLICIES,
+  isProofBearingEvidencePolicy,
+  isWarnFirstEvidencePolicy,
+  TaskEvidenceCompatibilitySchema,
+  type TaskEvidenceCompatibility,
+  TaskEvidencePlanSchema,
+  type TaskEvidencePlan,
+  TaskEvidenceResolutionSchema,
+  type TaskEvidenceResolution,
+} from "./evidence-policy";
+
+// =============================================================================
 // Sub-agent Reports
 // =============================================================================
 export {

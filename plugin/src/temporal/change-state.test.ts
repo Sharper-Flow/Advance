@@ -1990,6 +1990,131 @@ describe("change-state pure mutation helpers", () => {
   });
 });
 
+describe("applyTaskCompletedToState evidence plan validation (AC1/AC2/AC3)", () => {
+  function baseCodeTask(overrides: any = {}) {
+    return {
+      id: "tk-code",
+      title: "Implement feature",
+      type: "code",
+      status: "pending" as const,
+      priority: 0,
+      created_at: "2026-07-17T00:00:00.000Z",
+      metadata: { tdd_intent: "inline" },
+      ...overrides,
+    };
+  }
+
+  function makeStateWithTask(task: any) {
+    const state = createChangeWorkflowState({
+      changeId: "evidence-plan-test",
+      title: "Evidence plan test",
+      createdAt: "2026-07-17T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, { task, addedAt: "2026-07-17T00:00:01.000Z" });
+    return state;
+  }
+
+  it("rejects completion when code task has not_applicable evidence plan", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "not_applicable",
+        evidence_plan: {
+          policy: "not_applicable",
+          proof_target: "No evidence required",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-code",
+        verification: "verified",
+        summary: "done",
+        filesTouched: [],
+        completedAt: "2026-07-17T00:00:02.000Z",
+      }),
+    ).toThrow(/TASK_COMPLETION_BLOCKED.*evidence.*plan|not_applicable/i);
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("rejects completion when code task has non-test route without review proof", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: "Peer review is sufficient.",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-code",
+        verification: "verified",
+        summary: "done",
+        filesTouched: [],
+        completedAt: "2026-07-17T00:00:02.000Z",
+      }),
+    ).toThrow(/TASK_COMPLETION_BLOCKED.*review.*conclusion|review proof/i);
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("allows completion when code task has non-test route with review conclusion", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: "Peer review is sufficient.",
+          review_conclusion: "reviewer-verdict-abc",
+          provenance: "new",
+        },
+      }),
+    );
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: [],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("allows completion for legacy code task without evidence plan", () => {
+    const state = makeStateWithTask(baseCodeTask());
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: [],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("preserves evidence plan on completed task as typed proof", () => {
+    const plan = {
+      policy: "test" as const,
+      proof_target: "Automated red/green tests",
+      provenance: "new" as const,
+    };
+    const state = makeStateWithTask(baseCodeTask({ evidence_plan: plan }));
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: ["src/foo.ts"],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+    expect(state.tasks[0]?.evidence_plan).toMatchObject(plan);
+  });
+});
+
 // rq-TDD009seq: red-then-green ordering enforcement tests
 describe("applyTestRunRecordedToState and rq-TDD009seq ordering enforcement", () => {
   function setupStateWithInlineTask(taskId: string) {

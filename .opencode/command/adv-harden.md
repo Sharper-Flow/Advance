@@ -322,7 +322,9 @@ Return JSON with: `dimension: "documentation_hygiene"`, `conflicts`, `stale`, `d
 
 Find cleanup candidates: temp files (_.bak, _.tmp, _.orig, _~, _.swp), marked files (ONETIME-_, DELETE-AFTER-\*), dev directories (poc/, scratch/, temp/), dead imports, orphaned tests, debug code (console.log, debugger, print()). Preserve: scripts/, tools/, migrations.
 
-Return JSON with: `dimension: "cleanup"`, `extension_based`, `explicitly_marked`, `dev_directories`, `dead_imports`, `debug_code`, `total_candidates`.
+Additionally, review the touched subsystem for evidence-backed bad tests (flaky, tautological, permanently skipped, or implementation-coupled). Remediate them when the fix is safe and local; record verification with the task's evidence path. Broader cleanup beyond the touched subsystem remains out of scope and must be recorded as a follow-up or rejected with evidence.
+
+Return JSON with: `dimension: "cleanup"`, `extension_based`, `explicitly_marked`, `dev_directories`, `dead_imports`, `debug_code`, `bad_tests_remediated`, `bad_tests_out_of_scope`, `total_candidates`.
 
 #### Production Readiness Scanner
 

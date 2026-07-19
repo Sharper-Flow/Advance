@@ -608,6 +608,7 @@ describe("bounded one-pass change-list resolution", () => {
     // Fake only the timeout machinery (setTimeout/Date); leave setImmediate
     // real so fs reads and async-generator enumeration drain deterministically
     // at t=0 instead of at unpredictable advanced-clock positions.
+    vi.useRealTimers();
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
@@ -687,6 +688,7 @@ describe("bounded one-pass change-list resolution", () => {
   it("bounds candidate disk fallback reads after fast Temporal failure", async () => {
     // Fake only the timeout machinery; leave setImmediate real so fs reads
     // and async-generator enumeration drain deterministically.
+    vi.useRealTimers();
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
@@ -776,6 +778,7 @@ describe("bounded one-pass change-list resolution", () => {
   it("bounds candidate archive fallback reads after fast Temporal failure", async () => {
     // Fake only the timeout machinery; leave setImmediate real so fs reads
     // and async-generator enumeration drain deterministically.
+    vi.useRealTimers();
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);

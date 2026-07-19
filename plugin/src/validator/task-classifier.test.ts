@@ -20,6 +20,7 @@ import {
   classifyTddIntent,
   getTaskTddCompliance,
   requiresTddEvidence,
+  resolveTaskEvidence,
 } from "./task-classifier";
 
 const evidence = {
@@ -258,5 +259,164 @@ describe("getTaskTddCompliance", () => {
     ["Build retry logic for API calls", "missing"],
   ] as const)("title-heuristic %s → %s", (title, expected) => {
     expect(getTaskTddCompliance({ title })).toBe(expected);
+  });
+});
+
+describe("resolveTaskEvidence", () => {
+  const baseTask = (overrides: Partial<import("../types").Task> = {}) =>
+    ({
+      id: "tk-test",
+      title: "Implement evidence policy resolver",
+      type: "code",
+      status: "pending",
+      priority: 0,
+      created_at: "2026-07-17T00:00:00.000Z",
+      ...overrides,
+    }) as import("../types").Task;
+
+  test("new code task with explicit test policy is valid and new", () => {
+    const result = resolveTaskEvidence(
+      baseTask({
+        metadata: { tdd_intent: "inline" },
+        evidence_plan: {
+          policy: "test",
+          proof_target: "Automated red/green tests",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.policy).toBe("test");
+    expect(result.compatibility).toBe("new");
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test("legacy code task without explicit policy defaults to test with proof target", () => {
+    const result = resolveTaskEvidence(
+      baseTask({ metadata: { tdd_intent: "inline" } }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.policy).toBe("test");
+    expect(result.proof_target).toBeTruthy();
+    expect(result.compatibility).toBe("legacy");
+  });
+
+  test("behavior-critical code task with not_applicable is invalid", () => {
+    const result = resolveTaskEvidence(
+      baseTask({
+        metadata: { tdd_intent: "not_applicable" },
+        evidence_policy: "not_applicable",
+      }),
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes("not_applicable"))).toBe(true);
+  });
+
+  test("behavior-critical non-test route requires rationale and review conclusion", () => {
+    const result = resolveTaskEvidence(
+      baseTask({
+        metadata: { tdd_intent: "inline" },
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes("rationale"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("review conclusion"))).toBe(
+      true,
+    );
+  });
+
+  test("behavior-critical non-test route with rationale and review is valid", () => {
+    const result = resolveTaskEvidence(
+      baseTask({
+        metadata: { tdd_intent: "inline" },
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: "Automated tests would duplicate the reviewer check.",
+          review_conclusion: "Review approved by senior engineer.",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.policy).toBe("review");
+  });
+
+  test("non-test rationale must be bounded to 500 non-whitespace characters", () => {
+    const longRationale = "a".repeat(600);
+    const result = resolveTaskEvidence(
+      baseTask({
+        metadata: { tdd_intent: "inline" },
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: longRationale,
+          review_conclusion: "Review approved.",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes("500"))).toBe(true);
+  });
+
+  test("legacy code task without plan is normalized with legacy compatibility", () => {
+    const result = resolveTaskEvidence(baseTask({ evidence_policy: "test" }));
+    expect(result.valid).toBe(true);
+    expect(result.policy).toBe("test");
+    expect(result.compatibility).toBe("legacy");
+  });
+
+  test("legacy docs task without evidence policy defaults to readable non-test policy", () => {
+    const result = resolveTaskEvidence(
+      baseTask({ type: "docs", title: "Update README" }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.compatibility).toBe("legacy");
+    expect(result.policy).not.toBe("test");
+  });
+
+  test("reclassified task carries reclassified compatibility", () => {
+    const result = resolveTaskEvidence(
+      baseTask({
+        metadata: { tdd_intent: "not_applicable" },
+        evidence_policy: "source_citation",
+        type: "docs",
+        tdd_reclassification: {
+          from_intent: "inline",
+          to_intent: "not_applicable",
+          reason: "Docs task",
+          approved_by_user: true,
+          approval_evidence: "User approved",
+          approved_at: "2026-07-17T00:00:00.000Z",
+        },
+      }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.compatibility).toBe("reclassified");
+  });
+
+  test("explicit evidence plan provenance takes precedence", () => {
+    const result = resolveTaskEvidence(
+      baseTask({
+        evidence_plan: {
+          policy: "test",
+          proof_target: "Custom proof target",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(result.valid).toBe(true);
+    expect(result.policy).toBe("test");
+    expect(result.proof_target).toBe("Custom proof target");
+    expect(result.compatibility).toBe("new");
   });
 });

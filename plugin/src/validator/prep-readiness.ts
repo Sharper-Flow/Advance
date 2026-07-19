@@ -16,6 +16,7 @@ import type { ValidationIssue } from "./types";
 import {
   isTestTask as classifierIsTestTask,
   isImplTask as classifierIsImplTask,
+  resolveTaskEvidence,
 } from "./task-classifier";
 
 // =============================================================================
@@ -43,6 +44,9 @@ const PrepReadinessCodes = {
 
   // Non-code deliverable evidence policy (rq-PR008nonCodeEvidence)
   NON_CODE_EVIDENCE_POLICY_MISSING: "NON_CODE_EVIDENCE_POLICY_MISSING", // must (error)
+
+  // Normalized evidence plan validity for behavior-critical tasks
+  EVIDENCE_PLAN_INVALID: "EVIDENCE_PLAN_INVALID", // must (error)
 
   // Frontend applicability metadata (rq-PR009frontendApplicability)
   FRONTEND_APPLICABILITY_MISSING: "FRONTEND_APPLICABILITY_MISSING", // must (error)
@@ -593,6 +597,68 @@ export function checkNonCodeEvidencePolicy(change: Change): ValidationIssue[] {
 }
 
 // =============================================================================
+// Check: Normalized Evidence Plan Validity (rq-evidencePlan01)
+// Uses resolveTaskEvidence as the sole compatibility authority. Behavior-critical
+// tasks (code, verification) may not use not_applicable; new/reclassified
+// non-test routes require a bounded rationale and linked review conclusion.
+// Legacy tasks are normalized without heuristic cutover.
+// =============================================================================
+
+function isBehaviorCriticalTask(type: string): boolean {
+  return type === "code" || type === "verification";
+}
+
+export function checkTaskEvidencePlan(change: Change): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const task of change.tasks ?? []) {
+    if (task.status === "cancelled") continue;
+
+    const resolution = resolveTaskEvidence(task as import("../types").Task);
+    if (!resolution.valid) {
+      for (const error of resolution.errors) {
+        issues.push({
+          code: PrepReadinessCodes.EVIDENCE_PLAN_INVALID,
+          severity: "error",
+          message: `Task "${task.id}" (${task.type ?? "code"}) has an invalid evidence plan: ${error}`,
+          path: `tasks.${task.id}.evidence_plan`,
+          details: {
+            taskId: task.id,
+            taskType: task.type ?? "code",
+            errors: resolution.errors,
+            remediation:
+              "Fix the evidence policy or plan. Behavior-critical tasks must use a proof-bearing route (test, review, static_check, artifact_reference). Non-test routes require a bounded rationale and a linked review_conclusion.",
+          },
+        });
+      }
+      continue;
+    }
+
+    // Structural safety: behavior-critical tasks must never use not_applicable,
+    // even if the resolver somehow accepted it (defense in depth).
+    if (
+      isBehaviorCriticalTask(task.type ?? "code") &&
+      resolution.policy === "not_applicable"
+    ) {
+      issues.push({
+        code: PrepReadinessCodes.EVIDENCE_PLAN_INVALID,
+        severity: "error",
+        message: `Task "${task.id}" (${task.type}) is behavior-critical but uses evidence_policy 'not_applicable'. Use a proof-bearing route.`,
+        path: `tasks.${task.id}.evidence_plan`,
+        details: {
+          taskId: task.id,
+          taskType: task.type,
+          remediation:
+            "Choose a proof-bearing evidence policy such as test, review, static_check, or artifact_reference.",
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+// =============================================================================
 // Check: Critical-Ops Coverage (rq-PR007coc)
 // =============================================================================
 
@@ -708,6 +774,7 @@ export function runPrepReadinessChecks(
     ...checkFrontendApplicability(change),
     ...checkCriticalOpsCoverage(change),
     ...checkNonCodeEvidencePolicy(change),
+    ...checkTaskEvidencePlan(change),
     ...checkTaskOrderingProvisional(change),
     ...(tddEnforcement !== "off"
       ? checkTddIntentAssigned(
@@ -732,6 +799,7 @@ export function runPrepReadinessChecks(
       "checkFrontendApplicability",
       "checkCriticalOpsCoverage",
       "checkNonCodeEvidencePolicy",
+      "checkTaskEvidencePlan",
       "checkTaskOrderingProvisional",
       "checkTddIntentAssigned",
     ],

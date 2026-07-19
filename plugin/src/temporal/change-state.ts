@@ -69,6 +69,7 @@ import {
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
+import { resolveTaskEvidence } from "../validator/task-classifier";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
@@ -1016,6 +1017,35 @@ export function applyTaskCompletedToState(
     }
   }
 
+  // rq-evidencePlan01: validate the normalized evidence plan before completing.
+  // The resolver is the sole compatibility authority; unsupported routes fail
+  // structurally, and behavior-critical non-test routes require a linked review
+  // conclusion.
+  const evidenceResolution = resolveTaskEvidence(task);
+  if (!evidenceResolution.valid) {
+    throw new Error(
+      `TASK_COMPLETION_BLOCKED: task ${payload.taskId} has an invalid evidence plan: ${evidenceResolution.errors.join("; ")}`,
+    );
+  }
+  const effectiveType = task.type ?? "code";
+  const behaviorCritical =
+    effectiveType === "code" || effectiveType === "verification";
+  if (
+    behaviorCritical &&
+    evidenceResolution.policy &&
+    evidenceResolution.policy !== "test" &&
+    evidenceResolution.policy !== "not_applicable"
+  ) {
+    const reviewConclusion =
+      evidenceResolution.review_conclusion ??
+      task.evidence_plan?.review_conclusion;
+    if (!reviewConclusion) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: task ${payload.taskId} uses evidence policy '${evidenceResolution.policy}' but has no linked review conclusion. Add evidence_plan.review_conclusion or submit an adv-reviewer report.`,
+      );
+    }
+  }
+
   task.status = "done";
   task.verification = payload.verification;
   task.summary = payload.summary;
@@ -1027,6 +1057,22 @@ export function applyTaskCompletedToState(
   task.completed_at = payload.completedAt;
   if (payload.structured_output) {
     task.structured_output = payload.structured_output;
+  }
+  // Preserve the resolved evidence plan as typed completion proof (additive to
+  // verification prose and run IDs). For legacy tasks this materializes the
+  // normalized legacy plan for the first time.
+  if (evidenceResolution.policy && evidenceResolution.proof_target) {
+    task.evidence_plan = {
+      policy: evidenceResolution.policy,
+      proof_target: evidenceResolution.proof_target,
+      ...(evidenceResolution.rationale
+        ? { rationale: evidenceResolution.rationale }
+        : {}),
+      ...(evidenceResolution.review_conclusion
+        ? { review_conclusion: evidenceResolution.review_conclusion }
+        : {}),
+      provenance: evidenceResolution.compatibility ?? "legacy",
+    };
   }
   setLastSignalAt(state, payload.completedAt);
   return state;
