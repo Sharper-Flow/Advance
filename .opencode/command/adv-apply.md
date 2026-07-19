@@ -409,14 +409,13 @@ Before TDD phases, evaluate each task for delegation eligibility:
 | Priority | Check | Result |
 |----------|-------|--------|
 | 1 | `metadata.delegation_hint` set? | Use the hint value directly |
-| 1.5 | `metadata.frontend == "true"`? | `delegate_allowed` to `adv-designer` (apply-phase frontend worker) — unless step 4 risk signals force inline |
-| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` |
-| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` |
+| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` to `adv-engineer` |
+| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` to `adv-engineer` |
 | 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis? | Any present → `inline_required` |
-| 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` |
+| 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` to `adv-engineer` |
 | 5 | Default | `inline_required` |
 
-Step 1.5 (`metadata.frontend`) routes UI/component work to `adv-designer` instead of `adv-engineer`. Priority 1 (`metadata.delegation_hint`) remains the explicit user override and wins over Step 1.5; Step 4 risk signals still force inline. Step 4.5 does not override Step 1 or Step 4; priority order is authoritative.
+`metadata.frontend == "true"` is structural classification, not an initial routing override. Classified UI/component implementation is engineer-first: it starts with `adv-engineer` when delegated, or inline when risk forces inline. After successful same-cycle implementation, ADV dispatches a matching-cycle `adv-designer` follow-up with an implementation receipt. Priority 1 (`metadata.delegation_hint`) remains the explicit user override; it cannot select `adv-designer` as initial implementation for a classified frontend task. Step 4 risk signals still force inline. Step 4.5 does not override Step 1 or Step 4.
 
 ### Lightweight Change Profile (execution boundary)
 
@@ -437,7 +436,7 @@ Hint semantics:
 
 **If delegated to `adv-engineer` (`delegate_allowed` or `delegate_preferred`):** Spawn `adv-engineer` sub-agent with the Apply Context Packet below.
 
-**If delegated to `adv-designer` (Priority 1.5 frontend branch):** Spawn `adv-designer` sub-agent with the Designer Apply Context Packet below. `adv-designer` is the apply-phase frontend specialist; review/harden ownership remains with `adv-reviewer`.
+**For a classified frontend follow-up:** After a successful same-cycle `adv-engineer` report or classified inline implementation, spawn `adv-designer` with the Designer Apply Context Packet and its `IMPLEMENTATION_RECEIPT`. `adv-designer` validates UI/a11y/polish only; review/harden ownership remains with `adv-reviewer`.
 
 If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
 
@@ -564,13 +563,17 @@ EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit 
 
 #### Designer Apply Context Packet
 
-Use this packet when delegating a task to `adv-designer` (Priority 1.5 routing branch — `metadata.frontend == "true"`). It mirrors the Apply Context Packet identity anchors and adds frontend-specific guidance.
+Use this packet only for the mandatory designer follow-up to a classified frontend task. It mirrors the Apply Context Packet identity anchors, includes an implementation receipt, and adds frontend-specific guidance.
 
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
 TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
 ATTEMPT: {attempt-number, starting at 1 for this task delegation}
+IMPLEMENTATION_RECEIPT:
+  implementation_cycle_id: {active cycle id}
+  provenance: {engineer_report:{stable report key} | inline:{baseline head SHA, diff reference}}
+  validation: {successful same-task/same-cycle implementation evidence}
 TASK_SCOPE: {one-line frontend/component objective}
 IN_SCOPE:
   - {owned UI/component files/findings for this task}
@@ -604,7 +607,7 @@ DESIGN EXCERPT: {relevant section if task references design}
 EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
 ```
 
-The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
+The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). `IMPLEMENTATION_RECEIPT` is mandatory: `engineer_report` provenance must reference a successful same-task/same-cycle ENGINEER_REPORT; inline provenance must bind the active cycle to a baseline and diff reference. The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
 
 ### Task Flow
 

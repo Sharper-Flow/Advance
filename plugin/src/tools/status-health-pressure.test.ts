@@ -357,6 +357,8 @@ describe("health view bounded pressure contract", () => {
     expect(queueOutcome.evidence).toMatch(/temporal/);
   });
 
+  // rq-statusHealthTypedDegradation01: slow or unavailable providers retain
+  // completed health output while exposing a typed partial outcome.
   test("cold forceRefresh stalled probes return partial typed outcomes by virtual 8,000 ms", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {

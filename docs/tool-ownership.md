@@ -66,6 +66,7 @@ class rather than operator-only.
 |---|---|---|
 | `adv_spec` | orchestrator | Spec list/show/search read |
 | `adv_delta_add` | orchestrator | Change-scoped spec-delta mutation; archive remains sole global-spec writer |
+| `adv_delta_modify` | orchestrator | Typed change-scoped spec modification; archive remains sole global-spec writer |
 
 ### Backlog
 

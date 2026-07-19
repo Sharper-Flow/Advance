@@ -16,4 +16,3 @@
   > Task checkpoint completed
 
 ## Specs Modified
-

@@ -42,4 +42,3 @@ Reviewed at: 2026-07-19T01:24:09.295Z
 | OOS3 | out_of_scope | Changing acceptance-readiness workflow state owned by `fixAcceptanceReadiness`. | respected | Acceptance-readiness workflow state remained untouched. |
 | OOS4 | out_of_scope | Changing archive/release-owned cleanup mutation. | respected | Archive/release cleanup mutation ownership remained unchanged. |
 | OOS5 | out_of_scope | Adding frontend or browser-visible behavior. | respected | No frontend, browser-visible, or visual-output behavior was added; preview is not applicable. |
-

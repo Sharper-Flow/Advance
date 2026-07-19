@@ -126,6 +126,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
     const frozen: readonly string[] = [
       "adv_spec",
       "adv_delta_add",
+      "adv_delta_modify",
       "adv_roadmap",
       "adv_wip_state",
       "adv_backlog_add",

@@ -253,6 +253,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Change-scoped spec-delta mutation; archive remains sole global-spec writer.",
   },
+  adv_delta_modify: {
+    class: "orchestrator",
+    rationale:
+      "Typed change-scoped spec modification; archive remains sole global-spec writer.",
+  },
   adv_design_concern_disposition: {
     class: "orchestrator",
     rationale: "Design-concern disposition.",
@@ -526,6 +531,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_contract_mint",
       "adv_contract_review_matrix_set",
       "adv_delta_add",
+      "adv_delta_modify",
       "adv_design_concern_disposition",
       "adv_epic_add_shell",
       "adv_epic_create",

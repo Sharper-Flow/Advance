@@ -137,7 +137,7 @@ export type DeltaAdd = z.infer<typeof DeltaAddSchema>;
  * Only allows known requirement fields with correct types.
  * Uses .strict() to reject unknown keys at parse time.
  */
-const DeltaModifyChangesSchema = z
+export const DeltaModifyChangesSchema = z
   .object({
     title: z.string().optional(),
     body: z.string().optional(),
@@ -145,16 +145,34 @@ const DeltaModifyChangesSchema = z
     tags: z.array(z.string()).optional(),
     scenarios: z.array(ScenarioSchema).optional(),
   })
-  .strict(); // Reject unknown keys
+  .strict()
+  .refine((changes) => Object.keys(changes).length > 0, {
+    message: "Modify delta changes must contain at least one field",
+  });
 
-type _DeltaModifyChanges = z.infer<typeof DeltaModifyChangesSchema>;
+export type DeltaModifyChanges = z.infer<typeof DeltaModifyChangesSchema>;
 
-const DeltaModifySchema = z.object({
-  id: z.string(),
-  operation: z.literal("modify"),
-  target_id: z.string(), // Requirement ID to modify
-  changes: DeltaModifyChangesSchema, // Typed fields to update
-});
+export const DeltaModifySchema = z
+  .object({
+    id: z.string(),
+    operation: z.literal("modify"),
+    target_id: z.string(), // Requirement ID to modify
+    changes: DeltaModifyChangesSchema, // Typed fields to update
+  })
+  .superRefine((delta, ctx) => {
+    for (const [index, scenario] of (delta.changes.scenarios ?? []).entries()) {
+      if (!scenario.id.startsWith(`${delta.target_id}.`)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["changes", "scenarios", index, "id"],
+          message:
+            "Modified scenario IDs must use the target requirement id as their parent",
+        });
+      }
+    }
+  });
+
+export type DeltaModify = z.infer<typeof DeltaModifySchema>;
 
 const DeltaRemoveSchema = z.object({
   id: z.string(),

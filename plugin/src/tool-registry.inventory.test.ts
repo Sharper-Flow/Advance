@@ -82,6 +82,7 @@ const CONTRACTED_PUBLIC_REMOVALS = [
  * only via this recorded addition set, by exactly the number landed.
  */
 const CONTRACTED_PUBLIC_ADDITIONS = [
+  "adv_delta_modify",
   "adv_change_workflow_terminate",
   "adv_verification_evidence_disposition",
   "adv_lightweight_profile_evaluate",
@@ -286,7 +287,8 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // verification-evidence disposition tool (80 = 80 - 2 + 2);
     // addLightweightChangeProfile then added the lightweight profile evaluate
     // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
-    // catalog and describe tools (83 = 80 - 2 + 5).
+    // catalog and describe tools (83 = 80 - 2 + 5); restoreDesignerFollowUp
+    // adds the typed modify writer (84 = 80 - 2 + 6).
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) - landedRemovals + landedAdditions,
     );

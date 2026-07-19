@@ -1,8 +1,12 @@
 import type { Store } from "../store-types";
-import type { DeltaAdd } from "../../types";
-import { SpecDeltaAddedSignalPayloadSchema } from "../../types";
+import type { DeltaAdd, DeltaModify } from "../../types";
+import {
+  SpecDeltaAddedSignalPayloadSchema,
+  SpecDeltaModifiedSignalPayloadSchema,
+} from "../../types";
 import {
   specDeltaAddedSignal,
+  specDeltaModifiedSignal,
   changeStateQuery,
 } from "../../temporal/messages";
 import {
@@ -70,6 +74,41 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       emitChangeSummarySignal(changeId, state);
       persistStateToDisk(changeId, state);
       return appended as DeltaAdd;
+    },
+    modify: async (changeId, capability, delta: DeltaModify, options) => {
+      invalidateChange(changeId);
+      const now = new Date().toISOString();
+      const payload = SpecDeltaModifiedSignalPayloadSchema.parse({
+        capability,
+        delta,
+        modifiedAt: now,
+        modifiedBy: options?.modifiedBy,
+      });
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          specDeltaModifiedSignal,
+          payload,
+        ),
+      );
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
+      const appended = state.deltas[capability]?.find(
+        (entry) => entry.id === delta.id && entry.operation === "modify",
+      );
+      if (!appended) {
+        const rejections = state.signal_rejections ?? [];
+        const latest = rejections[rejections.length - 1];
+        throw new Error(
+          latest?.signalName === "specDeltaModified"
+            ? `Spec delta modify rejected for change ${changeId}: ${latest.errorMessage}`
+            : `Spec delta modify for change ${changeId} completed without appending delta ${delta.id} under capability ${capability}`,
+        );
+      }
+      setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
+      persistStateToDisk(changeId, state);
+      return appended as DeltaModify;
     },
   };
 }

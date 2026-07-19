@@ -304,6 +304,11 @@ export function createToolMap(
       "adv_delta_add",
       store,
     ),
+    adv_delta_modify: bindTool(
+      specDeltaTools.adv_delta_modify,
+      "adv_delta_modify",
+      store,
+    ),
 
     // Roadmap Tool — the sole backlog reader. Reads the backlog snapshot
     // (or live GitHub Project) and queries Visibility directly for O(1)
@@ -1374,6 +1379,7 @@ export interface ToolMetadataV1 {
 const REALM_OVERRIDES: Record<string, ToolRealm> = {
   adv_conformance: "conformance",
   adv_delta_add: "spec",
+  adv_delta_modify: "spec",
   adv_design_concern_disposition: "design",
   adv_followup_promote: "followup",
   adv_report_followup_promote: "report",

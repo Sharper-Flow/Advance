@@ -60,6 +60,7 @@ tools:
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
   adv_delta_add: true
+  adv_delta_modify: true
   adv_design_concern_disposition: true
   adv_epic_add_shell: true
   adv_epic_create: true

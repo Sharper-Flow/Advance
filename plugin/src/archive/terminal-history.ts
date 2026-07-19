@@ -9,6 +9,8 @@
  * This path runs under a separate fixed 20-second aggregate deadline; it does
  * not participate in active conflict authority and does not depend on memo or
  * cache warmth for correctness.
+ *
+ * rq-terminalSummary01 rq-terminalHistoryBudget01
  */
 
 // rq-terminalHistoryBudget01

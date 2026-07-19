@@ -90,6 +90,7 @@ const designSignalKeys = [
   "gateReentered",
   "wisdomAdded",
   "specDeltaAdded",
+  "specDeltaModified",
   "reflectionRecorded",
   "worktreeCreated",
   "worktreeDeleted",
@@ -129,11 +130,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 54 signal surface", () => {
+  it("defines the 55 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(54);
+    expect(surfacedKeys).toHaveLength(55);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);

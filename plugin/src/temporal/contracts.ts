@@ -103,6 +103,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   gateReentered: "adv.change.gateReentered",
   wisdomAdded: "adv.change.wisdomAdded",
   specDeltaAdded: "adv.change.specDeltaAdded",
+  specDeltaModified: "adv.change.specDeltaModified",
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
   worktreeDeleted: "adv.change.worktreeDeleted",

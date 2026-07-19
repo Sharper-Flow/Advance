@@ -30,4 +30,3 @@ Reviewed at: 2026-07-17T23:36:00.000Z
 | OOS1 | out_of_scope | Bulk deletion, rewriting, or quarantine of existing consumer-repository tests. | not_applicable | No consumer-repository test rewrite included. |
 | OOS2 | out_of_scope | Worker-cap policy and full-suite isolation remediation. | not_applicable | No worker-cap or full-suite isolation remediation included. |
 | OOS3 | out_of_scope | Selecting a numeric CI duration, coverage, assertion-count, or test-count target. | not_applicable | No numeric CI/test/coverage target introduced. |
-

@@ -14,4 +14,3 @@ Reviewed at: 2026-07-18T21:09:04.304Z
 | C1 | constraint | Acceptance remains fail-closed whenever live contract evidence is missing. | respected | ID-aware matrix coverage fails closed. |
 | C2 | constraint | No destructive workflow termination, reset, or disk-projection bypass. | respected | No destructive recovery introduced. |
 | C3 | constraint | Preserve existing contract amendment semantics outside acceptance-readiness invalidation. | respected | Non-invalidating amendment preservation covered. |
-

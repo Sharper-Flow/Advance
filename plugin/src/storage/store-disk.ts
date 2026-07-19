@@ -42,6 +42,7 @@ import type {
   ChangeClosure,
   ChangeStatus,
   DeltaAdd,
+  DeltaModify,
   Spec,
   Task,
   TddReclassification,
@@ -958,6 +959,42 @@ export async function createDiskStore(
             ) {
               throw new Error(
                 `Duplicate requirement id ${delta.requirement.id} under capability ${existingCapability}`,
+              );
+            }
+          }
+        }
+        result.data.deltas = {
+          ...deltas,
+          [capability]: [...(deltas[capability] ?? []), delta],
+        };
+        await saveChange(paths.changes, result.data);
+        return delta;
+      },
+      modify: async (changeId, capability, delta: DeltaModify, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        for (const [existingCapability, entries] of Object.entries(deltas)) {
+          for (const entry of entries) {
+            if (entry.id === delta.id) {
+              throw new Error(
+                `Duplicate spec delta id ${delta.id} under capability ${existingCapability}`,
+              );
+            }
+            if (
+              existingCapability === capability &&
+              entry.operation === "modify" &&
+              entry.target_id === delta.target_id
+            ) {
+              throw new Error(
+                `Conflicting modify delta target ${delta.target_id} under capability ${capability}`,
               );
             }
           }

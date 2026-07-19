@@ -473,7 +473,7 @@ describe("subagent reports spec assets", () => {
     ]);
   });
 
-  test("delegation-defaults apply step lists Frontend Implementation with adv-designer typed_persisted_worker contract", () => {
+  test("delegation-defaults apply step exposes adv-designer's typed persisted follow-up contract", () => {
     const spec = readJson(DELEGATION_DEFAULTS_SPEC) as {
       delegation_matrix: Array<{
         step: string;
@@ -494,12 +494,12 @@ describe("subagent reports spec assets", () => {
     expect(apply).toBeDefined();
     expect(apply!.allowed_subagents).toContain("adv-designer");
 
-    const frontend = (apply!.delegated_substeps ?? []).find(
-      (substep) => substep.name === "Frontend Implementation",
+    const frontend = (apply!.delegated_substeps ?? []).find((substep) =>
+      substep.allowed_subagents?.includes("adv-designer"),
     );
     expect(
       frontend,
-      "apply step missing Frontend Implementation substep",
+      "apply step missing an adv-designer follow-up substep",
     ).toBeDefined();
     expect(frontend!.allowed_subagents).toEqual(["adv-designer"]);
 

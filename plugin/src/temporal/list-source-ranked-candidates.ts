@@ -1,4 +1,7 @@
 /**
+ * rq-statusHealthCandidateOrientation01: source-backed global recency is
+ * established before bounded hydration; cache warmth cannot rank candidates.
+ *
  * Lightweight source-ranked candidate orientation for bounded health status.
  *
  * Enumerates change workflow candidates from registered Visibility search

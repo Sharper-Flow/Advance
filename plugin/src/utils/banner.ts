@@ -30,6 +30,7 @@ const COMMAND_EMOJIS: Record<string, string> = {
   // Spec Operations
   adv_spec: "📜",
   adv_delta_add: "📝",
+  adv_delta_modify: "📝",
 
   // Change Operations
   adv_change_list: "📋",

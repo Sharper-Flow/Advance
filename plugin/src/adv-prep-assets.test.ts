@@ -15,6 +15,13 @@ const PREP_PATH = join(REPO_ROOT, ".opencode/command/adv-prep.md");
 describe("adv-prep non-code evidence policy surface", () => {
   const command = readFileSync(PREP_PATH, "utf8");
 
+  test("keeps frontend metadata as engineer-first classification, not designer-direct routing", () => {
+    expect(command).toContain("Classified UI work starts with `adv-engineer`");
+    expect(command).toContain("`adv-designer` follow-up");
+    expect(command).not.toContain("routing signal for `adv-designer`");
+    expect(command).not.toContain("reads `metadata.frontend` at Priority 1.5");
+  });
+
   test("declares a non-code deliverable evidence policy section", () => {
     expect(command).toContain("Non-Code Deliverable Evidence Policy");
     expect(command).toContain("For tasks whose deliverable is non-code");

@@ -40,6 +40,7 @@ import type {
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
   SpecDeltaAddedSignalPayload,
+  SpecDeltaModifiedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
@@ -59,7 +60,11 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
-import { createDefaultGates, GATE_ORDER } from "../types";
+import {
+  createDefaultGates,
+  GATE_ORDER,
+  SpecDeltaModifiedSignalPayloadSchema,
+} from "../types";
 import { CAPABILITY_KEY_PATTERN } from "../types/specs";
 import {
   normalizePersistedSubagentReportState,
@@ -972,6 +977,17 @@ export function applyTaskCompletedToState(
         `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.`,
       );
     }
+    if (
+      !hasMatchingFrontendImplementationReceipt({
+        taskId: payload.taskId,
+        implementationCycleId,
+        reports,
+      })
+    ) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires matching successful adv-engineer evidence or an inline provenance receipt for implementation cycle ${implementationCycleId}.`,
+      );
+    }
   }
 
   // rq-TDD009seq: red-then-green ordering enforcement for inline TDD tasks.
@@ -1161,6 +1177,62 @@ function hasMatchingDesignerApplyEvidence(input: {
   );
 }
 
+function hasMatchingSuccessfulEngineerEvidence(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): SubagentReportSubmittedSignalPayload["report"] | undefined {
+  return input.reports.find(
+    (report) =>
+      report.agent === "adv-engineer" &&
+      report.status === "complete" &&
+      report.blockers.length === 0 &&
+      report.verification.length > 0 &&
+      report.verification.every((entry) => entry.exit_code === 0) &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+}
+
+function hasMatchingFrontendImplementationReceipt(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): boolean {
+  const successfulEngineers = input.reports.filter(
+    (report) =>
+      report.agent === "adv-engineer" &&
+      report.status === "complete" &&
+      report.blockers.length === 0 &&
+      report.verification.length > 0 &&
+      report.verification.every((entry) => entry.exit_code === 0) &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+
+  return input.reports.some((report) => {
+    if (
+      report.agent !== "adv-designer" ||
+      report.status !== "complete" ||
+      taskIdFromReport(report) !== input.taskId ||
+      subagentReportImplementationCycleId(report) !==
+        input.implementationCycleId
+    ) {
+      return false;
+    }
+    const provenance = report.apply_context?.implementation_provenance;
+    if (provenance?.kind === "inline") return true;
+    return (
+      provenance?.kind === "engineer_report" &&
+      successfulEngineers.some(
+        (engineer) => reportKey(engineer) === provenance.report_key,
+      )
+    );
+  });
+}
+
 function reportKey(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): string {
@@ -1218,6 +1290,24 @@ export function applySubagentReportSubmittedToState(
         throw new Error(
           `SUBAGENT_REPORT_ANCHOR_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} claims implementation cycle ${claimedCycleId} but the task has no matching active implementation cycle${activeCycleId ? ` (active cycle: ${activeCycleId})` : ""}.`,
         );
+      }
+      const provenance =
+        payload.report.apply_context?.implementation_provenance;
+      if (provenance?.kind === "engineer_report") {
+        const reports = [
+          ...(state.subagent_reports ?? []),
+          ...(task?.subagent_reports ?? []),
+        ];
+        const engineer = hasMatchingSuccessfulEngineerEvidence({
+          taskId: taskId ?? "",
+          implementationCycleId: claimedCycleId,
+          reports,
+        });
+        if (!engineer || reportKey(engineer) !== provenance.report_key) {
+          throw new Error(
+            `SUBAGENT_REPORT_PROVENANCE_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} must cite a successful same-cycle adv-engineer report key.`,
+          );
+        }
       }
     }
   }
@@ -1465,6 +1555,53 @@ export function applySpecDeltaAddedToState(
     ],
   };
   setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+/**
+ * Modify-only spec-delta reducer. The tool proves target existence against the
+ * current global spec before signaling; this reducer owns the durable conflict
+ * boundary. It validates the payload again, rejects duplicate delta identifiers
+ * globally, and permits only one modify intent per capability/requirement pair.
+ */
+export function applySpecDeltaModifiedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaModifiedSignalPayload,
+): ChangeWorkflowState {
+  const parsed = SpecDeltaModifiedSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid modify spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+    );
+  }
+  const validated = parsed.data;
+  const deltas = state.deltas ?? {};
+  for (const [capability, entries] of Object.entries(deltas)) {
+    for (const entry of entries) {
+      if (entry.id === validated.delta.id) {
+        throw new Error(
+          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+        );
+      }
+      if (
+        capability === validated.capability &&
+        entry.operation === "modify" &&
+        entry.target_id === validated.delta.target_id
+      ) {
+        throw new Error(
+          `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
+        );
+      }
+    }
+  }
+  state.deltas = {
+    ...deltas,
+    [validated.capability]: [
+      ...(deltas[validated.capability] ?? []),
+      validated.delta,
+    ],
+  };
+  setLastSignalAt(state, validated.modifiedAt);
   return state;
 }
 

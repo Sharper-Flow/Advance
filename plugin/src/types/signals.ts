@@ -22,7 +22,11 @@ import {
   GateReadinessBlockerSchema,
 } from "./gates";
 import { WisdomEntrySchema } from "./wisdom";
-import { CapabilityKeySchema, DeltaAddSchema } from "./specs";
+import {
+  CapabilityKeySchema,
+  DeltaAddSchema,
+  DeltaModifySchema,
+} from "./specs";
 import { AttemptSchema, TaskApplyCycleSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
 import {
@@ -343,6 +347,23 @@ export const SpecDeltaAddedSignalPayloadSchema = z.object({
 });
 export type SpecDeltaAddedSignalPayload = z.infer<
   typeof SpecDeltaAddedSignalPayloadSchema
+>;
+
+/**
+ * Modify-only spec-delta writer payload. The tool resolves the target in the
+ * current global spec before signaling; the workflow records only change-owned
+ * intent, rejects conflicting durable targets, and never writes global specs.
+ */
+export const SpecDeltaModifiedSignalPayloadSchema = z
+  .object({
+    capability: CapabilityKeySchema,
+    delta: DeltaModifySchema,
+    modifiedAt: IsoTimestampSchema,
+    modifiedBy: z.string().optional(),
+  })
+  .strict();
+export type SpecDeltaModifiedSignalPayload = z.infer<
+  typeof SpecDeltaModifiedSignalPayloadSchema
 >;
 
 export const ReflectionRecordedSignalPayloadSchema = z.object({
