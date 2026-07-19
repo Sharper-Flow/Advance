@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import {
   checkMutationEligibility,
   classifyMutationOutcome,
+  composeTypedMutationResult,
+  enforceMutationEligibilityForError,
   evaluateDestructiveWorkflowRecoveryPreconditions,
   isOuterSignalRetryAllowed,
   requireMutationEligible,
@@ -303,5 +305,123 @@ describe("evaluateDestructiveWorkflowRecoveryPreconditions", () => {
       alreadyTerminated: false,
       dryRun: false,
     });
+  });
+});
+
+describe("enforceMutationEligibilityForError", () => {
+  test("returns reachable diagnostic for null/undefined (success)", () => {
+    expect(enforceMutationEligibilityForError(undefined)).toEqual({
+      reachable: true,
+      class: "reachable",
+    });
+    expect(enforceMutationEligibilityForError(null)).toEqual({
+      reachable: true,
+      class: "reachable",
+    });
+  });
+
+  test("passes through non-mutation-ineligible classes (not_found/poisoned_history)", () => {
+    // not_found: required for adv_change_status_repair to authorize disk-projection recovery.
+    expect(
+      enforceMutationEligibilityForError(
+        new Error("workflow execution already completed"),
+      ),
+    ).toMatchObject({ class: "not_found" });
+
+    // poisoned_history: required for adv_archive_repair action=reconcile to authorize recovery.
+    expect(
+      enforceMutationEligibilityForError(
+        new Error("TMPRL1100 No command scheduled for event"),
+      ),
+    ).toMatchObject({ class: "poisoned_history" });
+  });
+
+  test("throws TemporalMutationIneligibleError for SC4 classes at the entry guard", () => {
+    for (const [error, expectedClass] of [
+      [
+        new Error("no poller is currently polling this task queue"),
+        "no_poller",
+      ],
+      [
+        new Error("Query 'changeStateQuery' is not registered"),
+        "query_failed_or_not_registered",
+      ],
+      [new Error("deadline exceeded"), "deadline"],
+      [new Error("Failed to query Workflow"), "unknown"],
+      [new Error("query rejected by handler"), "query_rejected"],
+      [new Error("permission denied"), "permission"],
+      [new Error("resource exhausted"), "resource_exhaustion"],
+    ] as const) {
+      expect(() => enforceMutationEligibilityForError(error)).toThrow(
+        TemporalMutationIneligibleError,
+      );
+      try {
+        enforceMutationEligibilityForError(error);
+        expect.fail("expected throw");
+      } catch (caught) {
+        expect(caught).toBeInstanceOf(TemporalMutationIneligibleError);
+        expect((caught as TemporalMutationIneligibleError).workflowClass).toBe(
+          expectedClass,
+        );
+      }
+    }
+  });
+});
+
+describe("composeTypedMutationResult", () => {
+  test("confirmed when both signal and readback succeed", () => {
+    const result = composeTypedMutationResult({
+      signalError: undefined,
+      readbackError: undefined,
+      readbackValue: { id: "change-1", status: "active" },
+    });
+    expect(result.outcome).toBe("confirmed");
+    expect(result.signal.ok).toBe(true);
+    expect(result.readback.ok).toBe(true);
+    expect(result.readback.value).toEqual({
+      id: "change-1",
+      status: "active",
+    });
+    expect(result.diagnostic).toBeUndefined();
+  });
+
+  test("outcome_unknown_readback_unavailable when signal succeeds but readback fails", () => {
+    const readbackErr = new Error(
+      "no poller is currently polling this task queue",
+    );
+    const result = composeTypedMutationResult({
+      signalError: undefined,
+      readbackError: readbackErr,
+    });
+    expect(result.outcome).toBe("outcome_unknown_readback_unavailable");
+    expect(result.signal.ok).toBe(true);
+    expect(result.readback.ok).toBe(false);
+    expect(result.readback.error).toBe(readbackErr);
+  });
+
+  test("failed_before_ack when the signal call itself errors", () => {
+    const signalErr = new Error("connection refused");
+    const result = composeTypedMutationResult({
+      signalError: signalErr,
+      readbackError: undefined,
+    });
+    expect(result.outcome).toBe("failed_before_ack");
+    expect(result.signal.ok).toBe(false);
+    expect(result.signal.error).toBe(signalErr);
+  });
+
+  test("propagates the diagnostic when present", () => {
+    const diagnostic: TemporalWorkflowDiagnostic = {
+      reachable: false,
+      class: "deadline",
+      evidence: "deadline exceeded",
+    };
+    const result = composeTypedMutationResult({
+      signalError: undefined,
+      readbackError: undefined,
+      readbackValue: { id: "change-1" },
+      diagnostic,
+    });
+    expect(result.diagnostic).toEqual(diagnostic);
   });
 });

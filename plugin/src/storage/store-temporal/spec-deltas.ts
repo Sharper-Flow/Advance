@@ -10,11 +10,11 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import {
-  runTemporal,
   runTemporalQuery,
   getGuardedChangeHandle,
   type StoreDeps,
 } from "./shared";
+import { fireSignalWithMutationGuard } from "./gates";
 
 /**
  * Temporal store operation for the append-only spec-delta writer
@@ -49,12 +49,18 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
         addedAt: now,
         addedBy: options?.addedBy,
       });
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          specDeltaAddedSignal,
-          payload,
-        ),
+      // SC4 + SC6: guard the signal; classify readback outcome.
+      const addOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        specDeltaAddedSignal,
+        [payload],
       );
+      if (addOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `specDeltas.add(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporalQuery(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
@@ -84,12 +90,17 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
         modifiedAt: now,
         modifiedBy: options?.modifiedBy,
       });
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          specDeltaModifiedSignal,
-          payload,
-        ),
+      const modifyOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        specDeltaModifiedSignal,
+        [payload],
       );
+      if (modifyOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `specDeltas.modify(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporalQuery(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;

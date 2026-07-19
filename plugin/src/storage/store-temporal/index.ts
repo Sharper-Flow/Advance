@@ -46,6 +46,7 @@ import {
   getTemporalConnection,
   type TemporalReadContext,
   isTemporalReadExpired,
+  runTemporal,
   runTemporalQuery,
   makeReconnectingHook,
 } from "./shared";
@@ -57,6 +58,10 @@ import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 import type { ProjectionRecoveryReason } from "../../temporal/recovery-classification";
+import {
+  enforceMutationEligibilityForError,
+  composeTypedMutationResult,
+} from "../../temporal/mutation-safety";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
@@ -246,22 +251,44 @@ export function createTemporalStoreBackend(
    * Best-effort: if the post-mutation query fails we skip the dual-write
    * rather than fail the original mutation. The workflow update has
    * already succeeded by the time we get here.
+   *
+   * SC6 wiring: the readback outcome is composed via
+   * `composeTypedMutationResult` so an ambiguous readback
+   * (`outcome_unknown_readback_unavailable`) is reported at debug level
+   * rather than being swallowed as a generic post-mutation refresh error.
+   * The classification surfaces the typed outcome to operators and to
+   * any caller that observes the cached value.
    */
   const dualWriteAfterMutation = async (changeId: string): Promise<void> => {
+    let readbackError: unknown;
+    let readbackValue: ChangeWorkflowState | undefined;
     try {
-      const state = (await runTemporalQuery(async () =>
+      readbackValue = (await runTemporalQuery(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
-      setCachedChange(state);
-      emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
     } catch (err) {
-      logger.debug(
-        `Post-mutation state refresh failed for change ${changeId}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      readbackError = err;
     }
+    const typed = composeTypedMutationResult({
+      ...(readbackError !== undefined ? { readbackError } : {}),
+      ...(readbackValue !== undefined ? { readbackValue } : {}),
+    });
+    if (typed.outcome !== "confirmed") {
+      logger.debug(
+        `dualWriteAfterMutation(${changeId}): post-mutation readback classified as ${typed.outcome}; skipping dual-write to avoid masking an ambiguous mutation outcome.`,
+      );
+      return;
+    }
+    if (!readbackValue) {
+      logger.debug(
+        `dualWriteAfterMutation(${changeId}): post-mutation readback returned no value; skipping dual-write.`,
+      );
+      return;
+    }
+    const state = readbackValue;
+    setCachedChange(state);
+    emitChangeSummarySignal(changeId, state);
+    persistStateToDisk(changeId, state);
   };
 
   const invalidateChange = (changeId: string): void => {
@@ -299,11 +326,23 @@ export function createTemporalStoreBackend(
     }
     void (async () => {
       try {
-        const handle = await getGuardedChangeHandle(input, changeId);
-        await handle.signal(worktreeAutoManagedSignal, {
-          value: false,
-          source: "migrate",
-          recordedAt: new Date().toISOString(),
+        // SC4 guard at signal-dispatch boundary: refuse the lazy migration
+        // signal when the workflow is mutation-ineligible (no-poller,
+        // unregistered-query, deadline, unknown, etc.). Migration is
+        // best-effort — an ineligible class skips silently via the catch
+        // below, identical to the existing skip-on-error semantics.
+        await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).signal(
+            worktreeAutoManagedSignal,
+            {
+              value: false,
+              source: "migrate",
+              recordedAt: new Date().toISOString(),
+            },
+          ),
+        ).catch((err) => {
+          enforceMutationEligibilityForError(err);
+          throw err;
         });
       } catch (err) {
         logger.debug(
@@ -595,43 +634,66 @@ export function createTemporalStoreBackend(
       }
       return null;
     }
+    let postReseedError: unknown;
+    let postReseedValue: ChangeWorkflowState | undefined;
     try {
-      const state = (await runTemporalQuery(
+      postReseedValue = (await runTemporalQuery(
         async () =>
           (await getGuardedChangeHandle(input, changeId)).query(
             changeStateQuery,
           ),
         { deadline },
       )) as ChangeWorkflowState;
-      indexTasksFromState(state);
-      return setCachedChange(state);
     } catch (err) {
-      logger.warn(
-        `Temporal re-seed succeeded but post-reseed query failed for change ${changeId}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-      const failure = await classifyTemporalReadFailure(
-        input,
-        changeId,
-        err,
-        deadline,
-      );
-      // query_failed never authorizes projection recovery: the post-reseed
-      // workflow state is unknown, so surface the original failure instead
-      // of masking it with a stale disk projection.
-      if (
-        failure.errorClass === "fallback" &&
-        failure.recoveryReason !== "query_failed"
-      ) {
-        return withProjectionRecovery(
-          change,
-          "disk",
-          failure.recoveryReason ?? "missing_workflow",
-        );
-      }
-      return null;
+      postReseedError = err;
     }
+    // SC6 wiring: classify the post-reseed readback outcome. An
+    // `outcome_unknown_readback_unavailable` is reported at warn level
+    // — the workflow was just reseeded but the post-reseed state could
+    // not be confirmed. Fall through to the recovery-reason path below
+    // which still decides whether to fall back to the disk projection.
+    const typed = composeTypedMutationResult({
+      ...(postReseedError !== undefined
+        ? { readbackError: postReseedError }
+        : {}),
+      ...(postReseedValue !== undefined
+        ? { readbackValue: postReseedValue }
+        : {}),
+    });
+    if (typed.outcome !== "confirmed" || !postReseedValue) {
+      logger.warn(
+        `reseedChangeFromDisk(${changeId}): post-reseed readback classified as ${typed.outcome}; surfacing original read failure for recovery classification.`,
+      );
+    }
+    if (typed.outcome === "confirmed" && postReseedValue) {
+      indexTasksFromState(postReseedValue);
+      return setCachedChange(postReseedValue);
+    }
+    const err =
+      postReseedError ??
+      new Error(
+        `Post-reseed readback returned ${typed.outcome} for change ${changeId}.`,
+      );
+    const failure = await classifyTemporalReadFailure(
+      input,
+      changeId,
+      err,
+      deadline,
+    );
+    // query_failed never authorizes projection recovery: the post-reseed
+    // workflow state is unknown, so surface the original failure instead
+    // of masking it with a stale disk projection.
+    if (
+      failure.errorClass === "fallback" &&
+      failure.recoveryReason !== "query_failed"
+    ) {
+      return withProjectionRecovery(
+        change,
+        "disk",
+        failure.recoveryReason ?? "missing_workflow",
+      );
+    }
+    return null;
   };
 
   const getTemporalChange = async (

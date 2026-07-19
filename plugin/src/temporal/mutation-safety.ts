@@ -1,7 +1,13 @@
 import {
+  classifyTemporalWorkflowFailure,
   isWorkflowMutationIneligible,
   type TemporalWorkflowDiagnostic,
 } from "./diagnostics";
+
+// Re-export so callers of `mutation-safety` do not need a second import
+// from `diagnostics`. SC4 wiring guards consume this type directly.
+export type { TemporalWorkflowDiagnostic };
+
 import type { ChangeStatus, Gates } from "../types";
 
 /**
@@ -108,6 +114,84 @@ export function requireMutationEligible(
       diagnostic,
     );
   }
+}
+
+/**
+ * Classify a raw error from a Temporal signal/operation, then enforce the SC4
+ * mutation-eligibility guard. If the diagnostic is mutation-ineligible, this
+ * throws `TemporalMutationIneligibleError`. Otherwise it returns the
+ * diagnostic so the caller can record it for telemetry.
+ *
+ * Pass `undefined` or `null` for a successful operation; the helper returns a
+ * `reachable` diagnostic and the caller proceeds normally.
+ *
+ * Use this guard at the entry of every signal, start, reset, terminate, or
+ * projection-write call site (rq-temporalMutationSafety01 — SC4 enforcement
+ * at production boundaries).
+ */
+export function enforceMutationEligibilityForError(
+  error: unknown,
+): TemporalWorkflowDiagnostic {
+  const diagnostic = classifyTemporalWorkflowFailure(error);
+  requireMutationEligible(diagnostic);
+  return diagnostic;
+}
+
+/**
+ * Result of an SC6-guarded mutation: signal sent, post-signal readback
+ * performed, and outcome classified. The discriminator is the typed
+ * `outcome` field, where `outcome_unknown_readback_unavailable` exposes an
+ * ambiguous result (signal ACK but readback failed) instead of letting the
+ * caller claim failure or success.
+ *
+ * Callers MUST surface the `outcome` field to error metadata so outer-layer
+ * retry logic can avoid silently re-firing the signal.
+ */
+export interface TypedMutationResult<T = unknown> {
+  outcome: TemporalMutationOutcome;
+  signal: { ok: boolean; error?: unknown };
+  readback: { ok: boolean; value?: T; error?: unknown };
+  diagnostic?: TemporalWorkflowDiagnostic;
+}
+
+/**
+ * Compose a signal-call result with a post-signal readback result into a
+ * typed `TypedMutationResult` using `classifyMutationOutcome`. Both inputs
+ * are passed by the caller (signals and readbacks are I/O-heavy; the helper
+ * itself remains pure). The diagnostic, when present, is propagated.
+ */
+export function composeTypedMutationResult<T = unknown>(input: {
+  signalError?: unknown;
+  readbackError?: unknown;
+  readbackValue?: T;
+  diagnostic?: TemporalWorkflowDiagnostic;
+}): TypedMutationResult<T> {
+  return {
+    outcome: classifyMutationOutcome({
+      ...(input.signalError !== undefined
+        ? { signalError: input.signalError }
+        : {}),
+      ...(input.readbackError !== undefined
+        ? { readbackError: input.readbackError }
+        : {}),
+    }),
+    signal: {
+      ok: input.signalError === undefined || input.signalError === null,
+      ...(input.signalError !== undefined && input.signalError !== null
+        ? { error: input.signalError }
+        : {}),
+    },
+    readback: {
+      ok: input.readbackError === undefined || input.readbackError === null,
+      ...(input.readbackError !== undefined && input.readbackError !== null
+        ? { error: input.readbackError }
+        : {}),
+      ...(input.readbackError === undefined || input.readbackError === null
+        ? { value: input.readbackValue as T }
+        : {}),
+    },
+    ...(input.diagnostic ? { diagnostic: input.diagnostic } : {}),
+  };
 }
 
 export const WORKFLOW_TERMINATE_SHIPPED_GATES = [

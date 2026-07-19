@@ -15,6 +15,7 @@ import {
   getGuardedChangeHandle,
   type StoreDeps,
 } from "./shared";
+import { fireSignalWithMutationGuard } from "./gates";
 
 export function createTaskOps(deps: StoreDeps): Store["tasks"] {
   const {
@@ -60,9 +61,12 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          taskUpdatedSignal,
+      // SC4 + SC6: guard the signal; classify readback outcome.
+      const updateOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        taskUpdatedSignal,
+        [
           {
             taskId,
             partial: {
@@ -74,8 +78,13 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
             },
             updatedAt: new Date().toISOString(),
           },
-        ),
+        ],
       );
+      if (updateOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `tasks.update(${changeId}, ${taskId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
@@ -87,9 +96,11 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       invalidateChange(changeId);
       const now = new Date().toISOString();
       const tempId = `tmp-${Date.now()}`;
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          taskAddedSignal,
+      const addOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        taskAddedSignal,
+        [
           {
             task: {
               id: tempId,
@@ -109,8 +120,13 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
             },
             addedAt: now,
           },
-        ),
+        ],
       );
+      if (addOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `tasks.add(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
@@ -147,17 +163,24 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          taskCancelledSignal,
+      const cancelOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        taskCancelledSignal,
+        [
           {
             taskId,
             approvalEvidence: cancellation.approval_evidence ?? "cancelled",
             reason: cancellation.reason ?? "cancelled",
             cancelledAt: new Date().toISOString(),
           },
-        ),
+        ],
       );
+      if (cancelOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `tasks.cancel(${changeId}, ${taskId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
@@ -169,9 +192,11 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          taskUpdatedSignal,
+      const reclassifyOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        taskUpdatedSignal,
+        [
           {
             taskId,
             partial: {
@@ -181,8 +206,13 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
             },
             updatedAt: new Date().toISOString(),
           },
-        ),
+        ],
       );
+      if (reclassifyOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `tasks.reclassifyTdd(${changeId}, ${taskId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;

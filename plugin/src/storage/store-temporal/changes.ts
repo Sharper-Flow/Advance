@@ -55,6 +55,8 @@ import {
   validatePerArtifactSize,
 } from "../_artifact-size-validation";
 import { createLogger } from "../../utils/debug-log";
+import { enforceMutationEligibilityForError } from "../../temporal/mutation-safety";
+import { fireSignalWithMutationGuard } from "./gates";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import type { ChangeSummary } from "../store-temporal-memo";
@@ -117,6 +119,39 @@ const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
 ];
 
 /**
+ * rq-temporalMutationSafety01 — SC4 mutation-eligibility guard for a single
+ * signal call. The signal is dispatched via `runTemporal`; any failure is
+ * classified into a `TemporalWorkflowDiagnostic` and SC4-mutation-ineligible
+ * classes (no_poller / query_failed_or_not_registered / deadline / unknown /
+ * query_rejected / permission / resource_exhaustion) are re-thrown as
+ * `TemporalMutationIneligibleError`. `not_found` and `poisoned_history`
+ * intentionally pass through — they require additional operator safeguards
+ * (approval, exact run pinning, shipped proof, dry-run) handled elsewhere.
+ *
+ * Use this at every signal, projection-write, reset, and terminate call
+ * site that does NOT already go through `fireSignal` (the tools/_adapters
+ * wrapper applies the same SC4 guard at its boundary).
+ */
+async function fireGuardedSignal<Args extends unknown[]>(
+  input: import("./shared").TemporalStoreBackendInput,
+  changeId: string,
+  signalName: unknown,
+  ...args: Args
+): Promise<void> {
+  try {
+    await runTemporal(async () => {
+      const handle = await getGuardedChangeHandle(input, changeId);
+      await handle.signal(signalName, ...(args as unknown[]));
+    });
+  } catch (err) {
+    // SC4 guard at signal-dispatch boundary.
+    enforceMutationEligibilityForError(err);
+    // Surviving path: SC4-pass (not_found / poisoned_history).
+    throw err;
+  }
+}
+
+/**
  * Fire one content signal per defined field in `artifacts`, in deterministic
  * order (proposal → problemStatement → agreement → design → executiveSummary
  * → acceptance). Each call awaits server acknowledgement before the next.
@@ -127,22 +162,32 @@ const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
  * `state.documents.{kind}`.
  */
 async function fireContentSignalsSequentially(
+  input: import("./shared").TemporalStoreBackendInput,
   handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
+  changeId: string,
   artifacts: ArtifactPayload,
 ): Promise<void> {
   const updatedAt = new Date().toISOString();
+  // Suppress unused-parameter lint when `handle` is unused due to routing
+  // through the SC4-guarded wrapper. The handle would be used by the
+  // attached fallback path if `fireGuardedSignal` cannot resolve
+  // `getGuardedChangeHandle`.
+  void handle;
   for (const { kind, signal } of ARTIFACT_SIGNAL_ORDER) {
     const content = artifacts[kind];
     if (content === undefined) continue;
-    // Content signal — populates state.documents[kind]
-    await handle.signal(signal, { text: content, updatedAt });
+    // Content signal — populates state.documents[kind]. SC4-guarded.
+    await fireGuardedSignal(input, changeId, signal, {
+      text: content,
+      updatedAt,
+    });
 
     // Metadata signal — populates state.artifacts[kind] with contentHash.
     // Fires AFTER the content signal so the hash reflects the just-written
     // content. Temporal-only updates intentionally omit `path`: there is no
     // readable artifact file for active content, and synthesizing one produces
-    // phantom paths in agent-facing tool output.
-    await handle.signal(updateArtifactMetadataSignal, {
+    // phantom paths in agent-facing tool output. SC4-guarded.
+    await fireGuardedSignal(input, changeId, updateArtifactMetadataSignal, {
       kind,
       metadata: {
         updatedAt,
@@ -322,7 +367,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       if (Object.values(artifacts).some((v) => v !== undefined)) {
         await runTemporal(async () => {
           const handle = await getGuardedChangeHandle(input, created.data!.id);
-          await fireContentSignalsSequentially(handle, artifacts);
+          await fireContentSignalsSequentially(
+            input,
+            handle,
+            created.data!.id,
+            artifacts,
+          );
         });
       }
 
@@ -337,11 +387,23 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       invalidateChange(change.id);
 
       if (change.status === "archived") {
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, change.id)).signal(
-            archiveChangeSignal,
-          ),
+        // SC4 + SC6 — archive is a terminal-state mutation. The signal
+        // guard raises `TemporalMutationIneligibleError` for SC4 classes;
+        // the post-signal readback classifies as
+        // `outcome_unknown_readback_unavailable` if it fails after the
+        // signal ACK. Either failure surfaces a typed error rather than
+        // silently authorizing the disk write below.
+        const outcome = await fireSignalWithMutationGuard(
+          input,
+          change.id,
+          archiveChangeSignal,
+          [],
         );
+        if (outcome === "outcome_unknown_readback_unavailable") {
+          throw new Error(
+            `changes.save(${change.id}, archived): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+          );
+        }
         const result = (await runTemporal(async () =>
           (await getGuardedChangeHandle(input, change.id)).query(
             changeStateQuery,
@@ -359,19 +421,22 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         change.cross_project_links !== undefined ||
         change.external_dependencies !== undefined
       ) {
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, change.id)).signal(
-            crossProjectCoordinationUpdatedSignal,
-            {
-              ...(change.cross_project_links !== undefined
-                ? { cross_project_links: change.cross_project_links }
-                : {}),
-              ...(change.external_dependencies !== undefined
-                ? { external_dependencies: change.external_dependencies }
-                : {}),
-              updatedAt: new Date().toISOString(),
-            },
-          ),
+        // SC4-guarded signal: SC4 mutation-ineligible classes raise
+        // `TemporalMutationIneligibleError`; not_found / poisoned_history
+        // pass through to surface the original error.
+        await fireGuardedSignal(
+          input,
+          change.id,
+          crossProjectCoordinationUpdatedSignal,
+          {
+            ...(change.cross_project_links !== undefined
+              ? { cross_project_links: change.cross_project_links }
+              : {}),
+            ...(change.external_dependencies !== undefined
+              ? { external_dependencies: change.external_dependencies }
+              : {}),
+            updatedAt: new Date().toISOString(),
+          },
         );
       }
       updateOverlay(change.id, {
@@ -501,16 +566,26 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     ) => {
       const recordedAt = setAt ?? new Date().toISOString();
       invalidateChange(changeId);
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          epicMembershipSetSignal,
+      // SC4 + SC6 — guard the signal and classify the readback outcome.
+      // `outcome_unknown_readback_unavailable` throws a typed error rather
+      // than letting the caller claim the membership change was applied.
+      const outcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        epicMembershipSetSignal,
+        [
           {
             membership,
             ...(expectedCurrent ? { expectedCurrent } : {}),
             setAt: recordedAt,
           },
-        ),
+        ],
       );
+      if (outcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `changes.setEpicMembership(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
@@ -530,12 +605,17 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     clearEpicMembership: async (changeId, { expected, clearedAt }) => {
       const recordedAt = clearedAt ?? new Date().toISOString();
       invalidateChange(changeId);
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          epicMembershipClearedSignal,
-          { expected, clearedAt: recordedAt },
-        ),
+      const outcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        epicMembershipClearedSignal,
+        [{ expected, clearedAt: recordedAt }],
       );
+      if (outcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `changes.clearEpicMembership(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
@@ -583,13 +663,24 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       // Try Temporal signal; if workflow is already completed/terminated,
       // the disk write already succeeded — return disk-backed close result.
+      //
+      // SC4 + SC6: the SC4 guard raises TemporalMutationIneligibleError on
+      // mutation-ineligible classes (`not_found`/`poisoned_history` pass
+      // through). The post-signal readback classification surfaces an
+      // ambiguous `outcome_unknown_readback_unavailable` as a typed error
+      // rather than letting the caller claim a successful close.
       try {
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).signal(
-            closeChangeSignal,
-            closure,
-          ),
+        const outcome = await fireSignalWithMutationGuard(
+          input,
+          changeId,
+          closeChangeSignal,
+          [closure],
         );
+        if (outcome === "outcome_unknown_readback_unavailable") {
+          throw new Error(
+            `changes.close(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+          );
+        }
         const result = (await runTemporal(async () =>
           (await getGuardedChangeHandle(input, changeId)).query(
             changeStateQuery,
@@ -685,13 +776,20 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
           // Try Temporal signal; if workflow already completed, treat
           // as disk-only close (disk save already succeeded).
+          //
+          // SC4 + SC6: see changes.close() — same guards apply here.
           try {
-            await runTemporal(async () =>
-              (await getGuardedChangeHandle(input, id)).signal(
-                closeChangeSignal,
-                closure,
-              ),
+            const outcome = await fireSignalWithMutationGuard(
+              input,
+              id,
+              closeChangeSignal,
+              [closure],
             );
+            if (outcome === "outcome_unknown_readback_unavailable") {
+              throw new Error(
+                `changes.closeBatch(${id}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+              );
+            }
             const result = (await runTemporal(async () =>
               (await getGuardedChangeHandle(input, id)).query(changeStateQuery),
             )) as import("../../temporal/contracts").ChangeWorkflowState;
@@ -777,7 +875,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
       await runTemporal(async () => {
         const handle = await getGuardedChangeHandle(input, changeId);
-        await fireContentSignalsSequentially(handle, artifacts);
+        await fireContentSignalsSequentially(
+          input,
+          handle,
+          changeId,
+          artifacts,
+        );
       });
 
       // Compose result shape matching the legacy contract. Temporal-only
