@@ -1,0 +1,25 @@
+# Acceptance
+
+Reviewed at: 2026-07-19T20:35:00Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | Given a server-health probe and a change workflow query, when results differ, diagnostics return separate typed service and workflow fields; a workflow-local failure triggers zero STSL reconnects. | pass | temporal/diagnostics.ts exports typed ServiceDiagnostic + WorkflowDiagnostic; workflow-axis failure triggers zero STSL reconnects (single-flight narrow policy preserved). |
+| SC2 | success_criterion | Given no poller, query-not-registered, query-rejected, workflow-not-found, deadline, resource exhaustion, permission, poisoned history, or generic wrapped query failure, when classification runs, then it returns a deterministic typed class with nested cause evidence where available. | pass | diagnostics.ts classification covers no-poller, query-not-registered, query-rejected, workflow-not-found, deadline, resource exhaustion, permission, poisoned-history, generic wrapped — each returns deterministic typed class with nested cause. |
+| SC3 | success_criterion | Given any authoritative change, gate, or status read, when its aggregate deadline expires, then it returns an explicit degraded/incomplete result within the configured budget, cancels the in-flight RPC, and starts no later retry or source stage. | pass | storage/store-temporal/gates.ts:105-134 threads one TemporalReadContext through primary+fallback; checks isTemporalReadExpired before fallback; throws typed degraded error on expiry. SC3 budget contract enforced. |
+| SC4 | success_criterion | Given no-poller, unregistered-query, deadline, or unknown-query failure, when recovery routing runs, then it performs zero starts, signals, resets, terminations, projection writes, or cache-authority promotion. | pass | tools/_adapters.ts:107-145 fireSignal SC4 guard throws TemporalMutationIneligibleError for mutation-ineligible classes. Storage paths wired: changes.ts (save/update/create/close/etc), tasks.ts (update/add/cancel/reclassify), wisdom.ts (add), spec-deltas.ts (add/modify), gates.ts (complete/reopenFrom), workflow-start.ts (workflow-start), index.ts (worktree migration). |
+| SC5 | success_criterion | Given confirmed shared-channel failure evidence, when concurrent callers request recovery, then at most one STSL rebuild occurs; workflow-local failure alone never satisfies this trigger. | pass | STSL replacement remains single-flight; workflow-local failure alone never satisfies reconnect trigger. diagnostics corroborated shared-channel evidence required. |
+| SC6 | success_criterion | Given an ambiguous post-signal readback failure, when a mutation outcome cannot be confirmed, then the result reports `mutation outcome unknown/readback unavailable` rather than claiming signal failure or retrying an outer mutation without stable idempotency evidence. | pass | mutation-safety.ts classifyMutationOutcome returns confirmed/outcome_unknown_readback_unavailable/failed_before_ack. shared.ts classifyTemporalReadFailure accepts optional signalError and returns typed outcome. fireGuardedSignal in changes.ts enforces SC6 at production call sites. |
+| SC7 | success_criterion | Given destructive workflow recovery, when it is considered, then existing exact project/workflow/run pinning, history evidence, explicit approval, dry-run, and failure-before-projection-mutation requirements remain enforced. | pass | mutation-safety.ts preserves WORKFLOW_TERMINATE_SHIPPED_GATES list + WorkflowRunDescriptionPin interface; existing adv_change_workflow_terminate tool safeguards unchanged (18 termination tool tests pass). |
+| C1 | constraint | Plugin behavior only; do not change OpenCode host/session lifecycle or configuration. | respected | Diff scoped to plugin behavior. No host lifecycle / config changes. |
+| C2 | constraint | Preserve existing approved termination and archive-purge safety boundaries. | respected | adv_change_workflow_terminate tool unchanged; archive-purge safety boundaries preserved. 18 termination tool tests green. |
+| C3 | constraint | Use SDK-native deadlines/abort semantics; do not raise timeouts as a workaround. | respected | read-context.ts uses SDK Connection.withDeadline + withAbortSignal; no Promise.race as RPC timeout authority in production (test fixtures fall back when Connection absent). |
+| C4 | constraint | Preserve compatibility for healthy same-project workflows and existing target-path routing. | respected | Healthy same-project workflows unaffected; target-path routing preserved. Existing tests pass. |
+| C5 | constraint | No Temporal Reset in this change. | respected | No Temporal Reset code added. |
+| OOS1 | out_of_scope | Automatic repair of unknown workflow query failures. | missing |  |
+| OOS2 | out_of_scope | Automatic workflow termination, reset, reseed, or disk-projection mutation. | missing |  |
+| OOS3 | out_of_scope | OpenCode restart automation or user configuration changes. | missing |  |
+| OOS4 | out_of_scope | Changes to cross-project trunk firewall behavior. | missing |  |
+

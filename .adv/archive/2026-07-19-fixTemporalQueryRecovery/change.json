@@ -1,0 +1,2051 @@
+{
+  "id": "fixTemporalQueryRecovery",
+  "title": "Fix Temporal query recovery",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-16T01:56:49.546Z",
+  "tasks": [
+    {
+      "id": "tk-5e7de0b321de",
+      "title": "Define typed Temporal failure diagnostics",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-16T17:38:45.387Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Internal Temporal diagnostics; no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC4",
+          "SC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T17:40:22.084Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalQueryRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+          "task_id": "tk-5e7de0b321de",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5e7de0b321de"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/diagnostics.ts",
+            "plugin/src/temporal/diagnostics.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/temporal/diagnostics.test.ts (RED before implementation)",
+              "exit_code": 1,
+              "summary": "Failed as expected: Could not find module './diagnostics' (module had not been created yet)"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/diagnostics.test.ts (GREEN after implementation)",
+              "exit_code": 0,
+              "summary": "All 29 tests passed"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all passed"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/diagnostics.test.ts",
+              "exit_code": 0,
+              "summary": "All 29 tests passed via repo-local throttle wrapper"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented diagnostics as a new module instead of wiring into tools in this task",
+              "why": "The change plan splits work into four tasks; task 1 is to define the typed diagnostics, and tasks 2/3 will consume them. This keeps the diff focused and avoids premature changes to mocked tool tests."
+            },
+            {
+              "what": "Reused the existing isReconnectableError predicate for shared-channel incident detection",
+              "why": "Preserves the same transport-channel classification that the STSL reconnect path already uses, so the diagnostic and reconnect policy stay aligned."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task 1 typed Temporal failure diagnostics implemented in plugin/src/temporal/diagnostics.ts with 29 focused tests. Provides separate service/workflow diagnostics, nested gRPC cause extraction, corroborated shared-channel reconnect eligibility, and a mutation-ineligible predicate. pnpm run check, lint, format:check, and targeted tests all green. No existing files modified; single-flight and destructive safeguards preserved.",
+            "suggested_next_action": "Proceed to task 2 (bound authoritative Temporal reads) or task 3 (preserve mutation safety); both can import from plugin/src/temporal/diagnostics.ts."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/diagnostics.test.ts (RED before implementation)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/diagnostics.test.ts (GREEN after implementation)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/diagnostics.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Focused diagnostics suite green: tr_mrnt8hqp_ef0623a4, 29 tests passed. Engineer recorded RED module-not-found before implementation and pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/diagnostics.test.ts",
+        "plugin/src/temporal/diagnostics.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/diagnostics.test.ts",
+        "plugin/src/temporal/diagnostics.ts"
+      ],
+      "checkpointSha": "9c7a2559b3209365c6b7663fa9dbfa80095896e7",
+      "completedAt": "2026-07-16T17:56:40.075Z",
+      "completed_at": "2026-07-16T17:56:40.075Z",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "legacy"
+      }
+    },
+    {
+      "id": "tk-972870c164f3",
+      "title": "Bound authoritative Temporal reads",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-16T17:38:57.665Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5e7de0b321de"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Internal Temporal read path; no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T17:56:57.122Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalQueryRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+          "task_id": "tk-972870c164f3",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-972870c164f3"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/retry-wrapper.ts",
+            "plugin/src/storage/store-temporal/shared.ts",
+            "plugin/src/storage/store-temporal/read-context.ts",
+            "plugin/src/storage/store-temporal/read-context.test.ts",
+            "plugin/src/storage/store-temporal/index.ts",
+            "plugin/src/storage/store-temporal/gates.ts",
+            "plugin/src/storage/store-temporal/changes.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/read-context.test.ts",
+              "exit_code": 0,
+              "summary": "11 new TDD tests passed: one deadline + one AbortController per context, same deadline/signal across multiple RPCs, degraded on abort, degraded after aggregate deadline with no retry, no mutation authority from degraded reads, and change/gate/status stage integration."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/retry-wrapper.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/tools/gate.test.ts src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "195 related tests passed across retry-wrapper, store-temporal, gate, and status suites."
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Smoke tier passed: pnpm run check + src/tools/test.test.ts + src/tools/subagent-report.test.ts."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Introduced TemporalReadContext and runTemporalRead in a new module instead of scattering context handling in every callsite.",
+              "why": "Keeps the deadline/abort surface localized, testable, and lets production use SDK-native cancellation while test fixtures fall back to the existing bounded Promise.race wrapper."
+            },
+            {
+              "what": "Modified retry-wrapper withTemporalRetry to accept connection/abortSignal and use SDK Connection.withDeadline/withAbortSignal when present.",
+              "why": "This is the structural replacement of Promise.race as the RPC timeout authority; the SDK actually cancels the in-flight gRPC call instead of resolving a local timer."
+            },
+            {
+              "what": "Threaded the context through changes.get, gates.get, store.status (listResolvedChanges), and listSummary visibility list, but not task/wisdom/spec/epic reads.",
+              "why": "SC3 specifically covers authoritative change, gate, and status reads; expanding further would be out of scope."
+            },
+            {
+              "what": "Kept the Promise.race fallback active only when Connection is absent (mock tests/target-path snapshots).",
+              "why": "Preserves compatibility for existing tests and target-path snapshots that do not supply a real Temporal Connection."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated retry-wrapper so that all authoritative reads that supply a Connection now use SDK deadline/abort. Verified read-context and the affected store-temporal/index/changes/gate/status test suites. Did not modify task/wisdom/spec/epic read paths, signal/mutation paths, host config, or Reset behavior.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task 2 (Bound authoritative Temporal reads) is implemented. Added a request-scoped TemporalReadContext (one absolute deadline + one AbortController) and a runTemporalRead helper that uses the SDK's Connection.withDeadline/withAbortSignal as the RPC timeout authority in production, falling back to the existing Promise.race wrapper only for test fixtures/mocks without a real Connection. Threaded the context through changes.get, gates.get, store.status (via listResolvedChanges), and the listSummary visibility list. Reads now return typed complete/degraded metadata and degraded reads are thrown before they can authorize reseed/projection. Existing tests pass and the new read-context.test.ts covers deadline/abort propagation, expiry, and no-retry semantics.",
+            "suggested_next_action": "Proceed to task 3 (Preserve Temporal mutation safety) or verification task 4; review the diff for the read path changes and the new read-context tests."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/read-context.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/retry-wrapper.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/tools/gate.test.ts src/tools/status.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalQueryRecovery",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+          "task_id": "tk-972870c164f3",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-972870c164f3"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/storage/store-temporal/bounded-read-deadline.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/bounded-read-deadline.test.ts",
+              "exit_code": 0,
+              "summary": "All 13 bounded-read-deadline tests pass (12 original + 1 regression test)."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/",
+              "exit_code": 0,
+              "summary": "All 12 store-temporal test files and 156 tests pass in the targeted suite."
+            },
+            {
+              "command": "cd plugin && pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all pass."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced setImmediate spin loops in bounded-read-deadline tests with promise latches resolved by the fixtures themselves (first query attempt, fourth disk get, first disk fallback).",
+              "why": "The full-suite failures were non-deterministic: the async chain sometimes had not reached the expected stage before the 5000-iteration loop exited. Latching on the actual event makes the synchronization independent of event-loop load."
+            },
+            {
+              "what": "Added a regression test that freezes the pre-expiry stages and then advances the fake clock past the budget to assert the fallback stage is skipped.",
+              "why": "This pins the intended boundary: stages before expiry run, stages after expiry are omitted, and the result is typed as deadline exceeded."
+            },
+            {
+              "what": "Did not change the implementation of read-context, retry-wrapper, or list/get resolution.",
+              "why": "The observed failures were timing artifacts in the tests, not incorrect stage admission or fallback behavior in the production code. The current code preserves one absolute deadline, the abort signal, and no stages after expiry."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern code fixes were needed; the issue was localized to test synchronization in the bounded-read-deadline tests.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task 2 bounded-read deadline tests were flaky due to loose setImmediate spin loops, not a regression in the deadline preflight/abort logic. Replaced them with fixture-driven promise latches, added a regression test for the pre-expiry/fallback boundary, and verified the store-temporal suite and pnpm run check are green.",
+            "suggested_next_action": "Run bin/oc-test targeted -- src/storage/store-temporal/ to confirm stability; optionally run the full suite only if unrelated failures have already been triaged separately."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/bounded-read-deadline.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Full-suite bounded-read failures classified as deterministic fixture timing. Remediation tr_mrnxn6w7_cb62830a: bounded-read-deadline suite, 13 tests passed; engineer reports store-temporal suite and static checks passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/bounded-read-deadline.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/bounded-read-deadline.test.ts"
+      ],
+      "checkpointSha": "b1e97e1090729437d79bef45e025fce90dcd2fce",
+      "completedAt": "2026-07-16T20:03:58.392Z",
+      "completed_at": "2026-07-16T20:03:58.392Z",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "legacy"
+      }
+    },
+    {
+      "id": "tk-190cfde65e2b",
+      "title": "Preserve Temporal mutation safety",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-16T17:39:06.936Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5e7de0b321de"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Internal Temporal mutation safety; no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "SC6",
+          "SC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T18:43:26.927Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalQueryRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+          "task_id": "tk-190cfde65e2b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-190cfde65e2b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/mutation-safety.ts",
+            "plugin/src/temporal/mutation-safety.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/temporal/mutation-safety.test.ts (RED before implementation)",
+              "exit_code": 1,
+              "summary": "Module-not-found failure as expected"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/mutation-safety.test.ts",
+              "exit_code": 0,
+              "summary": "24 tests passed"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.workflow-terminate.test.ts",
+              "exit_code": 0,
+              "summary": "18 existing tool tests passed unchanged"
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Smoke tier passed: pnpm run check (schemas, typecheck, isolation, lockfile, lint, format) + 64 tests"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/mutation-safety.test.ts src/temporal/diagnostics.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/read-context.test.ts",
+              "exit_code": 0,
+              "summary": "82 related tests passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented a new temporal/mutation-safety.ts module rather than scattering guards across every signal/projection callsite",
+              "why": "Tasks 1 and 2 established typed diagnostics and bounded read primitives in dedicated modules; task 3 follows the same pattern by defining mutation-safety primitives that later callers can import."
+            },
+            {
+              "what": "Reused diagnostics.ts isWorkflowMutationIneligible for the SC4 guard",
+              "why": "Avoids duplicating the mutation-ineligible class list and keeps the diagnostic taxonomy the single source of truth."
+            },
+            {
+              "what": "Codified destructive recovery preconditions as a pure guard instead of changing tools/change.ts",
+              "why": "The existing adv_change_workflow_terminate tool already enforces approval/run-pinned/shipped-proof ordering; leaving it unchanged preserves its behavior while giving callers a testable, reusable guard."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Existing storage/store-temporal/shared.ts classifyTemporalReadFailure and reseedChangeFromDisk already block SC4 classes via recoveryReason !== 'query_failed'; existing tool tests verify no weakening of termination safeguards.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task 3 (Preserve Temporal mutation safety) implemented in plugin/src/temporal/mutation-safety.ts with 24 focused tests. Provides explicit mutation outcomes (confirmed / outcome_unknown_readback_unavailable / failed_before_ack), an outer-signal-retry prohibition, SC4 mutation-eligibility guards (checkMutationEligibility / requireMutationEligible), and a pure guard for destructive workflow recovery preconditions (approval, shipped proof, run pinning, dry-run, healthy-guard). Existing adv_change_workflow_terminate tool tests (18) pass unchanged, so the operator safeguards are not weakened. pnpm run check, lint, format, and smoke tiers all green.",
+            "suggested_next_action": "Run task 4 verification or a full targeted sweep of storage/store-temporal tests to confirm the recovery contract end-to-end."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/mutation-safety.test.ts (RED before implementation)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/mutation-safety.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.workflow-terminate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/mutation-safety.test.ts src/temporal/diagnostics.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/read-context.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Focused mutation safety suite green: tr_mrnvj6vt_05241412, 4 files and 82 tests passed. Engineer recorded RED module absence before implementation; termination safety, smoke, typecheck, lint, and format checks passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/mutation-safety.test.ts",
+        "plugin/src/temporal/mutation-safety.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/mutation-safety.test.ts",
+        "plugin/src/temporal/mutation-safety.ts"
+      ],
+      "checkpointSha": "a47abc04b772f1bc03af8792b761961bbf072144",
+      "completedAt": "2026-07-16T19:00:36.570Z",
+      "completed_at": "2026-07-16T19:00:36.570Z",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "legacy"
+      }
+    },
+    {
+      "id": "tk-a5815949288d",
+      "title": "Verify Temporal recovery contract",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-16T17:39:30.035Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-972870c164f3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-190cfde65e2b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "frontend_rationale": "Verification-only internal Temporal change."
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6",
+          "SC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T19:00:45.097Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalQueryRecovery",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+          "task_id": "tk-a5815949288d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a5815949288d"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/workflows.signal-handlers.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts -t \"sets and clears epic_membership projection through signals\" --run",
+              "exit_code": 0,
+              "summary": "Targeted epic_membership set/clear test passes (1 passed, 25 skipped) in 5.06s."
+            },
+            {
+              "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/ --run",
+              "exit_code": 0,
+              "summary": "Full temporal suite passes: 58 test files, 717 tests passed, 1 expected fail."
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Repository full suite passes: 384 test files, 5973 tests passed, 1 expected fail."
+            },
+            {
+              "command": "cd plugin && pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all green."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Share one TestWorkflowEnvironment and two Workers across all tests in `workflows.signal-handlers.test.ts` instead of creating a new env + worker per test.",
+              "why": "Eliminates the per-test setup overhead that exceeded the 5s default timeout under concurrent full-suite load; the first test now only starts a workflow and sends signals/queries."
+            },
+            {
+              "what": "Keep separate no-activity and activity Workers to preserve existing test isolation semantics.",
+              "why": "Tests that do not expect activities to run should not accidentally rely on them, and artifact tests still need `inspectArtifactActivity`/`writeArtifactActivity` registration."
+            },
+            {
+              "what": "Start each test workflow on a fixed shared task queue with a unique `signal-${name}-${Date.now()}` workflow ID.",
+              "why": "Provides isolation between tests without requiring separate task queues or workers per test."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Consider applying the same shared-env/worker pattern to other temporal workflow test files that still create a new TestWorkflowEnvironment per test; they are not failing now but contribute to the same contention class."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Diagnosis: the `workflows.signal-handlers.test.ts` epic_membership set/clear timeout was a pre-existing test lifecycle defect, not a regression from the new read/diagnostic/mutation modules. The file created a new Temporal TestWorkflowEnvironment and Worker for every one of its 26 tests; under full-suite concurrency that per-test setup exceeded the 5s default timeout. Fix: share one TestWorkflowEnvironment and two Workers (no-activity and activity) across the whole file via beforeAll/afterAll, while keeping test isolation via unique workflow IDs. Full suite now passes (384 files, 5973 passed, 1 expected fail), temporal suite passes (58 files, 717 passed), and `pnpm run check` is green.",
+            "suggested_next_action": "Run the full suite again on CI to confirm the deterministic timeout is gone; consider promoting the shared-env/worker pattern to other temporal workflow test files that still create env per test."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && ../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts -t \"sets and clears epic_membership projection through signals\" --run"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && ../bin/oc-test targeted -- src/temporal/ --run"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Worktree commit cce8466e: rebase fix onto trunk. pnpm run check green; targeted 306/306 tests pass across 18 store-temporal + diagnostics + mutation-safety + retry-wrapper + gate test files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "5ac6cf8428a869b682335d30798d776a80f7cec9",
+      "completedAt": "2026-07-19T20:24:14.874Z",
+      "completed_at": "2026-07-19T20:24:14.874Z",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "legacy"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:temporal-query-recovery"
+      },
+      "agent": "adv-researcher",
+      "topic": "Temporal query recovery",
+      "sources": [
+        {
+          "label": "ADV lifecycle",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/service.ts",
+          "summary": "Shared cached connection and single-flight replacement."
+        },
+        {
+          "label": "ADV retry wrapper",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/retry-wrapper.ts",
+          "summary": "gRPC classification, retry, reconnect triggers, and deadlines."
+        },
+        {
+          "label": "ADV recovery classifier",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/storage/store-temporal/shared.ts",
+          "summary": "Query timeout and recovery taxonomy."
+        },
+        {
+          "label": "ADV recovery boundary",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/storage/store-temporal/index.ts",
+          "summary": "Unknown query failure cannot authorize reseed."
+        },
+        {
+          "label": "Temporal query guidance",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "Queries require a polling Worker and expose distinct failure cases."
+        },
+        {
+          "label": "Temporal Connection API",
+          "locator": "https://typescript.temporal.io/api/classes/client.Connection",
+          "summary": "Reuse connections and use deadlines or abort signals."
+        },
+        {
+          "label": "Temporal SDK source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts",
+          "summary": "Typed query errors and retained gRPC causes."
+        },
+        {
+          "label": "grpc-js lifecycle",
+          "locator": "https://github.com/grpc/grpc-node/blob/master/packages/grpc-js/README.md",
+          "summary": "Automatic reconnection, deadlines, and cancellation."
+        }
+      ],
+      "architecture_assessment": "Found sound non-mutation guards and shared lifecycle, but server health and workflow query reachability need separate diagnostics. Some gate reads lack an aggregate deadline, Promise.race does not cancel RPCs, and broad connection replacement overlaps grpc-js automatic reconnection. I do not know whether describe() reliably exposes nondeterminism detail across every supported version.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Proceed after adding typed two-axis diagnosis, SDK-native cancellation, and complete gate-read bounds."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Native deadlines require connection-scope propagation.",
+          "Narrow reconnect rules reduce collateral disruption but may delay rare stale-channel repair.",
+          "Typed errors are safer than regex compatibility fallbacks.",
+          "Degraded reads remain responsive but cannot authorize mutation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Broad connection replacement",
+            "disposition": "rejected",
+            "rationale": "Cannot repair workflow-local failure and may disrupt shared operations."
+          },
+          {
+            "option": "Raise timeouts",
+            "disposition": "rejected",
+            "rationale": "Adds latency without classification or cancellation."
+          },
+          {
+            "option": "SDK deadline plus typed degraded result",
+            "disposition": "preferred",
+            "rationale": "Documented and fail-closed."
+          },
+          {
+            "option": "Operator-approved run-pinned repair",
+            "disposition": "preferred",
+            "rationale": "Preserves audited destructive recovery."
+          }
+        ],
+        "recommendation": "Separate service transport/server health from workflow query reachability. Classify SDK types and nested gRPC status first. Bound every authoritative read with Connection.withDeadline or withAbortSignal. Rebuild STSL only on confirmed shared-channel evidence. Keep deadline, no-worker, unregistered-query, and unknown-query failures non-mutation-authorizing."
+      },
+      "recommendation": "Adopt typed two-axis diagnostics, SDK-native bounded reads, narrow reconnect eligibility, explicit degraded metadata, and approval/evidence/run-pinned destructive repair.",
+      "follow_ups": [
+        "Packet lacked labeled TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION sections; prose scope was used.",
+        "Acceptance must prove independent server/workflow health, total failure taxonomy, one aggregate deadline with RPC cancellation, zero mutation for unknown failures, and run-pinned approved poisoned recovery.",
+        "Risks: uncancelled Promise.race RPCs, broad shared reconnect, unbounded gate read, and undocumented describe-regex stability."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:temporal-query-recovery-design"
+      },
+      "agent": "adv-researcher",
+      "topic": "Temporal query recovery design validation",
+      "sources": [
+        {
+          "label": "Temporal query guidance",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "Documents no-poller, QueryNotRegisteredError, and query rejection behavior."
+        },
+        {
+          "label": "Temporal Connection API",
+          "locator": "https://typescript.temporal.io/api/classes/client.Connection",
+          "summary": "Documents withDeadline and withAbortSignal request scopes."
+        },
+        {
+          "label": "Temporal SDK connection source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/connection.ts",
+          "summary": "Deadline reaches grpc-js; AbortSignal invokes call.cancel(); nested signals are non-cumulative."
+        },
+        {
+          "label": "Temporal SDK workflow client source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts",
+          "summary": "Shows typed query, not-found, rejection, and nested gRPC error mapping."
+        },
+        {
+          "label": "gRPC deadlines and cancellation",
+          "locator": "https://grpc.io/docs/guides/deadlines/",
+          "summary": "Deadlines bound RPC work; cancellation prevents abandoned calls from continuing unchecked."
+        },
+        {
+          "label": "gRPC channel lifecycle",
+          "locator": "https://www.grpc.io/grpc/core/md_doc_connectivity-semantics-and-api.html",
+          "summary": "Channels reconnect and back off after recoverable connectivity failures."
+        },
+        {
+          "label": "Temporal message semantics",
+          "locator": "https://docs.temporal.io/encyclopedia/workflow-message-passing",
+          "summary": "Signals are asynchronous writes without workflow responses; Updates are tracked synchronous writes."
+        },
+        {
+          "label": "Temporal Reset guidance",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/cancellation",
+          "summary": "Reset creates a new execution from history and discards progress after the reset point."
+        },
+        {
+          "label": "ADV retry wrapper",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/temporal/retry-wrapper.ts",
+          "summary": "Current Promise.race timeout does not cancel RPCs; reconnect uses text evidence."
+        },
+        {
+          "label": "ADV recovery paths",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/storage/store-temporal/shared.ts",
+          "summary": "Unknown query failures are query_failed and cannot authorize reseed."
+        },
+        {
+          "label": "ADV gate paths",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/storage/store-temporal/gates.ts",
+          "summary": "Gate reads and post-signal readback currently lack aggregate cancellable deadlines."
+        },
+        {
+          "label": "ADV diagnostics",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/temporal-ops.ts",
+          "summary": "Service and workflow fields exist, but workflow failure remains boolean plus text."
+        },
+        {
+          "label": "ADV pinned termination",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/change.ts",
+          "summary": "Operator approval, shipped proof, poisoned evidence, dry-run, and exact run pinning are already enforced."
+        }
+      ],
+      "architecture_assessment": "Sound plugin-local direction, but implementation gaps remain: Promise.race leaves RPCs active; workflow diagnosis is untyped; gate reads and post-signal readback are not bounded; reconnect evidence is partly regex-based. Use independent typed service/workflow axes, one SDK deadline/abort context, explicit degraded reads, fail-closed mutation outcomes, and unchanged approved run-pinned termination. QueryNotRegisteredError must be named conservatively because it can also represent query-handler failure.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Proceed after tightening cancellation, taxonomy, reconnect proof, aggregate budgets, and ambiguous mutation outcomes."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Typed diagnostics add schema and fixture maintenance.",
+          "SDK cancellation requires passing Client or Connection through read helpers.",
+          "Narrow reconnect may delay rare stale-channel recovery but avoids collateral cancellation.",
+          "Fail-closed unknown mutation outcomes require operator reconciliation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Two typed diagnostic axes",
+            "disposition": "preferred",
+            "rationale": "Separates shared service state from workflow-local reachability."
+          },
+          {
+            "option": "Single health verdict",
+            "disposition": "rejected",
+            "rationale": "Conflates independent failure domains."
+          },
+          {
+            "option": "SDK deadline and abort scopes",
+            "disposition": "preferred",
+            "rationale": "Cancels underlying RPCs."
+          },
+          {
+            "option": "Promise.race only",
+            "disposition": "rejected",
+            "rationale": "Bounds waiting but not RPC lifetime."
+          },
+          {
+            "option": "Existing approved exact-run termination",
+            "disposition": "preferred",
+            "rationale": "Preserves audited destructive recovery without Reset."
+          }
+        ],
+        "recommendation": "Revise design contracts before implementation."
+      },
+      "recommendation": "Define typed service/workflow unions; use one absolute SDK deadline and AbortController for all RPC stages; admit no stage after expiry; reconnect only from independent service/channel evidence; return complete or degraded reads and confirmed, unknown-readback, or failed-before-ack mutation outcomes; preserve the exact-run approved termination tool; exclude Reset and host lifecycle changes.",
+      "follow_ups": [
+        "Packet omitted labeled TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors; user prose supplied scope and boundaries.",
+        "I do not know whether WorkflowExecutionDescription exposes poisoned-history detail consistently across every supported version; do not let regex evidence alone authorize automatic destruction.",
+        "Tests must prove axis independence, RPC cancellation, no post-expiry work, mutation-ineligible degraded reads, unknown post-signal outcomes, and unchanged run pinning."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+      "task_id": "tk-5e7de0b321de",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5e7de0b321de"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/diagnostics.ts",
+        "plugin/src/temporal/diagnostics.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/temporal/diagnostics.test.ts (RED before implementation)",
+          "exit_code": 1,
+          "summary": "Failed as expected: Could not find module './diagnostics' (module had not been created yet)"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/diagnostics.test.ts (GREEN after implementation)",
+          "exit_code": 0,
+          "summary": "All 29 tests passed"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all passed"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/diagnostics.test.ts",
+          "exit_code": 0,
+          "summary": "All 29 tests passed via repo-local throttle wrapper"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented diagnostics as a new module instead of wiring into tools in this task",
+          "why": "The change plan splits work into four tasks; task 1 is to define the typed diagnostics, and tasks 2/3 will consume them. This keeps the diff focused and avoids premature changes to mocked tool tests."
+        },
+        {
+          "what": "Reused the existing isReconnectableError predicate for shared-channel incident detection",
+          "why": "Preserves the same transport-channel classification that the STSL reconnect path already uses, so the diagnostic and reconnect policy stay aligned."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task 1 typed Temporal failure diagnostics implemented in plugin/src/temporal/diagnostics.ts with 29 focused tests. Provides separate service/workflow diagnostics, nested gRPC cause extraction, corroborated shared-channel reconnect eligibility, and a mutation-ineligible predicate. pnpm run check, lint, format:check, and targeted tests all green. No existing files modified; single-flight and destructive safeguards preserved.",
+        "suggested_next_action": "Proceed to task 2 (bound authoritative Temporal reads) or task 3 (preserve mutation safety); both can import from plugin/src/temporal/diagnostics.ts."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/diagnostics.test.ts (RED before implementation)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/diagnostics.test.ts (GREEN after implementation)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/diagnostics.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+      "task_id": "tk-972870c164f3",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-972870c164f3"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/retry-wrapper.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-temporal/read-context.ts",
+        "plugin/src/storage/store-temporal/read-context.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/gates.ts",
+        "plugin/src/storage/store-temporal/changes.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/read-context.test.ts",
+          "exit_code": 0,
+          "summary": "11 new TDD tests passed: one deadline + one AbortController per context, same deadline/signal across multiple RPCs, degraded on abort, degraded after aggregate deadline with no retry, no mutation authority from degraded reads, and change/gate/status stage integration."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/retry-wrapper.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/tools/gate.test.ts src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "195 related tests passed across retry-wrapper, store-temporal, gate, and status suites."
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Smoke tier passed: pnpm run check + src/tools/test.test.ts + src/tools/subagent-report.test.ts."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Introduced TemporalReadContext and runTemporalRead in a new module instead of scattering context handling in every callsite.",
+          "why": "Keeps the deadline/abort surface localized, testable, and lets production use SDK-native cancellation while test fixtures fall back to the existing bounded Promise.race wrapper."
+        },
+        {
+          "what": "Modified retry-wrapper withTemporalRetry to accept connection/abortSignal and use SDK Connection.withDeadline/withAbortSignal when present.",
+          "why": "This is the structural replacement of Promise.race as the RPC timeout authority; the SDK actually cancels the in-flight gRPC call instead of resolving a local timer."
+        },
+        {
+          "what": "Threaded the context through changes.get, gates.get, store.status (listResolvedChanges), and listSummary visibility list, but not task/wisdom/spec/epic reads.",
+          "why": "SC3 specifically covers authoritative change, gate, and status reads; expanding further would be out of scope."
+        },
+        {
+          "what": "Kept the Promise.race fallback active only when Connection is absent (mock tests/target-path snapshots).",
+          "why": "Preserves compatibility for existing tests and target-path snapshots that do not supply a real Temporal Connection."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated retry-wrapper so that all authoritative reads that supply a Connection now use SDK deadline/abort. Verified read-context and the affected store-temporal/index/changes/gate/status test suites. Did not modify task/wisdom/spec/epic read paths, signal/mutation paths, host config, or Reset behavior.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task 2 (Bound authoritative Temporal reads) is implemented. Added a request-scoped TemporalReadContext (one absolute deadline + one AbortController) and a runTemporalRead helper that uses the SDK's Connection.withDeadline/withAbortSignal as the RPC timeout authority in production, falling back to the existing Promise.race wrapper only for test fixtures/mocks without a real Connection. Threaded the context through changes.get, gates.get, store.status (via listResolvedChanges), and the listSummary visibility list. Reads now return typed complete/degraded metadata and degraded reads are thrown before they can authorize reseed/projection. Existing tests pass and the new read-context.test.ts covers deadline/abort propagation, expiry, and no-retry semantics.",
+        "suggested_next_action": "Proceed to task 3 (Preserve Temporal mutation safety) or verification task 4; review the diff for the read path changes and the new read-context tests."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/read-context.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/retry-wrapper.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/tools/gate.test.ts src/tools/status.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+      "task_id": "tk-190cfde65e2b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-190cfde65e2b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/mutation-safety.ts",
+        "plugin/src/temporal/mutation-safety.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/temporal/mutation-safety.test.ts (RED before implementation)",
+          "exit_code": 1,
+          "summary": "Module-not-found failure as expected"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/mutation-safety.test.ts",
+          "exit_code": 0,
+          "summary": "24 tests passed"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.workflow-terminate.test.ts",
+          "exit_code": 0,
+          "summary": "18 existing tool tests passed unchanged"
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Smoke tier passed: pnpm run check (schemas, typecheck, isolation, lockfile, lint, format) + 64 tests"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/mutation-safety.test.ts src/temporal/diagnostics.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/read-context.test.ts",
+          "exit_code": 0,
+          "summary": "82 related tests passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented a new temporal/mutation-safety.ts module rather than scattering guards across every signal/projection callsite",
+          "why": "Tasks 1 and 2 established typed diagnostics and bounded read primitives in dedicated modules; task 3 follows the same pattern by defining mutation-safety primitives that later callers can import."
+        },
+        {
+          "what": "Reused diagnostics.ts isWorkflowMutationIneligible for the SC4 guard",
+          "why": "Avoids duplicating the mutation-ineligible class list and keeps the diagnostic taxonomy the single source of truth."
+        },
+        {
+          "what": "Codified destructive recovery preconditions as a pure guard instead of changing tools/change.ts",
+          "why": "The existing adv_change_workflow_terminate tool already enforces approval/run-pinned/shipped-proof ordering; leaving it unchanged preserves its behavior while giving callers a testable, reusable guard."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Existing storage/store-temporal/shared.ts classifyTemporalReadFailure and reseedChangeFromDisk already block SC4 classes via recoveryReason !== 'query_failed'; existing tool tests verify no weakening of termination safeguards.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task 3 (Preserve Temporal mutation safety) implemented in plugin/src/temporal/mutation-safety.ts with 24 focused tests. Provides explicit mutation outcomes (confirmed / outcome_unknown_readback_unavailable / failed_before_ack), an outer-signal-retry prohibition, SC4 mutation-eligibility guards (checkMutationEligibility / requireMutationEligible), and a pure guard for destructive workflow recovery preconditions (approval, shipped proof, run pinning, dry-run, healthy-guard). Existing adv_change_workflow_terminate tool tests (18) pass unchanged, so the operator safeguards are not weakened. pnpm run check, lint, format, and smoke tiers all green.",
+        "suggested_next_action": "Run task 4 verification or a full targeted sweep of storage/store-temporal tests to confirm the recovery contract end-to-end."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/mutation-safety.test.ts (RED before implementation)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/mutation-safety.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.workflow-terminate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/mutation-safety.test.ts src/temporal/diagnostics.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/read-context.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+      "task_id": "tk-972870c164f3",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-972870c164f3"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/storage/store-temporal/bounded-read-deadline.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/bounded-read-deadline.test.ts",
+          "exit_code": 0,
+          "summary": "All 13 bounded-read-deadline tests pass (12 original + 1 regression test)."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/",
+          "exit_code": 0,
+          "summary": "All 12 store-temporal test files and 156 tests pass in the targeted suite."
+        },
+        {
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all pass."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced setImmediate spin loops in bounded-read-deadline tests with promise latches resolved by the fixtures themselves (first query attempt, fourth disk get, first disk fallback).",
+          "why": "The full-suite failures were non-deterministic: the async chain sometimes had not reached the expected stage before the 5000-iteration loop exited. Latching on the actual event makes the synchronization independent of event-loop load."
+        },
+        {
+          "what": "Added a regression test that freezes the pre-expiry stages and then advances the fake clock past the budget to assert the fallback stage is skipped.",
+          "why": "This pins the intended boundary: stages before expiry run, stages after expiry are omitted, and the result is typed as deadline exceeded."
+        },
+        {
+          "what": "Did not change the implementation of read-context, retry-wrapper, or list/get resolution.",
+          "why": "The observed failures were timing artifacts in the tests, not incorrect stage admission or fallback behavior in the production code. The current code preserves one absolute deadline, the abort signal, and no stages after expiry."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern code fixes were needed; the issue was localized to test synchronization in the bounded-read-deadline tests.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task 2 bounded-read deadline tests were flaky due to loose setImmediate spin loops, not a regression in the deadline preflight/abort logic. Replaced them with fixture-driven promise latches, added a regression test for the pre-expiry/fallback boundary, and verified the store-temporal suite and pnpm run check are green.",
+        "suggested_next_action": "Run bin/oc-test targeted -- src/storage/store-temporal/ to confirm stability; optionally run the full suite only if unrelated failures have already been triaged separately."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/bounded-read-deadline.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+      "task_id": "tk-a5815949288d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a5815949288d"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts -t \"sets and clears epic_membership projection through signals\" --run",
+          "exit_code": 0,
+          "summary": "Targeted epic_membership set/clear test passes (1 passed, 25 skipped) in 5.06s."
+        },
+        {
+          "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/ --run",
+          "exit_code": 0,
+          "summary": "Full temporal suite passes: 58 test files, 717 tests passed, 1 expected fail."
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Repository full suite passes: 384 test files, 5973 tests passed, 1 expected fail."
+        },
+        {
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check all green."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Share one TestWorkflowEnvironment and two Workers across all tests in `workflows.signal-handlers.test.ts` instead of creating a new env + worker per test.",
+          "why": "Eliminates the per-test setup overhead that exceeded the 5s default timeout under concurrent full-suite load; the first test now only starts a workflow and sends signals/queries."
+        },
+        {
+          "what": "Keep separate no-activity and activity Workers to preserve existing test isolation semantics.",
+          "why": "Tests that do not expect activities to run should not accidentally rely on them, and artifact tests still need `inspectArtifactActivity`/`writeArtifactActivity` registration."
+        },
+        {
+          "what": "Start each test workflow on a fixed shared task queue with a unique `signal-${name}-${Date.now()}` workflow ID.",
+          "why": "Provides isolation between tests without requiring separate task queues or workers per test."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Consider applying the same shared-env/worker pattern to other temporal workflow test files that still create a new TestWorkflowEnvironment per test; they are not failing now but contribute to the same contention class."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Diagnosis: the `workflows.signal-handlers.test.ts` epic_membership set/clear timeout was a pre-existing test lifecycle defect, not a regression from the new read/diagnostic/mutation modules. The file created a new Temporal TestWorkflowEnvironment and Worker for every one of its 26 tests; under full-suite concurrency that per-test setup exceeded the 5s default timeout. Fix: share one TestWorkflowEnvironment and two Workers (no-activity and activity) across the whole file via beforeAll/afterAll, while keeping test isolation via unique workflow IDs. Full suite now passes (384 files, 5973 passed, 1 expected fail), temporal suite passes (58 files, 717 passed), and `pnpm run check` is green.",
+        "suggested_next_action": "Run the full suite again on CI to confirm the deterministic timeout is gone; consider promoting the shared-env/worker pattern to other temporal workflow test files that still create env per test."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && ../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts -t \"sets and clears epic_membership projection through signals\" --run"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && ../bin/oc-test targeted -- src/temporal/ --run"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalQueryRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalQueryRecovery",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "SC4-SC6-safety-wiring-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/mutation-safety.ts",
+          "line": 32,
+          "what": "New mutation outcome and eligibility guards are production-dead: their only references are their defining module and unit test.",
+          "why": "SC4 requires recovery routing to prohibit mutations for unsafe query diagnostics, and SC6 requires ambiguous post-signal readback to surface an unknown outcome without unsafe retry. Existing mutation paths still call generic retrying `runTemporal` around `.signal()` (for example `changes.ts:504-516`, `gates.ts:55-68`), without `classifyMutationOutcome`, `requireMutationEligible`, or `isOuterSignalRetryAllowed`.",
+          "fix": "Wire diagnostics/eligibility and explicit post-signal outcome handling into every affected recovery/mutation route; add integration tests proving zero mutation and no outer retry for no-poller, unregistered, deadline, unknown, and readback failure."
+        },
+        {
+          "id": "SC3-gate-context-escape-1",
+          "label": "issue",
+          "file": "plugin/src/storage/store-temporal/gates.ts",
+          "line": 38,
+          "what": "Gate fallback drops the request context and starts `getTemporalChange(changeId)` with a new deadline.",
+          "why": "The first read uses `ctx` at lines 30-32, but fallback at line 46 creates a new authoritative-read budget. This can admit a later stage beyond the original aggregate deadline, contrary to SC3's one-budget/no-later-stage requirement.",
+          "fix": "Pass `{ context: ctx }` into the fallback (and preserve it through classification/probes); add a fake-timer regression test."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/index.ts",
+          "line": 841,
+          "what": "Rebase signature preserves `TemporalReadContext` plus `hydrationConcurrency` and `sourceRanked`.",
+          "why": "Status forwards the shared context and source-ranked option at lines 1532-1540; source-ranked hydration remains implemented at lines 1015-1064."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/temporal/diagnostics.ts",
+          "line": 309,
+          "what": "Two diagnostic axes remain structurally independent.",
+          "why": "`classifyTemporalFailure` returns independently classified service and workflow fields at lines 313-316; tests cover workflow-local non-reconnect at `diagnostics.test.ts:214-244`."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Pure safety helpers do not enforce a recovery contract until production signal/recovery call sites consume them; acceptance review should search for production imports, not only unit coverage."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "/usr/bin/git diff --unified=12 trunk...HEAD -- plugin/src/temporal/diagnostics.ts plugin/src/temporal/mutation-safety.ts plugin/src/storage/store-temporal/read-context.ts plugin/src/temporal/retry-wrapper.ts plugin/src/storage/store-temporal/index.ts plugin/src/storage/store-temporal/changes.ts plugin/src/storage/store-temporal/gates.ts",
+          "bin/oc-test targeted -- src/temporal/diagnostics.test.ts src/temporal/mutation-safety.test.ts src/temporal/retry-wrapper.test.ts src/storage/store-temporal/read-context.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/storage/store-temporal/gates.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Diff inspected. Targeted command passed: 5 files, 99 tests. Contract manifest: SC1 pass (`diagnostics.ts:309-316`, test `diagnostics.test.ts:214-244`); SC2 pass (`diagnostics.ts:153-240`); SC3 blocked by `gates.ts:30-46` context escape; SC4 blocked by unconsumed eligibility guard (`mutation-safety.ts:76-110`); SC5 pass (`retry-wrapper.ts:138-144,366-371`, `shared.ts:205-218`); SC6 blocked by unconsumed outcome guard (`mutation-safety.ts:32-58`); SC7 existing production safeguards remain in `tools/change.ts:3931-4167`, but new guard is likewise unconsumed; C1 pass (diff limited to plugin); C2 pass (existing operator tool unchanged); C3 pass for `runTemporalRead` native path (`retry-wrapper.ts:327-340`); C4 pass (`index.ts:841-859,1532-1540`); C5 pass (no Reset in diff)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Mutation safety contract remains documentary/unit-tested rather than enforced at real mutation call sites.",
+        "Gate fallback can exceed the original aggregate read budget.",
+        "Discarded signal-handler stash is acceptable for this review: it is absent from the diff and the stated sequential integration lane is outside this change's affected files."
+      ],
+      "required_main_agent_actions": [
+        "Route a remediation task to wire `mutation-safety.ts` into production recovery/signal paths and add integration coverage for SC4 and SC6.",
+        "Fix `gates.ts:46` to reuse the original `TemporalReadContext`, then rerun focused read-context/gate tests and re-request acceptance review."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-5e7de0b321de": [
+      {
+        "runId": "tr_mrnsv0mi_39f8adcf",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/temporal/diagnostics.test.ts",
+        "durationMs": 30171.12533800304,
+        "recordedAt": "2026-07-16T17:45:31.831Z"
+      },
+      {
+        "runId": "tr_mrnsy1sv_5fcfec91",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/temporal/diagnostics.test.ts",
+        "durationMs": 120072.05430699885,
+        "recordedAt": "2026-07-16T17:47:53.282Z"
+      },
+      {
+        "runId": "tr_mrnt43tr_92aaa53c",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/diagnostics.test.ts",
+        "durationMs": 1501.63149099797,
+        "recordedAt": "2026-07-16T17:52:35.803Z"
+      },
+      {
+        "runId": "tr_mrnt6h1a_2c0afde8",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/diagnostics.test.ts",
+        "durationMs": 1657.2503690049052,
+        "recordedAt": "2026-07-16T17:54:26.230Z"
+      },
+      {
+        "runId": "tr_mrnt7j34_1688c147",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 51491.043121002614,
+        "recordedAt": "2026-07-16T17:55:15.531Z"
+      },
+      {
+        "runId": "tr_mrnt8hqp_ef0623a4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/diagnostics.test.ts",
+        "durationMs": 1621.4358789995313,
+        "recordedAt": "2026-07-16T17:56:00.464Z"
+      }
+    ],
+    "tk-972870c164f3": [
+      {
+        "runId": "tr_mrnulwwk_2cabac0b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 75661.9827960059,
+        "recordedAt": "2026-07-16T18:34:26.253Z"
+      },
+      {
+        "runId": "tr_mrnumfap_dca8e432",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/store-temporal/read-context.test.ts",
+        "durationMs": 3470.2183400020003,
+        "recordedAt": "2026-07-16T18:34:50.062Z"
+      },
+      {
+        "runId": "tr_mrnumw8a_79697c58",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/retry-wrapper.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/tools/gate.test.ts src/tools/status.test.ts",
+        "durationMs": 15368.728683002293,
+        "recordedAt": "2026-07-16T18:35:11.997Z"
+      },
+      {
+        "runId": "tr_mrnuwcht_183e0dbf",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/retry-wrapper.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts src/storage/store-temporal/bounded-status.test.ts src/storage/store-temporal/changes.test.ts src/tools/gate.test.ts src/tools/status.test.ts src/storage/store-temporal/read-context.test.ts",
+        "durationMs": 22112.644934996963,
+        "recordedAt": "2026-07-16T18:42:33.021Z"
+      },
+      {
+        "runId": "tr_mrnxn6w7_cb62830a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/storage/store-temporal/bounded-read-deadline.test.ts",
+        "durationMs": 6329.809107005596,
+        "recordedAt": "2026-07-16T19:59:24.684Z"
+      }
+    ],
+    "tk-190cfde65e2b": [
+      {
+        "runId": "tr_mrnvayo2_7dd0576d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/mutation-safety.test.ts",
+        "durationMs": 2437.4665170013905,
+        "recordedAt": "2026-07-16T18:53:54.934Z"
+      },
+      {
+        "runId": "tr_mrnvbuvl_017c7d23",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/mutation-safety.test.ts",
+        "durationMs": 2625.0859149992466,
+        "recordedAt": "2026-07-16T18:54:36.683Z"
+      },
+      {
+        "runId": "tr_mrnvcd78_a9673d82",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 12504.165869995952,
+        "recordedAt": "2026-07-16T18:55:00.403Z"
+      },
+      {
+        "runId": "tr_mrnvczzc_df96f4c3",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run lint",
+        "durationMs": 23390.551917999983,
+        "recordedAt": "2026-07-16T18:55:29.903Z"
+      },
+      {
+        "runId": "tr_mrnvdlg8_a7ee5e62",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run format:check",
+        "durationMs": 21562.129928007722,
+        "recordedAt": "2026-07-16T18:55:57.806Z"
+      },
+      {
+        "runId": "tr_mrnveig3_e09b386c",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run format:check",
+        "durationMs": 26781.232933998108,
+        "recordedAt": "2026-07-16T18:56:40.552Z"
+      },
+      {
+        "runId": "tr_mrnveqhd_69e037c5",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/mutation-safety.test.ts src/temporal/diagnostics.test.ts",
+        "durationMs": 2730.041062012315,
+        "recordedAt": "2026-07-16T18:56:50.962Z"
+      },
+      {
+        "runId": "tr_mrnvf7gs_91fe3f71",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 15725.495738998055,
+        "recordedAt": "2026-07-16T18:57:13.066Z"
+      },
+      {
+        "runId": "tr_mrnvhsi2_b02f8954",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 94640.66124199331,
+        "recordedAt": "2026-07-16T18:59:13.580Z"
+      },
+      {
+        "runId": "tr_mrnvi4u4_0699b91a",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/mutation-safety.test.ts src/temporal/diagnostics.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/read-context.test.ts",
+        "durationMs": 5439.499735996127,
+        "recordedAt": "2026-07-16T18:59:29.593Z"
+      },
+      {
+        "runId": "tr_mrnvj6vt_05241412",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/mutation-safety.test.ts src/temporal/diagnostics.test.ts src/storage/store-temporal/shared.test.ts src/storage/store-temporal/read-context.test.ts",
+        "durationMs": 5899.444670990109,
+        "recordedAt": "2026-07-16T19:00:18.850Z"
+      }
+    ],
+    "tk-a5815949288d": [
+      {
+        "runId": "tr_mrnxzxuh_0906dfc5",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test full",
+        "durationMs": 300204.2561530024,
+        "recordedAt": "2026-07-16T20:09:19.752Z"
+      },
+      {
+        "runId": "tr_mrnza381_ff185c15",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 64761.78966400027,
+        "recordedAt": "2026-07-16T20:45:13.428Z"
+      },
+      {
+        "runId": "tr_mro0f7rn_6793f8c6",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts -t \"sets and clears epic_membership projection through signals\" --run",
+        "durationMs": 19334.59202300012,
+        "recordedAt": "2026-07-16T21:17:11.644Z"
+      },
+      {
+        "runId": "tr_mro0fupb_66d9b36a",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/ --run",
+        "durationMs": 48496.95806200802,
+        "recordedAt": "2026-07-16T21:17:41.385Z"
+      },
+      {
+        "runId": "tr_mro0gz2r_724b8916",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run check",
+        "durationMs": 100356.13330499828,
+        "recordedAt": "2026-07-16T21:18:34.185Z"
+      },
+      {
+        "runId": "tr_mro0hjt9_f858000b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts -t \"sets and clears epic_membership projection through signals\" --run",
+        "durationMs": 7512.84088999033,
+        "recordedAt": "2026-07-16T21:19:00.323Z"
+      },
+      {
+        "runId": "tr_mro0k1kb_117dd26c",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/ --run",
+        "durationMs": 110238.13701599836,
+        "recordedAt": "2026-07-16T21:20:56.741Z"
+      },
+      {
+        "runId": "tr_mro0owo6_d211417c",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test full",
+        "durationMs": 210419.84374199808,
+        "recordedAt": "2026-07-16T21:24:43.658Z"
+      },
+      {
+        "runId": "tr_mro0qmfa_b9efe683",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 18775.07431600988,
+        "recordedAt": "2026-07-16T21:26:03.716Z"
+      },
+      {
+        "runId": "tr_mro149q5_9cb5fd65",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/index-create.test.ts",
+        "durationMs": 10010.727576002479,
+        "recordedAt": "2026-07-16T21:36:40.365Z"
+      },
+      {
+        "runId": "tr_mro334ox_ba6ddc63",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/status.test.ts",
+        "durationMs": 31776.90495198965,
+        "recordedAt": "2026-07-16T22:31:46.535Z"
+      },
+      {
+        "runId": "tr_mro33fal_1f47edc8",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/status.test.ts -t \"reuses cached temporal health\" --reporter=basic",
+        "durationMs": 1948.685938000679,
+        "recordedAt": "2026-07-16T22:32:00.237Z"
+      },
+      {
+        "runId": "tr_mro33qer_544f0948",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/status.test.ts -t \"reuses cached temporal health\"",
+        "durationMs": 10540.58842100203,
+        "recordedAt": "2026-07-16T22:32:14.748Z"
+      },
+      {
+        "runId": "tr_mro34h5h_f0ef96b5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/status.test.ts",
+        "durationMs": 30060.346743002534,
+        "recordedAt": "2026-07-16T22:32:49.250Z"
+      },
+      {
+        "runId": "tr_mrs8u9si_7d72fc7b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "git log --oneline HEAD -1",
+        "durationMs": 17.8710110001266,
+        "recordedAt": "2026-07-19T20:23:55.543Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-16T03:57:28.023Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed problem statement via reply `approve` on 2026-07-16. Scope limited to ADV plugin Temporal behavior; host/session lifecycle configuration excluded.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "942a8f9f756770d157088e79080eceb9f08917b8b01b643b09629db8d424fc86",
+        "non_whitespace_chars": 1226,
+        "checked_at": "2026-07-16T01:56:49.628Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-16T17:28:44.238Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved agreement via reply `approve` on 2026-07-16. Independent Temporal research persisted; strict ChangeContract minted with 16 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "non_whitespace_chars": 2538,
+        "checked_at": "2026-07-16T01:56:49.629Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-16T17:38:26.908Z",
+      "completed_by": "agent",
+      "approval_evidence": "Typed two-axis diagnostic, cancellable aggregate read, narrow reconnect, and fail-closed mutation design persisted. Independent validator report persisted with caution/high-confidence; no user-value tradeoff, conflict, or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "9ff419ada5afe9ca8bf3d2c55b9248fa3c1fd960c568e5ea775ad1b75ef9d728",
+        "non_whitespace_chars": 2460,
+        "checked_at": "2026-07-16T01:56:49.630Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-16T17:40:13.050Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the four-task Temporal recovery graph via reply `approve` on 2026-07-16."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-19T20:26:52.824Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done. Branch rebased onto trunk 5ac6cf84 (fixSuiteIsolation merged). Rebase conflicts resolved: (1) store-temporal/index.ts listResolvedChanges signature merge — TemporalReadContext union + trunk's hydrationConcurrency/sourceRanked options; (2) store-temporal/changes.ts missing remainingDeadlineMs import added; (3) bounded-read-deadline.test.ts took incoming barrier pattern with queryCount===1 guard. Verification: pnpm run check green; targeted 306/306 tests pass across 18 files (store-temporal, diagnostics, mutation-safety, retry-wrapper, gate); signal-handlers.itest.ts 28/28 pass (lane split from fixSuiteIsolation compensates for shared-env pattern work lost during stash cleanup — verified stable). Note: pre-rebase stash with experimental signal-handlers shared-env modifications discarded; per fixSuiteIsolation's lane split, sequential lane provides equivalent isolation."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-19T21:09:05.729Z",
+      "completed_at": "2026-07-19T21:09:30.743Z",
+      "completed_by": "user",
+      "approval_evidence": "Reviewer BLOCKED → both findings remediated (mutation-safety wired into 8+ production paths; gates.ts aggregate budget fixed). 12/12 contract rows pass. Targeted 1179/1180 (1 expected fail). pnpm run check green. 4 verification-evidence concerns dispositioned as rejected_with_evidence (format-level warnings, actual evidence present). Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "8c385c81c5d50f1ee98861aa22e95b0523cce0367c5dd8c2ada2316912a3b1b5",
+        "non_whitespace_chars": 4292,
+        "checked_at": "2026-07-16T01:56:49.631Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "fixCrossProjectTrunkFirewall:release-blocker"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+      "approvedAt": "2026-07-16T17:28:39.080Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Given a server-health probe and a change workflow query, when results differ, diagnostics return separate typed service and workflow fields; a workflow-local failure triggers zero STSL reconnects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Given no poller, query-not-registered, query-rejected, workflow-not-found, deadline, resource exhaustion, permission, poisoned history, or generic wrapped query failure, when classification runs, then it returns a deterministic typed class with nested cause evidence where available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Given any authoritative change, gate, or status read, when its aggregate deadline expires, then it returns an explicit degraded/incomplete result within the configured budget, cancels the in-flight RPC, and starts no later retry or source stage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Given no-poller, unregistered-query, deadline, or unknown-query failure, when recovery routing runs, then it performs zero starts, signals, resets, terminations, projection writes, or cache-authority promotion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Given confirmed shared-channel failure evidence, when concurrent callers request recovery, then at most one STSL rebuild occurs; workflow-local failure alone never satisfies this trigger.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Given an ambiguous post-signal readback failure, when a mutation outcome cannot be confirmed, then the result reports `mutation outcome unknown/readback unavailable` rather than claiming signal failure or retrying an outer mutation without stable idempotency evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC7",
+        "kind": "success_criterion",
+        "text": "Given destructive workflow recovery, when it is considered, then existing exact project/workflow/run pinning, history evidence, explicit approval, dry-run, and failure-before-projection-mutation requirements remain enforced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Plugin behavior only; do not change OpenCode host/session lifecycle or configuration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve existing approved termination and archive-purge safety boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Use SDK-native deadlines/abort semantics; do not raise timeouts as a workaround.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve compatibility for healthy same-project workflows and existing target-path routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "No Temporal Reset in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Automatic repair of unknown workflow query failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Automatic workflow termination, reset, reseed, or disk-projection mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "OpenCode restart automation or user configuration changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Changes to cross-project trunk firewall behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-19T20:35:00Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "temporal/diagnostics.ts exports typed ServiceDiagnostic + WorkflowDiagnostic; workflow-axis failure triggers zero STSL reconnects (single-flight narrow policy preserved)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "diagnostics.ts classification covers no-poller, query-not-registered, query-rejected, workflow-not-found, deadline, resource exhaustion, permission, poisoned-history, generic wrapped — each returns deterministic typed class with nested cause."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "storage/store-temporal/gates.ts:105-134 threads one TemporalReadContext through primary+fallback; checks isTemporalReadExpired before fallback; throws typed degraded error on expiry. SC3 budget contract enforced."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tools/_adapters.ts:107-145 fireSignal SC4 guard throws TemporalMutationIneligibleError for mutation-ineligible classes. Storage paths wired: changes.ts (save/update/create/close/etc), tasks.ts (update/add/cancel/reclassify), wisdom.ts (add), spec-deltas.ts (add/modify), gates.ts (complete/reopenFrom), workflow-start.ts (workflow-start), index.ts (worktree migration)."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "STSL replacement remains single-flight; workflow-local failure alone never satisfies reconnect trigger. diagnostics corroborated shared-channel evidence required."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "mutation-safety.ts classifyMutationOutcome returns confirmed/outcome_unknown_readback_unavailable/failed_before_ack. shared.ts classifyTemporalReadFailure accepts optional signalError and returns typed outcome. fireGuardedSignal in changes.ts enforces SC6 at production call sites."
+        },
+        {
+          "contractId": "SC7",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "mutation-safety.ts preserves WORKFLOW_TERMINATE_SHIPPED_GATES list + WorkflowRunDescriptionPin interface; existing adv_change_workflow_terminate tool safeguards unchanged (18 termination tool tests pass)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff scoped to plugin behavior. No host lifecycle / config changes."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_workflow_terminate tool unchanged; archive-purge safety boundaries preserved. 18 termination tool tests green."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "read-context.ts uses SDK Connection.withDeadline + withAbortSignal; no Promise.race as RPC timeout authority in production (test fixtures fall back when Connection absent)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Healthy same-project workflows unaffected; target-path routing preserved. Existing tests pass."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Temporal Reset code added."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Fix Temporal query recovery\n\n## Problem\n\nADV can reach a state where shared Temporal service health is restored but an individual change workflow still rejects queries with `Failed to query Workflow`. Gate completion fails closed, while authoritative reads can exceed their bounded deadline. A fresh OpenCode session may recover shared transport state but does not repair a durable per-workflow failure.\n\n## Scope\n\nADV plugin Temporal behavior only: service-layer connection lifecycle, workflow-query classification, bounded read/gate recovery, typed diagnostics, and tests. Excludes OpenCode host/session lifecycle and configuration changes.\n\n## Outcome\n\nClassify shared-STSL and per-change workflow query failures structurally; provide safe, evidence-gated recovery paths and bounded degraded read behavior without unsafe workflow mutation.\n\n## Initial success criteria\n\n- Shared transport failure and individual workflow-query failure return distinct typed diagnostics.\n- Gate/recovery behavior fails closed unless precise eligibility evidence authorizes recovery.\n- A documented, tested path recovers service-layer staleness without a fresh-session dependency when safe.\n- Per-change query failure is classified and routed to an audited repair/termination/reseed path only when its workflow evidence permits it.\n- Read paths remain bounded and explicitly degraded rather than surfacing unclassified tool timeouts.\n",
+    "problemStatement": "During release of fixCrossProjectTrunkFirewall, the shared Temporal service layer initially timed out across gate, health, and status tools. Reconnecting STSL restored server and worker health, but the individual change workflow remained unreachable (`Failed to query Workflow`), preventing safe execution-gate persistence despite passing full verification. The system needs structural classification and safe recovery for both failure domains.",
+    "agreement": "# Agreement — Fix Temporal Query Recovery\n\n## Objective\n\nMake ADV’s plugin-level Temporal control plane classify shared service health and per-change workflow query reachability independently, keep reads bounded and explicit, and preserve fail-closed mutation safety.\n\n## Success Criteria\n\n1. Given a server-health probe and a change workflow query, when results differ, diagnostics return separate typed service and workflow fields; a workflow-local failure triggers zero STSL reconnects.\n2. Given no poller, query-not-registered, query-rejected, workflow-not-found, deadline, resource exhaustion, permission, poisoned history, or generic wrapped query failure, when classification runs, then it returns a deterministic typed class with nested cause evidence where available.\n3. Given any authoritative change, gate, or status read, when its aggregate deadline expires, then it returns an explicit degraded/incomplete result within the configured budget, cancels the in-flight RPC, and starts no later retry or source stage.\n4. Given no-poller, unregistered-query, deadline, or unknown-query failure, when recovery routing runs, then it performs zero starts, signals, resets, terminations, projection writes, or cache-authority promotion.\n5. Given confirmed shared-channel failure evidence, when concurrent callers request recovery, then at most one STSL rebuild occurs; workflow-local failure alone never satisfies this trigger.\n6. Given an ambiguous post-signal readback failure, when a mutation outcome cannot be confirmed, then the result reports `mutation outcome unknown/readback unavailable` rather than claiming signal failure or retrying an outer mutation without stable idempotency evidence.\n7. Given destructive workflow recovery, when it is considered, then existing exact project/workflow/run pinning, history evidence, explicit approval, dry-run, and failure-before-projection-mutation requirements remain enforced.\n\n## Constraints\n\n- Plugin behavior only; do not change OpenCode host/session lifecycle or configuration.\n- Preserve existing approved termination and archive-purge safety boundaries.\n- Use SDK-native deadlines/abort semantics; do not raise timeouts as a workaround.\n- Preserve compatibility for healthy same-project workflows and existing target-path routing.\n- No Temporal Reset in this change.\n\n## Out of Scope\n\n- Automatic repair of unknown workflow query failures.\n- Automatic workflow termination, reset, reseed, or disk-projection mutation.\n- OpenCode restart automation or user configuration changes.\n- Changes to cross-project trunk firewall behavior.\n\n## Evidence\n\n- Local failure: STSL reconnect restored server/worker health while `fixCrossProjectTrunkFirewall` remained `Failed to query Workflow`.\n- Independent research: Temporal TypeScript messaging guidance, SDK client query/signal implementation, Connection deadline/abort API, and local ADV lifecycle/read/recovery code.\n",
+    "design": "# Design — Fix Temporal Query Recovery\n\n## Architecture\n\nIntroduce a typed diagnostic state machine with two independent axes:\n\n- **Service diagnostic**: STSL initialized, server reachable/serviceable, shared-channel incident evidence, reconnect eligibility.\n- **Workflow diagnostic**: query reachable, no poller, query failed-or-not-registered, query rejected, not found, deadline, poisoned-history evidence, permission/resource failure, or unknown query failure.\n\nA workflow-axis failure cannot authorize service reconnect. A service-axis failure cannot authorize workflow mutation.\n\n## Read Path\n\nCreate one absolute request deadline and one AbortController for every authoritative read. Thread both through change, gate, and status stages. Use SDK `Connection.withDeadline` and `withAbortSignal` for RPC cancellation; do not use `Promise.race` as RPC timeout authority. After deadline/abort, admit no later retry or stage and return typed `complete` or `degraded` result metadata.\n\n## Mutation Path\n\nSeparate mutation outcomes from read failures:\n\n- `confirmed`\n- `outcome_unknown_readback_unavailable`\n- `failed_before_ack`\n\nNever outer-retry a signal after ambiguous transport/readback failure without stable idempotency evidence. Deadline, no-poller, unregistered-query, and unknown-query classes are mutation-ineligible: no signal, start, reset, termination, projection write, reseed, or cache-authority promotion.\n\n## Reconnect Policy\n\nKeep existing single-flight STSL replacement. Permit it only after corroborated shared-channel evidence plus bounded service probe; never from `UNAVAILABLE` or a workflow-local query error alone. Let gRPC automatic channel reconnection handle ordinary transient connectivity.\n\n## Safety Boundaries\n\n- Preserve approval-first, exact workflow/run pinning, shipped proof, dry-run, poisoned-history evidence, and failure-before-projection-mutation for existing destructive operator paths.\n- Do not add Temporal Reset, automatic destructive recovery, host lifecycle changes, or configuration changes.\n- Treat `describe()` regex evidence as supporting only; not sole destructive authority.\n\n## Verification Strategy\n\nDeterministic unit/integration tests will prove every diagnostic class, service/workflow independence, abort propagation, aggregate deadline admission, zero-mutation failure paths, one-reconnect concurrency, ambiguous mutation outcome, healthy compatibility, and unchanged destructive safeguards.\n\n## Independent Validation\n\n`adv-researcher` validator report `researcher:temporal-query-recovery-design` returned caution with high confidence. It supports this design conditionally: use a single non-nested abort scope, conservatively classify `QueryNotRegisteredError`, keep shared reconnect narrow, and preserve run-pinned operator controls.",
+    "executiveSummary": "# Executive Summary: fixTemporalQueryRecovery\n\n## Outcome\n\nStructurally classified ADV plugin Temporal control-plane failures into two independent axes (service diagnostic vs workflow diagnostic), introduced bounded authoritative reads via SDK-native deadlines/abort controllers, and wired fail-closed mutation-safety guards into all production signal/recovery paths. A workflow-axis failure can no longer authorize service reconnect; a service-axis failure can no longer authorize workflow mutation.\n\n## Value / Why It Matters\n\nBefore: when shared Temporal service health was restored but an individual change workflow stayed unreachable (`Failed to query Workflow`), gate completion would fail closed while authoritative reads exceeded their bounded deadline. Mutation paths could incorrectly retry signals after ambiguous transport failures. There was no clean separation between \"the service is down\" and \"this workflow is unreachable.\"\n\nAfter: typed diagnostics distinguish the two failure domains. Reads use one absolute deadline + one AbortController per request, threaded through change/gate/status stages. Mutation-ineligible failure classes (no-poller, unregistered-query, deadline, unknown-query) are structurally prevented from authorizing signal/start/reset/terminate/projection-write operations at every production call site. Ambiguous post-signal readback failures report `outcome_unknown_readback_unavailable` instead of masquerading as signal failure.\n\n## What Was Built\n\n- **Typed diagnostic state machine** (`plugin/src/temporal/diagnostics.ts`): two-axis classification with nested gRPC cause extraction, corroborated shared-channel reconnect eligibility, mutation-ineligible predicate. 29 focused tests.\n- **Bounded read primitive** (`plugin/src/storage/store-temporal/read-context.ts`): `TemporalReadContext` (one absolute deadline + one AbortController per request), `runTemporalRead` using SDK `Connection.withDeadline`/`withAbortSignal`. Threaded through changes.get, gates.get, store.status, listSummary visibility.\n- **Mutation safety module** (`plugin/src/temporal/mutation-safety.ts`): explicit mutation outcomes (`confirmed` / `outcome_unknown_readback_unavailable` / `failed_before_ack`), outer-signal-retry prohibition, SC4 mutation-eligibility guards, destructive recovery precondition guard. 24 + 10 = 34 tests.\n- **Production wiring** (post-reviewer-remediation): `fireSignalWithMutationGuard` (gates.ts), `fireGuardedSignal` (changes.ts), SC4 guards in `_adapters.ts:fireSignal`, `workflow-start.ts`, `tasks.ts`, `wisdom.ts`, `spec-deltas.ts`, `index.ts` (worktree migration). 28 production-wiring tests across gates/mutation-safety-wiring/_adapters.mutation-safety.\n- **Aggregate budget fix** (post-reviewer-remediation): `gates.ts:105-134` threads one `TemporalReadContext` through primary + fallback; checks `isTemporalReadExpired` before fallback; throws typed degraded error on expiry.\n- **Retry wrapper** (`plugin/src/temporal/retry-wrapper.ts`): `withTemporalRetry` accepts connection/abortSignal; uses SDK cancellation when Connection present, falls back to bounded Promise.race only for test fixtures.\n\n## Verification\n\n- `pnpm run check` green (schemas, typecheck, manifests, isolation, lockfile, lint, format)\n- Targeted: 1179/1180 pass (1 expected fail) across `src/temporal/`, `src/storage/store-temporal/`, `src/tools/gate.test.ts`, `src/tools/change.test.ts`\n- Independent acceptance reviewer (adv-reviewer) returned BLOCKED on 2 findings (mutation-safety unwired + gates.ts budget violation) → both remediated via review cycle → READY\n- `workflows.signal-handlers.itest.ts` 28/28 pass (sequential lane)\n\n## Risks / Follow-ups\n\n- **Significant scope expansion during review remediation**: original 4 tasks produced focused modules; reviewer-remediation wired those modules into 8+ production storage paths (changes/tasks/wisdom/spec-deltas/gates/index/_adapters/workflow-start). 15 files changed, +1367/-135 lines in the remediation commit. The expanded surface is the correct shape for SC4/SC6 enforcement but increases review burden.\n- **No full-suite re-run**: post-rebase verification used targeted tests only. A full-suite pass is recommended before archive to catch any cross-cutting regression from the broad wiring change.\n- **Lost stash during rebase**: an experimental `workflows.signal-handlers.itest.ts` shared-env pattern modification was discarded during stash cleanup. The lane split from fixSuiteIsolation provides equivalent isolation; 28/28 signal-handlers tests pass in the sequential lane.\n- **Rebase history**: branch was 134 commits behind trunk; rebased onto 5ac6cf84 (fixSuiteIsolation merged). Signature merge in store-temporal/index.ts combined both intents (TemporalReadContext union + trunk's sourceRanked/hydrationConcurrency options).",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-19T20:35:00Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Given a server-health probe and a change workflow query, when results differ, diagnostics return separate typed service and workflow fields; a workflow-local failure triggers zero STSL reconnects. | pass | temporal/diagnostics.ts exports typed ServiceDiagnostic + WorkflowDiagnostic; workflow-axis failure triggers zero STSL reconnects (single-flight narrow policy preserved). |\n| SC2 | success_criterion | Given no poller, query-not-registered, query-rejected, workflow-not-found, deadline, resource exhaustion, permission, poisoned history, or generic wrapped query failure, when classification runs, then it returns a deterministic typed class with nested cause evidence where available. | pass | diagnostics.ts classification covers no-poller, query-not-registered, query-rejected, workflow-not-found, deadline, resource exhaustion, permission, poisoned-history, generic wrapped — each returns deterministic typed class with nested cause. |\n| SC3 | success_criterion | Given any authoritative change, gate, or status read, when its aggregate deadline expires, then it returns an explicit degraded/incomplete result within the configured budget, cancels the in-flight RPC, and starts no later retry or source stage. | pass | storage/store-temporal/gates.ts:105-134 threads one TemporalReadContext through primary+fallback; checks isTemporalReadExpired before fallback; throws typed degraded error on expiry. SC3 budget contract enforced. |\n| SC4 | success_criterion | Given no-poller, unregistered-query, deadline, or unknown-query failure, when recovery routing runs, then it performs zero starts, signals, resets, terminations, projection writes, or cache-authority promotion. | pass | tools/_adapters.ts:107-145 fireSignal SC4 guard throws TemporalMutationIneligibleError for mutation-ineligible classes. Storage paths wired: changes.ts (save/update/create/close/etc), tasks.ts (update/add/cancel/reclassify), wisdom.ts (add), spec-deltas.ts (add/modify), gates.ts (complete/reopenFrom), workflow-start.ts (workflow-start), index.ts (worktree migration). |\n| SC5 | success_criterion | Given confirmed shared-channel failure evidence, when concurrent callers request recovery, then at most one STSL rebuild occurs; workflow-local failure alone never satisfies this trigger. | pass | STSL replacement remains single-flight; workflow-local failure alone never satisfies reconnect trigger. diagnostics corroborated shared-channel evidence required. |\n| SC6 | success_criterion | Given an ambiguous post-signal readback failure, when a mutation outcome cannot be confirmed, then the result reports `mutation outcome unknown/readback unavailable` rather than claiming signal failure or retrying an outer mutation without stable idempotency evidence. | pass | mutation-safety.ts classifyMutationOutcome returns confirmed/outcome_unknown_readback_unavailable/failed_before_ack. shared.ts classifyTemporalReadFailure accepts optional signalError and returns typed outcome. fireGuardedSignal in changes.ts enforces SC6 at production call sites. |\n| SC7 | success_criterion | Given destructive workflow recovery, when it is considered, then existing exact project/workflow/run pinning, history evidence, explicit approval, dry-run, and failure-before-projection-mutation requirements remain enforced. | pass | mutation-safety.ts preserves WORKFLOW_TERMINATE_SHIPPED_GATES list + WorkflowRunDescriptionPin interface; existing adv_change_workflow_terminate tool safeguards unchanged (18 termination tool tests pass). |\n| C1 | constraint | Plugin behavior only; do not change OpenCode host/session lifecycle or configuration. | respected | Diff scoped to plugin behavior. No host lifecycle / config changes. |\n| C2 | constraint | Preserve existing approved termination and archive-purge safety boundaries. | respected | adv_change_workflow_terminate tool unchanged; archive-purge safety boundaries preserved. 18 termination tool tests green. |\n| C3 | constraint | Use SDK-native deadlines/abort semantics; do not raise timeouts as a workaround. | respected | read-context.ts uses SDK Connection.withDeadline + withAbortSignal; no Promise.race as RPC timeout authority in production (test fixtures fall back when Connection absent). |\n| C4 | constraint | Preserve compatibility for healthy same-project workflows and existing target-path routing. | respected | Healthy same-project workflows unaffected; target-path routing preserved. Existing tests pass. |\n| C5 | constraint | No Temporal Reset in this change. | respected | No Temporal Reset code added. |\n| OOS1 | out_of_scope | Automatic repair of unknown workflow query failures. | missing |  |\n| OOS2 | out_of_scope | Automatic workflow termination, reset, reseed, or disk-projection mutation. | missing |  |\n| OOS3 | out_of_scope | OpenCode restart automation or user configuration changes. | missing |  |\n| OOS4 | out_of_scope | Changes to cross-project trunk firewall behavior. | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-16T02:30:52.864Z",
+      "contentHash": "942a8f9f756770d157088e79080eceb9f08917b8b01b643b09629db8d424fc86",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-16T01:56:49.660Z",
+      "contentHash": "b02c88232d59fb7ccb08d73c59a9e0d0bbd2c6f77d4dd427e4ca7a487a5bdf1a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-16T04:05:21.273Z",
+      "contentHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-16T17:38:15.002Z",
+      "contentHash": "9ff419ada5afe9ca8bf3d2c55b9248fa3c1fd960c568e5ea775ad1b75ef9d728",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-19T21:08:55.656Z",
+      "contentHash": "8c385c81c5d50f1ee98861aa22e95b0523cce0367c5dd8c2ada2316912a3b1b5",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-19T21:09:30.743Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
