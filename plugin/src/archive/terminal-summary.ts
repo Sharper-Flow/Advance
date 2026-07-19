@@ -12,6 +12,8 @@
  * the summaryHash field omitted.
  */
 
+// rq-terminalSummary01
+
 import { createHash } from "crypto";
 import { z } from "zod";
 import {

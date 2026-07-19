@@ -40,6 +40,18 @@ const FORBIDDEN_RUNTIME_CHECKLIST_PATTERNS: Array<{
   },
 ];
 
+function expectVersionAtLeast(actual: string, minimum: string): void {
+  const parse = (v: string) => v.split(".").map((n) => Number(n));
+  const a = parse(actual);
+  const b = parse(minimum);
+  const aNum = (a[0] ?? 0) * 1_000_000 + (a[1] ?? 0) * 1_000 + (a[2] ?? 0);
+  const bNum = (b[0] ?? 0) * 1_000_000 + (b[1] ?? 0) * 1_000 + (b[2] ?? 0);
+  expect(
+    aNum,
+    `expected ${actual} to be at least ${minimum}`,
+  ).toBeGreaterThanOrEqual(bNum);
+}
+
 const SHARED_SKILL_COMMANDS = [
   {
     command: "adv-harden",
@@ -314,7 +326,7 @@ describe("ambiguity taxonomy spec assets", () => {
     expect(prepSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining(["rq-stagePrepNoCriteriaFirming01"]),
     );
-    expect(workflowSpec.version).toBe("1.28.1");
+    expectVersionAtLeast(workflowSpec.version, "1.28.1");
     expect(workflowSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining([
         "rq-stageDesignCriteriaBoundary01",

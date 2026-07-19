@@ -5,12 +5,16 @@ import type { Store } from "../storage/store";
 import { createDefaultGates, type Change, type ChangeRecency } from "../types";
 import type { WorkflowDirective } from "../utils/workflow-directive";
 import {
+  applyCandidateEnrichmentPatches,
+  buildCandidateEnrichmentPatch,
   buildNextGateRecommendationFromDirective,
   enrichRecentChangeStatus,
   filterRecentChangesForProductScope,
   getFastFollowParentContext,
+  type CandidateEnrichmentPatch,
   type StatusRecommendationCarrier,
 } from "./status-enrich";
+import type { StatusRecommendationItem } from "./status-recommendations";
 
 function directive(
   action: WorkflowDirective["action"],
@@ -371,5 +375,353 @@ describe("filterRecentChangesForProductScope request-local map", () => {
       "in-scope",
       "unresolved",
     ]);
+  });
+});
+
+// =============================================================================
+// Request-owned immutable candidate enrichment patches
+// (fixHealthViewTimeouts SC5 / AC7 / AC9 / AC10)
+// =============================================================================
+
+describe("buildCandidateEnrichmentPatch request-owned immutable patches", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("returns a patch without mutating the input candidate or recommendations", async () => {
+    tempDir = await createTempDir();
+    const { store } = mockStore(tempDir);
+    const rc = recency("change-a");
+    const rcBefore = { ...rc };
+    const status: StatusRecommendationCarrier = { recommendations: [] };
+    const recsBefore = status.recommendations;
+
+    const patch = await buildCandidateEnrichmentPatch({
+      rc,
+      store,
+      clarifyMode: "off",
+      isPrimary: false,
+      resolved: { change: resolvedChange("change-a") },
+      cutoffAt: Date.now() + 10_000,
+      rank: 0,
+    });
+
+    expect(rc).toEqual(rcBefore);
+    expect(status.recommendations).toBe(recsBefore);
+    expect(patch).toMatchObject({
+      changeId: "change-a",
+      rank: 0,
+      candidate: expect.any(Object),
+      recommendations: expect.any(Array),
+      outcome: expect.any(Object),
+    });
+  });
+
+  it("reuses the resolved document and proposal without store or artifact reads", async () => {
+    tempDir = await createTempDir();
+    const { store, get } = mockStore(tempDir);
+    const rc = recency("change-a");
+
+    const patch = await buildCandidateEnrichmentPatch({
+      rc,
+      store,
+      clarifyMode: "off",
+      isPrimary: true,
+      resolved: { change: resolvedChange("change-a") },
+      cutoffAt: Date.now() + 10_000,
+      rank: 0,
+    });
+
+    expect(get).not.toHaveBeenCalled();
+    expect(patch.candidate._contextSnapshot).toBeDefined();
+    expect(patch.candidate._directive).toBeDefined();
+    expect(patch.recommendations.length).toBeGreaterThan(0);
+    expect(patch.recommendations.some((r) => r.kind === "next_gate")).toBe(
+      true,
+    );
+    expect(patch.outcome.kind).toBe("ok");
+  });
+
+  it("shares cutoff with parent/dependency reads and resolves parent context from the map", async () => {
+    tempDir = await createTempDir();
+    const { store, get } = mockStore(tempDir);
+    const parent = resolvedChange("parent-change", { status: "archived" });
+    const child = resolvedChange("child-change", {
+      fast_follow_of: {
+        parent_change_id: "parent-change",
+        relationship: "follows_release",
+      },
+    });
+    const resolvedChanges = new Map<string, Change>([
+      ["parent-change", parent],
+      ["child-change", child],
+    ]);
+    const rc = recency("child-change");
+
+    const patch = await buildCandidateEnrichmentPatch({
+      rc,
+      store,
+      clarifyMode: "off",
+      isPrimary: false,
+      resolved: { change: child, resolvedChanges },
+      cutoffAt: Date.now() + 10_000,
+      rank: 0,
+    });
+
+    expect(get).not.toHaveBeenCalled();
+    expect(patch.candidate.parent_change_id).toBe("parent-change");
+    const nextGate = patch.recommendations.find((r) => r.kind === "next_gate");
+    expect(nextGate?.title).toContain("parent-change (archived)");
+    expect(patch.outcome.kind).toBe("ok");
+  });
+
+  it("does not launch store or artifact reads after cutoff", async () => {
+    tempDir = await createTempDir();
+    const { store, get } = mockStore(tempDir);
+    const rc = recency("change-b");
+
+    const patch = await buildCandidateEnrichmentPatch({
+      rc,
+      store,
+      clarifyMode: "off",
+      isPrimary: false,
+      // No resolved change, so the legacy path would read the store.
+      cutoffAt: Date.now() - 1,
+      rank: 0,
+    });
+
+    expect(get).not.toHaveBeenCalled();
+    expect(patch.candidate).toEqual({});
+    expect(patch.recommendations).toEqual([]);
+    expect(patch.outcome.kind).toBe("not_admitted");
+    expect(patch.outcome.evidence).toMatch(/cutoff|deadline|not_admitted/i);
+  });
+
+  it("returns a timeout/not-admitted patch that cannot mutate the candidate", async () => {
+    tempDir = await createTempDir();
+    const { store } = mockStore(tempDir);
+    const rc = recency("change-c");
+    const rcBefore = { ...rc };
+    const status: StatusRecommendationCarrier = { recommendations: [] };
+    const recsBefore = status.recommendations;
+
+    const patch = await buildCandidateEnrichmentPatch({
+      rc,
+      store,
+      clarifyMode: "off",
+      isPrimary: false,
+      cutoffAt: Date.now() - 1,
+      rank: 0,
+    });
+
+    expect(rc).toEqual(rcBefore);
+    expect(status.recommendations).toBe(recsBefore);
+    expect(["timeout", "not_admitted"]).toContain(patch.outcome.kind);
+    expect(patch.candidate).toEqual({});
+    expect(patch.recommendations).toEqual([]);
+  });
+
+  it("emits a candidate outcome compatible with the _health_execution source schema", async () => {
+    tempDir = await createTempDir();
+    const { store } = mockStore(tempDir);
+    const rc = recency("change-d");
+
+    const patch = await buildCandidateEnrichmentPatch({
+      rc,
+      store,
+      clarifyMode: "off",
+      isPrimary: false,
+      resolved: { change: resolvedChange("change-d") },
+      cutoffAt: Date.now() + 10_000,
+      rank: 0,
+    });
+
+    expect(patch.outcome).toHaveProperty("kind");
+    expect([
+      "ok",
+      "stale",
+      "timeout",
+      "error",
+      "unavailable",
+      "not_admitted",
+    ]).toContain(patch.outcome.kind);
+    expect(patch.outcome).toHaveProperty("elapsedMs");
+    expect(typeof patch.outcome.elapsedMs).toBe("number");
+    if (patch.outcome.evidence) {
+      expect(typeof patch.outcome.evidence).toBe("string");
+    }
+  });
+
+  it("keeps candidate evidence bounded, stable, and privacy-safe", async () => {
+    tempDir = await createTempDir();
+    const { store } = mockStore(tempDir);
+    const rc = recency("change-e");
+
+    const patch = await buildCandidateEnrichmentPatch({
+      rc,
+      store,
+      clarifyMode: "off",
+      isPrimary: false,
+      cutoffAt: Date.now() - 1,
+      rank: 0,
+    });
+
+    const evidence = patch.outcome.evidence ?? "";
+    expect(evidence.length).toBeLessThanOrEqual(200);
+    expect(evidence).not.toContain(tempDir);
+    expect(evidence).not.toMatch(/\/.*\/.*/); // no absolute paths
+    expect(evidence).toMatch(/cutoff|deadline|not_admitted/i);
+  });
+});
+
+describe("applyCandidateEnrichmentPatches ranked reduction", () => {
+  it("reduces settled patches in rank order and skips timed-out/not-admitted patches", () => {
+    const candidates = [recency("c-1"), recency("c-2")];
+    const status: StatusRecommendationCarrier = { recommendations: [] };
+    const patches: CandidateEnrichmentPatch[] = [
+      {
+        changeId: "c-2",
+        rank: 1,
+        candidate: { parent_change_id: "p-2" },
+        recommendations: [
+          {
+            kind: "next_gate",
+            priority: "medium",
+            title: "c-2 rec",
+            detail: "d",
+            action: "a",
+            source: "gate",
+          } as StatusRecommendationItem,
+        ],
+        outcome: { kind: "ok", elapsedMs: 1 },
+      },
+      {
+        changeId: "c-1",
+        rank: 0,
+        candidate: { parent_change_id: "p-1" },
+        recommendations: [
+          {
+            kind: "next_gate",
+            priority: "medium",
+            title: "c-1 rec",
+            detail: "d",
+            action: "a",
+            source: "gate",
+          } as StatusRecommendationItem,
+        ],
+        outcome: { kind: "ok", elapsedMs: 1 },
+      },
+      {
+        changeId: "c-3",
+        rank: 2,
+        candidate: { parent_change_id: "p-3" },
+        recommendations: [],
+        outcome: {
+          kind: "not_admitted",
+          elapsedMs: 1,
+          evidence: "cutoff",
+        },
+      },
+    ];
+
+    const result = applyCandidateEnrichmentPatches({
+      patches,
+      candidates,
+      status,
+    });
+
+    expect(result.candidates[0].parent_change_id).toBe("p-1");
+    expect(result.candidates[1].parent_change_id).toBe("p-2");
+    expect(result.candidates.length).toBe(2);
+    expect(result.recommendations).toBe(2);
+    expect(result.omittedCount).toBe(1);
+    expect(result.omittedSample).toEqual(["c-3"]);
+    expect(status.recommendations).toHaveLength(2);
+    expect(status.recommendations[0]).toContain("c-1 rec");
+  });
+
+  it("preserves required fields and existing _freshness when applying patches", () => {
+    const candidates = [
+      {
+        ...recency("c-1"),
+        _freshness: { cached_at: "2026-01-01T00:00:00Z" },
+      },
+    ];
+    const status: StatusRecommendationCarrier & {
+      _freshness?: Record<string, unknown>;
+    } = {
+      recommendations: [],
+      _freshness: { temporal_health: { stale: false } },
+    };
+    const patches: CandidateEnrichmentPatch[] = [
+      {
+        changeId: "c-1",
+        rank: 0,
+        candidate: { _contextSnapshot: { snapshot: true } },
+        recommendations: [],
+        outcome: { kind: "ok", elapsedMs: 1 },
+      },
+    ];
+
+    const result = applyCandidateEnrichmentPatches({
+      patches,
+      candidates: candidates as ChangeRecency[],
+      status,
+    });
+
+    expect(result.candidates[0].id).toBe("c-1");
+    expect(result.candidates[0].title).toBe("Change c-1");
+    expect(result.candidates[0].status).toBe("active");
+    expect(result.candidates[0].minutesSinceActivity).toBe(5);
+    expect(
+      (result.candidates[0] as unknown as { _contextSnapshot?: unknown })
+        ._contextSnapshot,
+    ).toEqual({ snapshot: true });
+    expect(status._freshness).toEqual({ temporal_health: { stale: false } });
+  });
+});
+
+describe("enrichRecentChangeStatus summary/hygiene compatibility regression", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("still mutates the candidate with required fields for summary and hygiene views", async () => {
+    tempDir = await createTempDir();
+    const { store, get } = mockStore(tempDir);
+    const rc = recency("change-f");
+    const status: StatusRecommendationCarrier = { recommendations: [] };
+    const change = resolvedChange("change-f", {
+      epic_membership: {
+        epic_id: "epic-1",
+        title: "Epic",
+        entry_id: "entry-1",
+      },
+    });
+
+    await enrichRecentChangeStatus(rc, status, store, "off", false, { change });
+
+    expect(get).not.toHaveBeenCalled();
+    expect(rc._contextSnapshot).toBeDefined();
+    expect(rc._directive).toBeDefined();
+    expect(rc.parent_change_id).toBeUndefined();
+    expect(
+      (
+        rc as unknown as {
+          epic?: { id: string; title: string; entry_id: string };
+        }
+      ).epic,
+    ).toEqual({
+      id: "epic-1",
+      title: "Epic",
+      entry_id: "entry-1",
+    });
+    expect(status.recommendations.length).toBeGreaterThan(0);
   });
 });

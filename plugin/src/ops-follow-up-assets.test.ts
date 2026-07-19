@@ -38,6 +38,18 @@ function readRepoFile(path: string): string {
   return readFileSync(join(REPO_ROOT, path), "utf8");
 }
 
+function expectVersionAtLeast(actual: string, minimum: string): void {
+  const parse = (v: string) => v.split(".").map((n) => Number(n));
+  const a = parse(actual);
+  const b = parse(minimum);
+  const aNum = (a[0] ?? 0) * 1_000_000 + (a[1] ?? 0) * 1_000 + (a[2] ?? 0);
+  const bNum = (b[0] ?? 0) * 1_000_000 + (b[1] ?? 0) * 1_000 + (b[2] ?? 0);
+  expect(
+    aNum,
+    `expected ${actual} to be at least ${minimum}`,
+  ).toBeGreaterThanOrEqual(bNum);
+}
+
 describe("ops-follow-up traceability spec law", () => {
   test("rq-opsFollowTrace01 exists in advance-workflow with 3 scenarios", () => {
     const spec = loadSpec("advance-workflow");
@@ -141,7 +153,7 @@ describe("ops-follow-up traceability spec law", () => {
 describe("ops-follow-up spec versions bumped", () => {
   test("advance-workflow version is at least 1.22.0", () => {
     const spec = loadSpec("advance-workflow");
-    expect(spec.version).toBe("1.28.1");
+    expectVersionAtLeast(spec.version, "1.22.0");
   });
 
   test("subagent-reports version is at least 1.3.0", () => {

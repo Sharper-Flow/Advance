@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
@@ -17,6 +19,11 @@ import { SpecSchema } from "../../types";
 import { listSpecsActivity, showSpecActivity } from "../../temporal/activities";
 import type { LoadResult } from "../json";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
+import {
+  listSourceRankedCandidates,
+  type SourceRankedCandidate,
+} from "../../temporal/list-source-ranked-candidates";
+import { mapWithConcurrency } from "../../utils/concurrency";
 import {
   ChangeSummaryMemo,
   asGateStatus,
@@ -804,7 +811,11 @@ export function createTemporalStoreBackend(
       includeClosed?: boolean;
     },
     deadline: TemporalReadDeadline = createTemporalReadDeadline(),
-    options?: { candidateLimit?: number; hydrationConcurrency?: number },
+    options?: {
+      candidateLimit?: number;
+      hydrationConcurrency?: number;
+      sourceRanked?: boolean;
+    },
   ): Promise<import("../store-types").ResolvedChangeList> => {
     const wantsTerminalStatuses = Boolean(
       filter?.includeArchived || filter?.includeClosed,
@@ -859,7 +870,10 @@ export function createTemporalStoreBackend(
       client?: { workflow?: { list?: unknown } };
     };
     let visibilityIds: string[] = [];
-    if (typeof bundle.client?.workflow?.list === "function") {
+    if (
+      !options?.sourceRanked &&
+      typeof bundle.client?.workflow?.list === "function"
+    ) {
       try {
         visibilityIds = await raceWithTemporalDeadline(
           listChangeWorkflowIds(
@@ -943,17 +957,88 @@ export function createTemporalStoreBackend(
     );
     const archiveIdSet = new Set(archiveIds);
 
-    // Caller-supplied read bound (fixChangeListTimeouts KD4 / AC3): the
-    // summary view bounds deep hydration UPSTREAM instead of hydrating
-    // every candidate and slicing the output afterwards. Memo-warm
-    // candidates sort by recency first so the bounded set is the most
-    // recent one rather than an arbitrary enumeration prefix; candidates
-    // without a memo signal keep their (stable) enumeration order. The
-    // truncated tail becomes typed bounded omissions — never silently
-    // dropped, never counted as complete (C2).
     const candidateLimit = options?.candidateLimit;
     let hydrationIds = changeIds;
-    if (candidateLimit !== undefined && changeIds.length > candidateLimit) {
+    let sourceRankedIds: string[] | undefined;
+    let sourceRankingMissingIds: string[] = [];
+
+    if (
+      options?.sourceRanked &&
+      candidateLimit !== undefined &&
+      typeof bundle.client?.workflow?.list === "function" &&
+      !wantsTerminalStatuses
+    ) {
+      const diskCandidates = await mapWithConcurrency(
+        diskIds,
+        4,
+        async (id): Promise<SourceRankedCandidate> => {
+          if (expired()) return { id, source: "disk" };
+          try {
+            const raw = await raceWithTemporalDeadline(
+              readFile(join(legacy.paths.changes, id, "change.json"), "utf8"),
+              deadline,
+            );
+            const parsed = JSON.parse(raw) as Record<string, unknown>;
+            return {
+              id,
+              source: "disk",
+              lastSignalAt:
+                typeof parsed.lastSignalAt === "string"
+                  ? parsed.lastSignalAt
+                  : undefined,
+              createdAt:
+                typeof parsed.created_at === "string"
+                  ? parsed.created_at
+                  : undefined,
+            };
+          } catch {
+            return { id, source: "disk" };
+          }
+        },
+      );
+      try {
+        const ranked = await raceWithTemporalDeadline(
+          listSourceRankedCandidates(
+            bundle.client as Parameters<typeof listSourceRankedCandidates>[0],
+            {
+              projectId: input.projectId,
+              statuses: undefined,
+              limit: candidateLimit,
+              diskCandidates,
+            },
+          ),
+          deadline,
+        );
+        hydrationIds = ranked.admitted.map((candidate) => candidate.id);
+        sourceRankedIds = [...hydrationIds];
+        sourceRankingMissingIds = ranked.missingTimestampIds;
+        for (const candidate of ranked.omittedCandidates) {
+          candidateResolutions.push({
+            id: candidate.id,
+            terminal: false,
+            omitted: true,
+            omissionReason: "bounded",
+          });
+        }
+      } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
+        degradedSources.add("visibility");
+        if (hitDeadline) markDeadline("visibility");
+        hydrationIds = [];
+        for (const id of diskIds) {
+          candidateResolutions.push({
+            id,
+            terminal: false,
+            omitted: true,
+            omissionReason: hitDeadline ? "deadline" : "bounded",
+          });
+        }
+      }
+    } else if (
+      candidateLimit !== undefined &&
+      changeIds.length > candidateLimit
+    ) {
       const memoActivity = new Map(
         memoAll.map((summary) => [summary.id, summary.lastActivityAt] as const),
       );
@@ -1313,15 +1398,28 @@ export function createTemporalStoreBackend(
         omittedIds: boundedOmissions.map((r) => r.id).slice(0, 20),
       });
     }
+    if (sourceRankingMissingIds.length > 0) {
+      warnings.push({
+        code: "SOURCE_RANKING_DEGRADED",
+        source: "visibility",
+        message: `${sourceRankingMissingIds.length} candidate(s) lacked source-backed ranking timestamps; orientation is degraded.`,
+        omittedCount: sourceRankingMissingIds.length,
+        omittedIds: sourceRankingMissingIds.slice(0, 20),
+      });
+    }
 
     // Active/default path: no terminal degraded metadata (preserved
     // compatibility), but deadline and bound degradation always surface.
     if (!wantsTerminalStatuses) {
       if (warnings.length === 0) {
-        return { changes: resolvedChanges };
+        return {
+          changes: resolvedChanges,
+          ...(sourceRankedIds ? { rankedIds: sourceRankedIds } : {}),
+        };
       }
       return {
         changes: resolvedChanges,
+        ...(sourceRankedIds ? { rankedIds: sourceRankedIds } : {}),
         warnings,
         hydrationStats: {
           ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
@@ -1349,8 +1447,11 @@ export function createTemporalStoreBackend(
 
     return {
       changes: resolvedChanges,
+      ...(sourceRankedIds ? { rankedIds: sourceRankedIds } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
-      ...(terminalResolutions.length > 0 || deadlineExceeded
+      ...(terminalResolutions.length > 0 ||
+      deadlineExceeded ||
+      boundedOmissions.length > 0
         ? { hydrationStats }
         : {}),
     };
@@ -1380,10 +1481,13 @@ export function createTemporalStoreBackend(
       undefined,
       deadline,
       options?.recentLimit !== undefined
-        ? { candidateLimit: options.recentLimit }
+        ? {
+            candidateLimit: options.recentLimit,
+            sourceRanked: options.sourceRanked === true,
+          }
         : undefined,
     );
-    const { changes, warnings, hydrationStats } = resolved;
+    const { changes, rankedIds, warnings, hydrationStats } = resolved;
     const now = new Date();
     const byStatus: Record<ChangeStatus, number> = {
       draft: 0,
@@ -1397,6 +1501,9 @@ export function createTemporalStoreBackend(
       byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
     }
 
+    const rankById = rankedIds
+      ? new Map(rankedIds.map((id, index) => [id, index] as const))
+      : undefined;
     const sortedRecent = changes
       .filter(
         (change) => change.status !== "archived" && change.status !== "closed",
@@ -1412,6 +1519,11 @@ export function createTemporalStoreBackend(
         ),
       )
       .sort((a, b) => {
+        if (rankById) {
+          const aRank = rankById.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+          const bRank = rankById.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+          if (aRank !== bRank) return aRank - bRank;
+        }
         const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
