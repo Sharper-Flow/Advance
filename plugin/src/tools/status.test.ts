@@ -12,6 +12,7 @@ import {
   _healthSnapshotCache,
   _statusProbeCaches,
 } from "./status";
+import { _healthRequestProbeCaches } from "./status-health-plan";
 import {
   createTestProject,
   createTempDir,
@@ -133,6 +134,7 @@ describe("Status Tools", () => {
       warnings: [],
     });
     _statusProbeCaches.clear();
+    _healthRequestProbeCaches.clear();
     mockScanSnapshotHealth.mockReset();
     mockScanSnapshotHealth.mockResolvedValue({
       schema_version: 1,

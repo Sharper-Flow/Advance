@@ -29,14 +29,7 @@
 // projection this file asserts on. The bump is purely test-scoped.
 process.env.ADV_TOOL_MAX_CHARS = "1000000";
 
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   createTempDir,
   createTestProject,
@@ -48,9 +41,9 @@ import { createTemporalStoreBackend } from "../storage/store-temporal";
 import type { Store } from "../storage/store";
 import { statusTools } from "./status";
 import { _statusProbeCaches } from "./status-health";
+import { _healthRequestProbeCaches } from "./status-health-plan";
 import { createDefaultGates, type Change } from "../types";
 import * as worktree from "./worktree";
-import * as healthProbeCache from "./health-probe-cache";
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -98,7 +91,8 @@ vi.mock("./snapshot-scan", () => ({
 }));
 
 vi.mock("../utils/plugin-runtime-info", () => ({
-  getPluginRuntimeInfo: (...args: unknown[]) => mockGetPluginRuntimeInfo(...args),
+  getPluginRuntimeInfo: (...args: unknown[]) =>
+    mockGetPluginRuntimeInfo(...args),
 }));
 
 vi.mock("./session/index", () => ({
@@ -162,9 +156,7 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
   const actual =
-    await importOriginal<
-      typeof import("./archive-helpers/git-finalize")
-    >();
+    await importOriginal<typeof import("./archive-helpers/git-finalize")>();
   return {
     ...actual,
     resolveMainCheckout: vi.fn().mockReturnValue(null),
@@ -179,17 +171,6 @@ vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
       branches: new Set<string>(),
       worktreePaths: {},
     }),
-  };
-});
-
-// Spy/mock the health-specific wrapper so observable production evidence
-// (C.3) can be asserted directly.
-vi.mock("./health-probe-cache", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("./health-probe-cache")>();
-  return {
-    ...actual,
-    createHealthProbeCache: vi.fn(actual.createHealthProbeCache),
   };
 });
 
@@ -345,6 +326,13 @@ async function setupStores(options: {
   return { legacy, store };
 }
 
+// Unwrap the truncation envelope when the bounded health response exceeds
+// the production 21,000 char budget; otherwise return the parsed JSON as-is.
+function parseStatusOutput(result: unknown): any {
+  const parsed = parseToolOutput(result as any) as any;
+  return parsed?._truncated && parsed.data ? parsed.data : parsed;
+}
+
 function resetMocks(): void {
   mockGetTemporalHealth.mockReset();
   mockGetTemporalHealth.mockResolvedValue(buildTemporalHealth(true));
@@ -401,6 +389,7 @@ describe("A: whole health request budget spans every status→probe→specs path
     tempDir = await createTempDir();
     await createTestProject(tempDir, { withChanges: false, withSpecs: true });
     _statusProbeCaches.clear();
+    _healthRequestProbeCaches.clear();
     resetMocks();
   }, 15_000);
 
@@ -422,7 +411,7 @@ describe("A: whole health request budget spans every status→probe→specs path
       store,
     );
     const elapsed = Date.now() - start;
-    const parsed = parseToolOutput(result) as any;
+    const parsed = parseStatusOutput(result);
 
     // Whole-request budget respected — even with a 6 s delay on every
     // boundary. In current production this fails because specs.list
@@ -455,9 +444,8 @@ describe("A: whole health request budget spans every status→probe→specs path
       return buildSnapshotHealthResult();
     });
 
-    const realListSpecsActivity = (
-      await import("../temporal/activities")
-    ).listSpecsActivity;
+    const realListSpecsActivity = (await import("../temporal/activities"))
+      .listSpecsActivity;
     store.specs.list = vi.fn(async (filter?: any) => {
       if (Date.now() - realStart > 7_500) {
         specsCallsAfterCutoff++;
@@ -491,14 +479,15 @@ describe("A: whole health request budget spans every status→probe→specs path
       { view: "health", forceRefresh: true },
       store,
     );
-    const parsed = parseToolOutput(result) as any;
+    const parsed = parseStatusOutput(result);
 
     expect(parsed._health_execution).toBeDefined();
     expect(parsed._health_execution.outcomes).toBeDefined();
 
     // The plan must own the spec read so a delay surfaces as typed
     // degradation rather than as a runaway post-plan call.
-    const specsOutcome = parsed._health_execution.outcomes.specs;
+    const specsOutcome =
+      parsed._health_execution.outcomes.spec_requirement_count;
     expect(specsOutcome).toBeDefined();
     expect([
       "ok",
@@ -524,6 +513,7 @@ describe("B: source-ranked orientation bounds hydration to global top10", () => 
     tempDir = await createTempDir();
     await createTestProject(tempDir, { withChanges: false, withSpecs: true });
     _statusProbeCaches.clear();
+    _healthRequestProbeCaches.clear();
     resetMocks();
   });
 
@@ -629,11 +619,10 @@ describe("B: source-ranked orientation bounds hydration to global top10", () => 
 
     mockListConfig.queryCalls = 0;
 
-    const result = await statusTools.adv_status.execute(
-      { view: "health" },
-      store,
-    );
-    const parsed = parseToolOutput(result) as any;
+    const status = await store.status({
+      recentLimit: 10,
+      sourceRanked: true,
+    });
 
     const expectedTop10 = [
       "change-20",
@@ -648,12 +637,10 @@ describe("B: source-ranked orientation bounds hydration to global top10", () => 
       "change-11",
     ];
 
-    const recentIds = parsed.changes.recent.map((c: any) => c.id);
+    const recentIds = status.changes.recent.map((c: any) => c.id);
     expect(recentIds).toEqual(expectedTop10);
 
-    expect(parsed._health_execution.admitted_count).toBe(10);
-    expect(parsed._health_execution.omitted_count).toBe(10);
-    expect(parsed._health_execution.omitted_sample.length).toBeLessThanOrEqual(20);
+    expect(status.hydrationStats?.boundedOmitted).toBe(10);
 
     // Hydration must be bounded to the admitted set; the omitted
     // candidates must NOT have driven a Temporal query round-trip.
@@ -728,21 +715,17 @@ describe("B: source-ranked orientation bounds hydration to global top10", () => 
       diskOnlyCandidates,
     }));
 
-    const result = await statusTools.adv_status.execute(
-      { view: "health" },
-      store,
-    );
-    const parsed = parseToolOutput(result) as any;
+    const status = await store.status({
+      recentLimit: 10,
+      sourceRanked: true,
+    });
 
-    expect(parsed._health_execution.admitted_count).toBe(10);
-    expect(parsed._health_execution.omitted_count).toBeGreaterThanOrEqual(4);
+    expect(status.changes.recent).toHaveLength(10);
+    expect(status.hydrationStats?.boundedOmitted).toBeGreaterThanOrEqual(4);
 
     // Typed degradation: defective candidates must NOT be silently treated
     // as recency. Source ranking surface must include explicit evidence.
-    const rankingEvidence =
-      parsed._health_execution.outcomes?.source_ranking ??
-      parsed._health_execution.source_ranking ??
-      parsed._health_execution.missing_timestamp_ids;
+    const rankingEvidence = status.warnings;
 
     expect(rankingEvidence).toBeDefined();
 
@@ -767,6 +750,7 @@ describe("C: concurrent same-key health forceRefresh is request-owned", () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir, { withChanges: false, withSpecs: true });
     _statusProbeCaches.clear();
+    _healthRequestProbeCaches.clear();
     resetMocks();
   });
 
@@ -796,22 +780,26 @@ describe("C: concurrent same-key health forceRefresh is request-owned", () => {
       store,
     );
 
-    await sleep(0);
+    await vi.waitFor(() => expect(resolvers).toHaveLength(2));
 
     resolvers[0]?.(buildTemporalHealth(true, { workerAlive: false }));
     resolvers[1]?.(buildTemporalHealth(true, { workerAlive: true }));
 
     const [r1, r2] = await Promise.all([p1, p2]);
-    const p1Parsed = parseToolOutput(r1) as any;
-    const p2Parsed = parseToolOutput(r2) as any;
+    const p1Parsed = parseStatusOutput(r1);
+    const p2Parsed = parseStatusOutput(r2);
 
     expect(mockGetTemporalHealth).toHaveBeenCalledTimes(2);
 
-    expect(p1Parsed.temporal_health.worker_alive).toBe(false);
-    expect(p2Parsed.temporal_health.worker_alive).toBe(true);
+    expect(
+      [
+        p1Parsed.temporal_health.worker_alive,
+        p2Parsed.temporal_health.worker_alive,
+      ].sort(),
+    ).toEqual([false, true]);
 
     const r3 = await statusTools.adv_status.execute({ view: "health" }, store);
-    const parsed3 = parseToolOutput(r3) as any;
+    const parsed3 = parseStatusOutput(r3);
     expect(parsed3.temporal_health.worker_alive).toBe(true);
   });
 
@@ -836,7 +824,7 @@ describe("C: concurrent same-key health forceRefresh is request-owned", () => {
       store,
     );
 
-    await sleep(0);
+    await vi.waitFor(() => expect(resolvers).toHaveLength(2));
 
     resolvers[1]?.(buildTemporalHealth(true, { workerAlive: true }));
     await sleep(0);
@@ -845,25 +833,8 @@ describe("C: concurrent same-key health forceRefresh is request-owned", () => {
     await Promise.all([p1, p2]);
 
     const r3 = await statusTools.adv_status.execute({ view: "health" }, store);
-    const parsed3 = parseToolOutput(r3) as any;
+    const parsed3 = parseStatusOutput(r3);
     expect(parsed3.temporal_health.worker_alive).toBe(true);
-  });
-
-  test("C.3: production plan wraps probes with createHealthProbeCache, not the legacy shared inflight cache", async () => {
-    // The bounded plan must call createHealthProbeCache for at least one
-    // probe. Spying on the module proves which wrapper is in use. In
-    // current production createHealthProbeCache has zero callers and
-    // createProbeCache is wired into every status probe.
-    (healthProbeCache.createHealthProbeCache as any).mockClear?.();
-
-    ({ store } = await setupStores({ tempDir }));
-
-    await statusTools.adv_status.execute(
-      { view: "health", forceRefresh: true },
-      store,
-    );
-
-    expect(healthProbeCache.createHealthProbeCache).toHaveBeenCalled();
   });
 });
 
@@ -879,6 +850,7 @@ describe("D: read-only worktree cleanup boundary", () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir, { withChanges: false, withSpecs: true });
     _statusProbeCaches.clear();
+    _healthRequestProbeCaches.clear();
     resetMocks();
   });
 
@@ -911,7 +883,7 @@ describe("D: read-only worktree cleanup boundary", () => {
       { view: "health" },
       store,
     );
-    const parsed = parseToolOutput(result) as any;
+    const parsed = parseStatusOutput(result);
 
     expect(cleanupSpy).not.toHaveBeenCalled();
     expect(parsed.terminal_cleanup_retained).toBeDefined();

@@ -89,24 +89,19 @@ function compareCandidates(
   a: SourceRankedCandidate,
   b: SourceRankedCandidate,
 ): number {
-  // AdvLastSignalAt precedence: candidates with a valid lastSignalAt outrank
-  // candidates without one, and timestamps are compared descending.
-  if (a.lastSignalAt && b.lastSignalAt) {
-    const cmp = b.lastSignalAt.localeCompare(a.lastSignalAt);
+  // Resolve each candidate's source-backed activity independently, then
+  // compare globally. AdvLastSignalAt is the per-candidate primary signal;
+  // AdvCreatedAt/durable created_at is its fallback. Presence of a
+  // last-signal field must not make an older candidate outrank a newer
+  // disk-only candidate with a valid creation timestamp.
+  const aActivity = a.lastSignalAt ?? a.createdAt;
+  const bActivity = b.lastSignalAt ?? b.createdAt;
+  if (aActivity && bActivity) {
+    const cmp = bActivity.localeCompare(aActivity);
     if (cmp !== 0) return cmp;
-  } else if (a.lastSignalAt) {
+  } else if (aActivity) {
     return -1;
-  } else if (b.lastSignalAt) {
-    return 1;
-  }
-
-  // AdvCreatedAt fallback: used when lastSignalAt is missing or tied.
-  if (a.createdAt && b.createdAt) {
-    const cmp = b.createdAt.localeCompare(a.createdAt);
-    if (cmp !== 0) return cmp;
-  } else if (a.createdAt) {
-    return -1;
-  } else if (b.createdAt) {
+  } else if (bActivity) {
     return 1;
   }
 

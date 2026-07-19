@@ -10,7 +10,7 @@
  */
 
 import type { Store } from "../storage/store";
-import type { ProbeCacheFreshness, ProbeCacheResult } from "./probe-cache";
+import type { ProbeCacheFreshness } from "./probe-cache";
 import {
   createHealthProbeCache,
   type HealthProbeCache,
@@ -29,11 +29,6 @@ import {
 } from "./status-execution";
 import { getQueueServiceability } from "./health-probe-cache";
 import {
-  fetchStatusTemporalHealth,
-  statusWorktreeCensusProbeCache,
-  fetchStatusWorkerProcesses,
-  fetchStatusSnapshotHealth,
-  statusSearchAttributesProbeCache,
   computeSearchAttributesSnapshot,
   buildTemporalHealthFallback,
   MISSING_PROJECT_ID_CACHE_KEY,
@@ -165,9 +160,23 @@ const requestSnapshotHealthCache = createHealthProbeCache<
     }),
 });
 
-function directFreshness(ttlMs: number): ProbeCacheFreshness {
+/** Test/runtime reset hook for request-owned advisory probe caches. */
+export const _healthRequestProbeCaches = {
+  clear(): void {
+    requestTemporalHealthCache.clear();
+    requestSearchAttributesCache.clear();
+    requestWorkerProcessesCache.clear();
+    requestWorktreeCensusCache.clear();
+    requestSnapshotHealthCache.clear();
+  },
+};
+
+function directFreshness(
+  ttlMs: number,
+  publishedAt: number,
+): ProbeCacheFreshness {
   return {
-    cached_at: new Date().toISOString(),
+    cached_at: new Date(publishedAt).toISOString(),
     stale: false,
     age_ms: 0,
     ttl_ms: ttlMs,
@@ -178,23 +187,27 @@ async function fetchForHealth<T>(input: {
   forceRefresh: boolean;
   key: string;
   cache: HealthProbeCache<T, string>;
-  legacy: () => Promise<ProbeCacheResult<T>>;
   signal: AbortSignal;
   cutoffTime: number;
   ttlMs: number;
-}): Promise<ProbeCacheResult<T>> {
+}): Promise<{ value: T; freshness: ProbeCacheFreshness }> {
   if (!input.forceRefresh) {
     const cached = input.cache.read(input.key);
     if (cached) {
-      return { value: cached.value, freshness: directFreshness(input.ttlMs) };
+      return {
+        value: cached.value,
+        freshness: directFreshness(input.ttlMs, cached.publishedAt),
+      };
     }
-    return input.legacy();
   }
   const refreshed = await input.cache.refresh(input.key, {
     signal: input.signal,
     cutoffTime: input.cutoffTime,
   });
-  return { value: refreshed.value, freshness: directFreshness(input.ttlMs) };
+  return {
+    value: refreshed.value,
+    freshness: directFreshness(input.ttlMs, refreshed.publishedAt),
+  };
 }
 
 export function createHealthRequestContext(
@@ -253,8 +266,6 @@ export async function runHealthStatus(
             forceRefresh,
             key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
             cache: requestTemporalHealthCache,
-            legacy: () =>
-              fetchStatusTemporalHealth(projectId, { forceRefresh }),
             signal: ctx.signal,
             cutoffTime: ctx.cutoffTime,
             ttlMs: 2_000,
@@ -289,11 +300,6 @@ export async function runHealthStatus(
             forceRefresh,
             key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
             cache: requestSearchAttributesCache,
-            legacy: () =>
-              statusSearchAttributesProbeCache.fetch(
-                projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-                { forceRefresh },
-              ),
             signal: ctx.signal,
             cutoffTime: ctx.cutoffTime,
             ttlMs: 2_000,
@@ -373,7 +379,6 @@ export async function runHealthStatus(
             forceRefresh,
             key: "__host_workers__",
             cache: requestWorkerProcessesCache,
-            legacy: () => fetchStatusWorkerProcesses({ forceRefresh }),
             signal: ctx.signal,
             cutoffTime: ctx.cutoffTime,
             ttlMs: 2_000,
@@ -406,10 +411,6 @@ export async function runHealthStatus(
             forceRefresh,
             key: store.paths.root,
             cache: requestWorktreeCensusCache,
-            legacy: () =>
-              statusWorktreeCensusProbeCache.fetch(store.paths.root, {
-                forceRefresh,
-              }),
             signal: ctx.signal,
             cutoffTime: ctx.cutoffTime,
             ttlMs: 2_000,
@@ -442,8 +443,6 @@ export async function runHealthStatus(
             forceRefresh,
             key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
             cache: requestSnapshotHealthCache,
-            legacy: () =>
-              fetchStatusSnapshotHealth(projectId, { forceRefresh }),
             signal: ctx.signal,
             cutoffTime: ctx.cutoffTime,
             ttlMs: 60_000,
@@ -784,11 +783,25 @@ export function buildHealthExecutionMeta(
   const omittedIds =
     statusResult.warnings?.find((w) => w.code === "SOURCE_BOUND_EXCEEDED")
       ?.omittedIds ?? [];
+  const rankingWarning = statusResult.warnings?.find(
+    (warning) => warning.code === "SOURCE_RANKING_DEGRADED",
+  );
   const admitted = HEALTH_CANDIDATE_LIMIT;
   return {
     ...baseMeta,
     admitted_count: admitted,
     omitted_count: boundedOmitted,
     omitted_sample: omittedIds.slice(0, 20),
+    ...(rankingWarning
+      ? {
+          source_ranking: {
+            kind: "degraded",
+            missing_timestamp_ids: (rankingWarning.omittedIds ?? []).slice(
+              0,
+              20,
+            ),
+          },
+        }
+      : {}),
   };
 }

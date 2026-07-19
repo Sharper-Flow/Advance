@@ -38,9 +38,12 @@ export interface HealthProbeCache<T, K extends string = string> {
   refresh(
     key: K,
     options?: { signal?: AbortSignal; cutoffTime?: number },
-  ): Promise<{ value: T; generation: number }>;
-  read(key: K): { value: T; generation: number } | undefined;
+  ): Promise<{ value: T; generation: number; publishedAt: number }>;
+  read(
+    key: K,
+  ): { value: T; generation: number; publishedAt: number } | undefined;
   currentGeneration(key: K): number;
+  clear(): void;
 }
 
 export interface QueueServiceabilityResult {
@@ -76,12 +79,13 @@ export function createHealthProbeCache<T, K extends string = string>(
     generation: number,
     signal: AbortSignal,
     cutoffTime: number | undefined,
-  ): boolean {
-    if (signal.aborted) return false;
-    if (cutoffTime !== undefined && clock.now() >= cutoffTime) return false;
-    if (currentGeneration(key) !== generation) return false;
-    published.set(key, { value, generation, publishedAt: clock.now() });
-    return true;
+  ): number | undefined {
+    if (signal.aborted) return undefined;
+    if (cutoffTime !== undefined && clock.now() >= cutoffTime) return undefined;
+    if (currentGeneration(key) !== generation) return undefined;
+    const publishedAt = clock.now();
+    published.set(key, { value, generation, publishedAt });
+    return publishedAt;
   }
 
   return {
@@ -93,8 +97,9 @@ export function createHealthProbeCache<T, K extends string = string>(
       if (signal.aborted) {
         throw new Error("aborted");
       }
-      publish(key, value, generation, signal, cutoffTime);
-      return { value, generation };
+      const publishedAt =
+        publish(key, value, generation, signal, cutoffTime) ?? clock.now();
+      return { value, generation, publishedAt };
     },
     read(key) {
       const entry = published.get(key);
@@ -103,9 +108,17 @@ export function createHealthProbeCache<T, K extends string = string>(
         published.delete(key);
         return undefined;
       }
-      return { value: entry.value, generation: entry.generation };
+      return {
+        value: entry.value,
+        generation: entry.generation,
+        publishedAt: entry.publishedAt,
+      };
     },
     currentGeneration,
+    clear() {
+      published.clear();
+      generations.clear();
+    },
   };
 }
 

@@ -959,6 +959,8 @@ export function createTemporalStoreBackend(
 
     const candidateLimit = options?.candidateLimit;
     let hydrationIds = changeIds;
+    let sourceRankedIds: string[] | undefined;
+    let sourceRankingMissingIds: string[] = [];
 
     if (
       options?.sourceRanked &&
@@ -1008,6 +1010,8 @@ export function createTemporalStoreBackend(
           deadline,
         );
         hydrationIds = ranked.admitted.map((candidate) => candidate.id);
+        sourceRankedIds = [...hydrationIds];
+        sourceRankingMissingIds = ranked.missingTimestampIds;
         for (const candidate of ranked.omittedCandidates) {
           candidateResolutions.push({
             id: candidate.id,
@@ -1394,15 +1398,28 @@ export function createTemporalStoreBackend(
         omittedIds: boundedOmissions.map((r) => r.id).slice(0, 20),
       });
     }
+    if (sourceRankingMissingIds.length > 0) {
+      warnings.push({
+        code: "SOURCE_RANKING_DEGRADED",
+        source: "visibility",
+        message: `${sourceRankingMissingIds.length} candidate(s) lacked source-backed ranking timestamps; orientation is degraded.`,
+        omittedCount: sourceRankingMissingIds.length,
+        omittedIds: sourceRankingMissingIds.slice(0, 20),
+      });
+    }
 
     // Active/default path: no terminal degraded metadata (preserved
     // compatibility), but deadline and bound degradation always surface.
     if (!wantsTerminalStatuses) {
       if (warnings.length === 0) {
-        return { changes: resolvedChanges };
+        return {
+          changes: resolvedChanges,
+          ...(sourceRankedIds ? { rankedIds: sourceRankedIds } : {}),
+        };
       }
       return {
         changes: resolvedChanges,
+        ...(sourceRankedIds ? { rankedIds: sourceRankedIds } : {}),
         warnings,
         hydrationStats: {
           ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
@@ -1430,8 +1447,11 @@ export function createTemporalStoreBackend(
 
     return {
       changes: resolvedChanges,
+      ...(sourceRankedIds ? { rankedIds: sourceRankedIds } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
-      ...(terminalResolutions.length > 0 || deadlineExceeded
+      ...(terminalResolutions.length > 0 ||
+      deadlineExceeded ||
+      boundedOmissions.length > 0
         ? { hydrationStats }
         : {}),
     };
@@ -1467,7 +1487,7 @@ export function createTemporalStoreBackend(
           }
         : undefined,
     );
-    const { changes, warnings, hydrationStats } = resolved;
+    const { changes, rankedIds, warnings, hydrationStats } = resolved;
     const now = new Date();
     const byStatus: Record<ChangeStatus, number> = {
       draft: 0,
@@ -1481,6 +1501,9 @@ export function createTemporalStoreBackend(
       byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
     }
 
+    const rankById = rankedIds
+      ? new Map(rankedIds.map((id, index) => [id, index] as const))
+      : undefined;
     const sortedRecent = changes
       .filter(
         (change) => change.status !== "archived" && change.status !== "closed",
@@ -1496,6 +1519,11 @@ export function createTemporalStoreBackend(
         ),
       )
       .sort((a, b) => {
+        if (rankById) {
+          const aRank = rankById.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+          const bRank = rankById.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+          if (aRank !== bRank) return aRank - bRank;
+        }
         const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });

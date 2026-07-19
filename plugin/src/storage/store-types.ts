@@ -41,6 +41,8 @@ import type { ProductContext } from "./product-context";
 
 export interface ResolvedChangeList {
   changes: Change[];
+  /** Source-backed candidate order used by bounded health orientation. */
+  rankedIds?: string[];
   warnings?: import("../types").TerminalWarning[];
   hydrationStats?: import("../types").HydrationStats;
 }

@@ -12,6 +12,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { statusTools } from "./status";
 import { _statusProbeCaches } from "./status-health";
+import { _healthRequestProbeCaches } from "./status-health-plan";
 import {
   createTestProject,
   createTempDir,
@@ -192,6 +193,7 @@ describe("health view bounded pressure contract", () => {
     mockGetTemporalHealth.mockResolvedValue(buildTemporalHealth(true));
 
     _statusProbeCaches.clear();
+    _healthRequestProbeCaches.clear();
 
     mockGetWorktreeCensus.mockReset();
     mockGetWorktreeCensus.mockResolvedValue({
@@ -559,5 +561,35 @@ describe("health view bounded pressure contract", () => {
     expect(calls).toBeGreaterThanOrEqual(2);
     expect(firstParsed.temporal_health.request_marker).toBe("older");
     expect(secondParsed.temporal_health.request_marker).toBe("newer");
+  });
+
+  test("concurrent cold health reads are request-owned rather than coalesced", async () => {
+    let calls = 0;
+    const resolvers: Array<(value: any) => void> = [];
+    mockGetTemporalHealth.mockImplementation(async () => {
+      const index = calls++;
+      return new Promise((resolve) => {
+        resolvers[index] = resolve;
+      });
+    });
+
+    const first = statusTools.adv_status.execute({ view: "health" }, store);
+    const second = statusTools.adv_status.execute({ view: "health" }, store);
+    await vi.waitFor(() => expect(calls).toBeGreaterThanOrEqual(2));
+    resolvers[1]({ ...buildTemporalHealth(true), request_marker: "newer" });
+    resolvers[0]({ ...buildTemporalHealth(true), request_marker: "older" });
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    const markers = [
+      parseToolOutput(firstResult).temporal_health.request_marker,
+      parseToolOutput(secondResult).temporal_health.request_marker,
+    ].sort();
+    expect(markers).toEqual(["newer", "older"]);
+    expect(calls).toBe(2);
+
+    const cached = parseToolOutput(
+      await statusTools.adv_status.execute({ view: "health" }, store),
+    );
+    expect(cached.temporal_health.request_marker).toBe("newer");
   });
 });
