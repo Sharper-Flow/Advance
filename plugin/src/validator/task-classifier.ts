@@ -20,11 +20,13 @@ import {
 } from "../types";
 import type {
   ContractEvidencePolicy,
+  ScopedSubagentReport,
   Task,
   TaskEvidenceCompatibility,
   TaskEvidenceResolution,
   TaskType,
 } from "../types";
+import { reportKeyFromReport } from "../types";
 
 // =============================================================================
 // Types
@@ -286,9 +288,12 @@ export function resolveTaskEvidence(task: Task): TaskEvidenceResolution {
 
   const rationale = task.evidence_plan?.rationale?.trim();
   const reviewConclusion = task.evidence_plan?.review_conclusion?.trim();
+  const reviewEvidenceRef = task.evidence_plan?.review_evidence_ref;
+  const stage = task.evidence_plan?.stage;
 
-  // Non-test routes for behavior-critical work require a bounded rationale and
-  // a linked review conclusion.
+  // Non-test routes for behavior-critical work always require a bounded
+  // rationale. Stage-v2 defers reviewer-owned proof to completion; older plans
+  // preserve the linked-conclusion requirement for compatibility.
   if (isNewOrReclassified && behaviorCritical && policy !== "test") {
     if (!rationale) {
       errors.push(
@@ -299,9 +304,9 @@ export function resolveTaskEvidence(task: Task): TaskEvidenceResolution {
         `Rationale exceeds 500 non-whitespace characters (got ${countNonWhitespace(rationale)}).`,
       );
     }
-    if (!reviewConclusion) {
+    if (stage !== "stage-v2" && !reviewConclusion && !reviewEvidenceRef) {
       errors.push(
-        `Non-test route '${policy}' for logic-bearing work requires a linked review conclusion.`,
+        `Non-test route '${policy}' for logic-bearing work requires a linked review conclusion or reviewer evidence reference.`,
       );
     }
   }
@@ -314,7 +319,90 @@ export function resolveTaskEvidence(task: Task): TaskEvidenceResolution {
     proof_target: proofTarget,
     ...(rationale ? { rationale } : {}),
     ...(reviewConclusion ? { review_conclusion: reviewConclusion } : {}),
+    ...(reviewEvidenceRef ? { review_evidence_ref: reviewEvidenceRef } : {}),
     compatibility,
+    ...(stage ? { stage } : {}),
+    errors,
+  };
+}
+
+// =============================================================================
+// Stage-aware evidence validation (v2)
+// =============================================================================
+
+export type TaskEvidenceStage = "prep" | "completion";
+
+export interface TaskEvidenceStageValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Stage-aware evidence validator.
+ *
+ * - prep: policy, proof target, compatible TDD intent, bounded rationale.
+ * - completion: prep validity plus review_evidence_ref resolving to a persisted
+ *   task-scoped reviewer report for non-test behavior-critical tasks.
+ *
+ * Legacy plans (no stage or provenance legacy) accept review_conclusion as a
+ * readability fallback; stage-v2 plans require the typed reviewer reference.
+ */
+export function validateTaskEvidenceForStage(
+  task: Task,
+  stage: TaskEvidenceStage,
+  reports: ScopedSubagentReport[] = [],
+): TaskEvidenceStageValidationResult {
+  const base = resolveTaskEvidence(task);
+  const errors: string[] = [...base.errors];
+
+  const effectiveType = task.type ?? "code";
+  const behaviorCritical =
+    effectiveType === "code" || effectiveType === "verification";
+  const policy = base.policy;
+
+  const planStage = task.evidence_plan?.stage;
+  const isStageV2 = planStage === "stage-v2";
+
+  if (stage === "completion") {
+    if (
+      behaviorCritical &&
+      policy &&
+      policy !== "test" &&
+      policy !== "not_applicable"
+    ) {
+      const reviewEvidenceRef = task.evidence_plan?.review_evidence_ref;
+      const reviewConclusion = task.evidence_plan?.review_conclusion;
+
+      if (isStageV2) {
+        if (!reviewEvidenceRef) {
+          errors.push(
+            `Stage-v2 non-test route '${policy}' requires a reviewer-owned review_evidence_ref by completion.`,
+          );
+        } else {
+          const matchingReport = reports.find(
+            (r) =>
+              reportKeyFromReport(r) === reviewEvidenceRef.report_key &&
+              r.agent === "adv-reviewer" &&
+              (typeof r.scope !== "string" && r.scope.kind === "task"
+                ? r.scope.task_id === task.id
+                : "task_id" in r && r.task_id === task.id),
+          );
+          if (!matchingReport) {
+            errors.push(
+              `review_evidence_ref ${reviewEvidenceRef.report_key} does not resolve to a persisted task-scoped reviewer report owned by task ${task.id}.`,
+            );
+          }
+        }
+      } else if (!reviewConclusion && !reviewEvidenceRef) {
+        errors.push(
+          `Non-test route '${policy}' requires a linked review conclusion or reviewer evidence reference.`,
+        );
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
     errors,
   };
 }

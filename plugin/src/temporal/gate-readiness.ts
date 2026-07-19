@@ -16,7 +16,10 @@ import {
   type AcceptanceCriteriaFreshness,
   type AcceptanceCriteriaProjection,
 } from "../types";
-import { resolveTaskEvidence } from "../validator/task-classifier";
+import {
+  resolveTaskEvidence,
+  validateTaskEvidenceForStage,
+} from "../validator/task-classifier";
 import type { ChangeWorkflowState } from "./contracts";
 import { isFailingContractReviewStatus } from "./recovery-classification";
 
@@ -735,10 +738,6 @@ export function checkUnresolvedVerificationEvidence(
 // structurally at acceptance/release. Quality signals (consumer warnings) do not
 // own gate authority here; they are evaluated separately by
 // checkUnresolvedVerificationEvidence.
-function isBehaviorCriticalTaskType(type: string): boolean {
-  return type === "code" || type === "verification";
-}
-
 export function checkCompletedTaskEvidencePlan(
   state: ChangeWorkflowState,
   gateId: GateId,
@@ -749,35 +748,20 @@ export function checkCompletedTaskEvidencePlan(
   for (const task of state.tasks) {
     if (task.status !== "done") continue;
 
-    const resolution = resolveTaskEvidence(task);
-    if (!resolution.valid) {
+    const stageValidation = validateTaskEvidenceForStage(task, "completion", [
+      ...(state.subagent_reports ?? []),
+      ...(task.subagent_reports ?? []),
+    ]);
+    if (!stageValidation.valid) {
       blockers.push(
         makeBlocker({
           code: "EVIDENCE_PLAN_INVALID",
           gateId,
-          message: `Completed task ${task.id} has an invalid evidence plan: ${resolution.errors.join("; ")}.`,
+          message: `Completed task ${task.id} has an invalid completion-stage evidence plan: ${stageValidation.errors.join("; ")}.`,
           remediation: `Fix the task evidence plan or reclassify with user approval before completing ${gateId}.`,
         }),
       );
       continue;
-    }
-
-    if (
-      resolution.policy &&
-      isBehaviorCriticalTaskType(task.type ?? "code") &&
-      resolution.policy !== "test" &&
-      resolution.policy !== "not_applicable" &&
-      !resolution.review_conclusion &&
-      !task.evidence_plan?.review_conclusion
-    ) {
-      blockers.push(
-        makeBlocker({
-          code: "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
-          gateId,
-          message: `Completed task ${task.id} uses a non-test evidence policy (${resolution.policy}) but has no linked review conclusion.`,
-          remediation: `Add evidence_plan.review_conclusion or submit a task-scoped adv-reviewer report for task ${task.id}.`,
-        }),
-      );
     }
   }
   return blockers;

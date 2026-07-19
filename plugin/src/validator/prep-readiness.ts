@@ -17,6 +17,7 @@ import {
   isTestTask as classifierIsTestTask,
   isImplTask as classifierIsImplTask,
   resolveTaskEvidence,
+  validateTaskEvidenceForStage,
 } from "./task-classifier";
 
 // =============================================================================
@@ -598,10 +599,8 @@ export function checkNonCodeEvidencePolicy(change: Change): ValidationIssue[] {
 
 // =============================================================================
 // Check: Normalized Evidence Plan Validity (rq-evidencePlan01)
-// Uses resolveTaskEvidence as the sole compatibility authority. Behavior-critical
-// tasks (code, verification) may not use not_applicable; new/reclassified
-// non-test routes require a bounded rationale and linked review conclusion.
-// Legacy tasks are normalized without heuristic cutover.
+// Uses the stage-aware validator. Prep requires policy/proof/rationale but does
+// not require reviewer-owned evidence before review exists.
 // =============================================================================
 
 function isBehaviorCriticalTask(type: string): boolean {
@@ -614,9 +613,11 @@ export function checkTaskEvidencePlan(change: Change): ValidationIssue[] {
   for (const task of change.tasks ?? []) {
     if (task.status === "cancelled") continue;
 
-    const resolution = resolveTaskEvidence(task as import("../types").Task);
-    if (!resolution.valid) {
-      for (const error of resolution.errors) {
+    const typedTask = task as import("../types").Task;
+    const resolution = resolveTaskEvidence(typedTask);
+    const stageValidation = validateTaskEvidenceForStage(typedTask, "prep");
+    if (!stageValidation.valid) {
+      for (const error of stageValidation.errors) {
         issues.push({
           code: PrepReadinessCodes.EVIDENCE_PLAN_INVALID,
           severity: "error",
@@ -625,9 +626,9 @@ export function checkTaskEvidencePlan(change: Change): ValidationIssue[] {
           details: {
             taskId: task.id,
             taskType: task.type ?? "code",
-            errors: resolution.errors,
+            errors: stageValidation.errors,
             remediation:
-              "Fix the evidence policy or plan. Behavior-critical tasks must use a proof-bearing route (test, review, static_check, artifact_reference). Non-test routes require a bounded rationale and a linked review_conclusion.",
+              "Fix the evidence policy or plan. Behavior-critical tasks must use a proof-bearing route. Stage-v2 non-test routes require a bounded rationale and proof target at prep; reviewer-owned evidence is required at completion.",
           },
         });
       }

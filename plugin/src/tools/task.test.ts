@@ -926,6 +926,252 @@ describe("task tools — signal/query adapters", () => {
         expect.objectContaining({ taskId: "tk-abc" }),
       );
     });
+
+    test("repairs evidence policy before planning closes", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Test Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              type: "research",
+            },
+          ],
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+        type: "research",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          evidence_policy: "source_citation",
+          evidence_rationale: "Cited source covers the behavior.",
+          proof_target: "Authoritative source citation",
+          contract_refs: { implements: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        partial: {
+          evidence_plan: {
+            policy: "source_citation",
+            proof_target: "Authoritative source citation",
+            rationale: "Cited source covers the behavior.",
+            provenance: "new",
+            stage: "stage-v2",
+          },
+        },
+      });
+      expect(parsed.contractCoverage.uncoveredAcceptanceCriteria).toHaveLength(
+        0,
+      );
+    });
+
+    test("rejects evidence plan repair after planning closes", async () => {
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          evidence_policy: "source_citation",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("after planning gate is complete");
+      expect(parsed.code).toBe("EVIDENCE_PLAN_REPAIR_AFTER_PLANNING");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("rejects invalid evidence plan repair", async () => {
+      const store = createMockStore();
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          evidence_policy: "not_applicable",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("Invalid evidence plan repair");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("surfaces contract coverage in task update output", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Test Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            },
+          ],
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+        contract_refs: { implements: ["AC1"] },
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+          contract_refs: { implements: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.contractCoverage).toBeDefined();
+      expect(parsed.contractCoverage.uncoveredAcceptanceCriteria).toHaveLength(
+        0,
+      );
+      expect(parsed.contractCoverage.taskCoverage).toContainEqual(
+        expect.objectContaining({ taskId: "tk-abc", implements: ["AC1"] }),
+      );
+    });
+
+    test("surfaces cancellation metadata in task update contract coverage", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-cancelled",
+              title: "Cancelled task",
+              status: "cancelled",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1"] },
+            },
+          ],
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-cancelled",
+        status: "cancelled",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-cancelled",
+          status: "pending",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.contractCoverage.cancelledTaskIds).toEqual([
+        "tk-cancelled",
+      ]);
+      expect(parsed.contractCoverage.cancelledTaskCount).toBe(1);
+    });
   });
 
   describe("adv_task_add", () => {
@@ -953,6 +1199,7 @@ describe("task tools — signal/query adapters", () => {
             policy: "test",
             proof_target: expect.any(String),
             provenance: "new",
+            stage: "stage-v2",
           }),
         }),
       });
@@ -986,7 +1233,7 @@ describe("task tools — signal/query adapters", () => {
       });
     });
 
-    test("accepts a behavior-critical review route with its required proof", async () => {
+    test("accepts a stage-v2 behavior-critical review route with prep proof", async () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue([]);
 
@@ -998,7 +1245,6 @@ describe("task tools — signal/query adapters", () => {
           evidence_policy: "review",
           evidence_rationale:
             "A focused review proves this configuration-only invariant.",
-          review_conclusion: "adv-reviewer attempt 1: READY",
         },
         store,
       );
@@ -1008,9 +1254,10 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.task.evidence_plan).toMatchObject({
         policy: "review",
         rationale: "A focused review proves this configuration-only invariant.",
-        review_conclusion: "adv-reviewer attempt 1: READY",
         provenance: "new",
+        stage: "stage-v2",
       });
+      expect(parsed.task.evidence_plan.review_conclusion).toBeUndefined();
     });
 
     test("rejects a behavior-critical non-test route without its required proof", async () => {
@@ -1028,9 +1275,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.error).toMatch(
-        /Invalid evidence plan.*rationale.*review conclusion/i,
-      );
+      expect(parsed.error).toMatch(/Invalid evidence plan.*rationale/i);
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
@@ -1500,9 +1745,9 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.error).toMatch(
-        /Invalid evidence plan.*rationale.*review conclusion/i,
-      );
+      // Stage-v2 plans defer reviewer-owned proof to completion; only the
+      // bounded rationale is required at prep.
+      expect(parsed.error).toMatch(/requires a bounded rationale/);
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 

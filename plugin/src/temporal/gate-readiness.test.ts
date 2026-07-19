@@ -1824,12 +1824,14 @@ describe("checkCompletedTaskEvidencePlan — resolved plan readiness (C2/C4/C5)"
     const result = evaluateGateReadiness(state, "acceptance");
     expect(
       result.blockers.some(
-        (b) => b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
+        (b) =>
+          b.code === "EVIDENCE_PLAN_INVALID" ||
+          b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
       ),
     ).toBe(true);
   });
 
-  it("does not block when behavior-critical non-test route has review conclusion", () => {
+  it("does not block legacy behavior-critical non-test route with review conclusion", () => {
     const state = makeState({
       gates: acceptanceReadyGates(),
       contract: passingContract(),
@@ -1845,7 +1847,7 @@ describe("checkCompletedTaskEvidencePlan — resolved plan readiness (C2/C4/C5)"
             proof_target: "Structured review conclusion",
             rationale: "Peer review is sufficient.",
             review_conclusion: "reviewer-verdict-abc",
-            provenance: "new",
+            provenance: "legacy",
           },
         }),
       ],
@@ -1855,6 +1857,64 @@ describe("checkCompletedTaskEvidencePlan — resolved plan readiness (C2/C4/C5)"
       result.blockers.some(
         (b) => b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
       ),
+    ).toBe(false);
+    expect(
+      result.blockers.some((b) => b.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(false);
+  });
+
+  it("does not block stage-v2 behavior-critical non-test route with reviewer evidence ref", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [
+        doneTask({
+          evidence_policy: "review",
+          evidence_plan: {
+            policy: "review",
+            proof_target: "Structured review conclusion",
+            rationale: "Peer review is sufficient.",
+            review_evidence_ref: {
+              report_key: "change-1|tk-ev-plan|adv-reviewer|1",
+            },
+            provenance: "new",
+          },
+        }),
+      ],
+    });
+    state.subagent_reports = [
+      {
+        schema_version: "1.0",
+        change_id: "change-1",
+        task_id: "tk-ev-plan",
+        attempt: 1,
+        workdir_used: "/tmp/test",
+        agent: "adv-reviewer",
+        scope: { kind: "task", task_id: "tk-ev-plan" },
+        phase: "review",
+        verdict: "READY",
+        blocking_findings: [],
+        nonblocking_findings: [],
+        changes_made: [],
+        wisdom_candidates: [],
+        verification: { tests_run: [], results: "n/a", evidence: "review" },
+        scope_drift: null,
+        risks: [],
+        required_main_agent_actions: [],
+      },
+    ] as any;
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some(
+        (b) => b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
+      ),
+    ).toBe(false);
+    expect(
+      result.blockers.some((b) => b.code === "EVIDENCE_PLAN_INVALID"),
     ).toBe(false);
   });
 

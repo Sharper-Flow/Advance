@@ -6543,6 +6543,26 @@
               },
               "review_conclusion": {
                 "type": "string"
+              },
+              "review_evidence_ref": {
+                "additionalProperties": false,
+                "properties": {
+                  "report_key": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "report_key"
+                ],
+                "type": "object"
+              },
+              "stage": {
+                "enum": [
+                  "stage-v1",
+                  "stage-v2"
+                ],
+                "type": "string"
               }
             },
             "required": [

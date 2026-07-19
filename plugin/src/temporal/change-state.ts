@@ -74,7 +74,10 @@ import {
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
-import { resolveTaskEvidence } from "../validator/task-classifier";
+import {
+  resolveTaskEvidence,
+  validateTaskEvidenceForStage,
+} from "../validator/task-classifier";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
@@ -1043,23 +1046,15 @@ export function applyTaskCompletedToState(
       `TASK_COMPLETION_BLOCKED: task ${payload.taskId} has an invalid evidence plan: ${evidenceResolution.errors.join("; ")}`,
     );
   }
-  const effectiveType = task.type ?? "code";
-  const behaviorCritical =
-    effectiveType === "code" || effectiveType === "verification";
-  if (
-    behaviorCritical &&
-    evidenceResolution.policy &&
-    evidenceResolution.policy !== "test" &&
-    evidenceResolution.policy !== "not_applicable"
-  ) {
-    const reviewConclusion =
-      evidenceResolution.review_conclusion ??
-      task.evidence_plan?.review_conclusion;
-    if (!reviewConclusion) {
-      throw new Error(
-        `TASK_COMPLETION_BLOCKED: task ${payload.taskId} uses evidence policy '${evidenceResolution.policy}' but has no linked review conclusion. Add evidence_plan.review_conclusion or submit an adv-reviewer report.`,
-      );
-    }
+  const completionValidation = validateTaskEvidenceForStage(
+    task,
+    "completion",
+    [...(state.subagent_reports ?? []), ...(task.subagent_reports ?? [])],
+  );
+  if (!completionValidation.valid) {
+    throw new Error(
+      `TASK_COMPLETION_BLOCKED: task ${payload.taskId} has invalid completion-stage evidence: ${completionValidation.errors.join("; ")}`,
+    );
   }
 
   task.status = "done";
@@ -1087,6 +1082,10 @@ export function applyTaskCompletedToState(
       ...(evidenceResolution.review_conclusion
         ? { review_conclusion: evidenceResolution.review_conclusion }
         : {}),
+      ...(evidenceResolution.review_evidence_ref
+        ? { review_evidence_ref: evidenceResolution.review_evidence_ref }
+        : {}),
+      ...(evidenceResolution.stage ? { stage: evidenceResolution.stage } : {}),
       provenance: evidenceResolution.compatibility ?? "legacy",
     };
   }
@@ -1246,6 +1245,33 @@ function reportKey(
   });
 }
 
+/**
+ * Behavior-critical evidence plans only: code/verification tasks whose
+ * evidence_policy is set and not test/not_applicable. A reviewer report
+ * covering docs/ops/research tasks does not write a review_evidence_ref.
+ */
+function isBehaviorCriticalEvidencePlanTask(task: Task): boolean {
+  const type = task.type ?? "code";
+  if (type !== "code" && type !== "verification") return false;
+  const policy = task.evidence_plan?.policy ?? task.evidence_policy;
+  if (!policy) return false;
+  return policy !== "test" && policy !== "not_applicable";
+}
+
+/**
+ * Ensure the evidence_plan carries a stable `provenance` field. Legacy plans
+ * that omit it are normalized to "legacy" so downstream readiness checks can
+ * distinguish legacy readability from stage-v2 authority. Returns a partial
+ * patch keyed by field presence — used to merge into existing evidence_plan
+ * objects without dropping the original `policy`, `proof_target`, etc.
+ */
+function normalizeEvidencePlanCompatibility(plan: Task["evidence_plan"]): {
+  provenance: "legacy" | "new" | "reclassified";
+} {
+  if (!plan) return { provenance: "legacy" };
+  return { provenance: plan.provenance ?? "legacy" };
+}
+
 export function applySubagentReportSubmittedToState(
   state: ChangeWorkflowState,
   payload: SubagentReportSubmittedSignalPayload,
@@ -1344,6 +1370,25 @@ export function applySubagentReportSubmittedToState(
     -SEEN_REPORT_IDS_RING_BUFFER_LIMIT,
   );
   state.seenReportIdsTotal = (state.seenReportIdsTotal ?? 0) + 1;
+
+  // Stage-v2 reviewer-owned evidence: when an adv-reviewer report is persisted
+  // for a behavior-critical task that uses a non-test route, write a typed
+  // review_evidence_ref to the task's evidence plan. Callers cannot author this
+  // ref — only the reviewer-report consumer does, and only on fresh (not
+  // duplicate) storage.
+  if (
+    task &&
+    taskScoped &&
+    payload.report.agent === "adv-reviewer" &&
+    task.evidence_plan &&
+    isBehaviorCriticalEvidencePlanTask(task)
+  ) {
+    task.evidence_plan = {
+      ...task.evidence_plan,
+      ...normalizeEvidencePlanCompatibility(task.evidence_plan),
+      review_evidence_ref: { report_key: reportId },
+    };
+  }
 
   const blockers = blockerSummary(payload.report);
   if (task && blockers) {
