@@ -4298,6 +4298,13 @@ describe("change tools — signal-driven lifecycle", () => {
         source: "active-conflict-authority",
         activeCandidateCount: null,
       });
+      expect(parsed.validationWarnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "CONFLICT_INVENTORY_WARNING",
+          }),
+        ]),
+      );
     });
 
     test("dryRun preflight blocks non-clean incomplete active conflict authority and exposes stable diagnostics", async () => {

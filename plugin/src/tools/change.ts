@@ -2778,6 +2778,15 @@ export const changeTools = {
               message: e.message,
               path: e.path,
             })),
+            ...(validationResult.warnings.length > 0
+              ? {
+                  validationWarnings: validationResult.warnings.map((w) => ({
+                    code: w.code,
+                    message: w.message,
+                    path: w.path,
+                  })),
+                }
+              : {}),
             authorityDiagnostics: validationResult.authorityDiagnostics,
             changeId,
           });
