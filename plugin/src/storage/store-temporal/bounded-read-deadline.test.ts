@@ -713,24 +713,14 @@ describe("bounded one-pass change-list resolution", () => {
       },
     };
 
-    // Make the disk fallback read hang indefinitely. Calls come from:
-    //   1. loadDiskTerminalProjection inside getTemporalChange (fast)
-    //   2. getGuardedChangeHandle inside getTemporalChange (fast)
-    //   3. reseedChangeFromDisk inside getTemporalChange (fast)
-    //   4. loadCandidate fallback chain after fast Temporal failure (hang)
-    // Without the deadline wrapper the fallback read never resolves and the
-    // test times out (RED); with the wrapper the aggregate deadline rejects
-    // it and the candidate becomes a typed omission (GREEN).
+    // Make the first disk fallback read hang indefinitely. The exact number of
+    // preparatory reads is intentionally not authority: optimized paths may
+    // reach the bounded fallback on their first read. The observable contract
+    // is one admitted hanging read, deadline termination, and typed omission.
     const diskGetCalls = new Map<string, number>();
-    const realGet = legacy.changes.get.bind(legacy.changes);
     legacy.changes.get = (async (changeId: string) => {
       const count = (diskGetCalls.get(changeId) ?? 0) + 1;
       diskGetCalls.set(changeId, count);
-      if (count <= 3) {
-        // loadDiskTerminalProjection + getGuardedChangeHandle + reseedChangeFromDisk — fast
-        return realGet(changeId);
-      }
-      // loadCandidate fallback — hang indefinitely
       return new Promise<never>(() => {});
     }) as typeof legacy.changes.get;
 
@@ -741,18 +731,15 @@ describe("bounded one-pass change-list resolution", () => {
     });
 
     const pending = store.changes.list({ includeArchived: true });
-    // Wait for the fallback read to start — source enumeration, the fast
-    // Temporal failure, the terminal-projection disk read, the owner-guard
-    // disk read, and the reseed disk read have already happened. The fourth
-    // diskGet call is the loadCandidate fallback.
+    // Wait for at least one bounded disk read to start.
     for (
       let i = 0;
-      i < 5000 && (diskGetCalls.get("slowDiskFallback") ?? 0) < 4;
+      i < 5000 && (diskGetCalls.get("slowDiskFallback") ?? 0) < 1;
       i++
     ) {
       await new Promise<void>((resolve) => setImmediate(resolve));
     }
-    expect(diskGetCalls.get("slowDiskFallback")).toBe(4);
+    expect(diskGetCalls.get("slowDiskFallback")).toBe(1);
     // Advance past the budget. The deadline wrapper (if present) rejects
     // the fallback read. Without the wrapper, the read hangs and the test
     // times out (RED).

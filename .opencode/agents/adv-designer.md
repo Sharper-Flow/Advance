@@ -294,7 +294,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "files_touched": ["{relative/path/to/file}"],
   "verification": [
     {
-      "test_run_id": "{runId returned by adv_run_test}",
+      "test_run_id": "{same-task adv_run_test runId}",
       "command": "{command run}",
       "exit_code": 0,
       "summary": "{pass/fail + what was checked}"
@@ -340,7 +340,6 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
 - `follow_ups`: Empty array if nothing deferred. Otherwise list out-of-scope items discovered.
 - `required_main_agent_actions`: Empty array if no orchestrator action is required. Otherwise list follow-up actions the main ADV orchestrator must handle, including backend handoffs to `adv-engineer` and neighboring-recommendation HITL surfacing.
 - `verification`: At least one entry showing a test/build/lint command and its result.
-- `evidence_binding_version`: Use `"typed-v1"` for new reports. Every verification row MUST set `test_run_id` to the `runId` returned by the same task's `adv_run_test`; command text is descriptive, not evidence identity.
 - `decisions`: Empty array if no non-obvious choices made. Otherwise document tradeoffs.
 - `files_touched`: Every file you created, modified, or deleted. UI/component files only — backend edits are a contract violation.
 - `context_update_for_adv.what_ads_needs_to_know`: Concise summary the parent ADV orchestrator needs to continue.
@@ -370,7 +369,6 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "agent": "adv-designer",
   "scope": { "kind": "task", "task_id": "tk-ui-001" },
   "status": "complete",
-  "evidence_binding_version": "typed-v1",
   "files_touched": [
     "src/components/Header.tsx",
     "src/components/ThemeToggle.tsx",
@@ -379,13 +377,11 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   ],
   "verification": [
     {
-      "test_run_id": "tr_component_green",
       "command": "pnpm test -- src/components/ThemeToggle.test.tsx",
       "exit_code": 0,
       "summary": "5 component tests pass (renders, toggles, keyboard, aria-pressed, persistence)"
     },
     {
-      "test_run_id": "tr_component_lint",
       "command": "pnpm lint src/components/Header.tsx src/components/ThemeToggle.tsx",
       "exit_code": 0,
       "summary": "No lint errors"

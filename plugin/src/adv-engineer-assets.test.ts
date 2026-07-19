@@ -254,7 +254,7 @@ describe("adv-engineer assets", () => {
     const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
     expect(reportSection).toContain('"evidence_binding_version": "typed-v1"');
     expect(reportSection).toContain('"test_run_id"');
-    expect(reportSection).toContain("same task's `adv_run_test`");
+    expect(reportSection).toContain("same-task adv_run_test runId");
   });
 
   test("ENGINEER_REPORT prompt examples use structural scope, not legacy string scope", () => {

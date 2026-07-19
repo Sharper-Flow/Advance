@@ -323,7 +323,7 @@ describe("adv-designer assets", () => {
     const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
     expect(reportSection).toContain('"evidence_binding_version": "typed-v1"');
     expect(reportSection).toContain('"test_run_id"');
-    expect(reportSection).toContain("same task's `adv_run_test`");
+    expect(reportSection).toContain("same-task adv_run_test runId");
   });
 
   test("DESIGNER_REPORT prompt examples use structural scope, not legacy string scope", () => {
