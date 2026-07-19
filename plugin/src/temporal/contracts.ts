@@ -54,6 +54,7 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getAcceptanceCriteriaProjection: "adv.change.getAcceptanceCriteriaProjection",
   getWorktrees: "adv.change.getWorktrees",
   getConformanceState: "adv.change.getConformanceState",
+  getMutationReceipt: "adv.change.getMutationReceipt",
 } as const;
 
 export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
@@ -428,6 +429,8 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * replay cleanly with it undefined; legacy state defaults to 0.
    */
   acceptanceReadinessRevision?: number;
+  /** Bounded proof that readiness-affecting signals were applied by reducer. */
+  mutationReceipts?: MutationReceipt[];
   /**
    * Authoritative artifact content for the change, keyed by canonical
    * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/
@@ -608,6 +611,14 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * histories predating this field.
    */
   testRuns?: Record<string, TestRunRecord[]>;
+}
+
+export const MUTATION_RECEIPTS_FIFO_LIMIT = 100;
+
+export interface MutationReceipt {
+  id: string;
+  signalName: string;
+  recordedAt: string;
 }
 
 /**

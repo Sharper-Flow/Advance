@@ -87,6 +87,7 @@ import {
   archiveChangeInChangeState,
   closeChangeInChangeState,
   createChangeWorkflowState,
+  findMutationReceipt,
   getTaskFromChangeState,
   getReadyTasksFromChangeState,
   listTasksFromChangeState,
@@ -233,6 +234,10 @@ const getWorktreesQuery = wf.defineQuery<
 const getConformanceStateQuery = wf.defineQuery<
   ChangeWorkflowState["conformance"]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
+const getMutationReceiptQuery = wf.defineQuery<
+  import("./contracts").MutationReceipt | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
 const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [
@@ -747,6 +752,9 @@ export async function changeWorkflow(
   );
   wf.setHandler(getWorktreesQuery, () => ({ ...(state.worktrees ?? {}) }));
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
+  wf.setHandler(getMutationReceiptQuery, (receiptId) =>
+    findMutationReceipt(state, receiptId),
+  );
   wf.setHandler(
     changeTasksQuery,
     (

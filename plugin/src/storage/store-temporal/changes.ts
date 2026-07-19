@@ -26,6 +26,10 @@ import {
   changeStateQuery,
   crossProjectCoordinationUpdatedSignal,
 } from "../../temporal/messages";
+import { getMutationReceiptQuery } from "../../temporal/messages";
+import type { MutationReceipt } from "../../temporal/contracts";
+import { waitForQueryPredicate } from "../../utils/query-predicate";
+import { randomUUID } from "node:crypto";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import {
   hasArchiveBundle,
@@ -125,13 +129,40 @@ const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
 async function fireContentSignalsSequentially(
   handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
   artifacts: ArtifactPayload,
+  confirmReadinessReceipts = false,
 ): Promise<void> {
   const updatedAt = new Date().toISOString();
   for (const { kind, signal } of ARTIFACT_SIGNAL_ORDER) {
     const content = artifacts[kind];
     if (content === undefined) continue;
     // Content signal — populates state.documents[kind]
-    await handle.signal(signal, { text: content, updatedAt });
+    const requiresReceipt =
+      confirmReadinessReceipts &&
+      (kind === "executiveSummary" || kind === "acceptance");
+    const mutationReceiptId = requiresReceipt
+      ? `mrec_${randomUUID()}`
+      : undefined;
+    await handle.signal(signal, {
+      text: content,
+      updatedAt,
+      ...(mutationReceiptId ? { mutationReceiptId } : {}),
+    });
+    if (mutationReceiptId) {
+      const receipt = await waitForQueryPredicate(
+        () =>
+          handle.query(getMutationReceiptQuery, mutationReceiptId) as Promise<
+            MutationReceipt | undefined
+          >,
+        (candidate) => candidate?.id === mutationReceiptId,
+      );
+      if (!receipt) {
+        const error = new Error(
+          `MUTATION_APPLICATION_UNCONFIRMED: receipt ${mutationReceiptId}`,
+        );
+        error.name = "MutationApplicationUnconfirmedError";
+        throw error;
+      }
+    }
 
     // Metadata signal — populates state.artifacts[kind] with contentHash.
     // Fires AFTER the content signal so the hash reflects the just-written
@@ -772,7 +803,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
       await runTemporal(async () => {
         const handle = await getGuardedChangeHandle(input, changeId);
-        await fireContentSignalsSequentially(handle, artifacts);
+        await fireContentSignalsSequentially(handle, artifacts, true);
       });
 
       // Compose result shape matching the legacy contract. Temporal-only

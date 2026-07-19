@@ -776,7 +776,16 @@ describe("createChangeOps", () => {
       },
     };
     const workflowClient = {
-      workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
+      workflow: {
+        getHandle: vi.fn(() => ({
+          signal: signalMock,
+          query: vi.fn(async (_query, receiptId) => ({
+            id: receiptId,
+            signalName: "executiveSummaryUpdated",
+            recordedAt: "2026-07-19T20:00:00.000Z",
+          })),
+        })),
+      },
     };
     const ops = createChangeOps({
       input: {
@@ -852,7 +861,16 @@ describe("createChangeOps", () => {
       },
     };
     const workflowClient = {
-      workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
+      workflow: {
+        getHandle: vi.fn(() => ({
+          signal: signalMock,
+          query: vi.fn(async (_query, receiptId) => ({
+            id: receiptId,
+            signalName: "executiveSummaryUpdated",
+            recordedAt: "2026-07-19T20:00:00.000Z",
+          })),
+        })),
+      },
     };
     const ops = createChangeOps({
       input: {

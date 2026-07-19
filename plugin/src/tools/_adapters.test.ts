@@ -14,8 +14,66 @@ import {
   startChangeWorkflow,
   isChangeReachable,
   waitForGateCompletion,
+  waitForAppliedReceipt,
+  waitForQueryPredicate,
+  MutationApplicationUnconfirmedError,
   type ReachabilityDeps,
 } from "./_adapters";
+
+describe("readiness mutation receipts", () => {
+  test("waitForQueryPredicate returns first value satisfying predicate", async () => {
+    const query = vi
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    await expect(
+      waitForQueryPredicate(query, (value) => value === 2, {
+        attempts: 2,
+        delayMs: 0,
+      }),
+    ).resolves.toBe(2);
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  test("waitForAppliedReceipt confirms exact receipt identity", async () => {
+    const handle = createMockHandle();
+    handle.query.mockResolvedValue({
+      id: "mrec_exact",
+      signalName: "contractReviewMatrixSet",
+      recordedAt: "2026-07-19T20:00:00.000Z",
+    });
+    await expect(
+      waitForAppliedReceipt(handle as never, "mrec_exact", {
+        attempts: 1,
+        delayMs: 0,
+      }),
+    ).resolves.toMatchObject({ id: "mrec_exact" });
+  });
+
+  test("fireSignalAndRefresh refuses success when receipt is unconfirmed", async () => {
+    vi.useFakeTimers();
+    const handle = createMockHandle();
+    handle.query.mockResolvedValue(undefined);
+    const refresh = vi.fn();
+    const store = { changes: { refresh } } as never;
+    const pending = fireSignalAndRefresh(
+      handle as never,
+      store,
+      "chg",
+      {},
+      {
+        mutationReceiptId: "mrec_missing",
+      },
+    );
+    const assertion = expect(pending).rejects.toBeInstanceOf(
+      MutationApplicationUnconfirmedError,
+    );
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(refresh).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+});
 
 // Mock the workflow-start module so startChangeWorkflow is testable
 vi.mock("../temporal/workflow-start", () => ({

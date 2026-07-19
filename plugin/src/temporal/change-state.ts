@@ -84,9 +84,11 @@ import type {
   ArtifactMetadata,
   ChangeWorkflowInput,
   ChangeWorkflowState,
+  MutationReceipt,
   SignalRejection,
   TestRunRecord,
 } from "./contracts";
+import { MUTATION_RECEIPTS_FIFO_LIMIT } from "./contracts";
 
 export interface UpdateTaskInput {
   status: Task["status"];
@@ -258,6 +260,53 @@ function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
 function advanceAcceptanceReadinessRevision(state: ChangeWorkflowState): void {
   state.acceptanceReadinessRevision =
     (state.acceptanceReadinessRevision ?? 0) + 1;
+}
+
+/**
+ * rq-readinessMutationReceipt01: prepend a mutation receipt to
+ * `state.mutationReceipts` (most recent first), then cap the FIFO at
+ * {@link MUTATION_RECEIPTS_FIFO_LIMIT}. Callers invoke this AFTER the
+ * reducer has applied a readiness-affecting mutation, so the receipt
+ * is the structural proof that state mutation completed. No-ops when
+ * the caller did not supply a `mutationReceiptId`, preserving legacy
+ * compatibility (signal handler behavior is unchanged for callers that
+ * omit the field).
+ *
+ * The reducer is responsible for invocation timing — receipt recording
+ * belongs to the same reducer pass that applied the mutation. Callers
+ * must not invoke this from background or unrelated code paths.
+ */
+export function recordMutationReceipt(
+  state: ChangeWorkflowState,
+  input: {
+    signalName: string;
+    mutationReceiptId?: string;
+    recordedAt: string;
+  },
+): void {
+  if (!input.mutationReceiptId) return;
+  const receipt: MutationReceipt = {
+    id: input.mutationReceiptId,
+    signalName: input.signalName,
+    recordedAt: input.recordedAt,
+  };
+  const existing = state.mutationReceipts ?? [];
+  const next = [receipt, ...existing].slice(0, MUTATION_RECEIPTS_FIFO_LIMIT);
+  state.mutationReceipts = next;
+}
+
+/**
+ * rq-readinessMutationReceipt01: query-side helper that finds a receipt
+ * by id in the bounded FIFO. Returns the matching receipt or undefined
+ * when the id is not present (yet). Pure read — safe to call from any
+ * query handler, including the `getMutationReceipts` query itself.
+ */
+export function findMutationReceipt(
+  state: ChangeWorkflowState,
+  mutationReceiptId: string,
+): MutationReceipt | undefined {
+  const receipts = state.mutationReceipts ?? [];
+  return receipts.find((r) => r.id === mutationReceiptId);
 }
 
 export function applyCrossProjectCoordinationUpdatedToState(
@@ -675,7 +724,7 @@ function applyContentWithSizeGuard(
   kind: ArtifactKind,
   text: string,
   at: string,
-): ChangeWorkflowState {
+): { state: ChangeWorkflowState; applied: boolean } {
   // Active content is Temporal-first; metadata intentionally omits active
   // filesystem paths until an archive/recovery/materialization step creates one.
   const temporalOnlyMetadata = (): ArtifactMetadata => ({
@@ -694,7 +743,7 @@ function applyContentWithSizeGuard(
       },
     };
     setLastSignalAt(state, at);
-    return state;
+    return { state, applied: false };
   }
 
   // Aggregate cap check (projects this content onto existing documents)
@@ -708,7 +757,7 @@ function applyContentWithSizeGuard(
       },
     };
     setLastSignalAt(state, at);
-    return state;
+    return { state, applied: false };
   }
 
   // Caps passed — apply content. Clear any prior rejection; record warning
@@ -722,7 +771,7 @@ function applyContentWithSizeGuard(
   state.documents = { ...(state.documents ?? {}), [kind]: text };
   state.artifacts = { ...state.artifacts, [kind]: nextArtifact };
   setLastSignalAt(state, at);
-  return state;
+  return { state, applied: true };
 }
 
 export function applyProposalUpdatedToState(
@@ -734,7 +783,7 @@ export function applyProposalUpdatedToState(
     "proposal",
     payload.text,
     payload.updatedAt,
-  );
+  ).state;
 }
 
 export function applyProblemStatementUpdatedToState(
@@ -746,7 +795,7 @@ export function applyProblemStatementUpdatedToState(
     "problemStatement",
     payload.text,
     payload.updatedAt,
-  );
+  ).state;
 }
 
 export function applyAgreementUpdatedToState(
@@ -758,43 +807,74 @@ export function applyAgreementUpdatedToState(
     "agreement",
     payload.text,
     payload.updatedAt,
-  );
+  ).state;
 }
 
 export function applyDesignUpdatedToState(
   state: ChangeWorkflowState,
   payload: DesignUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  return applyContentWithSizeGuard(
+  const { state: next, applied } = applyContentWithSizeGuard(
     state,
     "design",
     payload.text,
     payload.updatedAt,
   );
+  // rq-readinessMutationReceipt01: design content affects acceptance
+  // readiness (the design gate artifact backs acceptance review). Record
+  // only on successful content application.
+  if (applied) {
+    recordMutationReceipt(next, {
+      signalName: "designUpdated",
+      mutationReceiptId: payload.mutationReceiptId,
+      recordedAt: payload.updatedAt,
+    });
+  }
+  return next;
 }
 
 export function applyExecutiveSummaryUpdatedToState(
   state: ChangeWorkflowState,
   payload: ExecutiveSummaryUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  return applyContentWithSizeGuard(
+  const { state: next, applied } = applyContentWithSizeGuard(
     state,
     "executiveSummary",
     payload.text,
     payload.updatedAt,
   );
+  // rq-readinessMutationReceipt01: executive summary content gates
+  // acceptance readiness; record only on successful content application.
+  if (applied) {
+    recordMutationReceipt(next, {
+      signalName: "executiveSummaryUpdated",
+      mutationReceiptId: payload.mutationReceiptId,
+      recordedAt: payload.updatedAt,
+    });
+  }
+  return next;
 }
 
 export function applyAcceptanceUpdatedToState(
   state: ChangeWorkflowState,
   payload: AcceptanceUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  return applyContentWithSizeGuard(
+  const { state: next, applied } = applyContentWithSizeGuard(
     state,
     "acceptance",
     payload.text,
     payload.updatedAt,
   );
+  // rq-readinessMutationReceipt01: acceptance proof content gates
+  // release readiness; record only on successful content application.
+  if (applied) {
+    recordMutationReceipt(next, {
+      signalName: "acceptanceUpdated",
+      mutationReceiptId: payload.mutationReceiptId,
+      recordedAt: payload.updatedAt,
+    });
+  }
+  return next;
 }
 
 export function applyAcceptanceCriteriaSetToState(
@@ -858,6 +938,15 @@ export function applyContractReviewMatrixSetToState(
   state.contract.reviewMatrix = payload.reviewMatrix;
   advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
+  // rq-readinessMutationReceipt01: review matrix set advances the
+  // acceptance-readiness revision, clearing an otherwise-blocking
+  // readiness gap (rq-contractCoverageProjection01). Record the receipt
+  // after state apply so the query confirms the reducer ran.
+  recordMutationReceipt(state, {
+    signalName: "contractReviewMatrixSet",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.updatedAt,
+  });
   return state;
 }
 
@@ -1521,6 +1610,15 @@ export function applyGateCompletedToState(
     };
   }
   setLastSignalAt(state, payload.completedAt);
+  // rq-readinessMutationReceipt01: gate completion is the canonical
+  // readiness-affecting mutation; the receipt is recorded AFTER the
+  // reducer applies state so AC7 immediate gate readiness observes the
+  // applied state on its first valid attempt.
+  recordMutationReceipt(state, {
+    signalName: "gateCompleted",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.completedAt,
+  });
   return state;
 }
 
@@ -1671,6 +1769,14 @@ export function applyDesignConcernDispositionedToState(
   });
   state.design_concern_dispositions = next;
   setLastSignalAt(state, payload.dispositionedAt);
+  // rq-readinessMutationReceipt01: design-concern disposition clears an
+  // otherwise-blocking concern in the gate-readiness evaluator. Record
+  // the receipt AFTER state apply so the query confirms the reducer ran.
+  recordMutationReceipt(state, {
+    signalName: "designConcernDispositioned",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.dispositionedAt,
+  });
   return state;
 }
 
@@ -1695,6 +1801,14 @@ export function applyVerificationEvidenceDispositionedToState(
   });
   state.verification_evidence_dispositions = next;
   setLastSignalAt(state, payload.dispositionedAt);
+  // rq-readinessMutationReceipt01: verification-evidence disposition
+  // clears an otherwise-blocking VERIFICATION_EVIDENCE_MISSING readiness
+  // blocker. Record AFTER state apply.
+  recordMutationReceipt(state, {
+    signalName: "verificationEvidenceDispositioned",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.dispositionedAt,
+  });
   return state;
 }
 

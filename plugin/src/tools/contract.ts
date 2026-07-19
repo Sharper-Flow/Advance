@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import type { Store } from "../storage/store";
 import { readArtifact } from "./change/artifacts";
 import { saveChange } from "../storage/json";
@@ -26,7 +27,11 @@ import {
   isFailingContractReviewStatus,
   isPreciseWorkflowRecoveryEvidence,
 } from "../temporal/recovery-classification";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  getChangeHandle,
+  MutationApplicationUnconfirmedError,
+} from "./_adapters";
 import {
   classifyCompletedOrPoisonedRecovery,
   workflowHasPoisonedRecoveryEvidence,
@@ -544,15 +549,29 @@ export const contractTools = {
             });
           }
           const handle = await healthySignalHandle(activeStore, args.changeId);
+          const mutationReceiptId = `mrec_${randomUUID()}`;
           try {
             await fireSignalAndRefresh(
               handle,
               activeStore,
               args.changeId,
               contractReviewMatrixSetSignal,
-              { reviewMatrix, updatedAt: new Date().toISOString() },
+              {
+                reviewMatrix,
+                updatedAt: new Date().toISOString(),
+                mutationReceiptId,
+              },
             );
           } catch (signalError) {
+            if (signalError instanceof MutationApplicationUnconfirmedError) {
+              return formatToolOutput({
+                error: signalError.message,
+                code: signalError.code,
+                changeId: args.changeId,
+                mutationReceiptId,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
             // rq-fix-gate-tools-recovery AC4: review-matrix poisoned recovery
             // also runs when describe carries poisoned evidence.
             if (args.recoveryMode === "poisoned_history") {

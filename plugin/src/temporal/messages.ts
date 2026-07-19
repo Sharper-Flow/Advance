@@ -83,6 +83,7 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
+import type { MutationReceipt } from "./contracts";
 import type {
   ChangeWorkflowBootstrapState,
   ChangeWorkflowState,
@@ -134,6 +135,10 @@ export const getWorktreesQuery = wf.defineQuery<
 export const getConformanceStateQuery = wf.defineQuery<
   ChangeWorkflowState["conformance"]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
+export const getMutationReceiptQuery = wf.defineQuery<
+  MutationReceipt | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
 export const getCurrentBucketQuery = wf.defineQuery<string>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
 );

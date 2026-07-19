@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import type { Store } from "../storage/store-types";
 import { getService } from "../temporal/service";
 import { designConcernDispositionedSignal } from "../temporal/messages";
@@ -9,7 +10,11 @@ import {
 } from "../temporal/recovery-classification";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  getChangeHandle,
+  MutationApplicationUnconfirmedError,
+} from "./_adapters";
 import { saveRecoveredDesignConcernDisposition } from "./_recovery-writers";
 import { classifyCompletedOrPoisonedRecovery } from "./recovery-probe";
 import {
@@ -148,15 +153,24 @@ async function executeDisposition(
   }
 
   const handle = await getChangeHandleForChangeId(store, args.changeId);
+  const mutationReceiptId = `mrec_${randomUUID()}`;
   try {
     await fireSignalAndRefresh(
       handle,
       store,
       args.changeId,
       designConcernDispositionedSignal,
-      disposition,
+      { ...disposition, mutationReceiptId },
     );
   } catch (signalError) {
+    if (signalError instanceof MutationApplicationUnconfirmedError) {
+      return formatToolOutput({
+        error: signalError.message,
+        code: signalError.code,
+        changeId: args.changeId,
+        mutationReceiptId,
+      });
+    }
     // rq-releaseRepairRecovery01: release-repair recovery must remain explicit,
     // typed, audited, and gated on completed/poisoned workflow evidence.
     if (args.recoveryMode === "poisoned_history") {
