@@ -33,6 +33,11 @@ const FIXTURE_HOIST = join(
   "fixtures",
   "knip-config-with-workspace-hoist",
 );
+const FIXTURE_MIXED = join(
+  HERE,
+  "fixtures",
+  "config-with-unrelated-owner-dep",
+);
 
 const RULE_ID = "config-vs-dependency-presence";
 
@@ -168,6 +173,19 @@ describe("rule: config-vs-dependency-presence", () => {
     )?.line;
     expect(eslintLine).toBe(11);
     expect(prettierLine).toBe(14);
+  });
+
+  test("does not let one tool dependency satisfy another tool's config block", async () => {
+    const result = await runCapabilityScan({
+      repoRoot: FIXTURE_MIXED,
+      phase: 1,
+      relationshipId: RULE_ID,
+    });
+
+    // `prettier` is installed, so its block is satisfied. `knip` remains
+    // unowned and must still produce the AC2-style finding.
+    expect(findingForTool(result.findings, "prettier")).toBeUndefined();
+    expect(findingForTool(result.findings, "knip")).toBeDefined();
   });
 
   test("does NOT fire when pnpm-workspace.yaml declares a hoist pattern (exception signal)", async () => {

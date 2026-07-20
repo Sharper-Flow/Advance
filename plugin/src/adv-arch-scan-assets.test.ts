@@ -202,10 +202,21 @@ describe("adv-arch-scan structural correctness assets", () => {
   test("command and skill document capability consistency pack", () => {
     const command = readFileSync(COMMAND_PATH, "utf8");
     const skill = readFileSync(SKILL_PATH, "utf8");
+    const doc = readFileSync(DOC_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string }>;
+    };
 
-    // Both markdown surfaces must mirror the new pack row.
-    for (const content of [command, skill]) {
+    // The new requirement ID must remain synchronized across all four
+    // contract surfaces: spec source, command, skill, and rendered docs.
+    expect(spec.requirements.map((requirement) => requirement.id)).toContain(
+      "rq-archcap01",
+    );
+    for (const content of [command, skill, doc]) {
+      expect(content).toContain("rq-archcap01");
       expect(content).toContain("Capability Consistency");
+    }
+    for (const content of [command, skill]) {
       expect(content).toContain("`bun run bin/arch-scan.ts`");
     }
   });

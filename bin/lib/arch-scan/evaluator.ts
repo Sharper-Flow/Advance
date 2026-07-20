@@ -373,11 +373,18 @@ interface SignalMatch {
  */
 async function findCounterpart(
   relationship: CapabilityRelationship,
+  triggerMatch: string,
   repoRoot: string,
   timeoutMs: number,
   parseFailures: string[],
 ): Promise<SignalMatch | null> {
   for (const counterpart of relationship.acceptable_counterparts) {
+    if (
+      counterpart.trigger_pattern !== undefined &&
+      !counterpart.trigger_pattern.test(triggerMatch)
+    ) {
+      continue;
+    }
     const files = await collectFiles(counterpart.file_globs, repoRoot);
     for (const relPath of files) {
       const { text, error } = await readFileText(join(repoRoot, relPath));
@@ -593,25 +600,7 @@ export async function evaluateRelationship(
     };
   }
 
-  // Step 3 — repo-wide acceptable-counterpart check.
-  const counterpartMatch = await findCounterpart(
-    relationship,
-    options.repoRoot,
-    timeoutMs,
-    parseFailures,
-  );
-  if (counterpartMatch !== null) {
-    return {
-      findings: [],
-      coverage_entry: {
-        id,
-        state: "applied",
-        reason: `counterpart satisfied: ${counterpartMatch.evidence.matchedSignal ?? ""}`.trim(),
-      },
-    };
-  }
-
-  // Step 4 — repo-wide exception-signal check.
+  // Step 3 — repo-wide exception-signal check.
   //   - Suppress mode: a non-null match silences every trigger hit.
   //   - Escalate mode: a non-null match is the primary exception evidence
   //     source (the debt-marker helper is the secondary, per-trigger-file
@@ -623,11 +612,12 @@ export async function evaluateRelationship(
     parseFailures,
   );
 
-  // Step 5 — walk trigger files and emit findings for each hit.
+  // Step 4 — walk trigger files and emit findings for each hit.
   const findings: CapabilityFinding[] = [];
   let triggerMatchCount = 0;
   let suppressedCount = 0;
   let escalatedCount = 0;
+  let counterpartSatisfiedSignal: string | null = null;
   let timedOut = false;
 
   for (const relPath of triggerFiles) {
@@ -645,6 +635,22 @@ export async function evaluateRelationship(
 
     for (const hit of hits) {
       triggerMatchCount++;
+
+      // A counterpart may be scoped to this specific trigger hit. This is
+      // required for relationships that bundle several ownership mappings
+      // (for example knip config → knip dependency and prettier config →
+      // prettier dependency) without allowing one mapping to satisfy another.
+      const counterpartMatch = await findCounterpart(
+        relationship,
+        hit.match,
+        options.repoRoot,
+        timeoutMs,
+        parseFailures,
+      );
+      if (counterpartMatch !== null) {
+        counterpartSatisfiedSignal = counterpartMatch.evidence.matchedSignal ?? "";
+        continue;
+      }
 
       // --- Suppress mode (default): mirror pre-existing behavior. ---
       if (!escalate) {
@@ -753,6 +759,8 @@ export async function evaluateRelationship(
       reason:
         triggerMatchCount === 0
           ? "trigger pattern did not match any trigger file"
+          : findings.length === 0 && counterpartSatisfiedSignal !== null
+            ? `counterpart satisfied: ${counterpartSatisfiedSignal}`.trim()
           : escalate && escalatedCount > 0
             ? `emitted ${findings.length} finding(s); ${escalatedCount} escalated`
             : `emitted ${findings.length} finding(s)`,

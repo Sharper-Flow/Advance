@@ -42,10 +42,17 @@ export interface CapabilityRelationship {
     readonly pattern: RegExp;
     readonly description: string;
   };
-  readonly acceptable_counterparts: ReadonlyArray<{
-    readonly description: string;
-    readonly file_globs: readonly string[];
-    readonly pattern: RegExp;
+   readonly acceptable_counterparts: ReadonlyArray<{
+     readonly description: string;
+     readonly file_globs: readonly string[];
+     readonly pattern: RegExp;
+     /**
+      * Optional trigger discriminator. When present, this counterpart can
+      * satisfy only a trigger hit matching this pattern. This keeps a
+      * multi-mapping relationship (for example config tool → owner package)
+      * from treating an unrelated counterpart as sufficient.
+      */
+     readonly trigger_pattern?: RegExp;
     /**
      * Optional per-counterpart intent declarations. When omitted, the
      * counterpart satisfies the relationship on its own.
@@ -145,26 +152,31 @@ export const CAPABILITY_RELATIONSHIPS: readonly CapabilityRelationship[] = [
         description: "knip declared as a dependency.",
         file_globs: ["**/package.json"],
         pattern: /"knip"\s*:\s*"/,
+        trigger_pattern: /"knip"\s*:/,
       },
       {
         description: "eslint declared as a dependency (owner of eslintConfig).",
         file_globs: ["**/package.json"],
         pattern: /"eslint"\s*:\s*"/,
+        trigger_pattern: /"eslintConfig"\s*:/,
       },
       {
         description: "prettier declared as a dependency.",
         file_globs: ["**/package.json"],
         pattern: /"prettier"\s*:\s*"/,
+        trigger_pattern: /"prettier"\s*:/,
       },
       {
         description: "stylelint declared as a dependency.",
         file_globs: ["**/package.json"],
         pattern: /"stylelint"\s*:\s*"/,
+        trigger_pattern: /"stylelint"\s*:/,
       },
       {
         description: "@commitlint/cli declared as a dependency (owner of commitlint config).",
         file_globs: ["**/package.json"],
         pattern: /@commitlint\/cli"\s*:\s*"/,
+        trigger_pattern: /"commitlint"\s*:/,
       },
     ],
     exception_signals: [

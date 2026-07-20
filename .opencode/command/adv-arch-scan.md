@@ -41,7 +41,7 @@ Run stack-specific tools when stack is in the Stack Packs matrix before research
 |------------|-----------|--------------|---------------|--------|
 | TypeScript/Node | `package.json` + `tsconfig.json` | `dependency-cruiser` | `madge` | Circular deps, layer violations, orphans |
 | ADV stack pack | TypeScript/Bun/OpenCode plugin/Temporal/spec-command-skill assets | existing structural enforcers | dependency graph tools | workflow bundle boundary, command/manifest symmetry, spec/asset anchors, command/skill methodology surfaces |
-| Capability Consistency | `package.json` + IaC files (`*.bicep`, `*.tf`) + source files | `bun run bin/arch-scan.ts` (typed adapter) | (none — typed pipeline is primary) | Config↔code↔deps inconsistencies: plumbed-but-unused env vars, present-but-inactive artifacts, deferred migrations, scaffold without tests |
+| Capability Consistency <!-- rq-archcap01 --> | `package.json` + IaC files (`*.bicep`, `*.tf`) + source files | `bun run bin/arch-scan.ts` (typed adapter) | (none — typed pipeline is primary) | Config↔code↔deps inconsistencies: plumbed-but-unused env vars, present-but-inactive artifacts, deferred migrations, scaffold without tests |
 | Python | `pyproject.toml` / `setup.py` | `pydeps` | `import-deps` | Import cycles, module depth |
 | Go | `go.mod` | `go vet` | `gocyclo` | Shadowing, complexity, unused code |
 | Rust | `Cargo.toml` | `cargo-deps` | `cargo-modules` | Dependency graph, unused crates |
