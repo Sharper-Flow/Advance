@@ -8,10 +8,14 @@ const mocks = vi.hoisted(() => {
     async () => undefined,
   );
   const workflowHandle = { signal: vi.fn(), query: vi.fn() };
+  const withTargetPathStore = vi.fn(async (_input: unknown, _fn: unknown) => {
+    throw new Error("withTargetPathStore not configured for this test");
+  });
   return {
     fireSignalAndRefresh,
     saveRecoveredVerificationEvidenceDisposition,
     workflowHandle,
+    withTargetPathStore,
   };
 });
 
@@ -33,6 +37,14 @@ vi.mock("./_recovery-writers", () => ({
   saveRecoveredVerificationEvidenceDisposition:
     mocks.saveRecoveredVerificationEvidenceDisposition,
 }));
+
+vi.mock("./target-project", async (importOriginal) => {
+  const original = await importOriginal<typeof import("./target-project")>();
+  return {
+    ...original,
+    withTargetPathStore: mocks.withTargetPathStore,
+  };
+});
 
 import { verificationEvidenceTools } from "./verification-evidence";
 
@@ -92,6 +104,12 @@ describe("adv_verification_evidence_disposition", () => {
     mocks.saveRecoveredVerificationEvidenceDisposition.mockReset();
     mocks.saveRecoveredVerificationEvidenceDisposition.mockImplementation(
       async () => undefined,
+    );
+    mocks.withTargetPathStore.mockReset();
+    mocks.withTargetPathStore.mockImplementation(
+      async (_input: unknown, _fn: unknown) => {
+        throw new Error("withTargetPathStore not configured for this test");
+      },
     );
   });
 
@@ -315,5 +333,69 @@ describe("adv_verification_evidence_disposition", () => {
 
     expect(output.error).toContain("requires recoveryReason");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("AC3: target_path routes probe-first recovery write to the target disk projection", async () => {
+    const drivingStore = storeFor(change());
+    const targetChange = change();
+    const targetStore = storeFor(targetChange);
+    targetStore.paths = {
+      ...targetStore.paths,
+      root: "/target-project",
+      changes: "/target-project/.adv/changes",
+    } as Store["paths"];
+
+    mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/target-project",
+          projectId: "target-project-id",
+          trusted: true,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      }),
+    );
+
+    let capturedStore: Store | undefined;
+    mocks.saveRecoveredVerificationEvidenceDisposition.mockImplementationOnce(
+      async (input: { store: Store }) => {
+        capturedStore = input.store;
+        return undefined;
+      },
+    );
+
+    const output = parse(
+      await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
+        {
+          ...validArgs,
+          target_path: "/target-project",
+          target_confirmed: true,
+          confirmationEvidence:
+            "User approved target mutation via question tool",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+          recoveryReason: "target_path routing regression test",
+        },
+        drivingStore,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target-project",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target mutation via question tool",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(capturedStore).toBe(targetStore);
+    expect(capturedStore).not.toBe(drivingStore);
+    expect(capturedStore?.paths.root).toBe("/target-project");
+    expect(capturedStore?.paths.changes).toBe("/target-project/.adv/changes");
   });
 });

@@ -795,9 +795,24 @@ async function completeGateViaRecovery(input: {
     if (blocker) return blocker;
   }
 
+  // AC3: readiness/blocker evaluation must read the durable disk projection
+  // when available. Under recovery the disk projection is authoritative; in
+  // normal operation it stays in sync via signals.
+  const diskReadinessLoad = await loadChange(
+    input.store.paths.changes,
+    input.changeId,
+  );
+  const readinessChange =
+    diskReadinessLoad.success && diskReadinessLoad.data
+      ? diskReadinessLoad.data
+      : recoveryChange;
+  const readinessGates =
+    diskReadinessLoad.success && diskReadinessLoad.data
+      ? (diskReadinessLoad.data.gates ?? createDefaultGates())
+      : recoveryGates;
   const recoveryState = buildRecoveryReadinessState({
-    change: recoveryChange,
-    gates: recoveryGates,
+    change: readinessChange,
+    gates: readinessGates,
     projectionChangesDir: input.store.paths.changes,
   });
   const readiness = evaluateGateReadiness(recoveryState, input.gateId, {

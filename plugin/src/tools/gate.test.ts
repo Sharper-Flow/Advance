@@ -696,6 +696,134 @@ describe("gate tools — signal-driven lifecycle", () => {
       }
     });
 
+    test("AC3: recovery readiness evaluates from disk projection, not stale Temporal state", async () => {
+      // Regression: a disposition recorded on disk via probe-first recovery must
+      // clear its VERIFICATION_EVIDENCE_MISSING blocker even when the Temporal
+      // projection still carries the stale warning-bearing state.
+      const tmp = await mkdtemp(
+        join(tmpdir(), "adv-gate-recovery-readiness-disk-"),
+      );
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
+
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+
+      const task = {
+        id: "tk-1",
+        title: "Task with verification gap",
+        status: "done",
+        priority: 1,
+        created_at: "2026-01-01T00:00:00Z",
+        evidence_policy: "test",
+      };
+
+      const verificationReport = {
+        schema_version: "1.0",
+        change_id: "test-change",
+        task_id: "tk-1",
+        scope: { kind: "task", task_id: "tk-1" },
+        attempt: 1,
+        agent: "adv-engineer",
+        status: "complete",
+        workdir_used: "/tmp/worktree",
+        files_touched: ["src/foo.ts"],
+        verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
+        decisions: [],
+        blockers: [],
+        scope_drift: null,
+        follow_ups: [],
+        required_main_agent_actions: [],
+        related_scan: "none",
+        context_update_for_adv: {
+          what_ads_needs_to_know: "verification gap recorded",
+          suggested_next_action: "proceed",
+        },
+        consumer_warnings: [
+          { kind: "verification_missing", message: "missing test evidence" },
+        ],
+      };
+
+      const disposition = {
+        taskId: "tk-1",
+        concernKey: "verification",
+        disposition: "fixed",
+        evidence: "re-run tests, all green",
+        dispositionedAt: "2026-01-01T00:01:00Z",
+      };
+
+      const staleChange = {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [task],
+        subagent_reports: [verificationReport],
+        deltas: {},
+        wisdom: [],
+        gates,
+      };
+
+      const diskChange = {
+        ...staleChange,
+        verification_evidence_dispositions: [disposition],
+      };
+
+      const store = createMockStore({
+        gates,
+        change: staleChange as Partial<import("../types").Change>,
+      });
+      store.paths.changes = changesDir;
+      (store.changes.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        data: staleChange,
+      });
+
+      try {
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify(diskChange, null, 2),
+        );
+
+        // Catch-gated recovery path: query fails with poisoned evidence, so
+        // diskDirect is false. The readiness evaluator must still reach disk.
+        mocks.querySignal.mockRejectedValueOnce(
+          new Error("TMPRL1100: Nondeterminism error"),
+        );
+
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "release",
+            completedBy: "agent",
+            notes: "Recovered release after poisoned workflow",
+            compatibilityReason: "legacy replay lacks contract proof",
+            recoveryReason: "release gate recovery after poisoned workflow",
+            recoveryEvidence:
+              "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.recovered).toBe(true);
+        expect(parsed.readinessBlockers).toBeUndefined();
+        expect(parsed.error).toBeUndefined();
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
     test("queries workflow gate state before firing completion signal", async () => {
       const store = createMockStore({
         gates: {
