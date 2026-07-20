@@ -368,24 +368,28 @@ interface SignalMatch {
 }
 
 /**
- * Search every acceptable counterpart's declared scope. Returns the first
- * match (by counterpart order, then file order, then position in file).
+ * Search each acceptable counterpart's declared scope once. The returned map is
+ * then filtered per trigger by `trigger_pattern`, so repeated trigger hits do
+ * not cause another full repository traversal or read of counterpart files.
  */
-async function findCounterpart(
+async function collectCounterpartMatches(
   relationship: CapabilityRelationship,
-  triggerMatch: string,
   repoRoot: string,
   timeoutMs: number,
   parseFailures: string[],
-): Promise<SignalMatch | null> {
+): Promise<
+  ReadonlyMap<
+    CapabilityRelationship["acceptable_counterparts"][number],
+    SignalMatch | null
+  >
+> {
+  const matches = new Map<
+    CapabilityRelationship["acceptable_counterparts"][number],
+    SignalMatch | null
+  >();
   for (const counterpart of relationship.acceptable_counterparts) {
-    if (
-      counterpart.trigger_pattern !== undefined &&
-      !counterpart.trigger_pattern.test(triggerMatch)
-    ) {
-      continue;
-    }
     const files = await collectFiles(counterpart.file_globs, repoRoot);
+    let match: SignalMatch | null = null;
     for (const relPath of files) {
       const { text, error } = await readFileText(join(repoRoot, relPath));
       if (error || text === null) {
@@ -395,7 +399,7 @@ async function findCounterpart(
       const { hits } = searchBounded(text, counterpart.pattern, timeoutMs);
       if (hits.length > 0) {
         const hit = hits[0];
-        return {
+        match = {
           evidence: {
             role: "counterpart",
             file: relPath,
@@ -404,8 +408,32 @@ async function findCounterpart(
             matchedSignal: hit.match,
           },
         };
+        break;
       }
     }
+    matches.set(counterpart, match);
+  }
+  return matches;
+}
+
+/** Return the first precomputed counterpart eligible for this trigger hit. */
+function findCounterpart(
+  relationship: CapabilityRelationship,
+  triggerMatch: string,
+  counterpartMatches: ReadonlyMap<
+    CapabilityRelationship["acceptable_counterparts"][number],
+    SignalMatch | null
+  >,
+): SignalMatch | null {
+  for (const counterpart of relationship.acceptable_counterparts) {
+    if (
+      counterpart.trigger_pattern !== undefined &&
+      !counterpart.trigger_pattern.test(triggerMatch)
+    ) {
+      continue;
+    }
+    const match = counterpartMatches.get(counterpart);
+    if (match !== undefined && match !== null) return match;
   }
   return null;
 }
@@ -611,6 +639,12 @@ export async function evaluateRelationship(
     timeoutMs,
     parseFailures,
   );
+  const counterpartMatches = await collectCounterpartMatches(
+    relationship,
+    options.repoRoot,
+    timeoutMs,
+    parseFailures,
+  );
 
   // Step 4 — walk trigger files and emit findings for each hit.
   const findings: CapabilityFinding[] = [];
@@ -640,15 +674,14 @@ export async function evaluateRelationship(
       // required for relationships that bundle several ownership mappings
       // (for example knip config → knip dependency and prettier config →
       // prettier dependency) without allowing one mapping to satisfy another.
-      const counterpartMatch = await findCounterpart(
+      const counterpartMatch = findCounterpart(
         relationship,
         hit.match,
-        options.repoRoot,
-        timeoutMs,
-        parseFailures,
+        counterpartMatches,
       );
       if (counterpartMatch !== null) {
-        counterpartSatisfiedSignal = counterpartMatch.evidence.matchedSignal ?? "";
+        counterpartSatisfiedSignal =
+          counterpartMatch.evidence.matchedSignal ?? "";
         continue;
       }
 
