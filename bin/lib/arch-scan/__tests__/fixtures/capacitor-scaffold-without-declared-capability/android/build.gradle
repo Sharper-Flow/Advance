@@ -1,0 +1,6 @@
+// android/build.gradle for the NEGATIVE arch-scan fixture.
+// The literal substring `build.gradle` appears once on this line so the
+// trigger pattern is reachable; the rule still does NOT fire because no
+// intent declaration string is present anywhere in this repo.
+
+rootProject.name = "capacitor-scaffold-without-declared-capability"

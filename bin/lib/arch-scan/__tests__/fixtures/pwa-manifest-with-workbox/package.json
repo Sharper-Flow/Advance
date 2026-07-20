@@ -1,0 +1,12 @@
+{
+  "name": "pwa-manifest-with-workbox",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "workbox-cli generateSW workbox-config.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "workbox-cli": "^7.0.0"
+  }
+}

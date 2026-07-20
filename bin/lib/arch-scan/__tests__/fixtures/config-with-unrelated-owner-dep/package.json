@@ -1,0 +1,14 @@
+{
+  "name": "config-with-unrelated-owner-dep",
+  "version": "0.0.0",
+  "private": true,
+  "knip": {
+    "entry": ["src/index.ts"]
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "devDependencies": {
+    "prettier": "3.0.0"
+  }
+}

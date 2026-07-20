@@ -1,0 +1,7 @@
+// android capacitor settings placeholder for the POSITIVE fixture.
+// Intentionally minimal: no trigger literal appears in this file's content,
+// so it contributes no trigger hit even though its path matches the
+// `**/android/**` trigger glob. The single POSITIVE finding originates
+// from `android/build.gradle` only.
+
+include ":app"

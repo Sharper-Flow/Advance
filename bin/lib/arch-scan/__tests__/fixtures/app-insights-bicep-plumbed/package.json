@@ -1,0 +1,10 @@
+{
+  "name": "app-insights-bicep-plumbed",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "bun run ./src/index.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

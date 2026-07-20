@@ -1,0 +1,8 @@
+{
+  "name": "capacitor-scaffold-with-script",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test:native": "maestro test flows/"
+  }
+}

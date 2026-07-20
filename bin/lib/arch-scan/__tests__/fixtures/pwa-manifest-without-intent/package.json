@@ -1,0 +1,10 @@
+{
+  "name": "pwa-manifest-without-intent",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "echo noop"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

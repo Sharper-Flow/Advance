@@ -1,0 +1,13 @@
+{
+  "name": "knip-config-with-workspace-hoist",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
+  "knip": {
+    "entry": ["src/index.ts"]
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
