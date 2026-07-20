@@ -32,7 +32,7 @@ Add, inspect, promote, and archive lightweight future-work items in `.adv/backlo
 - `/adv-backlog` — capture, inspect, or promote repo-level future work.
 - `/adv-epic` — create or update initiative containers; can import backlog items via `backlog_ref`.
 - `/adv-proposal` — create a normal ADV change for one work item.
-- `/adv-roadmap` / `adv_roadmap` — inspect ranked backlog; do not mutate repo backlog state.
+- `/adv-triage` — coalesce overlapped changes↔issues and surface portfolio balance; does not mutate repo backlog state.
 
 ## Phase 1: Frame the Item
 

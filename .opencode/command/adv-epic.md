@@ -24,7 +24,7 @@ Create/update an ADV Epic through a collaborative goal-first workflow. Epics are
 
 - `/adv-epic` — create or update an Epic initiative container.
 - `/adv-proposal` — create a normal ADV change for one work item.
-- `/adv-roadmap` — inspect backlog-ranked work; does not create Epic state.
+- `/adv-triage` — coalesce overlapped changes↔issues and surface portfolio balance; does not create Epic state.
 - `bin/adv epic list --json` — read-only CLI list; no CLI create/update/delete/archive verbs.
 
 ## Phase 1: Frame Epic Intent
@@ -51,7 +51,7 @@ Use typed tools only:
 | List active Epics                       | `adv_epic_list`     |
 | Inspect plausible overlapping Epics     | `adv_epic_show`     |
 | Inspect active changes for related work | `adv_change_list`   |
-| Inspect backlog/roadmap when relevant   | `adv_roadmap`       |
+| Inspect portfolio balance when relevant | `adv_change_list` + `adv_epic_show` |
 
 Rules:
 
