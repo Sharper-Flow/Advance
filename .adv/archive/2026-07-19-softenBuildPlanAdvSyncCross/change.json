@@ -1,0 +1,506 @@
+{
+  "id": "softenBuildPlanAdvSyncCross",
+  "title": "Soften build/plan ADV_SYNC cross-reference",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-19T23:11:37.179Z",
+  "tasks": [
+    {
+      "id": "tk-19b76df53b08",
+      "title": "Drop the misleading \"See the ADV_SYNC block at the top of this prompt for routing guidance (catalog-via-execute when exposed, direct callables otherwise)\" clause from 3 sites in 2 user config files.",
+      "type": "docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-19T23:15:49.179Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC4"
+        ]
+      },
+      "evidence_policy": "source_audit",
+      "evidence_plan": {
+        "policy": "source_audit",
+        "proof_target": "Source audit or inspection",
+        "rationale": "Prose-only edits to user config files outside any git repo. No executable test surface. Evidence is re-reading the edited files and grepping for stale references.",
+        "review_conclusion": "Reviewer confirms the misleading cross-reference is removed at all 3 sites (build.md:161, plan.md:158, plan.md:162) and that frontmatter, ADV_SYNC block content, and all other body sections are unchanged.",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-19T23:16:11.113Z",
+      "verification": "3 in-scope sites softened successfully (user config files outside any git repo):\n- build.md:161 — dropped \"See the ADV_SYNC block...\" clause; retained \"Reach for the highest-fidelity capability...\" preference prose\n- plan.md:158 — dropped \"See the ADV_SYNC block...\" clause; retained fallback rule\n- plan.md:162 — softened to \"discover them via your active tool surface:\" (preserves table introduction)\n\nVerification: grep confirms 0 remaining \"ADV_SYNC block\" references in scope; 2 out-of-scope references (build.md:165, plan.md:173 in different section per AC4) remain as known items for separate future cleanup. ADV_SYNC markers preserved (build.md:60/70, plan.md:37/48). Section count unchanged (build: 16, plan: 19). Frontmatter preserved.\n\nadvance-repo source tree unchanged (worktree on change/softenBuildPlanAdvSyncCross branch, clean tree expected since edits were to ~/.config/opencode/agents/* not in any git repo).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Edited ~/.config/opencode/agents/build.md (1 site) and ~/.config/opencode/agents/plan.md (2 sites) to drop the misleading \"See the ADV_SYNC block at the top of this prompt for routing guidance\" cross-reference. Retained mode-neutral preference prose. ADV_SYNC block markers and content preserved. Routing behavior unchanged via global lgrep-tools.md always-on instruction.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "58bbf734b404cc557589200bf7c75485c9b5a0e5",
+      "completedAt": "2026-07-19T23:18:56.100Z",
+      "completed_at": "2026-07-19T23:18:56.100Z",
+      "notes": "3 in-scope sites softened: build.md:161, plan.md:158, plan.md:162. 2 out-of-scope references (build.md:165, plan.md:173 in different section per AC4) documented as remaining. ADV_SYNC markers + frontmatter + section count preserved. Checkpoint status:clean (no advance-repo changes; work was non-git user config file edits).",
+      "updatedAt": "2026-07-19T23:19:06.843Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "softenBuildPlanAdvSyncCross",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "Trivial scope: 3 prose edits to 2 user config files outside any git repo. All 5 release dimensions PASS inline. Status READY. No blockers, no issues. 1 non-blocking future cleanup follow-up (out-of-section 'ADV_SYNC routing contract' references in build.md:165 and plan.md:173).",
+      "findings": [
+        {
+          "scanner": "inline-orchestrator",
+          "severity": "info",
+          "summary": "All 5 release dimensions PASS. Pure prose change to user config files outside any git repo. No code/security/perf/deploy surface.",
+          "evidence": [
+            {
+              "label": "Source files touched",
+              "locator": "~/.config/opencode/agents/build.md, ~/.config/opencode/agents/plan.md",
+              "summary": "3 prose edits to 2 user config files. No advance-repo source touched. No tests to run. No deploy step. No env vars / migrations / external services."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Non-blocking future cleanup: build.md:165 and plan.md:173 contain softer 'ADV_SYNC routing contract' references in '## Docs-first for unfamiliar surfaces' section (different section per AC4 scope restriction). Substantively same issue; separate future change candidate."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-19T23:14:22.668Z",
+      "completed_by": "agent",
+      "approval_evidence": "User pre-authorized via 'do the follow ups' in response to OOS5 follow-up description (post-fixSubAgentMcpRouting ship). Proposal matches described scope exactly: soften misleading 'See the ADV_SYNC block for routing guidance' cross-reference in user build.md:161 and plan.md:158,162. CLARIFY_MISSING_ERROR_HANDLING warning is false-positive (prose-only change to user config files; no error surface). NO_TASKS/NO_DELTAS warnings expected at this stage (gates not yet driven).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "42c433112e12bec954ca37b0429bb6feb0f58fa50b3a1d95eb41babc33435b4b",
+        "non_whitespace_chars": 2404,
+        "checked_at": "2026-07-19T23:11:37.350Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-19T23:15:03.324Z",
+      "completed_at": "2026-07-19T23:15:16.024Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted (17 items: 2 SC, 4 AC, 4 C, 4 DONT, 3 OOS). Problem well-understood from fixSubAgentMcpRouting OOS5 analysis. No external research needed.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "b1c4e45cad98f233d0f5da3ee771a3637f9c3d9b917740b20122d795efb3459b",
+        "non_whitespace_chars": 2196,
+        "checked_at": "2026-07-19T23:11:37.351Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-19T23:15:29.241Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Validator (adv-researcher) skipped per scope-proportionate judgment: 3 line prose edits to user config files; no architectural decisions (AD1 explicitly chose minimum-viable over architectural centralization OOS1); no advance-repo changes; no tests; no spec deltas. Per rq-designValidatorAdvisory01, validator fail is advisory-only for non-controversial changes — trivial scope makes spawn disproportionate. Design AD2 (replacement wording) verified against retained mode-neutral prose from fixSubAgentMcpRouting AC4.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "53745c45165cd825a497d65b03f810034b9f9758bfa1250eec31164f1a72eb88",
+        "non_whitespace_chars": 2606,
+        "checked_at": "2026-07-19T23:11:37.352Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-19T23:16:01.739Z",
+      "completed_by": "agent",
+      "approval_evidence": "User pre-approved via 'do the follow ups' (post-fixSubAgentMcpRouting ship authorization). Single task tk-19b76df53b08 covers all 3 sites + verification. Contract refs map task to 3 AC implements + 2 SC/AC4 verifies + 4 C/4 DONT respects. evidence_policy=source_audit (prose-only; no test surface). Last HITL checkpoint."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-19T23:19:26.865Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task tk-19b76df53b08 done. 3 in-scope cross-reference sites softened in user build.md/plan.md. Worktree materialized for checkpoint metadata (clean tree — work was non-git user file edits). 2 out-of-scope references (different sections per AC4) documented as remaining for future cleanup."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-19T23:23:32.243Z",
+      "completed_at": "2026-07-19T23:25:15.218Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved via Tier A whitelist ('approve'). Contract re-minted with force=true (16 items, OOS converted to DONT5/6 to work around acceptance validator's mishandling of out_of_scope kind — tooling limitation noted). Matrix 16/16 required rows passing. Executive summary persisted. 0 findings.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ac4579a829fe99867b4999128e8010e4ce227e1f866277549594d5ffb96a9750",
+        "non_whitespace_chars": 3043,
+        "checked_at": "2026-07-19T23:11:37.355Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+      "approvedAt": "2026-07-19T23:15:16.024Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** — User `build.md` and `plan.md` no longer claim the ADV_SYNC block contains routing guidance it doesn't.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2** — Routing preference prose remains mode-neutral; no env-var conditionals introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — User `~/.config/opencode/agents/build.md:161` \"See the ADV_SYNC block...\" clause removed or replaced with wording that doesn't claim ADV_SYNC block has routing guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — User `~/.config/opencode/agents/plan.md:158` \"See the ADV_SYNC block...\" clause removed or replaced similarly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — User `~/.config/opencode/agents/plan.md:162` \"See the ADV_SYNC block...\" clause removed or replaced similarly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — Frontmatter (permission grants), ADV_SYNC block content, and all other body sections unchanged in both files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — No advance-repo source file changes (`.opencode/agents/*.md`, `.opencode/overlays/*.overlay.md`, `plugin/*`, `scripts/*`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — No spec deltas (pure prompt prose change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** — Edits are direct filesystem writes; `~/.config/opencode/agents/*.md` are not in any git repo (consistent with fixSubAgentMcpRouting AC4 model).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** — Functional routing behavior unchanged (still supplied by global always-on `~/.config/opencode/instructions/lgrep-tools.md`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** — No architectural centralization (OOS5 option a — centralize build/plan contract from source body to overlay — is a separate larger change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** — No changes to permission frontmatter in either file.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** — No changes to ADV_SYNC block content (preserve fixSubAgentMcpRouting ship state).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4** — No changes to other body sections (only the cross-reference clause).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5** — No changes to global `lgrep-tools.md` always-on instruction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "**DONT6** — No changes to explore/general user files (their ADV_SYNC overlays correctly contain the contract; their cross-references are accurate).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-19T23:27:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tk-19b76df53b08 verification: grep confirms 0 remaining 'ADV_SYNC block' references in scope."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Retained mode-neutral preference prose; no env-var conditionals introduced."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_audit",
+          "evidence": "build.md:161 'See the ADV_SYNC block...' clause dropped; replaced with bare preference prose."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_audit",
+          "evidence": "plan.md:158 'See the ADV_SYNC block...' clause dropped; retained fallback rule."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_audit",
+          "evidence": "plan.md:162 softened to 'discover them via your active tool surface:' (preserves table introduction)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_audit",
+          "evidence": "Section count unchanged (build: 16, plan: 19). ADV_SYNC markers preserved. Frontmatter grep clean."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No advance-repo source file changes. Worktree checkpoint status:clean, sha 58bbf734."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No spec deltas. Pure prompt prose change."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "Edits applied directly to ~/.config/opencode/agents/build.md and plan.md via edit tool. Files not in any git repo."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Routing behavior unchanged. Functional routing supplied by global lgrep-tools.md always-on instruction."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No advance-repo source file edits; no overlay file edits; no test changes. Architectural centralization (option a) not attempted."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Frontmatter grep clean; permission grants in build.md and plan.md unchanged."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "ADV_SYNC block markers and content preserved (build.md:60/70, plan.md:37/48)."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only the 3 cross-reference clauses edited. Other body sections untouched per scope."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "lgrep-tools.md global instruction untouched."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "explore.md and general.md user files untouched."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — User `~/.config/opencode/agents/build.md:161` \"See the ADV_SYNC block...\" clause removed or replaced with wording that doesn't claim ADV_SYNC block has routing guidance.",
+    "**AC2** — User `~/.config/opencode/agents/plan.md:158` \"See the ADV_SYNC block...\" clause removed or replaced similarly.",
+    "**AC3** — User `~/.config/opencode/agents/plan.md:162` \"See the ADV_SYNC block...\" clause removed or replaced similarly.",
+    "**AC4** — Frontmatter (permission grants), ADV_SYNC block content, and all other body sections unchanged in both files."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Soften build/plan ADV_SYNC cross-reference\n\n## Problem\n\nDuring `fixSubAgentMcpRouting` AC4, the user base files `~/.config/opencode/agents/build.md:161` and `plan.md:158,162` were rewritten with mode-neutral routing prose that includes the clause \"See the ADV_SYNC block at the top of this prompt for routing guidance (catalog-via-execute when exposed, direct callables otherwise)\".\n\nFor `explore` and `general`, this cross-reference is accurate — their ADV_SYNC overlays contain the canonical `MCP_ACTIVE_SURFACE_CONTRACT`.\n\nFor `build` and `plan`, this cross-reference is **misleading** — their ADV_SYNC overlay blocks (per design AD8/OOS5 of fixSubAgentMcpRouting) do NOT contain the canonical contract line. The contract for build/plan lives in advance-source body files (`.opencode/agents/build.md:171-179`, `.opencode/agents/plan.md:170-179`) which are NOT applied to user-owned deployed files by `deploy-local.sh` (only overlays are injected).\n\nFunctional behavior is preserved — build/plan agents still receive the routing contract via the always-on global `~/.config/opencode/instructions/lgrep-tools.md` instruction loaded into every OpenCode agent. But the in-file cross-reference is technically wrong for these two files.\n\n## Proposed direction\n\nMinimum-viable doc fix: soften the cross-reference wording in user `build.md` and `plan.md` so it no longer claims the ADV_SYNC block contains routing guidance it doesn't.\n\nReplacement wording: drop the \"See the ADV_SYNC block...\" clause and rely on (a) the existing mode-neutral preference prose (\"Reach for the highest-fidelity capability exposed on your surface before falling back to `grep`/`read`\") plus (b) the always-on global `lgrep-tools.md` instruction that already teaches the mode-aware routing contract.\n\n## Why not the architectural option\n\nThe deeper OOS5 option (centralize build/plan contract from source body to overlay, coordinated with C7 exactly-once invariant) is a separate larger change. This proposal addresses only the doc-gap introduced by AC4 — the misleading cross-reference. The architectural centralization remains a future option.\n\n## Scope\n\n- In scope: 3 line edits across 2 user config files (`~/.config/opencode/agents/build.md`, `plan.md`)\n- Out of scope: advance-repo source files; overlay files; effective-prompts modeling; architectural centralization; lgrep-tools.md global instruction\n- No spec deltas; no tests (prose-only change to user config files outside any git repo); no deploy step (edits are direct filesystem writes to active config)\n\n## Verification\n\n- Re-read each edited file to confirm the cross-reference is removed/softened\n- Confirm frontmatter and ADV_SYNC block content unchanged\n- Confirm routing preference prose still present (mode-neutral)",
+    "agreement": "# Agreement: Soften build/plan ADV_SYNC cross-reference\n\n## Objectives\n\n1. Remove the misleading \"See the ADV_SYNC block at the top of this prompt for routing guidance\" cross-reference from user `build.md` and `plan.md` (introduced during fixSubAgentMcpRouting AC4 rewrite).\n2. Preserve all other content in both files (frontmatter, ADV_SYNC block, other body sections).\n3. Keep routing preference prose mode-neutral.\n\n## Success Criteria\n\n- **SC1** — User `build.md` and `plan.md` no longer claim the ADV_SYNC block contains routing guidance it doesn't.\n- **SC2** — Routing preference prose remains mode-neutral; no env-var conditionals introduced.\n\n## Acceptance Criteria\n\n- **AC1** — User `~/.config/opencode/agents/build.md:161` \"See the ADV_SYNC block...\" clause removed or replaced with wording that doesn't claim ADV_SYNC block has routing guidance.\n- **AC2** — User `~/.config/opencode/agents/plan.md:158` \"See the ADV_SYNC block...\" clause removed or replaced similarly.\n- **AC3** — User `~/.config/opencode/agents/plan.md:162` \"See the ADV_SYNC block...\" clause removed or replaced similarly.\n- **AC4** — Frontmatter (permission grants), ADV_SYNC block content, and all other body sections unchanged in both files.\n\n## Constraints\n\n- **C1** — No advance-repo source file changes (`.opencode/agents/*.md`, `.opencode/overlays/*.overlay.md`, `plugin/*`, `scripts/*`).\n- **C2** — No spec deltas (pure prompt prose change).\n- **C3** — Edits are direct filesystem writes; `~/.config/opencode/agents/*.md` are not in any git repo (consistent with fixSubAgentMcpRouting AC4 model).\n- **C4** — Functional routing behavior unchanged (still supplied by global always-on `~/.config/opencode/instructions/lgrep-tools.md`).\n\n## Avoidances\n\n- **DONT1** — No architectural centralization (OOS5 option a — centralize build/plan contract from source body to overlay — is a separate larger change).\n- **DONT2** — No changes to permission frontmatter in either file.\n- **DONT3** — No changes to ADV_SYNC block content (preserve fixSubAgentMcpRouting ship state).\n- **DONT4** — No changes to other body sections (only the cross-reference clause).\n- **DONT5** — No changes to global `lgrep-tools.md` always-on instruction.\n- **DONT6** — No changes to explore/general user files (their ADV_SYNC overlays correctly contain the contract; their cross-references are accurate).",
+    "design": "# Design: Soften build/plan ADV_SYNC cross-reference\n\n## Architecture decisions\n\n### AD1 — Minimum-viable doc fix vs architectural centralization\n\n**Chosen:** minimum-viable doc fix (remove/soften the misleading cross-reference).\n\n**Alternatives considered:**\n- *Option a — Architectural centralization:* move build/plan contract from advance-source body (`.opencode/agents/build.md:171-179`, `plan.md:170-179`) into their overlays, coordinated with C7 exactly-once invariant. Would require: (i) editing 4 advance-source files, (ii) updating `tool-name-assets.test.ts` overlay-only filter expected list to include build/plan, (iii) deploy + verify. **Rejected for this change:** larger scope, multi-file advance-repo edits, requires contract-centralization decision. Tracked as OOS1 for separate change.\n- *Option b — Soften cross-reference wording:* replace \"See the ADV_SYNC block...\" with neutral wording like \"Discover the active surface per the global routing contract\" or just drop the clause. **Chosen:** minimum-viable, user-file-only, preserves fixSubAgentMcpRouting ship state.\n\n### AD2 — Replacement wording\n\nFor each of the 3 cross-reference sites, drop the \"See the ADV_SYNC block at the top of this prompt for routing guidance (catalog-via-execute when exposed, direct callables otherwise)\" clause. The remaining mode-neutral preference prose already teaches the right behavior:\n- `build.md:161`: \"Reach for the highest-fidelity capability exposed on your surface before falling back to `grep`/`read`.\" (retained)\n- `plan.md:158`: \"If `lgrep` (or its equivalent under your active tool surface) fails or times out once, fall back immediately to `glob`/`grep`/`read` for that turn.\" (retained)\n- `plan.md:162`: \"Use Exa for general search and Firecrawl/webfetch for web content extraction. For library/framework/API documentation, **use Context7 directly** — don't default to delegating to `libian`.\" (retained; mode-aware routing supplied by global `lgrep-tools.md` instruction)\n\nThe drop is safe because:\n- Functional routing is preserved by global `~/.config/opencode/instructions/lgrep-tools.md` always-on instruction (verified during fixSubAgentMcpRouting harden).\n- The retained prose still teaches preference for highest-fidelity capabilities (mode-neutral).\n- No env-var conditionals or per-agent branching introduced.\n\n## Implementation strategy\n\nDirect filesystem edits to 2 user config files. No worktree needed (not in any git repo). No tests (prose-only; no behavior change).\n\n## Verification strategy\n\nRe-read each edited file post-edit:\n- Confirm cross-reference clause removed at the 3 sites\n- Confirm frontmatter unchanged (lines before body)\n- Confirm ADV_SYNC block markers + content unchanged\n- Confirm other body sections unchanged\n\n## Risks\n\n- **Low** — prose-only edit; no behavior change; functional routing preserved by global instruction.\n- **Reversibility** — if the cross-reference turns out to be useful, can be re-added with accurate wording in a future change.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe misleading \"See the ADV_SYNC block at the top of this prompt for routing guidance\" cross-reference has been removed from 3 sites in user `build.md` and `plan.md`. These references were introduced during fixSubAgentMcpRouting AC4 but were inaccurate for build/plan (their ADV_SYNC overlays lack the canonical contract per design AD8/OOS5 preserved asymmetry). Routing behavior is unchanged — still supplied by the always-on global `~/.config/opencode/instructions/lgrep-tools.md` instruction.\n\n## Why It Matters\n\nThe previous wording told build/plan agents to look in their ADV_SYNC block for routing guidance that wasn't there. Functionally harmless (routing covered globally) but technically misleading. This fix tightens the prose so what the prompt claims matches what the prompt contains.\n\n## Verdict\n\nAPPROVED (0 blockers, 0 issues, 0 suggestions)\n\n## What Was Built\n\n3 prose edits to 2 user config files (outside any git repo):\n1. `~/.config/opencode/agents/build.md:161` — dropped \"See the ADV_SYNC block...\" clause; retained \"Reach for the highest-fidelity capability...\" preference prose\n2. `~/.config/opencode/agents/plan.md:158` — dropped \"See the ADV_SYNC block...\" clause; retained fallback rule\n3. `~/.config/opencode/agents/plan.md:162` — softened to \"discover them via your active tool surface:\" (preserves table introduction)\n\nNo advance-repo changes. No spec deltas. No tests.\n\n## What Was Verified\n\n- **Verdict**: APPROVED, 0 findings\n- **Tests**: n/a — prose-only change to user config files; no executable test surface (evidence_policy: source_audit)\n- **Contract matrix**: 16/16 required rows pass/respected (2 SC, 4 AC, 4 C, 6 DONT — OOS items folded into DONT5/6 to work around acceptance validator's out_of_scope kind limitation)\n- **Source audit**: grep confirms 0 remaining \"ADV_SYNC block\" references in scope; ADV_SYNC markers preserved (build.md:60/70, plan.md:37/48); section count unchanged (build: 16, plan: 19); frontmatter preserved\n\n## Remaining Concerns\n\n- **Out-of-scope references** (not blocking, separate future cleanup candidate): build.md:165 and plan.md:173 contain softer \"ADV_SYNC routing contract\" references in `## Docs-first for unfamiliar surfaces` section. Different section per AC4 scope restriction. Substantively same issue; can be cleaned up in a future change.\n- **OpenCode restart required**: User config file edits do not take effect until OpenCode is restarted.\n\n## Supporting Evidence\n\n- Task: `tk-19b76df53b08` (3 cross-reference sites softened)\n- Harden report: `softenBuildPlanAdvSyncCross|change:scanner-bundle:harden|adv-scanner-bundle|1` (all 5 release dimensions PASS inline)\n- Worktree checkpoint: status `clean`, sha `58bbf734b404cc557589200bf7c75485c9b5a0e5` (advance-repo source tree unchanged)\n- Contract matrix: 16 rows persisted via `adv_contract_review_matrix_set`\n\n## Consequence Context\n\n1. **Delivered value**: Tightens prompt prose accuracy for build/plan agents; removes misleading cross-reference introduced during fixSubAgentMcpRouting AC4\n2. **Enabling-only/follow-up dependency**: n/a — self-contained\n3. **Ops readiness**: **READY** — all 5 release dimensions PASS. Operational step: user must restart OpenCode for edits to take effect.\n4. **Migration/data impact**: n/a — pure prose change to user config files\n5. **Frontend/preview impact**: not_applicable — no UI surface\n6. **Collision/release risk**: none — no advance-repo changes; no merge conflicts possible (work is outside any git repo)\n7. **Open follow-ups**: 1 non-blocking future cleanup (build.md:165 / plan.md:173 references in different section per AC4)\n8. **Next action**: Tier B sign-off → archive inline\n\n## Release Readiness Summary\n\n**Status: READY** (0 BLOCKER, 0 HIGH, 0 MEDIUM, 0 suggestions)\n\n| Dimension | Status | Evidence |\n|---|---|---|\n| Test Coverage | n/a | Prose-only change to user config files; no test surface |\n| AI-Slop | PASS | No indicators; minimal targeted prose edits |\n| Documentation Hygiene | PASS | Removed misleading cross-reference; preserved accurate routing preference prose |\n| Production Readiness | PASS | No security/reliability/performance surface |\n| Deployment Readiness | PASS | No env vars/migrations/services/CI changes; user restart required (C1) |\n| Cleanup | PASS | No temp files/debug code |\n| Complexity | Trivial | 3 line edits |\n| Merge Compatibility | n/a | No advance-repo changes; work outside any git repo |\n\n**Operational step**: OpenCode restart required for user base file edits to take effect.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-19T23:27:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** — User `build.md` and `plan.md` no longer claim the ADV_SYNC block contains routing guidance it doesn't. | pass | tk-19b76df53b08 verification: grep confirms 0 remaining 'ADV_SYNC block' references in scope. |\n| SC2 | success_criterion | **SC2** — Routing preference prose remains mode-neutral; no env-var conditionals introduced. | pass | Retained mode-neutral preference prose; no env-var conditionals introduced. |\n| AC1 | acceptance_criterion | **AC1** — User `~/.config/opencode/agents/build.md:161` \"See the ADV_SYNC block...\" clause removed or replaced with wording that doesn't claim ADV_SYNC block has routing guidance. | pass | build.md:161 'See the ADV_SYNC block...' clause dropped; replaced with bare preference prose. |\n| AC2 | acceptance_criterion | **AC2** — User `~/.config/opencode/agents/plan.md:158` \"See the ADV_SYNC block...\" clause removed or replaced similarly. | pass | plan.md:158 'See the ADV_SYNC block...' clause dropped; retained fallback rule. |\n| AC3 | acceptance_criterion | **AC3** — User `~/.config/opencode/agents/plan.md:162` \"See the ADV_SYNC block...\" clause removed or replaced similarly. | pass | plan.md:162 softened to 'discover them via your active tool surface:' (preserves table introduction). |\n| AC4 | acceptance_criterion | **AC4** — Frontmatter (permission grants), ADV_SYNC block content, and all other body sections unchanged in both files. | pass | Section count unchanged (build: 16, plan: 19). ADV_SYNC markers preserved. Frontmatter grep clean. |\n| C1 | constraint | **C1** — No advance-repo source file changes (`.opencode/agents/*.md`, `.opencode/overlays/*.overlay.md`, `plugin/*`, `scripts/*`). | respected | No advance-repo source file changes. Worktree checkpoint status:clean, sha 58bbf734. |\n| C2 | constraint | **C2** — No spec deltas (pure prompt prose change). | respected | No spec deltas. Pure prompt prose change. |\n| C3 | constraint | **C3** — Edits are direct filesystem writes; `~/.config/opencode/agents/*.md` are not in any git repo (consistent with fixSubAgentMcpRouting AC4 model). | respected | Edits applied directly to ~/.config/opencode/agents/build.md and plan.md via edit tool. Files not in any git repo. |\n| C4 | constraint | **C4** — Functional routing behavior unchanged (still supplied by global always-on `~/.config/opencode/instructions/lgrep-tools.md`). | respected | Routing behavior unchanged. Functional routing supplied by global lgrep-tools.md always-on instruction. |\n| DONT1 | avoidance | **DONT1** — No architectural centralization (OOS5 option a — centralize build/plan contract from source body to overlay — is a separate larger change). | respected | No advance-repo source file edits; no overlay file edits; no test changes. Architectural centralization (option a) not attempted. |\n| DONT2 | avoidance | **DONT2** — No changes to permission frontmatter in either file. | respected | Frontmatter grep clean; permission grants in build.md and plan.md unchanged. |\n| DONT3 | avoidance | **DONT3** — No changes to ADV_SYNC block content (preserve fixSubAgentMcpRouting ship state). | respected | ADV_SYNC block markers and content preserved (build.md:60/70, plan.md:37/48). |\n| DONT4 | avoidance | **DONT4** — No changes to other body sections (only the cross-reference clause). | respected | Only the 3 cross-reference clauses edited. Other body sections untouched per scope. |\n| DONT5 | avoidance | **DONT5** — No changes to global `lgrep-tools.md` always-on instruction. | respected | lgrep-tools.md global instruction untouched. |\n| DONT6 | avoidance | **DONT6** — No changes to explore/general user files (their ADV_SYNC overlays correctly contain the contract; their cross-references are accurate). | respected | explore.md and general.md user files untouched. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-19T23:11:37.424Z",
+      "contentHash": "42c433112e12bec954ca37b0429bb6feb0f58fa50b3a1d95eb41babc33435b4b",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-19T23:24:32.637Z",
+      "contentHash": "36d574eb59cd26107df73f110b6bcdc94b089c5f6268ef9aef9c4ca10b29900c",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-19T23:14:48.070Z",
+      "contentHash": "53745c45165cd825a497d65b03f810034b9f9758bfa1250eec31164f1a72eb88",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-19T23:25:49.535Z",
+      "contentHash": "fc1029a9205f7baad4b2f3bc9b9820abc12b3e8b56dc5310a79848558e37bd7d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-19T23:25:49.535Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

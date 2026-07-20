@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { INVENTORY_INTERNAL_BUDGET_MS } from "./worktree/inventory-budget";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
 import type { OpencodeClient } from "../utils/opencode-types";
@@ -265,12 +266,64 @@ async function executeWorktreeCleanup(
   // not ADV recovery state. It owns no workflow signals, so it routes before
   // the queued-cleanup DB/timeout machinery.
   if (args.mode === "archived_branches") {
-    const result = await cleanupArchivedMergedBranches({
+    // rq-archivedBranchCleanupInversion01: clamp the caller budget and pass
+    // the effective budget to the helper, which self-bounds (per-id verify,
+    // bounded fetch, per-call detect) and self-returns typed partial results.
+    // The outer race is an emergency last-resort guard only — the helper's
+    // internal deadline is tighter, so it normally returns partial first.
+    const { effectiveTimeoutMs, wasClamped } = clampToSafeBudget(
+      args.timeoutMs,
+    );
+
+    const cleanupPromise = cleanupArchivedMergedBranches({
       store,
       changeId: args.changeId,
       dryRun: args.dryRun,
+      effectiveTimeoutMs,
     });
-    return formatMaybeTargetOutput(formatToolOutput(result), context);
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutRace = new Promise<{ _timedOut: true }>((resolve) => {
+      timeoutHandle = setTimeout(
+        () => resolve({ _timedOut: true }),
+        effectiveTimeoutMs,
+      );
+    });
+
+    const raced = await Promise.race([cleanupPromise, timeoutRace]);
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+
+    if ("_timedOut" in raced && raced._timedOut) {
+      const clampedNote = wasClamped
+        ? ` (requested ${args.timeoutMs}ms was clamped to safe budget ${effectiveTimeoutMs}ms)`
+        : "";
+      return formatMaybeTargetOutput(
+        formatToolOutput({
+          success: false,
+          timedOut: true,
+          mode: "archived_branches",
+          effectiveTimeoutMs,
+          error: `adv_worktree_cleanup archived_branches exceeded the ${effectiveTimeoutMs}ms safe budget${clampedNote}. This is an emergency guard; the helper normally self-returns partial results, so this indicates stuck git or store I/O.`,
+          remediation:
+            "Retry with a larger timeoutMs (clamped to the safe budget), or investigate a stuck git process / unreachable store.",
+        }),
+        context,
+      );
+    }
+
+    const cleanupResult = raced as Record<string, unknown>;
+    return formatMaybeTargetOutput(
+      formatToolOutput({
+        ...cleanupResult,
+        effectiveTimeoutMs,
+        ...(wasClamped
+          ? {
+              timeoutNote: `Requested ${args.timeoutMs}ms clamped to safe budget ${effectiveTimeoutMs}ms`,
+            }
+          : {}),
+      }),
+      context,
+    );
   }
 
   const projectRoot = store.paths.root;
@@ -691,7 +744,7 @@ export const advWorktreeTools = {
         .number()
         .optional()
         .describe(
-          `Optional wall-clock timeout for the cleanup pass. Defaults to ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms (the safe tool budget below the SDK's 10s ceiling). Values exceeding the safe budget are clamped automatically. The effective timeout is reported in the response as effectiveTimeoutMs. Applies to mode=worktrees only.`,
+          `Optional wall-clock timeout for the cleanup pass. Defaults to ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms (the safe tool budget below the SDK's 10s ceiling). Values exceeding the safe budget are clamped automatically. The effective timeout is reported in the response as effectiveTimeoutMs. Applies to both mode=worktrees and mode=archived_branches; in archived_branches mode the helper self-bounds and returns typed partial results (partial:true + omissions) rather than a hard timeout when the budget is exhausted.`,
         ),
       mode: z
         .enum(["worktrees", "archived_branches"])
@@ -743,15 +796,36 @@ export const advWorktreeTools = {
           "Optional project root override (defaults to current working directory)",
         ),
     },
-    execute: async (args: { projectRoot?: string }, store: Store) => {
+    execute: async (
+      args: { projectRoot?: string },
+      context: Store | { store: Store; signal?: AbortSignal },
+    ) => {
+      const store = "store" in context ? context.store : context;
+      const signal = "store" in context ? context.signal : undefined;
       const repoRoot = args.projectRoot ?? store.paths.root;
       const result = await triageWorktrees(repoRoot, undefined, {
         currentProjectRoot: store.paths.root,
+        callerSignal: signal,
+        timeoutMs: INVENTORY_INTERNAL_BUDGET_MS,
       });
       return formatToolOutput({
-        success: true,
+        // An incomplete inventory is actionable but not successful: omitted
+        // worktrees must never be mistaken for clean or deletion-safe.
+        success: result.complete !== false,
         orphans: result.orphans,
         total: result.total,
+        complete: result.complete ?? true,
+        ...(result.stopReason ? { stopReason: result.stopReason } : {}),
+        ...(result.stoppedStage ? { stoppedStage: result.stoppedStage } : {}),
+        ...(typeof result.inspectedCount === "number"
+          ? { inspectedCount: result.inspectedCount }
+          : {}),
+        ...(typeof result.candidateCount === "number"
+          ? { candidateCount: result.candidateCount }
+          : {}),
+        ...(result.omitted ? { omitted: result.omitted } : {}),
+        ...(result.stageTimings ? { stageTimings: result.stageTimings } : {}),
+        ...(result.warnings ? { warnings: result.warnings } : {}),
       });
     },
   },

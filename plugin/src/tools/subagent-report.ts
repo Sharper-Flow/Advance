@@ -386,8 +386,18 @@ function evidenceByCommand(text: string): Map<string, AdvRunTestEvidence> {
  * Latest retained record per exact command wins (persisted array order ==
  * workflow application order; no timestamp sort), so a later GREEN supersedes an
  * earlier RED for the same command.
+ *
+ * rq-subagentReports25: typed test-run binding. The latest record keyed by
+ * `runId` is also retained so engineer/designer verification entries carrying
+ * a `run_id` bind to durable same-task typed identity. The `command` label
+ * remains descriptive only — cosmetic command-label differences (extra args,
+ * reordered flags, prefix vars, absolute paths) MUST NOT break identity match.
  */
-type DurableTestRunLike = { command?: string; exitCode?: number | null };
+type DurableTestRunLike = {
+  runId?: string;
+  command?: string;
+  exitCode?: number | null;
+};
 
 function latestDurableByCommand(
   records: readonly DurableTestRunLike[] | undefined,
@@ -401,11 +411,32 @@ function latestDurableByCommand(
   return map;
 }
 
+function latestDurableByRunId(
+  records: readonly DurableTestRunLike[] | undefined,
+): Map<string, { exitCode: number | null; command: string }> {
+  const map = new Map<string, { exitCode: number | null; command: string }>();
+  for (const record of records ?? []) {
+    if (record && typeof record.runId === "string" && record.runId) {
+      map.set(record.runId, {
+        exitCode: record.exitCode ?? null,
+        command: typeof record.command === "string" ? record.command : "",
+      });
+    }
+  }
+  return map;
+}
+
 function verificationWarnings(
   report: ScopedSubagentReport,
   task?: Task,
   durableRecords?: readonly DurableTestRunLike[],
 ): ConsumerWarning[] {
+  if (report.agent === "adv-reviewer") {
+    return report.verification.tests_run.map((command) => ({
+      kind: "verification_missing" as const,
+      message: `Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: ${command}`,
+    }));
+  }
   if (!task) return [];
   const recorded = [
     task.verification,
@@ -416,10 +447,50 @@ function verificationWarnings(
     .join("\n");
   const structuredEvidence = evidenceByCommand(recorded);
   const durableByCommand = latestDurableByCommand(durableRecords);
+  const durableByRunId = latestDurableByRunId(durableRecords);
 
   if (report.agent === "adv-engineer" || report.agent === "adv-designer") {
     return report.verification.flatMap((entry): ConsumerWarning[] => {
-      // Durable typed evidence is authoritative when present for the command.
+      // rq-subagentReports25: typed-binding provenance. When the entry
+      // carries a typed run reference (`test_run_id` preferred, `run_id`
+      // accepted as additive alias), identity is (run_id, exit_code); the
+      // `command` label is descriptive only and MUST NOT control authority.
+      // A missing typed durable record surfaces `verification_missing`; an
+      // exit-code mismatch surfaces `verification_mismatch`. The entry's
+      // `summary` prose is descriptive only and MUST NOT satisfy the gap.
+      const entryRunId =
+        typeof (entry as { test_run_id?: unknown }).test_run_id === "string" &&
+        (entry as { test_run_id?: string }).test_run_id
+          ? (entry as { test_run_id: string }).test_run_id
+          : typeof (entry as { run_id?: unknown }).run_id === "string" &&
+              (entry as { run_id?: string }).run_id
+            ? (entry as { run_id: string }).run_id
+            : undefined;
+
+      if (entryRunId) {
+        const durable = durableByRunId.get(entryRunId);
+        if (!durable) {
+          return [
+            {
+              kind: "verification_missing" as const,
+              message: `No durable adv_run_test evidence found for run_id: ${entryRunId}`,
+            },
+          ];
+        }
+        if (durable.exitCode !== null && durable.exitCode !== entry.exit_code) {
+          return [
+            {
+              kind: "verification_mismatch" as const,
+              message: `Reported exit_code ${entry.exit_code} differs from durable adv_run_test exitCode ${durable.exitCode} for run_id: ${entryRunId}`,
+            },
+          ];
+        }
+        return [];
+      }
+
+      // Legacy variant (no typed-binding provenance): exact-command
+      // compatibility is preserved. No fuzzy normalization, no timestamp
+      // cutover; the entry's `command` field is authoritative.
       const durable = durableByCommand.get(entry.command);
       if (durable) {
         if (durable.exitCode !== null && durable.exitCode !== entry.exit_code) {
@@ -475,20 +546,6 @@ function verificationWarnings(
     });
   }
 
-  if (report.agent === "adv-reviewer") {
-    return report.verification.tests_run
-      .filter(
-        (command) =>
-          !durableByCommand.has(command) &&
-          !structuredEvidence.has(command) &&
-          !recorded.includes(command),
-      )
-      .map((command) => ({
-        kind: "verification_missing" as const,
-        message: `No adv_run_test evidence found for reported command: ${command}`,
-      }));
-  }
-
   return [];
 }
 
@@ -500,8 +557,24 @@ function withConsumerWarnings(
     ...(report.consumer_warnings ?? []),
     ...warnings,
   ]);
-  if (merged.length === 0) return report;
-  return { ...report, consumer_warnings: merged } as ScopedSubagentReport;
+  const evidenceBinding =
+    report.agent === "adv-engineer" || report.agent === "adv-designer"
+      ? {
+          evidence_binding_version: report.verification.some(
+            (entry) => entry.test_run_id ?? entry.run_id,
+          )
+            ? ("typed-v1" as const)
+            : ("legacy-command-v0" as const),
+        }
+      : {};
+  if (merged.length === 0) {
+    return { ...report, ...evidenceBinding } as ScopedSubagentReport;
+  }
+  return {
+    ...report,
+    ...evidenceBinding,
+    consumer_warnings: merged,
+  } as ScopedSubagentReport;
 }
 
 // retireAgendaWorkflow: report follow_ups remain source-attributed report
@@ -644,6 +717,14 @@ function appendProjectContext(
   return JSON.stringify(parsed);
 }
 
+// rq-fixWorkflowReliabilityDefects/AC4: malformed report input returns bounded
+// diagnostics from the canonical plugin preflight and never mutates workflow
+// state. The handler-level parseReport path is defense-in-depth for callers
+// that bypass the wrapper (tests, plugins); it MUST NOT silently record task
+// error_recovery on malformed input either, because error_recovery is itself a
+// workflow mutation. SUBMIT_SIGNAL_FAILED and INVALID_TASK_ANCHOR keep their
+// failureRecord path — those are post-parse workflow errors, not malformed
+// input, and the orchestrator needs that signal.
 async function executeSubmit(
   args: SubmitArgs,
   store: Store,
@@ -651,21 +732,11 @@ async function executeSubmit(
 ): Promise<string> {
   const parsedReport = parseReport(args.report);
   if (!parsedReport.ok) {
-    const failureRecord =
-      !args.dryRun && parsedReport.code === "INVALID_REPORT"
-        ? await recordSubmitFailure({
-            store,
-            rawReport: args.report,
-            code: parsedReport.code,
-            message: parsedReport.message,
-          })
-        : undefined;
     return appendProjectContext(
       formatToolOutput({
         error: parsedReport.message,
         code: parsedReport.code,
         details: parsedReport.details,
-        ...(failureRecord ? { failureRecord } : {}),
       }),
       projectContext,
     );
@@ -681,6 +752,32 @@ async function executeSubmit(
     // Best-effort: a refresh failure must never block report submission.
   }
   const change = await loadChange(store, parsedReport.report.change_id);
+  if (
+    parsedReport.report.agent === "adv-researcher" &&
+    parsedReport.report.scope.scope_key.startsWith(
+      "researcher:design-validation",
+    )
+  ) {
+    const approvedIds = new Set(
+      (change.contract?.items ?? []).map((item) => item.id),
+    );
+    const unknownIds = parsedReport.report.validation.blockers.flatMap(
+      (blocker) =>
+        typeof blocker === "string"
+          ? []
+          : blocker.contract_ids.filter((id) => !approvedIds.has(id)),
+    );
+    if (unknownIds.length > 0) {
+      return appendProjectContext(
+        formatToolOutput({
+          error: "Design-validator blocker cites unknown contract IDs",
+          code: "INVALID_REPORT",
+          details: { unknownContractIds: [...new Set(unknownIds)] },
+        }),
+        projectContext,
+      );
+    }
+  }
   const taskId = reportTaskId(parsedReport.report);
   const task = taskId ? findTask(change, taskId) : undefined;
   if (taskId && !task) {
@@ -895,6 +992,14 @@ export const subagentReportTools = {
         .describe(
           "Preview validation, dedupe, and consumers without signaling or writing state.",
         ),
+      ...targetArgs,
+    },
+    // OpenCode otherwise rejects the strict report union before ADV can return
+    // nested issue paths. This schema admits only the report object envelope;
+    // canonical args above remain ADV catalog/preflight authority.
+    transportArgs: {
+      report: z.record(z.string(), z.unknown()),
+      dryRun: z.boolean().optional(),
       ...targetArgs,
     },
     execute: async (args: SubmitArgs, store: Store): Promise<string> => {

@@ -8,6 +8,10 @@ tools:
   read: true
   glob: true
   grep: true
+  # CodeMode entry point — exposes lgrep/context7/exa/searchcode/arxiv/episode
+  # as tools.<ns>.<name> inside the confined interpreter. Required because
+  # OPENCODE_EXPERIMENTAL_CODE_MODE=true moves MCP tools out of top-level.
+  execute: true
   lgrep_search_semantic: true
   lgrep_search_symbols: true
   lgrep_index_symbols_folder: true
@@ -28,16 +32,21 @@ tools:
   arxiv-mcp_*: true
   episode_recall: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools - spec/change queries + own optimized handoff report only
-  adv_spec: true
-  adv_status: true
   adv_change_list: true
   adv_change_show: true
-  adv_change_update: false
-  adv_snapshot_health: true
   adv_project_context: true
+  adv_snapshot_health: true
+  adv_spec: true
+  adv_status: true
   adv_subagent_report_submit: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
+  adv_change_update: false
+  # <<< ADV-GENERATED adv_* tools <<<
   # UX tools
   question: true
   # Disabled - research agents don't write code
@@ -84,6 +93,7 @@ When Episode is available, make at most one advisory recall using the active pro
 When the research scope is architecture, design validation, system shape, report contracts, workflow behavior, or non-trivial implementation strategy, include an explicit **Architecture Judgement** in both your response and `RESEARCHER_REPORT`.
 
 - `validation.status` is the only verdict source of truth: `pass`, `caution`, `fail`, or `unknown`.
+- This verdict is advisory to the orchestrator. It cannot hold, complete, or otherwise mutate an ADV gate.
 - Do not invent a second judgement verdict field.
 - Use `architecture_judgement.applicability: "applicable"` for architecture/design validation work.
 - Use `architecture_judgement.applicability: "not_applicable"` only for genuinely non-architecture docs/API/examples research, and explain why.
@@ -102,6 +112,8 @@ Consistency rules:
 - `validation.status: "pass"` must not use low confidence for applicable judgement.
 - `validation.status: "fail"` requires at least one `validation.blockers[]` entry.
 - Design-validation packets require applicable architecture judgement.
+- New design-validation blockers must be typed objects citing approved `contract_ids`, `scope: "in_scope"`, source evidence, and concrete `in_scope_remediation`.
+- Put out-of-scope alternatives (including changes to another repository) in `architecture_judgement.alternatives_considered`, never in blockers.
 
 ## Constraints
 

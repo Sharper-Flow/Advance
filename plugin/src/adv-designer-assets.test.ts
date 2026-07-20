@@ -318,6 +318,14 @@ describe("adv-designer assets", () => {
     });
   });
 
+  test("DESIGNER_REPORT binds verification rows to typed same-task test runs", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain('"evidence_binding_version": "typed-v1"');
+    expect(reportSection).toContain('"test_run_id"');
+    expect(reportSection).toContain("same-task adv_run_test runId");
+  });
+
   test("DESIGNER_REPORT prompt examples use structural scope, not legacy string scope", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
@@ -374,13 +382,24 @@ describe("adv-designer assets", () => {
     ]);
   });
 
-  test("adv-apply.md delegation routing includes Priority 1.5 metadata.frontend branch for adv-designer", () => {
+  // rq-delDefaults10: structural frontend classification preserves an
+  // engineer-first implementation path and requires designer follow-up.
+  test("adv-apply.md routes classified frontend implementation engineer-first with a designer receipt", () => {
     const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
     expect(content).toContain("metadata.frontend");
-    expect(content).toMatch(/Priority\s*1\.5/i);
+    expect(content).toContain("engineer-first");
     expect(content).toContain("adv-designer");
     // metadata.delegation_hint MUST remain Priority 1 (explicit user override wins)
     expect(content).toMatch(/\b1\s*\|\s*`?metadata\.delegation_hint/);
+    expect(content).toMatch(/adv-engineer[\s\S]{0,240}adv-designer/i);
+    expect(content).toContain("IMPLEMENTATION_RECEIPT");
+    expect(content).not.toMatch(
+      /delegate_allowed to `adv-designer` \(apply-phase frontend worker\)/i,
+    );
+    // adv-designer is apply-phase only; review/harden stays with adv-reviewer
+    expect(content).toContain(
+      "review/harden ownership remains with `adv-reviewer`",
+    );
   });
 
   test("adv-apply.md Designer Apply Context Packet exists and starts with WORKING DIRECTORY", () => {

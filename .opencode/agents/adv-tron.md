@@ -8,6 +8,10 @@ tools:
   read: true
   glob: true
   grep: true
+  # CodeMode entry point — exposes lgrep as tools.lgrep.<name> inside the
+  # confined interpreter. Required because OPENCODE_EXPERIMENTAL_CODE_MODE=true
+  # moves MCP tools out of top-level.
+  execute: true
   lgrep_search_semantic: true
   lgrep_search_symbols: true
   lgrep_index_symbols_folder: true
@@ -19,16 +23,17 @@ tools:
   lgrep_get_repo_outline: true
   lgrep_search_text: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools - read-only spec/change queries
-  adv_spec: true
   adv_change_list: true
   adv_change_show: true
-  adv_task_list: true
   adv_project_context: true
-  adv_wisdom_list: true
   adv_snapshot_health: true
+  adv_spec: true
   adv_subagent_report_submit: true
+  adv_task_list: true
+  adv_tool_catalog: true
   # Disabled - Tron is repo read-only
   write: false
   edit: false
@@ -37,9 +42,13 @@ tools:
   task: false
 
   # Disabled - no ADV orchestration mutations beyond own optimized report submit
+  adv_tool_describe: true
+  adv_tool_invoke: true
+  adv_wisdom_list: true
   adv_change_create: false
-  adv_task_add: false
   adv_gate_complete: false
+  adv_task_add: false
+  # <<< ADV-GENERATED adv_* tools <<<
   # Disabled - Tron does not do external research
   context7_*: false
   exa_*: false

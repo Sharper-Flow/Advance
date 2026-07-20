@@ -33,6 +33,7 @@ import {
 } from "./temporal/health-monitor";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
+import { dirname } from "node:path";
 import { performance } from "node:perf_hooks";
 import { cleanup as cleanupTerminal } from "./events";
 import {
@@ -41,6 +42,14 @@ import {
   createLogger,
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
+import {
+  registerPluginSession,
+  unregisterLoadedBuildSession,
+} from "./migration/session-registry";
+import {
+  resolveMigrationRoot,
+  resolveOwnBuildIdentity,
+} from "./migration/paths";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 import { resolveProductContext } from "./storage/product-context";
 import {
@@ -52,6 +61,10 @@ import {
   startWorkerLockHeartbeat,
   type WorkerLockHeartbeatController,
 } from "./temporal/worker-heartbeat";
+import {
+  initWorkerBundleRoll,
+  type WorkerBundleRollMonitor,
+} from "./temporal/worker-roll";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -162,6 +175,7 @@ export async function tryInitStore(
   const initStartedAt = performance.now();
   let worker: InProcessWorker | undefined;
   let workerHeartbeat: WorkerLockHeartbeatController | undefined;
+  let workerBundleRollMonitor: WorkerBundleRollMonitor | undefined;
 
   try {
     const projectIdStartedAt = performance.now();
@@ -181,6 +195,15 @@ export async function tryInitStore(
       backend_mode: "temporal",
     });
     if (projectId) {
+      // AC9/DDC5: record this session's loaded-build identity into the
+      // machine-wide cutover registry. Self-guarding (skips in test mode
+      // and src/dev mode without a build identity) and never throws — the
+      // init resilience contract takes precedence over registration.
+      registerPluginSession({
+        projectId,
+        migrationRoot: resolveMigrationRoot(),
+        identity: resolveOwnBuildIdentity(),
+      });
       const runtimeStartedAt = performance.now();
       const runtime = await ensureTemporalRuntime(projectId);
       profilePluginInit("temporal_runtime_ready", {
@@ -230,6 +253,11 @@ export async function tryInitStore(
               spawnedWorker
                 ? isWorkerServiceable(spawnedWorker, expectedQueue)
                 : true,
+            // Fire-and-forget: the drift check single-flights internally;
+            // beats must never block on a roll.
+            onBeat: () => {
+              void workerBundleRollMonitor?.checkNow().catch(() => undefined);
+            },
           });
           registerWorkerLockHeartbeat(workerHeartbeat);
         }
@@ -266,15 +294,41 @@ export async function tryInitStore(
             );
           }
           const workerStartedAt = performance.now();
-          spawnedWorker = await createOutOfProcessWorker({
+          const workerScriptPath = resolveWorkerScriptPath();
+          const outOfProcessWorker = await createOutOfProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
             queues: [expectedQueue],
-            workerScript: resolveWorkerScriptPath(),
+            workerScript: workerScriptPath,
             projectId,
             onWorkerExhausted,
           });
+          spawnedWorker = outOfProcessWorker;
           worker = spawnedWorker;
+
+          // OOP-only bundle drift self-roll (owner-driven). The child was
+          // just spawned from the current bundle and passed its ready
+          // handshake — hand the current generation to the heartbeat (the
+          // sole worker.lock writer) so it is stamped atomically
+          // post-readiness, then converge on every heartbeat beat.
+          // In-process workers share the host's bundle and never drift,
+          // so they skip this.
+          workerBundleRollMonitor = await initWorkerBundleRoll({
+            projectStateDir,
+            bundleDir: dirname(workerScriptPath),
+            restartChild: () => outOfProcessWorker.restartChild(),
+            stampBundleGeneration: async (generation) => {
+              await workerHeartbeat?.stampBundleGeneration(generation);
+            },
+            onRollError: (err) =>
+              debugLog(`worker bundle roll failed: ${err.message}`),
+          }).catch((err) => {
+            debugLog(
+              `worker bundle roll monitor unavailable: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            return undefined;
+          });
+
           profilePluginInit("worker_started", {
             duration_ms: Number(
               (performance.now() - workerStartedAt).toFixed(3),
@@ -665,6 +719,20 @@ const noopShutdownHandlers: ShutdownHandlers = {
 };
 
 /**
+ * Remove this session's loaded-build registry record (AC9/DDC5). Sync and
+ * best-effort so it is safe inside process.on("exit") handlers; dead-PID
+ * records are also reaped lazily by the inventory collector, so a missed
+ * removal never blocks cutover.
+ */
+function unregisterPluginSessionRecord(): void {
+  try {
+    unregisterLoadedBuildSession({ migrationRoot: resolveMigrationRoot() });
+  } catch (e) {
+    debugLog(`Error unregistering loaded-build session record: ${e}`);
+  }
+}
+
+/**
  * Build process-level shutdown handlers that tolerate a null store (init
  * failure). Returns handlers plus a disposer that removes the installed
  * process listeners.
@@ -685,6 +753,7 @@ export function registerShutdownHandlers(
 
   const handleExit = () => {
     cleanupTerminal();
+    unregisterPluginSessionRecord();
     // Fire-and-forget: process.on("exit") handlers MUST be synchronous.
     // The in-process worker's shutdown is best-effort at this stage; real
     // graceful drain happens via shutdownWithFlush on SIGINT/SIGTERM.
@@ -705,6 +774,7 @@ export function registerShutdownHandlers(
   let flushInFlight = false;
   const shutdownWithFlush = () => {
     cleanupTerminal();
+    unregisterPluginSessionRecord();
     stopWorkerHealthMonitor();
     if (flushInFlight) return;
     flushInFlight = true;

@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.25.0
-> **Updated:** 2026-07-16
+> **Version:** 1.29.0
+> **Updated:** 2026-07-19
 
 ## Purpose
 
@@ -203,13 +203,13 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 
 **ID:** `rq-deployWorkerBounce01` | **Priority:** **[MUST]**
 
-After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable local deploy path, it MUST prevent stale `dist/temporal/worker.js` processes for that exact deployed worker script from silently continuing to run old worker/workflow code. In mutating deploy modes, exact-path matching running workers are bounced with SIGTERM by default. If any exact-path target cannot be signaled or remains running after bounded handling, deploy MUST exit non-zero and print a multi-line `[ADV:ACTION_REQUIRED]` block with the worker script path, PID evidence when known, and restart/session instructions. The matcher MUST be scoped to the synced runtime worker script path and MUST NOT target unrelated Node/Bun processes.
+After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable local deploy path, it MUST prevent stale `dist/temporal/worker.js` processes for that exact deployed worker script from silently continuing to run old worker/workflow code. Worker refresh is marker-gated: each exact-path matching process is classified by its process environment. Processes that advertise `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are self-roll capable; in mutating deploy modes they are reported as advisory only and MUST NOT be signaled, because the worker coordinates its own reload. All other exact-path matching processes are treated as legacy and are bounced with SIGTERM in mutating deploy modes. If any legacy target cannot be signaled or remains running after bounded handling, deploy MUST exit non-zero and print a multi-line `[ADV:ACTION_REQUIRED]` block with the worker script path, PID evidence when known, and restart/session instructions. The matcher MUST be scoped to the synced runtime worker script path and MUST NOT target unrelated Node/Bun processes.
 
 **Tags:** `install`, `deploy-local`, `temporal`, `worker`, `runtime-refresh`
 
 #### Scenarios
 
-**Mutating deploy bounces exact-path runtime workers** (`rq-deployWorkerBounce01.1`)
+**Mutating deploy classifies exact-path workers by self-roll marker** (`rq-deployWorkerBounce01.1`)
 
 **Given:**
 - `scripts/deploy-local.sh` has successfully synced the runtime plugin bundle
@@ -218,16 +218,29 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 **When:** The deploy runs in a mutating mode
 
 **Then:**
-- Each exact-path matching worker process receives SIGTERM by default
-- The output reports the affected worker script path and PID evidence when known
+- Each exact-path matching worker process is classified by its environment
+- Processes advertising `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are reported as advisory and are not signaled
+- Legacy processes (missing or malformed marker) receive SIGTERM
 - Processes that do not use the exact synced worker script path are not signaled
 
-**Bounce failure is loud and non-zero** (`rq-deployWorkerBounce01.2`)
+**Self-roll capable workers are advisory and not signaled** (`rq-deployWorkerBounce01.2`)
 
 **Given:**
-- A mutating deploy finds exact-path matching runtime worker processes
+- A mutating deploy finds an exact-path running worker whose environment contains `ADV_TEMPORAL_WORKER_SELF_ROLL=1`
 
-**When:** Any target cannot be signaled or remains running after bounded handling
+**When:** The deploy classifies worker refresh candidates
+
+**Then:**
+- The worker is listed as self-roll capable advisory output
+- No signal is sent to the worker
+- The deploy does not fail because the worker remains running
+
+**Legacy bounce failure is loud and non-zero** (`rq-deployWorkerBounce01.3`)
+
+**Given:**
+- A mutating deploy finds exact-path matching legacy runtime worker processes
+
+**When:** Any legacy target cannot be signaled or remains running after bounded handling
 
 **Then:**
 - The deploy exits non-zero
@@ -235,30 +248,19 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 - The block includes the worker script path, PID evidence when known, and restart/session instructions
 - The deploy does not silently claim the new worker/workflow code is active
 
-**No broad process matching** (`rq-deployWorkerBounce01.3`)
-
-**Given:**
-- A host has Node or Bun processes that mention worker-like names but do not execute the synced runtime worker script path
-
-**When:** deploy-local enumerates worker bounce candidates
-
-**Then:**
-- Only processes tied to the exact synced `$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js` path are candidates
-- The detector process and unrelated Node/Bun processes are excluded
-
 ---
 
 ### Deploy-Local Read-Only Modes Never Signal Workers
 
 **ID:** `rq-deployWorkerBounce02` | **Priority:** **[MUST]**
 
-`scripts/deploy-local.sh --check` and `scripts/deploy-local.sh --dry-run` MUST NOT signal worker processes. When matching runtime worker processes exist, read-only modes may report the would-bounce or restart-required action, but they must not mutate process state or imply that stale worker code has been refreshed.
+`scripts/deploy-local.sh --check` and `scripts/deploy-local.sh --dry-run` MUST NOT signal worker processes. When matching runtime worker processes exist, read-only modes must classify each by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker: self-roll-capable workers may be reported as advisory, while legacy workers may be reported as requiring bounce or session restart. They must not mutate process state or imply that stale worker code has been refreshed.
 
 **Tags:** `install`, `deploy-local`, `temporal`, `worker`, `dry-run`
 
 #### Scenarios
 
-**Check mode is no-signal** (`rq-deployWorkerBounce02.1`)
+**Check mode is no-signal and classifies workers** (`rq-deployWorkerBounce02.1`)
 
 **Given:**
 - `scripts/deploy-local.sh --check` runs
@@ -268,10 +270,11 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 
 **Then:**
 - No worker process receives a signal
-- Output may report that running workers require bounce or session restart
+- Self-roll-capable workers (`ADV_TEMPORAL_WORKER_SELF_ROLL=1`) are reported as advisory
+- Legacy workers are reported as requiring bounce or session restart
 - The mode remains read-only
 
-**Dry-run previews worker refresh without signaling** (`rq-deployWorkerBounce02.2`)
+**Dry-run previews marker-gated worker refresh without signaling** (`rq-deployWorkerBounce02.2`)
 
 **Given:**
 - `scripts/deploy-local.sh --dry-run` runs
@@ -281,7 +284,7 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 
 **Then:**
 - No worker process receives a signal
-- Output describes the would-bounce or restart-required action
+- Output describes self-roll-capable workers as advisory and legacy workers as would-bounce or restart-required
 - The mode does not mutate files or process state
 
 ---
@@ -1993,7 +1996,7 @@ ADV protocol must be scoped to the single ADV runtime agent without globally reg
 
 **ID:** `rq-twf01` | **Priority:** **[MUST]**
 
-When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.
+When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Trunk evaluation is target-relative: each write target MUST be evaluated against the git worktree topology of the repository that owns the target, so a foreign repository's main (non-linked) checkout on its own default branch MUST be blocked exactly like the session project's trunk checkout, and a linked, non-prunable worktree of any repository MUST be allowed. Foreign-target defaults are conservative: when the target repository's worktree topology cannot be probed, the resolved git root MUST be evaluated as its own main checkout, and stale (prunable) worktree topology entries MUST NOT confer worktree eligibility on write targets. A narrow allowlist of ADV-generated trunk artifacts (ROADMAP.md, CHANGELOG.md, .adv/github-project.json, .adv/roadmap-snapshot.json) MAY bypass the block only as exact root-relative paths at the target repository's main checkout root; nested paths are never exempt. Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.
 
 **Tags:** `git`, `worktree`, `firewall`, `trunk`, `safety`
 
@@ -2100,6 +2103,62 @@ When features.worktree_guard_enforce is true (default) or omitted, the plugin MU
 - The firewall may not detect the indirect write target
 - This limitation is documented in ADV_INSTRUCTIONS.md as accepted residual risk
 - ADV instruction surfaces still prohibit intentional trunk-checkout file writes outside worktrees
+
+**Foreign main checkout blocked on its own default branch** (`rq-twf01.8`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- A tool call targets a path inside the main (non-linked) checkout of a repository other than the session project
+- That repository's HEAD is on its own default branch
+- No git recovery state is active in the target repository
+
+**When:** A write, edit, morph_edit, or known destructive bash write pattern is intercepted
+
+**Then:**
+- The tool execution is blocked with an actionable error message
+- Trunk-ness is decided by the repository that owns the target, not by the session project
+- A linked, non-prunable worktree of the same foreign repository is allowed instead
+
+**Unprobed foreign topology fails closed to main-checkout evaluation** (`rq-twf01.9`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- A tool call targets a path whose git root resolves outside the session project
+- The target repository's worktree topology cannot be probed (git worktree list fails or returns no records)
+
+**When:** The trunk write firewall evaluates the target
+
+**Then:**
+- The resolved git root is evaluated as its own main checkout
+- A default-branch HEAD blocks the write
+- The firewall does not assume worktree eligibility it cannot prove
+
+**Prunable worktree entries do not confer worktree eligibility** (`rq-twf01.10`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- The target repository's worktree topology lists the containing checkout as prunable (stale administrative data)
+
+**When:** The trunk write firewall evaluates a write target inside that checkout
+
+**Then:**
+- The prunable entry does not confer worktree eligibility
+- The target is evaluated on its own merits against its resolved git root
+- A default-branch HEAD in that checkout blocks the write
+
+**ADV-generated artifacts allowed only as exact target-root paths** (`rq-twf01.11`)
+
+**Given:**
+- features.worktree_guard_enforce is true (default) or omitted
+- A write targets ROADMAP.md, CHANGELOG.md, .adv/github-project.json, or .adv/roadmap-snapshot.json
+- The target repository's main checkout is on its default branch
+
+**When:** The trunk write firewall evaluates the target path
+
+**Then:**
+- The write is allowed only when the path matches exactly at the target repository's main checkout root
+- Nested or otherwise non-exact paths (for example docs/ROADMAP.md) are not exempt
+- The allowlist applies identically to file-write tools and known destructive bash write patterns
 
 ---
 
@@ -2738,5 +2797,160 @@ After a mutating deploy synchronizes the runtime plugin, a failed exact-path Tem
 **Then:**
 - Supported assets are synchronized
 - The deploy preserves its normal success behavior
+
+---
+
+### Target-Relative Cross-Project Trunk Write Firewall
+
+**ID:** `rq-crossProjectTrunkFirewall01` | **Priority:** **[MUST]**
+
+When the session project enables worktree_guard_enforce, the trunk write firewall must classify every intercepted direct file-write and recognized destructive Bash target against the target repository’s own topology. It must block default-branch main-checkout writes for foreign repositories, allow eligible target linked worktrees and the established non-Git/recovery exceptions, evaluate only explicit generated artifacts relative to the target main root, and block target main-checkout writes when the default branch cannot be verified. Target topology resolution must be bounded to one hook invocation and must not treat prunable worktree records as writable linked worktrees.
+
+**Tags:** `trunk-write-firewall`, `cross-project`, `worktree`, `safety`
+
+#### Scenarios
+
+**Foreign default-branch main checkout blocks** (`rq-crossProjectTrunkFirewall01.1`)
+
+**Given:**
+- worktree_guard_enforce is enabled for the session project
+- A direct file write or recognized destructive Bash target is inside another repository’s default-branch main checkout
+
+**When:** The firewall evaluates the target repository context
+
+**Then:**
+- The operation is blocked with worktree remediation
+- The target is not allowed merely because it is outside the session project root
+
+**Eligible foreign linked worktree allows** (`rq-crossProjectTrunkFirewall01.2`)
+
+**Given:**
+- A target is inside a non-prunable linked worktree registered by its repository
+- The target repository is on its default branch
+
+**When:** The firewall evaluates a direct file write or recognized destructive Bash target
+
+**Then:**
+- The operation is allowed
+- The main checkout remains protected
+
+**Target-root artifact and uncertainty boundaries remain narrow** (`rq-crossProjectTrunkFirewall01.3`)
+
+**Given:**
+- A target is in a foreign repository’s main checkout
+
+**When:** The target is one of the four explicit root artifacts, a nested lookalike, another .adv path, or a repository with unknown default branch
+
+**Then:**
+- Only the exact target-root artifact is allowed
+- Nested and unrelated artifact paths are blocked
+- Unknown-default main-checkout writes are blocked with remediation
+
+**Missing-parent and prunable topology are safe** (`rq-crossProjectTrunkFirewall01.4`)
+
+**Given:**
+- A target has missing nested parent directories or lies under a prunable worktree record
+
+**When:** The firewall resolves target topology
+
+**Then:**
+- The nearest existing ancestor is used for classification
+- A prunable record does not grant linked-worktree allowance
+
+---
+
+### Health Providers Return Typed Partial Outcomes
+
+**ID:** `rq-statusHealthTypedDegradation01` | **Priority:** **[MUST]**
+
+Every provider admitted by `adv_status view:health` MUST produce a discriminated outcome of `ok`, `stale`, `timeout`, `error`, `unavailable`, or `not_admitted`. Completed sections MUST remain available when another provider degrades. Existing required response fields and freshness metadata MUST remain compatible. Cached or stale provider evidence is advisory only and MUST NOT independently establish authoritative completeness or authorize mutation. Request-aborted force-refresh work MUST NOT publish late request-scoped cache state.
+
+**Tags:** `status`, `health`, `degradation`, `cache`
+
+#### Scenarios
+
+**Slow provider degrades without whole-result failure** (`rq-statusHealthTypedDegradation01.1`)
+
+**Given:**
+- One health provider exceeds its bounded allowance
+- Other providers have completed
+
+**When:** Health output is composed
+
+**Then:**
+- The slow source reports timeout
+- Completed diagnostic sections remain present
+- Overall completeness is degraded rather than falsely complete
+
+**Every incomplete source is explicit** (`rq-statusHealthTypedDegradation01.2`)
+
+**Given:**
+- A provider errors, is unavailable, is stale, or is not admitted
+
+**When:** Health renders execution metadata
+
+**Then:**
+- The source has the matching discriminated outcome
+- Evidence is bounded and secret-safe
+- No omission is silent
+
+**Aborted refresh cannot publish late state** (`rq-statusHealthTypedDegradation01.3`)
+
+**Given:**
+- A force-refresh fetch is aborted by the request deadline
+
+**When:** Its underlying non-cancellable work settles later
+
+**Then:**
+- The completed request output is unchanged
+- Request-scoped cache publication does not occur
+- Cached data cannot establish authoritative truth
+
+---
+
+### Structural Session Principal and Orphan Visibility
+
+**ID:** `rq-sessionPrincipal01` | **Priority:** **[MUST]**
+
+ADV MUST derive root versus descendant session authority from bounded OpenCode parentID ancestry, never first-caller order or caller-supplied role. Root-only mutations fail closed when ancestry is unresolved. Cross-session work projections MAY emit bounded warning-only orphan-task diagnostics from privacy-safe live session IDs, but MUST NOT mutate task state or expose peer PID/full working directory.
+
+**Tags:** `sessions`, `role-firewall`, `privacy`, `tasks`
+
+#### Scenarios
+
+**Root and descendant derive structurally** (`rq-sessionPrincipal01.1`)
+
+**Given:**
+- A root OpenCode session and a descendant session exist
+
+**When:** Each calls a root-only ADV tool before any system transform ordering guarantee
+
+**Then:**
+- The root is allowed
+- The descendant is blocked
+- Caller arguments cannot elevate the descendant
+
+**Unresolved ancestry fails closed** (`rq-sessionPrincipal01.2`)
+
+**Given:**
+- Session lookup is missing, malformed, cyclic, over depth, or unavailable
+
+**When:** A root-only tool is called
+
+**Then:**
+- The mutation is blocked
+- Union-floor reads remain available
+
+**Orphan diagnostics are warning-only and private** (`rq-sessionPrincipal01.3`)
+
+**Given:**
+- An in-progress task assignment is absent from the live privacy-safe session set
+
+**When:** WIP state is projected
+
+**Then:**
+- A bounded warning identifies task and change
+- No task mutation occurs
+- Peer PID and full working directory are omitted
 
 ---

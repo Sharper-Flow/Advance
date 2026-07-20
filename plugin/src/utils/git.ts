@@ -8,10 +8,21 @@ import { execFileGitCb } from "./git-binary.js";
  * GIT_ASKPASS scrub, GIT_TERMINAL_PROMPT=0) to `utils/git-binary.ts` so
  * `ENOENT posix_spawn 'git'` cannot occur even when the host
  * `process.env.PATH` is missing.
+ *
+ * `timeoutMs` (default 5000) is forwarded to Node `execFile`'s `timeout`
+ * option, which sends SIGTERM to the git process on overrun — a real
+ * process kill, not a dangling background promise. Callers that need a
+ * tighter sub-budget (e.g. a bounded `git fetch` inside a tool budget)
+ * pass a smaller value; existing callers keep the 5000ms default
+ * unchanged (rq-execGitTimeoutParam01).
  */
-export function execGit(args: string[], cwd: string): Promise<string> {
+export function execGit(
+  args: string[],
+  cwd: string,
+  timeoutMs = 5000,
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFileGitCb(args, { cwd, timeout: 5000 }, (error, stdout) => {
+    execFileGitCb(args, { cwd, timeout: timeoutMs }, (error, stdout) => {
       if (error) {
         reject(error);
       } else {

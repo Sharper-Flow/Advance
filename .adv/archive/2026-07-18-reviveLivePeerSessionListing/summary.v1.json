@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-18T20:04:03.653Z",
+  "capabilities": [],
+  "change_hash": "e5a16005fa3b63055374ed4a85a3c6e2e1fbc43d736988356a3191dce5e1c04b",
+  "change_id": "reviveLivePeerSessionListing",
+  "completed_tasks": 3,
+  "created_at": "2026-07-18T18:52:01.096Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-18T20:01:39.249Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "e797d31453742f4177645cbdbe93519e3313a32e39edcdbb0a7e1789973cae9a",
+  "task_count": 3,
+  "title": "Revive live peer session listing",
+  "version": "1"
+}

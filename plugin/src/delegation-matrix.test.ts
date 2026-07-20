@@ -16,6 +16,8 @@ import { describe, expect, test } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import { SUBAGENT_WARN_FIRST_PACKET_ANCHORS } from "./types";
+import { applyDeltasToSpec } from "./archive/delta";
+import type { Delta, Spec } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SPEC_PATH = join(REPO_ROOT, ".adv/specs/delegation-defaults/spec.json");
@@ -134,6 +136,59 @@ interface DelegationDefaultsSpec {
   delegation_matrix?: DelegationMatrixEntry[];
   requirements?: SpecRequirement[];
 }
+
+const RESTORE_DEL_DEFAULTS10_ARCHIVE_DELTA: Extract<
+  Delta,
+  { operation: "modify" }
+> = {
+  id: "dl-RestoreDel10",
+  operation: "modify",
+  target_id: "rq-delDefaults10",
+  changes: {
+    title: "Engineer-First Frontend Dispatch with Designer Follow-up",
+    body: "For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.",
+    tags: ["delegation", "frontend", "engineer-first", "designer-follow-up"],
+    scenarios: [
+      {
+        id: "rq-delDefaults10.1",
+        title: "Classified frontend task starts with engineer",
+        given: [
+          "A code task has metadata.frontend set to true",
+          "No step-4 risk signal forces inline implementation",
+        ],
+        when: "ADV selects an initial implementation lane",
+        then: [
+          "ADV dispatches adv-engineer before adv-designer",
+          "ADV does not dispatch adv-designer as the initial implementation lane",
+        ],
+      },
+      {
+        id: "rq-delDefaults10.2",
+        title: "Matching implementation receipt drives designer follow-up",
+        given: [
+          "A code task has metadata.frontend set to true",
+          "A same-task same-cycle adv-engineer report completed with passing verification and no blockers, or a classified inline implementation has bounded provenance",
+        ],
+        when: "Initial implementation completes",
+        then: [
+          "ADV dispatches a matching-cycle adv-designer follow-up",
+          "Designer provenance references the engineer report or inline receipt",
+          "Missing, stale, or mismatched provenance is rejected",
+        ],
+      },
+      {
+        id: "rq-delDefaults10.3",
+        title: "Reviewer retains review and harden ownership",
+        given: ["A change includes frontend scope"],
+        when: "The change reaches review or harden",
+        then: [
+          "adv-designer does not own review or harden",
+          "adv-reviewer retains review and harden ownership",
+        ],
+      },
+    ],
+  },
+};
 
 function loadSpec(): DelegationDefaultsSpec {
   return JSON.parse(readFileSync(SPEC_PATH, "utf8")) as DelegationDefaultsSpec;
@@ -724,31 +779,59 @@ describe("delegation matrix coverage", () => {
   });
 
   // rq-delDefaults10: engineer-first frontend dispatch with mandatory designer follow-up.
-  test("engineer-first frontend dispatch is represented in the spec", () => {
-    const spec = loadSpec();
-    const requirement = spec.requirements?.find(
-      (entry) => entry.id === "rq-delDefaults10",
+  test("engineer-first frontend dispatch is represented by the archive-time modify delta", () => {
+    const currentSpec = loadSpec() as Spec;
+    const application = applyDeltasToSpec(
+      structuredClone(currentSpec),
+      [RESTORE_DEL_DEFAULTS10_ARCHIVE_DELTA],
+      currentSpec.version,
     );
-    expect(requirement, "rq-delDefaults10 must exist").toBeDefined();
 
-    const scenarioIds =
-      requirement?.scenarios?.map((scenario) => scenario.id) ?? [];
-    expect(scenarioIds).toEqual([
-      "rq-delDefaults10.1",
-      "rq-delDefaults10.2",
-      "rq-delDefaults10.3",
+    expect(application.deltaResults).toEqual([
+      expect.objectContaining({
+        success: true,
+        deltaId: "dl-RestoreDel10",
+        operation: "modify",
+        targetId: "rq-delDefaults10",
+      }),
     ]);
 
-    const text = [
-      requirement?.body ?? "",
-      ...(requirement?.scenarios ?? []).flatMap(
-        (scenario) => scenario.then ?? [],
-      ),
-    ].join("\n");
+    const requirement = application.updatedSpec?.requirements.find(
+      (entry) => entry.id === "rq-delDefaults10",
+    );
+    expect(
+      requirement,
+      "archive application must restore rq-delDefaults10",
+    ).toBeDefined();
 
-    for (const expected of ["frontend", "adv-engineer", "adv-designer"]) {
-      expect(text).toContain(expected);
-    }
+    expect(requirement?.body).toContain(
+      "MUST route initial implementation to adv-engineer",
+    );
+    expect(requirement?.body).toContain("MUST NOT select adv-designer first");
+    expect(requirement?.body).not.toContain(
+      "MUST route initial implementation to adv-designer",
+    );
+
+    const initialLane = requirement?.scenarios?.find(
+      (scenario) => scenario.id === "rq-delDefaults10.1",
+    );
+    expect(initialLane).toMatchObject({
+      when: "ADV selects an initial implementation lane",
+      then: [
+        "ADV dispatches adv-engineer before adv-designer",
+        "ADV does not dispatch adv-designer as the initial implementation lane",
+      ],
+    });
+    expect(initialLane?.then).not.toContain(
+      "ADV dispatches adv-designer as the initial implementation lane",
+    );
+
+    const followUp = requirement?.scenarios?.find(
+      (scenario) => scenario.id === "rq-delDefaults10.2",
+    );
+    expect(followUp?.then).toContain(
+      "ADV dispatches a matching-cycle adv-designer follow-up",
+    );
   });
 
   // rq-delDefaults06: provider-eval GPT prompt anchors a delegation regression test.

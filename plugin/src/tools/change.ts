@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { createHash } from "crypto";
 import { rm } from "fs/promises";
-import { join, resolve } from "path";
+import { basename, join, relative, resolve } from "path";
 import type { FastFollowOf, ChangeOrigin } from "../types";
 import {
   createDefaultGates,
@@ -28,6 +28,7 @@ import {
   type BriefingPacketLane,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
+import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
 import { getProjectId } from "../utils/project-id";
 import { validateChange } from "../validator";
@@ -99,6 +100,8 @@ import {
   buildChangeClosePayload,
   validateChangeCloseRecoveryArgs,
   recoverCompletedWorkflowClose,
+  computeShippedTerminalProof,
+  type ShippedTerminalProofResult,
 } from "./change/recovery";
 import { reconcileRecoveredGates } from "./gate";
 const logger = createLogger("change");
@@ -128,6 +131,275 @@ const TERMINABLE_WORKFLOW_RUN_STATUSES: ReadonlySet<string> = new Set([
   "RUNNING",
   "PAUSED",
 ]);
+
+// =============================================================================
+// rq-shippedWorkflowTermination01 — terminal-authority convergence helper.
+//
+// Single funneled path used by adv_change_workflow_terminate after an eligible
+// run is terminated (or determined idempotently gone). Writes status AND
+// lifecycleState atomically, refreshes the projection cache, asserts both
+// fields via read-back, and detects a successor run (TOCTOU window) both
+// before the write and after the readback.
+// =============================================================================
+
+type ConvergeTerminalAuthorityResult =
+  | {
+      kind: "converged";
+      readback: Awaited<
+        ReturnType<typeof verifyStatusRepairReadAfterWrite>
+      >["readback"];
+    }
+  | {
+      kind: "successorRace";
+      successorRunId: string;
+      phase: "pre_write";
+    }
+  | {
+      kind: "lateSuccessorRace";
+      successorRunId: string;
+      phase: "post_readback";
+    }
+  | {
+      kind: "writeFailed";
+      error: string;
+    }
+  | {
+      kind: "readbackFailed";
+      error: string;
+      readback: Awaited<
+        ReturnType<typeof verifyStatusRepairReadAfterWrite>
+      >["readback"];
+    };
+
+/**
+ * Converge terminal authority after an eligible pinned run is terminated.
+ * Returns a typed result; the caller is responsible for shaping the tool
+ * output (success only when kind === "converged").
+ *
+ * The `describeUnpinned` callback must invoke `handle.describe()` on an
+ * UNPINNED handle (no runId) so Temporal returns the most-recent execution.
+ * That lets us detect a different live successor run that may have started
+ * after pinning.
+ */
+async function convergeTerminalAuthority(input: {
+  store: Store;
+  changeId: string;
+  pinnedRunId: string;
+  authorization: { reason: string; evidence: string };
+  describeUnpinned: () => Promise<unknown>;
+}): Promise<ConvergeTerminalAuthorityResult> {
+  // Successor check #1 (pre-write): a successor may have started between
+  // the pinned describe and the terminate landing.
+  try {
+    const postTerminateDesc = await input.describeUnpinned();
+    const pin = workflowRunPinFromDescription(postTerminateDesc);
+    if (
+      pin.runId &&
+      pin.runId !== input.pinnedRunId &&
+      pin.statusName &&
+      TERMINABLE_WORKFLOW_RUN_STATUSES.has(pin.statusName)
+    ) {
+      return {
+        kind: "successorRace",
+        successorRunId: pin.runId,
+        phase: "pre_write",
+      };
+    }
+  } catch (error) {
+    // not-found/completed is acceptable — the pinned run is gone and no
+    // successor exists. Any other error falls through to convergence.
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
+    if (!isWorkflowCompletedError(error)) {
+      // Surface as writeFailed with describe error so the operator sees it.
+      return {
+        kind: "writeFailed",
+        error: `pre-write successor describe failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+
+  // Load the current change to spread onto the disk projection.
+  const currentResult = await input.store.changes.get(input.changeId);
+  if (!currentResult.success || !currentResult.data) {
+    return {
+      kind: "writeFailed",
+      error: "could not load change for convergence write",
+    };
+  }
+  const change = currentResult.data;
+
+  // Write status AND lifecycleState atomically (D5).
+  try {
+    const { saveRecoveredChangeStatus } = await import("./_recovery-writers");
+    await saveRecoveredChangeStatus({
+      store: input.store,
+      change,
+      authorization: input.authorization,
+      status: "archived",
+      lifecycleState: "archived",
+    });
+  } catch (error) {
+    return {
+      kind: "writeFailed",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  // Refresh projection cache so subsequent reads fall through to disk.
+  try {
+    await input.store.changes.refresh(input.changeId);
+  } catch (error) {
+    logger.debug(
+      `Post-convergence cache refresh failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  // Read-after-write verification (D6).
+  const readback = await verifyStatusRepairReadAfterWrite({
+    store: input.store,
+    changeId: input.changeId,
+    requireLifecycleState: true,
+  });
+  if (!readback.ok) {
+    return {
+      kind: "readbackFailed",
+      error: readback.error,
+      readback: readback.readback,
+    };
+  }
+
+  // Successor check #2 (post-readback): catches a successor that started
+  // between the write and the readback (TOCTOU window).
+  try {
+    const finalDesc = await input.describeUnpinned();
+    const finalPin = workflowRunPinFromDescription(finalDesc);
+    if (
+      finalPin.runId &&
+      finalPin.runId !== input.pinnedRunId &&
+      finalPin.statusName &&
+      TERMINABLE_WORKFLOW_RUN_STATUSES.has(finalPin.statusName)
+    ) {
+      return {
+        kind: "lateSuccessorRace",
+        successorRunId: finalPin.runId,
+        phase: "post_readback",
+      };
+    }
+  } catch (error) {
+    // rq-shippedWorkflowTermination01 AC8: a non-completed error from the
+    // final successor check cannot prove absence of a live successor. Surface
+    // as a typed partial-recovery result so the operator knows convergence
+    // authority is unverifiable. Not-found/completed is acceptable (means
+    // no successor exists).
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
+    if (!isWorkflowCompletedError(error)) {
+      return {
+        kind: "readbackFailed",
+        error: `post-readback successor describe failed (convergence authority unverifiable): ${error instanceof Error ? error.message : String(error)}`,
+        readback: {
+          showStatus: "archived",
+          showLifecycleState: "archived",
+          inFlightCount: 0,
+          archivedCount: 1,
+        },
+      };
+    }
+  }
+
+  return { kind: "converged", readback: readback.readback };
+}
+
+/**
+ * Format a non-converged result from convergeTerminalAuthority into the
+ * operator-facing tool output. Used by both the terminate-then-converge and
+ * idempotent-then-converge paths so failure shapes stay consistent.
+ */
+function formatConvergeFailure(input: {
+  converge: Exclude<ConvergeTerminalAuthorityResult, { kind: "converged" }>;
+  changeId: string;
+  runId: string;
+  eligibilityClass: "shipped_terminal";
+  fromStatus: Change["status"];
+  shippedTerminalProof: ShippedTerminalProofResult | null;
+}): string {
+  const { converge, changeId, runId, eligibilityClass, fromStatus } = input;
+  if (converge.kind === "successorRace") {
+    return formatToolOutput({
+      success: false,
+      partialRecovery: true,
+      pinnedRunTerminated: true,
+      converged: false,
+      changeId,
+      runId,
+      eligibilityClass,
+      fromStatus,
+      successorRace: {
+        pinnedRunId: runId,
+        successorRunId: converge.successorRunId,
+        phase: converge.phase,
+      },
+      remediation:
+        "A different live successor run appeared before convergence write. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId, or adv_archive_purge once status converges.",
+    });
+  }
+  if (converge.kind === "lateSuccessorRace") {
+    return formatToolOutput({
+      success: false,
+      partialRecovery: true,
+      pinnedRunTerminated: true,
+      converged: false,
+      changeId,
+      runId,
+      eligibilityClass,
+      fromStatus,
+      attemptedStatus: "archived",
+      attemptedLifecycleState: "archived",
+      lateSuccessorRace: {
+        pinnedRunId: runId,
+        successorRunId: converge.successorRunId,
+        phase: converge.phase,
+      },
+      remediation:
+        "Late successor appeared after convergence write. Disk projection is archived but a new live run exists. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId.",
+    });
+  }
+  if (converge.kind === "writeFailed") {
+    return formatToolOutput({
+      success: false,
+      partialRecovery: true,
+      pinnedRunTerminated: true,
+      converged: false,
+      changeId,
+      runId,
+      eligibilityClass,
+      fromStatus,
+      attemptedStatus: "archived",
+      attemptedLifecycleState: "archived",
+      error: `Convergence write failed: ${converge.error}`,
+      remediation:
+        "Pinned run was terminated but the disk projection write failed. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
+    });
+  }
+  // readbackFailed
+  return formatToolOutput({
+    success: false,
+    partialRecovery: true,
+    pinnedRunTerminated: true,
+    converged: false,
+    changeId,
+    runId,
+    eligibilityClass,
+    fromStatus,
+    attemptedStatus: "archived",
+    attemptedLifecycleState: "archived",
+    error: `Terminal readback failed: ${converge.error}`,
+    readback: converge.readback,
+    remediation:
+      "Workflow run was terminated and disk projection was written, but terminal readback did not converge. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
+  });
+}
 
 /**
  * Structural narrowing of a `describe()` result into the exact run pin
@@ -344,6 +616,13 @@ import {
   findArchiveBundle,
   getArchiveContractProofErrors,
   reconcileInRepoArchive,
+  readProjectionManifest,
+  verifyProjectionAtGitCommit,
+  reconcileHistoricalArchiveDeltas,
+  canonicalSha256,
+  resolveGitCommitSha,
+  HistoricalConflictDispositionSchema,
+  type HistoricalConflictDisposition,
 } from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { withTimeout, TimeoutError } from "../utils/with-timeout";
@@ -359,6 +638,7 @@ import {
   normalizeChangeLifecycleState,
 } from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
+import { degradedPhasePlan, derivePhasePlanSafe } from "../utils/phase-plan";
 import {
   renderBriefingPacket,
   type BriefingPacketRendererInput,
@@ -635,6 +915,9 @@ export const changeTools = {
       "context snapshot at top-level (matches mutation-tool convention); " +
       "include.readyTasks returns the unblocked ready queue (top-N " +
       "by priority then created_at; default 10, max 50). " +
+      "include.phasePlan attaches the typed PhasePlan read projection " +
+      "as `_phasePlan` (read-only; non-authorizing variants carry no " +
+      "route/command). " +
       "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary / include.acceptance " +
       "return the raw markdown content for each artifact (GH #21). " +
       "Defaults are unchanged when include is omitted.",
@@ -700,6 +983,12 @@ export const changeTools = {
             .max(50)
             .optional()
             .describe("Override default top-10 ready-task slice. Range 1-50."),
+          phasePlan: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches the typed PhasePlan read projection as `_phasePlan`. Read-only and non-authorizing: degraded/blocked/terminal variants carry provenance and no route/command.",
+            ),
           artifactOnly: z
             .boolean()
             .optional()
@@ -796,6 +1085,7 @@ export const changeTools = {
           snapshot?: boolean;
           readyTasks?: boolean;
           readyTasksLimit?: number;
+          phasePlan?: boolean;
           artifactOnly?: boolean;
           proposal?: boolean;
           problemStatement?: boolean;
@@ -938,42 +1228,56 @@ export const changeTools = {
         // include flags (AC3) — opt-in attachments. Defaults preserve
         // current behavior.
         if (include) {
+          // Lazy shared projection-state loader: the snapshot and phase-plan
+          // read projections derive from the SAME reconciled gates projection
+          // so one durable snapshot yields one consistent directive/plan view
+          // (SC1). Loaded at most once per call and only when a projection
+          // that needs it is requested.
+          const buildProjectionState = async () => {
+            let gates: Awaited<ReturnType<typeof activeStore.gates.get>> = null;
+            try {
+              const rawGates = await activeStore.gates.get(changeId);
+              if (rawGates) {
+                const reconciliation = await reconcileRecoveredGates({
+                  store: activeStore,
+                  changeId,
+                  current: rawGates,
+                });
+                gates = reconciliation.gates;
+              }
+            } catch {
+              // best-effort: missing gates → projections still useful
+            }
+            const normalizedGates = gates
+              ? await normalizeGateArtifactEvidenceForReadback(gates)
+              : undefined;
+            return {
+              directiveState: changeToDirectiveState({
+                projectId: displayChange.adv_project_id ?? "unknown",
+                change: displayChange,
+                gates: normalizedGates ?? undefined,
+              }),
+              normalizedGates,
+            };
+          };
+          let projectionStatePromise:
+            | ReturnType<typeof buildProjectionState>
+            | undefined;
+          const loadProjectionState = () =>
+            (projectionStatePromise ??= buildProjectionState());
           // Snapshot — matches mutation-tool convention (top-level
           // `_contextSnapshot`). Uses the same formatter live emission
           // and compaction use, ensuring fidelity parity.
           if (include.snapshot) {
             try {
-              let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
-                null;
-              try {
-                const rawGates = await activeStore.gates.get(changeId);
-                if (rawGates) {
-                  const reconciliation = await reconcileRecoveredGates({
-                    store: activeStore,
-                    changeId,
-                    current: rawGates,
-                  });
-                  gates = reconciliation.gates;
-                }
-              } catch {
-                // best-effort: missing gates → snapshot still useful
-              }
-              const normalizedGates = gates
-                ? await normalizeGateArtifactEvidenceForReadback(gates)
-                : undefined;
+              const { directiveState, normalizedGates } =
+                await loadProjectionState();
               // AC5: derive the authoritative directive from the same change
               // projection + gates the snapshot renders, so the change-show
               // packet carries the `Next:` orientation line. Best effort: a
               // derivation failure must not break change-show; the snapshot
               // omits the `Next:` line.
-              const directive = deriveDirectiveSafe(
-                changeToDirectiveState({
-                  projectId: displayChange.adv_project_id ?? "unknown",
-                  change: displayChange,
-                  gates: normalizedGates ?? undefined,
-                }),
-                Date.now(),
-              );
+              const directive = deriveDirectiveSafe(directiveState, Date.now());
               if (!directive) {
                 logger.warn(
                   `deriveWorkflowDirective failed in change-show for ${changeId}; snapshot omits Next line`,
@@ -989,6 +1293,25 @@ export const changeTools = {
             } catch (e) {
               output._contextSnapshotError =
                 e instanceof Error ? e.message : String(e);
+            }
+          }
+          // Phase plan — typed, read-only current-action projection (SC1,
+          // AC3, AC8). `derivePhasePlanSafe` never throws: missing,
+          // conflicting, or unsupported state degrades into a typed
+          // non-authorizing plan with provenance and no route/command.
+          if (include.phasePlan) {
+            try {
+              const { directiveState } = await loadProjectionState();
+              output._phasePlan = derivePhasePlanSafe(
+                directiveState,
+                Date.now(),
+              );
+            } catch (e) {
+              output._phasePlan = degradedPhasePlan(
+                changeId,
+                "missing_state",
+                e instanceof Error ? e.message : String(e),
+              );
             }
           }
           if (include.ledger) {
@@ -1529,7 +1852,18 @@ export const changeTools = {
       }
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);
       const createdChangeResult = await store.changes.get(result.changeId);
-      if (createdChangeResult.success && createdChangeResult.data) {
+      if (!createdChangeResult.success) {
+        // rq-schemaDriftToolLayer: a load failure on the just-created change
+        // (e.g. schema validation) is a real corruption signal — the
+        // change.json written by create is unreadable. Propagate verbatim
+        // instead of silently omitting the snapshot and returning a
+        // misleading success.
+        return formatToolOutput({
+          error: createdChangeResult.error,
+          changeId: result.changeId,
+        });
+      }
+      if (createdChangeResult.data) {
         const { content: proposalText } = await loadProposalForContext(
           store,
           result.changeId,
@@ -1747,7 +2081,13 @@ export const changeTools = {
         // structured error that names the source-of-truth tools so the
         // agent can self-correct without guessing.
         const existing = await activeStore.changes.get(changeId);
-        if (!existing.success || !existing.data) {
+        if (!existing.success) {
+          // rq-schemaDriftToolLayer: propagate LoadResult errors (including
+          // schema validation failures) verbatim instead of masking them as
+          // "Change not found" — the store layer (T2) already formats these.
+          return formatToolOutput({ error: existing.error });
+        }
+        if (!existing.data) {
           return formatToolOutput({
             error: `Change '${changeId}' not found.`,
             hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
@@ -2274,6 +2614,18 @@ export const changeTools = {
               closed++;
             } catch (err) {
               const existing = await activeStore.changes.get(id);
+              if (!existing.success) {
+                // rq-schemaDriftToolLayer: load failure on change.json (e.g.
+                // schema validation) — propagate verbatim. Recovery cannot
+                // proceed without a readable change, and the load error is
+                // more informative than the original signal error.
+                results.push({
+                  changeId: id,
+                  success: false,
+                  error: existing.error,
+                });
+                continue;
+              }
               if (existing.success && existing.data) {
                 const closeInput = {
                   approvalEvidence,
@@ -2738,7 +3090,6 @@ export const changeTools = {
             changeId,
           });
         }
-        const specs = await loadSpecsMap(store);
         // Run the archive operation
         // Include in-repo archive path: resolves within the repo at .adv/archive/.
         // When worktreePath is provided (e.g. /adv-archive Phase 9 from a worktree),
@@ -2747,14 +3098,42 @@ export const changeTools = {
         // checkout) for backward compatibility.
         const inRepoBase = worktreePath ?? store.paths.root;
         const inRepoArchive = join(inRepoBase, ".adv", "archive");
+        const projectionSpecs = join(inRepoBase, ".adv", "specs");
+        const projectionDocs = join(inRepoBase, "docs", "specs");
+        const specs = worktreePath
+          ? await loadAllSpecs(projectionSpecs)
+          : await loadSpecsMap(store);
         const archivePaths =
           store.config?.features?.wisdom_accumulation === false
-            ? { ...store.paths, wisdom: undefined, inRepoArchive }
-            : { ...store.paths, inRepoArchive };
+            ? {
+                ...store.paths,
+                specs: projectionSpecs,
+                docs: projectionDocs,
+                wisdom: undefined,
+                inRepoArchive,
+              }
+            : {
+                ...store.paths,
+                specs: projectionSpecs,
+                docs: projectionDocs,
+                inRepoArchive,
+              };
         const existingBundlePath = !dryRun
           ? await findArchiveBundle(archivePaths.archive, changeId)
           : null;
         if (!dryRun) {
+          if (
+            !worktreePath &&
+            Object.values(change.deltas).some((deltas) => deltas.length > 0)
+          ) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Archive delta projection requires worktreePath; tracked specs and docs are never written through the main checkout.",
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+            });
+          }
           if (
             !worktreePath &&
             phase9 !== "skip" &&
@@ -2799,6 +3178,55 @@ export const changeTools = {
           change.status === "archived" &&
           existingBundlePath !== null
         ) {
+          if (
+            Object.values(change.deltas).some((deltas) => deltas.length > 0)
+          ) {
+            const manifest = await readProjectionManifest(existingBundlePath);
+            const release = verifyReleaseEvidenceFromMain({
+              store,
+              changeId,
+              archiveMode,
+              change,
+            });
+            if (
+              !manifest ||
+              release.status !== "shipped" ||
+              !release.mergeCommitSha
+            ) {
+              return formatToolOutput({
+                success: false,
+                error:
+                  "Archived retry cannot prove accepted delta projection; run approved archive delta reconciliation in a trusted repair worktree.",
+                requirement: "rq-archiveDeltaReconciliation01",
+                changeId,
+                archivePath: existingBundlePath,
+              });
+            }
+            const proof = await verifyProjectionAtGitCommit({
+              manifest,
+              repo: release.mainCheckout,
+              releasedCommitSha: release.mergeCommitSha,
+              manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
+              expectedChangeId: change.id,
+              expectedDeltaSetSha256: canonicalSha256(change.deltas),
+              expectedDeltaIdsByCapability: Object.fromEntries(
+                Object.entries(change.deltas).map(([capability, deltas]) => [
+                  capability,
+                  deltas.map((delta) => delta.id),
+                ]),
+              ),
+            });
+            if (!proof.ok) {
+              return formatToolOutput({
+                success: false,
+                error: `Archived retry projection proof failed: ${proof.code}: ${proof.message}`,
+                requirement: "rq-archiveDeltaReconciliation01",
+                changeId,
+                archivePath: existingBundlePath,
+                projectionFailure: proof,
+              });
+            }
+          }
           return reconcileArchivedBundleRetry({
             store,
             change,
@@ -2821,12 +3249,13 @@ export const changeTools = {
         //      transition (below) complete the recovery.
         let archiveResult: import("../archive/types").ArchiveOperationResult;
         if (existingBundlePath !== null) {
+          let reconciledInRepoPath: string | undefined;
           if (
             !dryRun &&
             archivePaths.inRepoArchive &&
             (worktreePath || phase9 === "skip")
           ) {
-            await reconcileInRepoArchive(
+            reconciledInRepoPath = await reconcileInRepoArchive(
               change,
               archivePaths.inRepoArchive,
               archivePaths.changes
@@ -2834,15 +3263,27 @@ export const changeTools = {
                 : undefined,
             );
           }
-          archiveResult = {
-            success: true,
-            changeId,
-            specsUpdated: [],
-            docsGenerated: [],
-            archivePath: existingBundlePath,
-            errors: [],
-            archivedAt: new Date().toISOString(),
-          };
+          archiveResult = Object.values(change.deltas).some(
+            (deltas) => deltas.length > 0,
+          )
+            ? await archiveChange({
+                change,
+                specs,
+                paths: archivePaths,
+                dryRun,
+                productId: store.productContext?.productId,
+                reuseExistingBundlePath: existingBundlePath,
+              })
+            : {
+                success: true,
+                changeId,
+                specsUpdated: [],
+                docsGenerated: [],
+                commitPaths: reconciledInRepoPath ? [reconciledInRepoPath] : [],
+                archivePath: existingBundlePath,
+                errors: [],
+                archivedAt: new Date().toISOString(),
+              };
         } else {
           archiveResult = await archiveChange({
             change,
@@ -2884,6 +3325,9 @@ export const changeTools = {
                   expectedMainCheckout: store.paths.root,
                   archiveMode,
                   autoPush,
+                  artifactPaths: (archiveResult.commitPaths ?? []).map((path) =>
+                    relative(worktreePath, path),
+                  ),
                 })
               : verifyReleaseEvidenceFromMain({
                   store,
@@ -3072,6 +3516,65 @@ export const changeTools = {
             ...releaseResult,
             gate: durableProof.gate,
           };
+        }
+        const hasAcceptedDeltas = Object.values(change.deltas).some(
+          (deltas) => deltas.length > 0,
+        );
+        if (!dryRun && archiveResult.success && hasAcceptedDeltas) {
+          const committedBundlePath = archiveResult.commitPaths.find((path) =>
+            relative(inRepoBase, path)
+              .replaceAll("\\", "/")
+              .startsWith(".adv/archive/"),
+          );
+          const proofOutcome =
+            finalization ??
+            verifyReleaseEvidenceFromMain({
+              store,
+              changeId,
+              archiveMode,
+              change,
+            });
+          if (
+            proofOutcome.status !== "shipped" ||
+            !proofOutcome.mergeCommitSha ||
+            !archiveResult.projectionManifest ||
+            !committedBundlePath
+          ) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Archive projection proof requires a manifest and immutable released commit SHA.",
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: archiveResult.archivePath,
+              finalization: proofOutcome,
+            });
+          }
+          const projectionProof = await verifyProjectionAtGitCommit({
+            manifest: archiveResult.projectionManifest,
+            repo: proofOutcome.mainCheckout,
+            releasedCommitSha: proofOutcome.mergeCommitSha,
+            manifestGitPath: `${relative(inRepoBase, committedBundlePath).replaceAll("\\", "/")}/spec-projection.json`,
+            expectedChangeId: change.id,
+            expectedDeltaSetSha256: canonicalSha256(change.deltas),
+            expectedDeltaIdsByCapability: Object.fromEntries(
+              Object.entries(change.deltas).map(([capability, deltas]) => [
+                capability,
+                deltas.map((delta) => delta.id),
+              ]),
+            ),
+          });
+          if (!projectionProof.ok) {
+            return formatToolOutput({
+              success: false,
+              error: `Archive released projection proof failed: ${projectionProof.code}: ${projectionProof.message}`,
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: archiveResult.archivePath,
+              projectionFailure: projectionProof,
+            });
+          }
+          change.archive_projection_proof = projectionProof.receipt;
         }
         // rq-releaseFinalization01 AC1: Archive status transition happens AFTER
         // release gate completion and durable proof verification. This is the
@@ -3353,10 +3856,10 @@ export const changeTools = {
       "Scan/redrive archived change branches, or reconcile bundle-present fully-shipped changes whose terminal archived projection is wedged. Branch cleanup is NOT here: post-merge local change/* branch deletion is git hygiene owned by adv_worktree_cleanup mode=archived_branches. Repair decision matrix: use action=reconcile for batch terminal-projection repair across all release-stuck candidates (branch-merge evidence gate); use adv_change_status_repair for a single wedged change (precise workflow-evidence gate, no branch requirement, target_path routing).",
     args: {
       action: z
-        .enum(["scan", "redrive", "reconcile"])
+        .enum(["scan", "redrive", "reconcile", "reconcile_deltas"])
         .describe(
           "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change; " +
-            "reconcile = audited repair of only bundle-present, fully-gated, merged changes stuck before archived status",
+            "reconcile = audited terminal-status repair; reconcile_deltas = audited current-repo spec projection repair in a trusted change worktree",
         ),
       changeId: z
         .string()
@@ -3386,6 +3889,32 @@ export const changeTools = {
         .describe(
           "Required for action='reconcile'. Explain why bundle-anchored terminal-projection recovery is appropriate.",
         ),
+      worktreePath: z
+        .string()
+        .optional()
+        .describe(
+          "Trusted active repair change worktree required for action='reconcile_deltas'.",
+        ),
+      expectedSeedHeadSha: z
+        .string()
+        .regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/)
+        .optional()
+        .describe(
+          "Reviewed dry-run seed HEAD required to execute reconcile_deltas.",
+        ),
+      expectedSeedProjectionSha256: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .optional()
+        .describe(
+          "Reviewed dry-run canonical seed projection digest required to execute reconcile_deltas.",
+        ),
+      conflictDispositions: z
+        .array(HistoricalConflictDispositionSchema)
+        .optional()
+        .describe(
+          "Exact add-only preserve-current conflict dispositions; every row must bind a planner-proven conflict.",
+        ),
     },
     execute: async (
       {
@@ -3395,18 +3924,91 @@ export const changeTools = {
         approvedByUser,
         approvalEvidence,
         recoveryReason,
+        worktreePath,
+        expectedSeedHeadSha,
+        expectedSeedProjectionSha256,
+        conflictDispositions,
       }: {
-        action: "scan" | "redrive" | "reconcile";
+        action: "scan" | "redrive" | "reconcile" | "reconcile_deltas";
         changeId?: string;
         dryRun?: boolean;
         approvedByUser?: true;
         approvalEvidence?: string;
         recoveryReason?: string;
+        worktreePath?: string;
+        expectedSeedHeadSha?: string;
+        expectedSeedProjectionSha256?: string;
+        conflictDispositions?: HistoricalConflictDisposition[];
       },
       store: Store,
     ) => {
       const mainCheckout = resolveMainCheckout(store.paths.root);
       const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+      if (action === "reconcile_deltas") {
+        if (!changeId || !worktreePath) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error:
+              "reconcile_deltas requires the active repair changeId and worktreePath",
+          });
+        }
+        if (!dryRun) {
+          if (approvedByUser !== true || !approvalEvidence?.trim()) {
+            return formatToolOutput({
+              success: false,
+              action,
+              error:
+                "approvedByUser and approvalEvidence are required to execute reconcile_deltas",
+            });
+          }
+          if (!recoveryReason?.trim()) {
+            return formatToolOutput({
+              success: false,
+              action,
+              error: "recoveryReason is required to execute reconcile_deltas",
+            });
+          }
+        }
+        const worktree = validateChangeWorktree(worktreePath, changeId, {
+          requireCleanWorktree: true,
+        });
+        if (!worktree.valid || worktree.mainCheckout !== mainCheckout) {
+          return formatToolOutput({
+            success: false,
+            action,
+            changeId,
+            error:
+              worktree.error ??
+              "reconcile_deltas requires a trusted clean worktree for this project",
+          });
+        }
+        try {
+          const result = await reconcileHistoricalArchiveDeltas({
+            archiveDir: store.paths.archive,
+            repairWorktree: worktreePath,
+            dryRun: dryRun === true,
+            expectedSeedHeadSha,
+            expectedSeedProjectionSha256,
+            conflictDispositions,
+          });
+          return formatToolOutput({
+            action,
+            changeId,
+            approved: dryRun === true ? false : true,
+            approvalEvidence: dryRun === true ? undefined : approvalEvidence,
+            recoveryReason: dryRun === true ? undefined : recoveryReason,
+            ...result,
+          });
+        } catch (error) {
+          return formatToolOutput({
+            success: false,
+            action,
+            changeId,
+            error: `Archive delta reconciliation failed: ${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+      }
       if (action === "reconcile") {
         const evidence = approvalEvidence?.trim() ?? "";
         const reason = recoveryReason?.trim() ?? "";
@@ -3537,6 +4139,63 @@ export const changeTools = {
               disposition: "skipped_unmerged_branch",
             });
             continue;
+          }
+          if (
+            Object.values(change.deltas).some((deltas) => deltas.length > 0)
+          ) {
+            const manifest = await readProjectionManifest(archivePath);
+            const releasedCommitSha =
+              branch.mergeProof.kind === "tree-identical"
+                ? branch.mergeProof.trunkCommitSha
+                : resolveGitCommitSha(mainCheckout, defaultBranch);
+            if (!releasedCommitSha) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "skipped_projection_unverified",
+                detail: `Could not pin ${defaultBranch} to an immutable commit SHA`,
+              });
+              continue;
+            }
+            if (!manifest) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "skipped_projection_unverified",
+                detail: "Projection manifest is missing or invalid",
+              });
+              continue;
+            }
+            const proof = await verifyProjectionAtGitCommit({
+              manifest,
+              repo: mainCheckout,
+              releasedCommitSha,
+              manifestGitPath: `.adv/archive/${basename(archivePath)}/spec-projection.json`,
+              expectedChangeId: change.id,
+              expectedDeltaSetSha256: canonicalSha256(change.deltas),
+              expectedDeltaIdsByCapability: Object.fromEntries(
+                Object.entries(change.deltas).map(([capability, deltas]) => [
+                  capability,
+                  deltas.map((delta) => delta.id),
+                ]),
+              ),
+            });
+            if (!proof.ok) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "skipped_projection_unverified",
+                detail: `${proof.code}: ${proof.message}`,
+              });
+              continue;
+            }
+            change.archive_projection_proof = proof.receipt;
           }
           if (dryRun) {
             results.push({
@@ -3886,7 +4545,7 @@ export const changeTools = {
   },
   adv_change_workflow_terminate: {
     description:
-      "Operator-only maintenance tool: terminate the EXACT wedged run of a shipped change's Temporal workflow, pinned by runId via describe() — NOT a Temporal Reset. Eligibility is strict and ordered: approval-first (approvedByUser + non-blank approvalEvidence before any read or mutation); the change must exist and NOT be archived (archived changes route to adv_archive_purge, the sole archived-change lever — rq-archivePurge01 semantics preserved); shipped proof required (acceptance AND release gates done on the disk projection). The workflow is then described once and the exact run pinned: a not-found/completed describe or an already-terminal run status is idempotent success ONLY after that eligibility has passed; a RUNNING/PAUSED run without poisoned-history describe evidence is refused (never terminate a healthy workflow); a run with no pin-able runId or an unclassifiable status is refused. dryRun returns the full structured pin assessment without terminating or touching the projection cache. Termination targets the pinned run via getHandle(workflowId, runId); a not-found terminate is idempotent success, and any other terminate failure returns a structured error BEFORE any projection-cache refresh (failure-before-projection-mutation). On success the projection cache is refreshed so subsequent reads fall through to the durable disk projection. Not a routine autonomous agent action — invoke only on explicit operator instruction.",
+      "Operator-only maintenance tool: terminate the EXACT wedged or shipped-terminal run of a change's Temporal workflow, pinned by runId via describe() — NOT a Temporal Reset. Eligibility is strict and ordered: approval-first (approvedByUser + non-blank approvalEvidence before any read or mutation); the change must exist and NOT be archived (archived changes route to adv_archive_purge, the sole archived-change lever — rq-archivePurge01 semantics preserved); shipped proof required (acceptance AND release gates done on the disk projection). The workflow is then described once and the exact run pinned. Two eligibility classes (rq-shippedWorkflowTermination01): (1) poisoned_history — describe carries poisoned-history evidence; terminate + cache refresh only (no convergence write). (2) shipped_terminal — describe shows RUNNING/PAUSED with no poison but the durable disk projection carries all 7 gates done + phase9_status done + a schema-valid archive bundle whose embedded change.id strictly equals the requested changeId; terminate + atomic status/lifecycleState=archived convergence write + read-after-write verification + two successor-race checks (pre-write + post-readback). A not-found/completed describe or an already-terminal run status is idempotent success ONLY for the poisoned class; for the shipped_terminal class it routes through convergence (or refuses with IDEMPOTENT_BUT_PROOF_MISSING if proof fails). Shipped-terminal refusal codes: PROOF_INVALID_DISK_PROJECTION, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE, PROOF_BUNDLE_ID_MISMATCH. A run with no pin-able runId or an unclassifiable status is refused. RUNNING/PAUSED status alone never authorizes termination. dryRun returns the full structured pin assessment (eligibilityClass + proof components) without terminating or touching the projection cache. Termination targets the pinned run via getHandle(workflowId, runId); a not-found terminate is idempotent success, and any other terminate failure returns a structured error BEFORE any projection-cache refresh (failure-before-projection-mutation). On shipped_terminal success, the projection cache is refreshed and readback asserts both status and lifecycleState converged to archived. Not a routine autonomous agent action — invoke only on explicit operator instruction.",
     args: {
       changeId: z
         .string()
@@ -4022,42 +4681,221 @@ export const changeTools = {
         await import("../temporal/recovery-classification");
 
       let description: unknown;
+      let describeThrewCompleted = false;
       try {
         description = await handle.describe();
       } catch (error) {
         if (isWorkflowCompletedError(error)) {
+          // rq-shippedWorkflowTermination01 D11: idempotent completed paths
+          // require shipped-terminal proof when this could be a shipped-
+          // terminal recovery. Poisoned runs that threw not-found have no
+          // description to check, but we still must verify structural proof
+          // before declaring success on a shipped-terminal-shape change.
+          describeThrewCompleted = true;
+          description = null;
+        } else {
+          return formatToolOutput({
+            success: false,
+            error: `Failed to describe change workflow: ${error instanceof Error ? error.message : String(error)}`,
+            changeId,
+            workflowTerminated: false,
+          });
+        }
+      }
+
+      const { runId, statusName } = describeThrewCompleted
+        ? { runId: undefined, statusName: "COMPLETED" as string | undefined }
+        : workflowRunPinFromDescription(description);
+
+      // Determine eligibility class up front so idempotent paths can route
+      // correctly: poisoned-history may refresh-only; shipped-terminal must
+      // converge authority.
+      const { poisonedDescriptionEvidence } = await import("./recovery-probe");
+      const wedgedEvidence = describeThrewCompleted
+        ? null
+        : poisonedDescriptionEvidence(description);
+      let shippedTerminalProof: ShippedTerminalProofResult | null = null;
+      if (!wedgedEvidence) {
+        // Try the alternate eligibility branch: compute structural
+        // shipped-terminal proof from disk projection + archive bundle.
+        shippedTerminalProof = await computeShippedTerminalProof({
+          changesDir: store.paths.changes,
+          archiveDir: store.paths.archive,
+          changeId,
+        });
+      }
+
+      // Already-terminal / describe-not-found idempotent paths.
+      if (
+        describeThrewCompleted ||
+        (statusName && TERMINAL_WORKFLOW_RUN_STATUSES.has(statusName))
+      ) {
+        // Poisoned-history path: refresh + idempotent success (no convergence
+        // write — a poisoned run may have never reached archive; this path
+        // is the existing behavior, unchanged).
+        if (wedgedEvidence) {
           await refreshProjectionCache();
           return formatToolOutput({
             success: true,
             changeId,
             workflowTerminated: true,
             alreadyTerminated: true,
-            message: `Change ${changeId} workflow is already gone (completed/not-found); nothing to terminate.`,
+            eligibilityClass: "poisoned_history",
+            ...(runId ? { runId } : {}),
+            ...(statusName ? { runStatus: statusName } : {}),
+            message: `Change ${changeId} workflow run is already gone; nothing to terminate (poisoned-history class).`,
           });
         }
-        return formatToolOutput({
-          success: false,
-          error: `Failed to describe change workflow: ${error instanceof Error ? error.message : String(error)}`,
-          changeId,
-          workflowTerminated: false,
-        });
+
+        // No poison evidence available. describe-throws-not-found gives no
+        // description to inspect, so we cannot distinguish poisoned-history
+        // from shipped-terminal by describe alone. rq-shippedWorkflowTermination01
+        // AC3/AC5/AC7: refuse unless the typed shipped-terminal proof is
+        // complete. The legacy refresh+idempotent-success path masked
+        // half-shipped states and violated terminal-authority convergence;
+        // the operator must instead use adv_change_status_repair (poisoned
+        // disk projection) or complete the shipped-terminal proof so the
+        // converge path runs.
+        if (describeThrewCompleted) {
+          if (!shippedTerminalProof?.ok) {
+            return formatToolOutput({
+              success: false,
+              error: `Workflow termination refused: change ${changeId} describe threw completed/not-found with no poisoned-history evidence, and shipped-terminal proof failed (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}) — cannot declare converged (IDEMPOTENT_BUT_PROOF_MISSING).`,
+              changeId,
+              eligibilityClass: "none",
+              shippedTerminalProof: shippedTerminalProof?.ok
+                ? undefined
+                : {
+                    ok: false,
+                    refusalCode:
+                      shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE",
+                    evidence:
+                      shippedTerminalProof?.evidence ??
+                      "no shipped-terminal proof available",
+                  },
+              hint: "Idempotent completed/not-found describe requires complete shipped-terminal proof (all 7 disk gates + phase9 done + valid archive bundle). Complete the proof, use adv_change_status_repair for a poisoned disk projection, or use adv_archive_purge if the change is already archived on disk.",
+            });
+          }
+          // Proof OK: converge authority (write status+lifecycleState, readback).
+          const fromStatus = change.status;
+          const converge = await convergeTerminalAuthority({
+            store,
+            changeId,
+            pinnedRunId: runId ?? "unknown",
+            authorization: {
+              reason: "shipped_terminal_workflow_termination",
+              evidence,
+            },
+            describeUnpinned: async () => {
+              if (typeof handle.describe !== "function") {
+                throw new Error(
+                  "Change workflow handle does not support describe()",
+                );
+              }
+              return handle.describe();
+            },
+          });
+          if (converge.kind === "converged") {
+            return formatToolOutput({
+              success: true,
+              changeId,
+              workflowTerminated: true,
+              alreadyTerminated: true,
+              converged: true,
+              eligibilityClass: "shipped_terminal",
+              fromStatus,
+              toStatus: "archived",
+              shippedTerminalProof: {
+                ok: true,
+                bundlePath: shippedTerminalProof.bundlePath,
+              },
+              readback: converge.readback,
+              message: `Change ${changeId} workflow run was already gone; converged terminal authority (status+lifecycleState=archived).`,
+            });
+          }
+          return formatConvergeFailure({
+            converge,
+            changeId,
+            runId: runId ?? "unknown",
+            eligibilityClass: "shipped_terminal",
+            fromStatus,
+            shippedTerminalProof,
+          });
+        }
+
+        // describe returned a terminal status (not threw). We have a
+        // description but no poison evidence. Per D11, this path requires
+        // shipped-terminal proof — half-shipped changes cannot be declared
+        // converged without structural proof + convergence write.
+        if (!shippedTerminalProof?.ok) {
+          return formatToolOutput({
+            success: false,
+            error: `Workflow termination refused: change ${changeId} run is already ${statusName} but shipped-terminal proof failed (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}) — cannot declare converged (IDEMPOTENT_BUT_PROOF_MISSING).`,
+            changeId,
+            eligibilityClass: "none",
+            shippedTerminalProof: shippedTerminalProof?.ok
+              ? undefined
+              : {
+                  ok: false,
+                  refusalCode:
+                    shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE",
+                  evidence:
+                    shippedTerminalProof?.evidence ??
+                    "no shipped-terminal proof available",
+                },
+            hint: "Idempotent terminal-status requires complete shipped-terminal proof (all 7 disk gates + phase9 done + valid archive bundle). Complete the proof or use adv_archive_purge if the change is already archived on disk.",
+          });
+        }
+
+        // Proof OK: converge authority.
+        {
+          const fromStatus = change.status;
+          const converge = await convergeTerminalAuthority({
+            store,
+            changeId,
+            pinnedRunId: runId ?? "unknown",
+            authorization: {
+              reason: "shipped_terminal_workflow_termination",
+              evidence,
+            },
+            describeUnpinned: async () => {
+              if (typeof handle.describe !== "function") {
+                throw new Error(
+                  "Change workflow handle does not support describe()",
+                );
+              }
+              return handle.describe();
+            },
+          });
+          if (converge.kind === "converged") {
+            return formatToolOutput({
+              success: true,
+              changeId,
+              workflowTerminated: true,
+              alreadyTerminated: true,
+              converged: true,
+              eligibilityClass: "shipped_terminal",
+              fromStatus,
+              toStatus: "archived",
+              shippedTerminalProof: {
+                ok: true,
+                bundlePath: shippedTerminalProof.bundlePath,
+              },
+              readback: converge.readback,
+              message: `Change ${changeId} workflow run was already ${statusName}; converged terminal authority (status+lifecycleState=archived).`,
+            });
+          }
+          return formatConvergeFailure({
+            converge,
+            changeId,
+            runId: runId ?? "unknown",
+            eligibilityClass: "shipped_terminal",
+            fromStatus,
+            shippedTerminalProof,
+          });
+        }
       }
 
-      const { runId, statusName } = workflowRunPinFromDescription(description);
-
-      // Already-terminal run → idempotent success (after eligibility).
-      if (statusName && TERMINAL_WORKFLOW_RUN_STATUSES.has(statusName)) {
-        await refreshProjectionCache();
-        return formatToolOutput({
-          success: true,
-          changeId,
-          workflowTerminated: true,
-          alreadyTerminated: true,
-          ...(runId ? { runId } : {}),
-          runStatus: statusName,
-          message: `Change ${changeId} workflow run is already ${statusName}; nothing to terminate.`,
-        });
-      }
       if (!statusName || !TERMINABLE_WORKFLOW_RUN_STATUSES.has(statusName)) {
         return formatToolOutput({
           success: false,
@@ -4068,18 +4906,26 @@ export const changeTools = {
         });
       }
 
-      // Healthy guard: a live run must carry poisoned-history describe
-      // evidence. Never terminate a healthy workflow.
-      const { poisonedDescriptionEvidence } = await import("./recovery-probe");
-      const wedgedEvidence = poisonedDescriptionEvidence(description);
-      if (!wedgedEvidence) {
+      // TERMINABLE: refuse if neither poison nor shipped-terminal proof.
+      if (!wedgedEvidence && !shippedTerminalProof?.ok) {
         return formatToolOutput({
           success: false,
-          error: `Workflow termination refused: change ${changeId} run is ${statusName} but not wedged — no poisoned-history evidence in describe output.`,
+          error: `Workflow termination refused: change ${changeId} run is ${statusName} with no poisoned-history evidence, and shipped-terminal proof failed (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}).`,
           changeId,
           ...(runId ? { runId } : {}),
           runStatus: statusName,
-          hint: "This tool only terminates wedged (poisoned-history) runs. Refusing to terminate a healthy workflow.",
+          eligibilityClass: "none",
+          shippedTerminalProof: shippedTerminalProof?.ok
+            ? undefined
+            : {
+                ok: false,
+                refusalCode:
+                  shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE",
+                evidence:
+                  shippedTerminalProof?.evidence ??
+                  "no shipped-terminal proof available",
+              },
+          hint: "This tool only terminates wedged (poisoned-history) runs OR shipped-terminal runs (all 7 disk gates done + phase9 done + valid archive bundle matching changeId). Refusing to terminate a healthy workflow.",
         });
       }
       if (!runId) {
@@ -4092,6 +4938,10 @@ export const changeTools = {
         });
       }
 
+      // Classification: poisoned_history (existing) vs shipped_terminal (new).
+      const eligibilityClass: "poisoned_history" | "shipped_terminal" =
+        wedgedEvidence ? "poisoned_history" : "shipped_terminal";
+
       if (dryRun) {
         return formatToolOutput({
           success: true,
@@ -4100,9 +4950,18 @@ export const changeTools = {
           changeId,
           runId,
           runStatus: statusName,
-          wedgedEvidence,
+          eligibilityClass,
+          ...(wedgedEvidence ? { wedgedEvidence } : {}),
+          ...(shippedTerminalProof?.ok
+            ? {
+                shippedTerminalProof: {
+                  ok: true,
+                  bundlePath: shippedTerminalProof.bundlePath,
+                },
+              }
+            : {}),
           shippedProof: { acceptance: "done", release: "done" },
-          message: `Would terminate pinned run ${runId} (${statusName}, poisoned-history wedged) of shipped change ${changeId}.`,
+          message: `Would terminate pinned run ${runId} (${statusName}, ${eligibilityClass}) of shipped change ${changeId}.`,
         });
       }
 
@@ -4114,43 +4973,102 @@ export const changeTools = {
         changeId,
         runId,
       );
+      let alreadyTerminated = false;
       try {
         await (
           pinnedHandle as unknown as {
             terminate: (reason?: string) => Promise<unknown>;
           }
         ).terminate(
-          `adv_change_workflow_terminate: operator-approved termination of wedged shipped change workflow ${changeId} (run ${runId})`,
+          `adv_change_workflow_terminate: operator-approved termination of ${eligibilityClass} shipped change workflow ${changeId} (run ${runId})`,
         );
       } catch (error) {
         if (isWorkflowCompletedError(error)) {
-          await refreshProjectionCache();
+          // The pinned run ended after describe but before terminate landed.
+          // A shipped-terminal recovery still must converge and verify the
+          // terminal projection; only poisoned-history keeps its legacy
+          // refresh-only completion behavior.
+          alreadyTerminated = true;
+        } else {
+          // failure-before-projection-mutation: no refresh, no disk write.
+          return formatToolOutput({
+            success: false,
+            error: `Failed to terminate change workflow: ${error instanceof Error ? error.message : String(error)}`,
+            changeId,
+            runId,
+            workflowTerminated: false,
+          });
+        }
+      }
+
+      // rq-shippedWorkflowTermination01 D12: shipped_terminal path funnels
+      // through convergeTerminalAuthority to write status+lifecycleState and
+      // verify readback. Poisoned-history path keeps existing refresh-only
+      // behavior (a poisoned run may have never reached archive; convergence
+      // is out of scope for that eligibility class).
+      if (eligibilityClass === "shipped_terminal") {
+        const fromStatus = change.status;
+        const converge = await convergeTerminalAuthority({
+          store,
+          changeId,
+          pinnedRunId: runId,
+          authorization: {
+            reason: "shipped_terminal_workflow_termination",
+            evidence,
+          },
+          describeUnpinned: async () => {
+            if (typeof handle.describe !== "function") {
+              throw new Error(
+                "Change workflow handle does not support describe()",
+              );
+            }
+            return handle.describe();
+          },
+        });
+
+        if (converge.kind === "converged") {
           return formatToolOutput({
             success: true,
             changeId,
             workflowTerminated: true,
-            alreadyTerminated: true,
+            ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
+            converged: true,
             runId,
-            message: `Change ${changeId} run ${runId} ended before termination landed (completed/not-found); treated as already terminated.`,
+            runStatus: statusName,
+            eligibilityClass,
+            fromStatus,
+            toStatus: "archived",
+            shippedTerminalProof: shippedTerminalProof?.ok
+              ? { ok: true, bundlePath: shippedTerminalProof.bundlePath }
+              : undefined,
+            shippedProof: { acceptance: "done", release: "done" },
+            readback: converge.readback,
+            message: `Terminated pinned run ${runId} of shipped change ${changeId}; converged terminal authority (status+lifecycleState=archived).`,
           });
         }
-        // failure-before-projection-mutation: no refresh, no disk write.
-        return formatToolOutput({
-          success: false,
-          error: `Failed to terminate change workflow: ${error instanceof Error ? error.message : String(error)}`,
+
+        // Non-converged outcomes: delegate to the shared formatter used by
+        // both the terminate-then-converge and idempotent-then-converge paths.
+        return formatConvergeFailure({
+          converge,
           changeId,
           runId,
-          workflowTerminated: false,
+          eligibilityClass,
+          fromStatus,
+          shippedTerminalProof,
         });
       }
 
+      // Poisoned-history path: terminate + refresh only (no convergence write).
       await refreshProjectionCache();
       return formatToolOutput({
         success: true,
         changeId,
         workflowTerminated: true,
+        ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
         runId,
         runStatus: statusName,
+        eligibilityClass,
         wedgedEvidence,
         shippedProof: { acceptance: "done", release: "done" },
         message: `Terminated pinned run ${runId} of shipped change ${changeId}. Disk projection remains authoritative; subsequent reads fall through to disk.`,
@@ -4373,6 +5291,15 @@ export const changeTools = {
           },
         );
         const readback = await activeStore.changes.get(changeId);
+        if (!readback.success) {
+          // rq-schemaDriftToolLayer: best-effort post-mutation readback. The
+          // repair signal already landed; do not mask it as a hard failure.
+          // Surface the schema error text so the operator can investigate
+          // while still seeing the successful repair outcome below.
+          logger.warn(
+            `repair_origin readback failed for ${changeId}: ${readback.error}`,
+          );
+        }
         const readbackOrigin =
           readback.success && readback.data ? readback.data.origin : undefined;
         return formatToolOutput({
@@ -4833,6 +5760,56 @@ export const changeTools = {
             changeId,
             hint: "Run adv_change_archive first so the archive bundle is written, then repair the wedged status.",
           });
+        }
+        if (Object.values(change.deltas).some((deltas) => deltas.length > 0)) {
+          const manifest = await readProjectionManifest(bundlePath);
+          const { archiveMode } = detectArchiveMode(activeStore.config ?? {});
+          const release = verifyReleaseEvidenceFromMain({
+            store: activeStore,
+            changeId,
+            archiveMode,
+            change,
+          });
+          if (
+            !manifest ||
+            release.status !== "shipped" ||
+            !release.mergeCommitSha
+          ) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Cannot repair status: accepted delta projection lacks a manifest or immutable released commit proof.",
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: bundlePath,
+              hint: "Run approved archive delta reconciliation in a trusted repair worktree before status repair.",
+            });
+          }
+          const projectionProof = await verifyProjectionAtGitCommit({
+            manifest,
+            repo: release.mainCheckout,
+            releasedCommitSha: release.mergeCommitSha,
+            manifestGitPath: `.adv/archive/${basename(bundlePath)}/spec-projection.json`,
+            expectedChangeId: change.id,
+            expectedDeltaSetSha256: canonicalSha256(change.deltas),
+            expectedDeltaIdsByCapability: Object.fromEntries(
+              Object.entries(change.deltas).map(([capability, deltas]) => [
+                capability,
+                deltas.map((delta) => delta.id),
+              ]),
+            ),
+          });
+          if (!projectionProof.ok) {
+            return formatToolOutput({
+              success: false,
+              error: `Cannot repair status: projection proof failed: ${projectionProof.code}: ${projectionProof.message}`,
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: bundlePath,
+              projectionFailure: projectionProof,
+            });
+          }
+          change.archive_projection_proof = projectionProof.receipt;
         }
         if (dryRun) {
           return formatToolOutput({

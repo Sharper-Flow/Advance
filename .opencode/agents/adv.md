@@ -32,100 +32,107 @@ tools:
   episode_recall: true
   # === ADV tools — full suite for 7-gate orchestration ===
   # Specs + project context
-  adv_spec: true
-  adv_delta_add: true
-  adv_status: true
-  adv_session_list: true
-  adv_session_show: true
-  adv_project_context: true
-  # Roadmap
-  adv_roadmap: true
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
+  adv_archive_purge: true
+  adv_archive_repair: true
   adv_backlog_add: true
   adv_backlog_archive: true
   adv_backlog_list: true
   adv_backlog_promote: true
+  # Roadmap
   adv_backlog_show: true
+  adv_change_archive: true
+  adv_change_bulk_close: true
+  adv_change_close: true
+  adv_change_create: true
+  adv_change_forget: true
   # Changes
   adv_change_list: true
-  adv_change_show: true
-  adv_change_create: true
-  adv_change_update: true
-  adv_change_close: true
-  adv_change_bulk_close: true
-  adv_change_validate: true
-  adv_change_archive: true
-  adv_change_update_issues: true
-  adv_change_repair_origin: true
   adv_change_reenter: true
-  adv_archive_repair: true
-  adv_archive_purge: true
+  adv_change_repair_origin: true
+  adv_change_show: true
   adv_change_status_repair: true
+  adv_change_update: true
+  adv_change_update_issues: true
+  adv_change_validate: true
   adv_change_workflow_terminate: true
-  adv_change_forget: true
-  adv_design_concern_disposition: true
-  adv_verification_evidence_disposition: true
-  # Tasks
-  adv_task_list: true
-  adv_task_show: true
-  adv_task_ready: true
-  adv_task_add: true
-  adv_task_update: true
-  adv_task_reclassify_tdd: true
-  adv_task_cancel: true
-  adv_task_checkpoint: true
-  # Wisdom
-  adv_wisdom_list: true
-  adv_wisdom_add: true
-  # Gates
-  adv_gate_status: true
-  adv_gate_complete: true
+  adv_conformance: true
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
-  adv_run_test: true
-  # Sub-agent reports
-  adv_subagent_report_submit: true
-  # Ops follow-ups
+  adv_delta_add: true
+  adv_delta_modify: true
+  adv_design_concern_disposition: true
+  adv_epic_add_shell: true
+  adv_epic_create: true
+  adv_epic_link_change: true
+  adv_epic_list: true
+  # Tasks
+  adv_epic_move_change: true
+  adv_epic_promote_shell: true
+  adv_epic_reorder: true
+  adv_epic_repair_membership: true
+  adv_epic_retire: true
+  adv_epic_show: true
+  adv_epic_unlink_change: true
+  adv_epic_update: true
+  # Wisdom
   adv_followup_promote: true
-  adv_report_followup_promote: true
+  adv_gate_complete: true
+  # Gates
+  adv_gate_status: true
+  adv_lightweight_profile_evaluate: true
   adv_ops_evidence_add: true
-  adv_ops_run_upsert: true
   adv_ops_run_evidence_add: true
+  adv_ops_run_upsert: true
+  adv_project_context: true
+  # Sub-agent reports
+  adv_project_metadata: true
+  # Ops follow-ups
+  adv_reflect: true
+  adv_reflection_list: true
+  adv_report_followup_promote: true
+  adv_roadmap: true
+  adv_run_test: true
   # Temporal / workflow ops
+  adv_session_list: true
+  adv_session_show: true
+  adv_snapshot_health: true
+  adv_spec: true
+  # Store maintenance (operator-only)
+  adv_status: true
+  adv_store_cleanup: true
+  # Snapshot health diagnostics
+  adv_store_consolidate: true
+  # Reflection
+  adv_subagent_report_submit: true
+  adv_task_add: true
+  adv_task_cancel: true
+  # Project metadata
+  adv_task_checkpoint: true
+  adv_task_list: true
+  # === Epics — optional initiative containers ===
+  adv_task_ready: true
+  adv_task_reclassify_tdd: true
+  adv_task_show: true
+  adv_task_update: true
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
   adv_temporal_worker_restart: true
-  # Store maintenance (operator-only)
-  adv_store_cleanup: true
-  adv_store_consolidate: true
-  # Snapshot health diagnostics
-  adv_snapshot_health: true
-  # Reflection
-  adv_reflect: true
-  adv_reflection_list: true
-  adv_conformance: true
-  # Project metadata
-  adv_project_metadata: true
-  adv_wip_state: true
-  # === Epics — optional initiative containers ===
-  adv_epic_create: true
-  adv_epic_show: true
-  adv_epic_list: true
-  adv_epic_update: true
-  adv_epic_add_shell: true
-  adv_epic_promote_shell: true
-  adv_epic_link_change: true
-  adv_epic_unlink_change: true
-  adv_epic_move_change: true
-  adv_epic_repair_membership: true
-  adv_epic_reorder: true
-  adv_epic_retire: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
+  adv_verification_evidence_disposition: true
   # === Worktree — orchestrator owns lifecycle ===
-  adv_worktree_create: true
-  adv_worktree_resume: true
-  adv_worktree_delete: true
+  adv_wip_state: true
+  adv_wisdom_add: true
+  adv_wisdom_list: true
   adv_worktree_cleanup: true
+  adv_worktree_create: true
+  adv_worktree_delete: true
+  adv_worktree_resume: true
   adv_worktree_triage: true
+  # <<< ADV-GENERATED adv_* tools <<<
   # === Research MCP tools ===
   context7_*: true
   exa_*: true

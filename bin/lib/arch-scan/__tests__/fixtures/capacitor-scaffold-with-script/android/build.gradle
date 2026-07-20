@@ -1,0 +1,5 @@
+// android/build.gradle for the POSITIVE arch-scan fixture.
+// The literal substring `build.gradle` appears once on this line so the
+// registry trigger pattern emits exactly one finding here.
+
+rootProject.name = "capacitor-scaffold-with-script"

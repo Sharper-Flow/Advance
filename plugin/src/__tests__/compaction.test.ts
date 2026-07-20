@@ -59,7 +59,13 @@ interface MockPluginInput {
 const TEST_SERVER_URL = new URL("http://localhost:3000");
 
 const createMockPluginInput = (directory: string): MockPluginInput => ({
-  client: {},
+  client: {
+    session: {
+      get: async ({ path }: { path: { id: string } }) => ({
+        data: { id: path.id, parentID: null },
+      }),
+    },
+  },
   project: {
     id: "test-project",
     worktree: directory,
@@ -108,6 +114,13 @@ describe("experimental.session.compacting enrichment", () => {
     pluginInstances.push(hooks);
     const changeId = "compactionTest";
 
+    // Capture the main session ID so the role firewall allows the active-work
+    // mutator used below.
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "test-session" } as any,
+      { system: [] } as any,
+    );
+
     // Use disk store directly to create the change and tasks
     const store = await createLegacyStore(tempDir, {
       externalRoot: undefined,
@@ -136,7 +149,7 @@ describe("experimental.session.compacting enrichment", () => {
     // Set active change via active-work mutator only after the change exists
     // on disk, so the reachability gate permits re-pointing.
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_update" } as any,
+      { tool: "adv_task_update", sessionID: "test-session" } as any,
       { args: { changeId } } as any,
     );
 
@@ -167,6 +180,13 @@ describe("experimental.session.compacting enrichment", () => {
     const hooks = await AdvancePlugin(createMockPluginInput(tempDir));
     pluginInstances.push(hooks);
 
+    // Capture the main session ID so the role firewall allows the active-work
+    // mutator used below.
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "test-session" } as any,
+      { system: [] } as any,
+    );
+
     // Use disk store directly to set up change + tasks
     const store = await createLegacyStore(tempDir);
     await store.init();
@@ -174,7 +194,7 @@ describe("experimental.session.compacting enrichment", () => {
     const { changeId } = await store.changes.create("Progress test");
     // Set active change via active-work mutator.
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_update" } as any,
+      { tool: "adv_task_update", sessionID: "test-session" } as any,
       { args: { changeId } } as any,
     );
 
@@ -226,12 +246,19 @@ describe("experimental.session.compacting enrichment", () => {
     const hooks = await AdvancePlugin(createMockPluginInput(tempDir));
     pluginInstances.push(hooks);
 
+    // Capture the main session ID so the role firewall allows the active-work
+    // mutator used below.
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "test-session" } as any,
+      { system: [] } as any,
+    );
+
     const store = await createLegacyStore(tempDir);
     await store.init();
 
     const { changeId } = await store.changes.create("Long title test");
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_update" } as any,
+      { tool: "adv_task_update", sessionID: "test-session" } as any,
       { args: { changeId } } as any,
     );
 

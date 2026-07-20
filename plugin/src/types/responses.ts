@@ -38,7 +38,8 @@ export type TerminalWarningCode =
   | "TERMINAL_SOURCE_DEGRADED"
   | "TERMINAL_CANDIDATE_OMITTED"
   | "SOURCE_DEADLINE_EXCEEDED"
-  | "SOURCE_BOUND_EXCEEDED";
+  | "SOURCE_BOUND_EXCEEDED"
+  | "SOURCE_RANKING_DEGRADED";
 
 export interface TerminalWarning {
   code: TerminalWarningCode;
@@ -116,6 +117,13 @@ export interface ChangeListResponse {
     ops_followup_links?: OpsFollowupLink[];
     /** Optional Epic membership projection for bounded list/status annotation. */
     epic_membership?: import("./epics").EpicMembership;
+    /**
+     * Capability names derived from the change's deltas. Populated by
+     * authoritative Store implementations for one-pass validation
+     * inventory projection; omitted when the Store cannot expose it
+     * without a second read.
+     */
+    capabilities?: string[];
   }>;
   warnings?: TerminalWarning[];
   hydrationStats?: HydrationStats;

@@ -465,7 +465,7 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 ### Trunk Write Firewall
 
-When `worktree_guard_enforce=true`, `tool.execute.before` checks `write`/`edit`/`morph_edit` targets plus known destructive bash write patterns (`>`/`>>`, `tee`, `sed -i`, `cp`, `mv`, `rm`). Writes to ADV worktrees, outside repos, or active git recovery states (`MERGE_HEAD`, `REBASE_HEAD`/rebase dirs, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) are allowed. Git commands are not classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Residual risk: shell-variable indirection, shell aliases/functions, and script-internal writes may evade string parsing; ADV still forbids intentional trunk-checkout file writes outside worktrees.
+When `worktree_guard_enforce=true`, `tool.execute.before` checks `write`/`edit`/`morph_edit` targets plus known destructive bash write patterns (`>`/`>>`, `tee`, `sed -i`, `cp`, `mv`, `rm`). Trunk evaluation is target-relative: each write target is checked against the git worktree topology of the repository that owns it, so a foreign repository's main checkout on its own default branch blocks exactly like the session project's trunk, and a linked, non-prunable worktree of any repository is allowed. Conservative foreign defaults: when a target repo's worktree topology cannot be probed, its resolved git root is evaluated as its own main checkout; stale (prunable) topology entries never confer worktree eligibility. Writes to ADV worktrees, outside repos, or active git recovery states (`MERGE_HEAD`, `REBASE_HEAD`/rebase dirs, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) are allowed. A narrow allowlist of ADV-generated trunk artifacts (`ROADMAP.md`, `CHANGELOG.md`, `.adv/github-project.json`, `.adv/roadmap-snapshot.json`) bypasses the block only as exact root-relative paths at the target repository's main checkout root; nested paths are never exempt. Git commands are not classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Residual risk: shell-variable indirection, shell aliases/functions, and script-internal writes may evade string parsing; ADV still forbids intentional trunk-checkout file writes outside worktrees.
 
 ### Cross-Repo Execution
 
@@ -847,7 +847,7 @@ This table is session-level operational routing, distinct from task-level Step 4
 | GitHub CI / check-run / status investigation | `general` |
 | repeated verify/test bursts | `adv-verifier` |
 | code edits after task scope known | `adv-engineer` |
-| frontend/component edits | `adv-designer` |
+| frontend/component implementation | `adv-engineer` first; `adv-designer` matching-cycle follow-up |
 | docs/source research first-pass | `general`; use `adv-researcher` when sourced architecture authority is needed |
 
 Primary `adv` still owns gate completion, task-graph mutation, checkpoint/archive/sign-off, scope drift, contract compromise, safety, release, and user-facing synthesis. Worker output is evidence, not authority.
@@ -889,7 +889,7 @@ Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explo
 | `explore`        | Code navigation, scoped read-only scans                                                                                                                                                                                 |
 | `adv-researcher` | Docs/API/examples research + architecture validation; independent validator                                                                                                                                             |
 | `adv-engineer`   | Delegated ADV code-writing (backend/state/API/business logic); must use packet `workdir`; submits typed `ENGINEER_REPORT`                                                                                               |
-| `adv-designer`   | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only, never review/harden owner; submits typed `DESIGNER_REPORT` per `.opencode/agents/adv-designer.md` |
+| `adv-designer`   | Apply-phase frontend/component follow-up specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match) after engineer or inline receipt; write-only, never review/harden owner; submits typed `DESIGNER_REPORT` per `.opencode/agents/adv-designer.md` |
 | `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report. Reviewer packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes                                                  |
 | `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom triage; packet anchors include WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, VERIFICATION; returns classification + primary-ADV next actions |
 | `adv-visual-review`  | Image analysis (screenshots, UI captures) for text-only model orchestrators                                                                                                                                            |
@@ -897,7 +897,7 @@ Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explo
 | `general`            | Generic multi-step work and unavailable-runtime fallback for verify bursts                                                                                                                                              |
 | `adv-tron`       | Recon + hotspots (repo-local)                                                                                                                                                                                           |
 
-`adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` / `adv-designer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn. Apply routing: `metadata.frontend == "true"` → `adv-designer` (Priority 1.5 in `/adv-apply` delegation routing table; `metadata.delegation_hint` at Priority 1 remains explicit user override).
+`adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` / `adv-designer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn. Apply routing: structural `metadata.frontend == "true"` starts with `adv-engineer` (or a risk-forced inline implementation), then dispatches matching-cycle `adv-designer` follow-up with an implementation receipt; `metadata.delegation_hint` cannot select designer as the initial classified frontend implementation route.
 
 ## Skill Discovery Protocol
 

@@ -93,6 +93,17 @@ From change data: affected files, spec scenarios, task completion evidence, `cha
 ### Worktree Context
 `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Critical in worktrees — sub-agents inherit default project root, not worktree path.
 
+### Lightweight Change Profile (acceptance boundary)
+
+The lightweight profile is re-evaluated automatically before acceptance selection. If the profile result is `qualified`, the bounded omission policy in the workflow directive (`_directive.lightweightProfile`) applies:
+
+- `omitDeepScans` — skip optional deep codebase scans
+- `omitGenericExternalResearch` — skip generic external research
+- `omitOpportunityScouting` — skip opportunity scouting
+- `omitDefaultSpecialistDelegation` — skip default specialist delegation
+
+This policy never overrides explicit `delegation_hint`, risk-forced inline routing, spec/conflict checks, the 12-dimension review, human acceptance, worktree isolation, or release checks. If the profile is `ineligible` or `downgraded`, run the standard review workflow with no omissions.
+
 ---
 ## 12-Dimension Review Framework
 Apply the 12-dimension matrix defined once in the embedded methodology above (Phase 0 → Review Methodology → 12-Dimension Framework). Every review must assess all 12 dimensions — including Security's OWASP top 10 scope; skipping any dimension requires explicit justification. The scanner fan-out, dimension contracts, and inline fallbacks below execute this framework; they do not replace it.
@@ -168,7 +179,7 @@ EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUND
 
 Review uses risk-triggered scanner selection instead of fixed broad fan-out.
 
-Always assess and record evidence for the review-owned dimensions: contract traceability, correctness/edge cases, security surface, tests/TDD evidence, scope conformance, and non-code deliverable evidence policy. For narrow low-risk changes, the orchestrator may perform these checks inline and submit a scanner bundle with the checked dimensions. Spawn `explore` scanners only when risk triggers apply.
+Always assess and record evidence for the review-owned dimensions: contract traceability, correctness/edge cases, security surface, tests/TDD evidence, scope conformance, touched-scope bad-test cleanup, and non-code deliverable evidence policy. For narrow low-risk changes, the orchestrator may perform these checks inline and submit a scanner bundle with the checked dimensions. Spawn `explore` scanners only when risk triggers apply.
 
 Risk triggers requiring dedicated scanner workers:
 
@@ -176,6 +187,7 @@ Risk triggers requiring dedicated scanner workers:
 - Logic/control-flow/concurrency/error-handling changes → correctness/edge-case scanner.
 - User input, auth, secrets, permissions, external calls, or persistence changes → security scanner.
 - Risky logic or broad implementation changes → tests/TDD evidence scanner.
+- Evidence of flaky, tautological, permanently skipped, or implementation-coupled tests in the touched subsystem → touched-scope bad-test cleanup scanner.
 - Broad multi-file, architectural, or unfamiliar subsystem changes → architecture/scope scanner.
 
 ### Scanner Dimension Contracts
@@ -189,12 +201,16 @@ Check: off-by-one, null/undefined handling, boolean logic, unreachable code, edg
 #### Security
 OWASP-based: A01 Broken Access Control, A02 Crypto Failures, A03 Injection, A04 Insecure Design, A05 Misconfiguration, A06 Vulnerable Components, A07 Auth Failures, A08 Data Integrity, A09 Logging Failures, A10 SSRF. Return: `dimension`, `issues`, `auth_assessment`, `secrets_scan`.
 #### Tests / TDD Evidence
-Verify tests fail when code breaks where practical, task evidence includes red/green or justified N/A, and risky touched code has adequate coverage. Return: `dimension`, `issues`, `tdd_audit`, `coverage_assessment`.
+Verify tests fail when code breaks where practical, task evidence includes red/green or justified N/A, and risky touched code has adequate coverage. Evaluate the task's `evidence_plan` (policy + proof target) when determining whether non-test routes are valid; a behavior-critical non-test route requires a bounded rationale and a linked `review_conclusion`. Return: `dimension`, `issues`, `tdd_audit`, `coverage_assessment`.
+
+#### Touched-Scope Bad-Test Cleanup
+For each directly touched subsystem, identify clearly bad tests (flaky, tautological, permanently skipped, or implementation-coupled). Remediate them when the fix is safe and local; record verification with the task's evidence path. Broader cleanup outside the touched subsystem remains out of scope and must be recorded as a follow-up or rejected with evidence. Return: `dimension`, `issues`, `remediated`, `out_of_scope_followups`. <!-- rq-reviewBadTestCleanup01 -->
+
 #### Architecture & Quality
 Check: pattern conformance, module boundaries, naming, complexity (>50 lines, cyclomatic >10), DRY violations, SOLID. Return: `dimension`, `issues`, `complexity_hotspots`, `praise_worthy`.
 
 #### Non-Code Deliverables / Evidence Policy
-For each non-code task (`type` is `docs`, `research`, `approval`, `ops`, or non-`code` verification), evaluate the deliverable against the contract items it `implements`, `verifies`, or `respects` using its `evidence_policy`. Check:
+For each non-code task (`type` is `docs`, `research`, `approval`, `ops`, or non-`code` verification), evaluate the deliverable against the contract items it `implements`, `verifies`, or `respects` using its `evidence_plan` (`evidence_policy` + `proof_target`). Check:
 
 - `source_citation` — citations are present and include source-quality/audit notes where credibility matters. Do not accept bare citation lists.
 - `source_audit` — audit scope, sources checked, and findings are recorded.

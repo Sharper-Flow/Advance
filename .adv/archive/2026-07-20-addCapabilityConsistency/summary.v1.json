@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-20T19:36:52.159Z",
+  "capabilities": [],
+  "change_hash": "c856a00951318cc732894b488d81f6689083e470c7a92498bd9b57b36116fa04",
+  "change_id": "addCapabilityConsistency",
+  "completed_tasks": 11,
+  "created_at": "2026-07-20T07:14:19.556Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-20T19:23:20.488Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "1dd1679d5e088ce424b1f2000bde828f3d5680746a1035dccbeab6f8db714f03",
+  "task_count": 11,
+  "title": "Add capability consistency detection",
+  "version": "1"
+}

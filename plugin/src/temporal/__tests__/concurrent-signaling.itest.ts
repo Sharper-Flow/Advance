@@ -1,6 +1,5 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
 
@@ -22,7 +21,7 @@ import {
   taskUpdatedSignal,
   wisdomAddedSignal,
 } from "../messages";
-import { withTestWorkflowEnvironment } from "./with-test-env";
+import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 
 const workflowsPath = fileURLToPath(
   new URL("../workflows.ts", import.meta.url),
@@ -269,146 +268,139 @@ function buildAgentRemainingSignals(
 
 describe("concurrent signaling integration", () => {
   it("handles 3 agents × 50 signals to the same change workflow without rejection (SC1, SC9)", async () => {
-    await withTestWorkflowEnvironment(
-      () => TestWorkflowEnvironment.createTimeSkipping(),
-      async (env) => {
-        const taskQueue = `concurrent-signaling-${Date.now()}`;
-        const worker = await Worker.create({
-          connection: env.nativeConnection,
-          workflowsPath,
+    await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+      const taskQueue = `concurrent-signaling-${Date.now()}`;
+      const worker = await Worker.create({
+        connection: env.nativeConnection,
+        workflowsPath,
+        taskQueue,
+      });
+
+      await worker.runUntil(async () => {
+        const workflowId = `concurrent-signaling-${Date.now()}`;
+        const handle = await env.client.workflow.start("changeWorkflow", {
+          workflowId,
           taskQueue,
+          args: [makeChangeInput("concurrent-test")],
         });
 
-        await worker.runUntil(async () => {
-          const workflowId = `concurrent-signaling-${Date.now()}`;
-          const handle = await env.client.workflow.start("changeWorkflow", {
-            workflowId,
-            taskQueue,
-            args: [makeChangeInput("concurrent-test")],
-          });
+        // Phase 1 — seed tasks so subsequent updates never race against adds.
+        const addSignals: Promise<void>[] = [];
+        for (let agentIdx = 0; agentIdx < 3; agentIdx++) {
+          addSignals.push(...buildAgentTaskAdds(handle, agentIdx));
+        }
+        const addResults = await Promise.allSettled(addSignals);
+        expect(addResults.filter((r) => r.status === "rejected")).toHaveLength(
+          0,
+        );
 
-          // Phase 1 — seed tasks so subsequent updates never race against adds.
-          const addSignals: Promise<void>[] = [];
+        // Barrier: confirm all 30 tasks exist before the concurrent burst.
+        await pollForState(handle, (s) => s.tasks.length >= 30, 30000);
+
+        // Phase 2 — complete dependent gates in order. The workflow's gate
+        // model is intentionally order-sensitive; this stress test exercises
+        // concurrency without making proposal/discovery/design race each other.
+        const orderedGateSignals: Promise<void>[] = [];
+        const orderedGates = ["proposal", "discovery", "design"] as const;
+        for (let gateIdx = 0; gateIdx < orderedGates.length; gateIdx++) {
+          const gateId = orderedGates[gateIdx];
+          const gateSignals: Promise<void>[] = [];
           for (let agentIdx = 0; agentIdx < 3; agentIdx++) {
-            addSignals.push(...buildAgentTaskAdds(handle, agentIdx));
-          }
-          const addResults = await Promise.allSettled(addSignals);
-          expect(
-            addResults.filter((r) => r.status === "rejected"),
-          ).toHaveLength(0);
-
-          // Barrier: confirm all 30 tasks exist before the concurrent burst.
-          await pollForState(handle, (s) => s.tasks.length >= 30, 30000);
-
-          // Phase 2 — complete dependent gates in order. The workflow's gate
-          // model is intentionally order-sensitive; this stress test exercises
-          // concurrency without making proposal/discovery/design race each other.
-          const orderedGateSignals: Promise<void>[] = [];
-          const orderedGates = ["proposal", "discovery", "design"] as const;
-          for (let gateIdx = 0; gateIdx < orderedGates.length; gateIdx++) {
-            const gateId = orderedGates[gateIdx];
-            const gateSignals: Promise<void>[] = [];
-            for (let agentIdx = 0; agentIdx < 3; agentIdx++) {
-              const signal = buildAgentGateCompletion(
-                handle,
-                agentIdx,
-                gateId,
-                gateIdx,
-              );
-              gateSignals.push(signal);
-              orderedGateSignals.push(signal);
-            }
-
-            const gateResults = await Promise.allSettled(gateSignals);
-            expect(
-              gateResults.filter((r) => r.status === "rejected"),
-            ).toHaveLength(0);
-            await pollForState(
+            const signal = buildAgentGateCompletion(
               handle,
-              (s) => s.gates[gateId]?.status === "done",
-              30000,
+              agentIdx,
+              gateId,
+              gateIdx,
             );
+            gateSignals.push(signal);
+            orderedGateSignals.push(signal);
           }
 
-          // Phase 3 — fire the remaining 111 independent signals concurrently.
-          const burstSignals: Promise<void>[] = [];
-          for (let agentIdx = 0; agentIdx < 3; agentIdx++) {
-            burstSignals.push(...buildAgentRemainingSignals(handle, agentIdx));
-          }
-          expect(burstSignals).toHaveLength(111);
-
-          // SC9: total signal count sanity check (30 adds + 9 ordered gates +
-          // 111 burst = 150)
-          expect(orderedGateSignals).toHaveLength(9);
-          const totalSignals =
-            addSignals.length + orderedGateSignals.length + burstSignals.length;
-          expect(totalSignals).toBe(150);
-          expect(totalSignals).toBeLessThanOrEqual(300);
-
-          // SC1: concurrent burst; none should reject
-          const burstResults = await Promise.allSettled(burstSignals);
-          const rejections = burstResults.filter(
-            (r) => r.status === "rejected",
-          );
-          expect(rejections).toHaveLength(0);
-
-          // Query/describe barrier — wait until all mutations are reflected
-          const state = await pollForState(
+          const gateResults = await Promise.allSettled(gateSignals);
+          expect(
+            gateResults.filter((r) => r.status === "rejected"),
+          ).toHaveLength(0);
+          await pollForState(
             handle,
-            (s) =>
-              s.wisdom.length >= 30 &&
-              s.gates.proposal?.status === "done" &&
-              s.gates.discovery?.status === "done" &&
-              s.gates.design?.status === "done" &&
-              s.gates.planning?.status === "in_progress" &&
-              s.gates.execution?.status === "in_progress" &&
-              s.gates.acceptance?.status === "awaiting_approval" &&
-              s.gates.release?.status === "stuck",
+            (s) => s.gates[gateId]?.status === "done",
             30000,
           );
+        }
 
-          // Verify applied counts
-          expect(state.tasks).toHaveLength(30);
-          expect(state.wisdom).toHaveLength(30);
+        // Phase 3 — fire the remaining 111 independent signals concurrently.
+        const burstSignals: Promise<void>[] = [];
+        for (let agentIdx = 0; agentIdx < 3; agentIdx++) {
+          burstSignals.push(...buildAgentRemainingSignals(handle, agentIdx));
+        }
+        expect(burstSignals).toHaveLength(111);
 
-          // All tasks were updated (priority > 0 proves update ran)
-          const updatedTasks = state.tasks.filter(
-            (t) => t.priority && t.priority > 0,
-          );
-          expect(updatedTasks.length).toBe(30);
+        // SC9: total signal count sanity check (30 adds + 9 ordered gates +
+        // 111 burst = 150)
+        expect(orderedGateSignals).toHaveLength(9);
+        const totalSignals =
+          addSignals.length + orderedGateSignals.length + burstSignals.length;
+        expect(totalSignals).toBe(150);
+        expect(totalSignals).toBeLessThanOrEqual(300);
 
-          // Blocked tasks: 5 per agent
-          const blockedTasks = state.tasks.filter(
-            (t) => t.status === "blocked",
-          );
-          expect(blockedTasks.length).toBe(15);
+        // SC1: concurrent burst; none should reject
+        const burstResults = await Promise.allSettled(burstSignals);
+        const rejections = burstResults.filter((r) => r.status === "rejected");
+        expect(rejections).toHaveLength(0);
 
-          // Assigned tasks: 5 per agent (status flipped to in_progress)
-          const assignedTasks = state.tasks.filter(
-            (t) => t.status === "in_progress" && t.assignedTo,
-          );
-          expect(assignedTasks.length).toBe(15);
+        // Query/describe barrier — wait until all mutations are reflected
+        const state = await pollForState(
+          handle,
+          (s) =>
+            s.wisdom.length >= 30 &&
+            s.gates.proposal?.status === "done" &&
+            s.gates.discovery?.status === "done" &&
+            s.gates.design?.status === "done" &&
+            s.gates.planning?.status === "in_progress" &&
+            s.gates.execution?.status === "in_progress" &&
+            s.gates.acceptance?.status === "awaiting_approval" &&
+            s.gates.release?.status === "stuck",
+          30000,
+        );
 
-          // Gate edge case: duplicate proposal completion from 3 agents
-          // Queue serializes; last write wins; state must be sane
-          expect(state.gates.proposal?.status).toBe("done");
-          expect(state.gates.discovery?.status).toBe("done");
-          expect(state.gates.design?.status).toBe("done");
-          expect(state.gates.planning?.status).toBe("in_progress");
-          expect(state.gates.execution?.status).toBe("in_progress");
-          expect(state.gates.acceptance?.status).toBe("awaiting_approval");
-          expect(state.gates.release?.status).toBe("stuck");
+        // Verify applied counts
+        expect(state.tasks).toHaveLength(30);
+        expect(state.wisdom).toHaveLength(30);
 
-          // Documents
-          expect(state.documents?.proposal).toBeDefined();
-          expect(state.documents?.agreement).toBeDefined();
-          expect(state.documents?.design).toBeDefined();
+        // All tasks were updated (priority > 0 proves update ran)
+        const updatedTasks = state.tasks.filter(
+          (t) => t.priority && t.priority > 0,
+        );
+        expect(updatedTasks.length).toBe(30);
 
-          // Workflow healthy — not failed or terminated
-          const description = await handle.describe();
-          expect(description.status.name).toBe("RUNNING");
-        });
-      },
-    );
+        // Blocked tasks: 5 per agent
+        const blockedTasks = state.tasks.filter((t) => t.status === "blocked");
+        expect(blockedTasks.length).toBe(15);
+
+        // Assigned tasks: 5 per agent (status flipped to in_progress)
+        const assignedTasks = state.tasks.filter(
+          (t) => t.status === "in_progress" && t.assignedTo,
+        );
+        expect(assignedTasks.length).toBe(15);
+
+        // Gate edge case: duplicate proposal completion from 3 agents
+        // Queue serializes; last write wins; state must be sane
+        expect(state.gates.proposal?.status).toBe("done");
+        expect(state.gates.discovery?.status).toBe("done");
+        expect(state.gates.design?.status).toBe("done");
+        expect(state.gates.planning?.status).toBe("in_progress");
+        expect(state.gates.execution?.status).toBe("in_progress");
+        expect(state.gates.acceptance?.status).toBe("awaiting_approval");
+        expect(state.gates.release?.status).toBe("stuck");
+
+        // Documents
+        expect(state.documents?.proposal).toBeDefined();
+        expect(state.documents?.agreement).toBeDefined();
+        expect(state.documents?.design).toBeDefined();
+
+        // Workflow healthy — not failed or terminated
+        const description = await handle.describe();
+        expect(description.status.name).toBe("RUNNING");
+      });
+    });
   }, 60_000);
 });

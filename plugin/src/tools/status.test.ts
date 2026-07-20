@@ -11,7 +11,9 @@ import {
   statusTools,
   _healthSnapshotCache,
   _statusProbeCaches,
+  resetStatusHealthForTest,
 } from "./status";
+import { _healthRequestProbeCaches } from "./status-health-plan";
 import {
   createTestProject,
   createTempDir,
@@ -148,7 +150,8 @@ describe("Status Tools", () => {
       records: [],
       warnings: [],
     });
-    _statusProbeCaches.clear();
+    resetStatusHealthForTest();
+    _healthRequestProbeCaches.clear();
     mockScanSnapshotHealth.mockReset();
     mockScanSnapshotHealth.mockResolvedValue({
       schema_version: 1,
@@ -222,6 +225,7 @@ describe("Status Tools", () => {
     await cleanupTempDir(tempDir);
     resetToolSchemaTelemetry();
     resetCacheTokenTelemetry();
+    vi.useRealTimers();
   });
 
   describe("adv_status", () => {
@@ -937,6 +941,7 @@ Vague in-flight work.
     });
 
     test("health view includes probe freshness and reuses cached temporal health", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
       const firstResult = await statusTools.adv_status.execute(
         { view: "health" },
         store,
@@ -1066,6 +1071,33 @@ Vague in-flight work.
         );
       });
 
+      test("health view includes plugin bundle generation freshness", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.plugin_runtime).toBeDefined();
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "plugin_bundle_manifest_path",
+        );
+        expect(parsed.plugin_runtime.plugin_bundle_manifest_path).toContain(
+          "plugin-bundle-manifest.json",
+        );
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "loaded_plugin_generation",
+        );
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "deployed_plugin_generation",
+        );
+        expect(parsed.plugin_runtime).toHaveProperty("plugin_bundle_freshness");
+        expect(["current", "stale", "unknown"]).toContain(
+          parsed.plugin_runtime.plugin_bundle_freshness,
+        );
+        expect(parsed.plugin_runtime).toHaveProperty("plugin_bundle_recovery");
+      });
+
       test("includes search_attributes section with saVerification from getStslStats", async () => {
         const { getStslStats, isStslInitialized } =
           await import("../temporal/service");
@@ -1154,7 +1186,8 @@ Vague in-flight work.
 
     describe("_healthSnapshot", () => {
       beforeEach(() => {
-        _healthSnapshotCache.clear();
+        resetStatusHealthForTest();
+        _healthRequestProbeCaches.clear();
       });
 
       test("includes _healthSnapshot with disk leak metrics", async () => {
@@ -1969,6 +2002,24 @@ Vague in-flight work.
 
       expect(parsed.view).toBe("summary");
       expect(statusSpy).toHaveBeenCalledWith({ recentLimit: 10 });
+    });
+
+    test("view:health passes 7,500 ms cutoff and candidate limit 10 into store.status", async () => {
+      const statusSpy = vi.spyOn(store, "status");
+
+      const result = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.view).toBe("health");
+      expect(statusSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recentLimit: 10,
+          deadline: expect.objectContaining({ budgetMs: 7500 }),
+        }),
+      );
     });
 
     test("full views call store.status without a recent bound", async () => {

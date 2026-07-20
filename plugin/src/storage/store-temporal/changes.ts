@@ -1,4 +1,4 @@
-import type { Store } from "../store-types";
+import type { Store, ChangeConflictAuthority } from "../store-types";
 import {
   type ArtifactKind,
   type ArtifactPayload,
@@ -15,6 +15,7 @@ import {
   acceptanceUpdatedSignal,
   agreementUpdatedSignal,
   archiveChangeSignal,
+  archiveRequestedSignal,
   closeChangeSignal,
   designUpdatedSignal,
   epicMembershipClearedSignal,
@@ -26,14 +27,33 @@ import {
   changeStateQuery,
   crossProjectCoordinationUpdatedSignal,
 } from "../../temporal/messages";
+import { getMutationReceiptQuery } from "../../temporal/messages";
+import type { MutationReceipt } from "../../temporal/contracts";
+import {
+  MutationApplicationUnconfirmedError,
+  waitForQueryPredicate,
+} from "../../utils/query-predicate";
+import { randomUUID } from "node:crypto";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
-import { hasArchiveBundle, listChangeDirs, removeChangeDir } from "../json";
+import {
+  hasArchiveBundle,
+  isSchemaError,
+  listChangeDirs,
+  loadChange,
+  removeChangeDir,
+} from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity, firstOpenGate } from "../store-types";
 import {
   runTemporal,
+  runTemporalQuery,
+  getChangeHandle,
   getGuardedChangeHandle,
+  getTemporalConnection,
+  runTemporalRead,
   createTemporalReadDeadline,
+  createTemporalReadContext,
+  isTemporalReadExpired,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
   TemporalQueryTimeoutError,
@@ -44,9 +64,15 @@ import {
   validatePerArtifactSize,
 } from "../_artifact-size-validation";
 import { createLogger } from "../../utils/debug-log";
+import { enforceMutationEligibilityForError } from "../../temporal/mutation-safety";
+import { fireSignalWithMutationGuard } from "./gates";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import type { ChangeSummary } from "../store-temporal-memo";
+import {
+  renderTerminalHistory,
+  TERMINAL_HISTORY_DEADLINE_BUDGET_MS,
+} from "../../archive/terminal-history";
 import type {
   ChangeWorkflowState,
   SignalRejection,
@@ -102,6 +128,39 @@ const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
 ];
 
 /**
+ * rq-temporalMutationSafety01 — SC4 mutation-eligibility guard for a single
+ * signal call. The signal is dispatched via `runTemporal`; any failure is
+ * classified into a `TemporalWorkflowDiagnostic` and SC4-mutation-ineligible
+ * classes (no_poller / query_failed_or_not_registered / deadline / unknown /
+ * query_rejected / permission / resource_exhaustion) are re-thrown as
+ * `TemporalMutationIneligibleError`. `not_found` and `poisoned_history`
+ * intentionally pass through — they require additional operator safeguards
+ * (approval, exact run pinning, shipped proof, dry-run) handled elsewhere.
+ *
+ * Use this at every signal, projection-write, reset, and terminate call
+ * site that does NOT already go through `fireSignal` (the tools/_adapters
+ * wrapper applies the same SC4 guard at its boundary).
+ */
+async function fireGuardedSignal<Args extends unknown[]>(
+  input: import("./shared").TemporalStoreBackendInput,
+  changeId: string,
+  signalName: unknown,
+  ...args: Args
+): Promise<void> {
+  try {
+    await runTemporal(async () => {
+      const handle = await getGuardedChangeHandle(input, changeId);
+      await handle.signal(signalName, ...(args as unknown[]));
+    });
+  } catch (err) {
+    // SC4 guard at signal-dispatch boundary.
+    enforceMutationEligibilityForError(err);
+    // Surviving path: SC4-pass (not_found / poisoned_history).
+    throw err;
+  }
+}
+
+/**
  * Fire one content signal per defined field in `artifacts`, in deterministic
  * order (proposal → problemStatement → agreement → design → executiveSummary
  * → acceptance). Each call awaits server acknowledgement before the next.
@@ -112,22 +171,52 @@ const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
  * `state.documents.{kind}`.
  */
 async function fireContentSignalsSequentially(
+  input: import("./shared").TemporalStoreBackendInput,
   handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
+  changeId: string,
   artifacts: ArtifactPayload,
+  confirmReadinessReceipts = false,
 ): Promise<void> {
   const updatedAt = new Date().toISOString();
+  // Suppress unused-parameter lint when `handle` is unused due to routing
+  // through the SC4-guarded wrapper. The handle would be used by the
+  // attached fallback path if `fireGuardedSignal` cannot resolve
+  // `getGuardedChangeHandle`.
+  void handle;
   for (const { kind, signal } of ARTIFACT_SIGNAL_ORDER) {
     const content = artifacts[kind];
     if (content === undefined) continue;
-    // Content signal — populates state.documents[kind]
-    await handle.signal(signal, { text: content, updatedAt });
+    // Content signal — populates state.documents[kind]. SC4-guarded.
+    const requiresReceipt =
+      confirmReadinessReceipts &&
+      (kind === "executiveSummary" || kind === "acceptance");
+    const mutationReceiptId = requiresReceipt
+      ? `mrec_${randomUUID()}`
+      : undefined;
+    await fireGuardedSignal(input, changeId, signal, {
+      text: content,
+      updatedAt,
+      ...(mutationReceiptId ? { mutationReceiptId } : {}),
+    });
+    if (mutationReceiptId) {
+      const receipt = await waitForQueryPredicate(
+        () =>
+          handle.query(getMutationReceiptQuery, mutationReceiptId) as Promise<
+            MutationReceipt | undefined
+          >,
+        (candidate) => candidate?.id === mutationReceiptId,
+      );
+      if (!receipt) {
+        throw new MutationApplicationUnconfirmedError(mutationReceiptId);
+      }
+    }
 
     // Metadata signal — populates state.artifacts[kind] with contentHash.
     // Fires AFTER the content signal so the hash reflects the just-written
     // content. Temporal-only updates intentionally omit `path`: there is no
     // readable artifact file for active content, and synthesizing one produces
-    // phantom paths in agent-facing tool output.
-    await handle.signal(updateArtifactMetadataSignal, {
+    // phantom paths in agent-facing tool output. SC4-guarded.
+    await fireGuardedSignal(input, changeId, updateArtifactMetadataSignal, {
       kind,
       metadata: {
         updatedAt,
@@ -196,6 +285,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // No artifacts passed — content flows via signals only.
       });
       const created = await legacy.changes.get(result.changeId);
+      if (isSchemaError(created)) {
+        throw new Error(created.error);
+      }
       if (!created.success || !created.data) {
         throw new Error(
           `Created change ${result.changeId} but could not reload scaffolded change state`,
@@ -307,7 +399,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       if (Object.values(artifacts).some((v) => v !== undefined)) {
         await runTemporal(async () => {
           const handle = await getGuardedChangeHandle(input, created.data!.id);
-          await fireContentSignalsSequentially(handle, artifacts);
+          await fireContentSignalsSequentially(
+            input,
+            handle,
+            created.data!.id,
+            artifacts,
+          );
         });
       }
 
@@ -322,11 +419,47 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       invalidateChange(change.id);
 
       if (change.status === "archived") {
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, change.id)).signal(
-            archiveChangeSignal,
-          ),
+        // SC4 + SC6 — archive is a terminal-state mutation. The signal
+        // guard raises `TemporalMutationIneligibleError` for SC4 classes;
+        // the post-signal readback classifies as
+        // `outcome_unknown_readback_unavailable` if it fails after the
+        // signal ACK. Either failure surfaces a typed error rather than
+        // silently authorizing the disk write below.
+        const hasAcceptedDeltas = Object.values(change.deltas).some(
+          (deltas) => deltas.length > 0,
         );
+        if (hasAcceptedDeltas && !change.archive_projection_proof) {
+          throw new Error(
+            `changes.save(${change.id}, archived): accepted deltas require archive_projection_proof before terminal state.`,
+          );
+        }
+        const outcome = change.archive_projection_proof
+          ? await fireSignalWithMutationGuard(
+              input,
+              change.id,
+              archiveRequestedSignal,
+              [
+                {
+                  approvalEvidence:
+                    change.gates?.release?.approval_evidence ??
+                    "Archive projection proof verified before terminal state",
+                  requestedBy: "archive-projection-reconciler",
+                  requestedAt: change.archive_projection_proof.verified_at,
+                  projectionProof: change.archive_projection_proof,
+                },
+              ],
+            )
+          : await fireSignalWithMutationGuard(
+              input,
+              change.id,
+              archiveChangeSignal,
+              [],
+            );
+        if (outcome === "outcome_unknown_readback_unavailable") {
+          throw new Error(
+            `changes.save(${change.id}, archived): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+          );
+        }
         const result = (await runTemporal(async () =>
           (await getGuardedChangeHandle(input, change.id)).query(
             changeStateQuery,
@@ -344,19 +477,22 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         change.cross_project_links !== undefined ||
         change.external_dependencies !== undefined
       ) {
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, change.id)).signal(
-            crossProjectCoordinationUpdatedSignal,
-            {
-              ...(change.cross_project_links !== undefined
-                ? { cross_project_links: change.cross_project_links }
-                : {}),
-              ...(change.external_dependencies !== undefined
-                ? { external_dependencies: change.external_dependencies }
-                : {}),
-              updatedAt: new Date().toISOString(),
-            },
-          ),
+        // SC4-guarded signal: SC4 mutation-ineligible classes raise
+        // `TemporalMutationIneligibleError`; not_found / poisoned_history
+        // pass through to surface the original error.
+        await fireGuardedSignal(
+          input,
+          change.id,
+          crossProjectCoordinationUpdatedSignal,
+          {
+            ...(change.cross_project_links !== undefined
+              ? { cross_project_links: change.cross_project_links }
+              : {}),
+            ...(change.external_dependencies !== undefined
+              ? { external_dependencies: change.external_dependencies }
+              : {}),
+            updatedAt: new Date().toISOString(),
+          },
         );
       }
       updateOverlay(change.id, {
@@ -385,10 +521,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const effectiveIncludeClosed =
         filter?.includeClosed || filter?.status === "closed";
 
-      const resolved = await listResolvedChanges({
-        includeArchived: effectiveIncludeArchived,
-        includeClosed: effectiveIncludeClosed,
-      });
+      const resolved = await listResolvedChanges(
+        {
+          includeArchived: effectiveIncludeArchived,
+          includeClosed: effectiveIncludeClosed,
+        },
+        undefined,
+        {
+          hydrationConcurrency: filter?.validationConcurrency,
+        },
+      );
       let filtered = resolved.changes;
 
       if (filter?.status) {
@@ -442,6 +584,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             .length,
           fast_follow_of: change.fast_follow_of,
           epic_membership: change.epic_membership,
+          capabilities: Object.keys(change.deltas),
         })),
         // Terminal degraded metadata is forwarded for terminal reads
         // (existing semantics); deadline-triggered incompleteness is
@@ -458,7 +601,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // adv_change_show, and adv_change_list all behave the same when
       // a workflow is missing: try to re-seed from disk, otherwise
       // return the not-found error.
-      return getTemporalChange(changeId);
+      const ctx = createTemporalReadContext();
+      return getTemporalChange(changeId, { context: ctx });
     },
     refresh: async (changeId: string): Promise<void> => {
       // R1 follow-on: tool-layer code paths that mutate workflow state
@@ -478,16 +622,26 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     ) => {
       const recordedAt = setAt ?? new Date().toISOString();
       invalidateChange(changeId);
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          epicMembershipSetSignal,
+      // SC4 + SC6 — guard the signal and classify the readback outcome.
+      // `outcome_unknown_readback_unavailable` throws a typed error rather
+      // than letting the caller claim the membership change was applied.
+      const outcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        epicMembershipSetSignal,
+        [
           {
             membership,
             ...(expectedCurrent ? { expectedCurrent } : {}),
             setAt: recordedAt,
           },
-        ),
+        ],
       );
+      if (outcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `changes.setEpicMembership(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
@@ -507,12 +661,17 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     clearEpicMembership: async (changeId, { expected, clearedAt }) => {
       const recordedAt = clearedAt ?? new Date().toISOString();
       invalidateChange(changeId);
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          epicMembershipClearedSignal,
-          { expected, clearedAt: recordedAt },
-        ),
+      const outcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        epicMembershipClearedSignal,
+        [{ expected, clearedAt: recordedAt }],
       );
+      if (outcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `changes.clearEpicMembership(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
@@ -560,13 +719,24 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       // Try Temporal signal; if workflow is already completed/terminated,
       // the disk write already succeeded — return disk-backed close result.
+      //
+      // SC4 + SC6: the SC4 guard raises TemporalMutationIneligibleError on
+      // mutation-ineligible classes (`not_found`/`poisoned_history` pass
+      // through). The post-signal readback classification surfaces an
+      // ambiguous `outcome_unknown_readback_unavailable` as a typed error
+      // rather than letting the caller claim a successful close.
       try {
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).signal(
-            closeChangeSignal,
-            closure,
-          ),
+        const outcome = await fireSignalWithMutationGuard(
+          input,
+          changeId,
+          closeChangeSignal,
+          [closure],
         );
+        if (outcome === "outcome_unknown_readback_unavailable") {
+          throw new Error(
+            `changes.close(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+          );
+        }
         const result = (await runTemporal(async () =>
           (await getGuardedChangeHandle(input, changeId)).query(
             changeStateQuery,
@@ -662,13 +832,20 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
           // Try Temporal signal; if workflow already completed, treat
           // as disk-only close (disk save already succeeded).
+          //
+          // SC4 + SC6: see changes.close() — same guards apply here.
           try {
-            await runTemporal(async () =>
-              (await getGuardedChangeHandle(input, id)).signal(
-                closeChangeSignal,
-                closure,
-              ),
+            const outcome = await fireSignalWithMutationGuard(
+              input,
+              id,
+              closeChangeSignal,
+              [closure],
             );
+            if (outcome === "outcome_unknown_readback_unavailable") {
+              throw new Error(
+                `changes.closeBatch(${id}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+              );
+            }
             const result = (await runTemporal(async () =>
               (await getGuardedChangeHandle(input, id)).query(changeStateQuery),
             )) as import("../../temporal/contracts").ChangeWorkflowState;
@@ -731,6 +908,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // The documents live on `.data`, never on the wrapper — read through
         // the success branch so the aggregate cap projection sees the real
         // persisted documents (QUAL-002).
+        if (isSchemaError(snapshot)) {
+          throw new Error(snapshot.error);
+        }
         if (snapshot.success && snapshot.data) {
           existingDocuments =
             (snapshot.data.documents as typeof existingDocuments) ?? {};
@@ -754,7 +934,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
       await runTemporal(async () => {
         const handle = await getGuardedChangeHandle(input, changeId);
-        await fireContentSignalsSequentially(handle, artifacts);
+        await fireContentSignalsSequentially(
+          input,
+          handle,
+          changeId,
+          artifacts,
+          true,
+        );
       });
 
       // Compose result shape matching the legacy contract. Temporal-only
@@ -795,12 +981,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     // state; warm rows served after deadline expiry stay degraded, and
     // completeness is never inferred from cache warmth or row count.
     listSummary: async (filter) => {
+      // rq-statusHealthAggregateBudget01: request-scoped aggregate deadline
+      // covers enumeration and hydration, degrading typed output on expiry.
       // Request-scoped aggregate deadline (KD1). One budget covers
       // source enumeration, the archive-bundle pre-scan, and every
       // cold-miss hydration below; expiry produces typed degradation
       // instead of an unbounded read.
       const deadline = createTemporalReadDeadline();
-      const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
+      const ctx = createTemporalReadContext(deadline.budgetMs);
+      ctx.deadline = deadline;
+      const expired = (): boolean => isTemporalReadExpired(ctx);
       let deadlineExceeded = false;
       const deadlineSources = new Set<TerminalSource>();
       const markDeadline = (source: TerminalSource): void => {
@@ -820,11 +1010,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       );
 
       // Compatibility envelope: when callers exercise paths whose
-      // correctness depends on full state (terminal-status sweeps, content
-      // filters that need created_at/lastActivityAt), defer to the full
-      // `list` projection. The hydrationStats field is still returned so
-      // telemetry callers can identify the fallback path.
-      if (wantsTerminal || hasContentFilters) {
+      // correctness depends on full state (content filters that need
+      // created_at/lastActivityAt), defer to the full `list` projection.
+      // Terminal-status sweeps are handled by the non-authoritative history
+      // renderer below under a separate 20-second deadline.
+      if (hasContentFilters) {
         const fallback = await listResolvedChanges(
           {
             includeArchived: wantsArchived,
@@ -842,18 +1032,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         if (!wantsClosed) {
           filtered = filtered.filter((c) => c.status !== "closed");
         }
-        if (hasContentFilters) {
-          const enriched = filtered.map((c) => ({
-            ...c,
-            lastActivityAt: computeLastActivity(c),
-          }));
-          filtered = filterChanges(enriched, {
-            prefix: filter?.prefix,
-            titleContains: filter?.titleContains,
-            createdBefore: filter?.createdBefore,
-            lastActivityBefore: filter?.lastActivityBefore,
-          });
-        }
+        const enriched = filtered.map((c) => ({
+          ...c,
+          lastActivityAt: computeLastActivity(c),
+        }));
+        filtered = filterChanges(enriched, {
+          prefix: filter?.prefix,
+          titleContains: filter?.titleContains,
+          createdBefore: filter?.createdBefore,
+          lastActivityBefore: filter?.lastActivityBefore,
+        });
         filtered.sort((a, b) => {
           const cmp = b.created_at.localeCompare(a.created_at);
           return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
@@ -879,14 +1067,120 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fromMemo: 0,
             fromCache: 0,
             fromHydration: filtered.length,
-            ...(wantsTerminal ? fallback.hydrationStats : {}),
             ...(fallback.hydrationStats?.deadlineExceeded
               ? { deadlineExceeded: true }
               : {}),
           },
-          // Forward typed degradation on every path — terminal source
-          // warnings for terminal reads, deadline incompleteness always.
           ...(fallback.warnings ? { warnings: fallback.warnings } : {}),
+        };
+      }
+
+      // Explicit non-authoritative archived/closed history. Active rows are
+      // still resolved under the default 8-second authoritative deadline; the
+      // terminal subset runs under a separate 20-second deadline so large
+      // history cannot starve active conflict authority.
+      if (wantsTerminal) {
+        const activeResolved = await listResolvedChanges(
+          { includeArchived: false, includeClosed: false },
+          deadline,
+        );
+        const activeRows = activeResolved.changes
+          .filter((c) => c.status !== "archived" && c.status !== "closed")
+          .map((change) => ({
+            id: change.id,
+            title: change.title,
+            status: change.status,
+            currentGate: firstOpenGate(change.gates),
+            lifecycleState: change.lifecycleState,
+            created_at: change.created_at,
+            lastActivityAt: computeLastActivity(change),
+            taskCount: change.tasks.length,
+            completedTasks: change.tasks.filter((t) => t.status === "done")
+              .length,
+            fast_follow_of: change.fast_follow_of,
+            ops_followup: change.ops_followup,
+            ops_followup_links: change.ops_followup_links,
+            epic_membership: change.epic_membership,
+          }));
+
+        const history = await renderTerminalHistory({
+          archivePath: legacy.paths.archive,
+          changesPath: legacy.paths.changes,
+          includeArchived: wantsArchived,
+          includeClosed: wantsClosed,
+          deadline: createTemporalReadDeadline(
+            TERMINAL_HISTORY_DEADLINE_BUDGET_MS,
+          ),
+        });
+
+        const byId = new Map<string, SummaryRow>();
+        for (const row of activeRows) {
+          byId.set(row.id, row);
+        }
+        for (const row of history.changes) {
+          byId.set(row.id, {
+            id: row.id,
+            title: row.title,
+            status: row.status,
+            currentGate: row.currentGate,
+            lifecycleState: row.lifecycleState,
+            created_at: row.created_at,
+            lastActivityAt: row.lastActivityAt,
+            taskCount: row.taskCount,
+            completedTasks: row.completedTasks,
+            fast_follow_of: row.fast_follow_of,
+            ops_followup: row.ops_followup,
+            ops_followup_links: row.ops_followup_links,
+            epic_membership: row.epic_membership,
+          });
+        }
+
+        let filtered = Array.from(byId.values());
+        if (filter?.status) {
+          filtered = filtered.filter((c) => c.status === filter.status);
+        }
+        if (!wantsArchived) {
+          filtered = filtered.filter((c) => c.status !== "archived");
+        }
+        if (!wantsClosed) {
+          filtered = filtered.filter((c) => c.status !== "closed");
+        }
+        if (hasContentFilters) {
+          const enriched = filtered.map((c) => ({
+            ...c,
+            lastActivityAt: c.lastActivityAt,
+          }));
+          filtered = filterChanges(enriched, {
+            prefix: filter?.prefix,
+            titleContains: filter?.titleContains,
+            createdBefore: filter?.createdBefore,
+            lastActivityBefore: filter?.lastActivityBefore,
+          });
+        }
+        filtered.sort((a, b) => {
+          const cmp = b.created_at.localeCompare(a.created_at);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+
+        const allWarnings = [
+          ...(activeResolved.warnings ?? []),
+          ...history.warnings,
+        ];
+        const allDeadlineExceeded =
+          activeResolved.hydrationStats?.deadlineExceeded === true ||
+          history.hydrationStats.deadlineExceeded === true;
+
+        return {
+          changes: filtered,
+          hydrationStats: {
+            totalIds: filtered.length,
+            fromMemo: 0,
+            fromCache: 0,
+            fromHydration: activeRows.length,
+            ...history.hydrationStats,
+            ...(allDeadlineExceeded ? { deadlineExceeded: true } : {}),
+          },
+          ...(allWarnings.length > 0 ? { warnings: allWarnings } : {}),
         };
       }
 
@@ -903,13 +1197,20 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       let visibilityIds: string[] = [];
       if (typeof bundle.client?.workflow?.list === "function") {
         try {
-          visibilityIds = await raceWithTemporalDeadline(
-            listChangeWorkflowIds(
-              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-              { projectId: input.projectId },
-            ),
-            deadline,
+          const visibilityRead = await runTemporalRead(
+            getTemporalConnection(input),
+            () =>
+              listChangeWorkflowIds(
+                bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+                { projectId: input.projectId },
+              ),
+            ctx,
+            { opType: "visibilityList", timeoutMs: 5_000 },
           );
+          if (!visibilityRead.complete) {
+            throw visibilityRead.error;
+          }
+          visibilityIds = visibilityRead.data as string[];
         } catch (err) {
           const hitDeadline =
             err instanceof TemporalQueryTimeoutError || expired();
@@ -1088,9 +1389,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         }
         try {
           const loaded = await raceWithTemporalDeadline(
-            getTemporalChange(id, { deadline }),
-            deadline,
+            getTemporalChange(id, { context: ctx }),
+            ctx.deadline,
           );
+          if (isSchemaError(loaded)) {
+            throw new Error(loaded.error);
+          }
           if (loaded.success && loaded.data) {
             fromHydration += 1;
             const change = loaded.data;
@@ -1161,6 +1465,237 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
         },
         ...(warnings.length > 0 ? { warnings } : {}),
+      };
+    },
+    /**
+     * rq-archiveInventoryActive01: active-only, fixed-8s, fail-closed conflict
+     * authority. Membership comes only from Visibility
+     * (`AdvLifecycleState="open" AND ExecutionStatus="Running"`); facts come
+     * from the durable active projection (disk `change.json`) or a capped
+     * workflow fallback. Terminal history, archive bundles, cache, and memo
+     * cannot establish completeness.
+     */
+    listConflictAuthority: async (options) => {
+      const deadline = options?.deadline ?? createTemporalReadDeadline();
+      const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
+      const warnings: string[] = [];
+
+      const bundle = input.temporal as {
+        client?: { workflow?: { list?: unknown } };
+      };
+      let visibilityIds: string[] = [];
+      if (typeof bundle.client?.workflow?.list === "function") {
+        try {
+          visibilityIds = await raceWithTemporalDeadline(
+            listChangeWorkflowIds(
+              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+              { projectId: input.projectId },
+            ),
+            deadline,
+          );
+        } catch (err) {
+          const hitDeadline =
+            err instanceof TemporalQueryTimeoutError || expired();
+          warnings.push(
+            `Visibility active enumeration ${hitDeadline ? "exceeded the aggregate read deadline" : "failed"}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      } else {
+        warnings.push(
+          "Temporal client does not expose workflow.list; active conflict authority cannot enumerate Visibility.",
+        );
+      }
+
+      const activeIds = Array.from(new Set(visibilityIds)).sort((a, b) =>
+        a.localeCompare(b),
+      );
+
+      type FactRow = {
+        id: string;
+        title: string;
+        status: string;
+        capabilities: string[];
+        epic_membership?: Change["epic_membership"];
+        fast_follow_of?: Change["fast_follow_of"];
+      };
+      const active: FactRow[] = [];
+      let omittedCount = 0;
+      let shadowCount = 0;
+
+      type LoadActiveResult =
+        | { kind: "fact"; fact: FactRow }
+        | { kind: "shadow" }
+        | { kind: "fail"; warning: string };
+
+      const loadActiveFact = async (
+        changeId: string,
+      ): Promise<LoadActiveResult> => {
+        // Durable active projection: read disk changes/<id>/change.json
+        // directly. We deliberately avoid `legacy.changes.get` because it
+        // performs archive-bundle dominance/self-heal reads for the general
+        // listing path. The authority performs no unbounded archive scans:
+        // terminal-shadow reconciliation uses only the active durable record;
+        // archive bundles never participate in conflict authority.
+        let diskResult: Awaited<ReturnType<typeof loadChange>> | undefined;
+        let terminalProjection = false;
+        try {
+          diskResult = await raceWithTemporalDeadline(
+            loadChange(legacy.paths.changes, changeId),
+            deadline,
+          );
+        } catch (err) {
+          const hitDeadline =
+            err instanceof TemporalQueryTimeoutError || expired();
+          return {
+            kind: "fail",
+            warning: `Active fact load for ${changeId} failed${hitDeadline ? " (deadline)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+
+        if (diskResult && isSchemaError(diskResult)) {
+          throw new Error(diskResult.error);
+        }
+        if (diskResult?.success && diskResult.data) {
+          const data = diskResult.data;
+          if (data.id !== changeId) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} durable projection has mismatched id (${data.id}); cannot establish active authority.`,
+            };
+          }
+
+          // Terminal-shadow reconciliation (rq-terminalAwareTruth01): a
+          // Visibility-proven active ID with a terminal durable projection is a
+          // stale shadow. If the terminal record can be confirmed, exclude it
+          // from active membership without making the authority incomplete.
+          if (data.status === "archived" || data.status === "closed") {
+            // Visibility and the durable projection disagree. Confirm terminal
+            // state through the already-authoritative active workflow fallback,
+            // never through non-authoritative archive history.
+            terminalProjection = true;
+          } else {
+            return {
+              kind: "fact",
+              fact: {
+                id: data.id,
+                title: data.title,
+                status: data.status,
+                capabilities: Object.keys(data.deltas ?? {}),
+                epic_membership: data.epic_membership,
+                fast_follow_of: data.fast_follow_of,
+              },
+            };
+          }
+        }
+
+        // Optional workflow fallback: capped at min(1,000ms, remaining budget).
+        try {
+          const remaining = remainingDeadlineMs(deadline);
+          if (remaining <= 0) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} has no durable projection and the aggregate deadline is exhausted; cannot establish active authority.`,
+            };
+          }
+          const fallbackBudget = Math.min(1_000, Math.max(0, remaining));
+          const fallbackDeadline = {
+            budgetMs: fallbackBudget,
+            deadlineAt: Date.now() + fallbackBudget,
+          };
+          const state = (await runTemporalQuery(
+            async () =>
+              getChangeHandle(input, changeId).query(changeStateQuery),
+            { deadline: fallbackDeadline },
+          )) as ChangeWorkflowState;
+
+          if (state.changeId !== changeId) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} workflow fallback returned mismatched id (${state.changeId}); cannot establish active authority.`,
+            };
+          }
+          if (state.status === "archived" || state.status === "closed") {
+            if (terminalProjection) {
+              return { kind: "shadow" };
+            }
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} workflow fallback returned terminal status (${state.status}); cannot establish active authority.`,
+            };
+          }
+
+          if (terminalProjection) {
+            return {
+              kind: "fail",
+              warning: `Active candidate ${changeId} has a terminal durable projection but workflow fallback returned active status (${state.status}); cannot establish active authority.`,
+            };
+          }
+
+          return {
+            kind: "fact",
+            fact: {
+              id: state.changeId,
+              title: state.title,
+              status: state.status,
+              capabilities: Object.keys(state.deltas ?? {}),
+              epic_membership: (
+                state as { epic_membership?: Change["epic_membership"] }
+              ).epic_membership,
+              fast_follow_of: state.fast_follow_of,
+            },
+          };
+        } catch (err) {
+          const hitDeadline =
+            err instanceof TemporalQueryTimeoutError || expired();
+          return {
+            kind: "fail",
+            warning: `Active candidate ${changeId} workflow fallback failed${hitDeadline ? " (deadline)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+      };
+
+      const FACT_LOAD_CONCURRENCY = 4;
+      const loadConcurrency = Math.max(
+        1,
+        Math.min(32, Math.floor(options?.concurrency ?? FACT_LOAD_CONCURRENCY)),
+      );
+      for (let i = 0; i < activeIds.length; i += loadConcurrency) {
+        if (expired()) {
+          const remaining = activeIds.slice(i);
+          warnings.push(
+            `Aggregate deadline expired before all active candidates could be loaded; omitted ${remaining.length} candidate(s).`,
+          );
+          omittedCount += remaining.length;
+          break;
+        }
+        const batch = activeIds.slice(i, i + loadConcurrency);
+        const loaded = await Promise.all(batch.map(loadActiveFact));
+        for (const item of loaded) {
+          if (item.kind === "fact") {
+            active.push(item.fact);
+          } else if (item.kind === "shadow") {
+            shadowCount += 1;
+          } else {
+            warnings.push(item.warning);
+            omittedCount += 1;
+          }
+        }
+      }
+
+      active.sort((a, b) => a.id.localeCompare(b.id));
+
+      const completeness: ChangeConflictAuthority["completeness"] =
+        warnings.length === 0 && omittedCount === 0 ? "complete" : "incomplete";
+
+      return {
+        active,
+        completeness,
+        canConcludeClean: completeness === "complete",
+        warnings,
+        source: "active-conflict-authority",
+        candidateCount: activeIds.length,
+        omittedCount,
+        shadowCount,
       };
     },
   };

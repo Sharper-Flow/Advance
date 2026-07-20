@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-20T15:10:05.525Z",
+  "capabilities": [],
+  "change_hash": "f6bfbd283ef597509e039352207427eb18aa7e91c44361bd0530fef0dea64a43",
+  "change_id": "fixRecoverySchemaDrift",
+  "completed_tasks": 8,
+  "created_at": "2026-07-20T06:35:11.372Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-20T15:07:23.185Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "8bbe5759ccaf5883ea4a15659ee2133ec07ea6b98c92e94f0e768ef90ad72d25",
+  "task_count": 9,
+  "title": "Fix recovery schema drift",
+  "version": "1"
+}

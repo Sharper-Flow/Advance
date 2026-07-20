@@ -12,9 +12,10 @@
 Run package commands from `plugin/`:
 
 ```bash
-pnpm run check                 # schemas, typecheck, isolation/lockfile checks, lint, format; no tests
-pnpm run build                 # plugin + Temporal worker bundles
+pnpm run check                 # schemas:check, typecheck, agent-manifest/test-isolation/lockfile checks, lint, format:check; no tests
+pnpm run build                 # plugin + Temporal worker + build-identity bundles
 pnpm run build:worker          # required before OOP Temporal integration tests
+pnpm run generate:manifests    # regenerate agent YAML tool lists from AGENT_TOOL_POLICY (run after editing tool-role-policy.ts)
 pnpm run schemas:generate      # regenerate tracked plugin/schemas artifacts after public Zod changes
 pnpm test -- src/tools/foo.test.ts
 ```
@@ -27,22 +28,28 @@ bin/oc-test smoke
 bin/oc-test full
 ```
 
-- CI uses Node 24 and pnpm 11. CI order: schemas:check → typecheck → lint → format:check → test → build. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI builds the Temporal worker before `pnpm test` and separately runs `bun test bin/`.
+- CI uses Node 24 and pnpm 11. CI order: schemas:check → typecheck → lint → format:check → test → build. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI builds the Temporal worker before `pnpm test` and separately runs `bun test bin/` from the repo root.
 - `pnpm` owns dependencies. Never add `bun.lock` or `bun.lockb` beside `plugin/pnpm-lock.yaml`.
+- `bin/adv` is a Bun-powered standalone CLI (`adv status`, `adv roadmap`, `adv epic list --json`); requires Bun 1.3+ on PATH. `bun test bin/` covers it as a separate CI job — do not put bin/ tests under Vitest.
 
 ## Boundaries enforced by tests
 
-- Keep tests that create changes or access worktree/data-home state isolated with `createTempDir`, `tmpdir`, `os.tmpdir`, or `XDG_DATA_HOME`; the isolation checker enforces this outside its small explicit allowlist.
+- Vitest runs two projects: `unit` (`src/**/*.test.ts`, parallel) and `temporal` (`src/**/*.itest.ts`, sequential, `fileParallelism: false`). Put Temporal integration tests in `.itest.ts`, never `.test.ts`. `@opencode-ai/plugin` is mocked via the vitest alias in `vitest.config.ts` — tests never load the real SDK.
+- `pnpm test` requires `bun` on PATH: `opencode-session-debt.test.ts` shells out to `bun` to seed a `bun:sqlite` DB. Without it the suite fails with `spawnSync bun ENOENT`.
+- Keep tests that create changes or access worktree/data-home state isolated with `createTempDir`, `tmpdir`, `os.tmpdir`, or `XDG_DATA_HOME`. The isolation checker (`scripts/check-test-isolation.ts`) enforces this for any test calling `adv_change_create`, `changeCreate`, `getWorktreeBase`, or `getDataHome`; the only exempt patterns are `*-assets.test.ts` and `target-project.test.ts`.
+- Temporal test-server construction (`TestWorkflowEnvironment.createLocal` / `createTimeSkipping`) must route through `src/temporal/__tests__/with-test-env.ts`; direct construction is rejected everywhere else.
 - `plugin/src/temporal/workflows.ts` is the worker-bundle root. Its static import graph must not reach `storage/`, `tools/`, `tool-registry.ts`, `plugin-init.ts`, or `node:*`; do not add `defineUpdate` handlers to workflow-reachable code.
 - Temporal TypeScript determinism: the SDK sandbox patches `Date.now()`, `new Date()`, and `Math.random()` to deterministic replay-safe values, so workflow code may use them directly; route workflow timers/waits through Temporal workflow APIs such as `sleep()` or `condition()`, never host timers. This official SDK determinism behavior is distinct from the project-specific signal-only change-workflow surface (no `defineUpdate`). <!-- rq-temporalTsDeterminismDocs01 -->
 
 - `utils/context-snapshot.ts` is a pure formatter. Persistence-backed loading belongs in `storage/context-snapshot-fetch.ts`.
-- Zod schemas are authoritative. Public JSON schemas originate in `src/schema-registry.ts`, generated deterministically via Zod v4 `z.toJSONSchema()`; run `pnpm run schemas:generate` after public Zod changes and keep `pnpm run schemas:check` green.
+- Zod schemas are authoritative. Public JSON schemas originate in `src/schema-registry.ts`, generated deterministically via Zod v4 `z.toJSONSchema()`; run `pnpm run schemas:generate` after public Zod changes and keep `pnpm run schemas:check` green. Agent YAML `tools:` frontmatter is likewise generated from `AGENT_TOOL_POLICY` — run `pnpm run generate:manifests` after editing it and keep `pnpm run generate:manifests:check` green.
 - Tool-argument schemas use the intentional `as any` SDK-boundary cast in `tool-registry.ts`; do not remove it. Add tools through their `src/tools/*` group and its export rather than wiring handlers directly in `index.ts`.
 
 ## Deployment and local runtime
 
-- OpenCode loads the deployed `~/.local/share/Advance/plugin/dist/index.js` at session start. Source edits do not change live `adv_*` behavior until `pnpm run build`, `./scripts/deploy-local.sh --fix`, and an OpenCode/plugin-host restart.
+- OpenCode loads the deployed `~/.local/share/Advance/plugin/dist/index.js` at session start. Source edits do not change live `adv_*` behavior until `pnpm run build`, `./scripts/deploy-local.sh --fix`, and an OpenCode/plugin-host restart. There is no hot reload; OpenCode does not live-reload host-loaded plugin modules.
+- `scripts/deploy-local.sh` publishes the plugin bundle manifest (`dist/plugin-bundle-manifest.json`) safely: it requires the manifest, excludes it from the payload rsync, validates the copied `dist/index.js` SHA-256 against the manifest, and copies the manifest last. The manifest generation/hash is the authoritative bundle identity; filesystem mtimes are advisory only.
 - `scripts/deploy-local.sh` mirrors supported plugin, command, agent, overlay, skill, and CLI assets. It needs `jq` to patch config and `rsync` for plugin deployment. Preview with `--dry-run --diff`.
+- The first deploy of this manifest-aware sequence requires one OpenCode restart to bootstrap the loaded plugin generation; after that, every system transform and health probe can report `PLUGIN_BUNDLE_STALE` when the deployed bundle is newer than the loaded one.
 - `.opencode/worktree.jsonc` installs `plugin/` dependencies after ADV worktree creation; `pnpm` must be on `PATH`.
 - Opt-in hooks run `deploy-local.sh --fix` after commits and before pushes when deployed ADV assets change. They do not block a push if deployment fails.

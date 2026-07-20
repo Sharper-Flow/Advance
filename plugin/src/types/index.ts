@@ -67,10 +67,21 @@ export {
   CAPABILITY_KEY_PATTERN,
   CapabilityKeySchema,
   type CapabilityKey,
+  SHA256DigestSchema,
+  DeltaPreconditionSchema,
+  type DeltaPrecondition,
   DeltaSchema,
   type Delta,
   DeltaAddSchema,
   type DeltaAdd,
+  DeltaModifyChangesSchema,
+  type DeltaModifyChanges,
+  DeltaModifySchema,
+  type DeltaModify,
+  DeltaRemoveSchema,
+  type DeltaRemove,
+  DeltaRenameSchema,
+  type DeltaRename,
 } from "./specs";
 
 // =============================================================================
@@ -129,6 +140,26 @@ export {
   TaskSchema,
   type Task,
 } from "./tasks";
+
+// =============================================================================
+// Evidence Policy
+// =============================================================================
+export {
+  PROOF_BEARING_EVIDENCE_POLICIES,
+  WARN_FIRST_EVIDENCE_POLICIES,
+  isProofBearingEvidencePolicy,
+  isWarnFirstEvidencePolicy,
+  ReviewEvidenceRefSchema,
+  type ReviewEvidenceRef,
+  TaskEvidenceCompatibilitySchema,
+  type TaskEvidenceCompatibility,
+  TaskEvidenceStageSchema,
+  type TaskEvidenceStage,
+  TaskEvidencePlanSchema,
+  type TaskEvidencePlan,
+  TaskEvidenceResolutionSchema,
+  type TaskEvidenceResolution,
+} from "./evidence-policy";
 
 // =============================================================================
 // Sub-agent Reports
@@ -238,6 +269,11 @@ export {
   BriefingPacketLaneSchema,
   type BriefingPacketLane,
   BRIEFING_PACKET_LANE_TO_AGENT,
+  BRIEFING_PACKET_LANE_DESCRIPTORS,
+  type BriefingPacketLaneDescriptor,
+  type ManifestLaneDescriptor,
+  type VirtualLaneDescriptor,
+  type ArchiveLaneDescriptor,
   BriefingFactOutcomeSchema,
   type BriefingFactOutcome,
   RESEARCH_CITATION_RENDER_LIMIT,
@@ -284,6 +320,12 @@ export {
   type GateCriterion,
   type CriterionDef,
   GATE_CRITERIA_DEFINITIONS,
+  AcceptanceCriteriaFreshnessSchema,
+  type AcceptanceCriteriaFreshness,
+  AcceptanceCriteriaSnapshotSchema,
+  type AcceptanceCriteriaSnapshot,
+  AcceptanceCriteriaProjectionSchema,
+  type AcceptanceCriteriaProjection,
 } from "./gates";
 
 // =============================================================================
@@ -396,6 +438,32 @@ export {
   type OpsFollowupLink,
 } from "./changes";
 
+export {
+  LightweightProfileCriterionIdSchema,
+  type LightweightProfileCriterionId,
+  LightweightProfileCriterionStatusSchema,
+  type LightweightProfileCriterionStatus,
+  LightweightProfileRequestSchema,
+  type LightweightProfileRequest,
+  LightweightProfileEvidenceSnapshotSchema,
+  type LightweightProfileEvidenceSnapshot,
+  LightweightProfileCriterionRecordSchema,
+  type LightweightProfileCriterionRecord,
+  LightweightProfileResultSchema,
+  type LightweightProfileResult,
+  LightweightProfilePhaseSchema,
+  type LightweightProfilePhase,
+  LightweightProfileEvaluationSchema,
+  type LightweightProfileEvaluation,
+  LightweightProfileOmissionPolicySchema,
+  type LightweightProfileOmissionPolicy,
+  LightweightChangeProfileSchema,
+  type LightweightChangeProfile,
+  buildLightweightProfileEvaluationKey,
+  evaluateLightweightProfile,
+  LIGHTWEIGHT_PROFILE_OMISSION_CATEGORIES,
+} from "./lightweight-change-profile";
+
 // =============================================================================
 // Project
 // =============================================================================
@@ -468,3 +536,4 @@ export {
 // Signal Payloads
 // =============================================================================
 export * from "./signals";
+export * from "./archive-projection";

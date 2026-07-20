@@ -5,6 +5,7 @@
  */
 
 import type { Change, Spec } from "../types";
+import type { SpecProjectionManifest } from "./projection";
 
 // =============================================================================
 // Delta Application Result
@@ -51,6 +52,10 @@ export interface ArchiveOperationResult {
   specsUpdated: SpecUpdateResult[];
   /** Documentation files generated */
   docsGenerated: string[];
+  /** Exact worktree-owned paths that release finalization may stage. */
+  commitPaths: string[];
+  /** Derived full-projection proof written into new archive bundles. */
+  projectionManifest?: SpecProjectionManifest;
   /** Path to the archived change */
   archivePath: string;
   /** Errors encountered */
@@ -61,6 +66,12 @@ export interface ArchiveOperationResult {
   wisdomPromoted?: number;
   /** Multi-repo archive refs/preflight metadata, when change has scope_repos */
   multiRepo?: MultiRepoArchiveMetadata;
+  /** Terminal summary degradation; present when the sidecar could not be
+   *  written but the change.json authority remains valid (legacy fallback). */
+  terminalSummaryDegradation?: {
+    reason: string;
+    fallback: "legacy_change_json";
+  };
 }
 
 export interface MultiRepoArchiveRepoMetadata {
@@ -143,4 +154,6 @@ export interface ArchiveContext {
   dryRun?: boolean;
   /** Product id for multi-repo archive metadata. */
   productId?: string;
+  /** Existing external bundle reused by retry; projection is reconciled without rewriting it. */
+  reuseExistingBundlePath?: string;
 }

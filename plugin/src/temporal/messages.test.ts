@@ -7,6 +7,7 @@ vi.mock("@temporalio/workflow", () => ({
 }));
 
 import {
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
 } from "./contracts";
@@ -56,6 +57,8 @@ import {
   OpsFollowupSeededSignalPayloadSchema,
   OpsRunEvidenceAppendedSignalPayloadSchema,
   OpsRunUpsertedSignalPayloadSchema,
+  LightweightProfileRequestedSignalPayloadSchema,
+  LightweightProfileEvaluatedSignalPayloadSchema,
 } from "../types";
 
 const designSignalKeys = [
@@ -87,6 +90,7 @@ const designSignalKeys = [
   "gateReentered",
   "wisdomAdded",
   "specDeltaAdded",
+  "specDeltaModified",
   "reflectionRecorded",
   "worktreeCreated",
   "worktreeDeleted",
@@ -105,6 +109,8 @@ const designSignalKeys = [
   "opsEvidenceAppended",
   "opsRunUpserted",
   "opsRunEvidenceAppended",
+  "lightweightProfileRequested",
+  "lightweightProfileEvaluated",
   "epicMembershipSet",
   "epicMembershipCleared",
   "updateArtifactMetadata",
@@ -118,16 +124,18 @@ const designQueryKeys = [
   "getTasks",
   "getGateStatus",
   "getGateCriteria",
+  "getAcceptanceCriteriaProjection",
   "getWorktrees",
   "getConformanceState",
+  "getMutationReceipt",
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 52 signal surface", () => {
+  it("defines the 55 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(52);
+    expect(surfacedKeys).toHaveLength(55);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -135,7 +143,7 @@ describe("change workflow message contract", () => {
     }
   });
 
-  it("defines the seven design query bindings", () => {
+  it("defines the eight design query bindings", () => {
     expect(Object.keys(CHANGE_WORKFLOW_QUERY_NAMES)).toEqual([
       ...designQueryKeys,
     ]);
@@ -144,6 +152,26 @@ describe("change workflow message contract", () => {
       expect(CHANGE_WORKFLOW_QUERY_NAMES[key]).toBe(`adv.change.${key}`);
       expect(messages[`${key}Query` as keyof typeof messages]).toBeDefined();
     }
+  });
+
+  it("binds the canonical phase-plan query from the centralized wire name while preserving getDirective", () => {
+    // SC1/AC8: one centralized canonical read-query name drives both the
+    // client-side binding and the workflow handler registration.
+    expect(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan).toBe(
+      "adv.change.getPhasePlan",
+    );
+    expect(messages.getPhasePlanQuery).toEqual({
+      kind: "query",
+      name: "adv.change.getPhasePlan",
+    });
+    // SC2/AC6: the legacy directive compat query is preserved unchanged.
+    expect(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective).toBe(
+      "adv.change.getDirective",
+    );
+    expect(messages.getDirectiveQuery).toEqual({
+      kind: "query",
+      name: "adv.change.getDirective",
+    });
   });
 
   it("validates representative payloads for every design signal schema", () => {
@@ -518,6 +546,70 @@ describe("change workflow message contract", () => {
             next_status: "complete",
           },
           appendedAt: timestamp,
+        },
+      ],
+      [
+        LightweightProfileRequestedSignalPayloadSchema,
+        {
+          request: {
+            requestId: "req-1",
+            baselineRevision: "base-abc",
+            requestedAt: timestamp,
+            requestedBy: "agent",
+          },
+          omissionPolicy: {
+            omitDeepScans: true,
+            omitGenericExternalResearch: true,
+            omitOpportunityScouting: true,
+            omitDefaultSpecialistDelegation: true,
+          },
+          requestedAt: timestamp,
+        },
+      ],
+      [
+        LightweightProfileEvaluatedSignalPayloadSchema,
+        {
+          evaluation: {
+            evaluationKey: "req-1:initial:fp-1",
+            phase: "initial",
+            result: "qualified",
+            criteria: [
+              {
+                criterion: "implementation_task_count",
+                status: "satisfied",
+                reason: "One implementation task",
+              },
+              {
+                criterion: "changed_file_count",
+                status: "satisfied",
+                reason: "One path",
+              },
+              {
+                criterion: "spec_delta",
+                status: "satisfied",
+                reason: "No spec delta",
+              },
+              {
+                criterion: "dependency_change",
+                status: "satisfied",
+                reason: "No dependency change",
+              },
+              {
+                criterion: "api_compatibility",
+                status: "satisfied",
+                reason: "Proven private",
+              },
+              {
+                criterion: "repository_scope",
+                status: "satisfied",
+                reason: "Current project only",
+              },
+            ],
+            evidenceFingerprint: "fp-1",
+            observedRevision: "head-abc",
+            evaluatedAt: timestamp,
+          },
+          evaluatedAt: timestamp,
         },
       ],
       [

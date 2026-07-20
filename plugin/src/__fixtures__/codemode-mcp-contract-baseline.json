@@ -1,17 +1,17 @@
 {
-  "description": "Frozen pre-change effective assembled-prompt baseline for the mode-neutral MCP contract (change updateCodemodeMcpContracts). Regenerate only via a deliberate, reviewed migration. Migrated 2026-07-15 (tk-edda3d10b529): re-frozen from trunk a5898ce5 after peer change consolidateAdvToolSurface2 archived; original pre-peer freeze made the merged tree measure peer role-policy frontmatter bytes against this changes 400-byte mode-guidance budget. External MCP grants verified byte-identical across the migration.",
-  "frozenFrom": "pre-change corpus at trunk a5898ce5 (post-archive consolidateAdvToolSurface2)",
-  "frozenAt": "2026-07-15",
+  "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerate only via a deliberate, reviewed migration. Migrated 2026-07-17 (gateAgentToolsRole release): re-frozen from the change/gateAgentToolsRole + trunk merge tree because generated role-policy tools frontmatter (AGENT_TOOL_POLICY manifests) added 343-578 bytes per agent prompt, which the 400-byte mode-guidance budget is not meant to measure. Same class as the 2026-07-15 tk-edda3d10b529 migration. External MCP grants verified byte-identical across the migration.",
+  "frozenFrom": "change/gateAgentToolsRole merged with origin/trunk 3fc12c67 (post role-policy manifest generation)",
+  "frozenAt": "2026-07-17",
   "byteBudget": 400,
   "contractBytes": 305,
   "prompts": {
     "adv-ci-waiter": {
-      "bytes": 4119,
+      "bytes": 4223,
       "mcpCapable": false,
       "grants": []
     },
     "adv-designer": {
-      "bytes": 24333,
+      "bytes": 25046,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -32,7 +32,7 @@
       ]
     },
     "adv-engineer": {
-      "bytes": 16487,
+      "bytes": 16946,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -53,7 +53,7 @@
       ]
     },
     "adv-researcher": {
-      "bytes": 11421,
+      "bytes": 11937,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -72,7 +72,7 @@
       ]
     },
     "adv-reviewer": {
-      "bytes": 24918,
+      "bytes": 25121,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -93,12 +93,12 @@
       ]
     },
     "adv-temporal-repair": {
-      "bytes": 5575,
+      "bytes": 5987,
       "mcpCapable": true,
       "grants": ["lgrep_get_file_outline=true", "lgrep_search_text=true"]
     },
     "adv-tron": {
-      "bytes": 9882,
+      "bytes": 10295,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -118,7 +118,7 @@
       ]
     },
     "adv-verifier": {
-      "bytes": 6918,
+      "bytes": 7329,
       "mcpCapable": true,
       "grants": [
         "lgrep_get_file_outline=true",
@@ -130,7 +130,7 @@
       ]
     },
     "adv-visual-review": {
-      "bytes": 7664,
+      "bytes": 8102,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -148,7 +148,7 @@
       ]
     },
     "adv": {
-      "bytes": 27644,
+      "bytes": 27837,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -171,7 +171,7 @@
       ]
     },
     "build": {
-      "bytes": 9488,
+      "bytes": 9727,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -199,7 +199,7 @@
       ]
     },
     "plan": {
-      "bytes": 11311,
+      "bytes": 11548,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -224,7 +224,7 @@
       ]
     },
     "general": {
-      "bytes": 717,
+      "bytes": 836,
       "mcpCapable": false,
       "grants": []
     }

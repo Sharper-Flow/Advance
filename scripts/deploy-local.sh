@@ -215,7 +215,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js; do
+	for output_rel in dist/index.js dist/plugin-bundle-manifest.json dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
@@ -273,6 +273,53 @@ check_rsync() {
 		echo "    Install: sudo apt-get install -y rsync  (or brew install rsync)"
 		return 1
 	fi
+	return 0
+}
+
+PLUGIN_BUNDLE_MANIFEST_BASENAME="plugin-bundle-manifest.json"
+
+# Validate that the copied plugin bundle index matches the SHA-256 recorded in
+# the manifest. Requires jq and sha256sum (or shasum on macOS). Returns non-zero
+# on mismatch, missing manifest, or missing tools.
+validate_plugin_bundle_manifest() {
+	local manifest_path="$1"
+	local index_path="$2"
+
+	if [ ! -f "$manifest_path" ]; then
+		echo "    ✗  plugin bundle manifest missing: $manifest_path"
+		return 1
+	fi
+
+	if ! command -v jq &>/dev/null; then
+		echo "    ✗  jq not found — plugin bundle manifest validation requires jq"
+		echo "    Install: sudo apt-get install -y jq  (or brew install jq)"
+		return 1
+	fi
+
+	local expected_hash
+	expected_hash="$(jq -r '.files.index // empty' "$manifest_path" 2>/dev/null)"
+	if [ -z "$expected_hash" ] || ! [[ "$expected_hash" =~ ^[0-9a-f]{64}$ ]]; then
+		echo "    ✗  plugin bundle manifest has no valid files.index hash: $manifest_path"
+		return 1
+	fi
+
+	local actual_hash
+	if command -v sha256sum &>/dev/null; then
+		actual_hash="$(sha256sum "$index_path" | awk '{print $1}')"
+	elif command -v shasum &>/dev/null; then
+		actual_hash="$(shasum -a 256 "$index_path" | awk '{print $1}')"
+	else
+		echo "    ✗  sha256sum or shasum required to validate plugin bundle"
+		return 1
+	fi
+
+	if [ "$expected_hash" != "$actual_hash" ]; then
+		echo "    ✗  plugin bundle index hash mismatch"
+		echo "       manifest: $expected_hash"
+		echo "       actual:   $actual_hash"
+		return 1
+	fi
+
 	return 0
 }
 
@@ -578,12 +625,30 @@ check_tool_drift() {
 		return
 	fi
 
-	python3 - "$agent_file" "$registry_file" <<'PY' || ((config_issues++)) || true
+	# Ground-truth tool names come from the EXPORTED ADV_TOOL_NAMES value, not a
+	# source regex. ADV_TOOL_NAMES is a derived list
+	# (Object.freeze(PUBLIC_TOOL_ENTRIES.map(e => e.name))), so scraping the
+	# registry source for a `[...] as const` literal is stale by construction.
+	# Load the registry through tsx and emit the canonical names; this stays
+	# correct across future registry refactors. Advisory check: if tsx/node is
+	# unavailable or the import fails, skip rather than fail-loud.
+	local names_file registry_dir
+	names_file="$(mktemp)"
+	registry_dir="$ASSET_ROOT/plugin"
+	if ! (cd "$registry_dir" && npx --no-install tsx -e \
+		'import("./src/tool-registry.ts").then((m)=>{process.stdout.write(m.ADV_TOOL_NAMES.join("\n"));}).catch((e)=>{console.error(e&&e.message?e.message:e);process.exit(1);})' \
+		>"$names_file" 2>/dev/null) || [ ! -s "$names_file" ]; then
+		echo "    ⚠  tool drift: skipped (could not load ADV_TOOL_NAMES via tsx from $registry_dir)"
+		rm -f "$names_file"
+		return
+	fi
+
+	python3 - "$agent_file" "$names_file" <<'PY' || ((config_issues++)) || true
 import re
 import sys
 from pathlib import Path
 
-agent_path, registry_path = sys.argv[1], sys.argv[2]
+agent_path, names_path = sys.argv[1], sys.argv[2]
 
 # Extract agent mode and adv_* keys from YAML frontmatter `tools:` block
 agent_text = Path(agent_path).read_text()
@@ -617,13 +682,17 @@ for line in fm.splitlines():
         if m:
             allowed.add(m.group(1))
 
-# Extract ADV_TOOL_NAMES from registry
-reg_text = Path(registry_path).read_text()
-m = re.search(r"ADV_TOOL_NAMES[^=]*=\s*\[(.*?)\]\s*as const", reg_text, re.S)
-if not m:
-    print("    ✗  tool drift: could not locate ADV_TOOL_NAMES in registry")
+# Canonical registered tool names: emitted from the exported ADV_TOOL_NAMES
+# value (one per line) by the tsx loader in check_tool_drift(). Robust to
+# registry refactors that derive the list instead of declaring a literal.
+registered = {
+    line.strip()
+    for line in Path(names_path).read_text().splitlines()
+    if line.strip().startswith("adv_")
+}
+if not registered:
+    print("    ✗  tool drift: ADV_TOOL_NAMES resolved to an empty tool set")
     sys.exit(1)
-registered = set(re.findall(r'"(adv_[a-z_]+)"', m.group(1)))
 
 # Leaf subagents submit reports through this tool; primary orchestrators consume
 # those reports via change state instead of submitting reports themselves.
@@ -654,6 +723,7 @@ if issues == 0:
 
 sys.exit(1 if issues > 0 else 0)
 PY
+	rm -f "$names_file"
 }
 
 check_config() {
@@ -1145,6 +1215,23 @@ list_deployed_temporal_worker_matches() {
 	done
 }
 
+# Classifies a matched /proc/PID entry as self-roll capable. Parses the
+# NUL-separated /proc/PID/environ and recognizes only the exact entry
+# ADV_TEMPORAL_WORKER_SELF_ROLL=1. Missing, malformed, or unreadable environ
+# falls through to the legacy SIGTERM path.
+worker_has_self_roll_capability() {
+	local proc="$1"
+	local entry
+
+	[ -r "$proc/environ" ] || return 1
+	while IFS= read -r -d '' entry; do
+		if [ "$entry" = "ADV_TEMPORAL_WORKER_SELF_ROLL=1" ]; then
+			return 0
+		fi
+	done <"$proc/environ"
+	return 1
+}
+
 print_worker_action_required() {
 	local worker_script="$1"
 	local reason="$2"
@@ -1169,7 +1256,7 @@ print_worker_action_required() {
 refresh_deployed_temporal_workers() {
 	local mode="$1"
 	local runtime_plugin_path worker_script
-	local matches failures remaining pid cmd
+	local matches advisory legacy pid cmd
 	local bounce_grace_seconds=2
 
 	if runtime_plugin_path="$(cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P)"; then
@@ -1195,16 +1282,42 @@ refresh_deployed_temporal_workers() {
 		return 0
 	fi
 
+	advisory=""
+	legacy=""
+	while IFS=$'\t' read -r pid cmd; do
+		[ -n "$pid" ] || continue
+		if worker_has_self_roll_capability "/proc/$pid"; then
+			advisory+="$pid"$'\t'"$cmd"$'\n'
+		else
+			legacy+="$pid"$'\t'"$cmd"$'\n'
+		fi
+	done <<<"$matches"
+
+	if [ -n "$advisory" ]; then
+		echo "    advisory: the following deployed Temporal workers advertise self-roll capability (ADV_TEMPORAL_WORKER_SELF_ROLL=1) and will not be signaled:"
+		while IFS=$'\t' read -r pid cmd; do
+			[ -n "$pid" ] || continue
+			echo "      PID $pid — $cmd"
+		done <<<"$advisory"
+	fi
+
 	case "$mode" in
 	check | dry-run)
-		print_worker_action_required "$worker_script" "running workers match the deployed worker bundle; $mode mode is read-only" "$matches"
+		if [ -n "$legacy" ]; then
+			print_worker_action_required "$worker_script" "running legacy workers match the deployed worker bundle; $mode mode is read-only" "$legacy"
+		fi
 		echo "      No worker processes were signaled."
 		return 0
 		;;
 	esac
 
-	echo "    bouncing deployed Temporal worker(s) for: $worker_script"
-	failures=""
+	if [ -z "$legacy" ]; then
+		echo "    no legacy deployed Temporal workers require signaling; self-roll capable workers skipped"
+		return 0
+	fi
+
+	echo "    bouncing legacy deployed Temporal worker(s) for: $worker_script"
+	local failures=""
 	while IFS=$'\t' read -r pid cmd; do
 		[ -n "$pid" ] || continue
 		if kill -TERM "$pid" 2>/dev/null; then
@@ -1212,19 +1325,19 @@ refresh_deployed_temporal_workers() {
 		else
 			failures+="$pid"$'\t'"$cmd"$'\n'
 		fi
-	done <<<"$matches"
+	done <<<"$legacy"
 
 	sleep "$bounce_grace_seconds"
-	remaining=""
+	local remaining=""
 	while IFS=$'\t' read -r pid cmd; do
 		[ -n "$pid" ] || continue
 		if kill -0 "$pid" 2>/dev/null; then
 			remaining+="$pid"$'\t'"$cmd"$'\n'
 		fi
-	done <<<"$matches"
+	done <<<"$legacy"
 
 	if [ -n "$failures" ] || [ -n "$remaining" ]; then
-		print_worker_action_required "$worker_script" "one or more matching workers could not be bounced" "${failures}${remaining}"
+		print_worker_action_required "$worker_script" "one or more matching legacy workers could not be bounced" "${failures}${remaining}"
 		return 1
 	fi
 
@@ -1259,18 +1372,46 @@ if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then
 	exit 1
 fi
 ensure_plugin_dist_fresh
+
+# Guard: a production build must produce the plugin bundle manifest before we
+# publish the bundle. The manifest is the LAST file published (see below).
+PLUGIN_BUNDLE_MANIFEST="$ADV_SOURCE_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
+if [ "$DRY_RUN" != true ] && [ ! -f "$PLUGIN_BUNDLE_MANIFEST" ]; then
+	echo "    ✗  plugin bundle manifest missing: $PLUGIN_BUNDLE_MANIFEST"
+	echo "       Run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build) and retry."
+	exit 1
+fi
+
 # Tracks the post-sync worker bounce so a stuck deployed worker stays loud
 # (nonzero final exit, named in the summary) without aborting the remaining
 # independent asset/config sync under `set -e`.
 worker_refresh_exit=0
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
+	echo "    dry-run: would exclude plugin bundle manifest from payload rsync"
+	echo "    dry-run: would validate copied plugin bundle index"
+	echo "    dry-run: would publish plugin bundle manifest last"
 	refresh_deployed_temporal_workers "dry-run"
 else
 	check_rsync || exit 1
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
-	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
-	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
+	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
+	echo "    synced runtime plugin payload: $ADV_RUNTIME_PLUGIN_PATH"
+	if ! validate_plugin_bundle_manifest "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist/index.js"; then
+		echo "    ✗  refusing to publish plugin bundle manifest: copied index validation failed"
+		exit 1
+	fi
+	# Copy to a same-directory temporary file and rename it into place. The
+	# manifest is the runtime publication marker, so readers must never observe
+	# a partially copied sidecar.
+	plugin_manifest_tmp="$(mktemp "$ADV_RUNTIME_PLUGIN_PATH/dist/.plugin-bundle-manifest.XXXXXX.tmp")"
+	if ! cp "$PLUGIN_BUNDLE_MANIFEST" "$plugin_manifest_tmp"; then
+		rm -f "$plugin_manifest_tmp"
+		echo "    ✗  refusing to publish plugin bundle manifest: temporary copy failed"
+		exit 1
+	fi
+	mv -f "$plugin_manifest_tmp" "$ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
+	echo "    published plugin bundle manifest: $ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
 	refresh_deployed_temporal_workers "after-sync" || worker_refresh_exit=$?
 fi
 
@@ -1396,6 +1537,21 @@ LEGACY_STALE_AGENT_FILES=(
 	refine.md
 	engineer.md
 )
+
+# Regenerate agent tool manifests from AGENT_TOOL_POLICY before syncing so
+# global copies never drift. Only --fix rewrites files; default sync and
+# --check rely on the committed baseline being already correct.
+if [ "$MODE" = "fix" ]; then
+	echo "    regenerating agent manifests from AGENT_TOOL_POLICY"
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run: would run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run generate:manifests)"
+	else
+		if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run generate:manifests); then
+			echo "    ⚠ agent manifest generation failed (continuing deploy)"
+		fi
+	fi
+fi
+
 if [ -d "$REPO_AGENTS" ]; then
 	for src in "$REPO_AGENTS"/*.md; do
 		[ -f "$src" ] || continue
@@ -1449,8 +1605,9 @@ sync_adv_runtime_agent
 # `adv` is intentionally NOT in this list — see SHARED_OVERLAY_ONLY note above.
 if [ -d "$REPO_OVERLAYS" ]; then
 	echo "    syncing shared-agent overlays"
-	apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
 	apply_overlay_block "build" "$GLOBAL_AGENTS/build.md" "$REPO_AGENTS/build.md"
+	apply_overlay_block "explore" "$GLOBAL_AGENTS/explore.md"
+	apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
 	apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md" "$REPO_AGENTS/plan.md"
 fi
 

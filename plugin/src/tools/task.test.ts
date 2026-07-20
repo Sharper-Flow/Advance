@@ -340,6 +340,25 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.task).toEqual(fallbackTask);
       expect(store.changes.list).toHaveBeenCalledTimes(1);
     });
+
+    // rq-schemaDriftToolLayer: schema errors from store.tasks.show must
+    // propagate verbatim. They are not recoverable via the structural fallback
+    // scan (which also reads change.json), so masking them as "Task not found"
+    // hides a real corruption signal. Pre-fix this throws nothing and returns
+    // "Task not found"; post-fix resolveChangeId rethrows schema errors.
+    test("propagates schema errors from store.tasks.show verbatim instead of masking as 'Task not found'", async () => {
+      const schemaErrorText =
+        'Schema validation failed for change "test-change":\n  status: invalid';
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async () => Promise.reject(new Error(schemaErrorText))),
+        },
+      });
+
+      await expect(
+        taskTools.adv_task_show.execute({ taskId: "tk-schema-broken" }, store),
+      ).rejects.toThrow(/Schema validation failed/);
+    });
   });
 
   describe("adv_task_list", () => {
@@ -926,6 +945,252 @@ describe("task tools — signal/query adapters", () => {
         expect.objectContaining({ taskId: "tk-abc" }),
       );
     });
+
+    test("repairs evidence policy before planning closes", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Test Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              type: "research",
+            },
+          ],
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+        type: "research",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          evidence_policy: "source_citation",
+          evidence_rationale: "Cited source covers the behavior.",
+          proof_target: "Authoritative source citation",
+          contract_refs: { implements: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        partial: {
+          evidence_plan: {
+            policy: "source_citation",
+            proof_target: "Authoritative source citation",
+            rationale: "Cited source covers the behavior.",
+            provenance: "new",
+            stage: "stage-v2",
+          },
+        },
+      });
+      expect(parsed.contractCoverage.uncoveredAcceptanceCriteria).toHaveLength(
+        0,
+      );
+    });
+
+    test("rejects evidence plan repair after planning closes", async () => {
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          evidence_policy: "source_citation",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("after planning gate is complete");
+      expect(parsed.code).toBe("EVIDENCE_PLAN_REPAIR_AFTER_PLANNING");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("rejects invalid evidence plan repair", async () => {
+      const store = createMockStore();
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          evidence_policy: "not_applicable",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("Invalid evidence plan repair");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("surfaces contract coverage in task update output", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Test Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            },
+          ],
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+        contract_refs: { implements: ["AC1"] },
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+          contract_refs: { implements: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.contractCoverage).toBeDefined();
+      expect(parsed.contractCoverage.uncoveredAcceptanceCriteria).toHaveLength(
+        0,
+      );
+      expect(parsed.contractCoverage.taskCoverage).toContainEqual(
+        expect.objectContaining({ taskId: "tk-abc", implements: ["AC1"] }),
+      );
+    });
+
+    test("surfaces cancellation metadata in task update contract coverage", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-cancelled",
+              title: "Cancelled task",
+              status: "cancelled",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1"] },
+            },
+          ],
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-cancelled",
+        status: "cancelled",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-cancelled",
+          status: "pending",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.contractCoverage.cancelledTaskIds).toEqual([
+        "tk-cancelled",
+      ]);
+      expect(parsed.contractCoverage.cancelledTaskCount).toBe(1);
+    });
   });
 
   describe("adv_task_add", () => {
@@ -949,6 +1214,12 @@ describe("task tools — signal/query adapters", () => {
           title: "New Task",
           status: "pending",
           metadata: { tdd_intent: "inline" },
+          evidence_plan: expect.objectContaining({
+            policy: "test",
+            proof_target: expect.any(String),
+            provenance: "new",
+            stage: "stage-v2",
+          }),
         }),
       });
     });
@@ -979,6 +1250,52 @@ describe("task tools — signal/query adapters", () => {
           evidence_policy: "source_citation",
         }),
       });
+    });
+
+    test("accepts a stage-v2 behavior-critical review route with prep proof", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Review-only behavior change",
+          type: "code",
+          evidence_policy: "review",
+          evidence_rationale:
+            "A focused review proves this configuration-only invariant.",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.task.evidence_plan).toMatchObject({
+        policy: "review",
+        rationale: "A focused review proves this configuration-only invariant.",
+        provenance: "new",
+        stage: "stage-v2",
+      });
+      expect(parsed.task.evidence_plan.review_conclusion).toBeUndefined();
+    });
+
+    test("rejects a behavior-critical non-test route without its required proof", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Review-only behavior change",
+          type: "code",
+          evidence_policy: "review",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toMatch(/Invalid evidence plan.*rationale/i);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("derives metadata.tdd_intent from task type when missing", async () => {
@@ -1408,10 +1725,49 @@ describe("task tools — signal/query adapters", () => {
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
-        partial: {
+        partial: expect.objectContaining({
           metadata: { tdd_intent: "not_applicable" },
-        },
+          evidence_plan: expect.objectContaining({
+            provenance: "reclassified",
+          }),
+        }),
       });
+    });
+
+    test("rejects reclassification that would create an invalid evidence plan", async () => {
+      const store = createMockStore();
+      const task = {
+        id: "tk-review-route",
+        title: "Review-only behavior change",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-07-17T00:00:00.000Z",
+        metadata: { tdd_intent: "inline" },
+        evidence_policy: "review",
+      } as import("../types").Task;
+
+      vi.mocked(store.tasks.show).mockResolvedValue({
+        task,
+        changeId: "test-change",
+      });
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-review-route",
+          toIntent: "not_applicable",
+          reason: "Reassess evidence route",
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      // Stage-v2 plans defer reviewer-owned proof to completion; only the
+      // bounded rationale is required at prep.
+      expect(parsed.error).toMatch(/requires a bounded rationale/);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("routes target_path TDD reclassification through the target store", async () => {
@@ -1461,9 +1817,9 @@ describe("task tools — signal/query adapters", () => {
         expect.anything(),
         expect.objectContaining({
           taskId: "tk-target",
-          partial: {
+          partial: expect.objectContaining({
             metadata: { tdd_intent: "not_applicable" },
-          },
+          }),
         }),
       );
     });

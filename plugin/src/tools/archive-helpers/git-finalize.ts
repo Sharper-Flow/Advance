@@ -1,6 +1,6 @@
 import { realpathSync } from "fs";
 import { spawnSync } from "child_process";
-import { dirname } from "path";
+import { dirname, isAbsolute, normalize, sep as pathSeparator } from "path";
 import { spawnSyncGit } from "../../utils/git-binary";
 import { parseWorktreeListPorcelain } from "../worktree/porcelain-parser";
 import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
@@ -474,6 +474,19 @@ function defaultRunGit(
       ? `git ${args.join(" ")} timed out after ${timeoutMs}ms`
       : redactGitOutput(stderr ?? ""),
   };
+}
+
+/**
+ * Build a `runGit` bound to a per-call timeout, suitable for injection as
+ * `deps.runGit` into detection helpers whose synchronous `spawnSync` git
+ * calls must be budget-bounded (a stuck call would otherwise block for the
+ * full DEFAULT_GIT_TIMEOUT_MS and escape a tool budget). Each call kills the
+ * git process on overrun and surfaces status 124 (rq-archivedBranchCleanupInversion01).
+ */
+export function makeBoundedRunGit(
+  timeoutMs: number,
+): NonNullable<GitFinalizeDeps["runGit"]> {
+  return (cwd, args) => defaultRunGit(cwd, args, timeoutMs);
 }
 
 function defaultRunGh(
@@ -2076,6 +2089,54 @@ function parseLocalChangeBranchRefs(output: string): Array<{
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 }
 
+export interface LocalChangeBranchEntry {
+  changeId: string;
+  branch: string;
+  localSha: string;
+}
+
+export type ListLocalChangeBranchesResult =
+  | { status: "ok"; entries: LocalChangeBranchEntry[] }
+  | {
+      status: "blocked";
+      reason: "LOCAL_BRANCH_LIST_FAILED";
+      details: string[];
+    };
+
+/**
+ * Enumerate the local `change/*` branches with their object names.
+ *
+ * Extracted from `detectArchivedMergedBranches` so the archived-branch
+ * cleanup helper can build its archived-id set per local branch (via
+ * `store.changes.get`) instead of enumerating the whole archive. Behavior
+ * is identical to the previous inline logic: same `git branch --list`
+ * invocation, same parse, same fail-closed blocked result
+ * (rq-archivedBranchCleanupInversion01).
+ */
+export function listLocalChangeBranchEntries(
+  mainCheckout: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): ListLocalChangeBranchesResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const localBranches = runGit(mainCheckout, [
+    "branch",
+    "--list",
+    "--format=%(refname:short) %(objectname)",
+    "change/*",
+  ]);
+  if (localBranches.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "LOCAL_BRANCH_LIST_FAILED",
+      details: splitLines(localBranches.stderr || localBranches.stdout),
+    };
+  }
+  return {
+    status: "ok",
+    entries: parseLocalChangeBranchRefs(localBranches.stdout),
+  };
+}
+
 export function detectArchivedMergedBranches(
   input: {
     mainCheckout: string;
@@ -2089,21 +2150,16 @@ export function detectArchivedMergedBranches(
     ? new Set(input.archivedChangeIds)
     : null;
 
-  const localBranches = runGit(input.mainCheckout, [
-    "branch",
-    "--list",
-    "--format=%(refname:short) %(objectname)",
-    "change/*",
-  ]);
-  if (localBranches.status !== 0) {
+  const local = listLocalChangeBranchEntries(input.mainCheckout, deps);
+  if (local.status === "blocked") {
     return {
       status: "blocked",
-      reason: "LOCAL_BRANCH_LIST_FAILED",
-      details: splitLines(localBranches.stderr || localBranches.stdout),
+      reason: local.reason,
+      details: local.details,
     };
   }
 
-  const candidates = parseLocalChangeBranchRefs(localBranches.stdout).filter(
+  const candidates = local.entries.filter(
     (entry) => !archivedSet || archivedSet.has(entry.changeId),
   );
 
@@ -2675,11 +2731,27 @@ export function commitArchiveArtifacts(
   workdir: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
+  artifactPaths?: string[],
 ): { committed: boolean; commitSha?: string; error?: string } {
   const runGit = deps.runGit ?? defaultRunGit;
+  const paths = artifactPaths?.length ? [...new Set(artifactPaths)] : [".adv/"];
+  const invalidPath = paths.find((path) => {
+    const normalized = normalize(path);
+    return (
+      isAbsolute(path) ||
+      normalized === ".." ||
+      normalized.startsWith(`..${pathSeparator}`)
+    );
+  });
+  if (invalidPath) {
+    return {
+      committed: false,
+      error: `Archive artifact path must stay within the worktree: ${invalidPath}`,
+    };
+  }
 
   // Check if there are any changes to commit
-  const status = runGit(workdir, ["status", "--porcelain", ".adv/"]);
+  const status = runGit(workdir, ["status", "--porcelain", "--", ...paths]);
   if (status.status !== 0) {
     return {
       committed: false,
@@ -2692,7 +2764,7 @@ export function commitArchiveArtifacts(
   }
 
   // Stage and commit
-  const add = runGit(workdir, ["add", ".adv/"]);
+  const add = runGit(workdir, ["add", "--", ...paths]);
   if (add.status !== 0) {
     return {
       committed: false,
@@ -2723,6 +2795,8 @@ export interface GitFinalizeContext {
   archiveMode: ArchiveMode;
   autoPush: boolean;
   skipPush?: boolean;
+  /** Exact worktree-relative bundle/spec/doc paths owned by archive. */
+  artifactPaths?: string[];
 }
 
 export async function finalizeRelease(
@@ -2764,7 +2838,12 @@ export async function finalizeRelease(
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps);
 
   // Commit in-repo archive artifacts before merge
-  const commitResult = commitArchiveArtifacts(ctx.workdir, ctx.changeId, deps);
+  const commitResult = commitArchiveArtifacts(
+    ctx.workdir,
+    ctx.changeId,
+    deps,
+    ctx.artifactPaths,
+  );
   if (commitResult.error) {
     return {
       status: "blocked",

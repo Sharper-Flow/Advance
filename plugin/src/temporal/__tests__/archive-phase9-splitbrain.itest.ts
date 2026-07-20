@@ -29,7 +29,6 @@ import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { TestWorkflowEnvironment } from "@temporalio/testing";
 import type { WorkflowHandle } from "@temporalio/client";
 
 import { createDefaultGates } from "../../types";
@@ -48,7 +47,7 @@ import {
   cleanupTempDir,
   parseToolOutput,
 } from "../../__tests__/setup";
-import { withTestWorkflowEnvironment } from "./with-test-env";
+import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 
 const CHANGE_ID = "splitbrainPhase9Recovery";
 
@@ -195,84 +194,81 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
       await mkdir(bundleDir, { recursive: true });
       await writeFile(join(bundleDir, "change.json"), "{}\n");
 
-      await withTestWorkflowEnvironment(
-        () => TestWorkflowEnvironment.createTimeSkipping(),
-        async (env) => {
-          const namespace = "default";
-          const taskQueue = buildProjectTaskQueue(projectId!);
+      await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+        const namespace = "default";
+        const taskQueue = buildProjectTaskQueue(projectId!);
 
-          const worker = await createInProcessWorker({
-            address: env.address ?? "127.0.0.1:7233",
-            namespace,
-            queues: [taskQueue],
-            connection: env.nativeConnection,
+        const worker = await createInProcessWorker({
+          address: env.address ?? "127.0.0.1:7233",
+          namespace,
+          queues: [taskQueue],
+          connection: env.nativeConnection,
+        });
+
+        try {
+          // Real STSL so getService() inside recordPhase9Status resolves and
+          // the phase9 signal routes through a live Temporal client.
+          resetStsl();
+          const bundle = await initStsl({
+            ADV_TEMPORAL_ADDRESS: env.address ?? "127.0.0.1:7233",
+            ADV_TEMPORAL_NAMESPACE: namespace,
+            ADV_TEMPORAL_ALLOW_REMOTE: "true",
           });
 
-          try {
-            // Real STSL so getService() inside recordPhase9Status resolves and
-            // the phase9 signal routes through a live Temporal client.
-            resetStsl();
-            const bundle = await initStsl({
-              ADV_TEMPORAL_ADDRESS: env.address ?? "127.0.0.1:7233",
-              ADV_TEMPORAL_NAMESPACE: namespace,
-              ADV_TEMPORAL_ALLOW_REMOTE: "true",
-            });
+          const store = createTemporalStoreBackend({
+            legacy,
+            temporal: { client: bundle.client as unknown as never },
+            projectId: projectId!,
+          });
+          await store.init();
 
-            const store = createTemporalStoreBackend({
-              legacy,
-              temporal: { client: bundle.client as unknown as never },
-              projectId: projectId!,
-            });
-            await store.init();
+          // Live change workflow the re-run will signal.
+          const handle = (await env.client.workflow.start("changeWorkflow", {
+            workflowId: buildChangeWorkflowId(projectId!, CHANGE_ID),
+            taskQueue,
+            args: [makeChangeInput(projectId!, CHANGE_ID)],
+          })) as ChangeWorkflowHandle;
 
-            // Live change workflow the re-run will signal.
-            const handle = (await env.client.workflow.start("changeWorkflow", {
-              workflowId: buildChangeWorkflowId(projectId!, CHANGE_ID),
-              taskQueue,
-              args: [makeChangeInput(projectId!, CHANGE_ID)],
-            })) as ChangeWorkflowHandle;
+          const change = makeSplitBrainChange(CHANGE_ID);
+          const output = await reconcileArchivedBundleRetry({
+            store,
+            change,
+            changeId: CHANGE_ID,
+            archiveMode: "direct",
+            phase9: "run",
+            existingBundlePath: bundleDir,
+            openOpsObligationsPayload: {},
+            validationWarnings: [],
+          });
 
-            const change = makeSplitBrainChange(CHANGE_ID);
-            const output = await reconcileArchivedBundleRetry({
-              store,
-              change,
-              changeId: CHANGE_ID,
-              archiveMode: "direct",
-              phase9: "run",
-              existingBundlePath: bundleDir,
-              openOpsObligationsPayload: {},
-              validationWarnings: [],
-            });
+          const parsed = parseToolOutput<{
+            success?: boolean;
+            noOp?: boolean;
+            error?: string;
+            releaseGate?: { status?: string };
+          }>(output);
+          // The re-run itself must succeed (reached the phase9 recording step).
+          expect(
+            parsed.error,
+            `re-run errored: ${parsed.error}`,
+          ).toBeUndefined();
+          expect(parsed.success).toBe(true);
 
-            const parsed = parseToolOutput<{
-              success?: boolean;
-              noOp?: boolean;
-              error?: string;
-              releaseGate?: { status?: string };
-            }>(output);
-            // The re-run itself must succeed (reached the phase9 recording step).
-            expect(
-              parsed.error,
-              `re-run errored: ${parsed.error}`,
-            ).toBeUndefined();
-            expect(parsed.success).toBe(true);
+          // The release gate reconciled to done through live Temporal.
+          const stateAfter: ChangeWorkflowState =
+            await handle.query(getChangeStateQuery);
+          expect(stateAfter.gates.release?.status).toBe("done");
 
-            // The release gate reconciled to done through live Temporal.
-            const stateAfter: ChangeWorkflowState =
-              await handle.query(getChangeStateQuery);
-            expect(stateAfter.gates.release?.status).toBe("done");
-
-            // AC3 core: phase9_status is durably recorded as done via the live
-            // Temporal phase9StatusUpdatedSignal. RED against the unfixed guard
-            // (unset phase9_status is skipped), GREEN once recorded.
-            expect(stateAfter.phase9_status?.status).toBe("done");
-            expect(stateAfter.phase9_status?.completedAt).toBeTruthy();
-          } finally {
-            await worker.shutdown();
-            await closeStsl();
-          }
-        },
-      );
+          // AC3 core: phase9_status is durably recorded as done via the live
+          // Temporal phase9StatusUpdatedSignal. RED against the unfixed guard
+          // (unset phase9_status is skipped), GREEN once recorded.
+          expect(stateAfter.phase9_status?.status).toBe("done");
+          expect(stateAfter.phase9_status?.completedAt).toBeTruthy();
+        } finally {
+          await worker.shutdown();
+          await closeStsl();
+        }
+      });
     } finally {
       await cleanupTempDir(tempDir);
     }

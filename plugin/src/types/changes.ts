@@ -22,7 +22,10 @@ import {
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
+import { AcceptanceCriteriaSnapshotSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
+import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
+import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
 export {
   ContractEvidencePolicySchema,
   type ContractEvidencePolicy,
@@ -937,6 +940,19 @@ export const ChangeSchema = z
     /** Legacy acceptance criteria projection derived from contract items. */
     acceptanceCriteria: z.array(z.string()).optional(),
     /**
+     * Monotonic revision counter for acceptance-readiness state. Advanced
+     * when the contract, contract amendments, review matrix, or relevant
+     * re-entry change. Optional for backward compatibility; legacy state
+     * defaults to 0.
+     */
+    acceptanceReadinessRevision: z.number().int().nonnegative().optional(),
+    /**
+     * Snapshot of acceptance criteria captured at gate-completion time, keyed
+     * to the acceptanceReadinessRevision at capture. Preserved as audit evidence
+     * while the live projection recomputes current criteria on every read.
+     */
+    acceptanceCriteriaSnapshot: AcceptanceCriteriaSnapshotSchema.optional(),
+    /**
      * Workflow document content — authoritative source for the six change
      * artifacts (proposal, problemStatement, agreement, design,
      * executiveSummary, acceptance). Populated by content signals into
@@ -1089,6 +1105,15 @@ export const ChangeSchema = z
      * observe this field via adv_change_show to confirm completion.
      */
     phase9_status: Phase9FinalizationStatusSchema.optional(),
+
+    /** Immutable released-projection proof required by terminal archive state. */
+    archive_projection_proof: ArchiveProjectionProofReceiptSchema.optional(),
+
+    /**
+     * Lightweight change profile state: request, immutable omission policy, and
+     * append-only evaluation history. Optional for backward compatibility.
+     */
+    lightweight_profile: LightweightChangeProfileSchema.optional(),
 
     /**
      * Ops/enabler follow-up profile on this change (child/follow-up context).

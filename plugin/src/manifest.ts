@@ -3,6 +3,7 @@
  *
  * Type-safe workflow manifest defining all ADV commands with their
  * phase, gate affinity, prerequisites, and successors.
+ * rq-M4n1f3s1: status/workflow recommendations derive from this typed manifest.
  *
  * Used by command tooling for command metadata and workflow sequencing.
  * TypeScript constant — compile-time checked, zero parse overhead.

@@ -102,6 +102,18 @@ execution task/gate calls with `WorktreeIsolationViolation`,
 returned workdir. Git commands stay allowed so recovery and normal git
 operations are not routed through the firewall classifier.
 
+Firewall trunk evaluation is target-relative: each write target is checked
+against the git worktree topology of the repository that owns it, so writes
+into a foreign repository's main checkout on its own default branch block
+exactly like same-project trunk writes, and writes into linked,
+non-prunable worktrees of any repository are allowed. Foreign-target defaults are conservative — an
+unprobable worktree topology evaluates the resolved git root as its own main
+checkout, and stale (prunable) topology entries never confer worktree
+eligibility. The ADV-generated artifact allowlist (`ROADMAP.md`,
+`CHANGELOG.md`, `.adv/github-project.json`, `.adv/roadmap-snapshot.json`)
+applies only as exact root-relative paths at the target repository's main
+checkout root; nested paths are never exempt.
+
 Explicit `false` is the legacy escape hatch — projects that want to keep
 editing in the main checkout (omitted or false allows default-checkout file
 writes is the pre-flip behavior; post-flip only explicit `false` does):

@@ -162,4 +162,10 @@ describe("workflow bundle transitive boundary", () => {
       forbidden.map((filePath) => pathFromRoot(parents, filePath)),
     ).toEqual([]);
   });
+
+  it("does not reach the tool-role-policy module from workflows.ts", () => {
+    const parents = reachableFrom(workflowRoot);
+    const reachable = [...parents.keys()].map((filePath) => rel(filePath));
+    expect(reachable).not.toContain("tool-role-policy.ts");
+  });
 });

@@ -1,6 +1,11 @@
+import { existsSync } from "fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "path";
 import { pathToFileURL } from "url";
 import { isSameOrChildPath } from "../utils/path.js";
+import {
+  parseWorktreeTopology,
+  type WorktreeTopologyEntry,
+} from "../utils/worktree-paths.js";
 import type { RepoState } from "./checkpoint.js";
 import { detectRepoState } from "./checkpoint.js";
 
@@ -58,10 +63,13 @@ export interface TrunkWriteFirewallDeps {
 interface TrunkContext {
   targetPath: string;
   gitRoot: string | null;
+  /** Main (non-linked) checkout root of the target's own repository. */
+  mainCheckoutRoot: string | null;
   branch: string;
   defaultBranchKnown: boolean;
   isDefaultBranch: boolean;
-  isWorktree: boolean;
+  /** Target sits inside a linked, non-prunable worktree of its repository. */
+  isEligibleWorktree: boolean;
   repoState: RepoState;
 }
 
@@ -80,23 +88,94 @@ function normalizeTargetPath(targetPath: string, basePath: string): string {
   return isAbsolute(targetPath) ? targetPath : resolve(basePath, targetPath);
 }
 
+/**
+ * Upper bound for the nearest-existing-ancestor walk. Deep enough for any
+ * real path; the cap only guards against pathological inputs.
+ */
+const MAX_ANCESTOR_HOPS = 64;
+
+/**
+ * Walk up from `startPath` to the nearest ancestor that exists on disk so
+ * git discovery can run from a valid cwd even when the write target (and
+ * some of its parents) does not exist yet. Existence checks only — path
+ * comparisons elsewhere stay lexical (no realpath canonicalization).
+ */
+function nearestExistingAncestor(startPath: string): string {
+  let current = startPath;
+  for (let hop = 0; hop < MAX_ANCESTOR_HOPS; hop += 1) {
+    if (existsSync(current)) return current;
+    const parent = dirname(current);
+    if (parent === current) return current;
+    current = parent;
+  }
+  return startPath;
+}
+
+/**
+ * Hook-lifetime memo of `git worktree list --porcelain` topology keyed by
+ * resolved git root. Only immutable-for-the-hook topology is cached here;
+ * mutable state (HEAD branch, default branch, recovery state) is probed
+ * fresh for every target so decisions never go stale mid-hook.
+ */
+type TopologyMemo = Map<string, Promise<WorktreeTopologyEntry[]>>;
+
+function getWorktreeTopology(
+  gitRoot: string,
+  deps: TrunkWriteFirewallDeps,
+  memo: TopologyMemo,
+): Promise<WorktreeTopologyEntry[]> {
+  let cached = memo.get(gitRoot);
+  if (!cached) {
+    cached = (async (): Promise<WorktreeTopologyEntry[]> => {
+      try {
+        const porcelain = await deps.execGit(
+          ["worktree", "list", "--porcelain"],
+          gitRoot,
+        );
+        const entries = parseWorktreeTopology(porcelain);
+        if (entries.length > 0) return entries;
+      } catch (error) {
+        deps.onWarning?.(
+          `trunk-write-firewall: worktree topology lookup failed for ${gitRoot}; treating the resolved git root as its own main checkout (${error instanceof Error ? error.message : String(error)})`,
+        );
+      }
+      // Conservative fallback: without topology we cannot prove the resolved
+      // root is a linked worktree, so it is evaluated as its own main
+      // checkout (default-branch HEAD blocks).
+      return [{ path: gitRoot, isMain: true, prunable: false }];
+    })();
+    memo.set(gitRoot, cached);
+  }
+  return cached;
+}
+
+// rq-crossProjectTrunkFirewall01: Target-Relative Cross-Project Trunk Write
+// Firewall. The firewall is evaluated relative to each write target's OWN git
+// root/branch topology (not just the current session's project), so a FOREIGN
+// repo's main checkout on its default branch is protected exactly like the
+// session project's trunk, while an eligible foreign linked worktree is allowed
+// (rq-crossProjectTrunkFirewall01.1 / .2). Target-root artifact and uncertainty
+// boundaries stay narrow (.3) and missing-parent/prunable topology is safe (.4).
 async function resolveTrunkContext(
   targetPath: string,
   deps: TrunkWriteFirewallDeps,
+  memo: TopologyMemo,
 ): Promise<TrunkContext> {
   const projectRoot = deps.getProjectRoot();
   const normalizedTarget = normalizeTargetPath(targetPath, projectRoot);
-  const worktreePaths = await deps.getWorktreePaths();
+  // Session-known worktree paths anchor the git probe for same-project
+  // targets; foreign targets probe from the nearest existing ancestor.
+  const sessionWorktreePaths = await deps.getWorktreePaths();
 
   let gitRoot: string | null = null;
-  const containingWorktree = worktreePaths.find((worktreePath) =>
+  const containingWorktree = sessionWorktreePaths.find((worktreePath) =>
     isSameOrChildPath(normalizedTarget, worktreePath),
   );
   const probeCwd = containingWorktree
     ? containingWorktree
     : isSameOrChildPath(normalizedTarget, projectRoot)
       ? projectRoot
-      : dirname(normalizedTarget);
+      : nearestExistingAncestor(dirname(normalizedTarget));
   try {
     gitRoot = (
       await deps.execGit(["rev-parse", "--show-toplevel"], probeCwd)
@@ -109,10 +188,11 @@ async function resolveTrunkContext(
       return {
         targetPath: normalizedTarget,
         gitRoot: projectRoot,
+        mainCheckoutRoot: projectRoot,
         branch: "HEAD",
         defaultBranchKnown: false,
         isDefaultBranch: false,
-        isWorktree: false,
+        isEligibleWorktree: false,
         repoState: "ok",
       };
     }
@@ -122,20 +202,38 @@ async function resolveTrunkContext(
     return {
       targetPath: normalizedTarget,
       gitRoot: null,
+      mainCheckoutRoot: null,
       branch: "HEAD",
       defaultBranchKnown: false,
       isDefaultBranch: false,
-      isWorktree: false,
+      isEligibleWorktree: false,
       repoState: "not_git",
     };
   }
 
-  const isWorktree = worktreePaths.some(
-    (worktreePath) =>
-      !isSamePath(worktreePath, projectRoot) &&
-      (isSameOrChildPath(normalizedTarget, worktreePath) ||
-        isSameOrChildPath(gitRoot, worktreePath)),
+  // Target-relative topology: trunk-ness is decided by the repository that
+  // owns the target, so a foreign repo's main checkout is protected exactly
+  // like the session project's trunk.
+  const topology = await getWorktreeTopology(gitRoot, deps, memo);
+  const mainEntry =
+    topology.find((entry) => entry.isMain) ??
+    ({ path: gitRoot, isMain: true, prunable: false } as WorktreeTopologyEntry);
+  const containingEntry =
+    topology.find((entry) => isSameOrChildPath(normalizedTarget, entry.path)) ??
+    topology.find(
+      (entry) =>
+        isSamePath(gitRoot, entry.path) ||
+        isSameOrChildPath(gitRoot, entry.path),
+    );
+
+  const isEligibleWorktree = Boolean(
+    containingEntry && !containingEntry.isMain && !containingEntry.prunable,
   );
+  // A prunable entry is stale administrative data: the checkout it names is
+  // not a trusted worktree, so it is evaluated on its own merits (its own
+  // git root as the trunk candidate) instead of inheriting the repo's main
+  // checkout root or worktree eligibility.
+  const mainCheckoutRoot = containingEntry?.prunable ? gitRoot : mainEntry.path;
 
   let branch = "HEAD";
   try {
@@ -153,7 +251,7 @@ async function resolveTrunkContext(
     defaultBranch = await deps.getDefaultBranch(gitRoot);
   } catch (error) {
     deps.onWarning?.(
-      `trunk-write-firewall: default branch detection failed for ${gitRoot}; allowing (${error instanceof Error ? error.message : String(error)})`,
+      `trunk-write-firewall: default branch detection failed for ${gitRoot}; treating the default branch as unverified (${error instanceof Error ? error.message : String(error)})`,
     );
   }
 
@@ -162,10 +260,11 @@ async function resolveTrunkContext(
   return {
     targetPath: normalizedTarget,
     gitRoot,
+    mainCheckoutRoot,
     branch,
     defaultBranchKnown: Boolean(defaultBranch),
     isDefaultBranch: Boolean(defaultBranch) && branch === defaultBranch,
-    isWorktree,
+    isEligibleWorktree,
     repoState,
   };
 }
@@ -175,9 +274,9 @@ function evaluateTarget(
   deps: TrunkWriteFirewallDeps,
 ): TrunkWriteResult {
   const projectRoot = deps.getProjectRoot();
-  const isTrunkCheckout = isSameOrChildPath(context.targetPath, projectRoot);
+  const isSessionCheckout = isSameOrChildPath(context.targetPath, projectRoot);
   if (context.gitRoot === null || context.repoState === "not_git") {
-    if (isTrunkCheckout) {
+    if (isSessionCheckout) {
       return {
         decision: "BLOCK",
         targetPath: context.targetPath,
@@ -186,8 +285,8 @@ function evaluateTarget(
     }
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
-  if (context.isWorktree)
-    return { decision: "ALLOW", targetPath: context.targetPath };
+  const mainRoot = context.mainCheckoutRoot ?? projectRoot;
+  const isTrunkCheckout = isSameOrChildPath(context.targetPath, mainRoot);
   if (!context.defaultBranchKnown && isTrunkCheckout) {
     return {
       decision: "BLOCK",
@@ -195,6 +294,8 @@ function evaluateTarget(
       reason: `Trunk write firewall: direct file write to trunk checkout is blocked because the default branch could not be verified (${context.targetPath}). Create or use an ADV worktree instead.`,
     };
   }
+  if (context.isEligibleWorktree)
+    return { decision: "ALLOW", targetPath: context.targetPath };
   if (!context.isDefaultBranch) {
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
@@ -206,10 +307,11 @@ function evaluateTarget(
     return { decision: "ALLOW", targetPath: context.targetPath };
 
   // rq-trunkArtifactAllowlist01: ADV-generated trunk artifacts (e.g.
-  // ROADMAP.md regenerated by /adv-triage) bypass the firewall when at
-  // project root on the default branch. The allowlist is intentionally
-  // narrow — basename match at root only, no nested paths.
-  if (isAllowlistedTrunkArtifact(context.targetPath, projectRoot)) {
+  // ROADMAP.md regenerated by /adv-triage) bypass the firewall when at the
+  // target repository's main checkout root on the default branch. The
+  // allowlist is intentionally narrow — exact root-relative paths only, no
+  // nested paths.
+  if (isAllowlistedTrunkArtifact(context.targetPath, mainRoot)) {
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
 
@@ -224,7 +326,10 @@ export async function checkTrunkWrite(
   targetPath: string,
   deps: TrunkWriteFirewallDeps,
 ): Promise<TrunkWriteResult> {
-  return evaluateTarget(await resolveTrunkContext(targetPath, deps), deps);
+  return evaluateTarget(
+    await resolveTrunkContext(targetPath, deps, new Map()),
+    deps,
+  );
 }
 
 export function stripHeredocs(command: string): string {
@@ -352,8 +457,14 @@ export async function checkTrunkWriteBash(
 ): Promise<TrunkWriteResult> {
   const workdir = argsWorkdir ?? deps.getProjectRoot();
   const targets = classifyDestructiveBash(command, workdir);
+  // One memo per hook invocation: topology for a given repo root is looked
+  // up at most once even when a command writes several files in that repo.
+  const memo: TopologyMemo = new Map();
   for (const target of targets) {
-    const result = await checkTrunkWrite(target, deps);
+    const result = evaluateTarget(
+      await resolveTrunkContext(target, deps, memo),
+      deps,
+    );
     if (result.decision === "BLOCK") return result;
   }
   return { decision: "ALLOW" };

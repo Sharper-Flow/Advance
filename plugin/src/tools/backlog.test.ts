@@ -10,6 +10,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { backlogTools } from "./backlog";
 import type { Store } from "../storage/store-types";
+import { type InventoryBudget } from "./worktree/inventory-budget";
 
 function makeMockStore(
   changesList: Array<{
@@ -26,6 +27,9 @@ function makeMockStore(
     paths: { root: "/test/project", changes: "/test/project/.adv/changes" },
     changes: {
       list: vi.fn().mockResolvedValue({ changes: changesList }),
+    },
+    tasks: {
+      list: vi.fn().mockResolvedValue([]),
     },
   } as unknown as Store;
 }
@@ -414,24 +418,439 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     );
   });
 
-  it("calls all three sources in parallel (no sequential dependency)", async () => {
-    const store = makeMockStore([]);
-    const calls: string[] = [];
+  it("preserves active_changes and peer_sessions when the worktree snapshot is incomplete", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
 
-    await backlogTools.adv_wip_state.execute({}, store, undefined, {
-      worktreesProvider: async () => {
-        calls.push("worktrees");
-        return [];
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => ({
+          worktrees: [
+            {
+              changeId: "changeA",
+              branch: "change/changeA",
+              path: "/wt/changeA",
+              status: "active",
+              materialized: true,
+            },
+          ],
+          complete: false,
+          stopReason: "internal_budget_exhausted",
+          stoppedStage: "query_change_workflow",
+          inspectedCount: 1,
+          candidateCount: 10,
+        }),
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_abcd1234",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: true,
+              worktree: "changeA",
+            },
+          ],
+          total: 1,
+          deadFiltered: 0,
+        }),
       },
-      sessionsProvider: async () => {
-        calls.push("sessions");
-        return { sessions: [], total: 0, deadFiltered: 0 };
-      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.active_changes).toHaveLength(1);
+    expect(parsed.worktrees).toHaveLength(1);
+    expect(parsed.peer_sessions).toHaveLength(1);
+    expect(parsed.degradation?.worktree).toMatchObject({
+      complete: false,
+      stopReason: "internal_budget_exhausted",
+      stoppedStage: "query_change_workflow",
+      inspectedCount: 1,
+      candidateCount: 10,
     });
+    expect(parsed.warnings).toContainEqual(
+      expect.objectContaining({
+        source: "worktrees",
+        reason: expect.stringContaining("incomplete"),
+      }),
+    );
+  });
 
-    // All three should have been initiated; the changes mock is synchronous-ish
-    // so just verify worktrees + sessions both ran.
-    expect(calls).toContain("worktrees");
-    expect(calls).toContain("sessions");
+  it("propagates a caller abort signal to the worktree collector", async () => {
+    const store = makeMockStore([]);
+    const controller = new AbortController();
+    controller.abort("caller aborted");
+
+    let receivedBudget: InventoryBudget | undefined;
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      { store, signal: controller.signal },
+      undefined,
+      {
+        worktreesProvider: async (_projectRoot, budget) => {
+          receivedBudget = budget;
+          return {
+            worktrees: [],
+            complete: false,
+            stopReason: budget?.stopReason(),
+          };
+        },
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(receivedBudget?.signal.aborted).toBe(true);
+    expect(parsed.degradation?.worktree?.stopReason).toBe("caller_cancelled");
+  });
+
+  it("maps live peer-session projection entries into peer_sessions", async () => {
+    const store = makeMockStore([]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_live_1",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: false,
+              worktree: "change/changeA",
+            },
+            {
+              sessionId: "sess_live_2",
+              startedAt: "2026-05-11T04:00:00.000Z",
+              isSelf: true,
+            },
+          ],
+          total: 2,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.peer_sessions).toHaveLength(2);
+    expect(parsed.peer_sessions[0]).toEqual({
+      sessionId: "sess_live_1",
+      startedAt: "2026-05-11T03:00:00.000Z",
+      lastSeenAt: "2026-05-11T03:15:00.000Z",
+      isSelf: false,
+      worktree: "change/changeA",
+    });
+    expect(parsed.peer_sessions[1]).toEqual({
+      sessionId: "sess_live_2",
+      startedAt: "2026-05-11T04:00:00.000Z",
+      isSelf: true,
+    });
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("uses live peer-session detection terminology when sessions are unavailable", async () => {
+    const store = makeMockStore([]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+          unavailable: true,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.peer_sessions).toEqual([]);
+    expect(parsed.warnings).toContainEqual({
+      source: "peer_sessions",
+      reason: "live peer-session detection unavailable",
+    });
+    expect(parsed.warnings).not.toContainEqual(
+      expect.objectContaining({
+        reason: expect.stringContaining("session registry"),
+      }),
+    );
+  });
+
+  it("preserves active_changes and worktrees when peer sessions provider fails", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [
+          {
+            changeId: "changeA",
+            branch: "change/changeA",
+            path: "/wt/changeA",
+            status: "active",
+            materialized: true,
+          },
+        ],
+        sessionsProvider: async () => {
+          throw new Error("live peer-session detection failed");
+        },
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.active_changes).toHaveLength(1);
+    expect(parsed.worktrees).toHaveLength(1);
+    expect(parsed.peer_sessions).toEqual([]);
+    expect(parsed.warnings).toContainEqual({
+      source: "peer_sessions",
+      reason: "live peer-session detection failed",
+    });
+  });
+
+  it("emits orphan warnings for in_progress tasks assigned to non-live peers", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 2,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_live",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: true,
+            },
+          ],
+          total: 1,
+          deadFiltered: 0,
+        }),
+        tasksProvider: async () => [
+          {
+            id: "tk-orphan",
+            title: "Orphan task",
+            status: "in_progress",
+            assignedTo: "sess_dead",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+          {
+            id: "tk-live",
+            title: "Live task",
+            status: "in_progress",
+            assignedTo: "sess_live",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+          {
+            id: "tk-agent",
+            title: "Agent task",
+            status: "in_progress",
+            assignedTo: "agent",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+        ],
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.orphan_warnings).toHaveLength(1);
+    expect(parsed.orphan_warnings[0]).toMatchObject({
+      changeId: "changeA",
+      taskId: "tk-orphan",
+      assignedTo: "sess_dead",
+    });
+    expect(parsed.orphan_warnings[0].recovery).toContain(
+      "no automatic status mutation",
+    );
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("emits orphan warnings when an available peer-session snapshot is empty", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+        }),
+        tasksProvider: async () => [
+          {
+            id: "tk-orphan",
+            title: "Orphan task",
+            status: "in_progress",
+            assignedTo: "sess_dead",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+        ],
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.peer_sessions).toEqual([]);
+    expect(parsed.orphan_warnings).toHaveLength(1);
+    expect(parsed.orphan_warnings[0]).toMatchObject({
+      changeId: "changeA",
+      taskId: "tk-orphan",
+      assignedTo: "sess_dead",
+    });
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("annotates unavailable peer sessions instead of guessing orphan status", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+          unavailable: true,
+        }),
+        tasksProvider: async () => [
+          {
+            id: "tk-x",
+            title: "Maybe orphan",
+            status: "in_progress",
+            assignedTo: "sess_unknown",
+            created_at: "2026-05-11T00:00:00.000Z",
+          } as any,
+        ],
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.orphan_warnings).toBeUndefined();
+    expect(parsed.warnings).toContainEqual({
+      source: "orphan_tasks",
+      reason:
+        "Live peer-session data unavailable; orphan task detection skipped.",
+    });
+  });
+
+  it("caps orphan warnings at 50 and adds a bounded notice", async () => {
+    const store = makeMockStore([
+      {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 60,
+        completedTasks: 0,
+      },
+    ]);
+
+    const tasks = Array.from({ length: 60 }, (_, i) => ({
+      id: `tk-${i}`,
+      title: `Task ${i}`,
+      status: "in_progress",
+      assignedTo: `sess-dead-${i}`,
+      created_at: "2026-05-11T00:00:00.000Z",
+    })) as any[];
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [
+            {
+              sessionId: "sess_live",
+              startedAt: "2026-05-11T03:00:00.000Z",
+              lastSeenAt: "2026-05-11T03:15:00.000Z",
+              isSelf: true,
+            },
+          ],
+          total: 1,
+          deadFiltered: 0,
+        }),
+        tasksProvider: async () => tasks,
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.orphan_warnings).toHaveLength(50);
+    expect(parsed.warnings).toContainEqual({
+      source: "orphan_tasks",
+      reason: "Orphan task warnings capped at 50; additional tasks omitted.",
+    });
   });
 });

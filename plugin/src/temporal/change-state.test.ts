@@ -7,6 +7,8 @@ import {
   applyEpicMembershipSetToState,
   applySubagentReportSubmittedToState,
   applyContractAmendedToState,
+  applyContractReviewMatrixSetToState,
+  applyContractSetToState,
   applyDesignConcernDispositionedToState,
   applyVerificationEvidenceDispositionedToState,
   applyGateReenteredToState,
@@ -17,17 +19,24 @@ import {
   applyTaskCompletedToState,
   applyTestRunRecordedToState,
   changeSeedStateFromChange,
+  changeToWorkflowState,
   completeGateInChangeState,
   createChangeWorkflowState,
   normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
 } from "./change-state";
 import type { Change, ChangeOrigin } from "../types";
+import { subagentReportKey } from "../types/subagent-reports";
 import type { ChangeWorkflowInput } from "./contracts";
 
 const sourcePath = fileURLToPath(new URL("./change-state.ts", import.meta.url));
 
-function makeEngineerReport(changeId: string, taskId: string, attempt = 1) {
+function makeEngineerReport(
+  changeId: string,
+  taskId: string,
+  attempt = 1,
+  implementationCycleId?: string,
+) {
   return {
     schema_version: "1.0" as const,
     change_id: changeId,
@@ -53,6 +62,17 @@ function makeEngineerReport(changeId: string, taskId: string, attempt = 1) {
       what_ads_needs_to_know: "Report persisted",
       suggested_next_action: "Continue",
     },
+    ...(implementationCycleId
+      ? {
+          apply_context: {
+            implementation_cycle_id: implementationCycleId,
+            implementation_provenance: {
+              kind: "engineer" as const,
+              baseline_head_sha: "abc123",
+            },
+          },
+        }
+      : {}),
   };
 }
 
@@ -152,6 +172,32 @@ function makeResearcherReport(changeId: string) {
     recommendation: "Persist as change-scoped sidecar report.",
     follow_ups: [],
     workdir_used: "/tmp/worktree",
+  };
+}
+
+function makeReviewerReport(changeId: string, taskId: string, attempt = 1) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: changeId,
+    task_id: taskId,
+    scope: { kind: "task" as const, task_id: taskId },
+    attempt,
+    agent: "adv-reviewer" as const,
+    workdir_used: "/tmp/worktree",
+    phase: "review" as const,
+    verdict: "READY" as const,
+    blocking_findings: [],
+    nonblocking_findings: [],
+    changes_made: [],
+    wisdom_candidates: [],
+    verification: {
+      tests_run: [],
+      results: "n/a" as const,
+      evidence: "review",
+    },
+    scope_drift: null,
+    risks: [],
+    required_main_agent_actions: [],
   };
 }
 
@@ -929,6 +975,63 @@ describe("change-state pure mutation helpers", () => {
     expect(state.tasks[0]?.status).toBe("done");
   });
 
+  it("rejects a designer engineer-report receipt without successful same-cycle engineer evidence", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-receipt-guard",
+      title: "Frontend receipt guard",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-frontend",
+        report: {
+          ...makeDesignerReport(
+            "frontend-receipt-guard",
+            "tk-frontend",
+            "ic-frontend",
+          ),
+          apply_context: {
+            implementation_cycle_id: "ic-frontend",
+            implementation_provenance: {
+              kind: "engineer_report",
+              report_key: subagentReportKey({
+                changeId: "frontend-receipt-guard",
+                taskId: "tk-frontend",
+                agent: "adv-engineer",
+                attempt: 1,
+                implementationCycleId: "ic-frontend",
+              }),
+            },
+          },
+        },
+        submittedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_PROVENANCE_REJECTED/);
+  });
+
   it("rejects frontend completion when designer evidence matches a different cycle", () => {
     const state = createChangeWorkflowState({
       changeId: "frontend-cycle-mismatch",
@@ -1704,6 +1807,227 @@ describe("change-state pure mutation helpers", () => {
     expect(state.contract.reviewMatrix).toBeUndefined();
   });
 
+  describe("acceptanceReadinessRevision", () => {
+    function makeContract() {
+      return {
+        version: 1 as const,
+        rigor: "standard" as const,
+        source: {
+          artifact: "agreement",
+          approvedAt: "2026-05-06T00:00:00.000Z",
+        },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion" as const,
+            text: "Criterion one",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+          },
+        ],
+        amendments: [],
+      };
+    }
+
+    function makeReviewMatrix() {
+      return {
+        reviewedAt: "2026-05-06T00:00:01.000Z",
+        rows: [
+          {
+            contractId: "AC1",
+            kind: "acceptance_criterion" as const,
+            status: "pass" as const,
+            evidencePolicy: "test",
+            evidence: "reviewed",
+          },
+        ],
+      };
+    }
+
+    it("initializes to zero", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-init",
+        title: "ARR init",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      expect(state.acceptanceReadinessRevision).toBe(0);
+    });
+
+    it("advances on contract set", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-contract-set",
+        title: "ARR contract set",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      applyContractSetToState(state, {
+        contract: makeContract(),
+        updatedAt: "2026-05-06T00:00:01.000Z",
+      });
+      expect(state.acceptanceReadinessRevision).toBe(1);
+      expect(state.acceptanceCriteria).toEqual(["Criterion one"]);
+    });
+
+    it("advances on every contract amendment and preserves matrix for non-invalidating amendments", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-contract-amend",
+        title: "ARR contract amend",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 1;
+
+      applyContractAmendedToState(state, {
+        amendments: [
+          {
+            id: "am-1",
+            actor: "tester",
+            reason: "typo fix",
+            approvalEvidence: "approved",
+            amendedAt: "2026-05-06T00:00:02.000Z",
+            affectedIds: ["AC1"],
+            invalidatesReviewMatrix: false,
+          },
+        ],
+        updatedAt: "2026-05-06T00:00:02.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(2);
+      expect(state.contract.reviewMatrix).toBeDefined();
+    });
+
+    it("advances on invalidating contract amendments and removes the review matrix", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-contract-amend-invalidating",
+        title: "ARR invalidating amend",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 3;
+
+      applyContractAmendedToState(state, {
+        amendments: [
+          {
+            id: "am-2",
+            actor: "tester",
+            reason: "substantive change",
+            approvalEvidence: "approved",
+            amendedAt: "2026-05-06T00:00:03.000Z",
+            affectedIds: ["AC1"],
+            invalidatesReviewMatrix: true,
+          },
+        ],
+        updatedAt: "2026-05-06T00:00:03.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(4);
+      expect(state.contract.reviewMatrix).toBeUndefined();
+    });
+
+    it("advances on review matrix set", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-matrix-set",
+        title: "ARR matrix set",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.acceptanceReadinessRevision = 4;
+
+      applyContractReviewMatrixSetToState(state, {
+        reviewMatrix: makeReviewMatrix(),
+        updatedAt: "2026-05-06T00:00:04.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(5);
+      expect(state.contract.reviewMatrix).toBeDefined();
+    });
+
+    it("advances on relevant non-release gate re-entry and removes the review matrix", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-reentry",
+        title: "ARR reentry",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 5;
+
+      applyGateReenteredToState(state, {
+        fromGateId: "execution",
+        reason: "scope changed",
+        reenteredBy: "tester",
+        reenteredAt: "2026-05-06T00:00:05.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(6);
+      expect(state.contract.reviewMatrix).toBeUndefined();
+      expect(state.gates.execution).toMatchObject({ status: "pending" });
+    });
+
+    it("does not advance on release gate re-entry", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-release-reentry",
+        title: "ARR release reentry",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.contract = makeContract();
+      state.contract.reviewMatrix = makeReviewMatrix();
+      state.acceptanceReadinessRevision = 6;
+
+      applyGateReenteredToState(state, {
+        fromGateId: "release",
+        reason: "retry release",
+        reenteredBy: "tester",
+        reenteredAt: "2026-05-06T00:00:06.000Z",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(6);
+      expect(state.contract.reviewMatrix).toBeDefined();
+    });
+
+    it("preserves legacy default zero when seeding from a persisted change without the field", () => {
+      const change: Change = {
+        id: "arr-legacy",
+        title: "Legacy change",
+        status: "draft",
+        created_at: "2026-05-06T00:00:00.000Z",
+        tasks: [],
+        subagent_reports: [],
+        deltas: {},
+        wisdom: [],
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        contract: makeContract(),
+      };
+      const state = changeToWorkflowState({ projectId: "proj", change });
+      expect(state.acceptanceReadinessRevision).toBeUndefined();
+      applyContractAmendedToState(state, {
+        amendments: [
+          {
+            id: "am-legacy",
+            actor: "tester",
+            reason: "legacy amendment",
+            amendedAt: "2026-05-06T00:00:01.000Z",
+            affectedIds: ["AC1"],
+            invalidatesReviewMatrix: false,
+          },
+        ],
+        updatedAt: "2026-05-06T00:00:01.000Z",
+      });
+      expect(state.acceptanceReadinessRevision).toBe(1);
+    });
+  });
+
   it("carries optional origin on ChangeWorkflowState (rq-backlogCoord01 prereq)", () => {
     // rq-backlogCoord01 prereq (task A0): ChangeWorkflowState must carry
     // `origin` so `buildChangeSearchAttributes` can populate
@@ -1763,6 +2087,260 @@ describe("change-state pure mutation helpers", () => {
 
     expect(state.origin).toEqual({ kind: "roadmap", issue_number: 77 });
     expect(state.lastSignalAt).toBe("2026-05-11T01:00:00.000Z");
+  });
+});
+
+describe("reviewer-owned evidence reference", () => {
+  function stateWithReviewTask(policy: string, plan?: any) {
+    const state = createChangeWorkflowState({
+      changeId: "reviewer-evidence-test",
+      title: "Reviewer evidence test",
+      createdAt: "2026-07-17T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-review",
+        title: "Review task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-07-17T00:00:01.000Z",
+        evidence_policy: policy,
+        evidence_plan: plan,
+      },
+      addedAt: "2026-07-17T00:00:01.000Z",
+    });
+    return state;
+  }
+
+  it("writes review_evidence_ref when a reviewer report is persisted for a non-test behavior-critical task", () => {
+    const state = stateWithReviewTask("review", {
+      policy: "review",
+      proof_target: "Structured review conclusion",
+      rationale: "Peer review is sufficient.",
+      provenance: "new",
+      stage: "stage-v2",
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-review",
+      report: makeReviewerReport("reviewer-evidence-test", "tk-review"),
+      submittedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.evidence_plan?.review_evidence_ref).toEqual({
+      report_key: "reviewer-evidence-test|tk-review|adv-reviewer|1",
+    });
+  });
+
+  it("does not write review_evidence_ref for test-route tasks", () => {
+    const state = stateWithReviewTask("test", {
+      policy: "test",
+      proof_target: "Automated tests",
+      provenance: "new",
+      stage: "stage-v2",
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-review",
+      report: makeReviewerReport("reviewer-evidence-test", "tk-review"),
+      submittedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.evidence_plan?.review_evidence_ref).toBeUndefined();
+  });
+
+  it("does not write review_evidence_ref for non-behavior-critical tasks", () => {
+    const state = stateWithReviewTask("review", {
+      policy: "review",
+      proof_target: "Structured review conclusion",
+      provenance: "new",
+      stage: "stage-v2",
+    });
+    state.tasks[0].type = "docs";
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-review",
+      report: makeReviewerReport("reviewer-evidence-test", "tk-review"),
+      submittedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.evidence_plan?.review_evidence_ref).toBeUndefined();
+  });
+});
+
+describe("applyTaskCompletedToState evidence plan validation (AC1/AC2/AC3)", () => {
+  function baseCodeTask(overrides: any = {}) {
+    return {
+      id: "tk-code",
+      title: "Implement feature",
+      type: "code",
+      status: "pending" as const,
+      priority: 0,
+      created_at: "2026-07-17T00:00:00.000Z",
+      metadata: { tdd_intent: "inline" },
+      ...overrides,
+    };
+  }
+
+  function makeStateWithTask(task: any) {
+    const state = createChangeWorkflowState({
+      changeId: "evidence-plan-test",
+      title: "Evidence plan test",
+      createdAt: "2026-07-17T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, { task, addedAt: "2026-07-17T00:00:01.000Z" });
+    return state;
+  }
+
+  it("rejects completion when code task has not_applicable evidence plan", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "not_applicable",
+        evidence_plan: {
+          policy: "not_applicable",
+          proof_target: "No evidence required",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-code",
+        verification: "verified",
+        summary: "done",
+        filesTouched: [],
+        completedAt: "2026-07-17T00:00:02.000Z",
+      }),
+    ).toThrow(/TASK_COMPLETION_BLOCKED.*evidence.*plan|not_applicable/i);
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("rejects completion when code task has non-test route without review proof", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: "Peer review is sufficient.",
+          provenance: "new",
+        },
+      }),
+    );
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-code",
+        verification: "verified",
+        summary: "done",
+        filesTouched: [],
+        completedAt: "2026-07-17T00:00:02.000Z",
+      }),
+    ).toThrow(/TASK_COMPLETION_BLOCKED.*review.*conclusion|review proof/i);
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("allows completion when code task has non-test route with review evidence ref", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: "Peer review is sufficient.",
+          review_evidence_ref: {
+            report_key: "test-change|tk-code|adv-reviewer|1",
+          },
+          provenance: "new",
+        },
+      }),
+    );
+    // Seed the matching reviewer report so the ref resolves.
+    state.subagent_reports = [
+      {
+        schema_version: "1.0",
+        change_id: "test-change",
+        task_id: "tk-code",
+        attempt: 1,
+        workdir_used: "/tmp/test",
+        agent: "adv-reviewer",
+        scope: { kind: "task", task_id: "tk-code" },
+        phase: "review",
+        verdict: "READY",
+        blocking_findings: [],
+        nonblocking_findings: [],
+        changes_made: [],
+        wisdom_candidates: [],
+        verification: { tests_run: [], results: "n/a", evidence: "review" },
+        scope_drift: null,
+        risks: [],
+        required_main_agent_actions: [],
+      },
+    ] as any;
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: [],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("allows completion for legacy code task with review conclusion", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: "Peer review is sufficient.",
+          review_conclusion: "reviewer-verdict-abc",
+          provenance: "legacy",
+        },
+      }),
+    );
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: [],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("allows completion for legacy code task without evidence plan", () => {
+    const state = makeStateWithTask(baseCodeTask());
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: [],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("preserves evidence plan on completed task as typed proof", () => {
+    const plan = {
+      policy: "test" as const,
+      proof_target: "Automated red/green tests",
+      provenance: "new" as const,
+    };
+    const state = makeStateWithTask(baseCodeTask({ evidence_plan: plan }));
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: ["src/foo.ts"],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+    expect(state.tasks[0]?.evidence_plan).toMatchObject(plan);
   });
 });
 

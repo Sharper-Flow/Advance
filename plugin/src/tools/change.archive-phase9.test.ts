@@ -120,12 +120,17 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("../archive", () => ({
-  archiveChange: mocks.archiveChange,
-  findArchiveBundle: mocks.findArchiveBundle,
-  getArchiveContractProofErrors: mocks.getArchiveContractProofErrors,
-  reconcileInRepoArchive: vi.fn(),
-}));
+vi.mock("../archive", async () => {
+  const actual =
+    await vi.importActual<typeof import("../archive")>("../archive");
+  return {
+    ...actual,
+    archiveChange: mocks.archiveChange,
+    findArchiveBundle: mocks.findArchiveBundle,
+    getArchiveContractProofErrors: mocks.getArchiveContractProofErrors,
+    reconcileInRepoArchive: vi.fn(),
+  };
+});
 
 vi.mock("./archive-helpers/git-finalize", async () => {
   const actual = await vi.importActual<

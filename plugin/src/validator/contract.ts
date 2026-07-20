@@ -36,19 +36,85 @@ function hasAnyTaskRef(refs: TaskWithContractRefs["contract_refs"]): boolean {
   return refs ? allTaskRefs(refs).length > 0 : false;
 }
 
-function hasTaskCoverage(change: Change, contractId: string): boolean {
-  return change.tasks.some((task) => {
-    const refs = taskContractRefs(task);
-    return (
-      refs?.implements?.includes(contractId) === true ||
-      refs?.verifies?.includes(contractId) === true
-    );
-  });
-}
-
 function legacyAcceptanceCriteria(change: Change): string[] | undefined {
   return (change as Change & { acceptanceCriteria?: string[] })
     .acceptanceCriteria;
+}
+
+export interface ContractCoverageEntry {
+  taskId: string;
+  implements: string[];
+  verifies: string[];
+}
+
+export interface ContractCoverageProjection {
+  /** IDs covered by non-cancelled tasks through implements/verifies only. */
+  coveredIds: Set<string>;
+  /** Required acceptance criteria with no implements/verifies coverage. */
+  uncoveredAcceptanceCriteria: Array<{ id: string; text: string }>;
+  /** Per-task coverage entries (cancelled tasks excluded). */
+  taskCoverage: ContractCoverageEntry[];
+  /** IDs of tasks excluded from coverage because their status is `cancelled`. */
+  cancelledTaskIds: string[];
+  /** Total count of tasks excluded because their status is `cancelled`. */
+  cancelledTaskCount: number;
+}
+
+/**
+ * Pure projection of task-owned contract coverage.
+ *
+ * Only `implements` and `verifies` count as coverage of success/acceptance
+ * criteria; `respects` remains constraint/avoidance traceability and is never
+ * treated as coverage. Cancelled tasks are excluded from coverage but their
+ * IDs and count are surfaced so callers can distinguish "no coverage yet"
+ * from "coverage was intentionally retired via cancellation".
+ */
+export function projectContractCoverage(
+  change: Change,
+): ContractCoverageProjection {
+  const contract = change.contract;
+  const coveredIds = new Set<string>();
+  const taskCoverage: ContractCoverageEntry[] = [];
+  const cancelledTaskIds: string[] = [];
+
+  for (const task of change.tasks ?? []) {
+    if (task.status === "cancelled") {
+      cancelledTaskIds.push(task.id);
+      continue;
+    }
+    const refs = taskContractRefs(task);
+    if (!refs) continue;
+
+    const implementsIds = refs.implements ?? [];
+    const verifiesIds = refs.verifies ?? [];
+    if (implementsIds.length === 0 && verifiesIds.length === 0) continue;
+
+    for (const id of implementsIds) coveredIds.add(id);
+    for (const id of verifiesIds) coveredIds.add(id);
+    taskCoverage.push({
+      taskId: task.id,
+      implements: implementsIds,
+      verifies: verifiesIds,
+    });
+  }
+
+  const uncoveredAcceptanceCriteria: Array<{ id: string; text: string }> = [];
+  if (contract) {
+    for (const item of contract.items) {
+      if (item.kind !== "acceptance_criterion") continue;
+      if (item.verificationRequired === false) continue;
+      if (coveredIds.has(item.id)) continue;
+      uncoveredAcceptanceCriteria.push({ id: item.id, text: item.text });
+    }
+  }
+
+  return {
+    coveredIds,
+    uncoveredAcceptanceCriteria,
+    taskCoverage,
+    cancelledTaskIds,
+    cancelledTaskCount: cancelledTaskIds.length,
+  };
 }
 
 export function runContractChecks(change: Change): ValidationIssue[] {
@@ -105,20 +171,15 @@ export function runContractChecks(change: Change): ValidationIssue[] {
   }
 
   if (contract.rigor !== "minimal") {
-    for (const item of contract.items) {
-      if (
-        item.kind === "acceptance_criterion" &&
-        item.verificationRequired !== false &&
-        !hasTaskCoverage(change, item.id)
-      ) {
-        issues.push({
-          code: "CONTRACT_AC_UNCOVERED",
-          severity: "error",
-          message: `Required acceptance criterion "${item.id}" has no implementing or verifying task coverage`,
-          path: `contract.items.${item.id}`,
-          details: { contractId: item.id },
-        });
-      }
+    const coverage = projectContractCoverage(change);
+    for (const item of coverage.uncoveredAcceptanceCriteria) {
+      issues.push({
+        code: "CONTRACT_AC_UNCOVERED",
+        severity: "error",
+        message: `Required acceptance criterion "${item.id}" has no implementing or verifying task coverage`,
+        path: `contract.items.${item.id}`,
+        details: { contractId: item.id },
+      });
     }
   }
 

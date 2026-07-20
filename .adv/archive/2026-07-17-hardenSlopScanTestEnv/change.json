@@ -1,0 +1,1022 @@
+{
+  "id": "hardenSlopScanTestEnv",
+  "title": "Harden slop-scan test env",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-16T18:44:45.459Z",
+  "tasks": [
+    {
+      "id": "tk-872d28225869",
+      "title": "Harden degraded slop-scan harness",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-16T19:22:19.840Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T19:29:00.756Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "hardenSlopScanTestEnv",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenSlopScanTestEnv",
+          "task_id": "tk-872d28225869",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-872d28225869"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "bin/adv.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bun test bin/adv.test.ts --test-name-pattern \"degraded\"",
+              "exit_code": 0,
+              "summary": "Focused degraded-path test passes in ~538 ms (was timing out at 5 s before fix)."
+            },
+            {
+              "command": "bun test bin/adv.test.ts",
+              "exit_code": 0,
+              "summary": "Full CLI test suite passes: 16 pass, 0 fail."
+            },
+            {
+              "command": "bun test bin/lib/slop-scan/",
+              "exit_code": 0,
+              "summary": "All slop-scan unit tests pass: 42 pass, 0 fail."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Launch ADV with process.execPath instead of the bare 'bun' command",
+              "why": "AC1 requires the CLI test to use the actual executable path; avoids depending on PATH to find 'bun'."
+            },
+            {
+              "what": "Pass child-only env via runAdv options rather than mutating process.env",
+              "why": "Preserves isolation and satisfies C1/DONT1."
+            },
+            {
+              "what": "Normalize PATH case-insensitively and replace with an absolute empty temp directory",
+              "why": "AC2/C2; empty directory avoids ambiguous empty-PATH semantics and works cross-platform with Path/PATH."
+            },
+            {
+              "what": "Validate the report with validateSlopScanReport before content assertions",
+              "why": "Turns the shape check into a contract proof and satisfies design-derived criteria."
+            },
+            {
+              "what": "Assert each of the four important TypeScript detectors is unavailable",
+              "why": "AC4 distinguishes unavailable detectors from other failure states and guarantees SLOP_SCAN_DEGRADED."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes needed; only the slop-scan dispatcher test harness was changed, production scanner untouched.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Hardened slop-scan degraded-path test in bin/adv.test.ts now uses process.execPath, a child-only case-insensitive normalized PATH pointing to an absolute empty temp directory, validateSlopScanReport, and exact unavailable assertions for eslint/knip/ast-grep/jscpd. All CLI and slop-scan unit tests pass.",
+            "suggested_next_action": "Review diff and proceed to acceptance gate"
+          }
+        }
+      ],
+      "verification": "Focused degraded test, full bin/adv.test.ts, and slop-scan suite passed; red evidence recorded before implementation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv.test.ts"
+      ],
+      "touched_files": [
+        "bin/adv.test.ts"
+      ],
+      "checkpointSha": "92b9f50ec191661b8c7ebd8159cd6de5388536c2",
+      "completedAt": "2026-07-16T19:56:19.030Z",
+      "completed_at": "2026-07-16T19:56:19.030Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenSlopScanTestEnv",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for hermetic slop-scan degraded-path test",
+      "sources": [
+        {
+          "label": "Current CLI test helper and degraded-path test",
+          "locator": "file:///home/jon/dev/advance/bin/adv.test.ts#L44-L58,L169-L187",
+          "summary": "runAdv currently launches a bare bun command, always copies the parent environment, and the degraded-path test relies on ambient detector availability."
+        },
+        {
+          "label": "Detector runner environment and unavailable classification",
+          "locator": "file:///home/jon/dev/advance/bin/lib/slop-scan/runner.ts#L48-L71",
+          "summary": "Each detector subprocess inherits the CLI child's environment; spawn errors normalize to unavailable."
+        },
+        {
+          "label": "TypeScript detector registry",
+          "locator": "file:///home/jon/dev/advance/bin/lib/slop-scan/registry.ts#L17-L73",
+          "summary": "TypeScript selects required eslint, knip, ast-grep, and jscpd detectors, plus non-important external Semgrep coverage."
+        },
+        {
+          "label": "Bun subprocess documentation",
+          "locator": "https://github.com/oven-sh/bun/blob/main/docs/runtime/child-process.mdx",
+          "summary": "Bun.spawn supports explicit env and timeout options."
+        },
+        {
+          "label": "Node process.execPath documentation",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/process.html#processexecpath",
+          "summary": "process.execPath is the absolute pathname of the executable that started the process."
+        },
+        {
+          "label": "Bun test timeout example",
+          "locator": "https://github.com/oven-sh/bun/blob/main/test/js/bun/test/setTimeout-test-fixture.js",
+          "summary": "Bun tests support an explicit per-test timeout argument."
+        }
+      ],
+      "architecture_assessment": "Pass. Boring design: extend runAdv with a child-only environment override, launch the CLI through process.execPath, create an absolute empty PATH directory inside the unique fixture, assert exact unavailable states for the four required TypeScript detectors, and clean temporary fixtures in finally. Keep production scanner and detector timeout defaults unchanged. Candidates: (1) options-object helper extension—adopt_now, high payoff/low risk, tied to AC1/AC2/C1; (2) exact ID-to-state assertions—adopt_now, high payoff/low risk, tied to AC3/AC4/SC2; (3) fixture-local empty bin plus finally cleanup—design_around, medium payoff/low risk, tied to C2/C3; (4) explicit 5000ms Bun test timeout—adopt_now, medium payoff/low risk, tied to AC5/SC3. No detector-present case: agreement marks it out of scope.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Agreement selects a minimal, documented subprocess-isolation pattern. No architecture blocker found."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Adding an env override modestly broadens the shared test helper API.",
+          "Exact detector assertions intentionally couple this integration test to the required detector contract.",
+          "An explicit 5000ms test timeout gives a hard bound but may produce less diagnostic output if future regressions hang."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Mutate parent process.env.PATH",
+            "disposition": "rejected",
+            "rationale": "Violates child-only isolation and risks parallel-test interference."
+          },
+          {
+            "option": "Install fake detector or pnpm binaries",
+            "disposition": "rejected",
+            "rationale": "Can exercise command-failure classification rather than true unavailability and violates the agreement."
+          },
+          {
+            "option": "Change production detector timeout defaults",
+            "disposition": "rejected",
+            "rationale": "Out of scope; immediate missing-command classification should keep the test fast."
+          },
+          {
+            "option": "Add detector-present integration coverage",
+            "disposition": "deferred",
+            "rationale": "Explicitly out of scope in the signed agreement."
+          }
+        ],
+        "recommendation": "Adopt the four low-risk leverage points in the test design; keep production scan architecture unchanged."
+      },
+      "recommendation": "Implement one cohesive test-only change: options-based runAdv env override, process.execPath launch, fixture-local absolute empty PATH, exact four-detector unavailable assertions, cleanup in finally, and an explicit 5000ms test timeout.",
+      "follow_ups": [
+        "Packet omitted IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; analysis followed TASK_SCOPE and signed agreement without inferring them.",
+        "No draft design artifact was available; scout evaluated proposal and agreement only, as requested.",
+        "Prior-consideration/conflict-scan data was not provided; candidate novelty is unknown."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenSlopScanTestEnv",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Independent design validation for hermetic slop-scan degraded-path test",
+      "sources": [
+        {
+          "label": "Signed agreement and contract",
+          "locator": "adv://change/hardenSlopScanTestEnv/agreement",
+          "summary": "AC1-AC6 require process.execPath launch, child-only absolute empty-directory PATH, exit 1, parseable slop_scan_report.v1, four unavailable detector IDs, 5,000ms bound, and existing coverage green; C1-C3 require child isolation, absolute path semantics, portability, and parallel-test safety."
+        },
+        {
+          "label": "Draft design",
+          "locator": "adv://change/hardenSlopScanTestEnv/design",
+          "summary": "Design confines changes to bin/adv.test.ts, extends runAdv with cwd/env options, uses process.execPath, fixture-local empty PATH, exact detector assertions, 5,000ms test timeout, and cleanup."
+        },
+        {
+          "label": "Current CLI dispatcher test",
+          "locator": "file:///home/jon/dev/advance/bin/adv.test.ts#L44-L58,L169-L187",
+          "summary": "runAdv currently launches bare bun with inherited env; degraded test only checks generic failed important detectors and does not isolate PATH or clean its fixture."
+        },
+        {
+          "label": "Detector runner behavior",
+          "locator": "file:///home/jon/dev/advance/bin/lib/slop-scan/runner.ts#L48-L71,L111-L134",
+          "summary": "Each detector subprocess inherits the CLI child's process.env; synchronous Bun.spawn errors normalize to unavailable coverage."
+        },
+        {
+          "label": "Required TypeScript detector registry",
+          "locator": "file:///home/jon/dev/advance/bin/lib/slop-scan/registry.ts#L17-L73",
+          "summary": "eslint, knip, ast-grep, and jscpd are important and applicable to TypeScript; external-ci-semgrep is non-important."
+        },
+        {
+          "label": "Detector command builders",
+          "locator": "file:///home/jon/dev/advance/bin/lib/slop-scan/adapters/eslint.ts;file:///home/jon/dev/advance/bin/lib/slop-scan/adapters/knip.ts;file:///home/jon/dev/advance/bin/lib/slop-scan/adapters/ast-grep.ts;file:///home/jon/dev/advance/bin/lib/slop-scan/adapters/jscpd.ts",
+          "summary": "All four required TypeScript detector commands begin with bare pnpm, so a genuinely empty child PATH targets command availability consistently."
+        },
+        {
+          "label": "Slop-scan capability law",
+          "locator": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/.adv/specs/slop-scan/spec.json",
+          "summary": "rq-ss001.4 and rq-ss012 require unavailable required detectors to remain visible and produce non-zero SLOP_SCAN_DEGRADED output; rq-ss012.2 requires typed coverage states and failedDetectors."
+        },
+        {
+          "label": "Typed report schema and validator",
+          "locator": "file:///home/jon/dev/advance/bin/lib/slop-scan/schema.ts#L35-L45,L66-L102,L145-L174,L257-L304",
+          "summary": "The codebase defines exact detector states, slop_scan_report.v1, failure construction, and validateSlopScanReport; checking only schema_version is weaker than validating the report object."
+        },
+        {
+          "label": "Bun subprocess and test-timeout docs",
+          "locator": "https://github.com/oven-sh/bun/blob/main/docs/runtime/child-process.mdx",
+          "summary": "Bun.spawn officially supports explicit cwd and env; subprocess.exited resolves with exit code."
+        },
+        {
+          "label": "Bun test runtime docs",
+          "locator": "https://github.com/oven-sh/bun/blob/main/docs/test/runtime-behavior.mdx",
+          "summary": "bun:test supports per-test timeout milliseconds as the third test argument; explicit 5,000ms bounding is documented."
+        },
+        {
+          "label": "Node process.execPath docs",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/process.html#processexecpath",
+          "summary": "process.execPath is the absolute pathname of the executable that started the process, supporting PATH-independent child launch."
+        },
+        {
+          "label": "Bun upstream Windows environment merge helper",
+          "locator": "https://github.com/oven-sh/bun/blob/6ad467f02d8b2e92737697b6dd97b93eb70b034c/test/harness.ts#L1362-L1393",
+          "summary": "Bun's own test harness documents that Windows environment keys are case-insensitive, that spreading inherited env then PATH can leave Path/PATH duplicates, and that Bun lets the first duplicate win; it provides mergeWindowEnvs so the later override wins."
+        },
+        {
+          "label": "Existing runner regression coverage",
+          "locator": "file:///home/jon/dev/advance/bin/lib/slop-scan/runner.test.ts#L6-L43",
+          "summary": "Existing tests already establish process.execPath success, missing-command unavailable classification, and timeout classification."
+        }
+      ],
+      "architecture_assessment": "Mostly correct, simple, and spec-aligned, with two implementation-level corrections needed before approval. Child-scoped env injection, absolute process.execPath launch, fixture-local empty directory, exact detector states, timeout bound, and finally cleanup are conventional and keep production scanner behavior unchanged. However, `{ ...process.env, PATH: emptyDir }` is not portable on Windows because Bun's own harness documents duplicate case-insensitive `Path`/`PATH` keys and first-key-wins behavior; this can leave the ambient path effective and violate C3/AC2. Construct child env by removing every inherited key whose uppercase form is `PATH`, then add one canonical `PATH`. Also fulfill 'parses as slop_scan_report.v1' structurally by calling the existing validateSlopScanReport rather than checking only schema_version. Deviation: MINOR; both fixes remain test-only and preserve the design's architecture.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No security or release blocker. Approval should require explicit case-insensitive PATH canonicalization and use of the existing report validator. Without PATH canonicalization, Windows portability and hermetic detector absence are not established."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Filtering inherited PATH aliases adds a few test-helper lines but makes child command resolution deterministic across Windows and POSIX.",
+          "Using validateSlopScanReport adds coupling to the owned schema validator but turns a discriminator check into structural contract evidence.",
+          "Exact four-detector assertions intentionally couple this integration test to the required TypeScript detector contract, which is appropriate because registry IDs and capability law make that set normative.",
+          "A hard 5,000ms test timeout gives deterministic failure bounds but may shorten diagnostics during regressions; keeping production 10,000ms detector defaults unchanged avoids runtime behavior drift."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Copy process.env and append PATH exactly as drafted",
+            "disposition": "rejected",
+            "rationale": "Bun upstream documents first-wins duplicate Path/PATH behavior on Windows, so ambient executable resolution can survive the override."
+          },
+          {
+            "option": "Filter inherited keys case-insensitively for PATH, then add one canonical PATH",
+            "disposition": "preferred",
+            "rationale": "Smallest portable correction; preserves all other inherited child environment values while guaranteeing one PATH value."
+          },
+          {
+            "option": "Pass a minimal environment containing only PATH and NO_COLOR",
+            "disposition": "rejected",
+            "rationale": "Stronger isolation but unnecessarily changes unrelated child-runtime assumptions and risks existing helper behavior."
+          },
+          {
+            "option": "Mutate parent process.env.PATH",
+            "disposition": "rejected",
+            "rationale": "Violates signed C1/DONT1 and risks parallel-test interference."
+          },
+          {
+            "option": "Check only JSON.parse plus schema_version",
+            "disposition": "rejected",
+            "rationale": "The repository already owns validateSlopScanReport; discriminator-only checking does not prove the emitted object satisfies the typed report contract."
+          },
+          {
+            "option": "Change production runner or detector timeout defaults",
+            "disposition": "rejected",
+            "rationale": "Unnecessary and explicitly out of scope; existing runner tests cover unavailable and timeout classification."
+          }
+        ],
+        "recommendation": "Revise implementation detail, not architecture: canonicalize PATH case-insensitively in the child env, validate parsed JSON with validateSlopScanReport before exact code/detector assertions, then proceed with the test-only design and existing-suite verification."
+      },
+      "recommendation": "Hold design approval at caution until two explicit details are recorded: (1) child env contains exactly one case-insensitive PATH key pointing at the absolute empty fixture directory; (2) parsed output passes validateSlopScanReport before assertions on SLOP_SCAN_DEGRADED and eslint/knip/ast-grep/jscpd unavailable states. Keep production scanner unchanged.",
+      "follow_ups": [
+        "The ADV-generated briefing packet was truncated by host output, but identity anchors came from the user packet and current agreement/design were fetched through adv_change_show; no identity inference was required.",
+        "Semantic local search timed out twice, including the required non-hybrid retry; symbol/text search and direct source reads supplied local evidence instead.",
+        "Episode recall returned no authoritative change-specific guidance; recalled text was not used as evidence.",
+        "After the two cautions are incorporated, verify through the repository's required bin/oc-test routing rather than direct bun test invocation."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenSlopScanTestEnv",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenSlopScanTestEnv",
+      "task_id": "tk-872d28225869",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-872d28225869"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "bin/adv.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bun test bin/adv.test.ts --test-name-pattern \"degraded\"",
+          "exit_code": 0,
+          "summary": "Focused degraded-path test passes in ~538 ms (was timing out at 5 s before fix)."
+        },
+        {
+          "command": "bun test bin/adv.test.ts",
+          "exit_code": 0,
+          "summary": "Full CLI test suite passes: 16 pass, 0 fail."
+        },
+        {
+          "command": "bun test bin/lib/slop-scan/",
+          "exit_code": 0,
+          "summary": "All slop-scan unit tests pass: 42 pass, 0 fail."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Launch ADV with process.execPath instead of the bare 'bun' command",
+          "why": "AC1 requires the CLI test to use the actual executable path; avoids depending on PATH to find 'bun'."
+        },
+        {
+          "what": "Pass child-only env via runAdv options rather than mutating process.env",
+          "why": "Preserves isolation and satisfies C1/DONT1."
+        },
+        {
+          "what": "Normalize PATH case-insensitively and replace with an absolute empty temp directory",
+          "why": "AC2/C2; empty directory avoids ambiguous empty-PATH semantics and works cross-platform with Path/PATH."
+        },
+        {
+          "what": "Validate the report with validateSlopScanReport before content assertions",
+          "why": "Turns the shape check into a contract proof and satisfies design-derived criteria."
+        },
+        {
+          "what": "Assert each of the four important TypeScript detectors is unavailable",
+          "why": "AC4 distinguishes unavailable detectors from other failure states and guarantees SLOP_SCAN_DEGRADED."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes needed; only the slop-scan dispatcher test harness was changed, production scanner untouched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Hardened slop-scan degraded-path test in bin/adv.test.ts now uses process.execPath, a child-only case-insensitive normalized PATH pointing to an absolute empty temp directory, validateSlopScanReport, and exact unavailable assertions for eslint/knip/ast-grep/jscpd. All CLI and slop-scan unit tests pass.",
+        "suggested_next_action": "Review diff and proceed to acceptance gate"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenSlopScanTestEnv",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenSlopScanTestEnv",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "packet-defect-1",
+          "label": "blocker",
+          "what": "Context Packet identity anchors are incomplete: supplied TASK value is a descriptive phrase, not a task identifier, and independent acceptance review has no SCOPE KEY.",
+          "why": "Reviewer report identity cannot be safely bound as remediation (requires a valid task ID) or independent review (requires SCOPE KEY).",
+          "fix": "Orchestrator must resend packet with either TASK: tk-... for remediation or SCOPE KEY: review:acceptance for independent review."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "No analysis started: packet identity validation failed before scope lock."
+      },
+      "scope_drift": null,
+      "risks": [
+        "packet_defect: missing valid TASK identity or SCOPE KEY; review results would not be durably attributable to the intended lane."
+      ],
+      "required_main_agent_actions": [
+        "Resend a valid Context Packet containing a valid remediation TASK ID or independent-review SCOPE KEY, plus the existing CHANGE, ATTEMPT, PHASE, and WORKING DIRECTORY anchors."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenSlopScanTestEnv",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenSlopScanTestEnv",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Hermetic CLI degraded-path tests can preserve parent isolation by passing a copied child env with all case variants of PATH removed and one absolute empty directory assigned to PATH; launch via process.execPath so the test runtime itself is not PATH-dependent."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- bin/adv.test.ts (wrapper target mismatch; then fallback bun test bin/adv.test.ts)",
+          "bun test bin/adv.test.ts",
+          "bun test bin/lib/slop-scan/",
+          "git diff 58d65284..HEAD --check"
+        ],
+        "results": "pass",
+        "evidence": "The repository wrapper only targets plugin Vitest files, so bin/adv.test.ts produced its deterministic 'No test files found' wrapper result; its immediate Bun fallback passed 16/16 tests in 6.53s. Direct Bun verification (the only runner supporting root bin tests) passed bin/adv.test.ts: 16 pass, 0 fail, and bin/lib/slop-scan/: 42 pass, 0 fail. Diff whitespace check passed. Static review confirms AC1 process.execPath launch; AC2 child-only, case-insensitive PATH replacement with absolute empty fixture; AC3 schema validation and exact exit 1; AC4 all four required detectors unavailable and SLOP_SCAN_DEGRADED; AC5 explicit 5,000 ms test timeout; AC6 relevant CLI and scan coverage green. No global process.env mutation, fake executable, detector-present coverage, or runtime-timeout change found."
+      },
+      "scope_drift": null,
+      "risks": [
+        "bin/oc-test targeted is intentionally scoped to plugin Vitest and cannot execute root Bun CLI tests; use Bun directly for this root test surface until the repository supplies a throttled root-Bun target."
+      ],
+      "required_main_agent_actions": []
+    }
+  ],
+  "test_runs": {
+    "tk-872d28225869": [
+      {
+        "runId": "tr_mrnwn8ms_e5800ef7",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test bin/adv.test.ts --test-name-pattern \"degraded\"",
+        "durationMs": 5110.1442080000415,
+        "assertionDensity": 2.391304347826087,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-16T19:31:27.402Z"
+      },
+      {
+        "runId": "tr_mrnwo4ri_85cbbe5f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/adv.test.ts --test-name-pattern \"degraded\"",
+        "durationMs": 537.9874589997344,
+        "assertionDensity": 2.391304347826087,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-16T19:32:08.973Z"
+      },
+      {
+        "runId": "tr_mrnwofad_f1665d25",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/slop-scan/scan.test.ts bin/lib/slop-scan/runner.test.ts bin/lib/slop-scan/schema.test.ts",
+        "durationMs": 394.5453989999369,
+        "assertionDensity": 1.4666666666666666,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-16T19:32:22.667Z"
+      },
+      {
+        "runId": "tr_mrnwol5i_c2a9c96b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/adv.test.ts",
+        "durationMs": 8685.628599000163,
+        "assertionDensity": 2.391304347826087,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-16T19:32:30.281Z"
+      },
+      {
+        "runId": "tr_mrnwoqw3_a0edb9ff",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/slop-scan/",
+        "durationMs": 481.80396200018004,
+        "recordedAt": "2026-07-16T19:32:37.804Z"
+      },
+      {
+        "runId": "tr_mro7ro30_590719e6",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- ../bin/adv.test.ts ../bin/lib/slop-scan/**/*.test.ts",
+        "durationMs": 1769.3650220000127,
+        "recordedAt": "2026-07-17T00:42:49.806Z"
+      },
+      {
+        "runId": "tr_mro7ry5s_75684b88",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/adv.test.ts bin/lib/slop-scan/",
+        "durationMs": 6267.821759000013,
+        "assertionDensity": 2.391304347826087,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-17T00:43:02.832Z"
+      },
+      {
+        "runId": "tr_mro7tbkz_cf4c32a8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 59085.79938400001,
+        "recordedAt": "2026-07-17T00:44:06.889Z"
+      },
+      {
+        "runId": "tr_mro7ttsa_22495e89",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/adv.test.ts bin/lib/slop-scan/",
+        "durationMs": 7102.947347000008,
+        "assertionDensity": 2.391304347826087,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-17T00:44:30.521Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-16T18:55:47.881Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal on 2026-07-16.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "10553b78d79a99fcf0f98f26324373398d05240dc0db41a020417e0dfd755181",
+        "non_whitespace_chars": 805,
+        "checked_at": "2026-07-16T18:44:45.490Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:06:43.786Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved agreement and ChangeContract minted; research established child-scoped empty PATH plus process.execPath direction.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "non_whitespace_chars": 2003,
+        "checked_at": "2026-07-16T18:44:45.491Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:20:48.658Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator caution resolved in design: case-insensitive PATH normalization and schema-validator assertion; no contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "6222a6c201c26e162acf4f8ba674cee8ab66418d04f344856c50f08b0c855ab3",
+        "non_whitespace_chars": 1993,
+        "checked_at": "2026-07-16T18:44:45.492Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:28:46.161Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan for all three changes on 2026-07-16."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-16T21:59:17.303Z",
+      "completed_by": "agent",
+      "approval_evidence": "Harness task checkpointed with focused degraded, full CLI, and slop-scan suite verification."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-17T03:02:19.939Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted after independent READY review (0 findings), 17/17 contract review matrix, and persisted executive summary. Reply: \"accept all\".",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "32ec4c241943cd227c43d100d53af3528f229fea9fa268b2369b0392d9746879",
+        "non_whitespace_chars": 1233,
+        "checked_at": "2026-07-16T18:44:45.493Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "followup:reapLeakedTestServers-slop-scan-env-fragile"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+      "approvedAt": "2026-07-16T19:06:23.227Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Missing-detector behavior no longer depends on ambient host `PATH`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Degraded CLI result distinguishes unavailable detectors from command failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Test completes within the existing per-test timeout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "The CLI test launches ADV via `process.execPath`, not a bare runtime command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "The missing-detector test passes a child-only `PATH` containing an absolute empty temporary directory and does not mutate parent `process.env`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "In that environment, `slop-scan src --json --no-color` exits exactly 1 and output parses as `slop_scan_report.v1`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "The parsed report has failure code `SLOP_SCAN_DEGRADED` and marks eslint, knip, ast-grep, and jscpd unavailable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "The degraded dispatcher test completes within 5,000 ms without each detector reaching its 10,000 ms execution timeout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing success, runner, scan, dispatch, and CLI coverage remains green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Environment isolation is scoped to the spawned child process.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Use an absolute empty directory rather than empty `PATH` semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve portability and parallel-test safety.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not mutate global `process.env`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not rename dependencies or rely on absent host tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not fake a `pnpm` executable, which classifies as failed rather than unavailable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Adding detector-present integration coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing detector runtime timeout defaults.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-17T00:55:57.830Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Missing-detector behavior forced via child-only absolute empty temp dir PATH; env-independent on detector-present host (this machine has /usr/bin/sg) — reviewer READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Degraded report marks eslint/knip/ast-grep/jscpd unavailable (distinct from failed); DONT3 honored by not faking pnpm."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Degraded test completes in ~538ms, well under the 5,000ms per-test timeout (engineer verification)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "CLI test launches via process.execPath; reviewer additionally fixed a remaining bare `bun` launch in bin/adv.test.ts — bun test bin/adv.test.ts 16 pass then 58 pass combined with slop-scan suite."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Child-only PATH with absolute empty temp dir passed to Bun.spawn; parent process.env unmutated (case-insensitive PATH normalization; tests pass)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "slop-scan src --json --no-color exits exactly 1 and parses as slop_scan_report.v1 via validateSlopScanReport (bun test bin/adv.test.ts pass)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Parsed report failure code SLOP_SCAN_DEGRADED with eslint, knip, ast-grep, jscpd each asserted unavailable (bun test pass)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Degraded dispatcher test completes ~538ms < 5,000ms; no detector reaches its 10,000ms execution timeout."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing coverage green: bun test bin/adv.test.ts + bin/lib/slop-scan/ = 58 pass, 0 fail; pnpm run check pass (reviewer verification)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Environment isolation scoped to spawned child via runAdv options; pnpm run check green."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Absolute empty temporary directory used as PATH value, not empty-string PATH semantics."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fixture-local unique temp dir + cleanup in finally; portable case-insensitive Path/PATH handling; parallel-test safe."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Global process.env never mutated; env passed only to child spawn (reviewer READY, 0 findings)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No dependency renames; no reliance on absent host tools — detector absence is fixture-forced."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No fake pnpm executable introduced; unavailable-vs-failed classification preserved."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Detector-present integration coverage not added; out of scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Detector runtime timeout defaults unchanged; out of scope."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "The CLI test launches ADV via `process.execPath`, not a bare runtime command.",
+    "The missing-detector test passes a child-only `PATH` containing an absolute empty temporary directory and does not mutate parent `process.env`.",
+    "In that environment, `slop-scan src --json --no-color` exits exactly 1 and output parses as `slop_scan_report.v1`.",
+    "The parsed report has failure code `SLOP_SCAN_DEGRADED` and marks eslint, knip, ast-grep, and jscpd unavailable.",
+    "The degraded dispatcher test completes within 5,000 ms without each detector reaching its 10,000 ms execution timeout.",
+    "Existing success, runner, scan, dispatch, and CLI coverage remains green."
+  ],
+  "documents": {
+    "proposal": "## Proposal\n\n1. Make the degraded-path test hermetic: run `adv slop-scan` with a scrubbed `PATH` (or an env override) so the required external detectors (`sg`/ast-grep, etc.) are provably unavailable, deterministically triggering `SLOP_SCAN_DEGRADED` on any host.\n2. Verify the detector-availability resolution path honors the scrubbed env (inspect `bin/lib/slop-scan/scan.ts` detector lookup).\n3. Raise/scope the test timeout so a real scan on a detector-present host is not SIGKILLed mid-run (or keep it fast by ensuring the scrubbed-PATH path short-circuits to degraded quickly).\n4. Optionally add a complementary detector-PRESENT case asserting a successful (non-degraded) scan when detectors are available, so both branches are covered deterministically.\n\n### Acceptance signal\n`bun test bin/adv.test.ts` passes on both a detector-present host (this machine) and a detector-absent env (CI), with no reliance on ambient tooling.",
+    "problemStatement": "## Problem\n\n`bin/adv.test.ts` › \"adv slop-scan dispatcher\" › \"--json exits 1 with parseable degraded failure when required detectors are unavailable\" (L170-187) assumes the required slop-scan detectors are UNAVAILABLE in the test environment, asserting `exitCode 1` + `SLOP_SCAN_DEGRADED`. On a host where the detectors ARE installed (e.g. `sg`/ast-grep on PATH), the scan succeeds (exit 0) and the test fails. It also uses a 5000ms timeout that is too tight for a real scan.\n\n## Evidence\n\n- Reproduces on a clean trunk checkout (`bun test bin/adv.test.ts`, exit 143 / 5s timeout) on this host, which has `/usr/bin/sg` installed. Confirmed unrelated to the changes that surfaced it (reapLeakedTestServers).\n- Passed in GitHub CI (detectors absent there) — so it is environment-dependent, not a universal failure.\n\n## Desired outcome\n\nThe test deterministically exercises the degraded path regardless of host tooling: scrub the detector PATH (or otherwise force detector unavailability) so `SLOP_SCAN_DEGRADED` is guaranteed, and relax/scope the timeout so a legitimate scan is not killed. The test becomes env-independent and green on both detector-present and detector-absent hosts.",
+    "agreement": "# Agreement\n\n## Objectives\n- Make degraded slop-scan dispatcher coverage deterministic across hosts with or without detector tooling.\n- Preserve parent test environment and existing coverage.\n\n## Success Criteria\n- SC1: Missing-detector behavior no longer depends on ambient host `PATH`.\n- SC2: Degraded CLI result distinguishes unavailable detectors from command failures.\n- SC3: Test completes within the existing per-test timeout.\n\n## Acceptance Criteria\n- AC1: The CLI test launches ADV via `process.execPath`, not a bare runtime command.\n- AC2: The missing-detector test passes a child-only `PATH` containing an absolute empty temporary directory and does not mutate parent `process.env`.\n- AC3: In that environment, `slop-scan src --json --no-color` exits exactly 1 and output parses as `slop_scan_report.v1`.\n- AC4: The parsed report has failure code `SLOP_SCAN_DEGRADED` and marks eslint, knip, ast-grep, and jscpd unavailable.\n- AC5: The degraded dispatcher test completes within 5,000 ms without each detector reaching its 10,000 ms execution timeout.\n- AC6: Existing success, runner, scan, dispatch, and CLI coverage remains green.\n\n## Constraints\n- C1: Environment isolation is scoped to the spawned child process.\n- C2: Use an absolute empty directory rather than empty `PATH` semantics.\n- C3: Preserve portability and parallel-test safety.\n\n## Avoidances\n- DONT1: Do not mutate global `process.env`.\n- DONT2: Do not rename dependencies or rely on absent host tools.\n- DONT3: Do not fake a `pnpm` executable, which classifies as failed rather than unavailable.\n\n## Out of Scope\n- OOS1: Adding detector-present integration coverage.\n- OOS2: Changing detector runtime timeout defaults.\n\n## Preview Applicability\n- visual_surface: false\n- preview_expectation: exact_route_required: false; data_state_expectation: none; viewport_expectation: none; rationale: CLI test-environment behavior only.\n\n## Decisions\n### User Decisions\n- Force detector absence using child-scoped empty-directory PATH.\n- Use `process.execPath` for child launch.\n- Assert all four required detectors are unavailable, not only exit status.\n\n### Agent Decisions (LBP)\n- Extend the test helper with an environment override rather than globally changing process state.\n\n## Deferred Questions\n- None.\n\n## Sign-Off\n- User approved criteria and agreement on 2026-07-16.",
+    "design": "# Design\n\n## Architecture Overview\nOnly CLI test harness changes. `runAdv` accepts child process options and launches through `process.execPath`. The degraded fixture uses a unique temporary empty directory as the child-only executable search path.\n\n## Key Decisions\n- Build child environment by filtering inherited PATH keys case-insensitively, then insert exactly one canonical `PATH` mapped to empty fixture directory.\n- Pass environment only to `Bun.spawn`; never mutate `process.env`.\n- Validate parsed JSON with `validateSlopScanReport` before asserting `SLOP_SCAN_DEGRADED` and exact detector states.\n- Use explicit 5,000 ms test timeout and fixture cleanup in `finally`.\n\n## Implementation Strategy\n1. Extend `runAdv` options with inherited-default `cwd` and `env`; launch `[process.execPath, ADV_PATH, ...args]`.\n2. Add case-insensitive PATH normalizer for degraded child environment.\n3. Create fixture-local empty executable directory; pass copied normalized child environment.\n4. Parse and schema-validate report, then assert exit 1, degraded code, and unavailable eslint/knip/ast-grep/jscpd.\n5. Retain cleanup and run runner/scan/dispatcher/CLI coverage.\n\n## LBP Analysis\nChild-only normalized environment avoids global mutation and Windows `Path`/`PATH` ambiguity. Schema validation turns the report assertion into contract proof rather than loose shape checking.\n\n## Affected Components\n- `bin/adv.test.ts`; verification against existing runner/scan tests only. Production scanner unchanged.\n\n## Design-Derived Criteria\n- DC1: Default helper callers preserve inherited environment/cwd.\n- DC2: Degraded child contains exactly one case-insensitive PATH key.\n- DC3: Fixture cleanup runs on assertion failure.\n- DC4: Parsed report must satisfy `validateSlopScanReport` before content assertions.\n\n## Design Leverage Scout\n- 4 candidates; adopted helper options, absolute launcher, exact detector assertions, explicit bound, fixture-local cleanup.\n\n## Validator Result\n- Caution, high confidence, medium risk. Resolved: case-insensitive PATH normalization and schema-validator assertion. No contract compromise.\n\n## Risks / Mitigations\n- Empty PATH hides git, but fixture is intentionally non-git and existing root fallback applies.\n- Helper API behavior stays covered through defaults.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe slop-scan CLI degraded-path test is now hermetic: it deterministically exercises the \"required detectors unavailable\" branch on any host, whether or not detector tooling (ast-grep/eslint/knip/jscpd) is installed.\n\n## Value\n\nKills a real environment-dependent test failure: the test passed in CI (detectors absent) but failed on developer machines with `/usr/bin/sg` installed. One less source of \"full suite red for reasons unrelated to my change\".\n\n## Delivered\n\n- CLI test launches ADV via `process.execPath` (reviewer also fixed one remaining bare `bun` launch)\n- Child-only PATH pointing at an absolute empty temp directory, case-insensitively normalized (Windows `Path`/`PATH` safe); parent `process.env` never mutated\n- Report schema-validated (`slop_scan_report.v1` via `validateSlopScanReport`) before content assertions; exit code exactly 1; `SLOP_SCAN_DEGRADED` with all four detectors asserted unavailable\n- Fixture-local temp dir + cleanup in `finally`; parallel-test safe\n\n## Verification\n\n- Independent reviewer verdict: READY, 0 findings\n- `bun test bin/adv.test.ts` + `bin/lib/slop-scan/`: 58 pass, 0 fail; `pnpm run check` green\n- Degraded test completes ~538ms (was timing out at 5s before fix)\n- Contract review matrix: 17/17 rows passing/respected/not-applicable\n\n## Risks / follow-ups\n\n- None blocking. Detector-present integration coverage intentionally out of scope (OOS1).",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-17T00:55:57.830Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Missing-detector behavior no longer depends on ambient host `PATH`. | pass | Missing-detector behavior forced via child-only absolute empty temp dir PATH; env-independent on detector-present host (this machine has /usr/bin/sg) — reviewer READY. |\n| SC2 | success_criterion | Degraded CLI result distinguishes unavailable detectors from command failures. | pass | Degraded report marks eslint/knip/ast-grep/jscpd unavailable (distinct from failed); DONT3 honored by not faking pnpm. |\n| SC3 | success_criterion | Test completes within the existing per-test timeout. | pass | Degraded test completes in ~538ms, well under the 5,000ms per-test timeout (engineer verification). |\n| AC1 | acceptance_criterion | The CLI test launches ADV via `process.execPath`, not a bare runtime command. | pass | CLI test launches via process.execPath; reviewer additionally fixed a remaining bare `bun` launch in bin/adv.test.ts — bun test bin/adv.test.ts 16 pass then 58 pass combined with slop-scan suite. |\n| AC2 | acceptance_criterion | The missing-detector test passes a child-only `PATH` containing an absolute empty temporary directory and does not mutate parent `process.env`. | pass | Child-only PATH with absolute empty temp dir passed to Bun.spawn; parent process.env unmutated (case-insensitive PATH normalization; tests pass). |\n| AC3 | acceptance_criterion | In that environment, `slop-scan src --json --no-color` exits exactly 1 and output parses as `slop_scan_report.v1`. | pass | slop-scan src --json --no-color exits exactly 1 and parses as slop_scan_report.v1 via validateSlopScanReport (bun test bin/adv.test.ts pass). |\n| AC4 | acceptance_criterion | The parsed report has failure code `SLOP_SCAN_DEGRADED` and marks eslint, knip, ast-grep, and jscpd unavailable. | pass | Parsed report failure code SLOP_SCAN_DEGRADED with eslint, knip, ast-grep, jscpd each asserted unavailable (bun test pass). |\n| AC5 | acceptance_criterion | The degraded dispatcher test completes within 5,000 ms without each detector reaching its 10,000 ms execution timeout. | pass | Degraded dispatcher test completes ~538ms < 5,000ms; no detector reaches its 10,000ms execution timeout. |\n| AC6 | acceptance_criterion | Existing success, runner, scan, dispatch, and CLI coverage remains green. | pass | Existing coverage green: bun test bin/adv.test.ts + bin/lib/slop-scan/ = 58 pass, 0 fail; pnpm run check pass (reviewer verification). |\n| C1 | constraint | Environment isolation is scoped to the spawned child process. | respected | Environment isolation scoped to spawned child via runAdv options; pnpm run check green. |\n| C2 | constraint | Use an absolute empty directory rather than empty `PATH` semantics. | respected | Absolute empty temporary directory used as PATH value, not empty-string PATH semantics. |\n| C3 | constraint | Preserve portability and parallel-test safety. | respected | Fixture-local unique temp dir + cleanup in finally; portable case-insensitive Path/PATH handling; parallel-test safe. |\n| DONT1 | avoidance | Do not mutate global `process.env`. | respected | Global process.env never mutated; env passed only to child spawn (reviewer READY, 0 findings). |\n| DONT2 | avoidance | Do not rename dependencies or rely on absent host tools. | respected | No dependency renames; no reliance on absent host tools — detector absence is fixture-forced. |\n| DONT3 | avoidance | Do not fake a `pnpm` executable, which classifies as failed rather than unavailable. | respected | No fake pnpm executable introduced; unavailable-vs-failed classification preserved. |\n| OOS1 | out_of_scope | Adding detector-present integration coverage. | not_applicable | Detector-present integration coverage not added; out of scope. |\n| OOS2 | out_of_scope | Changing detector runtime timeout defaults. | not_applicable | Detector runtime timeout defaults unchanged; out of scope. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-16T18:44:45.624Z",
+      "contentHash": "10553b78d79a99fcf0f98f26324373398d05240dc0db41a020417e0dfd755181",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-16T18:44:45.624Z",
+      "contentHash": "9d974426c6a0032302a4be3e9a5aeefdd5930daa70b4cec5a1d67a1295101f5e",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-16T19:06:11.179Z",
+      "contentHash": "9959c8d33486ed739f18c1fe06a4013783245e59d06772a453a8fd03bc12e1e8",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-16T19:17:06.877Z",
+      "contentHash": "6222a6c201c26e162acf4f8ba674cee8ab66418d04f344856c50f08b0c855ab3",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-17T00:56:23.951Z",
+      "contentHash": "32ec4c241943cd227c43d100d53af3528f229fea9fa268b2369b0392d9746879",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-17T03:02:19.939Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-17T00:41:31.099Z"
+    }
+  ]
+}

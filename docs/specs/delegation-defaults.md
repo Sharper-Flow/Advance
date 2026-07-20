@@ -1,7 +1,7 @@
 # Delegation Defaults
 
-> **Version:** 1.3.0
-> **Updated:** 2026-07-15
+> **Version:** 1.3.1
+> **Updated:** 2026-07-19
 
 ## Purpose
 
@@ -426,49 +426,50 @@ When ADV presents formatted ready-task output (for example via adv_task_ready), 
 
 ---
 
-### Engineer-First Frontend Dispatch
+### Engineer-First Frontend Dispatch with Designer Follow-up
 
 **ID:** `rq-delDefaults10` | **Priority:** **[MUST]**
 
-For delegated code tasks, including tasks with metadata.frontend set to true, ADV MUST select adv-engineer for initial implementation. Frontend metadata structurally requires one matching-cycle adv-designer follow-up after successful engineer or safe inline implementation; the follow-up packet MUST include implementation cycle and typed engineer-report or inline provenance. adv-designer remains apply-phase only and MUST NOT own review or harden.
+For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.
 
 **Tags:** `delegation`, `frontend`, `engineer-first`, `designer-follow-up`
 
 #### Scenarios
 
-**Frontend task dispatches engineer before designer** (`rq-delDefaults10.1`)
-
-**Given:**
-- A delegated code task has metadata.frontend set to true
-
-**When:** ADV applies the task
-
-**Then:**
-- ADV selects adv-engineer for initial implementation
-- ADV requires one matching-cycle adv-designer follow-up after successful implementation
-- The designer packet carries implementation-cycle and typed implementation provenance
-
-**Inline frontend implementation still requires designer follow-up** (`rq-delDefaults10.2`)
+**Classified frontend task starts with engineer** (`rq-delDefaults10.1`)
 
 **Given:**
 - A code task has metadata.frontend set to true
-- Risk signals require initial implementation inline
+- No step-4 risk signal forces inline implementation
 
-**When:** The inline implementation succeeds
+**When:** ADV selects an initial implementation lane
 
 **Then:**
-- ADV requires a matching-cycle adv-designer follow-up before task completion
-- adv-designer does not edit backend, API, storage, Temporal, or business-rule scope
+- ADV dispatches adv-engineer before adv-designer
+- ADV does not dispatch adv-designer as the initial implementation lane
+
+**Matching implementation receipt drives designer follow-up** (`rq-delDefaults10.2`)
+
+**Given:**
+- A code task has metadata.frontend set to true
+- A same-task same-cycle adv-engineer report completed with passing verification and no blockers, or a classified inline implementation has bounded provenance
+
+**When:** Initial implementation completes
+
+**Then:**
+- ADV dispatches a matching-cycle adv-designer follow-up
+- Designer provenance references the engineer report or inline receipt
+- Missing, stale, or mismatched provenance is rejected
 
 **Reviewer retains review and harden ownership** (`rq-delDefaults10.3`)
 
 **Given:**
 - A change includes frontend scope
 
-**When:** ADV enters review or harden
+**When:** The change reaches review or harden
 
 **Then:**
-- adv-reviewer remains the review and harden owner
-- adv-designer is not routed as a review or harden worker
+- adv-designer does not own review or harden
+- adv-reviewer retains review and harden ownership
 
 ---

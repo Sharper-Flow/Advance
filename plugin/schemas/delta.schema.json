@@ -177,6 +177,27 @@
           "const": "modify",
           "type": "string"
         },
+        "precondition": {
+          "additionalProperties": false,
+          "properties": {
+            "new_id_absent": {
+              "type": "boolean"
+            },
+            "schema_version": {
+              "const": 1,
+              "type": "number"
+            },
+            "target_requirement_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "schema_version",
+            "target_requirement_sha256"
+          ],
+          "type": "object"
+        },
         "target_id": {
           "type": "string"
         }
@@ -198,6 +219,27 @@
         "operation": {
           "const": "remove",
           "type": "string"
+        },
+        "precondition": {
+          "additionalProperties": false,
+          "properties": {
+            "new_id_absent": {
+              "type": "boolean"
+            },
+            "schema_version": {
+              "const": 1,
+              "type": "number"
+            },
+            "target_requirement_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "schema_version",
+            "target_requirement_sha256"
+          ],
+          "type": "object"
         },
         "reason": {
           "type": "string"
@@ -229,6 +271,27 @@
         "operation": {
           "const": "rename",
           "type": "string"
+        },
+        "precondition": {
+          "additionalProperties": false,
+          "properties": {
+            "new_id_absent": {
+              "type": "boolean"
+            },
+            "schema_version": {
+              "const": 1,
+              "type": "number"
+            },
+            "target_requirement_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "schema_version",
+            "target_requirement_sha256"
+          ],
+          "type": "object"
         },
         "target_id": {
           "type": "string"

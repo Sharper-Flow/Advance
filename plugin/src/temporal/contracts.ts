@@ -1,4 +1,5 @@
 import type {
+  AcceptanceCriteriaSnapshot,
   ChangeClosure,
   ChangeContract,
   Change,
@@ -50,8 +51,10 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getTasks: "adv.change.getTasks",
   getGateStatus: "adv.change.getGateStatus",
   getGateCriteria: "adv.change.getGateCriteria",
+  getAcceptanceCriteriaProjection: "adv.change.getAcceptanceCriteriaProjection",
   getWorktrees: "adv.change.getWorktrees",
   getConformanceState: "adv.change.getConformanceState",
+  getMutationReceipt: "adv.change.getMutationReceipt",
 } as const;
 
 export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
@@ -62,6 +65,10 @@ export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
   task: "adv.change.task",
   getCurrentBucket: "adv.change.getCurrentBucket",
   getDirective: "adv.change.getDirective",
+  // SC1/AC8: centralized canonical wire name for the typed PhasePlan read
+  // query. Client bindings (messages.ts) and the workflow handler
+  // (workflows.ts) both bind from this constant so the name cannot drift.
+  getPhasePlan: "adv.change.getPhasePlan",
   getInvestmentReport: "adv.change.getInvestmentReport",
   getReviewVerification: "adv.change.getReviewVerification",
   getTaskRunSummary: "adv.change.getTaskRunSummary",
@@ -97,6 +104,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   gateReentered: "adv.change.gateReentered",
   wisdomAdded: "adv.change.wisdomAdded",
   specDeltaAdded: "adv.change.specDeltaAdded",
+  specDeltaModified: "adv.change.specDeltaModified",
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
   worktreeDeleted: "adv.change.worktreeDeleted",
@@ -115,6 +123,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   opsEvidenceAppended: "adv.change.opsEvidenceAppended",
   opsRunUpserted: "adv.change.opsRunUpserted",
   opsRunEvidenceAppended: "adv.change.opsRunEvidenceAppended",
+  lightweightProfileRequested: "adv.change.lightweightProfileRequested",
+  lightweightProfileEvaluated: "adv.change.lightweightProfileEvaluated",
   epicMembershipSet: "adv.change.epicMembershipSet",
   epicMembershipCleared: "adv.change.epicMembershipCleared",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
@@ -251,6 +261,8 @@ export interface ChangeWorkflowInput {
       | "terminated"
       | "acceptanceCriteria"
       | "contract"
+      | "acceptanceReadinessRevision"
+      | "acceptanceCriteriaSnapshot"
       | "documents"
       | "reflections"
       | "worktrees"
@@ -272,6 +284,7 @@ export interface ChangeWorkflowInput {
       | "signal_rejections_total"
       | "ops_followup"
       | "ops_followup_links"
+      | "lightweight_profile"
       | "epic_membership"
     >
   >;
@@ -409,6 +422,15 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   terminated?: boolean;
   acceptanceCriteria?: string[];
   contract?: ChangeContract;
+  /**
+   * Monotonic revision counter for acceptance-readiness state. Advanced when
+   * the contract, contract amendments, review matrix, or relevant re-entry
+   * change. Optional for replay-safety — histories predating this extension
+   * replay cleanly with it undefined; legacy state defaults to 0.
+   */
+  acceptanceReadinessRevision?: number;
+  /** Bounded proof that readiness-affecting signals were applied by reducer. */
+  mutationReceipts?: MutationReceipt[];
   /**
    * Authoritative artifact content for the change, keyed by canonical
    * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/
@@ -560,6 +582,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    */
   ops_followup_links?: Change["ops_followup_links"];
   /**
+   * Lightweight change profile state: request, immutable omission policy, and
+   * append-only evaluation history. Mirrors `ChangeSchema.lightweight_profile`.
+   * Set by `lightweightProfileRequestedSignal` and
+   * `lightweightProfileEvaluatedSignal`.
+   */
+  lightweight_profile?: Change["lightweight_profile"];
+  /**
    * Per-gate criteria evaluated at completion time.
    * Advisory audit trail — criteria are not blocking.
    * Optional for replay-safety — histories predating this field replay
@@ -569,12 +598,27 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     Record<import("../types").GateId, import("../types").GateCriterion[]>
   >;
   /**
+   * Snapshot of acceptance criteria captured at acceptance gate completion.
+   * The basisRevision records the acceptanceReadinessRevision at capture time
+   * so `deriveAcceptanceCriteriaProjection` can distinguish fresh audit evidence
+   * from stale criteria without mutating the snapshot.
+   */
+  acceptanceCriteriaSnapshot?: AcceptanceCriteriaSnapshot;
+  /**
    * Per-task test-run records, keyed by taskId. Ring-buffered to last 20
    * per task. Used by rq-TDD009seq ordering enforcement at task-completion
    * time (applyTaskCompletedToState). Additive optional — replay-safe for
    * histories predating this field.
    */
   testRuns?: Record<string, TestRunRecord[]>;
+}
+
+export const MUTATION_RECEIPTS_FIFO_LIMIT = 100;
+
+export interface MutationReceipt {
+  id: string;
+  signalName: string;
+  recordedAt: string;
 }
 
 /**

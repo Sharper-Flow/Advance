@@ -30,34 +30,20 @@ import { join, resolve } from "path";
 import { ADV_TOOL_NAMES } from "./tool-registry";
 import {
   AGENT_TOOL_POLICY,
+  blockableFromSubAgentSession,
   DUAL_TOOL_NAMES,
   OPERATOR_ONLY_TOOL_NAMES,
+  SPAWNABLE_SUBAGENT_ROSTER,
+  subAgentUnionAllowlist,
   TOOL_ROLE_POLICY,
 } from "./tool-role-policy";
+import { generateManifestContent } from "../scripts/generate-agent-manifests";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENTS_DIR = join(REPO_ROOT, ".opencode/agents");
 const MATRIX_DOC = join(REPO_ROOT, "docs/tool-ownership.md");
 
 const ROLE_CLASSES = ["orchestrator", "operator-only", "dual"] as const;
-
-const ADV_WILDCARD = "adv_*";
-
-/** Parse the frontmatter tools block of an agent manifest into adv_* grant entries. */
-function parseAdvToolEntries(manifestContent: string): Map<string, boolean> {
-  const fmMatch = manifestContent.match(/^---\n([\s\S]*?)\n---\n/);
-  expect(fmMatch, "manifest must have a YAML frontmatter block").toBeTruthy();
-  const frontmatter = fmMatch![1];
-  const toolsMatch = frontmatter.match(/^tools:\n((?:(?:^[ \t].*|^$)\n?)*)/m);
-  const toolsBlock = toolsMatch?.[1] ?? "";
-  const entries = new Map<string, boolean>();
-  for (const match of toolsBlock.matchAll(
-    /^\s+(adv_[A-Za-z0-9_*]+):\s*(true|false)\s*$/gm,
-  )) {
-    entries.set(match[1], match[2] === "true");
-  }
-  return entries;
-}
 
 function readManifest(agent: string): string {
   return readFileSync(join(AGENTS_DIR, `${agent}.md`), "utf8");
@@ -237,84 +223,50 @@ describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
     }
   });
 
-  for (const policy of AGENT_TOOL_POLICY) {
-    describe(`${policy.agent}.md`, () => {
-      const entries = parseAdvToolEntries(readManifest(policy.agent));
-
-      test("granted ADV tools exactly equal the intended allowed set", () => {
-        const granted = [...entries.entries()]
-          .filter(([key, value]) => key !== ADV_WILDCARD && value)
-          .map(([key]) => key);
-        expect(sorted(granted)).toEqual(sorted(policy.allowed));
-      });
-
-      test("no wildcard grant (`adv_*: true`) exists", () => {
-        expect(entries.get(ADV_WILDCARD)).not.toBe(true);
-      });
-
-      test(`default-deny wildcard presence matches policy (denyWildcard=${policy.denyWildcard})`, () => {
-        if (policy.denyWildcard) {
-          expect(entries.get(ADV_WILDCARD)).toBe(false);
-        } else {
-          expect(entries.has(ADV_WILDCARD)).toBe(false);
-        }
-      });
-
-      test("default-deny wildcard precedes every explicit ADV allow", () => {
-        // OpenCode resolves legacy `tools:` permissions in document order and
-        // the last matching rule wins. A wildcard deny after a specific allow
-        // would silently revoke that required allow while the unordered map
-        // assertions above would still pass.
-        if (!policy.denyWildcard) return;
-
-        const wildcardIndex = readManifest(policy.agent).indexOf(
-          `${ADV_WILDCARD}: false`,
-        );
-        expect(
-          wildcardIndex,
-          `${policy.agent} default deny must exist`,
-        ).toBeGreaterThanOrEqual(0);
-        for (const tool of policy.allowed) {
-          const allowIndex = readManifest(policy.agent).indexOf(
-            `${tool}: true`,
-          );
+  test("facade tools are granted to every agent except adv-ci-waiter (addProviderToolSearch AC5)", () => {
+    // The compressed tool surface relies on every normal agent (and the
+    // orchestrator) being able to discover and dispatch ADV tools through
+    // the three Advance-owned facade tools. adv-ci-waiter is the only
+    // exception: it is a bash-only CI poller with no ADV responsibility,
+    // so it keeps an empty allowlist with the deny wildcard.
+    const FACADE_TOOLS = [
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
+    ] as const;
+    const EXPECTED_FACADE_HOLDER = new Set<string>(FACADE_TOOLS);
+    for (const policy of AGENT_TOOL_POLICY) {
+      if (policy.agent === "adv-ci-waiter") {
+        for (const tool of FACADE_TOOLS) {
           expect(
-            allowIndex,
-            `${policy.agent} allow for ${tool} must follow adv_*: false`,
-          ).toBeGreaterThan(wildcardIndex);
-        }
-      });
-
-      test("policy-pinned explicit denials remain explicit", () => {
-        for (const tool of policy.explicitBlocked) {
-          expect(
-            entries.get(tool),
-            `${policy.agent} must keep explicit denial for ${tool}`,
+            policy.allowed.includes(tool),
+            `adv-ci-waiter must NOT carry facade tool ${tool} (no ADV surface)`,
           ).toBe(false);
         }
-      });
-
-      test("manifest names no unregistered or removed ADV tools", () => {
-        const retained = new Set(ADV_TOOL_NAMES);
-        const offenders = [...entries.keys()].filter(
-          (key) => key !== ADV_WILDCARD && !retained.has(key),
-        );
-        expect(offenders).toEqual([]);
-      });
-
-      test("every retained ADV tool is granted or denied — nothing unspecified", () => {
-        const uncovered = ADV_TOOL_NAMES.filter((tool) => {
-          if (policy.allowed.includes(tool)) return false;
-          if (policy.denyWildcard) return false;
-          return !policy.explicitBlocked.includes(tool);
-        });
+        continue;
+      }
+      const allowed = new Set(policy.allowed);
+      for (const tool of FACADE_TOOLS) {
         expect(
-          uncovered,
-          `${policy.agent} leaves ADV tools unspecified (default-allow hole): ${uncovered.join(", ")}`,
-        ).toEqual([]);
-      });
-    });
-  }
+          allowed.has(tool),
+          `${policy.agent} must grant facade tool ${tool} so its rendered tool surface includes the compressed ADV dispatch surface`,
+        ).toBe(true);
+      }
+    }
+    // Sanity: the expected facade set is exactly the three Advance-owned
+    // facade tools (no more, no less). Updates here require a corresponding
+    // AC / design update.
+    expect(EXPECTED_FACADE_HOLDER.size).toBe(3);
+  });
+
+  test("committed manifests equal generated output for every agent (AC2/AC3)", () => {
+    for (const policy of AGENT_TOOL_POLICY) {
+      const path = join(AGENTS_DIR, `${policy.agent}.md`);
+      const committed = readFileSync(path, "utf8");
+      const generated = generateManifestContent(committed, policy.agent);
+      expect(generated).toBe(committed);
+    }
+  });
 
   test("operator-only tools are grantable only to the ADV orchestrator agent (C6)", () => {
     for (const policy of AGENT_TOOL_POLICY) {
@@ -332,6 +284,101 @@ describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
           `${policy.agent} must not be granted operator-only tools across destructive/privacy/approval/target_path boundaries`,
         ).toEqual([]);
       }
+    }
+  });
+});
+
+function parseMode(manifestContent: string): string | undefined {
+  const fmMatch = manifestContent.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!fmMatch) return undefined;
+  const modeMatch = fmMatch[1].match(/^mode:\s*(\S+)\s*$/m);
+  return modeMatch?.[1];
+}
+
+describe("tool role policy — runtime blockable set derivation (AC5)", () => {
+  const EXPECTED_UNION_FLOOR = Object.freeze([
+    "adv_change_list",
+    "adv_change_show",
+    "adv_gate_status",
+    "adv_project_context",
+    "adv_run_test",
+    "adv_snapshot_health",
+    "adv_spec",
+    "adv_status",
+    "adv_subagent_report_submit",
+    "adv_task_list",
+    "adv_task_ready",
+    "adv_task_show",
+    // Facade tools (addProviderToolSearch AC5): every sub-agent's allowed
+    // list carries the three Advance-owned facade tools so normal agents can
+    // discover and dispatch ADV tools through the compressed surface. They
+    // remain non-blockable from sub-agent sessions because the wrapped
+    // execute re-runs authorization/approval/recovery enforcement.
+    "adv_tool_catalog",
+    "adv_tool_describe",
+    "adv_tool_invoke",
+    "adv_wisdom_add",
+    "adv_wisdom_list",
+    "adv_session_list",
+    "adv_temporal_diagnose",
+    "adv_wip_state",
+  ]);
+
+  test("subAgentUnionAllowlist returns the expected union floor", () => {
+    expect(sorted(subAgentUnionAllowlist())).toEqual(
+      sorted([...EXPECTED_UNION_FLOOR]),
+    );
+  });
+
+  test("blockable set excludes every union-floor tool", () => {
+    const blockable = new Set(blockableFromSubAgentSession());
+    for (const tool of EXPECTED_UNION_FLOOR) {
+      expect(blockable.has(tool)).toBe(false);
+    }
+  });
+
+  test("blockable set includes operator-only tools and orchestration/authority mutations", () => {
+    const blockable = new Set(blockableFromSubAgentSession());
+    for (const tool of OPERATOR_ONLY_TOOL_NAMES) {
+      expect(blockable.has(tool)).toBe(true);
+    }
+    expect(blockable.has("adv_gate_complete")).toBe(true);
+    for (const tool of ADV_TOOL_NAMES.filter((name) =>
+      name.startsWith("adv_epic_"),
+    )) {
+      expect(blockable.has(tool)).toBe(true);
+    }
+    expect(blockable.has("adv_worktree_create")).toBe(true);
+    expect(blockable.has("adv_worktree_delete")).toBe(true);
+  });
+
+  test("roster-derived helpers are deterministic and frozen", () => {
+    const first = subAgentUnionAllowlist();
+    const second = subAgentUnionAllowlist();
+    expect(first).toEqual(second);
+    expect(Object.isFrozen(first)).toBe(true);
+    expect(Object.isFrozen(blockableFromSubAgentSession())).toBe(true);
+    expect(Object.isFrozen(SPAWNABLE_SUBAGENT_ROSTER)).toBe(true);
+  });
+});
+
+describe("tool role policy — spawnable roster parity", () => {
+  test("every .opencode/agents/*.md with mode: subagent is in the roster, and vice versa", () => {
+    const manifestAgents = readdirSync(AGENTS_DIR)
+      .filter((name) => name.endsWith(".md"))
+      .map((name) => name.replace(/\.md$/, ""));
+
+    const subAgentsFromManifests = manifestAgents
+      .filter((agent) => parseMode(readManifest(agent)) === "subagent")
+      .sort();
+
+    expect(subAgentsFromManifests).toEqual(sorted(SPAWNABLE_SUBAGENT_ROSTER));
+  });
+
+  test("every roster agent has a row in AGENT_TOOL_POLICY", () => {
+    const policyAgents = new Set(AGENT_TOOL_POLICY.map((p) => p.agent));
+    for (const agent of SPAWNABLE_SUBAGENT_ROSTER) {
+      expect(policyAgents.has(agent)).toBe(true);
     }
   });
 });

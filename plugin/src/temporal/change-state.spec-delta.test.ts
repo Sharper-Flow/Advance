@@ -2,10 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
   applySpecDeltaAddedToState,
+  applySpecDeltaModifiedToState,
   createChangeWorkflowState,
 } from "./change-state";
-import { SpecDeltaAddedSignalPayloadSchema } from "../types";
-import type { SpecDeltaAddedSignalPayload } from "../types";
+import {
+  SpecDeltaAddedSignalPayloadSchema,
+  SpecDeltaModifiedSignalPayloadSchema,
+} from "../types";
+import type {
+  SpecDeltaAddedSignalPayload,
+  SpecDeltaModifiedSignalPayload,
+} from "../types";
 
 const TIMESTAMP = "2026-07-14T00:00:00.000Z";
 
@@ -31,6 +38,15 @@ function makeAddDelta(deltaId: string, requirementId: string, title: string) {
   };
 }
 
+function makeModifyDelta(deltaId = "dl-MOD11111", targetId = "rq-existing01") {
+  return {
+    id: deltaId,
+    operation: "modify" as const,
+    target_id: targetId,
+    changes: { title: "Updated requirement" },
+  };
+}
+
 function makePayload(
   overrides: Partial<SpecDeltaAddedSignalPayload> = {},
 ): SpecDeltaAddedSignalPayload {
@@ -39,6 +55,18 @@ function makePayload(
     delta: makeAddDelta("dl-AAA11111", "rq-specDelta01", "Spec delta writer"),
     addedAt: TIMESTAMP,
     addedBy: "agent",
+    ...overrides,
+  };
+}
+
+function makeModifyPayload(
+  overrides: Partial<SpecDeltaModifiedSignalPayload> = {},
+): SpecDeltaModifiedSignalPayload {
+  return {
+    capability: "collection-dashboard",
+    delta: makeModifyDelta(),
+    modifiedAt: TIMESTAMP,
+    modifiedBy: "agent",
     ...overrides,
   };
 }
@@ -91,6 +119,40 @@ describe("SpecDeltaAddedSignalPayloadSchema", () => {
       expect(result.success).toBe(false);
     },
   );
+});
+
+describe("SpecDeltaModifiedSignalPayloadSchema", () => {
+  it("accepts a strict non-empty modify payload", () => {
+    expect(
+      SpecDeltaModifiedSignalPayloadSchema.safeParse(makeModifyPayload())
+        .success,
+    ).toBe(true);
+  });
+
+  it.each([
+    { changes: {} },
+    { changes: { unknown: "nope" } },
+    {
+      changes: {
+        scenarios: [
+          {
+            id: "rq-other01.1",
+            title: "Wrong parent",
+            given: ["a requirement exists"],
+            when: "a modification is recorded",
+            then: ["validation fails"],
+          },
+        ],
+      },
+    },
+  ])("rejects invalid modify changes %#", (delta) => {
+    expect(
+      SpecDeltaModifiedSignalPayloadSchema.safeParse({
+        ...makeModifyPayload(),
+        delta: { ...makeModifyDelta(), ...delta },
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("applySpecDeltaAddedToState", () => {
@@ -179,5 +241,38 @@ describe("applySpecDeltaAddedToState", () => {
 
     expect(first.deltas).toEqual(second.deltas);
     expect(first.lastSignalAt).toBe(second.lastSignalAt);
+  });
+});
+
+describe("applySpecDeltaModifiedToState", () => {
+  it("appends a validated modify delta and records its timestamp", () => {
+    const state = makeState();
+    const payload = makeModifyPayload();
+
+    const next = applySpecDeltaModifiedToState(state, payload);
+
+    expect(next.deltas["collection-dashboard"]).toEqual([payload.delta]);
+    expect(next.lastSignalAt).toBe(TIMESTAMP);
+  });
+
+  it("rejects duplicate ids and conflicting targets without mutating state", () => {
+    const state = makeState();
+    applySpecDeltaModifiedToState(state, makeModifyPayload());
+    const before = structuredClone(state.deltas);
+
+    expect(() =>
+      applySpecDeltaModifiedToState(
+        state,
+        makeModifyPayload({
+          delta: makeModifyDelta("dl-OTHER111", "rq-existing01"),
+        }),
+      ),
+    ).toThrow(/Conflicting/);
+    expect(state.deltas).toEqual(before);
+
+    expect(() =>
+      applySpecDeltaModifiedToState(state, makeModifyPayload()),
+    ).toThrow(/Duplicate/);
+    expect(state.deltas).toEqual(before);
   });
 });

@@ -1,16 +1,20 @@
 import type { Store } from "../store-types";
-import type { DeltaAdd } from "../../types";
-import { SpecDeltaAddedSignalPayloadSchema } from "../../types";
+import type { DeltaAdd, DeltaModify } from "../../types";
+import {
+  SpecDeltaAddedSignalPayloadSchema,
+  SpecDeltaModifiedSignalPayloadSchema,
+} from "../../types";
 import {
   specDeltaAddedSignal,
+  specDeltaModifiedSignal,
   changeStateQuery,
 } from "../../temporal/messages";
 import {
-  runTemporal,
   runTemporalQuery,
   getGuardedChangeHandle,
   type StoreDeps,
 } from "./shared";
+import { fireSignalWithMutationGuard } from "./gates";
 
 /**
  * Temporal store operation for the append-only spec-delta writer
@@ -45,12 +49,18 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
         addedAt: now,
         addedBy: options?.addedBy,
       });
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          specDeltaAddedSignal,
-          payload,
-        ),
+      // SC4 + SC6: guard the signal; classify readback outcome.
+      const addOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        specDeltaAddedSignal,
+        [payload],
       );
+      if (addOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `specDeltas.add(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporalQuery(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
@@ -70,6 +80,46 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       emitChangeSummarySignal(changeId, state);
       persistStateToDisk(changeId, state);
       return appended as DeltaAdd;
+    },
+    modify: async (changeId, capability, delta: DeltaModify, options) => {
+      invalidateChange(changeId);
+      const now = new Date().toISOString();
+      const payload = SpecDeltaModifiedSignalPayloadSchema.parse({
+        capability,
+        delta,
+        modifiedAt: now,
+        modifiedBy: options?.modifiedBy,
+      });
+      const modifyOutcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        specDeltaModifiedSignal,
+        [payload],
+      );
+      if (modifyOutcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `specDeltas.modify(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
+      const state = (await runTemporalQuery(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
+      const appended = state.deltas[capability]?.find(
+        (entry) => entry.id === delta.id && entry.operation === "modify",
+      );
+      if (!appended) {
+        const rejections = state.signal_rejections ?? [];
+        const latest = rejections[rejections.length - 1];
+        throw new Error(
+          latest?.signalName === "specDeltaModified"
+            ? `Spec delta modify rejected for change ${changeId}: ${latest.errorMessage}`
+            : `Spec delta modify for change ${changeId} completed without appending delta ${delta.id} under capability ${capability}`,
+        );
+      }
+      setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
+      persistStateToDisk(changeId, state);
+      return appended as DeltaModify;
     },
   };
 }

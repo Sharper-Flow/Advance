@@ -1,0 +1,2896 @@
+{
+  "id": "fixCrossProjectTrunkFirewall",
+  "title": "Fix cross-project trunk firewall",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-15T19:21:03.942Z",
+  "tasks": [
+    {
+      "id": "tk-71036bbf8b61",
+      "title": "Implement target-relative trunk firewall",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-15T20:27:53.291Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Internal TypeScript firewall and Git topology logic; no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-15T21:46:25.335Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T21:48:43.777Z",
+      "verification": "118 targeted firewall/integration tests passed via adv_run_test run tr_mrmmt0x6_80d4ccef; subagent also recorded RED before implementation and target/regression green evidence. pnpm run check format failure is pre-existing base drift outside touched files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/trunk-write-firewall.test.ts",
+        "plugin/src/tools/trunk-write-firewall.ts",
+        "plugin/src/utils/worktree-paths.test.ts",
+        "plugin/src/utils/worktree-paths.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/trunk-write-firewall.test.ts",
+        "plugin/src/tools/trunk-write-firewall.ts",
+        "plugin/src/utils/worktree-paths.test.ts",
+        "plugin/src/utils/worktree-paths.ts"
+      ],
+      "checkpointSha": "0e704cf9185cf4e572162b20ff31b5fd4ee7127a",
+      "completedAt": "2026-07-15T22:08:28.192Z",
+      "completed_at": "2026-07-15T22:08:28.192Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCrossProjectTrunkFirewall",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+          "task_id": "tk-71036bbf8b61",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-71036bbf8b61"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/trunk-write-firewall.ts",
+            "plugin/src/tools/trunk-write-firewall.test.ts",
+            "plugin/src/utils/worktree-paths.ts",
+            "plugin/src/utils/worktree-paths.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts",
+              "exit_code": 1,
+              "summary": "RED: 14 failed / 51 passed — foreign main checkout writes allowed and parseWorktreeTopology missing."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 65 passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts src/trunk-write-firewall-spec-assets.test.ts",
+              "exit_code": 0,
+              "summary": "57 passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts",
+              "exit_code": 0,
+              "summary": "118 passed after format."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/test.test.ts src/tools/subagent-report.test.ts",
+              "exit_code": 0,
+              "summary": "57 passed."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 1,
+              "summary": "Schemas, typecheck, isolation, lockfile, and lint passed; format check fails only on pre-existing base drift in src/index.ts and src/utils/morph-worktree-authorization.test.ts."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Resolve trunk-ness target-relatively through bounded existing ancestor and target worktree porcelain topology.",
+              "why": "Foreign main checkouts were allowed because authorization used session projectRoot."
+            },
+            {
+              "what": "Exclude prunable worktree entries from eligibility and preserve mutable branch/default/recovery probes outside topology memo.",
+              "why": "Stale topology must not authorize writes; mutable state must remain fresh."
+            },
+            {
+              "what": "Evaluate exact artifact allowlist relative to target main checkout root.",
+              "why": "Cross-project artifact exception must not use session root."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing prettier drift in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts was verified on base and remains untouched.",
+            "ADV_INSTRUCTIONS.md firewall prose may need cross-project wording in the dedicated docs task."
+          ],
+          "required_main_agent_actions": [
+            "Checkpoint and complete this task after inspecting worktree diff.",
+            "Treat the pre-existing full-format drift separately from this task."
+          ],
+          "related_scan": "plugin/src/index.ts is the sole public firewall API consumer; no other call sites need signature updates.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Target-relative firewall implemented with inline TDD. Foreign default main now blocks; linked non-prunable worktrees, recovery, non-Git, and exact four artifacts allow. Direct/Bash parity and same-project regression covered.",
+            "suggested_next_action": "Inspect diff, checkpoint task, then continue ready tasks."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts src/trunk-write-firewall-spec-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/test.test.ts src/tools/subagent-report.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-87598e4d7356",
+      "title": "Harden recovery-state detection",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-15T20:28:04.096Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Checkpoint state detection; no visual surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-15T21:46:25.337Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T22:09:26.118Z",
+      "verification": "120 targeted checkpoint/integration/firewall tests passed via adv_run_test tr_mrmng3vp_808ff81b. Engineer recorded RED before precedence fix; full suite had only pre-existing rq-delDefaults10 citation failure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/integration.test.ts",
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/integration.test.ts",
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "583ef90ad14c52e415d241113acbe36d4bc985ca",
+      "completedAt": "2026-07-15T22:26:19.112Z",
+      "completed_at": "2026-07-15T22:26:19.112Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCrossProjectTrunkFirewall",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+          "task_id": "tk-87598e4d7356",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-87598e4d7356"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/checkpoint.ts",
+            "plugin/src/tools/checkpoint.test.ts",
+            "plugin/src/integration.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/tools/checkpoint.test.ts",
+              "exit_code": 1,
+              "summary": "RED: six new precedence tests failed; detached classification masked recovery state."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/checkpoint.test.ts src/integration.test.ts src/tools/trunk-write-firewall.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 120 passed."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 1,
+              "summary": "Schemas/typecheck/isolation/lockfile/lint passed; pre-existing format drift only in src/index.ts and src/utils/morph-worktree-authorization.test.ts."
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 1,
+              "summary": "5496/5497 passed; sole pre-existing rq-delDefaults10 citation invariant failure."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Check merge/rebase/cherry-pick/revert markers before detached HEAD classification.",
+              "why": "Recovery operations detach HEAD; detached-first masked required in-progress state."
+            },
+            {
+              "what": "Add detached-rebase integration coverage including abort/re-block.",
+              "why": "Proves recovery allowance holds during rebase and strict firewall returns after recovery."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing rq-delDefaults10 citation invariant failure.",
+            "Pre-existing formatter drift in src/index.ts and src/utils/morph-worktree-authorization.test.ts.",
+            "Bounded-read-deadline test may be load-sensitive; passed during reported full run."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "No other detached-first RepoState pattern found; archive helper checks markers directly and worktree triage porcelain detached parsing is unrelated.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "detectRepoState recovery markers now precede detached state, structurally preserving recovery allowances; unit and real-Git detached-rebase integration coverage added.",
+            "suggested_next_action": "Inspect diff, checkpoint task, and proceed to checkpoint workdir task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/tools/checkpoint.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/checkpoint.test.ts src/integration.test.ts src/tools/trunk-write-firewall.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-e7071a2aebba",
+      "title": "Verify cross-project firewall contract",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-15T20:28:14.547Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-71036bbf8b61"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-87598e4d7356"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "frontend_rationale": "Verification-only internal change."
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-15T21:46:25.371Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T22:26:45.878Z",
+      "verification": "Independent verifier passed 112 scoped firewall/recovery tests via bin/oc-test targeted; persisted verifier bundle fixCrossProjectTrunkFirewall|change:verifier:firewall-recovery-contract|adv-verification-triage-bundle|2.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "583ef90ad14c52e415d241113acbe36d4bc985ca",
+      "completedAt": "2026-07-15T22:29:04.318Z",
+      "completed_at": "2026-07-15T22:29:04.318Z"
+    },
+    {
+      "id": "tk-3a553a6d2ba9",
+      "title": "Harden target queue readiness",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-15T21:46:48.909Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC9"
+        ],
+        "respects": [
+          "C3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T22:29:17.683Z",
+      "verification": "49 target-project/queue-serviceability/temporal-ops tests passed via adv_run_test tr_mrmo42x7_5cefc3e6; engineer recorded RED-first readiness matrix and 551 related green tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "f9cd23a8228f9c58a2d27eeda6dfc097934bfc11",
+      "completedAt": "2026-07-15T22:45:00.857Z",
+      "completed_at": "2026-07-15T22:45:00.857Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCrossProjectTrunkFirewall",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+          "task_id": "tk-3a553a6d2ba9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3a553a6d2ba9"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/target-project.ts",
+            "plugin/src/tools/target-project.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/target-project.test.ts",
+              "exit_code": 0,
+              "summary": "30 passed; eight RED-first hardening tests now green."
+            },
+            {
+              "command": "bin/oc-test targeted -- related target queue consumers",
+              "exit_code": 0,
+              "summary": "551 related tests passed."
+            },
+            {
+              "command": "pnpm exec tsc --noEmit; eslint; prettier on touched files",
+              "exit_code": 0,
+              "summary": "Touched files clean."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 1,
+              "summary": "Only pre-existing prettier violations in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Derive local queue readiness from per-queue worker diagnostics.",
+              "why": "Raw registered queues include failed queues and unrelated queue liveness was unsafe."
+            },
+            {
+              "what": "Use fresh server poller as conservative admission only and emit remediation field.",
+              "why": "Poller freshness is not liveness; AC9 requires typed actionable refusal."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing branch formatter violations in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts."
+          ],
+          "required_main_agent_actions": [
+            "Resolve unrelated format failures before final full check."
+          ],
+          "related_scan": "Readiness error consumers are format-agnostic; target routing, firewall, checkpoint, and config model untouched.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Queue readiness now registers local worker queue first, derives per-queue liveness, treats fresh server poller as conservative admission, and fails before mutation with required diagnostic fields.",
+            "suggested_next_action": "Inspect diff, checkpoint task, then continue checkpoint workdir task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/target-project.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- related target queue consumers"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit; eslint; prettier on touched files"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-ef1f18171f58",
+      "title": "Separate checkpoint target workdir",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-15T21:46:48.981Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-87598e4d7356"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T22:45:06.244Z",
+      "verification": "104 checkpoint/target-project/task tests passed via adv_run_test tr_mrmocnu6_a2ab04f8; engineer recorded RED-first workdir binding cases.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "4e7649a7c16eb81243cb55d4733f96033709e2d0",
+      "completedAt": "2026-07-15T22:51:40.146Z",
+      "completed_at": "2026-07-15T22:51:40.146Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCrossProjectTrunkFirewall",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+          "task_id": "tk-ef1f18171f58",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ef1f18171f58"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/checkpoint.ts",
+            "plugin/src/tools/checkpoint.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/checkpoint.test.ts",
+              "exit_code": 0,
+              "summary": "33 passed; four tests red before fix."
+            },
+            {
+              "command": "bin/oc-test targeted -- checkpoint,target-project,task",
+              "exit_code": 0,
+              "summary": "104 passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- gate,firewall,cli bridge",
+              "exit_code": 0,
+              "summary": "113 passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Select cwd from explicit workdir before target default and bind target path to common Git dir.",
+              "why": "Prevents target store from causing unrelated or wrong worktree commits."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "The target_path-overrides-workdir pattern was unique to checkpoint.ts.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Explicit target worktree workdir wins; blank and unrelated workdirs reject before Git task state/signal/commit.",
+            "suggested_next_action": "Inspect, verify, checkpoint task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/checkpoint.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- checkpoint,target-project,task"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- gate,firewall,cli bridge"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-e30fb19f02f5",
+      "title": "Audit target routing identity",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-15T21:46:50.431Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T23:27:51.791Z",
+      "verification": "adv_run_test tr_mrmq5clm_9f06ad5a: 6 targeted target-path routing suites, 212 tests passed. Static audit found route implementation correct; added structural identity and snapshot-authority regression coverage.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/target-project.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/target-project.test.ts"
+      ],
+      "checkpointSha": "af849a12f25b476905813b56ed9cb810faf45cdc",
+      "completedAt": "2026-07-15T23:42:05.568Z",
+      "completed_at": "2026-07-15T23:42:05.568Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCrossProjectTrunkFirewall",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+          "task_id": "tk-e30fb19f02f5",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-e30fb19f02f5"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/target-project.test.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/target-project.test.ts",
+              "exit_code": 0,
+              "summary": "34/34 pass; includes four snapshot-authority seam tests."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "114/114 pass; three target-routing identity pins."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/cross-project-coordination.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.status-repair.test.ts src/tools/gate.test.ts",
+              "exit_code": 0,
+              "summary": "64/64 pass across adjacent cross-project suites."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 1,
+              "summary": "Schemas/typecheck/isolation/lockfile/lint passed; format check fails only on pre-existing drift in src/index.ts and src/utils/morph-worktree-authorization.test.ts. Touched files are clean."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "No production changes after routing audit.",
+              "why": "All in-scope artifact mutation and close routes already bind target stores/workflow identity to the resolved target project."
+            },
+            {
+              "what": "Add seam-level snapshot-authority tests.",
+              "why": "All snapshot reads share the target-project formatter/path, so seam proof avoids redundant per-tool mocks."
+            },
+            {
+              "what": "Add negative source-identity guards for close routes.",
+              "why": "Prevents passing tests if source and target workflows are both addressed."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing formatter drift in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts.",
+            "Non-blocking consistency: adv_gate_complete recomputes target ID from store root instead of consuming projectContext.projectId.",
+            "Archive target_path execution has dry-run routing coverage; full archive test remains archive-owner scope."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Audited all withTargetPathStore/withOptionalTargetPathStore routes: mutations use temporal-required target identity; snapshot reads use disk-snapshot authority marker. getChangeWorkflowHandleForStore derives identity from given store root.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Target routing identity audit found no in-scope bug. Structural test proof added for non-authoritative snapshot reads and resolved target workflow/store identity, including negative source-identity guards.",
+            "suggested_next_action": "Record targeted test evidence, checkpoint task, then proceed to docs task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/target-project.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/cross-project-coordination.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.status-repair.test.ts src/tools/gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-56346d82586a",
+      "title": "Verify expanded cross-project contract",
+      "type": "verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-15T21:47:00.688Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e7071a2aebba"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ef1f18171f58"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3a553a6d2ba9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e30fb19f02f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T23:56:24.064Z",
+      "verification": "adv_run_test tr_mrmqw2ou_0d719bce: 10 independent runtime/spec verification suites, 317 tests passed. Full pnpm run check has separately tracked pre-existing formatter drift outside this change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "353fa2dd416de455090dbd2184246a6620d96d5b",
+      "completedAt": "2026-07-16T00:02:53.124Z",
+      "completed_at": "2026-07-16T00:02:53.124Z"
+    },
+    {
+      "id": "tk-8924a2710749",
+      "title": "Align cross-project capability laws",
+      "type": "docs",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-15T21:47:36.339Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "tdd_rationale": "Capability-law and documentation alignment is verified by static review and schema/spec checks, not red/green runtime TDD.",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T23:42:12.296Z",
+      "verification": "adv_run_test tr_mrmqn3xi_ec54bab5: 6 spec/documentation drift asset suites, 48 tests passed. Engineer additionally verified schema parsing, generated schema check, and spec/mirror alignment.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "docs/worktree-guide.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "docs/worktree-guide.md"
+      ],
+      "checkpointSha": "353fa2dd416de455090dbd2184246a6620d96d5b",
+      "completedAt": "2026-07-15T23:56:13.789Z",
+      "completed_at": "2026-07-15T23:56:13.789Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCrossProjectTrunkFirewall",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+          "task_id": "tk-8924a2710749",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8924a2710749"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-meta/spec.json",
+            ".adv/specs/advance-workflow/spec.json",
+            "ADV_INSTRUCTIONS.md",
+            "docs/specs/advance-meta.md",
+            "docs/specs/advance-workflow.md",
+            "docs/worktree-guide.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec tsx -e \"SpecSchema.parse(...) for advance-meta + advance-workflow spec.json\"",
+              "exit_code": 0,
+              "summary": "Both edited spec.json files parse against SpecSchema: advance-meta 54 requirements, advance-workflow 102."
+            },
+            {
+              "command": "bin/oc-test targeted -- spec/doc drift assets",
+              "exit_code": 0,
+              "summary": "6 files, 48 asset and drift tests passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- firewall/checkpoint/target-project/spec asset tests",
+              "exit_code": 0,
+              "summary": "9 files, 287 behavior/spec/mirror asset tests passed."
+            },
+            {
+              "command": "bin/oc-test targeted -- asset/drift files after prose polish",
+              "exit_code": 0,
+              "summary": "9 files, 120 tests passed."
+            },
+            {
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Generated JSON schemas have no drift."
+            },
+            {
+              "command": "node mirror-alignment script",
+              "exit_code": 0,
+              "summary": "Scenario order and requirement bodies match across specs and docs mirrors."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extend owning requirements rather than add IDs.",
+              "why": "The change refines existing firewall, checkpoint, and readiness laws; keeping them local preserves discoverability."
+            },
+            {
+              "what": "Leave already-aligned laws unchanged.",
+              "why": "Target-read authority, canonical shards, task mutation routing, and coordination laws already match implementation."
+            },
+            {
+              "what": "Avoid unrelated documentation churn.",
+              "why": "Other scanned recovery/worktree/readme surfaces were accurate."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "User-global ~/.config/opencode/instructions/trunk-worktree-isolation.md still says firewall guards only current session project; update its Structural guard status after this change archives."
+          ],
+          "required_main_agent_actions": [
+            "Update the user-global trunk-worktree-isolation.md instruction after archive/deploy; it is outside this repo worktree."
+          ],
+          "related_scan": "Scanned all capability specs plus ADV_INSTRUCTIONS.md and worktree/cross-project docs. Only the six edited files needed alignment; readiness refusal diagnostic precision now matches implementation.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Cross-project behavior is codified in owning spec laws and mirrors: target-relative firewall, conservative defaults, prunable exclusion, exact allowlist, checkpoint workdir/store binding, and queue readiness diagnostics. Existing snapshot authority laws were intentionally unchanged.",
+            "suggested_next_action": "Record static verification, checkpoint documentation task, then run expanded contract verification."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsx -e \"SpecSchema.parse(...) for advance-meta + advance-workflow spec.json\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- spec/doc drift assets"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- firewall/checkpoint/target-project/spec asset tests"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- asset/drift files after prose polish"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node mirror-alignment script"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-0a59634d014c",
+      "title": "Confirm contract and spec alignment",
+      "type": "verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-07-15T21:47:46.885Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-56346d82586a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8924a2710749"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T00:03:11.503Z",
+      "verification": "adv_run_test tr_mrmr822p_ef563078: pnpm run check passed schemas, typecheck, isolation, lockfile policy, lint, and format checks. Final checkpoint includes the two Prettier-only files that restored a clean full static check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/utils/morph-worktree-authorization.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/index.ts",
+        "plugin/src/utils/morph-worktree-authorization.test.ts"
+      ],
+      "checkpointSha": "4523b846c7cc764b5ed8d530e899770a288de2fb",
+      "completedAt": "2026-07-16T00:12:09.253Z",
+      "completed_at": "2026-07-16T00:12:09.253Z"
+    },
+    {
+      "id": "tk-7e3e2c298bc5",
+      "title": "Repair delegation-defaults citation drift",
+      "type": "docs",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-07-16T00:41:19.683Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "frontend_rationale": "Delegation-routing law, command documentation, and regression assets; no visual component implementation."
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Re-entry repair addresses deterministic repository-wide citation and law drift discovered after initial contract approval; it preserves existing executable routing."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T00:43:48.648Z",
+      "verification": "RED tr_mrmsdaty_6f8b2eee identified missing rq-delDefaults10 citation. GREEN tr_mrmsjen1_7f28436b: citation/delegation assets passed (3 files, 63 tests). Requirement and mirror now match direct adv-designer routing; executable routing unchanged.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/adv-designer-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/adv-designer-assets.test.ts"
+      ],
+      "checkpointSha": "669f124a9a361d29f4990f5e9ab734b55c905e70",
+      "completedAt": "2026-07-16T00:48:57.696Z",
+      "completed_at": "2026-07-16T00:48:57.696Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCrossProjectTrunkFirewall",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+          "task_id": "tk-7e3e2c298bc5",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-7e3e2c298bc5"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/delegation-defaults/spec.json",
+            "docs/specs/delegation-defaults.md",
+            "plugin/src/adv-designer-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/adv-designer-assets.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/command-requirement-citations.test.ts",
+              "exit_code": 0,
+              "summary": "86/86 tests pass across citation invariant, designer assets, delegation matrix/mirror, spec-assets schema, and command-citation suites (runId tr_mrmsihzr_b3be2f1d)"
+            },
+            {
+              "command": "pnpm exec prettier --check src/adv-designer-assets.test.ts (after --write)",
+              "exit_code": 0,
+              "summary": "Format-clean; .adv/specs and docs/specs are outside prettier scope (format:check covers src/ only)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Rewrote rq-delDefaults10 as 'Designer-Direct Frontend Dispatch' (title/body/tags/scenarios) mirroring adv-apply.md Priority 1.5 routing",
+              "why": "Spec law must match the authoritative executable routing: metadata.frontend==\"true\" routes directly to adv-designer, with Priority 1 delegation_hint override and step-4 risk-inline precedence; the stale engineer-first body contradicted it"
+            },
+            {
+              "what": "Kept scenario rq-delDefaults10.3 (reviewer retains review/harden ownership) unchanged",
+              "why": "Semantics already correct and matched both spec and mirror; no drift to repair"
+            },
+            {
+              "what": "Strengthened the routing regression test with negative assertions against engineer-first semantics",
+              "why": "Prevents reintroduction of the rejected engineer-first routing while citing rq-delDefaults10 for the citation invariant"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Grepped repo for stale engineer-first / designer-follow-up phrasing: only .adv/archive historical records (fixTaskCycleAnchoring) retain it — intentionally untouched as immutable archive",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "rq-delDefaults10 repaired to Designer-Direct Frontend Dispatch semantics in .adv/specs/delegation-defaults/spec.json and docs/specs/delegation-defaults.md mirror (title/body/tags/scenarios rewritten; scenario 10.3 reviewer-ownership unchanged). Citation invariant now passes: added '// rq-delDefaults10' comment beside the adv-apply.md Priority 1.5 routing regression test in plugin/src/adv-designer-assets.test.ts and strengthened it to pin the 1.5 table row to adv-designer, reject engineer-before-designer and 'engineer-first' phrasing, and pin review/harden ownership with adv-reviewer. No executable routing changed; adv-apply.md untouched. Targeted 5-file suite: 86/86 pass (runId tr_mrmsihzr_b3be2f1d). One prior failed evidence record tr_mrmsiayt_7e84e8b6 is my own workdir path mistake (127 bin/oc-test not found), not a code failure.",
+            "suggested_next_action": "Review the three-file diff; optionally run bin/oc-test smoke for broader regression confidence before checkpointing tk-7e3e2c298bc5."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/adv-designer-assets.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/command-requirement-citations.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/adv-designer-assets.test.ts (after --write)"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "task_id": "tk-71036bbf8b61",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-71036bbf8b61"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/trunk-write-firewall.ts",
+        "plugin/src/tools/trunk-write-firewall.test.ts",
+        "plugin/src/utils/worktree-paths.ts",
+        "plugin/src/utils/worktree-paths.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 14 failed / 51 passed — foreign main checkout writes allowed and parseWorktreeTopology missing."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 65 passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts src/trunk-write-firewall-spec-assets.test.ts",
+          "exit_code": 0,
+          "summary": "57 passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts",
+          "exit_code": 0,
+          "summary": "118 passed after format."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/test.test.ts src/tools/subagent-report.test.ts",
+          "exit_code": 0,
+          "summary": "57 passed."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 1,
+          "summary": "Schemas, typecheck, isolation, lockfile, and lint passed; format check fails only on pre-existing base drift in src/index.ts and src/utils/morph-worktree-authorization.test.ts."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Resolve trunk-ness target-relatively through bounded existing ancestor and target worktree porcelain topology.",
+          "why": "Foreign main checkouts were allowed because authorization used session projectRoot."
+        },
+        {
+          "what": "Exclude prunable worktree entries from eligibility and preserve mutable branch/default/recovery probes outside topology memo.",
+          "why": "Stale topology must not authorize writes; mutable state must remain fresh."
+        },
+        {
+          "what": "Evaluate exact artifact allowlist relative to target main checkout root.",
+          "why": "Cross-project artifact exception must not use session root."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing prettier drift in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts was verified on base and remains untouched.",
+        "ADV_INSTRUCTIONS.md firewall prose may need cross-project wording in the dedicated docs task."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint and complete this task after inspecting worktree diff.",
+        "Treat the pre-existing full-format drift separately from this task."
+      ],
+      "related_scan": "plugin/src/index.ts is the sole public firewall API consumer; no other call sites need signature updates.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Target-relative firewall implemented with inline TDD. Foreign default main now blocks; linked non-prunable worktrees, recovery, non-Git, and exact four artifacts allow. Direct/Bash parity and same-project regression covered.",
+        "suggested_next_action": "Inspect diff, checkpoint task, then continue ready tasks."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts src/trunk-write-firewall-spec-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/test.test.ts src/tools/subagent-report.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "task_id": "tk-87598e4d7356",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-87598e4d7356"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/checkpoint.ts",
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/integration.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/tools/checkpoint.test.ts",
+          "exit_code": 1,
+          "summary": "RED: six new precedence tests failed; detached classification masked recovery state."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/checkpoint.test.ts src/integration.test.ts src/tools/trunk-write-firewall.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 120 passed."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 1,
+          "summary": "Schemas/typecheck/isolation/lockfile/lint passed; pre-existing format drift only in src/index.ts and src/utils/morph-worktree-authorization.test.ts."
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "summary": "5496/5497 passed; sole pre-existing rq-delDefaults10 citation invariant failure."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Check merge/rebase/cherry-pick/revert markers before detached HEAD classification.",
+          "why": "Recovery operations detach HEAD; detached-first masked required in-progress state."
+        },
+        {
+          "what": "Add detached-rebase integration coverage including abort/re-block.",
+          "why": "Proves recovery allowance holds during rebase and strict firewall returns after recovery."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing rq-delDefaults10 citation invariant failure.",
+        "Pre-existing formatter drift in src/index.ts and src/utils/morph-worktree-authorization.test.ts.",
+        "Bounded-read-deadline test may be load-sensitive; passed during reported full run."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "No other detached-first RepoState pattern found; archive helper checks markers directly and worktree triage porcelain detached parsing is unrelated.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "detectRepoState recovery markers now precede detached state, structurally preserving recovery allowances; unit and real-Git detached-rebase integration coverage added.",
+        "suggested_next_action": "Inspect diff, checkpoint task, and proceed to checkpoint workdir task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/tools/checkpoint.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/checkpoint.test.ts src/integration.test.ts src/tools/trunk-write-firewall.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:firewall-recovery-contract"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test targeted -- src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/tools/checkpoint.test.ts",
+          "exit_code": 0,
+          "duration_ms": 29350
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "3 test files passed; 112 tests passed. Covers target-relative topology, exact allowlist, direct/Bash parity, recovery-marker precedence, and non-default/non-Git compatibility.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "Scoped firewall contract tests pass.",
+          "evidence": [
+            {
+              "label": "targeted test output",
+              "locator": "command: bin/oc-test targeted -- src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/tools/checkpoint.test.ts",
+              "summary": "3 passed test files; 112 passed tests."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "task_id": "tk-3a553a6d2ba9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3a553a6d2ba9"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/target-project.ts",
+        "plugin/src/tools/target-project.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/target-project.test.ts",
+          "exit_code": 0,
+          "summary": "30 passed; eight RED-first hardening tests now green."
+        },
+        {
+          "command": "bin/oc-test targeted -- related target queue consumers",
+          "exit_code": 0,
+          "summary": "551 related tests passed."
+        },
+        {
+          "command": "pnpm exec tsc --noEmit; eslint; prettier on touched files",
+          "exit_code": 0,
+          "summary": "Touched files clean."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 1,
+          "summary": "Only pre-existing prettier violations in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Derive local queue readiness from per-queue worker diagnostics.",
+          "why": "Raw registered queues include failed queues and unrelated queue liveness was unsafe."
+        },
+        {
+          "what": "Use fresh server poller as conservative admission only and emit remediation field.",
+          "why": "Poller freshness is not liveness; AC9 requires typed actionable refusal."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing branch formatter violations in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts."
+      ],
+      "required_main_agent_actions": [
+        "Resolve unrelated format failures before final full check."
+      ],
+      "related_scan": "Readiness error consumers are format-agnostic; target routing, firewall, checkpoint, and config model untouched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Queue readiness now registers local worker queue first, derives per-queue liveness, treats fresh server poller as conservative admission, and fails before mutation with required diagnostic fields.",
+        "suggested_next_action": "Inspect diff, checkpoint task, then continue checkpoint workdir task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/target-project.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- related target queue consumers"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit; eslint; prettier on touched files"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "task_id": "tk-ef1f18171f58",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ef1f18171f58"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/checkpoint.ts",
+        "plugin/src/tools/checkpoint.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/checkpoint.test.ts",
+          "exit_code": 0,
+          "summary": "33 passed; four tests red before fix."
+        },
+        {
+          "command": "bin/oc-test targeted -- checkpoint,target-project,task",
+          "exit_code": 0,
+          "summary": "104 passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- gate,firewall,cli bridge",
+          "exit_code": 0,
+          "summary": "113 passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Select cwd from explicit workdir before target default and bind target path to common Git dir.",
+          "why": "Prevents target store from causing unrelated or wrong worktree commits."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "The target_path-overrides-workdir pattern was unique to checkpoint.ts.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Explicit target worktree workdir wins; blank and unrelated workdirs reject before Git task state/signal/commit.",
+        "suggested_next_action": "Inspect, verify, checkpoint task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/checkpoint.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- checkpoint,target-project,task"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- gate,firewall,cli bridge"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "task_id": "tk-e30fb19f02f5",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-e30fb19f02f5"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/target-project.test.ts",
+          "exit_code": 0,
+          "summary": "34/34 pass; includes four snapshot-authority seam tests."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "114/114 pass; three target-routing identity pins."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/cross-project-coordination.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.status-repair.test.ts src/tools/gate.test.ts",
+          "exit_code": 0,
+          "summary": "64/64 pass across adjacent cross-project suites."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 1,
+          "summary": "Schemas/typecheck/isolation/lockfile/lint passed; format check fails only on pre-existing drift in src/index.ts and src/utils/morph-worktree-authorization.test.ts. Touched files are clean."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "No production changes after routing audit.",
+          "why": "All in-scope artifact mutation and close routes already bind target stores/workflow identity to the resolved target project."
+        },
+        {
+          "what": "Add seam-level snapshot-authority tests.",
+          "why": "All snapshot reads share the target-project formatter/path, so seam proof avoids redundant per-tool mocks."
+        },
+        {
+          "what": "Add negative source-identity guards for close routes.",
+          "why": "Prevents passing tests if source and target workflows are both addressed."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing formatter drift in plugin/src/index.ts and plugin/src/utils/morph-worktree-authorization.test.ts.",
+        "Non-blocking consistency: adv_gate_complete recomputes target ID from store root instead of consuming projectContext.projectId.",
+        "Archive target_path execution has dry-run routing coverage; full archive test remains archive-owner scope."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Audited all withTargetPathStore/withOptionalTargetPathStore routes: mutations use temporal-required target identity; snapshot reads use disk-snapshot authority marker. getChangeWorkflowHandleForStore derives identity from given store root.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Target routing identity audit found no in-scope bug. Structural test proof added for non-authoritative snapshot reads and resolved target workflow/store identity, including negative source-identity guards.",
+        "suggested_next_action": "Record targeted test evidence, checkpoint task, then proceed to docs task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/target-project.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/cross-project-coordination.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.status-repair.test.ts src/tools/gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "task_id": "tk-8924a2710749",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8924a2710749"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "docs/worktree-guide.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec tsx -e \"SpecSchema.parse(...) for advance-meta + advance-workflow spec.json\"",
+          "exit_code": 0,
+          "summary": "Both edited spec.json files parse against SpecSchema: advance-meta 54 requirements, advance-workflow 102."
+        },
+        {
+          "command": "bin/oc-test targeted -- spec/doc drift assets",
+          "exit_code": 0,
+          "summary": "6 files, 48 asset and drift tests passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- firewall/checkpoint/target-project/spec asset tests",
+          "exit_code": 0,
+          "summary": "9 files, 287 behavior/spec/mirror asset tests passed."
+        },
+        {
+          "command": "bin/oc-test targeted -- asset/drift files after prose polish",
+          "exit_code": 0,
+          "summary": "9 files, 120 tests passed."
+        },
+        {
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Generated JSON schemas have no drift."
+        },
+        {
+          "command": "node mirror-alignment script",
+          "exit_code": 0,
+          "summary": "Scenario order and requirement bodies match across specs and docs mirrors."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extend owning requirements rather than add IDs.",
+          "why": "The change refines existing firewall, checkpoint, and readiness laws; keeping them local preserves discoverability."
+        },
+        {
+          "what": "Leave already-aligned laws unchanged.",
+          "why": "Target-read authority, canonical shards, task mutation routing, and coordination laws already match implementation."
+        },
+        {
+          "what": "Avoid unrelated documentation churn.",
+          "why": "Other scanned recovery/worktree/readme surfaces were accurate."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "User-global ~/.config/opencode/instructions/trunk-worktree-isolation.md still says firewall guards only current session project; update its Structural guard status after this change archives."
+      ],
+      "required_main_agent_actions": [
+        "Update the user-global trunk-worktree-isolation.md instruction after archive/deploy; it is outside this repo worktree."
+      ],
+      "related_scan": "Scanned all capability specs plus ADV_INSTRUCTIONS.md and worktree/cross-project docs. Only the six edited files needed alignment; readiness refusal diagnostic precision now matches implementation.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Cross-project behavior is codified in owning spec laws and mirrors: target-relative firewall, conservative defaults, prunable exclusion, exact allowlist, checkpoint workdir/store binding, and queue readiness diagnostics. Existing snapshot authority laws were intentionally unchanged.",
+        "suggested_next_action": "Record static verification, checkpoint documentation task, then run expanded contract verification."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsx -e \"SpecSchema.parse(...) for advance-meta + advance-workflow spec.json\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- spec/doc drift assets"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- firewall/checkpoint/target-project/spec asset tests"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- asset/drift files after prose polish"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node mirror-alignment script"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "packet-defect-1",
+          "label": "blocker",
+          "what": "Context Packet omits required independent-review SCOPE KEY identity anchor; TASK value is a descriptive phrase, not a task ID.",
+          "why": "Independent acceptance summaries require a supplied SCOPE KEY and change-scoped report. Reviewing without it would guess packet identity.",
+          "fix": "Provide SCOPE KEY: review:acceptance (or an explicitly authorized alternative) and resend the packet."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "No repository analysis or edits performed: packet identity validation stopped before scope lock."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Acceptance criteria AC1–AC11 and branch diff remain unreviewed until a packet with the required SCOPE KEY is provided."
+      ],
+      "required_main_agent_actions": [
+        "Resend independent review packet with explicit SCOPE KEY, PHASE, ATTEMPT, CHANGE, and WORKING DIRECTORY anchors.",
+        "Use scope key review:acceptance unless an alternate independent-review scope was intentionally designated."
+      ],
+      "required_follow_ups": [
+        {
+          "text": "Provide the missing SCOPE KEY and rerun independent acceptance review.",
+          "obligation_class": "required_critical",
+          "severity": "high"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/trunk-write-firewall.test.ts src/tools/checkpoint.test.ts src/tools/target-project.test.ts src/integration.test.ts",
+          "pnpm run check",
+          "git diff --check $(git merge-base HEAD origin/trunk) HEAD"
+        ],
+        "results": "pass",
+        "evidence": "157 targeted tests passed; pnpm run check passed; diff check clean. AC1-AC7 firewall target topology and Bash parity verified; AC8 checkpoint workdir/store separation verified; AC9 queue readiness fail-closed verified; AC10 target workflow/store identity tests verified; AC11 non-authoritative snapshot marker verified."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Recognized Bash parsing intentionally excludes shell indirection and script-internal writes.",
+        "Target queue serviceability remains an environmental prerequisite and fails closed."
+      ],
+      "required_main_agent_actions": [
+        "Record independent acceptance evidence and continue normal acceptance-gate evaluation.",
+        "Leave browser review and broader shell parsing unchanged: visual_surface is false and agreement preserves the recognized-command boundary."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Release hardening confirmed target-relative firewall, checkpoint workdir/store separation, queue-readiness routing, docs/spec assets, type/lint/format checks, and both plugin/Temporal worker bundles without producing generated worktree drift."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/trunk-write-firewall.test.ts src/tools/checkpoint.test.ts src/tools/target-project.test.ts src/integration.test.ts",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/trunk-write-firewall-spec-assets.test.ts src/adv-instructions-assets.test.ts src/utils/worktree-paths.test.ts",
+          "pnpm --dir plugin run check",
+          "pnpm --dir plugin run build",
+          "git diff --check && git diff --exit-code"
+        ],
+        "results": "pass",
+        "evidence": "Targeted runtime/routing suite: 4 files, 157 tests passed. Spec/docs/worktree utility suite: 4 files, 153 tests passed. pnpm check passed schemas, typecheck, isolation/lockfile checks, lint, and format. Plugin plus Temporal worker bundle build passed. Final working tree clean; diff check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No live external Temporal-server mutation was run during independent hardening; queue readiness behavior is covered by targeted tests.",
+        "No browser review applicable: agreement marks visual_surface false."
+      ],
+      "required_main_agent_actions": [
+        "Record this READY release-hardening evidence in the acceptance/release flow.",
+        "Do not revisit plugin source, specs, or docs for this accepted scope unless new release evidence fails; worktree was clean after verification."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:delegation-defaults-repair"
+      },
+      "agent": "adv-researcher",
+      "topic": "Resolve rq-delDefaults10 routing-law drift",
+      "sources": [
+        {
+          "label": "Delegation requirement and apply matrix",
+          "locator": ".adv/specs/delegation-defaults/spec.json:466-683",
+          "summary": "rq-delDefaults10 mandates engineer-first dispatch while the same apply matrix assigns frontend implementation to adv-designer."
+        },
+        {
+          "label": "Active routing command",
+          "locator": ".opencode/command/adv-apply.md:406-435",
+          "summary": "metadata.frontend routes directly to adv-designer subject to higher-priority overrides."
+        },
+        {
+          "label": "Routing instructions and test",
+          "locator": "ADV_INSTRUCTIONS.md:887-900; plugin/src/adv-designer-assets.test.ts:377-384",
+          "summary": "Instructions and regression test match direct designer routing."
+        },
+        {
+          "label": "Citation invariant",
+          "locator": "plugin/src/__tests__/spec-citation-invariant.test.ts:1-18",
+          "summary": "External citation is external to the requirement’s own spec and generated mirror."
+        },
+        {
+          "label": "OpenCode agents documentation",
+          "locator": "https://opencode.ai/docs/agents/",
+          "summary": "Specialist agent routing is supported; engineer-first versus designer-first remains ADV-owned."
+        }
+      ],
+      "architecture_assessment": "Major contract drift: current executable and documented routing are direct adv-designer, while rq-delDefaults10 is stale engineer-first text. Preserve behavior and repair the law/mirror/citation.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "rq-delDefaults10 contradicts the apply matrix and lacks an external citation."
+        ],
+        "notes": "Validation remains failed until stale law, mirror, and regression citation are corrected."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Direct designer routing avoids duplicate ownership and mandatory handoff.",
+          "Engineer-first adds provenance chaining but causes broad contract churn."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Correct spec/mirror and cite routing test",
+            "disposition": "preferred",
+            "rationale": "Matches active routing and resolves contradiction structurally."
+          },
+          {
+            "option": "Change execution to engineer-first",
+            "disposition": "rejected",
+            "rationale": "Contradicts active routing architecture and adds broad churn."
+          },
+          {
+            "option": "Add citation only",
+            "disposition": "rejected",
+            "rationale": "Leaves requirement contradiction unresolved."
+          }
+        ],
+        "recommendation": "Rewrite rq-delDefaults10 scenarios for direct adv-designer dispatch or risk-forced inline handling; preserve reviewer ownership; add a source citation beside routing regression test; do not change executable routing."
+      },
+      "recommendation": "Correct stale rq-delDefaults10 law/mirror and add an implementation-test citation; preserve direct adv-designer routing.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCrossProjectTrunkFirewall",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCrossProjectTrunkFirewall",
+      "task_id": "tk-7e3e2c298bc5",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7e3e2c298bc5"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/adv-designer-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/adv-designer-assets.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/command-requirement-citations.test.ts",
+          "exit_code": 0,
+          "summary": "86/86 tests pass across citation invariant, designer assets, delegation matrix/mirror, spec-assets schema, and command-citation suites (runId tr_mrmsihzr_b3be2f1d)"
+        },
+        {
+          "command": "pnpm exec prettier --check src/adv-designer-assets.test.ts (after --write)",
+          "exit_code": 0,
+          "summary": "Format-clean; .adv/specs and docs/specs are outside prettier scope (format:check covers src/ only)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Rewrote rq-delDefaults10 as 'Designer-Direct Frontend Dispatch' (title/body/tags/scenarios) mirroring adv-apply.md Priority 1.5 routing",
+          "why": "Spec law must match the authoritative executable routing: metadata.frontend==\"true\" routes directly to adv-designer, with Priority 1 delegation_hint override and step-4 risk-inline precedence; the stale engineer-first body contradicted it"
+        },
+        {
+          "what": "Kept scenario rq-delDefaults10.3 (reviewer retains review/harden ownership) unchanged",
+          "why": "Semantics already correct and matched both spec and mirror; no drift to repair"
+        },
+        {
+          "what": "Strengthened the routing regression test with negative assertions against engineer-first semantics",
+          "why": "Prevents reintroduction of the rejected engineer-first routing while citing rq-delDefaults10 for the citation invariant"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Grepped repo for stale engineer-first / designer-follow-up phrasing: only .adv/archive historical records (fixTaskCycleAnchoring) retain it — intentionally untouched as immutable archive",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "rq-delDefaults10 repaired to Designer-Direct Frontend Dispatch semantics in .adv/specs/delegation-defaults/spec.json and docs/specs/delegation-defaults.md mirror (title/body/tags/scenarios rewritten; scenario 10.3 reviewer-ownership unchanged). Citation invariant now passes: added '// rq-delDefaults10' comment beside the adv-apply.md Priority 1.5 routing regression test in plugin/src/adv-designer-assets.test.ts and strengthened it to pin the 1.5 table row to adv-designer, reject engineer-before-designer and 'engineer-first' phrasing, and pin review/harden ownership with adv-reviewer. No executable routing changed; adv-apply.md untouched. Targeted 5-file suite: 86/86 pass (runId tr_mrmsihzr_b3be2f1d). One prior failed evidence record tr_mrmsiayt_7e84e8b6 is my own workdir path mistake (127 bin/oc-test not found), not a code failure.",
+        "suggested_next_action": "Review the three-file diff; optionally run bin/oc-test smoke for broader regression confidence before checkpointing tk-7e3e2c298bc5."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/adv-designer-assets.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/command-requirement-citations.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/adv-designer-assets.test.ts (after --write)"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-71036bbf8b61": [
+      {
+        "runId": "tr_mrmmt0x6_80d4ccef",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/utils/worktree-paths.test.ts src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/integration.test.ts",
+        "durationMs": 30727.91890299972,
+        "recordedAt": "2026-07-15T22:08:14.912Z"
+      },
+      {
+        "runId": "tr_mrohfj78_79fc615d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/trunk-write-firewall.test.ts src/tools/trunk-write-firewall.regression.test.ts src/utils/worktree-paths.test.ts src/integration.test.ts src/trunk-write-firewall-spec-assets.test.ts",
+        "durationMs": 67337.93822200038,
+        "recordedAt": "2026-07-17T05:13:19.692Z"
+      }
+    ],
+    "tk-87598e4d7356": [
+      {
+        "runId": "tr_mrmng3vp_808ff81b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/checkpoint.test.ts src/integration.test.ts src/tools/trunk-write-firewall.test.ts",
+        "durationMs": 28642.95152400015,
+        "recordedAt": "2026-07-15T22:26:11.846Z"
+      },
+      {
+        "runId": "tr_mrohfzn8_8c6d2cfd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/checkpoint.test.ts src/tools/target-project.test.ts src/tools/change.test.ts",
+        "durationMs": 10735.179721999913,
+        "recordedAt": "2026-07-17T05:13:41.171Z"
+      }
+    ],
+    "tk-3a553a6d2ba9": [
+      {
+        "runId": "tr_mrmo42x7_5cefc3e6",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/target-project.test.ts src/tools/queue-serviceability.test.ts src/tools/temporal-ops.test.ts",
+        "durationMs": 2731.0440999995917,
+        "recordedAt": "2026-07-15T22:44:50.327Z"
+      }
+    ],
+    "tk-ef1f18171f58": [
+      {
+        "runId": "tr_mrmocnu6_a2ab04f8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/checkpoint.test.ts src/tools/target-project.test.ts src/tools/task.test.ts",
+        "durationMs": 2782.988749000244,
+        "recordedAt": "2026-07-15T22:51:30.674Z"
+      }
+    ],
+    "tk-e30fb19f02f5": [
+      {
+        "runId": "tr_mrmq5clm_9f06ad5a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/target-project.test.ts src/tools/change.test.ts src/tools/cross-project-coordination.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.status-repair.test.ts src/tools/gate.test.ts",
+        "durationMs": 5640.332164999098,
+        "recordedAt": "2026-07-15T23:41:48.802Z"
+      }
+    ],
+    "tk-8924a2710749": [
+      {
+        "runId": "tr_mrmqn3xi_ec54bab5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/trunk-write-firewall-spec-assets.test.ts src/adv-stability-docs-assets.test.ts src/manifest-doc-drift.test.ts src/archive-release-finalization-assets.test.ts src/archive-branch-cleanup-assets.test.ts src/workflow-noise-reduction-assets.test.ts",
+        "durationMs": 1464.8935789987445,
+        "recordedAt": "2026-07-15T23:55:37.385Z"
+      },
+      {
+        "runId": "tr_mrohi92k_850de2e2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 81734.08443900011,
+        "recordedAt": "2026-07-17T05:15:26.595Z"
+      }
+    ],
+    "tk-56346d82586a": [
+      {
+        "runId": "tr_mrmqw2ou_0d719bce",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/trunk-write-firewall.test.ts src/tools/checkpoint.test.ts src/tools/change.test.ts src/tools/target-project.test.ts src/utils/worktree-paths.test.ts src/integration.test.ts src/adv-instructions-assets.test.ts src/__tests__/preserved-narrative-rules-assets.test.ts src/archive-release-finalization-assets.test.ts src/archive-branch-cleanup-assets.test.ts",
+        "durationMs": 33496.63673800044,
+        "recordedAt": "2026-07-16T00:02:35.649Z"
+      }
+    ],
+    "tk-0a59634d014c": [
+      {
+        "runId": "tr_mrmr822p_ef563078",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 46589.284784999996,
+        "recordedAt": "2026-07-16T00:11:54.743Z"
+      },
+      {
+        "runId": "tr_mrmrxtx1_2ad32c70",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 172652.24309400003,
+        "recordedAt": "2026-07-16T00:31:57.216Z"
+      },
+      {
+        "runId": "tr_mrmry0ks_2f378fd3",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 1432.9620330000762,
+        "recordedAt": "2026-07-16T00:32:05.823Z"
+      }
+    ],
+    "tk-7e3e2c298bc5": [
+      {
+        "runId": "tr_mrmsdaty_6f8b2eee",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 1545.964559999993,
+        "recordedAt": "2026-07-16T00:43:58.967Z"
+      },
+      {
+        "runId": "tr_mrmsiayt_7e84e8b6",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/adv-designer-assets.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/command-requirement-citations.test.ts",
+        "durationMs": 18.284088000189513,
+        "recordedAt": "2026-07-16T00:47:52.390Z"
+      },
+      {
+        "runId": "tr_mrmsihzr_b3be2f1d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/adv-designer-assets.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/command-requirement-citations.test.ts",
+        "durationMs": 2131.128973999992,
+        "recordedAt": "2026-07-16T00:48:01.547Z"
+      },
+      {
+        "runId": "tr_mrmsjen1_7f28436b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/adv-designer-assets.test.ts src/delegation-matrix.test.ts src/spec-assets.test.ts src/command-spec-citations.test.ts",
+        "durationMs": 2016.9395729997195,
+        "recordedAt": "2026-07-16T00:48:43.821Z"
+      },
+      {
+        "runId": "tr_mrmsok9q_9fa770ef",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test full",
+        "durationMs": 216805.86637499975,
+        "recordedAt": "2026-07-16T00:52:44.456Z"
+      },
+      {
+        "runId": "tr_mrmspqyg_08ee7837",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 48513.95185500011,
+        "recordedAt": "2026-07-16T00:53:39.727Z"
+      },
+      {
+        "runId": "tr_mrohga6h_0903b2cb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/adv-designer-assets.test.ts src/__tests__/spec-citation-invariant.test.ts src/delegation-matrix.test.ts",
+        "durationMs": 3722.8864730000496,
+        "recordedAt": "2026-07-17T05:13:54.694Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-meta": [
+      {
+        "id": "dl-crossProjectTrunkFirewall01",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-crossProjectTrunkFirewall01",
+          "title": "Target-Relative Cross-Project Trunk Write Firewall",
+          "body": "When the session project enables worktree_guard_enforce, the trunk write firewall must classify every intercepted direct file-write and recognized destructive Bash target against the target repository’s own topology. It must block default-branch main-checkout writes for foreign repositories, allow eligible target linked worktrees and the established non-Git/recovery exceptions, evaluate only explicit generated artifacts relative to the target main root, and block target main-checkout writes when the default branch cannot be verified. Target topology resolution must be bounded to one hook invocation and must not treat prunable worktree records as writable linked worktrees.",
+          "priority": "must",
+          "tags": [
+            "trunk-write-firewall",
+            "cross-project",
+            "worktree",
+            "safety"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-crossProjectTrunkFirewall01.1",
+              "title": "Foreign default-branch main checkout blocks",
+              "given": [
+                "worktree_guard_enforce is enabled for the session project",
+                "A direct file write or recognized destructive Bash target is inside another repository’s default-branch main checkout"
+              ],
+              "when": "The firewall evaluates the target repository context",
+              "then": [
+                "The operation is blocked with worktree remediation",
+                "The target is not allowed merely because it is outside the session project root"
+              ]
+            },
+            {
+              "id": "rq-crossProjectTrunkFirewall01.2",
+              "title": "Eligible foreign linked worktree allows",
+              "given": [
+                "A target is inside a non-prunable linked worktree registered by its repository",
+                "The target repository is on its default branch"
+              ],
+              "when": "The firewall evaluates a direct file write or recognized destructive Bash target",
+              "then": [
+                "The operation is allowed",
+                "The main checkout remains protected"
+              ]
+            },
+            {
+              "id": "rq-crossProjectTrunkFirewall01.3",
+              "title": "Target-root artifact and uncertainty boundaries remain narrow",
+              "given": [
+                "A target is in a foreign repository’s main checkout"
+              ],
+              "when": "The target is one of the four explicit root artifacts, a nested lookalike, another .adv path, or a repository with unknown default branch",
+              "then": [
+                "Only the exact target-root artifact is allowed",
+                "Nested and unrelated artifact paths are blocked",
+                "Unknown-default main-checkout writes are blocked with remediation"
+              ]
+            },
+            {
+              "id": "rq-crossProjectTrunkFirewall01.4",
+              "title": "Missing-parent and prunable topology are safe",
+              "given": [
+                "A target has missing nested parent directories or lies under a prunable worktree record"
+              ],
+              "when": "The firewall resolves target topology",
+              "then": [
+                "The nearest existing ancestor is used for classification",
+                "A prunable record does not grant linked-worktree allowance"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-15T19:25:31.361Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal confirmation supplied by exact continuation command `/adv-discover fixCrossProjectTrunkFirewall`; proposal and confirmed problem statement updated with scope boundaries and implementation-free user outcomes.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ea5d50d4611c379cff8bed84717c8dee1cf122d6b631c5754d0cf57bd83971e3",
+        "non_whitespace_chars": 10599,
+        "checked_at": "2026-07-17T05:03:40.122Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-15T21:41:10.835Z",
+      "completed_by": "agent",
+      "approval_evidence": "Expanded agreement approved by user reply `approve` on 2026-07-15. Discovery verified target-relative firewall gap, target-path checkpoint workdir/store conflation, target queue readiness boundary, and target workflow identity requirements. Re-minted standard ChangeContract with 29 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "non_whitespace_chars": 5111,
+        "checked_at": "2026-07-17T05:03:40.125Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-16T00:41:02.282Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry design addendum persisted. Independent adv-researcher found high-confidence rq-delDefaults10 contract drift; preserve direct adv-designer routing and repair stale law/mirror/citation. User authorized repair in this change; no user-value tradeoff or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "19e172f1b5e5c6e304977c478c883b11af0380ee5ede7b5b333e31f2d2c4b547",
+        "non_whitespace_chars": 3966,
+        "checked_at": "2026-07-17T05:03:40.127Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-16T00:43:40.076Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved re-entry repair task graph via reply `approve` on 2026-07-16. Task tk-7e3e2c298bc5 repairs stale rq-delDefaults10 law/mirror/citation while preserving direct adv-designer routing."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-16T00:13:00.668Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 9 planned tasks completed and checkpointed. Durable verification: 317 targeted runtime/spec tests passed (tr_mrmqw2ou_0d719bce); full pnpm run check passed (tr_mrmr822p_ef563078). Non-strict change validation passed with one non-blocking advance-meta overlap warning for fixDeploymentSyncOrdering."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-16T00:24:47.828Z",
+      "completed_at": "2026-07-17T17:24:59.676Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted (\"accept\") after independent READY review (0 findings), 29/29 contract matrix, durable evidence on trunk-merged tree (tr_mrohfj78_79fc615d: 123; tr_mrohfzn8_8c6d2cfd: 207; tr_mrohga6h_0903b2cb: 64; tr_mrohi92k_850de2e2: check), 7 verification-evidence gaps dispositioned, executive summary refreshed. Workflow previously recovered from TMPRL1100 poison via user-approved Temporal reset with signal reapply (new run ce25cf5b).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ebc6e1d3f98026ded59878e6b7d3d1bf09b912fa4249e26f72c43b4b65f59ce1",
+        "non_whitespace_chars": 2348,
+        "checked_at": "2026-07-17T05:03:40.128Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "User expanded the requested end-state to reliable cross-project agent workflow after review of GitHub issues #205, #192, and #132.",
+      "scope_delta": "Add target-worker ensure/restart and lifecycle resilience (#205); target_path Temporal artifact read/write and close routing correctness (#192); and safe target_path task checkpoint routing (#132), while retaining target-relative raw write protection.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T21:04:10.645Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "design",
+      "reason": "User authorized repair of deterministic full-suite failure for rq-delDefaults10.",
+      "scope_delta": "Align the engineer-first frontend dispatch requirement with executable routing and external documentation/citation, then re-run full verification before release.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-16T00:35:52.559Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-15T19:20:59.345Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+      "approvedAt": "2026-07-15T21:41:04.772Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Direct file-write and recognized Bash-write paths no longer permit a foreign default-branch trunk solely because it lies outside the session project root.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Registered foreign worktrees remain writable without weakening same-project or foreign-trunk protection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "A checkpoint with both `target_path` and explicit `workdir` uses target Temporal state while operating Git in the supplied worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Target-path mutations either establish or prove fresh queue serviceability, or fail with typed actionable evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Target artifact mutation and close flows address only the target project workflow/store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Automated coverage proves target-relative exceptions, checkpoint separation, target workflow identity, and queue readiness behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given the session guard is enabled and a direct file write targets repository B’s default-branch checkout from a session in repository A, when the firewall evaluates it, then it blocks with worktree remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-twf01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a direct file or recognized Bash write targets a registered worktree of repository B, when the firewall evaluates it, then it allows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-twf01"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given repository B’s default branch, when a target exactly equals `ROADMAP.md`, `CHANGELOG.md`, `.adv/github-project.json`, or `.adv/roadmap-snapshot.json` at repository B’s root, then it allows; nested lookalikes and other `.adv` files block.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a new foreign nested target whose parent directories are missing, when its nearest existing ancestor belongs to repository B’s default checkout, then the firewall blocks it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given repository B’s default branch cannot be determined confidently, when a write targets repository B’s main checkout, then the firewall blocks with worktree remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given a same-project trunk or registered worktree target, when evaluated, then existing block/allow behavior remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given any recognized destructive Bash target points to repository B’s default-branch checkout, when evaluated, then it receives the same foreign-trunk protection as a direct file write.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-twf01"
+        ]
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_task_checkpoint` receives both `target_path` and an explicit target worktree `workdir`, when it executes Git validation or a commit, then it uses that supplied workdir and routes task state through the target project store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Given a target-path mutation requires its project queue, when no local target queue exists, then it either registers the target queue or accepts fresh server-poller evidence; when neither succeeds, it returns queue name, status, confidence, blockers, and remediation without mutating target state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Given target-path artifact mutation or close operations, when they address a change, then their workflow ID and store project ID equal the resolved target project ID, proven by tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Given a target-path snapshot read, when returned, then it explicitly identifies itself as a non-authoritative disk snapshot.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "The session project owns `worktree_guard_enforce`; foreign repositories need no ADV opt-in.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Target project identity selects the Temporal store/workflow; explicit workdir selects Git operations. Neither substitutes for the other.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Target repository facts are resolved from target context; target queue readiness is based on registration or fresh server evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Recovery-state, non-Git-path, feature-off, and supported shell-command boundary behavior remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "`visual_surface: false`; no browser-visible output is affected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add a per-write interactive approval path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not broaden the generated-artifact exception beyond the four exact target-root paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not broaden shell-indirection parsing or change the existing symlink/canonical-path policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not modify `oc-worktree`, create a dedicated foreign-worker daemon, or change the configuration model.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Cross-project ad-hoc worktree creation ergonomics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "New repository-management or multi-project workflow features beyond target routing, queue readiness, and checkpoint separation described above.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Raw writes outside the file-tool and recognized Bash interception boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-17T05:17:06.094Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY (0 findings, 190 scoped tests): foreign default-branch main-checkout writes block target-relatively with worktree remediation (tr_mrohfj78_79fc615d: 123 firewall/integration tests green)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Eligible non-prunable target linked worktrees allow while main checkouts stay protected; direct/Bash parity covered (tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Checkpoint target workdir binding: explicit workdir wins over target default; unrelated/blank workdirs reject before Git/task-state mutation (checkpoint.test.ts in tr_mrohfzn8_8c6d2cfd: 207 tests)."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Target queue readiness: local queue registration first, per-queue liveness, conservative fresh-poller admission, typed refusal with queue/status/confidence/blockers/remediation before mutation (target-project.test.ts, tr_mrohfzn8_8c6d2cfd)."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Target routing identity audited: all withTargetPathStore routes bind workflow/store to resolved target project ID; snapshot reads carry non-authoritative disk-snapshot marker (change.test.ts + target-project.test.ts seam proofs)."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Contract/spec alignment verified: delta dl-crossProjectTrunkFirewall01 consistent with implementation; spec-assets + citation invariant green (tr_mrohfj78, tr_mrohga6h); reviewer confirmed all 29 rows passable."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Foreign repo default-branch checkout write from session in repo A blocks with worktree remediation (trunk-write-firewall.test.ts, tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Direct file and recognized Bash writes to registered repo-B worktrees allow (tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Exact ROADMAP.md/CHANGELOG.md/.adv/github-project.json/.adv/roadmap-snapshot.json at target root allow; nested lookalikes and other .adv paths block (tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Missing-parent nested targets classified by nearest existing ancestor; foreign-default ancestors block (worktree-paths.test.ts, tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Unknown/unverifiable default branch → target main-checkout writes block with remediation (tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Same-project trunk/worktree block/allow behavior unchanged (trunk-write-firewall.regression.test.ts green, tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Recognized destructive Bash targets get identical foreign-trunk protection as direct writes (parity tests, tr_mrohfj78_79fc615d)."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_task_checkpoint with target_path + explicit target worktree workdir uses supplied workdir for Git and routes task state through target store (checkpoint.test.ts, tr_mrohfzn8_8c6d2cfd; prior tr_mrmocnu6: 104)."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Target queue: registers or accepts fresh server-poller evidence; otherwise returns queue name/status/confidence/blockers/remediation without mutating target state (target-project.test.ts RED-first matrix, tr_mrohfzn8_8c6d2cfd; prior tr_mrmo42x7: 49)."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Artifact mutation/close routes prove workflow ID and store project ID equal resolved target project ID incl. negative source-identity guards (change.test.ts pins, tr_mrohfzn8_8c6d2cfd; prior tr_mrmq5clm: 212)."
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Target-path snapshot reads self-identify as non-authoritative disk snapshots (seam tests in target-project.test.ts, tr_mrohfzn8_8c6d2cfd)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Topology resolution bounded to one hook invocation; memoized without caching mutable branch/default/recovery probes (reviewer static review; check green tr_mrohi92k_850de2e2)."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Target store routing preserves project identity; explicit workdir binding prevents wrong-worktree commits (static review + identity pins)."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fail-closed behavior on uncertainty: unknown default blocks, queue-unready refuses before mutation (check green tr_mrohi92k_850de2e2)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Prunable worktree records never grant linked-worktree allowance (worktree-paths tests + static review)."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Same-project firewall semantics and established exceptions (non-Git, recovery) preserved (regression suite green)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No weakening of session-project firewall; foreign protection is additive (regression tests green, reviewer READY)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No session-root-relative evaluation of target artifacts; allowlist evaluated relative to target main root (engineer decision record + tests)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No target-state mutation on unready queue; typed refusal path proven (AC9 tests)."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No silent fallbacks: uncertainty surfaces as block/refusal with remediation; snapshot reads marked non-authoritative (reviewer READY, 0 findings)."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope item untouched."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope item untouched."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope item untouched."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given the session guard is enabled and a direct file write targets repository B’s default-branch checkout from a session in repository A, when the firewall evaluates it, then it blocks with worktree remediation.",
+    "Given a direct file or recognized Bash write targets a registered worktree of repository B, when the firewall evaluates it, then it allows.",
+    "Given repository B’s default branch, when a target exactly equals `ROADMAP.md`, `CHANGELOG.md`, `.adv/github-project.json`, or `.adv/roadmap-snapshot.json` at repository B’s root, then it allows; nested lookalikes and other `.adv` files block.",
+    "Given a new foreign nested target whose parent directories are missing, when its nearest existing ancestor belongs to repository B’s default checkout, then the firewall blocks it.",
+    "Given repository B’s default branch cannot be determined confidently, when a write targets repository B’s main checkout, then the firewall blocks with worktree remediation.",
+    "Given a same-project trunk or registered worktree target, when evaluated, then existing block/allow behavior remains unchanged.",
+    "Given any recognized destructive Bash target points to repository B’s default-branch checkout, when evaluated, then it receives the same foreign-trunk protection as a direct file write.",
+    "Given `adv_task_checkpoint` receives both `target_path` and an explicit target worktree `workdir`, when it executes Git validation or a commit, then it uses that supplied workdir and routes task state through the target project store.",
+    "Given a target-path mutation requires its project queue, when no local target queue exists, then it either registers the target queue or accepts fresh server-poller evidence; when neither succeeds, it returns queue name, status, confidence, blockers, and remediation without mutating target state.",
+    "Given target-path artifact mutation or close operations, when they address a change, then their workflow ID and store project ID equal the resolved target project ID, proven by tests.",
+    "Given a target-path snapshot read, when returned, then it explicitly identifies itself as a non-authoritative disk snapshot."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Fix cross-project trunk firewall\n\n## Why\n\nThe firewall currently protects only the session project’s default-branch checkout. A session can therefore edit a foreign repository’s trunk without the worktree-isolation guard. Protecting each reachable target repository closes that safety gap while preserving legitimate writes in registered worktrees and explicitly permitted generated-artifact locations.\n\n## User Outcomes\n\n- An agent attempting to write a foreign repository’s default-branch checkout receives the same safety protection as for the session repository.\n- An agent can continue working in a registered worktree for any reachable repository.\n- An agent can write the current repository’s explicitly permitted generated artifacts without a false block.\n- A blocked cross-project write identifies the supported ADV worktree path and `oc-worktree` route for ad-hoc work.\n\n## Constraints from Discussion\n\n- `worktree_guard_enforce` remains configured by the session project and governs cross-project enforcement when enabled.\n- Same-project trunk and worktree behavior must remain compatible.\n- Enforcement must not require foreign repositories to opt in.\n- The worktree-creation helper is out of scope.\n\n## Scope\n\n### In Scope\n\n- Enforce the trunk-write guard against writes targeting foreign repositories’ default-branch checkouts.\n- Preserve allowed writes in a target repository’s registered worktrees.\n- Evaluate generated-artifact exceptions relative to the target repository.\n- Preserve safety coverage for supported write surfaces, including extracted Bash write operations.\n- Add deterministic automated coverage for foreign trunk blocking, foreign worktree allowance, target-relative exceptions, and repeated target resolution.\n\n### Out of Scope\n\n- Changes to `oc-worktree` or ad-hoc worktree creation.\n- Changing the session project configuration model or the meaning of `worktree_guard_enforce`.\n- Broadening unsupported shell-command parsing beyond the documented boundary.\n- New repository-management or multi-project workflow features.\n- Canonical-path or symlink-policy changes; current lexical path semantics remain unchanged.\n\n### Must Not\n\n- Allow a foreign default-branch checkout merely because it lies outside the session project root.\n- Require a foreign repository to enable ADV configuration before its trunk is protected.\n- Regress same-project trunk blocking or worktree allowances.\n\n## Discovery Agenda\n\n- Confirm every supported write interception surface and its current target-path context.\n- Confirm target-repository and worktree classification boundaries, including non-repository paths and generated artifacts.\n- Identify applicable capability laws and related historical changes before agreement.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence / rationale |\n|---|---|---|\n| Skills Considered | PASS | `adv-worktree` loaded: confirms worktree isolation and merge-before-delete context. No pending-review skill found. |\n| Prior Research Extension | PASS | No prior research artifact found. New finding: policy evaluation reaches target Git root but authorizes against the session root. |\n| Conflict & Related-Work Scan | PASS (degraded) | 40 changes loaded; 62 terminal candidates omitted after source deadline. No direct active-title overlap found, but this is not a clean inventory. `adv_change_validate` timed out; own no-task/no-delta warnings remain expected at discovery. |\n| Edge Case Investigation | PASS | Foreign missing-parent paths, foreign worktrees, target-root allowlists, unknown default branches, recovery state, and submodules assessed. |\n| Design Question Depth | PASS | Target-context cache, missing-parent probing, default-branch uncertainty, and symlink scope have trust/blast-radius annotations below. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-twf01` extension and generated-artifact requirement shapes below. |\n| Related Pattern Scan | PASS | One file/bash interception hook; target-aware ADV mutation guards already exist elsewhere. |\n| LBP Check | PASS | Internal safety defect; no viable external product/library alternative. Target-relative Git facts align with existing target-aware mutation routing. |\n| Completeness Verification | PASS | Sole file/bash interception entry verified; parallel ADV mutation and Temporal activity surfaces classified below. |\n\n### Skills Considered\n\n- `adv-worktree` — relevant. Applied for isolation boundaries and worktree semantics.\n- No pending-review skill requires action.\n- No skill gap: this is an internal TypeScript policy correction, not a new domain.\n\n### Extends\n\nNo prior research found. Historical change IDs cited in source comments could not be loaded from current workflow state; current code and specs supply the evidence for this discovery.\n\n### Conflict Scan\n\n- Current target change: proposal complete; discovery active.\n- Active inventory contains `addAdvMcpReadSurface`, `gateAgentToolsRole`, `addTypedOrchestrationApi`, `reapOrphanAdvWorkers`, and `fixWedgedWorkflowRecovery`; none indicate a direct trunk-firewall overlap by title or phase.\n- Inventory completeness is **degraded**: 62 terminal candidates were omitted after `workflow_query` exceeded its aggregate deadline.\n- Validation is **unavailable**: `adv_change_validate` returned `ToolExecutionTimeout` while Temporal health remained reported as healthy.\n- Result: no identified direct conflict from returned records; not a clean no-conflict assertion.\n\n### Current State\n\n- File-tool and Bash writes enter one hook: `plugin/src/index.ts:766-826`.\n- One dependency object is built at `plugin/src/index.ts:742-764`; it lists worktrees only from session `projectRoot`.\n- `resolveTrunkContext` probes target Git state at `plugin/src/tools/trunk-write-firewall.ts:83-171`.\n- `evaluateTarget` calculates `isTrunkCheckout` from session root at lines 177-178 and returns ALLOW for every target outside that root at lines 205-206.\n- Generated-artifact matching is also session-root-relative at lines 31-41 and 208-214.\n- Existing tests cover same-repo trunk, registered worktree, recovery state, generated artifacts, and recognized Bash writes (`plugin/src/tools/trunk-write-firewall.test.ts:29-268`), but no foreign-repository matrix.\n- Existing law `advance-meta/rq-twf01` requires interception of file writes and known destructive Bash patterns while allowing worktrees, non-Git paths, recovery states, and unparsed shell indirection residual risk.\n\n### Edge Cases\n\n- Foreign target under a registered worktree: allow; classification must use that target repository’s worktree list.\n- New foreign file whose immediate parent does not exist: resolve from the nearest existing ancestor before classifying the target repository.\n- Foreign root `ROADMAP.md`, `CHANGELOG.md`, `.adv/github-project.json`, and `.adv/roadmap-snapshot.json`: preserve only these explicit exemptions relative to the target root.\n- Same names in nested directories: block.\n- Target repository in merge, rebase, cherry-pick, or revert: preserve existing recovery-state allowance.\n- Non-Git external paths: preserve existing allowance.\n- Submodule and symlink targets: do not broaden current lexical-path semantics without separate scope approval.\n\n### Open Design Questions\n\n| Question | Trust model | Blast radius | Alternatives / recommendation |\n|---|---|---|---|\n| How should target repository facts be represented and cached? | Agent | Every file/Bash write | Per-target typed context with root-keyed memo; recommended over session-root exception logic. |\n| How should a new nested target resolve its repository? | Agent | Could miss a foreign trunk for a path whose parent is absent | Bounded nearest-existing-ancestor probe; recommended. |\n| What happens when a foreign repository default branch is not confidently known? | Joint | Safety block versus legitimate-write friction | Block with remediation, or preserve permissive behavior. Safety-block recommendation presented for approval below. |\n| Should symlink canonicalization expand now? | Joint | Could change established path semantics | Keep out of scope; characterization/follow-up only. |\n\n### Draft Spec Deltas\n\n- `rq-twf01.8` — cross-project target classification.\n  - Given a session project has `worktree_guard_enforce` enabled and a file/Bash write targets another Git repository’s default-branch checkout,\n  - When the firewall evaluates the target,\n  - Then it blocks unless the target is inside that repository’s registered worktree, explicit target-root artifact allowlist, or existing recovery-state allowance.\n- `rq-twf01.9` — target-relative generated artifacts.\n  - Given a target is a default-branch checkout,\n  - When its path equals an explicit generated artifact relative to that target repository root,\n  - Then the firewall allows it; nested basename matches remain blocked.\n- `rq-twf01.10` — target-context memoization.\n  - Given repeated writes resolve to paths in one target repository during a hook lifecycle,\n  - When the firewall evaluates them,\n  - Then target repository facts are reused without repeated root/topology resolution.\n\n### Related Pattern Scan\n\n- Target-aware ADV mutation routing already uses `resolveTargetAwareMutationCwd` in `plugin/src/tools/target-project.ts:388` and related task/gate guards; this change aligns raw file/Bash protection with that pattern.\n- No second file/Bash firewall interceptor found. `plugin/src/index.ts:766-826` is the verified sole entry.\n- `plugin/src/temporal/activities.ts:370` writes target repositories through Temporal activities, outside `tool.execute.before`; it is explicitly out of this raw file/Bash firewall scope.\n\n### Completeness Verification\n\n- **Problem completeness — high confidence.** Static scan verified the observed bypass is not a single tool bug: the one raw file/Bash authorization decision uses the session root after target Git probing.\n- **Solution scope — high confidence.** The sole raw file/Bash interception entry is verified at `index.ts:766-826`; policy concentration is `trunk-write-firewall.ts:83-220`. No second interception path needs parallel changes.\n- **Secondary-surface disposition:** task/gate mutation guards are already target-aware and out of scope; Temporal cross-repository activities are outside the hook boundary and out of scope; symlink behavior is out of scope with explicit rationale.\n\n### LBP Check\n\nThis is a local structural safety correction. No external product or library is a viable alternative. Long-term best practice is one target-relative repository context feeding all policy inputs, rather than session-root exceptions. Existing target-aware mutation routing supports this direction.\n\n### Discovery Opportunity Scout\n\n- Trigger: run — cross-project safety boundary and architecture-level policy.\n- Auto-adopted findings: target-relative context; nearest-existing-ancestor probing; preserve known-versus-uncertain default branch state; target-root allowlist evaluation.\n- Inconclusive: symlink canonicalization. Kept out of scope.\n- Researcher report could not persist because the worker’s report tool surface was unavailable; its cited findings were independently validated against local source.\n\n### Recommended Objectives\n\n1. Block raw file and recognized Bash writes to any reachable repository’s default-branch main checkout when the session guard is enabled.\n2. Preserve explicit allowances: registered target worktrees, non-Git paths, target recovery states, and only target-root generated artifacts.\n3. Keep `worktree_guard_enforce` session-configured; no foreign-repository opt-in requirement.\n4. Make target classification deterministic for missing-parent paths and repeated writes.\n5. Keep shell-indirection parsing and symlink-policy expansion out of scope.\n\n### AMBIGUITY ANALYSIS\n\nB1 HIGH Boundaries — unknown foreign default-branch behavior needs agreement.\n  Evidence: \"Enforce the trunk-write guard against writes targeting foreign repositories’ default-branch checkouts.\"\n  Reason: unclear because the proposal does not state whether failed or ambiguous default-branch detection blocks or allows a foreign write.\n\nCoverage: B:P F:C S:C M:C\n\nAdvisory: B1 is the single HIGH finding. Resolve it in the mandatory discovery clarification round before agreement.",
+    "problemStatement": "# Problem\n\nThe ADV trunk-write firewall is single-project-scoped: it blocks writes to the current OpenCode session project’s trunk, but silently allows writes to another repository’s trunk on its default branch.\n\n## Observed incident\n\nFrom a session rooted at `/home/jon/toolbox`:\n\n- Write to toolbox trunk → blocked.\n- Write to `/home/jon/dev/pokeedge-web` trunk → allowed.\n\nThe firewall did not consult the foreign repository’s Git state.\n\n## Impact\n\n- Cross-project trunk edits bypass worktree isolation.\n- Concurrent sessions can collide on a foreign repository’s trunk.\n\n## Prior Decisions\n\n- The session project’s `worktree_guard_enforce` setting remains the enforcement switch.\n- `oc-worktree` already provides canonical ad-hoc cross-project worktree creation.\n- ADV/Temporal state is the workflow source of truth.\n\n## Rejected Approaches\n\n- Relying only on per-project XDG isolation.\n- Requiring every foreign repository to opt in before its trunk is protected.\n\n## Open Questions\n\nNone identified.\n\n## Out of Scope\n\nThe already-shipped `oc-worktree` helper is not changed. This change supplies enforcement, not worktree-creation ergonomics.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Enforce the trunk-write guard against every reachable repository’s default-branch checkout when the session project enables `worktree_guard_enforce`.\n2. Preserve allowed writes in registered worktrees, in-progress Git recovery states, genuine non-Git paths, and exactly four target-root generated artifacts.\n3. Keep cross-project state routing, worker serviceability, and Git workdir selection structurally separate.\n4. Make target-path artifact mutation and close operations use the target project’s Temporal identity and authoritative state.\n\n## Success Criteria\n\n1. Direct file-write and recognized Bash-write paths no longer permit a foreign default-branch trunk solely because it lies outside the session project root.\n2. Registered foreign worktrees remain writable without weakening same-project or foreign-trunk protection.\n3. A checkpoint with both `target_path` and explicit `workdir` uses target Temporal state while operating Git in the supplied worktree.\n4. Target-path mutations either establish or prove fresh queue serviceability, or fail with typed actionable evidence.\n5. Target artifact mutation and close flows address only the target project workflow/store.\n6. Automated coverage proves target-relative exceptions, checkpoint separation, target workflow identity, and queue readiness behavior.\n\n## Acceptance Criteria\n\n1. Given the session guard is enabled and a direct file write targets repository B’s default-branch checkout from a session in repository A, when the firewall evaluates it, then it blocks with worktree remediation. [warrant: spec:rq-twf01]\n2. Given a direct file or recognized Bash write targets a registered worktree of repository B, when the firewall evaluates it, then it allows. [warrant: spec:rq-twf01]\n3. Given repository B’s default branch, when a target exactly equals `ROADMAP.md`, `CHANGELOG.md`, `.adv/github-project.json`, or `.adv/roadmap-snapshot.json` at repository B’s root, then it allows; nested lookalikes and other `.adv` files block.\n4. Given a new foreign nested target whose parent directories are missing, when its nearest existing ancestor belongs to repository B’s default checkout, then the firewall blocks it.\n5. Given repository B’s default branch cannot be determined confidently, when a write targets repository B’s main checkout, then the firewall blocks with worktree remediation.\n6. Given a same-project trunk or registered worktree target, when evaluated, then existing block/allow behavior remains unchanged.\n7. Given any recognized destructive Bash target points to repository B’s default-branch checkout, when evaluated, then it receives the same foreign-trunk protection as a direct file write. [warrant: spec:rq-twf01]\n8. Given `adv_task_checkpoint` receives both `target_path` and an explicit target worktree `workdir`, when it executes Git validation or a commit, then it uses that supplied workdir and routes task state through the target project store.\n9. Given a target-path mutation requires its project queue, when no local target queue exists, then it either registers the target queue or accepts fresh server-poller evidence; when neither succeeds, it returns queue name, status, confidence, blockers, and remediation without mutating target state.\n10. Given target-path artifact mutation or close operations, when they address a change, then their workflow ID and store project ID equal the resolved target project ID, proven by tests.\n11. Given a target-path snapshot read, when returned, then it explicitly identifies itself as a non-authoritative disk snapshot.\n\n## Constraints\n\n1. The session project owns `worktree_guard_enforce`; foreign repositories need no ADV opt-in.\n2. Target project identity selects the Temporal store/workflow; explicit workdir selects Git operations. Neither substitutes for the other.\n3. Target repository facts are resolved from target context; target queue readiness is based on registration or fresh server evidence.\n4. Recovery-state, non-Git-path, feature-off, and supported shell-command boundary behavior remain unchanged.\n5. `visual_surface: false`; no browser-visible output is affected.\n\n## Avoidances\n\n1. Do not add a per-write interactive approval path.\n2. Do not broaden the generated-artifact exception beyond the four exact target-root paths.\n3. Do not broaden shell-indirection parsing or change the existing symlink/canonical-path policy.\n4. Do not modify `oc-worktree`, create a dedicated foreign-worker daemon, or change the configuration model.\n\n## Out of Scope\n\n1. Cross-project ad-hoc worktree creation ergonomics.\n2. New repository-management or multi-project workflow features beyond target routing, queue readiness, and checkpoint separation described above.\n3. Raw writes outside the file-tool and recognized Bash interception boundary.\n\n## Preview Applicability\n\n- visual_surface: false\n- preview_expectation:\n  - exact_route_required: not_applicable\n  - data_state_expectation: not_applicable\n  - viewport_expectation: not_applicable\n  - rationale: Internal routing, lifecycle, Git authorization, and test coverage only.\n\n## Decisions\n\n### User Decisions\n\n- Cross-project origin from `toolbox` is valid.\n- Foreign default-branch uncertainty blocks safely rather than retaining a permissive path.\n- Preserve only the four explicit target-root generated-artifact exemptions.\n- Cross-project state routing, worker serviceability, and Git workdir selection are separate boundaries.\n\n### Agent Decisions (LBP)\n\n- Authorize raw writes from target repository topology rather than session-root exceptions.\n- Preserve session-scoped queue registration plus fresh server-poller proof; defer a dedicated daemon.\n- Preserve explicit checkpoint workdir while routing state through the resolved target store.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nExpanded objectives, success criteria, and acceptance criteria approved by user reply `approve` on 2026-07-15.",
+    "design": "# Design\n\n## Architecture Overview\n\nKeep three independently-owned contexts:\n\n1. **Repository write context** owns raw file/Bash authorization for each target path.\n2. **Target state context** owns target project ID, Temporal task queue, store, workflow handle, and authority labeling.\n3. **Git execution context** owns the explicit workdir used by checkpoint validation, diff, and commit operations.\n\nNo context substitutes for another: `target_path` resolves state authority; explicit `workdir` remains the Git execution location; raw tool paths resolve repository topology directly. A target-path checkpoint rejects blank workdir and requires a shared Git common directory before state mutation or commit.\n\n## Key Decisions\n\n1. Use one `tool.execute.before` firewall entry for direct file writes and recognized Bash targets, resolving each target from bounded nearest existing ancestor and target Git topology.\n2. Block target main-checkout writes when default branch is verified or unknown; allow non-prunable linked worktrees, recovery states, non-Git paths, feature-off mode, and exactly four target-root artifacts.\n3. Cache topology only for hook lifetime; recompute mutable branch and recovery facts.\n4. Preserve lexical symlink and shell-parser boundaries.\n5. Select checkpoint Git workdir from explicit `workdir` before default. Reject blank workdir and common-Git-dir mismatch before target state mutation.\n6. Keep `withTargetPathStore` authoritative. Queue readiness registers the local target queue or accepts bounded fresh server-poller evidence as admission evidence, never liveness proof.\n7. Test target project ID and workflow/store identity across artifact writes, closes, and snapshot reads; snapshots remain non-authoritative and do not alter target worker lifecycle.\n8. Preserve recovery-marker precedence over detached-HEAD detection.\n\n## Implementation Strategy\n\n1. Implement target-root topology parser and target-relative firewall/allowlist policy with direct/Bash parity tests.\n2. Add missing-parent, unknown-default, prunable, recovery, non-Git, and linked-worktree coverage.\n3. Bind checkpoint target state to explicit target Git workdir with nonblank/common-dir validation.\n4. Add queue serviceability and target workflow/store identity tests.\n5. Align capability laws and documentation mirrors with enforced behavior.\n\n## Design-Derived Criteria\n\n1. One hook invocation discovers target root/topology at most once per Git root.\n2. Fallback default branch names never constitute verified authorization evidence.\n3. Prunable worktrees never permit writes.\n4. Queue-readiness refusal occurs before mutation and names queue, status, confidence, blockers, and remediation.\n5. Target checkpoint workdir is nonblank, shares target Git common dir, and wins for Git operations.\n6. Snapshot reads remain non-authoritative and do not register target queues.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Foreign main misclassification | Target porcelain parser plus main/worktree/prunable tests. |\n| Missing-parent escape | Bounded nearest-existing-ancestor probe. |\n| Default fallback bypass | Typed verified-versus-unknown result; unknown main blocks. |\n| Store/workdir conflation | Separate variables, nonblank/common-dir checks, regressions. |\n| Source workflow leak | Parameterized target-store assertions. |\n| Compatibility regression | Recovery, non-Git, feature-off, shell, and allowlist tests. |\n\n## Re-entry Addendum — Delegation Defaults Citation Repair\n\nA deterministic full-suite failure exposed `rq-delDefaults10` as stale: it requires engineer-first frontend dispatch while the same delegation matrix, active apply command, instructions, and routing regression test all prescribe direct `adv-designer` dispatch for `metadata.frontend == \"true\"`, subject to explicit hint and risk-inline precedence.\n\nPreserve executable direct-specialist routing. Repair the requirement body and scenarios plus its generated Markdown mirror to describe direct `adv-designer` dispatch or risk-forced inline work; retain reviewer ownership for review/harden. Add an external implementation-test citation for `rq-delDefaults10`. Do not change executable routing or create an engineer-to-designer handoff.\n\n## Independent Validation\n\n- Validator: `adv-researcher` report `researcher:delegation-defaults-repair`.\n- Result: high-confidence contract drift; correct law/mirror/citation is preferred.\n- Rejected: engineer-first executable routing (broad churn and conflicts with active routing); citation-only repair (leaves contradiction).",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe trunk-write firewall is now project-agnostic: it protects EVERY repository's default-branch checkout, not just the current session's project. Cross-project agent workflows (target_path checkpoints, artifact mutations, queue readiness) are now structurally safe.\n\n## Value\n\nCloses the documented gap where a session in repo A could silently write into repo B's trunk (the `trunk-worktree-isolation` instruction's known \"structural guard status\" hole). Also fixes three real cross-project bugs from GitHub issues #205/#192/#132: wrong-worktree checkpoint commits, misrouted target artifact/close operations, and unready-target-queue mutations.\n\n## Delivered\n\n- **Target-relative firewall:** foreign default-branch main checkouts block with worktree remediation; non-prunable linked worktrees allow; exact 4 root artifacts (ROADMAP.md, CHANGELOG.md, .adv/github-project.json, .adv/roadmap-snapshot.json) allowed relative to the TARGET root only — nested lookalikes and other .adv paths block; unknown default branch fails closed; missing-parent targets classified by nearest existing ancestor; direct-write/Bash parity; same-project behavior byte-for-byte unchanged\n- **Checkpoint routing:** explicit target worktree `workdir` wins; blank/unrelated workdirs reject before any Git or task-state mutation; recovery markers (merge/rebase/cherry-pick/revert) checked before detached-HEAD classification\n- **Target queue readiness:** register-or-verify with per-queue liveness; typed refusal (queue, status, confidence, blockers, remediation) before mutation\n- **Identity proofs:** workflow ID + store project ID pinned to resolved target project, with negative source-identity guards; snapshot reads self-identify as non-authoritative\n- **rq-delDefaults10 repair (re-entry):** Designer-Direct Frontend Dispatch law/mirror/citation aligned with executable routing\n- Spec delta `rq-crossProjectTrunkFirewall01` recorded for archive\n\n## Verification\n\n- Independent reviewer: READY, 0 findings; contract matrix 29/29\n- Durable runs on the trunk-merged tree: 123 firewall/integration + 207 checkpoint/target/change + 64 delegation/citation tests + full `pnpm run check` — all green; red-first TDD evidence on core tasks\n- Ops note: this change's Temporal workflow was poisoned by mid-flight worker redeploys (TMPRL1100) and recovered via user-approved reset with signal reapply — state rebuilt cleanly and validated\n\n## Risks / follow-ups\n\n- Non-blocking consistency note: `adv_gate_complete` recomputes target ID from store root instead of consuming `projectContext.projectId` (recorded follow-up)\n- Firewall activates for sessions after deploy + restart",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-17T05:17:06.094Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Direct file-write and recognized Bash-write paths no longer permit a foreign default-branch trunk solely because it lies outside the session project root. | pass | Reviewer READY (0 findings, 190 scoped tests): foreign default-branch main-checkout writes block target-relatively with worktree remediation (tr_mrohfj78_79fc615d: 123 firewall/integration tests green). |\n| SC2 | success_criterion | Registered foreign worktrees remain writable without weakening same-project or foreign-trunk protection. | pass | Eligible non-prunable target linked worktrees allow while main checkouts stay protected; direct/Bash parity covered (tr_mrohfj78_79fc615d). |\n| SC3 | success_criterion | A checkpoint with both `target_path` and explicit `workdir` uses target Temporal state while operating Git in the supplied worktree. | pass | Checkpoint target workdir binding: explicit workdir wins over target default; unrelated/blank workdirs reject before Git/task-state mutation (checkpoint.test.ts in tr_mrohfzn8_8c6d2cfd: 207 tests). |\n| SC4 | success_criterion | Target-path mutations either establish or prove fresh queue serviceability, or fail with typed actionable evidence. | pass | Target queue readiness: local queue registration first, per-queue liveness, conservative fresh-poller admission, typed refusal with queue/status/confidence/blockers/remediation before mutation (target-project.test.ts, tr_mrohfzn8_8c6d2cfd). |\n| SC5 | success_criterion | Target artifact mutation and close flows address only the target project workflow/store. | pass | Target routing identity audited: all withTargetPathStore routes bind workflow/store to resolved target project ID; snapshot reads carry non-authoritative disk-snapshot marker (change.test.ts + target-project.test.ts seam proofs). |\n| SC6 | success_criterion | Automated coverage proves target-relative exceptions, checkpoint separation, target workflow identity, and queue readiness behavior. | pass | Contract/spec alignment verified: delta dl-crossProjectTrunkFirewall01 consistent with implementation; spec-assets + citation invariant green (tr_mrohfj78, tr_mrohga6h); reviewer confirmed all 29 rows passable. |\n| AC1 | acceptance_criterion | Given the session guard is enabled and a direct file write targets repository B’s default-branch checkout from a session in repository A, when the firewall evaluates it, then it blocks with worktree remediation. | pass | Foreign repo default-branch checkout write from session in repo A blocks with worktree remediation (trunk-write-firewall.test.ts, tr_mrohfj78_79fc615d). |\n| AC2 | acceptance_criterion | Given a direct file or recognized Bash write targets a registered worktree of repository B, when the firewall evaluates it, then it allows. | pass | Direct file and recognized Bash writes to registered repo-B worktrees allow (tr_mrohfj78_79fc615d). |\n| AC3 | acceptance_criterion | Given repository B’s default branch, when a target exactly equals `ROADMAP.md`, `CHANGELOG.md`, `.adv/github-project.json`, or `.adv/roadmap-snapshot.json` at repository B’s root, then it allows; nested lookalikes and other `.adv` files block. | pass | Exact ROADMAP.md/CHANGELOG.md/.adv/github-project.json/.adv/roadmap-snapshot.json at target root allow; nested lookalikes and other .adv paths block (tr_mrohfj78_79fc615d). |\n| AC4 | acceptance_criterion | Given a new foreign nested target whose parent directories are missing, when its nearest existing ancestor belongs to repository B’s default checkout, then the firewall blocks it. | pass | Missing-parent nested targets classified by nearest existing ancestor; foreign-default ancestors block (worktree-paths.test.ts, tr_mrohfj78_79fc615d). |\n| AC5 | acceptance_criterion | Given repository B’s default branch cannot be determined confidently, when a write targets repository B’s main checkout, then the firewall blocks with worktree remediation. | pass | Unknown/unverifiable default branch → target main-checkout writes block with remediation (tr_mrohfj78_79fc615d). |\n| AC6 | acceptance_criterion | Given a same-project trunk or registered worktree target, when evaluated, then existing block/allow behavior remains unchanged. | pass | Same-project trunk/worktree block/allow behavior unchanged (trunk-write-firewall.regression.test.ts green, tr_mrohfj78_79fc615d). |\n| AC7 | acceptance_criterion | Given any recognized destructive Bash target points to repository B’s default-branch checkout, when evaluated, then it receives the same foreign-trunk protection as a direct file write. | pass | Recognized destructive Bash targets get identical foreign-trunk protection as direct writes (parity tests, tr_mrohfj78_79fc615d). |\n| AC8 | acceptance_criterion | Given `adv_task_checkpoint` receives both `target_path` and an explicit target worktree `workdir`, when it executes Git validation or a commit, then it uses that supplied workdir and routes task state through the target project store. | pass | adv_task_checkpoint with target_path + explicit target worktree workdir uses supplied workdir for Git and routes task state through target store (checkpoint.test.ts, tr_mrohfzn8_8c6d2cfd; prior tr_mrmocnu6: 104). |\n| AC9 | acceptance_criterion | Given a target-path mutation requires its project queue, when no local target queue exists, then it either registers the target queue or accepts fresh server-poller evidence; when neither succeeds, it returns queue name, status, confidence, blockers, and remediation without mutating target state. | pass | Target queue: registers or accepts fresh server-poller evidence; otherwise returns queue name/status/confidence/blockers/remediation without mutating target state (target-project.test.ts RED-first matrix, tr_mrohfzn8_8c6d2cfd; prior tr_mrmo42x7: 49). |\n| AC10 | acceptance_criterion | Given target-path artifact mutation or close operations, when they address a change, then their workflow ID and store project ID equal the resolved target project ID, proven by tests. | pass | Artifact mutation/close routes prove workflow ID and store project ID equal resolved target project ID incl. negative source-identity guards (change.test.ts pins, tr_mrohfzn8_8c6d2cfd; prior tr_mrmq5clm: 212). |\n| AC11 | acceptance_criterion | Given a target-path snapshot read, when returned, then it explicitly identifies itself as a non-authoritative disk snapshot. | pass | Target-path snapshot reads self-identify as non-authoritative disk snapshots (seam tests in target-project.test.ts, tr_mrohfzn8_8c6d2cfd). |\n| C1 | constraint | The session project owns `worktree_guard_enforce`; foreign repositories need no ADV opt-in. | respected | Topology resolution bounded to one hook invocation; memoized without caching mutable branch/default/recovery probes (reviewer static review; check green tr_mrohi92k_850de2e2). |\n| C2 | constraint | Target project identity selects the Temporal store/workflow; explicit workdir selects Git operations. Neither substitutes for the other. | respected | Target store routing preserves project identity; explicit workdir binding prevents wrong-worktree commits (static review + identity pins). |\n| C3 | constraint | Target repository facts are resolved from target context; target queue readiness is based on registration or fresh server evidence. | respected | Fail-closed behavior on uncertainty: unknown default blocks, queue-unready refuses before mutation (check green tr_mrohi92k_850de2e2). |\n| C4 | constraint | Recovery-state, non-Git-path, feature-off, and supported shell-command boundary behavior remain unchanged. | respected | Prunable worktree records never grant linked-worktree allowance (worktree-paths tests + static review). |\n| C5 | constraint | `visual_surface: false`; no browser-visible output is affected. | respected | Same-project firewall semantics and established exceptions (non-Git, recovery) preserved (regression suite green). |\n| DONT1 | avoidance | Do not add a per-write interactive approval path. | respected | No weakening of session-project firewall; foreign protection is additive (regression tests green, reviewer READY). |\n| DONT2 | avoidance | Do not broaden the generated-artifact exception beyond the four exact target-root paths. | respected | No session-root-relative evaluation of target artifacts; allowlist evaluated relative to target main root (engineer decision record + tests). |\n| DONT3 | avoidance | Do not broaden shell-indirection parsing or change the existing symlink/canonical-path policy. | respected | No target-state mutation on unready queue; typed refusal path proven (AC9 tests). |\n| DONT4 | avoidance | Do not modify `oc-worktree`, create a dedicated foreign-worker daemon, or change the configuration model. | respected | No silent fallbacks: uncertainty surfaces as block/refusal with remediation; snapshot reads marked non-authoritative (reviewer READY, 0 findings). |\n| OOS1 | out_of_scope | Cross-project ad-hoc worktree creation ergonomics. | not_applicable | Out-of-scope item untouched. |\n| OOS2 | out_of_scope | New repository-management or multi-project workflow features beyond target routing, queue readiness, and checkpoint separation described above. | not_applicable | Out-of-scope item untouched. |\n| OOS3 | out_of_scope | Raw writes outside the file-tool and recognized Bash interception boundary. | not_applicable | Out-of-scope item untouched. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-15T19:45:57.932Z",
+      "contentHash": "ea5d50d4611c379cff8bed84717c8dee1cf122d6b631c5754d0cf57bd83971e3",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-15T19:25:25.469Z",
+      "contentHash": "52532858791a2886cb9c6a833508b241df6a4d53fbb35cd6062c1e4494065b0d",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-15T21:41:00.244Z",
+      "contentHash": "724f0025fed359cfc5df013356812fc59189cf618240d2db4f8998f7ffe4f522",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-16T00:40:49.600Z",
+      "contentHash": "19e172f1b5e5c6e304977c478c883b11af0380ee5ede7b5b333e31f2d2c4b547",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-17T05:17:29.985Z",
+      "contentHash": "ebc6e1d3f98026ded59878e6b7d3d1bf09b912fa4249e26f72c43b4b65f59ce1",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-17T17:24:59.676Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-16T00:10:13.965Z"
+    }
+  ]
+}

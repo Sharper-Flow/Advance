@@ -503,3 +503,143 @@ describe("checkFrontendApplicability — rq-PR009frontendApplicability", () => {
     ).toBe(false);
   });
 });
+
+describe("checkTaskEvidencePlan — behavior-critical evidence plan validity (SC2/SC3)", () => {
+  function buildCodeTask(
+    overrides: {
+      evidence_plan?: any;
+      evidence_policy?: string;
+      tdd_intent?: string;
+      status?: string;
+    } = {},
+  ) {
+    return {
+      id: "tk-code",
+      title: "Implement feature",
+      type: "code",
+      status: overrides.status ?? "pending",
+      deps: [],
+      metadata: {
+        tdd_intent: overrides.tdd_intent ?? "inline",
+      },
+      ...(overrides.evidence_policy && {
+        evidence_policy: overrides.evidence_policy,
+      }),
+      ...(overrides.evidence_plan && {
+        evidence_plan: overrides.evidence_plan,
+      }),
+    };
+  }
+
+  function buildVerificationTask(
+    overrides: { evidence_policy?: string; evidence_plan?: any } = {},
+  ) {
+    return {
+      id: "tk-verify",
+      title: "Verify integration",
+      type: "verification",
+      status: "pending",
+      deps: [],
+      metadata: { tdd_intent: "separate_verification" },
+      ...(overrides.evidence_policy && {
+        evidence_policy: overrides.evidence_policy,
+      }),
+      ...(overrides.evidence_plan && {
+        evidence_plan: overrides.evidence_plan,
+      }),
+    };
+  }
+
+  test("code task with not_applicable evidence plan blocks prep", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildCodeTask({
+          evidence_policy: "not_applicable",
+          evidence_plan: {
+            policy: "not_applicable",
+            proof_target: "No evidence required",
+            provenance: "new",
+          },
+        }),
+      ]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some((i) => i.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+
+  test("code task with non-test route missing rationale and review conclusion blocks prep", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildCodeTask({
+          evidence_policy: "review",
+          evidence_plan: {
+            policy: "review",
+            proof_target: "Structured review conclusion",
+            provenance: "new",
+          },
+        }),
+      ]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some((i) => i.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+
+  test("code task with non-test route and rationale/review conclusion passes prep", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildCodeTask({
+          evidence_policy: "review",
+          evidence_plan: {
+            policy: "review",
+            proof_target: "Structured review conclusion",
+            rationale: "Peer review covers the logic.",
+            review_conclusion: "reviewer-verdict-abc",
+            provenance: "new",
+          },
+        }),
+      ]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some((i) => i.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(false);
+    expect(result.passed).toBe(true);
+  });
+
+  test("legacy code task without evidence plan is normalized and passes prep", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([buildCodeTask()]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some((i) => i.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(false);
+    expect(result.passed).toBe(true);
+  });
+
+  test("verification task with not_applicable evidence plan blocks prep", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildVerificationTask({
+          evidence_policy: "not_applicable",
+          evidence_plan: {
+            policy: "not_applicable",
+            proof_target: "No evidence required",
+            provenance: "new",
+          },
+        }),
+      ]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some((i) => i.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+});

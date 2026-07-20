@@ -217,16 +217,21 @@ describe("cross-project coordination metadata", () => {
   });
 
   test("product-linked create defaults scope_repos to current repo", async () => {
+    sourceStore.close();
+    sourceStore = await createLegacyStore(sourceDir, {
+      externalRoot: join(sourceDir, ".adv-product-test-state"),
+    });
+    await sourceStore.init();
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
-      repoProjectId: "w".repeat(40),
+      repoProjectId: "a".repeat(40),
       productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
       repos: {
-        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        web: { id: "web", root: sourceDir, repoProjectId: "a".repeat(40) },
         backend: {
           id: "backend",
           root: targetDir,
@@ -238,10 +243,14 @@ describe("cross-project coordination metadata", () => {
     };
 
     const output = await changeTools.adv_change_create.execute(
-      { summary: "Add scoped change", capability: "test-capability" },
+      {
+        summary: `Add scoped ${sourceDir.slice(-8)}`,
+        capability: "test-capability",
+      },
       sourceStore,
     );
     const parsed = parseToolOutput(output);
+    expect(parsed.error, JSON.stringify(parsed)).toBeUndefined();
     expect(parsed.scope_repos).toEqual([
       expect.objectContaining({ repo_id: "web" }),
     ]);
@@ -249,22 +258,27 @@ describe("cross-project coordination metadata", () => {
     expect(parsed.scope_repos).toEqual([
       expect.objectContaining({
         repo_id: "web",
-        repo_project_id: "w".repeat(40),
+        repo_project_id: "a".repeat(40),
       }),
     ]);
   });
 
   test("product-linked create validates explicit scope_repos", async () => {
+    sourceStore.close();
+    sourceStore = await createLegacyStore(sourceDir, {
+      externalRoot: join(sourceDir, ".adv-product-test-state"),
+    });
+    await sourceStore.init();
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
-      repoProjectId: "w".repeat(40),
+      repoProjectId: "a".repeat(40),
       productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
       repos: {
-        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        web: { id: "web", root: sourceDir, repoProjectId: "a".repeat(40) },
       },
       mode: "secondary",
       missingPrimaryPolicy: "block",
@@ -286,13 +300,13 @@ describe("cross-project coordination metadata", () => {
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
-      repoProjectId: "w".repeat(40),
+      repoProjectId: "a".repeat(40),
       productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
       repos: {
-        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        web: { id: "web", root: sourceDir, repoProjectId: "a".repeat(40) },
         backend: {
           id: "backend",
           root: targetDir,

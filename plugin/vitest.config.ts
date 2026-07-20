@@ -4,13 +4,37 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    globalSetup: ["./src/__tests__/global-setup.ts"],
-    include: ["src/**/*.test.ts", "src/**/*.itest.ts", "scripts/**/*.test.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+          globalSetup: ["./src/__tests__/global-setup.ts"],
+          env: {
+            ADV_TEST_PROJECT: "unit",
+            ADV_TEST_FILE_PARALLELISM: "true",
+          },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "temporal",
+          include: ["src/**/*.itest.ts"],
+          fileParallelism: false,
+          env: {
+            ADV_TEST_PROJECT: "temporal",
+            ADV_TEST_FILE_PARALLELISM: "false",
+          },
+        },
+      },
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/__tests__/**"],
+      exclude: ["src/**/*.test.ts", "src/**/*.itest.ts", "src/__tests__/**"],
     },
   },
   resolve: {

@@ -1,4 +1,5 @@
 import { existsSync } from "fs";
+import { createHash } from "crypto";
 import { execSync } from "child_process";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
@@ -13,6 +14,11 @@ import {
   getArchiveContractProofErrors,
   reconcileInRepoArchive,
 } from "./archive";
+import {
+  TERMINAL_SUMMARY_FILE,
+  validateTerminalArchiveSummary,
+  verifyTerminalArchiveSummaryHash,
+} from "./terminal-summary";
 
 const createdAt = "2026-05-08T00:00:00.000Z";
 let tempDirs: string[] = [];
@@ -170,6 +176,140 @@ describe("contract archive traceability", () => {
     expect(trace).toContain("AC1");
   });
 
+  test("archiveChange writes reconciled spec, docs, and manifest only to supplied worktree paths", async () => {
+    const root = await tempProject();
+    const mainSpecs = join(root, "main", ".adv", "specs");
+    const worktree = join(root, "worktree");
+    const worktreeSpecs = join(worktree, ".adv", "specs");
+    const worktreeDocs = join(worktree, "docs", "specs");
+    const inRepoArchive = join(worktree, ".adv", "archive");
+    const baseline = {
+      name: "example",
+      title: "Example",
+      purpose: "Example capability",
+      version: "1.0.0",
+      updated_at: createdAt,
+      requirements: [],
+    };
+    await mkdir(join(mainSpecs, "example"), { recursive: true });
+    await writeFile(
+      join(mainSpecs, "example", "spec.json"),
+      JSON.stringify(baseline),
+    );
+
+    const result = await archiveChange({
+      change: changeWithContract({
+        id: "worktree-projection",
+        deltas: {
+          example: [
+            {
+              id: "dl-add",
+              operation: "add",
+              requirement: {
+                id: "rq-example01",
+                title: "Example law",
+                body: "Archive projects this law",
+                priority: "must",
+                scenarios: [
+                  {
+                    id: "rq-example01.1",
+                    title: "Projected",
+                    given: ["An accepted delta"],
+                    when: "Archive succeeds",
+                    then: ["The worktree contains the law"],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      }),
+      specs: new Map([["example", baseline]]),
+      paths: {
+        specs: worktreeSpecs,
+        docs: worktreeDocs,
+        archive: join(root, "external-archive"),
+        inRepoArchive,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(
+      JSON.parse(
+        await readFile(join(worktreeSpecs, "example", "spec.json"), "utf8"),
+      ).requirements.map((row: { id: string }) => row.id),
+    ).toContain("rq-example01");
+    expect(
+      JSON.parse(
+        await readFile(join(mainSpecs, "example", "spec.json"), "utf8"),
+      ).requirements,
+    ).toEqual([]);
+    expect(await readFile(join(worktreeDocs, "example.md"), "utf8")).toContain(
+      "Example law",
+    );
+    expect(
+      JSON.parse(
+        await readFile(
+          join(result.archivePath, "spec-projection.json"),
+          "utf8",
+        ),
+      ).change_id,
+    ).toBe("worktree-projection");
+    expect(
+      result.commitPaths.some((path) => path.endsWith("docs/specs/example.md")),
+    ).toBe(true);
+    expect(
+      result.commitPaths.some((path) => path.includes("/.adv/archive/")),
+    ).toBe(true);
+  });
+
+  test("semantic projection conflict writes no bundle or spec", async () => {
+    const root = await tempProject();
+    const baseline = {
+      name: "example",
+      title: "Example",
+      purpose: "Example capability",
+      version: "1.0.0",
+      updated_at: createdAt,
+      requirements: [
+        {
+          id: "rq-example01",
+          title: "Current",
+          body: "Current law",
+          priority: "must" as const,
+        },
+      ],
+    };
+    const result = await archiveChange({
+      change: changeWithContract({
+        id: "projection-conflict",
+        deltas: {
+          example: [
+            {
+              id: "dl-add",
+              operation: "add",
+              requirement: {
+                ...baseline.requirements[0],
+                title: "Conflicting",
+              },
+            },
+          ],
+        },
+      }),
+      specs: new Map([["example", baseline]]),
+      paths: {
+        specs: join(root, "worktree", ".adv", "specs"),
+        docs: join(root, "worktree", "docs", "specs"),
+        archive: join(root, "external-archive"),
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errors.join("\n")).toContain("conflicting");
+    expect(existsSync(result.archivePath)).toBe(false);
+    expect(existsSync(join(root, "worktree", ".adv", "specs"))).toBe(false);
+  });
+
   test("archiveChange reconciles missing in-repo archive when external bundle already exists", async () => {
     const root = await tempProject();
     const change = changeWithContract();
@@ -223,7 +363,7 @@ describe("contract archive traceability", () => {
         {
           repo_id: "web",
           path: web,
-          repo_project_id: "w".repeat(40),
+          repo_project_id: "a".repeat(40),
           required: true,
           merge_order: 2,
         },
@@ -552,9 +692,11 @@ describe("contract archive traceability", () => {
         contract: undefined,
         wisdom: [
           {
+            id: "ws-1",
             type: "convention",
             content: "Always write tests first",
             source_task: "tk-1",
+            recorded_at: createdAt,
           },
         ],
       });
@@ -666,9 +808,11 @@ describe("contract archive traceability", () => {
         id: "newline-external",
         wisdom: [
           {
+            id: "ws-newline",
             type: "convention",
             content: "newline matters",
             source_task: "tk-1",
+            recorded_at: createdAt,
           },
         ],
       });
@@ -728,15 +872,267 @@ describe("contract archive traceability", () => {
         id: "newline-inrepo",
         wisdom: [
           {
+            id: "ws-newline",
             type: "convention",
             content: "newline matters",
             source_task: "tk-1",
+            recorded_at: createdAt,
           },
         ],
       });
       const archivePath = await createInRepoArchive(change, archiveDir);
       await expectSingleTrailingNewline(join(archivePath, "change.json"));
       await expectSingleTrailingNewline(join(archivePath, "wisdom.json"));
+    });
+  });
+
+  describe("terminal-summary archive bundles (SC4/AC4/AC6)", () => {
+    test("archiveChange writes summary.v1.json to the external archive", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "terminal-summary-external",
+        gates: {
+          proposal: { status: "done", completed_at: createdAt },
+          discovery: { status: "done", completed_at: createdAt },
+          design: { status: "done", completed_at: createdAt },
+          planning: { status: "done", completed_at: createdAt },
+          execution: { status: "done", completed_at: createdAt },
+          acceptance: { status: "done", completed_at: createdAt },
+          release: { status: "done", completed_at: createdAt },
+        },
+      });
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const summaryPath = join(result.archivePath, TERMINAL_SUMMARY_FILE);
+      expect(existsSync(summaryPath)).toBe(true);
+      const raw = await readFile(summaryPath, "utf-8");
+      const summary = validateTerminalArchiveSummary(JSON.parse(raw));
+      expect(summary.version).toBe("1");
+      expect(summary.change_id).toBe("terminal-summary-external");
+      expect(summary.status).toBe("archived");
+      expect(summary.current_gate).toBe("done");
+      expect(summary.task_count).toBe(1);
+      expect(summary.completed_tasks).toBe(1);
+      expect(summary.change_hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(summary.summary_hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(verifyTerminalArchiveSummaryHash(summary)).toBe(true);
+    });
+
+    test("createInRepoArchive writes summary.v1.json to the in-repo archive", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const change = changeWithContract({
+        id: "terminal-summary-inrepo",
+        contract: undefined,
+      });
+
+      const archivePath = await createInRepoArchive(change, archiveDir);
+      const summaryPath = join(archivePath, TERMINAL_SUMMARY_FILE);
+      expect(existsSync(summaryPath)).toBe(true);
+      const raw = await readFile(summaryPath, "utf-8");
+      const summary = validateTerminalArchiveSummary(JSON.parse(raw));
+      expect(summary.version).toBe("1");
+      expect(summary.change_id).toBe("terminal-summary-inrepo");
+      expect(summary.status).toBe("archived");
+    });
+
+    test("external and in-repo terminal summaries are coherent for the same Change", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "terminal-summary-coherent",
+        contract: undefined,
+      });
+      const inRepoArchiveDir = join(root, "repo", ".adv", "archive");
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+          inRepoArchive: inRepoArchiveDir,
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const externalRaw = await readFile(
+        join(result.archivePath, TERMINAL_SUMMARY_FILE),
+        "utf-8",
+      );
+      const inRepoRaw = await readFile(
+        join(
+          inRepoArchiveDir,
+          `${new Date().toISOString().split("T")[0]}-terminal-summary-coherent`,
+          TERMINAL_SUMMARY_FILE,
+        ),
+        "utf-8",
+      );
+      const externalSummary = validateTerminalArchiveSummary(
+        JSON.parse(externalRaw),
+      );
+      const inRepoSummary = validateTerminalArchiveSummary(
+        JSON.parse(inRepoRaw),
+      );
+      expect(externalSummary.change_hash).toBe(inRepoSummary.change_hash);
+      expect(externalSummary.archived_at).toBe(inRepoSummary.archived_at);
+      expect(inRepoSummary).toEqual(externalSummary);
+    });
+
+    test("change_hash binds terminal summary to the sibling change.json bytes", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "terminal-summary-hash-binding",
+        contract: undefined,
+      });
+      const archivePath = await createInRepoArchive(
+        change,
+        join(root, "archive"),
+      );
+      const changeJson = await readFile(
+        join(archivePath, "change.json"),
+        "utf-8",
+      );
+      const summary = validateTerminalArchiveSummary(
+        JSON.parse(
+          await readFile(join(archivePath, TERMINAL_SUMMARY_FILE), "utf-8"),
+        ),
+      );
+      const expectedHash = createHash("sha256")
+        .update(changeJson, "utf-8")
+        .digest("hex");
+      expect(summary.change_hash).toBe(expectedHash);
+    });
+
+    test("terminal summary is lightweight relative to full change.json", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "terminal-summary-lightweight",
+        contract: undefined,
+        documents: {
+          proposal: "a".repeat(5000),
+          acceptance: "b".repeat(5000),
+        },
+      });
+      const archivePath = await createInRepoArchive(
+        change,
+        join(root, "archive"),
+      );
+      const changeJson = await readFile(
+        join(archivePath, "change.json"),
+        "utf-8",
+      );
+      const summaryJson = await readFile(
+        join(archivePath, TERMINAL_SUMMARY_FILE),
+        "utf-8",
+      );
+      expect(summaryJson.length).toBeLessThan(changeJson.length / 2);
+    });
+
+    test("summary.v1.json is newline-terminated", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "terminal-summary-newline",
+        contract: undefined,
+      });
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+      const raw = await readFile(
+        join(result.archivePath, TERMINAL_SUMMARY_FILE),
+        "utf-8",
+      );
+      expect(raw.endsWith("\n")).toBe(true);
+      expect(raw.endsWith("\n\n")).toBe(false);
+    });
+
+    test("sibling files with generated names do not overwrite generated bundle files", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const sourceChangeDir = join(
+        root,
+        "changes",
+        "terminal-summary-preserve",
+      );
+      await mkdir(sourceChangeDir, { recursive: true });
+      const bogus = "this should not overwrite generated files";
+      await writeFile(
+        join(sourceChangeDir, "change.json"),
+        JSON.stringify({ bogus }),
+      );
+      await writeFile(
+        join(sourceChangeDir, TERMINAL_SUMMARY_FILE),
+        JSON.stringify({ bogus }),
+      );
+      await writeFile(join(sourceChangeDir, "ARCHIVE_SUMMARY.md"), bogus);
+      await writeFile(join(sourceChangeDir, "BRIEFING_DIGEST.md"), bogus);
+      await writeFile(join(sourceChangeDir, "CONTRACT_TRACEABILITY.md"), bogus);
+      await writeFile(
+        join(sourceChangeDir, "wisdom.json"),
+        JSON.stringify({ bogus }),
+      );
+      await writeFile(
+        join(sourceChangeDir, "multi-repo-archive.json"),
+        JSON.stringify({ bogus }),
+      );
+
+      const archivePath = await createInRepoArchive(
+        changeWithContract({
+          id: "terminal-summary-preserve",
+          contract: undefined,
+        }),
+        archiveDir,
+        sourceChangeDir,
+      );
+
+      const changeJson = JSON.parse(
+        await readFile(join(archivePath, "change.json"), "utf-8"),
+      );
+      expect(changeJson.status).toBe("archived");
+      expect(changeJson.bogus).toBeUndefined();
+
+      const summary = validateTerminalArchiveSummary(
+        JSON.parse(
+          await readFile(join(archivePath, TERMINAL_SUMMARY_FILE), "utf-8"),
+        ),
+      );
+      expect(summary.version).toBe("1");
+      expect(summary.change_id).toBe("terminal-summary-preserve");
+
+      const archiveSummary = await readFile(
+        join(archivePath, "ARCHIVE_SUMMARY.md"),
+        "utf-8",
+      );
+      expect(archiveSummary).toContain("Archive:");
+      expect(archiveSummary).not.toContain(bogus);
+
+      const digest = await readFile(
+        join(archivePath, "BRIEFING_DIGEST.md"),
+        "utf-8",
+      );
+      expect(digest).toContain("Archive Briefing Digest");
+      expect(digest).not.toContain(bogus);
+
+      expect(existsSync(join(archivePath, "wisdom.json"))).toBe(false);
+      expect(existsSync(join(archivePath, "multi-repo-archive.json"))).toBe(
+        false,
+      );
     });
   });
 });

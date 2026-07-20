@@ -41,6 +41,11 @@ import {
   parseWorktreeListPorcelain,
   type DiskWorktree,
 } from "./porcelain-parser";
+import {
+  createInventoryBudget,
+  type InventoryBudget,
+  type InventoryStopReason,
+} from "./inventory-budget";
 
 // =============================================================================
 // Public types
@@ -64,14 +69,31 @@ export interface OrphanRecord {
   recommendedFix: string;
 }
 
+export interface OmittedScope {
+  scope: string;
+  branch?: string;
+  path?: string;
+  reason: string;
+}
+
 export interface TriageResult {
   orphans: OrphanRecord[];
   total: number;
   warnings?: WorktreeCrossChangeWarning[];
+  complete?: boolean;
+  stopReason?: InventoryStopReason;
+  stoppedStage?: string;
+  inspectedCount?: number;
+  candidateCount?: number;
+  omitted?: OmittedScope[];
+  stageTimings?: Record<string, number>;
 }
 
 export interface TriageOptions {
   currentProjectRoot?: string;
+  callerSignal?: AbortSignal;
+  timeoutMs?: number;
+  budget?: InventoryBudget;
 }
 
 // =============================================================================
@@ -185,37 +207,146 @@ export async function triageWorktrees(
   accessOverride?: WorktreeStateAccess,
   options?: TriageOptions,
 ): Promise<TriageResult> {
+  let ownBudget: InventoryBudget | undefined;
+  let budget = options?.budget;
+  if (!budget && (options?.callerSignal || options?.timeoutMs !== undefined)) {
+    ownBudget = createInventoryBudget({
+      callerSignal: options.callerSignal,
+      timeoutMs: options.timeoutMs,
+    });
+    budget = ownBudget;
+  }
+
+  try {
+    return await collectTriage(repoRoot, accessOverride, options, budget);
+  } finally {
+    ownBudget?.dispose();
+  }
+}
+
+async function collectTriage(
+  repoRoot: string,
+  accessOverride: WorktreeStateAccess | undefined,
+  options: TriageOptions | undefined,
+  budget: InventoryBudget | undefined,
+): Promise<TriageResult> {
   const orphans: OrphanRecord[] = [];
-  // rq-worktreeTargetCleanup01: recommendations from target-project triage
-  // must carry target_path context so callers in another repo can act safely.
   const targetProject = isTargetProjectTriage(repoRoot, options);
 
+  const stageTimings: Record<string, number> = {};
+  let stageStart = performance.now();
+  let currentStage = "start";
+  let stoppedStage: string | undefined;
+  const omitted: OmittedScope[] = [];
+  let candidateCount = 0;
+  let inspectedCount = 0;
+
+  function enterStage(stage: string) {
+    const now = performance.now();
+    if (currentStage !== stage) {
+      stageTimings[currentStage] = Number((now - stageStart).toFixed(3));
+      currentStage = stage;
+      stageStart = now;
+    }
+  }
+
+  function admit(stage: string): boolean {
+    enterStage(stage);
+    if (!budget) return true;
+    const ok = budget.canStartInspection();
+    if (!ok && !stoppedStage) stoppedStage = stage;
+    return ok;
+  }
+
+  function buildResult({
+    orphans,
+    warnings,
+  }: {
+    orphans: OrphanRecord[];
+    warnings?: WorktreeCrossChangeWarning[];
+  }): TriageResult {
+    enterStage("complete");
+    const snap = budget?.snapshot();
+    const complete = snap?.complete ?? true;
+    return {
+      orphans,
+      total: orphans.length,
+      warnings: warnings && warnings.length > 0 ? warnings : undefined,
+      complete,
+      stopReason: snap?.stopReason,
+      stoppedStage: complete ? undefined : (stoppedStage ?? currentStage),
+      inspectedCount,
+      candidateCount,
+      omitted: omitted.length > 0 ? omitted : undefined,
+      stageTimings,
+    };
+  }
+
   // 1. Stale HEAD on main checkout.
-  const stale = await detectStaleBranchHead(repoRoot).catch(() => null);
-  if (stale && stale.stale) {
-    orphans.push({
-      class: "stale_head",
-      reason: stale.reason,
-      recommendedFix: stale.suggestion,
+  if (!admit("stale_head")) {
+    omitted.push({
+      scope: "stale_head",
+      reason: "inventory budget exhausted",
     });
+  } else {
+    const stale = await detectStaleBranchHead(repoRoot).catch(() => null);
+    if (stale && stale.stale) {
+      orphans.push({
+        class: "stale_head",
+        reason: stale.reason,
+        recommendedFix: stale.suggestion,
+      });
+      inspectedCount += 1;
+    }
   }
 
   // 2-4. Cross-reference disk + Temporal.
   let access: WorktreeStateAccess;
+  if (!admit("init_state")) {
+    omitted.push({
+      scope: "init_state",
+      reason: "inventory budget exhausted",
+    });
+    return buildResult({ orphans });
+  }
   try {
     access = accessOverride ?? (await initStateDb(repoRoot));
   } catch {
-    // Project workflow unreachable — skip the cross-reference layer.
-    return { orphans, total: orphans.length };
+    return buildResult({ orphans });
   }
 
-  const [diskList, snapshot] = await Promise.all([
-    listDiskWorktrees(repoRoot),
-    getWorktreeRegistrySnapshot(access),
-  ]);
+  let diskList: DiskWorktree[] = [];
+  if (!admit("disk_list")) {
+    omitted.push({
+      scope: "disk_list",
+      reason: "inventory budget exhausted",
+    });
+  } else {
+    diskList = await listDiskWorktrees(repoRoot);
+  }
+
+  if (!admit("snapshot")) {
+    omitted.push({
+      scope: "snapshot",
+      reason: "inventory budget exhausted",
+    });
+    return buildResult({ orphans });
+  }
+  const snapshot = await getWorktreeRegistrySnapshot(access, { budget });
   const registry = snapshot.records;
   const summaries = snapshot.changeSummaries;
-  const warnings = snapshot.warnings;
+  const warnings: WorktreeCrossChangeWarning[] = snapshot.warnings
+    ? [...snapshot.warnings]
+    : [];
+  if (snapshot.omitted) {
+    omitted.push(
+      ...snapshot.omitted.map((o) => ({
+        ...o,
+        scope: `snapshot:${o.scope}`,
+      })),
+    );
+  }
+  candidateCount = diskList.length + registry.length;
 
   const diskByBranch = new Map<string, DiskWorktree>();
   for (const dw of diskList) {
@@ -228,14 +359,22 @@ export async function triageWorktrees(
   }
 
   // missing_from_temporal: disk has worktree, registry doesn't.
-  // Skip the main checkout (no `branch` may equal change-named branch but
-  // it's not a tracked worktree session — only flag named-branch worktrees
-  // under our convention `change/...`).
   for (const dw of diskList) {
     if (!dw.branch) continue;
     if (!dw.branch.startsWith(CHANGE_BRANCH_PREFIX)) continue;
     if (registryByBranch.has(dw.branch)) continue;
+    if (!admit("missing_from_temporal")) {
+      omitted.push({
+        scope: "missing_from_temporal",
+        branch: dw.branch,
+        path: dw.path,
+        reason: "inventory budget exhausted",
+      });
+      continue;
+    }
+
     const reachability = await detectUnmergedBranch(repoRoot, dw.branch);
+    inspectedCount += 1;
     if (reachability.unmerged) {
       orphans.push({
         class: "missing_from_temporal_unmerged",
@@ -265,6 +404,16 @@ export async function triageWorktrees(
   for (const r of registry) {
     if (!r.branch) continue;
     if (diskByBranch.has(r.branch)) continue;
+    if (!admit("missing_from_disk")) {
+      omitted.push({
+        scope: "missing_from_disk",
+        branch: r.branch,
+        path: r.path,
+        reason: "inventory budget exhausted",
+      });
+      continue;
+    }
+    inspectedCount += 1;
     orphans.push({
       class: "missing_from_disk",
       branch: r.branch,
@@ -281,6 +430,16 @@ export async function triageWorktrees(
   for (const r of registry) {
     if (!r.branch?.startsWith(CHANGE_BRANCH_PREFIX)) continue;
     if (r.changeId) continue;
+    if (!admit("registry_missing_change_id")) {
+      omitted.push({
+        scope: "registry_missing_change_id",
+        branch: r.branch,
+        path: r.path,
+        reason: "inventory budget exhausted",
+      });
+      continue;
+    }
+    inspectedCount += 1;
     orphans.push({
       class: "registry_missing_change_id",
       branch: r.branch,
@@ -300,6 +459,16 @@ export async function triageWorktrees(
     if (!summary) continue;
     if (summary.status !== "archived") continue;
     if (!diskByBranch.has(r.branch ?? "")) continue; // already covered by missing_from_disk
+    if (!admit("archived_not_cleaned")) {
+      omitted.push({
+        scope: "archived_not_cleaned",
+        branch: r.branch,
+        path: r.path,
+        reason: "inventory budget exhausted",
+      });
+      continue;
+    }
+    inspectedCount += 1;
     orphans.push({
       class: "archived_not_cleaned",
       branch: r.branch,
@@ -321,7 +490,17 @@ export async function triageWorktrees(
     // Skip the main checkout — only flag named-branch worktrees we manage.
     // (Convention: ADV-managed worktrees use `change/...` branches.)
     if (!dw.branch.startsWith(CHANGE_BRANCH_PREFIX)) continue;
+    if (!admit("dirty_uncommitted_work")) {
+      omitted.push({
+        scope: "dirty_uncommitted_work",
+        branch: dw.branch,
+        path: dw.path,
+        reason: "inventory budget exhausted",
+      });
+      continue;
+    }
     const dirty = await getWorktreeDirtySummary(dw.path);
+    inspectedCount += 1;
     if (!dirty) continue; // git status failed or path missing
     if (dirty.staged === 0 && dirty.modified === 0 && dirty.untracked === 0) {
       continue;
@@ -340,24 +519,29 @@ export async function triageWorktrees(
     });
   }
 
-  const pendingDeletes = await getPendingDeletes(access).catch(() => []);
-  for (const pendingDelete of pendingDeletes) {
-    orphans.push({
-      class: "terminal_cleanup_retained",
-      branch: pendingDelete.branch,
-      path: pendingDelete.path,
-      reason:
-        `Terminal cleanup retained ${pendingDelete.branch}: ${pendingDelete.reason}. ` +
-        `Attempts: ${pendingDelete.attempts}.`,
-      recommendedFix: `Resolve the blocker, then run ${cleanupFix(repoRoot, targetProject)} for ${pendingDelete.branch}.`,
+  // pending deletes
+  if (!admit("pending_deletes")) {
+    omitted.push({
+      scope: "pending_deletes",
+      reason: "inventory budget exhausted",
     });
+  } else {
+    const pendingDeletes = await getPendingDeletes(access).catch(() => []);
+    for (const pendingDelete of pendingDeletes) {
+      orphans.push({
+        class: "terminal_cleanup_retained",
+        branch: pendingDelete.branch,
+        path: pendingDelete.path,
+        reason:
+          `Terminal cleanup retained ${pendingDelete.branch}: ${pendingDelete.reason}. ` +
+          `Attempts: ${pendingDelete.attempts}.`,
+        recommendedFix: `Resolve the blocker, then run ${cleanupFix(repoRoot, targetProject)} for ${pendingDelete.branch}.`,
+      });
+    }
+    inspectedCount += pendingDeletes.length;
   }
 
-  return {
-    orphans,
-    total: orphans.length,
-    ...(warnings.length > 0 ? { warnings } : {}),
-  };
+  return buildResult({ orphans, warnings });
 }
 
 // =============================================================================

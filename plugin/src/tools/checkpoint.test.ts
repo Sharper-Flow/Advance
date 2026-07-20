@@ -6,11 +6,14 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdir } from "fs/promises";
+import { join } from "path";
 import {
   buildCommitMessage,
   checkpointTools,
   detectRepoState,
 } from "./checkpoint";
+import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import type { Store } from "../storage/store-types";
 
 const mocks = vi.hoisted(() => {
@@ -315,6 +318,30 @@ describe("checkpoint tools — signal-driven", () => {
   });
 
   describe("detectRepoState", () => {
+    test("detects clean repo on a branch as ok", async () => {
+      mockGitResponses({});
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("ok");
+    });
+
+    test("detects plain detached HEAD as detached", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("detached");
+    });
+
+    test("detects merge state", async () => {
+      mockGitResponses({
+        "rev-parse --verify MERGE_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("merging");
+    });
+
     test("detects rebase state", async () => {
       mockGitResponses({
         "rev-parse --verify REBASE_HEAD": { stdout: "abc123\n" },
@@ -335,6 +362,76 @@ describe("checkpoint tools — signal-driven", () => {
 
     test("detects revert state", async () => {
       mockGitResponses({
+        "rev-parse --verify REVERT_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("reverting");
+    });
+
+    // rq-twf01.3: recovery markers take precedence over detached-HEAD
+    // classification. Rebase and sequencer operations run with a detached
+    // HEAD by design, so checking detached first would mask the recovery
+    // state and silently drop the trunk-firewall recovery allowance.
+    test("merge markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+        "rev-parse --verify MERGE_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("merging");
+    });
+
+    test("rebase markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+        "rev-parse --verify REBASE_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("rebasing");
+    });
+
+    test("detached rebase-merge directory classifies as rebasing", async () => {
+      const tempDir = await createTempDir("adv-rebase-state-");
+      try {
+        const rebaseMergeDir = join(tempDir, "rebase-merge");
+        await mkdir(rebaseMergeDir, { recursive: true });
+        mockGitResponses({
+          "symbolic-ref -q HEAD": {
+            error: new Error("ref HEAD is not a symbolic ref"),
+          },
+          "rev-parse --git-path rebase-merge": {
+            stdout: `${rebaseMergeDir}\n`,
+          },
+        });
+
+        await expect(detectRepoState("/tmp/test")).resolves.toBe("rebasing");
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("cherry-pick markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+        "rev-parse --verify CHERRY_PICK_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe(
+        "cherry-picking",
+      );
+    });
+
+    test("revert markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
         "rev-parse --verify REVERT_HEAD": { stdout: "abc123\n" },
       });
 
@@ -847,10 +944,13 @@ describe("checkpoint tools — signal-driven", () => {
       expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/target" });
     });
 
-    test("uses target store root as cwd when target_path is provided with caller workdir", async () => {
+    test("explicit workdir wins when it is a linked worktree of the target repository", async () => {
       const store = createMockStore();
       mockGitResponses({
-        "rev-parse --show-toplevel": { stdout: "/tmp/target\n" },
+        "rev-parse --path-format=absolute --git-common-dir": {
+          stdout: "/tmp/target/.git\n",
+        },
+        "rev-parse --show-toplevel": { stdout: "/tmp/source-worktree\n" },
       });
       mockRecordedTask();
 
@@ -874,7 +974,87 @@ describe("checkpoint tools — signal-driven", () => {
           args[0] === "rev-parse" &&
           args[1] === "--show-toplevel",
       );
-      expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/target" });
+      expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/source-worktree" });
+    });
+
+    test.each([{ blank: "" }, { blank: "   " }])(
+      "rejects explicitly blank workdir ($blank)",
+      async ({ blank }) => {
+        const store = createMockStore();
+        mockGitResponses({});
+
+        const result = await checkpointTools.adv_task_checkpoint.execute(
+          {
+            taskId: "tk-abc",
+            workdir: blank,
+            mode: "complete",
+            verification: "Tests passed",
+          },
+          store,
+          "/tmp/test",
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.status).toBe("failed");
+        expect(parsed.classification).toBe("SEMANTIC");
+        expect(parsed.error).toMatch(/blank/i);
+        expect(mocks.execFile).not.toHaveBeenCalled();
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      },
+    );
+
+    test("rejects unrelated repository when target_path and explicit workdir coexist", async () => {
+      const store = createMockStore();
+      mocks.execFile.mockImplementation(
+        (_cmd: string, args: string[], opts: unknown, cb: unknown) => {
+          const callback = cb as (
+            err: Error | null,
+            stdout: string,
+            stderr: string,
+          ) => void;
+          const cwd = (opts as { cwd?: string })?.cwd;
+          if (
+            args.join(" ") ===
+            "rev-parse --path-format=absolute --git-common-dir"
+          ) {
+            if (cwd === "/tmp/target") {
+              callback(null, "/tmp/target-repo/.git\n", "");
+            } else {
+              callback(null, "/tmp/other-repo/.git\n", "");
+            }
+          } else {
+            callback(null, "", "");
+          }
+        },
+      );
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          workdir: "/tmp/other-worktree",
+          mode: "complete",
+          verification: "Tests passed",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("failed");
+      expect(parsed.classification).toBe("SEMANTIC");
+      expect(parsed.error).toContain("not part of the target repository");
+
+      // No commit, no staging, no target task-state resolution, no signaling
+      const gitCommands = mocks.execFile.mock.calls.map(
+        ([, args]) => (args as string[])[0],
+      );
+      expect(gitCommands).not.toContain("add");
+      expect(gitCommands).not.toContain("commit");
+      expect(mocks.targetStore.tasks.show).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 });

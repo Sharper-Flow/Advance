@@ -60,13 +60,37 @@ Run Phase 3 when the user requests `--phase 3`, after Phase 1/2 produce no findi
 |------------|----------------------------------|---------------|--------|
 | TypeScript/Node | `dependency-cruiser` | `madge` | Circular deps, layer violations, orphans |
 | ADV stack pack | existing structural enforcers | dependency graph tools | TypeScript/Bun/OpenCode plugin/Temporal workflow bundle boundary, command/manifest symmetry, spec/asset anchors, command/skill methodology surfaces |
+| Capability Consistency | `bun run bin/arch-scan.ts` (typed adapter) | (none — typed pipeline is primary) | Config↔code↔deps inconsistencies: plumbed-but-unused env vars, present-but-inactive artifacts, deferred migrations, scaffold without tests |
 | Python | `pydeps` | `import-deps` | Import cycles, module depth |
 | Go | `go vet` | `gocyclo` | Shadowing, complexity, unused code |
 | Rust | `cargo-deps` | `cargo-modules` | Dependency graph, unused crates |
 
 The ADV stack pack cites existing tests and validators as authoritative structural checks instead of restating those boundaries as prose authority.
 
+The Capability Consistency pack is the primary detector for config↔code↔deps disagreements. The typed pipeline (`bin/lib/arch-scan/registry.ts`) is the structural owner; this skill cites it rather than restating rule semantics as prose authority. Each shipped rule declares `detection_phase` (1 or 3), `severity_hint`, `confidence`, optional `intent_required` (Phase 3 false-positive gate), and optional `exception_semantics` (`suppress` | `escalate`) controlling how matched exception signals are interpreted.
+
 <!-- rq-archcov01 -->
+<!-- rq-archcap01 -->
+
+## Capability Sub-Phase (Phase 3 Heuristics)
+
+Phase 3 capability rules (`manifest-reference-vs-runtime-registration`, `scaffold-vs-test-green-path`) run in an explicit sub-phase that is NOT subject to the default Phase 3 skip-on-no-prior-findings behavior. The sub-phase runs whenever the capability-consistency pack applies, regardless of whether Phase 1/2 produced findings.
+
+### `intent_required` gate
+
+Each Phase 3 capability rule declares an `intent_required` list of declaration strings searched repo-wide:
+
+- **gate closed** (no declaration matches) → rule skipped, `coverage_entry.state: "skipped"` with reason mentioning "intent". False-positive protection for intentional omissions (e.g., a marketing site that ships a manifest for icons but no offline support).
+- **gate open** (≥1 declaration matches) → rule produces a low-severity finding (intent declared but capability not honored at runtime).
+
+### `exception_semantics` (`suppress` | `escalate`)
+
+Each registry entry may declare how the evaluator interprets a matched `exception_signal`:
+
+- **`suppress`** (default when omitted): the rule does NOT fire when any exception_signal matches.
+- **`escalate`**: the rule FIRES even when an exception_signal matches; severity is boosted by one level (nit → minor → major → blocker, capped at blocker) and the matched signal is attached as `exception` evidence.
+
+Rule 3 (`report-only-header-with-deferred-todo`) uses `exception_semantics: "escalate"` — a nearby TODO/FIXME/HACK/XXX debt marker referencing enforcement counts as an exception signal and escalates severity from `major` → `blocker`. Default `suppress` semantics would silence the rule, which is the opposite of what deferred-enforcement detection requires.
 
 ## Architecture Scanner Coverage Report
 

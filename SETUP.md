@@ -284,7 +284,7 @@ invocation, which is slower and less specialized.
 | `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation                              |
 | `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                                                      |
 | `adv-engineer`   | `/adv-apply` code-writing delegation (backend/state/API/business logic), `/adv-review` remediation fixes | Structured ENGINEER_REPORT submitted via `adv_subagent_report_submit`                                                                        |
-| `adv-designer`   | `/adv-apply` frontend code-writing delegation (`metadata.frontend == "true"`, Priority 1.5) | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only; never review/harden owner; structured DESIGNER_REPORT submitted via `adv_subagent_report_submit` |
+| `adv-designer`   | `/adv-apply` matching-cycle frontend follow-up after successful engineer or inline implementation for `metadata.frontend == "true"` | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only; never review/harden owner; structured DESIGNER_REPORT submitted via `adv_subagent_report_submit` |
 | `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT submitted via `adv_subagent_report_submit`. Reviewer Remediation Packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes |
 
 ### Optional MCP servers (referenced by agent tool blocks)
@@ -444,7 +444,7 @@ The `--fix` flag will:
 - Rebuild `plugin/dist` when it is missing or older than plugin build inputs
 - Refuse to deploy stale dist if the build fails or freshness is still unproven
 - Sync `plugin/` to the stable runtime path `~/.local/share/Advance/plugin/`
-- Bounce exact-path deployed Temporal workers running `dist/temporal/worker.js` with `SIGTERM`; fail with an `[ADV:ACTION_REQUIRED]` block if refresh cannot be proven
+- Bounce exact-path deployed Temporal workers running `dist/temporal/worker.js` by classifying them with the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker: self-roll-capable workers are advisory only, while legacy workers are sent `SIGTERM`; fail closed with an `[ADV:ACTION_REQUIRED]` block if any legacy worker cannot be refreshed
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy the repo-owned `adv` runtime agent as a full file and leave repo-local-only agents in-tree
 - Apply repo-owned managed overlay blocks to shared global agents like `general`, `build`, and `plan` without replacing the full file

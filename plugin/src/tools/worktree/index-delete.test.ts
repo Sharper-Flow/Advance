@@ -149,6 +149,7 @@ function attachChangeStatus(
 
 describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
   let repoRoot: string;
+  let dataRoot: string;
 
   beforeEach(() => {
     // Clear shell-leaked experimental env vars so flag-off tests assert
@@ -156,6 +157,8 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     // fix as part of fixWarpSessionLookup (T1).
     vi.stubEnv("OPENCODE_EXPERIMENTAL", "");
     vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "");
+    dataRoot = mkdtempSync(join(tmpdir(), "adv-wt-del-data-"));
+    vi.stubEnv("XDG_DATA_HOME", dataRoot);
     repoRoot = createGitRepo();
     vi.clearAllMocks();
     vi.mocked(runHooksWithSafety).mockReset();
@@ -163,6 +166,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
   afterEach(() => {
     rmSync(repoRoot, { recursive: true, force: true });
+    rmSync(dataRoot, { recursive: true, force: true });
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });

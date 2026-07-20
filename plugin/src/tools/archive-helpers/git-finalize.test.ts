@@ -42,6 +42,7 @@ import {
   redriveArchivedUnmergedBranch,
   detectSquashMergeByTree,
   detectArchivedMergedBranches,
+  listLocalChangeBranchEntries,
   getCheckedOutChangeBranches,
   syncDefaultBranchAfterMerge,
 } from "./git-finalize";
@@ -1771,6 +1772,68 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  describe("listLocalChangeBranchEntries", () => {
+    it("parses change/* branch porcelain into entries", () => {
+      const result = listLocalChangeBranchEntries("/repo", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 0,
+              stdout: "change/abc def0123\nchange/xyz aa11bb22\n",
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      });
+      expect(result).toEqual({
+        status: "ok",
+        entries: [
+          { changeId: "abc", branch: "change/abc", localSha: "def0123" },
+          { changeId: "xyz", branch: "change/xyz", localSha: "aa11bb22" },
+        ],
+      });
+    });
+
+    it("returns blocked with LOCAL_BRANCH_LIST_FAILED on git failure", () => {
+      const result = listLocalChangeBranchEntries("/repo", {
+        runGit: () => ({
+          status: 1,
+          stdout: "",
+          stderr: "fatal: not a git repository\n",
+        }),
+      });
+      expect(result).toEqual({
+        status: "blocked",
+        reason: "LOCAL_BRANCH_LIST_FAILED",
+        details: ["fatal: not a git repository"],
+      });
+    });
+
+    it("ignores lines that are not well-formed change/* refs", () => {
+      const result = listLocalChangeBranchEntries("/repo", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              // A blank line, a non-change branch (filtered by the change/*
+              // list glob in practice, defensive here), and a prefix-only ref.
+              status: 0,
+              stdout: "change/abc def0123\n\nchange/ deadbeef\n",
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      });
+      expect(result).toEqual({
+        status: "ok",
+        entries: [
+          { changeId: "abc", branch: "change/abc", localSha: "def0123" },
+        ],
+      });
+    });
+  });
+
   describe("getCheckedOutChangeBranches", () => {
     it("returns set of change/* branches from worktree list --porcelain output", () => {
       const result = getCheckedOutChangeBranches("/repo", {
@@ -2739,6 +2802,52 @@ describe("git-finalize helpers", () => {
     const committed = commitArchiveArtifacts(repo, "example");
     expect(committed.committed).toBe(true);
     expect(committed.commitSha).toBeDefined();
+  });
+
+  it("commitArchiveArtifacts stages only explicit bundle, spec, and doc paths", async () => {
+    const repo = join(tempRoot, "repo-explicit-archive-paths");
+    await mkdir(repo);
+    await initRepo(repo);
+    git(repo, ["checkout", "-b", "change/example"]);
+
+    await mkdir(join(repo, ".adv", "archive", "example"), {
+      recursive: true,
+    });
+    await mkdir(join(repo, ".adv", "specs", "example"), {
+      recursive: true,
+    });
+    await mkdir(join(repo, "docs", "specs"), { recursive: true });
+    await writeFile(
+      join(repo, ".adv", "archive", "example", "change.json"),
+      "{}\n",
+    );
+    await writeFile(
+      join(repo, ".adv", "specs", "example", "spec.json"),
+      "{}\n",
+    );
+    await writeFile(join(repo, "docs", "specs", "example.md"), "# Example\n");
+    await writeFile(join(repo, ".adv", "unrelated.txt"), "leave unstaged\n");
+
+    const committed = commitArchiveArtifacts(repo, "example", {}, [
+      ".adv/archive/example",
+      ".adv/specs/example/spec.json",
+      "docs/specs/example.md",
+    ]);
+
+    expect(committed.committed).toBe(true);
+    const names = git(repo, [
+      "show",
+      "--pretty=format:",
+      "--name-only",
+      "HEAD",
+    ]);
+    expect(names).toContain(".adv/archive/example/change.json");
+    expect(names).toContain(".adv/specs/example/spec.json");
+    expect(names).toContain("docs/specs/example.md");
+    expect(names).not.toContain(".adv/unrelated.txt");
+    expect(git(repo, ["status", "--porcelain"])).toContain(
+      "?? .adv/unrelated.txt",
+    );
   });
 
   it("redactGitOutput masks credentials and tokens", () => {

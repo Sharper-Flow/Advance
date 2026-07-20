@@ -20,6 +20,12 @@ import {
   type WorkflowDirective,
 } from "../utils/workflow-directive";
 import {
+  degradedPhasePlan,
+  derivePhasePlanSafe,
+  type DegradedPhasePlan,
+} from "../utils/phase-plan";
+import { checkPlanRoutingGuard } from "../migration/routing-guard";
+import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
 } from "../utils/context-snapshot";
@@ -181,19 +187,37 @@ export async function enrichRecentChangeStatus(
   // reads elsewhere keep this fresh); never persisted. Best effort: a
   // derivation failure must not break status enrichment — fall back to the
   // first open gate and omit the `_directive` payload on the rare error path.
-  const directive = deriveDirectiveSafe(
-    changeToDirectiveState({
-      projectId: changeData.adv_project_id ?? "unknown",
-      change: changeData,
-      gates,
-    }),
-    Date.now(),
-  );
-  const fallbackNextGate = directive
-    ? undefined
-    : (GATE_ORDER.find((gateId) => gates[gateId]?.status !== "done") as
-        | GateId
-        | undefined);
+  //
+  // AC9/DDC7 fail-closed: after an active build-bound cutover receipt, a
+  // degraded plan instead stops plan-dependent routing — no first-open-gate
+  // fallback (DONT4), typed degraded diagnostics attached, zero Temporal
+  // effects (DONT5).
+  const directiveState = changeToDirectiveState({
+    projectId: changeData.adv_project_id ?? "unknown",
+    change: changeData,
+    gates,
+  });
+  const directive = deriveDirectiveSafe(directiveState, Date.now());
+  let failClosedPlan: DegradedPhasePlan | undefined;
+  let fallbackNextGate: GateId | undefined;
+  if (!directive) {
+    const routingGuard = checkPlanRoutingGuard();
+    if (routingGuard.failClosed) {
+      const plan = derivePhasePlanSafe(directiveState, Date.now());
+      failClosedPlan =
+        plan.kind === "degraded"
+          ? plan
+          : degradedPhasePlan(
+              changeId,
+              "derivation_error",
+              "directive derivation failed while plan derivation succeeded; treating projections as conflicting",
+            );
+    } else {
+      fallbackNextGate = GATE_ORDER.find(
+        (gateId) => gates[gateId]?.status !== "done",
+      ) as GateId | undefined;
+    }
+  }
 
   const snapshotInput = {
     change: changeData,
@@ -215,6 +239,7 @@ export async function enrichRecentChangeStatus(
       ? buildChangeContextSnapshot({ ...snapshotInput, directive })
       : buildChangeContextTicker(snapshotInput),
     _directive: directive,
+    ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
   });
 
   const dependencyStatus = await buildExternalDependencyStatus(
@@ -227,7 +252,9 @@ export async function enrichRecentChangeStatus(
 
   const nextGate = directive
     ? (directive.action.gateId as GateId | undefined)
-    : fallbackNextGate;
+    : failClosedPlan
+      ? undefined
+      : fallbackNextGate;
   if (directive && nextGate) {
     const parentContext = changeData.fast_follow_of
       ? await getFastFollowParentContext(
@@ -430,4 +457,283 @@ export function capRecommendations(
     `… ${omitted} additional recommendation(s) omitted from ${label} view — use view:"changes", view:"hygiene", or view:"health" for details.`,
   ];
   return omitted;
+}
+
+// =============================================================================
+// Request-owned immutable candidate enrichment patches
+// (fixHealthViewTimeouts SC5 / AC7 / AC9 / AC10)
+// =============================================================================
+
+export interface CandidateEnrichmentPatch {
+  /** Canonical change ID this patch belongs to. */
+  changeId: string;
+  /** Rank in the source-ranked candidate list; reduction is ordered by rank. */
+  rank: number;
+  /** Additive candidate fields (never a full replacement). */
+  candidate: Record<string, unknown>;
+  /** Recommendations contributed by this candidate. */
+  recommendations: StatusRecommendationItem[];
+  /** Outcome compatible with the _health_execution source-outcome schema. */
+  outcome: {
+    kind: "ok" | "stale" | "timeout" | "error" | "unavailable" | "not_admitted";
+    elapsedMs: number;
+    evidence?: string;
+  };
+}
+
+export interface CandidateEnrichmentInput {
+  rc: ChangeRecency;
+  store: Store;
+  clarifyMode: string;
+  isPrimary: boolean;
+  resolved?: StatusResolvedChangeContext;
+  /** Absolute cutoff time (ms since epoch) shared by all request-local reads. */
+  cutoffAt: number;
+  signal?: AbortSignal;
+  /** Source-ranked position used for deterministic reduction. */
+  rank: number;
+}
+
+export interface CandidateEnrichmentReductionInput {
+  patches: CandidateEnrichmentPatch[];
+  candidates: ChangeRecency[];
+  status: StatusRecommendationCarrier;
+}
+
+function notAdmittedPatch(
+  changeId: string,
+  rank: number,
+  start: number,
+  evidence: string,
+): CandidateEnrichmentPatch {
+  return {
+    changeId,
+    rank,
+    candidate: {},
+    recommendations: [],
+    outcome: {
+      kind: "not_admitted",
+      elapsedMs: Math.max(0, Date.now() - start),
+      evidence,
+    },
+  };
+}
+
+export async function buildCandidateEnrichmentPatch(
+  input: CandidateEnrichmentInput,
+): Promise<CandidateEnrichmentPatch> {
+  const start = Date.now();
+  const {
+    rc,
+    store,
+    clarifyMode,
+    isPrimary,
+    resolved,
+    cutoffAt,
+    signal,
+    rank,
+  } = input;
+  const changeId = String(rc.id);
+
+  if (signal?.aborted) {
+    return notAdmittedPatch(changeId, rank, start, "request aborted");
+  }
+  if (Date.now() >= cutoffAt) {
+    return notAdmittedPatch(changeId, rank, start, "execution cutoff");
+  }
+
+  try {
+    let changeData: Change;
+    let proposalText: string;
+
+    if (resolved?.change) {
+      changeData = resolved.change;
+      proposalText = resolved.change.documents?.proposal ?? "";
+    } else {
+      const changeResult = await store.changes.get(changeId);
+      if (signal?.aborted || Date.now() >= cutoffAt) {
+        return notAdmittedPatch(changeId, rank, start, "execution cutoff");
+      }
+      if (!changeResult.success || !changeResult.data) {
+        return notAdmittedPatch(changeId, rank, start, "change not found");
+      }
+      changeData = changeResult.data;
+      proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
+      if (signal?.aborted || Date.now() >= cutoffAt) {
+        return notAdmittedPatch(changeId, rank, start, "execution cutoff");
+      }
+    }
+
+    const gates = changeData.gates ?? createDefaultGates();
+
+    const directiveState = changeToDirectiveState({
+      projectId: changeData.adv_project_id ?? "unknown",
+      change: changeData,
+      gates,
+    });
+    const directive = deriveDirectiveSafe(directiveState, Date.now());
+    let failClosedPlan: DegradedPhasePlan | undefined;
+    let fallbackNextGate: GateId | undefined;
+    if (!directive) {
+      const routingGuard = checkPlanRoutingGuard();
+      if (routingGuard.failClosed) {
+        const plan = derivePhasePlanSafe(directiveState, Date.now());
+        failClosedPlan =
+          plan.kind === "degraded"
+            ? plan
+            : degradedPhasePlan(
+                changeId,
+                "derivation_error",
+                "directive derivation failed while plan derivation succeeded; treating projections as conflicting",
+              );
+      } else {
+        fallbackNextGate = GATE_ORDER.find(
+          (gateId) => gates[gateId]?.status !== "done",
+        ) as GateId | undefined;
+      }
+    }
+
+    const snapshotInput = {
+      change: changeData,
+      proposalText,
+      gates: gates ?? undefined,
+      workdir: store.paths.root,
+    };
+
+    const candidate: Record<string, unknown> = {
+      parent_change_id: changeData.fast_follow_of?.parent_change_id,
+      epic: changeData.epic_membership
+        ? {
+            id: changeData.epic_membership.epic_id,
+            title: changeData.epic_membership.title,
+            entry_id: changeData.epic_membership.entry_id,
+          }
+        : undefined,
+      _contextSnapshot: isPrimary
+        ? buildChangeContextSnapshot({ ...snapshotInput, directive })
+        : buildChangeContextTicker(snapshotInput),
+      _directive: directive,
+      ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
+    };
+
+    if (signal?.aborted || Date.now() >= cutoffAt) {
+      return notAdmittedPatch(changeId, rank, start, "execution cutoff");
+    }
+
+    const dependencyStatus = await buildExternalDependencyStatus(
+      changeData.external_dependencies,
+    );
+    if (dependencyStatus) {
+      candidate._externalDependencyStatus = dependencyStatus.summary;
+    }
+
+    const nextGate = directive
+      ? (directive.action.gateId as GateId | undefined)
+      : failClosedPlan
+        ? undefined
+        : fallbackNextGate;
+
+    const localStatus: StatusRecommendationCarrier = { recommendations: [] };
+
+    if (directive && nextGate) {
+      if (signal?.aborted || Date.now() >= cutoffAt) {
+        return notAdmittedPatch(changeId, rank, start, "execution cutoff");
+      }
+      const parentContext = changeData.fast_follow_of
+        ? await getFastFollowParentContext(
+            store,
+            changeData.fast_follow_of.parent_change_id,
+            resolved?.resolvedChanges,
+          )
+        : undefined;
+      const item = buildNextGateRecommendationFromDirective({
+        directive,
+        changeId,
+        parentContext,
+        minutesSinceActivity: rc.minutesSinceActivity,
+      });
+      if (item) {
+        pushStatusRecommendation(localStatus, item);
+      }
+    }
+
+    appendClarifyRecommendation(
+      localStatus,
+      clarifyMode,
+      changeData,
+      proposalText,
+      changeId,
+    );
+    appendRecencyRecommendation(
+      localStatus,
+      rc,
+      changeId,
+      undefined,
+      nextGate as GateId | undefined,
+    );
+
+    return {
+      changeId,
+      rank,
+      candidate,
+      recommendations: localStatus.recommendation_items ?? [],
+      outcome: {
+        kind: "ok",
+        elapsedMs: Math.max(0, Date.now() - start),
+      },
+    };
+  } catch (err) {
+    const evidence = err instanceof Error ? err.message : String(err);
+    return {
+      changeId,
+      rank,
+      candidate: {},
+      recommendations: [],
+      outcome: {
+        kind: "error",
+        elapsedMs: Math.max(0, Date.now() - start),
+        evidence: evidence.slice(0, 200),
+      },
+    };
+  }
+}
+
+export function applyCandidateEnrichmentPatches(
+  input: CandidateEnrichmentReductionInput,
+): {
+  candidates: ChangeRecency[];
+  recommendations: number;
+  omittedCount: number;
+  omittedSample: string[];
+} {
+  const { patches, candidates, status } = input;
+  const candidateMap = new Map(candidates.map((c) => [String(c.id), c]));
+  const sortedPatches = [...patches].sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank - b.rank;
+    return a.changeId.localeCompare(b.changeId);
+  });
+
+  let recommendations = 0;
+  let omittedCount = 0;
+  const omittedSample: string[] = [];
+
+  for (const patch of sortedPatches) {
+    if (patch.outcome.kind === "ok" || patch.outcome.kind === "stale") {
+      const candidate = candidateMap.get(patch.changeId);
+      if (candidate) {
+        Object.assign(candidate, patch.candidate);
+      }
+      for (const item of patch.recommendations) {
+        pushStatusRecommendation(status, item);
+      }
+      recommendations += patch.recommendations.length;
+    } else {
+      omittedCount++;
+      if (omittedSample.length < 20) {
+        omittedSample.push(patch.changeId);
+      }
+    }
+  }
+
+  return { candidates, recommendations, omittedCount, omittedSample };
 }

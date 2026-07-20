@@ -7,7 +7,11 @@ import {
   stripHeredocs,
   type TrunkWriteFirewallDeps,
 } from "./trunk-write-firewall.js";
-import type { RepoState } from "./checkpoint.js";
+import { detectRepoState, type RepoState } from "./checkpoint.js";
+import {
+  execGit as realExecGit,
+  getDefaultBranch as realGetDefaultBranch,
+} from "../utils/git.js";
 
 function deps(
   overrides: Partial<TrunkWriteFirewallDeps> = {},
@@ -265,4 +269,339 @@ describe("checkTrunkWriteBash", () => {
       checkTrunkWriteBash("git -C /repo push origin main", "/repo", deps()),
     ).resolves.toMatchObject({ decision: "ALLOW" });
   });
+});
+
+/**
+ * Target-relative trunk evaluation (fixCrossProjectTrunkFirewall).
+ *
+ * The firewall evaluates each write target against the git topology of the
+ * repository that OWNS the target — not only the session's own project — so
+ * direct writes into a foreign repo's main checkout on its default branch
+ * are blocked exactly like same-project trunk writes.
+ */
+describe("target-relative trunk evaluation (mocked git)", () => {
+  const FOREIGN_MAIN_ONLY =
+    "worktree /foreign\nHEAD abc123\nbranch refs/heads/main\n";
+  const FOREIGN_WITH_WT =
+    "worktree /foreign\nHEAD abc123\nbranch refs/heads/main\n\n" +
+    "worktree /foreign-wt\nHEAD def456\nbranch refs/heads/change/x\n";
+  const FOREIGN_WT_PRUNABLE =
+    "worktree /foreign\nHEAD abc123\nbranch refs/heads/main\n\n" +
+    "worktree /foreign-wt\nHEAD def456\n" +
+    "prunable gitdir file points to non-existent location\n";
+
+  function foreignDeps(routes: {
+    toplevel: string;
+    porcelainByCwd?: Record<string, string>;
+    branch?: string;
+    defaultBranch?: string | Error;
+    repoState?: RepoState;
+  }): TrunkWriteFirewallDeps {
+    const execGit = vi.fn(async (args: string[], cwd: string) => {
+      const key = args.join(" ");
+      if (key === "rev-parse --show-toplevel") return routes.toplevel;
+      if (key === "rev-parse --abbrev-ref HEAD") {
+        return routes.branch ?? "main";
+      }
+      if (key === "worktree list --porcelain") {
+        const output = routes.porcelainByCwd?.[cwd];
+        if (output === undefined) {
+          throw new Error(`worktree list failed for ${cwd}`);
+        }
+        return output;
+      }
+      return "";
+    });
+    const getDefaultBranch = vi.fn(async () => {
+      if (routes.defaultBranch instanceof Error) throw routes.defaultBranch;
+      return routes.defaultBranch ?? "main";
+    });
+    return deps({
+      execGit,
+      getDefaultBranch,
+      getWorktreePaths: vi.fn(async () => []),
+      getRepoState: vi.fn(async () => routes.repoState ?? "ok"),
+    });
+  }
+
+  it("blocks writes to a foreign repo main checkout on its default branch", async () => {
+    const result = await checkTrunkWrite(
+      "/foreign/src/x.ts",
+      foreignDeps({
+        toplevel: "/foreign",
+        porcelainByCwd: { "/foreign": FOREIGN_MAIN_ONLY },
+      }),
+    );
+
+    expect(result.decision).toBe("BLOCK");
+    expect(result.reason).toContain("trunk checkout");
+  });
+
+  it("blocks a foreign main checkout when the default branch cannot be verified", async () => {
+    await expect(
+      checkTrunkWrite(
+        "/foreign/src/x.ts",
+        foreignDeps({
+          toplevel: "/foreign",
+          porcelainByCwd: { "/foreign": FOREIGN_MAIN_ONLY },
+          defaultBranch: new Error("no remote and no local branches"),
+        }),
+      ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
+
+  it("allows foreign main-checkout writes on a non-default branch", async () => {
+    await expect(
+      checkTrunkWrite(
+        "/foreign/src/x.ts",
+        foreignDeps({
+          toplevel: "/foreign",
+          porcelainByCwd: { "/foreign": FOREIGN_MAIN_ONLY },
+          branch: "change/other",
+        }),
+      ),
+    ).resolves.toMatchObject({ decision: "ALLOW" });
+  });
+
+  it("allows writes inside a foreign linked worktree", async () => {
+    const d = foreignDeps({
+      toplevel: "/foreign-wt",
+      porcelainByCwd: { "/foreign-wt": FOREIGN_WITH_WT },
+      branch: "change/x",
+    });
+
+    await expect(
+      checkTrunkWrite("/foreign-wt/src/x.ts", d),
+    ).resolves.toMatchObject({ decision: "ALLOW" });
+    // Mutable checks stay fresh: branch detection ran for the target's repo.
+    expect(d.execGit).toHaveBeenCalledWith(
+      ["rev-parse", "--abbrev-ref", "HEAD"],
+      "/foreign-wt",
+    );
+  });
+
+  it("excludes prunable worktree entries from worktree eligibility", async () => {
+    // Stale (prunable) entry whose checkout still resolves and sits on the
+    // default branch: not a trusted worktree, so trunk rules block it.
+    await expect(
+      checkTrunkWrite(
+        "/foreign-wt/src/x.ts",
+        foreignDeps({
+          toplevel: "/foreign-wt",
+          porcelainByCwd: { "/foreign-wt": FOREIGN_WT_PRUNABLE },
+          branch: "main",
+        }),
+      ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+
+    // Same stale entry on a feature branch is not trunk work — allowed.
+    await expect(
+      checkTrunkWrite(
+        "/foreign-wt/src/x.ts",
+        foreignDeps({
+          toplevel: "/foreign-wt",
+          porcelainByCwd: { "/foreign-wt": FOREIGN_WT_PRUNABLE },
+          branch: "change/x",
+        }),
+      ),
+    ).resolves.toMatchObject({ decision: "ALLOW" });
+  });
+
+  it("falls back to treating the resolved git root as its own main checkout when topology lookup fails", async () => {
+    await expect(
+      checkTrunkWrite(
+        "/foreign/src/x.ts",
+        foreignDeps({ toplevel: "/foreign", porcelainByCwd: {} }),
+      ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
+
+  it.each(["ROADMAP.md", "CHANGELOG.md"])(
+    "allows the exact trunk artifact at the foreign target root: %s",
+    async (artifact) => {
+      await expect(
+        checkTrunkWrite(
+          `/foreign/${artifact}`,
+          foreignDeps({
+            toplevel: "/foreign",
+            porcelainByCwd: { "/foreign": FOREIGN_MAIN_ONLY },
+          }),
+        ),
+      ).resolves.toMatchObject({ decision: "ALLOW" });
+    },
+  );
+
+  it.each([".adv/github-project.json", ".adv/roadmap-snapshot.json"])(
+    "allows the exact .adv/ mirror at the foreign target root: %s",
+    async (artifact) => {
+      await expect(
+        checkTrunkWrite(
+          `/foreign/${artifact}`,
+          foreignDeps({
+            toplevel: "/foreign",
+            porcelainByCwd: { "/foreign": FOREIGN_MAIN_ONLY },
+          }),
+        ),
+      ).resolves.toMatchObject({ decision: "ALLOW" });
+    },
+  );
+
+  it.each([
+    "docs/ROADMAP.md",
+    "sub/.adv/github-project.json",
+    "docs/CHANGELOG.md",
+  ])(
+    "does NOT exempt nested artifact paths in a foreign repo: %s",
+    async (relPath) => {
+      await expect(
+        checkTrunkWrite(
+          `/foreign/${relPath}`,
+          foreignDeps({
+            toplevel: "/foreign",
+            porcelainByCwd: { "/foreign": FOREIGN_MAIN_ONLY },
+          }),
+        ),
+      ).resolves.toMatchObject({ decision: "BLOCK" });
+    },
+  );
+
+  it("applies the same target-relative rules to destructive bash targets", async () => {
+    const mainDeps = foreignDeps({
+      toplevel: "/foreign",
+      porcelainByCwd: { "/foreign": FOREIGN_MAIN_ONLY },
+    });
+    await expect(
+      checkTrunkWriteBash("echo x > /foreign/src/x.ts", "/foreign", mainDeps),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+    // The target-root artifact allowlist is shared with file tools.
+    await expect(
+      checkTrunkWriteBash("rm /foreign/ROADMAP.md", "/foreign", mainDeps),
+    ).resolves.toMatchObject({ decision: "ALLOW" });
+
+    const wtDeps = foreignDeps({
+      toplevel: "/foreign-wt",
+      porcelainByCwd: { "/foreign-wt": FOREIGN_WITH_WT },
+      branch: "change/x",
+    });
+    await expect(
+      checkTrunkWriteBash(
+        "echo x > /foreign-wt/src/x.ts",
+        "/foreign-wt",
+        wtDeps,
+      ),
+    ).resolves.toMatchObject({ decision: "ALLOW" });
+  });
+
+  it("memoizes worktree topology per repo root within one bash check while keeping mutable probes fresh", async () => {
+    const d = foreignDeps({
+      toplevel: "/foreign-wt",
+      porcelainByCwd: { "/foreign-wt": FOREIGN_WITH_WT },
+      branch: "change/x",
+    });
+
+    await expect(
+      checkTrunkWriteBash(
+        "echo a > /foreign-wt/a.ts && echo b > /foreign-wt/b.ts",
+        "/foreign-wt",
+        d,
+      ),
+    ).resolves.toMatchObject({ decision: "ALLOW" });
+
+    const calls = (d.execGit as ReturnType<typeof vi.fn>).mock.calls.map(
+      ([args]) => (args as string[]).join(" "),
+    );
+    expect(
+      calls.filter((key) => key === "worktree list --porcelain"),
+    ).toHaveLength(1);
+    // Branch detection is mutable state and must NOT be memoized: one probe
+    // per checked target.
+    expect(
+      calls.filter((key) => key === "rev-parse --abbrev-ref HEAD"),
+    ).toHaveLength(2);
+  });
+});
+
+describe("target-relative trunk evaluation (real git repos)", () => {
+  it("blocks a real foreign main checkout, allows its linked worktree, handles missing parents, and allows non-git paths", async () => {
+    const { execSync } = await import("child_process");
+    const { mkdirSync, writeFileSync } = await import("fs");
+    const { join } = await import("path");
+    const { createTempDir, cleanupTempDir } =
+      await import("../__tests__/setup");
+
+    const tmp = await createTempDir("twf-foreign-");
+    const foreign = join(tmp, "foreign");
+    const foreignWt = join(tmp, "foreign-wt");
+    const sessionRoot = join(tmp, "session");
+    try {
+      mkdirSync(foreign, { recursive: true });
+      execSync("git init -b main", { cwd: foreign });
+      execSync("git config user.email 'test@test.com'", { cwd: foreign });
+      execSync("git config user.name 'Test'", { cwd: foreign });
+      writeFileSync(join(foreign, "README.md"), "initial");
+      execSync("git add README.md && git commit -m initial", { cwd: foreign });
+      execSync(`git worktree add -b change/x ${JSON.stringify(foreignWt)}`, {
+        cwd: foreign,
+      });
+      mkdirSync(sessionRoot, { recursive: true });
+
+      const realDeps = deps({
+        execGit: realExecGit,
+        getDefaultBranch: realGetDefaultBranch,
+        getWorktreePaths: vi.fn(async () => []),
+        getProjectRoot: () => sessionRoot,
+        getRepoState: detectRepoState,
+      });
+
+      // Foreign main checkout on its default branch blocks.
+      await expect(
+        checkTrunkWrite(join(foreign, "src", "file.ts"), realDeps),
+      ).resolves.toMatchObject({ decision: "BLOCK" });
+
+      // New file under not-yet-existing parent directories still resolves to
+      // the foreign main checkout via the bounded nearest-existing-ancestor
+      // walk and blocks.
+      await expect(
+        checkTrunkWrite(join(foreign, "new", "deep", "file.ts"), realDeps),
+      ).resolves.toMatchObject({ decision: "BLOCK" });
+
+      // Eligible (non-prunable) linked worktree of the foreign repo allows.
+      await expect(
+        checkTrunkWrite(join(foreignWt, "src", "file.ts"), realDeps),
+      ).resolves.toMatchObject({ decision: "ALLOW" });
+
+      // Genuine non-git paths allow.
+      const plain = join(tmp, "plain");
+      mkdirSync(plain, { recursive: true });
+      await expect(
+        checkTrunkWrite(join(plain, "file.txt"), realDeps),
+      ).resolves.toMatchObject({ decision: "ALLOW" });
+
+      // Bash parity against the real repos.
+      await expect(
+        checkTrunkWriteBash(
+          `echo x > ${join(foreign, "src", "file.ts")}`,
+          foreign,
+          realDeps,
+        ),
+      ).resolves.toMatchObject({ decision: "BLOCK" });
+      await expect(
+        checkTrunkWriteBash(
+          `echo x > ${join(foreignWt, "src", "file.ts")}`,
+          foreignWt,
+          realDeps,
+        ),
+      ).resolves.toMatchObject({ decision: "ALLOW" });
+    } finally {
+      try {
+        execSync(`git worktree remove --force ${JSON.stringify(foreignWt)}`, {
+          cwd: foreign,
+          stdio: "ignore",
+        });
+      } catch {
+        // best-effort cleanup
+      }
+      await cleanupTempDir(tmp);
+    }
+  }, 30_000);
 });

@@ -22,6 +22,8 @@
  * every non-orchestrator agent must carry the deny wildcard.
  */
 
+import { ADV_TOOL_NAMES } from "./tool-registry";
+
 export type ToolRoleClass = "orchestrator" | "operator-only" | "dual";
 
 export interface ToolRoleEntry {
@@ -46,7 +48,7 @@ export interface ToolRoleEntry {
  * tool-role-policy.test.ts — a registry change without a policy row fails CI.
  */
 export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
-  // ── Operator-only (8) ────────────────────────────────────────────────
+  // ── Operator-only (9) ────────────────────────────────────────────────
   // Maintenance/recovery tools with destructive, wedged-state, or store-level
   // blast radius. Grantable only to the ADV orchestrator, which invokes them
   // solely on explicit operator instruction with approval evidence (C6).
@@ -166,7 +168,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     operatorActions: [],
   },
 
-  // ── Orchestrator (62) ────────────────────────────────────────────────
+  // ── Orchestrator (63) ────────────────────────────────────────────────
   // Routine ADV command-workflow and agent tools. Several mutations remain
   // approval-gated, driven by the orchestrator through gate/command workflows
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
@@ -251,6 +253,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Change-scoped spec-delta mutation; archive remains sole global-spec writer.",
   },
+  adv_delta_modify: {
+    class: "orchestrator",
+    rationale:
+      "Typed change-scoped spec modification; archive remains sole global-spec writer.",
+  },
   adv_design_concern_disposition: {
     class: "orchestrator",
     rationale: "Design-concern disposition.",
@@ -315,6 +322,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_gate_status: {
     class: "orchestrator",
     rationale: "Gate read.",
+  },
+  adv_lightweight_profile_evaluate: {
+    class: "orchestrator",
+    rationale:
+      "Host-side evidence collection + Temporal signal for lightweight profile evaluation; driven by gate workflow.",
   },
   adv_ops_evidence_add: {
     class: "orchestrator",
@@ -398,7 +410,8 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   },
   adv_verification_evidence_disposition: {
     class: "orchestrator",
-    rationale: "Verification-evidence disposition.",
+    rationale:
+      "Verification-evidence disposition clearing a VERIFICATION_EVIDENCE_MISSING blocker on proof-bearing task policies; typed fixed/rejected_with_evidence/split/fast_follow with non-blank evidence (no accepted_debt), parallel to adv_design_concern_disposition.",
   },
   adv_wisdom_add: {
     class: "orchestrator",
@@ -428,6 +441,21 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_worktree_triage: {
     class: "orchestrator",
     rationale: "Read-only worktree inventory.",
+  },
+  adv_tool_catalog: {
+    class: "orchestrator",
+    rationale:
+      "Read-only bounded catalog of canonical ADV tools; descriptive visibility metadata only.",
+  },
+  adv_tool_describe: {
+    class: "orchestrator",
+    rationale:
+      "Read-only single-tool schema and metadata projection; no handler invocation.",
+  },
+  adv_tool_invoke: {
+    class: "orchestrator",
+    rationale:
+      "Strict in-process dispatcher through the canonical wrapped ToolDefinition.execute; preserves ToolContext, validation, authorization, approvals, recovery restrictions, and timeouts. Recursion exclusion (adv_tool_invoke, adv_tool_catalog, adv_tool_describe, execute) is enforced before any lookup or dispatch (addProviderToolSearch AC1-AC4).",
   },
 } as const;
 
@@ -508,6 +536,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_contract_mint",
       "adv_contract_review_matrix_set",
       "adv_delta_add",
+      "adv_delta_modify",
       "adv_design_concern_disposition",
       "adv_epic_add_shell",
       "adv_epic_create",
@@ -524,6 +553,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_followup_promote",
       "adv_gate_complete",
       "adv_gate_status",
+      "adv_lightweight_profile_evaluate",
       "adv_ops_evidence_add",
       "adv_ops_run_evidence_add",
       "adv_ops_run_upsert",
@@ -554,6 +584,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_temporal_reconnect",
       "adv_temporal_register_search_attributes",
       "adv_temporal_worker_restart",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_verification_evidence_disposition",
       "adv_wip_state",
       "adv_wisdom_add",
@@ -591,6 +624,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_list",
       "adv_task_ready",
       "adv_task_show",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_wisdom_add",
       "adv_wisdom_list",
     ],
@@ -631,6 +667,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_list",
       "adv_task_ready",
       "adv_task_show",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_wisdom_add",
       "adv_wisdom_list",
     ],
@@ -667,6 +706,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_spec",
       "adv_status",
       "adv_subagent_report_submit",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
     ],
     explicitBlocked: ["adv_change_update"],
     denyWildcard: true,
@@ -688,6 +730,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_list",
       "adv_task_ready",
       "adv_task_show",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_wisdom_add",
       "adv_wisdom_list",
     ],
@@ -728,6 +773,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_status",
       "adv_subagent_report_submit",
       "adv_temporal_diagnose",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_wip_state",
     ],
     explicitBlocked: [
@@ -753,6 +801,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_spec",
       "adv_subagent_report_submit",
       "adv_task_list",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_wisdom_list",
     ],
     explicitBlocked: ["adv_change_create", "adv_gate_complete", "adv_task_add"],
@@ -767,6 +818,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_project_context",
       "adv_spec",
       "adv_task_list",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
     ],
     explicitBlocked: [
       "adv_change_archive",
@@ -794,6 +848,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_spec",
       "adv_subagent_report_submit",
       "adv_task_list",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_wisdom_list",
     ],
     explicitBlocked: ["adv_change_create", "adv_gate_complete", "adv_task_add"],
@@ -817,6 +874,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_ready",
       "adv_task_show",
       "adv_task_update",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_wisdom_add",
       "adv_wisdom_list",
     ],
@@ -848,6 +908,9 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_project_context",
       "adv_spec",
       "adv_status",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
     ],
     explicitBlocked: [],
     denyWildcard: true,
@@ -855,3 +918,43 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "Repo-shipped override of the OpenCode plan agent: proposal/planning-phase change and gate surface only; execution, release, and operator-only tools stay out.",
   },
 ] as const;
+
+/**
+ * Authoritative spawnable roster: every shipped agent whose manifest carries
+ * `mode: subagent`. This is the source of truth for the runtime role firewall
+ * and manifest generator.
+ */
+export const SPAWNABLE_SUBAGENT_ROSTER: readonly string[] = Object.freeze([
+  "adv-ci-waiter",
+  "adv-designer",
+  "adv-engineer",
+  "adv-researcher",
+  "adv-reviewer",
+  "adv-temporal-repair",
+  "adv-tron",
+  "adv-verifier",
+  "adv-visual-review",
+]);
+
+function sortedUnique(values: readonly string[]): readonly string[] {
+  return Object.freeze([...new Set(values)].sort());
+}
+
+/** Pure union of the allowlists for every agent in SPAWNABLE_SUBAGENT_ROSTER. */
+export function subAgentUnionAllowlist(): readonly string[] {
+  const union = new Set<string>();
+  for (const agent of SPAWNABLE_SUBAGENT_ROSTER) {
+    const policy = AGENT_TOOL_POLICY.find((p) => p.agent === agent);
+    if (!policy) continue;
+    for (const tool of policy.allowed) {
+      union.add(tool);
+    }
+  }
+  return sortedUnique([...union]);
+}
+
+/** Pure complement: ADV tools that are NOT in the sub-agent union floor. */
+export function blockableFromSubAgentSession(): readonly string[] {
+  const allowed = new Set(subAgentUnionAllowlist());
+  return sortedUnique(ADV_TOOL_NAMES.filter((tool) => !allowed.has(tool)));
+}

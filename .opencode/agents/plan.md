@@ -18,16 +18,21 @@ tools:
 
   question: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools for proposal creation and gate completion
-  adv_change_list: true
   adv_change_create: true
-  adv_change_update: true
+  adv_change_list: true
   adv_change_show: true
-  adv_spec: true
-  adv_status: true
+  adv_change_update: true
   adv_gate_complete: true
   adv_project_context: true
+  adv_spec: true
+  adv_status: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
+  # <<< ADV-GENERATED adv_* tools <<<
   # Local code intelligence
   lgrep_search_semantic: true
   lgrep_index_semantic: true

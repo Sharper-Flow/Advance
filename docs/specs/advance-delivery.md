@@ -169,6 +169,57 @@ New prescriptive ADV execution guidance MUST state the durable value category th
 
 ---
 
+### Normalized Evidence Plan Compatibility Boundary and Advisory Proxies
+
+**ID:** `rq-ADVEXEC06` | **Priority:** **[MUST]**
+
+ADV execution guidance MUST align with the normalized task evidence plan (rq-TDD013evp). The plan's policy and proof target are the structural compatibility boundary for task execution; non-test routes for logic-bearing work require a bounded rationale and a linked review conclusion. Test-quality proxies (assertion density, mock surface, coverage, flake indicators) are advisory inputs only and MUST NOT be used as independent authority for task completion, gate progression, or acceptance. Legacy in-flight tasks remain readable via explicit compatibility provenance without heuristic cutover.
+
+**Tags:** `workflow`, `execution`, `evidence`, `structural-correctness`
+
+#### Scenarios
+
+**Quality proxies are advisory only** (`rq-ADVEXEC06.1`)
+
+**Given:**
+
+- A task has low assertion density, high mock surface, or low file-level coverage
+
+**When:** Evidence is evaluated
+
+**Then:**
+
+- The quality signal is surfaced as advisory input
+- The signal does not by itself complete or block the task or gate
+
+**Non-test route for logic-bearing work requires rationale and review conclusion** (`rq-ADVEXEC06.2`)
+
+**Given:**
+
+- A behavior-critical task selects a non-test evidence route
+
+**When:** The task is executed and completed
+
+**Then:**
+
+- A bounded rationale is recorded in the evidence plan
+- A linked review conclusion is recorded before completion
+
+**Legacy tasks remain readable with explicit compatibility** (`rq-ADVEXEC06.3`)
+
+**Given:**
+
+- An in-flight task predates the normalized evidence-plan model
+
+**When:** The task is executed or completed
+
+**Then:**
+
+- The task is normalized on read with compatibility `legacy`
+- No heuristic cutover is performed
+
+---
+
 ### Filter-Aware Bulk Close
 
 **ID:** `rq-bulkClose01` | **Priority:** **[MUST]**

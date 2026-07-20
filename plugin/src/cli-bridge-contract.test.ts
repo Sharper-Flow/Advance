@@ -126,6 +126,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
     const frozen: readonly string[] = [
       "adv_spec",
       "adv_delta_add",
+      "adv_delta_modify",
       "adv_roadmap",
       "adv_wip_state",
       "adv_backlog_add",
@@ -190,6 +191,9 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_temporal_register_search_attributes",
       "adv_temporal_reconnect",
       "adv_temporal_worker_restart",
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_task_checkpoint",
       "adv_reflection_list",
       "adv_reflect",
@@ -204,6 +208,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_snapshot_health",
       "adv_store_consolidate",
       "adv_store_cleanup",
+      "adv_lightweight_profile_evaluate",
     ];
     const byName = (a: string, b: string) => a.localeCompare(b);
     expect([...ADV_TOOL_NAMES].sort(byName)).toEqual([...frozen].sort(byName));

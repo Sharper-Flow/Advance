@@ -76,18 +76,60 @@ describe("adv_run_test contract assets", () => {
     expect(scenario!.then?.join("\n")).toContain("verify");
   });
 
+  test("tdd-contract spec defines normalized evidence plan boundaries", () => {
+    const spec = readSpec(".adv/specs/tdd-contract/spec.json");
+    const requirement = spec.requirements.find(
+      (req) => req.id === "rq-TDD013evp",
+    );
+
+    expect(requirement).toBeDefined();
+    expect(requirement!.body).toContain("exactly one evidence policy");
+    expect(requirement!.body).toContain("non-empty proof target");
+    expect(requirement!.body).toContain("compatibility provenance");
+    expect(requirement!.body).toContain("advisory only");
+    expect(requirement!.body).toContain("not_applicable");
+    expect(requirement!.body).toContain("review_conclusion");
+
+    const scenario = requirement!.scenarios?.find(
+      (entry) => entry.id === "rq-TDD013evp.3",
+    );
+    expect(scenario).toBeDefined();
+    expect(scenario!.then?.join("\n")).toContain("rationale");
+    expect(scenario!.then?.join("\n")).toContain(
+      "reviewer conclusion is not required",
+    );
+  });
+
+  test("agent-facing instructions describe normalized evidence plan", () => {
+    const applyCommand = readRepoFile(".opencode/command/adv-apply.md");
+    const tddDoc = readRepoFile("docs/specs/tdd-contract.md");
+
+    expect(applyCommand).toContain("evidence_plan");
+    expect(applyCommand).toContain("proof_target");
+    expect(applyCommand).toContain("review_conclusion");
+    expect(tddDoc).toContain("evidence_plan");
+    expect(tddDoc).toContain("proof target");
+    expect(tddDoc).toContain("review_conclusion");
+  });
+
   test("agent-facing instructions describe the same phase semantics", () => {
     const instructions = readRepoFile("ADV_INSTRUCTIONS.md");
     const applyCommand = readRepoFile(".opencode/command/adv-apply.md");
     const tddDoc = readRepoFile("docs/specs/tdd-contract.md");
 
-    for (const doc of [instructions, applyCommand, tddDoc]) {
+    for (const doc of [instructions, applyCommand]) {
       expect(doc).toContain("phase:'red'");
       expect(doc).toContain("phase:'green'");
       expect(doc).toContain("phase:'verify'");
       expect(doc).toContain("descriptive");
       expect(doc).toContain("not gate enforcement");
     }
+    expect(tddDoc).toContain("adv_run_test.phase");
+    expect(tddDoc).toContain("`red`");
+    expect(tddDoc).toContain("`green`");
+    expect(tddDoc).toContain("`verify`");
+    expect(tddDoc).toContain("descriptive");
+    expect(tddDoc).toContain("not gate enforcement");
   });
 
   test("repo-local oc-test wrapper is documented for throttled suites", () => {

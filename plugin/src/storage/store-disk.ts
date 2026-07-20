@@ -42,6 +42,7 @@ import type {
   ChangeClosure,
   ChangeStatus,
   DeltaAdd,
+  DeltaModify,
   Spec,
   Task,
   TddReclassification,
@@ -274,9 +275,20 @@ export async function createDiskStore(
           filter?.includeArchived || filter?.status === "archived";
         const effectiveIncludeClosed =
           filter?.includeClosed || filter?.status === "closed";
-        const loaded = await Promise.all(
-          ids.map((id) => loadChange(paths.changes, id)),
+        const concurrency = Math.max(
+          1,
+          Math.floor(filter?.validationConcurrency ?? Math.max(ids.length, 1)),
         );
+        const loaded: Awaited<ReturnType<typeof loadChange>>[] = [];
+        for (let i = 0; i < ids.length; i += concurrency) {
+          loaded.push(
+            ...(await Promise.all(
+              ids
+                .slice(i, i + concurrency)
+                .map((id) => loadChange(paths.changes, id)),
+            )),
+          );
+        }
         let changes = loaded
           .filter((r): r is { success: true; data: Change } =>
             Boolean(r.success && r.data),
@@ -331,6 +343,7 @@ export async function createDiskStore(
             taskCount: c.tasks.length,
             completedTasks: c.tasks.filter((t) => t.status === "done").length,
             fast_follow_of: c.fast_follow_of,
+            capabilities: Object.keys(c.deltas),
           })),
         };
       },
@@ -946,6 +959,42 @@ export async function createDiskStore(
             ) {
               throw new Error(
                 `Duplicate requirement id ${delta.requirement.id} under capability ${existingCapability}`,
+              );
+            }
+          }
+        }
+        result.data.deltas = {
+          ...deltas,
+          [capability]: [...(deltas[capability] ?? []), delta],
+        };
+        await saveChange(paths.changes, result.data);
+        return delta;
+      },
+      modify: async (changeId, capability, delta: DeltaModify, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        for (const [existingCapability, entries] of Object.entries(deltas)) {
+          for (const entry of entries) {
+            if (entry.id === delta.id) {
+              throw new Error(
+                `Duplicate spec delta id ${delta.id} under capability ${existingCapability}`,
+              );
+            }
+            if (
+              existingCapability === capability &&
+              entry.operation === "modify" &&
+              entry.target_id === delta.target_id
+            ) {
+              throw new Error(
+                `Conflicting modify delta target ${delta.target_id} under capability ${capability}`,
               );
             }
           }

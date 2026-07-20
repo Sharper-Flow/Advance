@@ -918,8 +918,38 @@ describe("advWorktreeTools", () => {
     expect(triageMock.triageWorktrees).toHaveBeenCalledWith(
       "/override",
       undefined,
-      { currentProjectRoot: "/repo" },
+      {
+        currentProjectRoot: "/repo",
+        callerSignal: undefined,
+        timeoutMs: 55_000,
+      },
     );
     expect(out).toContain("missing_from_disk");
+  });
+
+  it("reports incomplete triage as actionable partial inventory", async () => {
+    triageMock.triageWorktrees.mockResolvedValue({
+      orphans: [],
+      total: 0,
+      complete: false,
+      stopReason: "internal_budget_exhausted",
+      stoppedStage: "query_change_workflow",
+      inspectedCount: 4,
+      candidateCount: 36,
+      omitted: [{ scope: "query_change_workflow", reason: "budget" }],
+    });
+
+    const out = await advWorktreeTools.adv_worktree_triage.execute({}, store);
+    const parsed = JSON.parse(out);
+
+    expect(parsed).toMatchObject({
+      success: false,
+      complete: false,
+      stopReason: "internal_budget_exhausted",
+      stoppedStage: "query_change_workflow",
+      inspectedCount: 4,
+      candidateCount: 36,
+    });
+    expect(parsed.omitted).toHaveLength(1);
   });
 });

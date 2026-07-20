@@ -401,7 +401,7 @@ If any required approval/evidence field is missing, keep the task `in_progress` 
 | "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
 | Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`. When a task's `evidence_plan` selects a non-test route for logic-bearing work, record a bounded rationale, a concrete `proof_target`, and a linked `review_conclusion` before completion. Test-quality proxies (assertion density, mock surface, coverage, flake indicators) are advisory only and do not gate completion. <!-- rq-TDD013evp rq-ADVEXEC06 -->
 
 ### Delegation Routing
 
@@ -409,14 +409,24 @@ Before TDD phases, evaluate each task for delegation eligibility:
 | Priority | Check | Result |
 |----------|-------|--------|
 | 1 | `metadata.delegation_hint` set? | Use the hint value directly |
-| 1.5 | `metadata.frontend == "true"`? | `delegate_allowed` to `adv-designer` (apply-phase frontend worker) — unless step 4 risk signals force inline |
-| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` |
-| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` |
+| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` to `adv-engineer` |
+| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` to `adv-engineer` |
 | 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis? | Any present → `inline_required` |
-| 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` |
+| 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` to `adv-engineer` |
 | 5 | Default | `inline_required` |
 
-Step 1.5 (`metadata.frontend`) routes UI/component work to `adv-designer` instead of `adv-engineer`. Priority 1 (`metadata.delegation_hint`) remains the explicit user override and wins over Step 1.5; Step 4 risk signals still force inline. Step 4.5 does not override Step 1 or Step 4; priority order is authoritative.
+`metadata.frontend == "true"` is structural classification, not an initial routing override. Classified UI/component implementation is engineer-first: it starts with `adv-engineer` when delegated, or inline when risk forces inline. After successful same-cycle implementation, ADV dispatches a matching-cycle `adv-designer` follow-up with an implementation receipt. Priority 1 (`metadata.delegation_hint`) remains the explicit user override; it cannot select `adv-designer` as initial implementation for a classified frontend task. Step 4 risk signals still force inline. Step 4.5 does not override Step 1 or Step 4.
+
+### Lightweight Change Profile (execution boundary)
+
+After `/adv-prep` completes, the lightweight profile is evaluated automatically. If the profile result is `qualified`, the change is eligible for the bounded omission policy exposed in the workflow directive (`_directive.lightweightProfile`):
+
+- `omitDeepScans` — skip optional deep codebase scans
+- `omitGenericExternalResearch` — skip generic external research
+- `omitOpportunityScouting` — skip opportunity scouting
+- `omitDefaultSpecialistDelegation` — skip default specialist delegation
+
+This omission policy never overrides explicit `delegation_hint` (Priority 1), risk-forced `inline_required`, spec/conflict checks, targeted verification, review, human approvals, worktree isolation, or release checks. If the profile result is `ineligible` or `downgraded`, apply standard workflow requirements with no omissions.
 
 Hint semantics:
 
@@ -426,7 +436,7 @@ Hint semantics:
 
 **If delegated to `adv-engineer` (`delegate_allowed` or `delegate_preferred`):** Spawn `adv-engineer` sub-agent with the Apply Context Packet below.
 
-**If delegated to `adv-designer` (Priority 1.5 frontend branch):** Spawn `adv-designer` sub-agent with the Designer Apply Context Packet below. `adv-designer` is the apply-phase frontend specialist; review/harden ownership remains with `adv-reviewer`.
+**For a classified frontend follow-up:** After a successful same-cycle `adv-engineer` report or classified inline implementation, spawn `adv-designer` with the Designer Apply Context Packet and its `IMPLEMENTATION_RECEIPT`. `adv-designer` **remediates in scope** (UI/a11y/polish fixes, then verifies) — it is **not** review-only; review/harden ownership remains with `adv-reviewer`.
 
 If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
 
@@ -546,20 +556,24 @@ VERIFICATION:
 BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, EPIC CONTEXT (`epic_context`), verification_expectations, durable_facts, unavailable_state
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
+EXPECTED OUTPUT: implement the task, run tests, then call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test
 ```
 
 `PROJECT STRUCTURE` provides the sub-agent with a ground-truth file manifest so it can self-correct path assumptions. Populate it from the Phase 0.1 path verification output. Example: `"Directories: repositories/, api/schemas/, services/; Pattern files: repositories/base.py, api/schemas/analytics.py"`.
 
 #### Designer Apply Context Packet
 
-Use this packet when delegating a task to `adv-designer` (Priority 1.5 routing branch — `metadata.frontend == "true"`). It mirrors the Apply Context Packet identity anchors and adds frontend-specific guidance.
+Use this packet only for the mandatory designer follow-up to a classified frontend task. It mirrors the Apply Context Packet identity anchors, includes an implementation receipt, and adds frontend-specific guidance.
 
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
 TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
 ATTEMPT: {attempt-number, starting at 1 for this task delegation}
+IMPLEMENTATION_RECEIPT:
+  implementation_cycle_id: {active cycle id}
+  provenance: {engineer_report:{stable report key} | inline:{baseline head SHA, diff reference}}
+  validation: {successful same-task/same-cycle implementation evidence}
 TASK_SCOPE: {one-line frontend/component objective}
 IN_SCOPE:
   - {owned UI/component files/findings for this task}
@@ -590,10 +604,10 @@ NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI 
 BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate `scope_drift.recommendation: "stop_and_report"` and `required_main_agent_actions` with a handoff to `adv-engineer`. Do NOT edit backend files.
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
+EXPECTED OUTPUT: implement the UI/component task, run tests, then call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test
 ```
 
-The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
+The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). `IMPLEMENTATION_RECEIPT` is mandatory: `engineer_report` provenance must reference a successful same-task/same-cycle ENGINEER_REPORT; inline provenance must bind the active cycle to a baseline and diff reference. The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
 
 ### Task Flow
 

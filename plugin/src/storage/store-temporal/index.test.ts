@@ -546,7 +546,12 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(startInputs()).toEqual([
       expect.objectContaining({ changeId: "activeDiskOnlyList" }),
     ]);
-    expect(queryCount("archivedDiskOnlyList")).toBe(1);
+    // Poison read-resilience: both terminal statuses are now served from the
+    // disk terminal projection WITHOUT a live workflow query. Archived
+    // previously incurred one query (then reseed-to-disk); it is now consistent
+    // with closed at zero queries, so a poisoned/terminated terminal workflow is
+    // never touched during enumeration.
+    expect(queryCount("archivedDiskOnlyList")).toBe(0);
     expect(queryCount("closedDiskOnlyList")).toBe(0);
   });
 
@@ -1422,6 +1427,54 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     const result = await store.changes.get("archiveDominatesGet");
     expect(result.success).toBe(true);
     expect(result.data?.status).toBe("archived");
+    expect(queryCount).toBe(0);
+  });
+
+  it("serves an archived disk projection without querying a poisoned workflow when no archive bundle exists (poison read-resilience)", async () => {
+    // Regression guard: an archived change.json with NO archive bundle must be
+    // served from the disk terminal projection WITHOUT a live workflow query.
+    // Previously loadDiskTerminalProjection only short-circuited `closed`, so an
+    // archived-without-bundle change fell through to the live query and hit the
+    // poisoned/terminated workflow (TMPRL1100) before the catch→reseed path
+    // finally returned the same disk data — the per-candidate cost that
+    // accumulated into the enumeration wedge.
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(archivedChange("archivedNoBundlePoisoned"));
+
+    let queryCount = 0;
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              queryCount += 1;
+              throw poisonedHistoryError();
+            },
+          }),
+          list: async function* () {
+            yield {
+              workflowId: "adv/change/project-1/archivedNoBundlePoisoned",
+            };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.get("archivedNoBundlePoisoned");
+    expect(result.success).toBe(true);
+    expect(result.data?.status).toBe("archived");
+    // The disk-terminal short-circuit must serve archived without any live
+    // query — never touching the poisoned workflow history.
     expect(queryCount).toBe(0);
   });
 

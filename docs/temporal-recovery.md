@@ -141,7 +141,16 @@ missing. Missing sidecar files are not proof of lost ADV state.
 worker restart does not reload host-loaded plugin tool code or agent prompt
 assets. After changing `.opencode/agents/*`, `ADV_INSTRUCTIONS.md`,
 `plugin/src/tools/*`, or deploy-synced prompt surfaces, run the deploy flow and
-Restart OpenCode before expecting live sessions to see the new behavior.
+restart OpenCode before expecting live sessions to see the new behavior.
+
+`scripts/deploy-local.sh --fix` classifies matching deployed
+`dist/temporal/worker.js` processes by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1`
+environment marker. Self-roll-capable workers are reported as advisory and left
+alive because they coordinate their own reload; legacy workers (missing or
+malformed marker) are sent `SIGTERM`. If any legacy worker cannot be refreshed,
+the deploy fails closed with a multi-line `[ADV:ACTION_REQUIRED]` block. In
+read-only modes (`--check`, `--dry-run`) no worker is signaled. Route recovery
+through `adv_temporal_worker_restart` rather than manually terminating workers.
 
 For cross-project work, `adv_temporal_worker_restart` may be invoked with
 `target_path` to ensure or restart the target project's worker. It derives the
@@ -797,15 +806,17 @@ Any code that enqueues more than a handful of workflows in a loop must satisfy *
 ### Positive pattern
 
 ```typescript
-import { TestWorkflowEnvironment } from "@temporalio/testing";
-import { withTestWorkflowEnvironment } from "./with-test-env";
+import {
+  createLocalTestWorkflowEnvironment,
+  withTestWorkflowEnvironment,
+} from "./with-test-env";
 
 async function dryRunBulkEnqueue(
   changes: Change[],
   projectId: string,
 ): Promise<void> {
   await withTestWorkflowEnvironment(
-    () => TestWorkflowEnvironment.createLocal(),
+    createLocalTestWorkflowEnvironment,
     async (env) => {
       const queue = `advance-${projectId}`;
       for (const change of changes) {

@@ -6,6 +6,7 @@
  *
  * Only durable learnings should be promoted here.
  * Cap at 50 entries. Convention and pattern entries are prioritized during pruning.
+ * rq-W1sD0mR1: this store is the durable project-level wisdom authority.
  */
 
 import { readFile, appendFile, mkdir } from "fs/promises";

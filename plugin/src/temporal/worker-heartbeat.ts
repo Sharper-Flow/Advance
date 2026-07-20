@@ -20,12 +20,45 @@ export interface WorkerLockHeartbeatOptions {
   serviceabilityGraceMs?: number;
   now?: () => Date;
   isServiceable?: () => boolean;
+  /**
+   * Fire-and-forget hook invoked synchronously after each SUCCESSFUL beat
+   * (v2 lock renewed). Not invoked when the beat early-returns (stopped,
+   * unserviceable past grace, or no v2 lock). Used by plugin-init to run
+   * the worker bundle drift check on the heartbeat cadence; the hook must
+   * be cheap and non-blocking (e.g. `void monitor.checkNow()`).
+   */
+  onBeat?: () => void;
+  /**
+   * Testing seam: invoked after the lock is read and before the renewed
+   * contents are constructed and atomically rewritten. Lets interleaving
+   * tests park a beat inside its read-modify-write window to inject a
+   * concurrent generation handoff. Not used in production.
+   */
+  onBeatLockRead?: () => void | Promise<void>;
   setIntervalFn?: (handler: () => void, timeout: number) => IntervalHandle;
   clearIntervalFn?: (timer: IntervalHandle) => void;
 }
 
 export interface WorkerLockHeartbeatController {
   beatNow: () => Promise<void>;
+  /**
+   * Immediate heartbeat-owned generation stamp. Persists the handed-off
+   * generation together with `last_heartbeat` atomically now, rather than
+   * waiting for the next scheduled beat. The heartbeat remains the sole
+   * writer of worker.lock.
+   */
+  stampBundleGeneration: (generation: string) => Promise<void>;
+  /**
+   * Record the bundle generation the worker child is now running. The
+   * heartbeat is the SOLE writer of worker.lock after acquire: the
+   * handed-off generation is written together with `last_heartbeat` in
+   * the same atomic rewrite on the next beat (and every beat after).
+   * Because the roll path (`worker-roll.ts`) never writes the lock
+   * directly and this override is applied at write time — not read from
+   * the beat's lock snapshot — a roll can never lose its generation to
+   * an interleaved beat (AC5 no-lost-updates).
+   */
+  setBundleGeneration: (generation: string) => void;
   stop: () => Promise<void>;
   isStopped: () => boolean;
 }
@@ -52,11 +85,41 @@ export function startWorkerLockHeartbeat(
 
   let stopped = false;
   let firstUnserviceableAt: number | null = null;
+  // Generation handed off by the roll path. Applied at write time on
+  // every subsequent beat, so the value persisted never depends on how
+  // stale the beat's lock snapshot is.
+  let bundleGenerationOverride: string | null = null;
 
   const stopRenewing = () => {
     if (stopped) return;
     stopped = true;
     clearIntervalFn(timer);
+  };
+
+  const renewLockNow = async (
+    current: Date,
+    onLockRead?: () => void | Promise<void>,
+  ): Promise<boolean> => {
+    const contents = await readLockContents(lockPath).catch(() => null);
+    if (!contents || contents.schema_version !== 2) return false;
+    if (onLockRead) {
+      await onLockRead();
+    }
+    const next: WorkerLockContentsV2 = {
+      ...contents,
+      last_heartbeat: current.toISOString(),
+      ...(bundleGenerationOverride !== null
+        ? { bundle_generation: bundleGenerationOverride }
+        : {}),
+    };
+    await writeLockContentsAtomically(lockPath, next);
+    return true;
+  };
+
+  const stampBundleGeneration = async (generation: string): Promise<void> => {
+    if (stopped) return;
+    bundleGenerationOverride = generation;
+    await renewLockNow(now());
   };
 
   const beatNow = async (): Promise<void> => {
@@ -73,13 +136,15 @@ export function startWorkerLockHeartbeat(
       firstUnserviceableAt = null;
     }
 
-    const contents = await readLockContents(lockPath);
-    if (!contents || contents.schema_version !== 2) return;
-    const next: WorkerLockContentsV2 = {
-      ...contents,
-      last_heartbeat: current.toISOString(),
-    };
-    await writeLockContentsAtomically(lockPath, next);
+    const wrote = await renewLockNow(current, options.onBeatLockRead);
+
+    if (wrote && options.onBeat) {
+      try {
+        options.onBeat();
+      } catch {
+        // Fire-and-forget hook must never break the heartbeat cadence.
+      }
+    }
   };
 
   const timer = setIntervalFn(() => {
@@ -89,6 +154,10 @@ export function startWorkerLockHeartbeat(
 
   return {
     beatNow,
+    stampBundleGeneration,
+    setBundleGeneration: (generation: string) => {
+      bundleGenerationOverride = generation;
+    },
     stop: async () => {
       stopRenewing();
       await releaseWorkerLock(projectStateDir, { lockFilename });

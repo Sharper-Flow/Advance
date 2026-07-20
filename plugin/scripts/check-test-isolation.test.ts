@@ -2,7 +2,11 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, writeFile, rm, mkdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { runLint } from "./check-test-isolation";
+import {
+  isTemporalEnvAllowlisted,
+  runLint,
+  runTemporalEnvLint,
+} from "./check-test-isolation";
 
 describe("check-test-isolation lint script", () => {
   let tempDir: string;
@@ -112,5 +116,171 @@ test("checks banner", () => {
 
     const violations = await runLint(join(tempDir, "string-case"));
     expect(violations).toEqual([]);
+  });
+});
+
+describe("temporal test-env constructor guard (reapLeakedTestServers AC1/DONT1)", () => {
+  let tempDir: string;
+
+  beforeAll(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "adv-temporal-env-lint-"));
+  });
+
+  afterAll(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("flags raw TestWorkflowEnvironment.createTimeSkipping in a .test.ts", async () => {
+    const srcDir = join(tempDir, "raw-skipping", "src");
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      join(srcDir, "uses-raw.test.ts"),
+      `
+import { TestWorkflowEnvironment } from "@temporalio/testing";
+
+test("uses raw constructor", async () => {
+  const env = await TestWorkflowEnvironment.createTimeSkipping();
+});
+`,
+    );
+
+    const violations = await runTemporalEnvLint(join(tempDir, "raw-skipping"));
+    expect(violations).toContain("uses-raw.test.ts");
+    expect(violations.length).toBe(1);
+  });
+
+  test("flags raw TestWorkflowEnvironment.createLocal in an .itest.ts", async () => {
+    const srcDir = join(tempDir, "raw-local", "src");
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      join(srcDir, "uses-raw-local.itest.ts"),
+      `
+import { TestWorkflowEnvironment } from "@temporalio/testing";
+
+test("uses raw local constructor", async () => {
+  const env = await TestWorkflowEnvironment.createLocal();
+});
+`,
+    );
+
+    const violations = await runTemporalEnvLint(join(tempDir, "raw-local"));
+    expect(violations).toContain("uses-raw-local.itest.ts");
+    expect(violations.length).toBe(1);
+  });
+
+  test("flags a bare constructor reference passed as a callback (no call parens)", async () => {
+    const srcDir = join(tempDir, "bare-ref", "src");
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      join(srcDir, "bare-ref.test.ts"),
+      `
+import { TestWorkflowEnvironment } from "@temporalio/testing";
+
+test("passes constructor by reference", async () => {
+  await withTestWorkflowEnvironment(TestWorkflowEnvironment.createTimeSkipping, fn);
+});
+`,
+    );
+
+    const violations = await runTemporalEnvLint(join(tempDir, "bare-ref"));
+    expect(violations).toContain("bare-ref.test.ts");
+  });
+
+  test("passes when construction routes through the helper wrappers", async () => {
+    const srcDir = join(tempDir, "helper-routed", "src");
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      join(srcDir, "helper-routed.test.ts"),
+      `
+import {
+  createTimeSkippingTestWorkflowEnvironment,
+  withTimeSkippingTestWorkflowEnvironment,
+} from "./with-test-env";
+
+test("routes through helper", async () => {
+  await withTimeSkippingTestWorkflowEnvironment(async (env) => env);
+  const env = await createTimeSkippingTestWorkflowEnvironment();
+  await env.teardown();
+});
+`,
+    );
+
+    const violations = await runTemporalEnvLint(join(tempDir, "helper-routed"));
+    expect(violations).toEqual([]);
+  });
+
+  test("passes for the allow-listed helper module that owns the raw constructors", async () => {
+    const srcDir = join(
+      tempDir,
+      "helper-module",
+      "src",
+      "temporal",
+      "__tests__",
+    );
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      join(srcDir, "with-test-env.ts"),
+      `
+import { TestWorkflowEnvironment } from "@temporalio/testing";
+
+export function createTimeSkippingTestWorkflowEnvironment() {
+  return createTestWorkflowEnvironment(() =>
+    TestWorkflowEnvironment.createTimeSkipping(),
+  );
+}
+`,
+    );
+
+    const violations = await runTemporalEnvLint(join(tempDir, "helper-module"));
+    expect(violations).toEqual([]);
+  });
+
+  test("ignores occurrences inside comments and string literals", async () => {
+    const srcDir = join(tempDir, "comment-only", "src");
+    await mkdir(srcDir, { recursive: true });
+    await writeFile(
+      join(srcDir, "comment-only.test.ts"),
+      `
+// TestWorkflowEnvironment.createTimeSkipping() must stay in the helper.
+const doc = "use TestWorkflowEnvironment.createLocal via the wrapper";
+/* Also: TestWorkflowEnvironment.createTimeSkipping */
+
+test("documents the rule", () => {
+  expect(doc).toContain("wrapper");
+});
+`,
+    );
+
+    const violations = await runTemporalEnvLint(join(tempDir, "comment-only"));
+    expect(violations).toEqual([]);
+  });
+
+  test("allow-list matches the helper path with POSIX separators", () => {
+    expect(
+      isTemporalEnvAllowlisted("temporal/__tests__/with-test-env.ts"),
+    ).toBe(true);
+  });
+
+  test("allow-list matches the helper path with Windows separators", () => {
+    expect(
+      isTemporalEnvAllowlisted("temporal\\__tests__\\with-test-env.ts"),
+    ).toBe(true);
+  });
+
+  test("allow-list is exact: look-alike paths are not allow-listed", () => {
+    expect(
+      isTemporalEnvAllowlisted("temporal/__tests__/with-test-env.evil.ts"),
+    ).toBe(false);
+    expect(
+      isTemporalEnvAllowlisted("nested/temporal/__tests__/with-test-env.ts"),
+    ).toBe(false);
+    expect(isTemporalEnvAllowlisted("temporal/__tests__/other.ts")).toBe(false);
+    expect(isTemporalEnvAllowlisted("with-test-env.ts")).toBe(false);
+  });
+
+  test("fails clearly when the source directory does not exist", async () => {
+    await expect(
+      runTemporalEnvLint(join(tempDir, "missing-src-dir")),
+    ).rejects.toThrow(/Source directory not found/);
   });
 });

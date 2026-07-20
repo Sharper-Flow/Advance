@@ -1,0 +1,1591 @@
+{
+  "id": "fixValidationInputTimeout",
+  "title": "Fix validation input timeout",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-16T22:11:00.794Z",
+  "tasks": [
+    {
+      "id": "tk-7abd63c1600d",
+      "title": "Add bounded validation inventory projection",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-16T23:53:43.370Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T23:55:41.398Z",
+      "verification": "Projection suite 10/10, validator/change related suite 382/382, and pnpm run check passed; red evidence recorded before implementation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change/validation-projection.test.ts",
+        "plugin/src/tools/change/validation-projection.ts",
+        "plugin/src/types/responses.ts",
+        "plugin/src/validator/conflicts.ts",
+        "plugin/src/validator/types.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change/validation-projection.test.ts",
+        "plugin/src/tools/change/validation-projection.ts",
+        "plugin/src/types/responses.ts",
+        "plugin/src/validator/conflicts.ts",
+        "plugin/src/validator/types.ts"
+      ],
+      "checkpointSha": "b6bcc5a6a7d9e7f0dcefdf44475de6fc99e2a3e5",
+      "completedAt": "2026-07-17T00:39:10.166Z",
+      "completed_at": "2026-07-17T00:39:10.166Z"
+    },
+    {
+      "id": "tk-245c861625ad",
+      "title": "Refactor validation input loading",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-16T23:53:56.265Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7abd63c1600d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-17T00:39:16.165Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixValidationInputTimeout",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+          "task_id": "tk-245c861625ad",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-245c861625ad"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change/validation-projection.ts",
+            "plugin/src/tools/change/create-clarify.ts",
+            "plugin/src/validator/validator.ts",
+            "plugin/src/tools/change/create-clarify.test.ts",
+            "plugin/src/validator/validator.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format checks all pass"
+            },
+            {
+              "command": "npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts",
+              "exit_code": 0,
+              "summary": "23 new TDD tests pass (concurrency, deadline, immutability, canConcludeClean)"
+            },
+            {
+              "command": "npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts",
+              "exit_code": 0,
+              "summary": "151 existing tests pass; no regressions in adv_change_validate or conflict inventory behavior"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Plugin + Temporal worker bundle build succeeds"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Kept loadValidationContext signature backward-compatible with an optional 4th options object for the deadline, and created a fresh deadline internally when not supplied.",
+              "why": "The two existing callers (change.ts adv_change_validate and adv_change_archive) both load the target change before invoking the helper; internal deadline creation satisfies the acceptance criteria that the helper starts the deadline before its own input reads, without forcing a signature break."
+            },
+            {
+              "what": "Used Promise.allSettled plus per-branch raceWithDeadline wrappers rather than a single Promise.all.",
+              "why": "Lets the function return a typed snapshot when a branch times out or fails, instead of propagating an exception and losing partial diagnostics. The inventory branch already degrades gracefully; specs/proposal/git default to empty/scaffold/undefined and any rejection forces canConcludeClean false."
+            },
+            {
+              "what": "Implemented boundedMap with a worker pool of 4 to load specs, preserving input order.",
+              "why": "Replaces the old sequential spec loop with bounded concurrency that respects the AC2 cap of 4 and keeps deterministic output ordering."
+            },
+            {
+              "what": "Made validator pass computation depend on context.conflictInventory?.canConcludeClean !== false.",
+              "why": "Fail-closed semantics: incomplete/degraded/non-conclusive inventories cannot produce a passed:true verdict, while preserving existing diagnostics and hydrated-peer checks as warnings."
+            },
+            {
+              "what": "Deep-froze the returned validation snapshot.",
+              "why": "Ensures late-settled background work cannot mutate the result the caller receives, satisfying AC6."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed same incomplete-inventory/false-clean pattern in validator.ts pass computation that would have let degraded/non-conclusive conflict inventories pass. Did not change generic Store surfaces per constraint.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Refactored loadValidationContext to start projection, specs, proposal, and Git context concurrently under one shared 8s deadline; removed the old per-peer store.changes.get loop in favor of the task1 validation inventory projection; capped spec hydration concurrency at 4; deep-freeze the returned snapshot; and wired validator pass computation to fail closed when conflictInventory.canConcludeClean is false. All targeted tests (174) pass, pnpm run check passes, and build succeeds.",
+            "suggested_next_action": "Run full suite via bin/oc-test full when host load permits, then proceed to verification task tk-f37bea64a674."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run build"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixValidationInputTimeout",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+          "task_id": "tk-245c861625ad",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-245c861625ad"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change/validation-projection.ts",
+            "plugin/src/tools/change/create-clarify.ts",
+            "plugin/src/validator/validator.ts",
+            "plugin/src/tools/change/create-clarify.test.ts",
+            "plugin/src/validator/validator.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format checks all pass"
+            },
+            {
+              "command": "npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts",
+              "exit_code": 0,
+              "summary": "23 new TDD tests pass (concurrency, deadline, immutability, canConcludeClean)"
+            },
+            {
+              "command": "npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts",
+              "exit_code": 0,
+              "summary": "151 existing tests pass; no regressions in adv_change_validate or conflict inventory behavior"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Plugin + Temporal worker bundle build succeeds"
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Refactored loadValidationContext to start projection, specs, proposal, and Git context concurrently under one shared 8s deadline; removed the old per-peer store.changes.get loop in favor of the task1 validation inventory projection; capped spec hydration concurrency at 4; deep-freeze the returned snapshot; and wired validator pass computation to fail closed when conflictInventory.canConcludeClean is false. All durable verification passes.",
+            "suggested_next_action": "Run full suite via bin/oc-test full when host load permits, then proceed to verification task tk-f37bea64a674."
+          }
+        }
+      ],
+      "verification": "23 new TDD tests, 151 existing change/conflict tests, pnpm run check, and pnpm run build passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change/create-clarify.test.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change/validation-projection.ts",
+        "plugin/src/validator/validator.test.ts",
+        "plugin/src/validator/validator.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change/create-clarify.test.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change/validation-projection.ts",
+        "plugin/src/validator/validator.test.ts",
+        "plugin/src/validator/validator.ts"
+      ],
+      "checkpointSha": "607e867a3d861811933c338d5df2c7f8668e1cf3",
+      "completedAt": "2026-07-17T01:05:28.460Z",
+      "completed_at": "2026-07-17T01:05:28.460Z"
+    },
+    {
+      "id": "tk-f37bea64a674",
+      "title": "Verify bounded authoritative validation",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-16T23:54:05.754Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-245c861625ad"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-17T01:05:34.680Z",
+      "verification": "Focused validation/store 51/51, deadline suite 30/30, and bin/oc-test smoke passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "607e867a3d861811933c338d5df2c7f8668e1cf3",
+      "completedAt": "2026-07-17T01:08:50.832Z",
+      "completed_at": "2026-07-17T01:08:50.832Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:validation-timeout-discovery"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validation timeout discovery: loadValidationContext, adv_change_validate budget, Store/Temporal concurrency, and regression tests",
+      "sources": [
+        {
+          "label": "Issue #227 requirement",
+          "locator": "https://github.com/Sharper-Flow/Advance/issues/227",
+          "summary": "Observed healthy-system timeout; requires authoritative conflict validation, bounded concurrency, degraded semantics, multiple-peer and slow-read tests."
+        },
+        {
+          "label": "loadValidationContext local implementation",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/tools/change/create-clarify.ts#L919-L1051",
+          "summary": "Specs and active peers hydrate sequentially; proposal and git divergence start only after those loops."
+        },
+        {
+          "label": "adv_change_validate budget implementation",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/tools/change.ts#L439-L450",
+          "summary": "Input budget is 8 seconds below 10-second outer ceiling and must not produce a verdict on exhaustion."
+        },
+        {
+          "label": "adv_change_validate execution path",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/tools/change.ts#L2460-L2538",
+          "summary": "Target read and context load share one outer Promise.race timeout; timeout returns typed degraded/no-verdict response."
+        },
+        {
+          "label": "Store change-list bounded hydration",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/storage/store-temporal/index.ts#L963-L966",
+          "summary": "Store already uses batch size 20 as bounded Temporal query parallelism precedent."
+        },
+        {
+          "label": "Store one-pass batch execution",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/storage/store-temporal/index.ts#L1148-L1168",
+          "summary": "Change-list hydration uses sequential batches with Promise.all inside each batch and typed omissions after deadline."
+        },
+        {
+          "label": "Store list metadata propagation",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/storage/store-temporal/changes.ts#L382-L454",
+          "summary": "Store list strips full changes to summaries but forwards warnings and hydrationStats; validation context currently does not consume those completeness signals."
+        },
+        {
+          "label": "Spec Store implementation",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/storage/store-temporal/index.ts#L1406-L1447",
+          "summary": "specs.list itself sequentially loads every full spec to build metadata; loadValidationContext then loads every full spec again."
+        },
+        {
+          "label": "Spec read activity",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/temporal/activities.ts#L250-L297",
+          "summary": "Spec enumeration and hydration are asynchronous read-only directory/file operations."
+        },
+        {
+          "label": "Conflict completeness semantics",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/validator/conflicts.ts#L308-L413",
+          "summary": "Blocked inventory emits an error; degraded inventory emits warnings; available entries still undergo overlap checks."
+        },
+        {
+          "label": "Current timeout tests",
+          "locator": "file:///home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin/src/tools/change.test.ts#L3939-L4033",
+          "summary": "Tests cover hung target read, hung spec enumeration, and normal completion, but not multiple peers, bounded concurrency, or slow settling reads."
+        },
+        {
+          "label": "Temporal TypeScript query docs",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "WorkflowHandle.query is a synchronous read request; query handlers cannot be async or mutate workflow state; worker must be polling."
+        },
+        {
+          "label": "Temporal TypeScript client API",
+          "locator": "https://typescript.temporal.io/api/interfaces/client.WorkflowHandle",
+          "summary": "WorkflowHandle.query returns a Promise and queries running or completed workflows."
+        },
+        {
+          "label": "Official Temporal sample with concurrent queries",
+          "locator": "https://github.com/temporalio/samples-typescript/blob/fb0aa23d75394a132646de883842dfacdacd5aa0/food-delivery/apps/driver/pages/api/%5Btrpc%5D.ts#L19-L47",
+          "summary": "Official sample caps query fan-out at 30 and awaits concurrent WorkflowHandle.query calls with Promise.all."
+        },
+        {
+          "label": "Node.js fs promises docs",
+          "locator": "https://nodejs.org/api/fs.html#promises-api",
+          "summary": "fs/promises operations use the Node threadpool; concurrent modification needs care, while this path performs reads only."
+        },
+        {
+          "label": "ADV bounded-authoritative-read spec",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/advance-workflow/spec.json",
+          "summary": "rq-boundedAuthoritativeRead01 requires one request-scoped 8-second aggregate deadline, typed incompleteness, no false completeness, and deterministic timer/promise tests."
+        }
+      ],
+      "architecture_assessment": "Current path fails the linked requirement. loadValidationContext serializes spec gets and peer gets, while the Temporal Store specs.list has already loaded every full spec once and change listing has already deeply hydrated candidates before stripping them to summaries. adv_change_validate adds an outer non-cancelling 8-second Promise.race, so nested Store work can consume the same budget and continue after timeout. Preferred boring design: retain typed conflict inventory, run independent context branches concurrently, use a small shared bounded-map helper for spec/peer reads, propagate one request-scoped deadline into Store aggregate reads, consume Store warnings/hydrationStats, and preserve input order when assembling results. Enumeration/source incompleteness must be blocked; an enumerated peer hydration failure may retain existing degraded warning semantics; outer budget exhaustion remains no-verdict degraded containment.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "Sequential and duplicated hydration can exhaust the 8-second input budget under healthy load, reproducing #227 and preventing validation from producing a verdict.",
+          "loadValidationContext ignores ChangeListResponse warnings/hydrationStats, so a deadline-truncated Store inventory can be labeled complete, violating authoritative completeness semantics."
+        ],
+        "notes": "No edits or tests performed. Research-only scope. Current tests do not exercise multiple peers, bounded concurrency, slow settling reads, or propagated Store incompleteness."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Bounded concurrency lowers wall-clock latency but increases simultaneous filesystem and Temporal RPC load; keep a small explicit limit and preserve result ordering.",
+          "A shared deadline gives correct aggregate admission and degradation but requires an internal Store API/type extension across mocks and adapters.",
+          "Reusing list hydration data avoids duplicate reads but broadening generic list summaries with capabilities risks output/API coupling; a validation-specific internal projection is cleaner but adds a method.",
+          "Per-peer degraded continuation preserves current behavior, while blocking every peer failure is more authoritative but changes existing validation semantics and may reduce availability."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Shared-deadline bounded concurrency in loadValidationContext plus Store completeness propagation",
+            "disposition": "preferred",
+            "rationale": "Small, proven Promise batching pattern already used by Store; preserves all peers and typed failure semantics without raising ceilings."
+          },
+          {
+            "option": "Unbounded Promise.all for all specs and peers",
+            "disposition": "rejected",
+            "rationale": "Reduces latency but allows load-dependent RPC/filesystem bursts and lacks admission control."
+          },
+          {
+            "option": "Increase the 8-second or 10-second timeout",
+            "disposition": "rejected",
+            "rationale": "Masks serial/duplicate work and conflicts with the bounded-authoritative-read requirement."
+          },
+          {
+            "option": "Return a partial inventory as complete or silently skip slow peers",
+            "disposition": "rejected",
+            "rationale": "Can produce false clean conflict validation and violates authoritative completeness."
+          },
+          {
+            "option": "Validation-specific Store projection returning summaries plus capabilities in one hydration pass",
+            "disposition": "deferred",
+            "rationale": "Best duplicate-read elimination, but broader Store contract work than needed for first safe fix; consider if bounded concurrency still misses budget."
+          }
+        ],
+        "recommendation": "Implement shared-deadline bounded concurrency, with deterministic tests proving multiple active peers all participate in conflicts, concurrency never exceeds the selected limit, slow reads finish under aggregate budget, and source truncation yields blocked/no-clean-verdict semantics."
+      },
+      "recommendation": "Preferred implementation sequence: (1) add shared request deadline/admission to validation context and Store aggregate reads; (2) concurrently start independent spec, inventory, proposal, and git-divergence branches; (3) bounded-map spec and peer hydration with stable output ordering; (4) map Store warnings/hydrationStats to blocked versus degraded inventory explicitly; (5) retain outer 8-second no-verdict timeout only as containment. Exact targeted verification from worktree root: `bin/oc-test targeted -- src/tools/change.test.ts src/validator/conflict-inventory.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts`; then `bin/oc-test smoke`.",
+      "follow_ups": [
+        "Packet omitted TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; report used the user's explicit research request without inferring missing contract sections.",
+        "Add deterministic deferred-promise/fake-timer tests rather than wall-clock sleeps.",
+        "Decide explicitly whether an enumerated peer hydration failure remains warning-level degraded (current contract) or becomes blocking; do not change this implicitly while optimizing latency.",
+        "Assess whether archive's separate loadValidationContext call at plugin/src/tools/change.ts:2740-L2751 should consume the same optimized helper without adopting adv_change_validate's tool-specific no-verdict output shape."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate design against agreement, #227 evidence, Store/Temporal constraints, and source",
+      "sources": [
+        {
+          "label": "Issue #227 evidence",
+          "locator": "https://github.com/Sharper-Flow/Advance/issues/227",
+          "summary": "Documents the 8-second failure and sequential spec enumeration/hydration, change inventory, peer hydration, then proposal/context loading; requires authoritative conflict validation and bounded complete loading."
+        },
+        {
+          "label": "Current loadValidationContext source",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/change/create-clarify.ts#L919-L1059",
+          "summary": "Current implementation serially hydrates specs, lists changes, hydrates each active peer, then loads proposal and Git context."
+        },
+        {
+          "label": "Current conflict inventory validator",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/validator/conflicts.ts#L308-L371",
+          "summary": "Blocked completeness emits an error, but degraded completeness emits warnings only."
+        },
+        {
+          "label": "Current validation pass rule",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/validator/validator.ts#L127-L202",
+          "summary": "Validation passes when errors are empty; warnings do not prevent a clean/pass result."
+        },
+        {
+          "label": "Current Store authoritative aggregate-read implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/storage/store-temporal/index.ts#L782-L1293",
+          "summary": "Existing Store path already uses a request-scoped TemporalReadDeadline, one-pass candidate resolution, admission checks, typed deadline omissions, and deterministic aggregation, but its generic batch fan-out is 20."
+        },
+        {
+          "label": "Advance authoritative-read spec law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/advance-workflow/spec.json#L1351-L1413",
+          "summary": "Requires a single request-scoped 8,000 ms aggregate deadline, remaining-budget admission, typed incompleteness, and deterministic controlled-promise/timer tests."
+        },
+        {
+          "label": "Current timeout utility",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/utils/with-timeout.ts#L24-L85",
+          "summary": "Explicitly documents that Promise.race timeout does not abort underlying work."
+        },
+        {
+          "label": "MDN Promise.race",
+          "locator": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/race",
+          "summary": "Promise.race settles from the first input to settle; it does not cancel other inputs."
+        },
+        {
+          "label": "MDN AbortController",
+          "locator": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
+          "summary": "AbortController provides explicit cancellation only for operations that consume its AbortSignal."
+        },
+        {
+          "label": "Temporal TypeScript query documentation",
+          "locator": "https://docs.temporal.io/develop/typescript/message-passing#send-a-query",
+          "summary": "Temporal Queries are synchronous read operations; query handlers must not mutate workflow state or perform asynchronous operations."
+        }
+      ],
+      "architecture_assessment": "The proposed one-pass validation projection, stable ordered bounded mapping at concurrency 4, shared deadline admission, and typed blocked inventory for enumeration/deadline failure match the issue and existing Store architecture. The design nevertheless fails its primary authority contract: it maps a single peer capability-hydration failure to degraded warning while preserving current validator semantics. Current validator code treats degraded inventory as warnings and computes passed from absence of errors, so the unknown peer can overlap the validated change while validation still returns clean/pass. Deadline handling is directionally correct but must explicitly create one deadline before the complete validate-input read, pass remaining budget through own-change read and all context branches, and isolate late settlements with task-local immutable values plus a sealed result; Promise.race is containment, not cancellation.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "An enumerated peer with unknown capabilities can produce completeness=degraded, warnings only, and passed=true. This contradicts the agreement objective that incomplete inventory never yields a false-clean result and means authoritative conflict validation is not preserved.",
+          "The design does not explicitly place deadline creation before the full validate-input operation, including the initial authoritative store.changes.get. Starting a fresh inner deadline only inside loadValidationContext permits the outer 8-second race to remain the correctness mechanism for earlier work, contrary to the shared aggregate-deadline architecture."
+        ],
+        "notes": "No implementation edits performed. Projection shape and concurrency strategy are otherwise sound. Late-result isolation is achievable without claiming true cancellation, but requires a structurally sealed immutable aggregate and deferred-promise proof."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Fail-closed degraded peer handling can block validation during one peer outage, but avoids an authoritative false-clean verdict.",
+          "A validation-specific projection adds Store interface and fixture maintenance, but removes duplicate peer hydration and keeps scope narrower than a general Store refactor.",
+          "A shared deadline and concurrency cap reduce latency and load, but some underlying I/O may continue after timeout when APIs do not accept AbortSignal; result isolation must therefore be structural rather than assumed cancellation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep degraded peer hydration as warnings under current validator semantics",
+            "disposition": "rejected",
+            "rationale": "Warnings do not prevent passed=true, so a missing peer's overlapping capabilities can be falsely reported clean."
+          },
+          {
+            "option": "Classify every peer hydration failure as blocked inventory",
+            "disposition": "preferred",
+            "rationale": "Simplest fail-closed behavior and directly preserves authoritative conflict validation, though it tightens the agreement's degraded-warning wording."
+          },
+          {
+            "option": "Retain degraded type but add canConcludeClean=false and emit a blocking validation error",
+            "disposition": "deferred",
+            "rationale": "Preserves richer telemetry but adds another authority field and invariant; use only if product contract requires degraded as a distinct state."
+          },
+          {
+            "option": "Increase the 8-second timeout",
+            "disposition": "rejected",
+            "rationale": "Masks duplicated sequential work and violates the agreed avoidance."
+          },
+          {
+            "option": "Use unbounded Promise.all fan-out",
+            "disposition": "rejected",
+            "rationale": "Violates the concurrency cap and can burst Store/Temporal load."
+          }
+        ],
+        "recommendation": "Stop design approval. Amend design/agreement so any unknown active-peer capabilities prevent a clean/pass verdict, create and thread one deadline across the complete validate-input request, define sealed late-result isolation explicitly, then revalidate."
+      },
+      "recommendation": "Revise before implementation: (1) reconcile AC5 with the no-false-clean objective by making degraded peer incompleteness blocking for verdict authority; simplest option is blocked inventory, (2) create the deadline before initial change read and thread remaining budget into projection/spec/proposal/Git work, (3) define ordered bounded-map semantics as task-local returns assembled once into an immutable snapshot, and (4) test that late deferred resolutions leave the already-returned result deeply unchanged and that max observed concurrency is exactly bounded at 4.",
+      "follow_ups": [
+        "Agreement has an internal tension: AC5 requests a degraded warning for one peer failure, while the objective and AC4 prohibit clean validation from incomplete hydration. Orchestrator must resolve this contract before design approval.",
+        "Do not describe Promise.race deadline behavior as cancellation unless each underlying operation consumes an AbortSignal; otherwise call it deadline admission plus late-result isolation."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Revalidate prior design blocker only",
+      "sources": [
+        {
+          "label": "Current degraded inventory handling",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/validator/conflicts.ts#L308-L371",
+          "summary": "Current source emits only warnings for degraded inventory, identifying the exact implementation seam the revised canConcludeClean contract must close."
+        },
+        {
+          "label": "Current validation pass computation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/validator/validator.ts#L127-L202",
+          "summary": "Current passed state depends on errors.length === 0, so consuming canConcludeClean in pass computation is necessary to prevent false-clean output."
+        },
+        {
+          "label": "Current validation input ordering and outer containment",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/change.ts#L2460-L2518",
+          "summary": "Current target change read precedes loadValidationContext inside the outer timeout; revised design now requires the shared deadline to begin before this and every other input read."
+        },
+        {
+          "label": "Current sequential validation context loader",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/change/create-clarify.ts#L919-L1059",
+          "summary": "Current source serially hydrates specs and peers, then proposal and Git context; revised design replaces this with bounded concurrent branches and one-pass projection."
+        },
+        {
+          "label": "Existing Store aggregate deadline pattern",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/storage/store-temporal/index.ts#L782-L1293",
+          "summary": "Existing Store source demonstrates request-scoped deadline admission, typed omissions, one-pass resolution, and snapshot assembly that the validation-specific projection can follow."
+        },
+        {
+          "label": "Advance authoritative read law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/advance-workflow/spec.json#L1351-L1413",
+          "summary": "Requires one request-scoped aggregate deadline, typed incomplete results, no inferred completeness, and deterministic controlled-promise/timer tests."
+        },
+        {
+          "label": "Promise.race semantics",
+          "locator": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/race",
+          "summary": "Promise.race settles from the first settled input but does not cancel remaining promises, supporting the revised immutable-snapshot requirement."
+        },
+        {
+          "label": "Temporal TypeScript Query semantics",
+          "locator": "https://docs.temporal.io/develop/typescript/message-passing#send-a-query",
+          "summary": "Temporal Queries are read operations and query handlers must remain synchronous and non-mutating."
+        }
+      ],
+      "architecture_assessment": "Prior blocker is resolved at design-contract level. The revised agreement and design retain degraded diagnostics and continue checks for hydrated peers while adding typed canConcludeClean:false as a machine-enforced pass-computation input. This closes the current source gap where degraded inventory is warning-only and passed depends solely on errors. Enumeration truncation/deadline remains blocked. One deadline now begins before target/change/store and all other input reads, so the outer 8-second timeout can remain containment. Immutable settled snapshot plus deterministic deferred-promise tests is structurally sufficient for late-result isolation without falsely claiming cancellation of underlying promises.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design now preserves authoritative conflict validation. Implementation must make canConcludeClean required/derived rather than optional fail-open metadata, consume it in every relevant verdict path, and prove deep snapshot stability after late settlement."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Fail-closed non-conclusion can reduce validation availability during one peer read failure, but preserves authoritative conflict safety.",
+          "Adding canConcludeClean creates one more cross-boundary invariant, but keeps degraded diagnostics distinct from enumeration-level blocked state.",
+          "Immutable snapshot assembly isolates returned results while underlying non-abortable I/O may continue; this is simpler and more honest than claiming Promise.race cancellation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Warning-only degraded peer failure",
+            "disposition": "rejected",
+            "rationale": "Current pass computation can still return passed=true, recreating the prior false-clean blocker."
+          },
+          {
+            "option": "Map every individual peer failure to blocked",
+            "disposition": "rejected",
+            "rationale": "Safe but loses useful degraded diagnostics and hydrated-peer conflict findings that the revised contract preserves structurally."
+          },
+          {
+            "option": "Typed canConcludeClean:false consumed by pass computation",
+            "disposition": "preferred",
+            "rationale": "Preserves diagnostics and partial conflict evidence while machine-enforcing no clean/pass conclusion."
+          }
+        ],
+        "recommendation": "Approve revised design. During implementation, derive canConcludeClean from completeness/hydration outcomes in one constructor or schema refinement, make absence fail closed, thread the shared deadline from before the initial target read, and verify late deferred settlements cannot alter a deep-cloned returned snapshot."
+      },
+      "recommendation": "Proceed to planning/implementation with tests proving: degraded peer plus no discovered overlap still yields passed=false; hydrated peers still produce overlap findings; blocked enumeration/deadline yields passed=false; deadline predates every read; max concurrency is 4; and returned snapshot remains deeply unchanged after late promises settle.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "task_id": "tk-245c861625ad",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-245c861625ad"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change/validation-projection.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/validator/validator.ts",
+        "plugin/src/tools/change/create-clarify.test.ts",
+        "plugin/src/validator/validator.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format checks all pass"
+        },
+        {
+          "command": "npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts",
+          "exit_code": 0,
+          "summary": "23 new TDD tests pass (concurrency, deadline, immutability, canConcludeClean)"
+        },
+        {
+          "command": "npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts",
+          "exit_code": 0,
+          "summary": "151 existing tests pass; no regressions in adv_change_validate or conflict inventory behavior"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Plugin + Temporal worker bundle build succeeds"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Kept loadValidationContext signature backward-compatible with an optional 4th options object for the deadline, and created a fresh deadline internally when not supplied.",
+          "why": "The two existing callers (change.ts adv_change_validate and adv_change_archive) both load the target change before invoking the helper; internal deadline creation satisfies the acceptance criteria that the helper starts the deadline before its own input reads, without forcing a signature break."
+        },
+        {
+          "what": "Used Promise.allSettled plus per-branch raceWithDeadline wrappers rather than a single Promise.all.",
+          "why": "Lets the function return a typed snapshot when a branch times out or fails, instead of propagating an exception and losing partial diagnostics. The inventory branch already degrades gracefully; specs/proposal/git default to empty/scaffold/undefined and any rejection forces canConcludeClean false."
+        },
+        {
+          "what": "Implemented boundedMap with a worker pool of 4 to load specs, preserving input order.",
+          "why": "Replaces the old sequential spec loop with bounded concurrency that respects the AC2 cap of 4 and keeps deterministic output ordering."
+        },
+        {
+          "what": "Made validator pass computation depend on context.conflictInventory?.canConcludeClean !== false.",
+          "why": "Fail-closed semantics: incomplete/degraded/non-conclusive inventories cannot produce a passed:true verdict, while preserving existing diagnostics and hydrated-peer checks as warnings."
+        },
+        {
+          "what": "Deep-froze the returned validation snapshot.",
+          "why": "Ensures late-settled background work cannot mutate the result the caller receives, satisfying AC6."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed same incomplete-inventory/false-clean pattern in validator.ts pass computation that would have let degraded/non-conclusive conflict inventories pass. Did not change generic Store surfaces per constraint.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Refactored loadValidationContext to start projection, specs, proposal, and Git context concurrently under one shared 8s deadline; removed the old per-peer store.changes.get loop in favor of the task1 validation inventory projection; capped spec hydration concurrency at 4; deep-freeze the returned snapshot; and wired validator pass computation to fail closed when conflictInventory.canConcludeClean is false. All targeted tests (174) pass, pnpm run check passes, and build succeeds.",
+        "suggested_next_action": "Run full suite via bin/oc-test full when host load permits, then proceed to verification task tk-f37bea64a674."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run build"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change/validation-projection.ts",
+          "summary": "Passed validation-specific `validationConcurrency: 4` to the one-pass Store inventory request, closing the review finding that the projection otherwise inherited broader Store hydration concurrency.",
+          "verification": "Focused projection tests passed; request arguments assert the cap."
+        },
+        {
+          "file": "plugin/src/storage/store-types.ts",
+          "summary": "Added internal validation-only Store hydration cap contract.",
+          "verification": "`pnpm --dir plugin run check` passed."
+        },
+        {
+          "file": "plugin/src/storage/store-temporal/changes.ts",
+          "summary": "Forwarded the validation cap from the Store list filter to resolved-change hydration.",
+          "verification": "Focused Store temporal changes suite passed."
+        },
+        {
+          "file": "plugin/src/storage/store-temporal/index.ts",
+          "summary": "Applied requested hydration concurrency to Temporal resolved-change batches while preserving the existing default batch size for other callers.",
+          "verification": "Focused Store temporal changes suite and full static check passed."
+        },
+        {
+          "file": "plugin/src/storage/store-temporal/shared.ts",
+          "summary": "Aligned Store dependency typing with the optional hydration-concurrency control.",
+          "verification": "`pnpm --dir plugin run check` passed."
+        },
+        {
+          "file": "plugin/src/storage/store-disk.ts",
+          "summary": "Applied the same cap to disk Store loading, preventing unbounded peer hydration for validation inventory.",
+          "verification": "`pnpm --dir plugin run check` passed."
+        },
+        {
+          "file": "plugin/src/tools/change/validation-projection.test.ts",
+          "summary": "Asserted the projection requests the four-read validation cap.",
+          "verification": "Focused projection test passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A one-pass validation projection can still violate its concurrency contract when it delegates to a generic Store list with a wider internal hydration batch. Thread the validation-specific cap through both Temporal and disk Store paths, while retaining generic defaults for unrelated callers."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change/validation-projection.test.ts src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/validator/conflict-inventory.test.ts src/storage/store-temporal/changes.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Focused suite: 5 files, 53 tests passed. Static/schema/typecheck/isolation/lockfile/lint/format check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No browser verification applicable: agreement declares backend orchestration/validation behavior only.",
+        "The cap is covered by projection request assertion and Store implementation review; no dedicated end-to-end Temporal fixture directly measures maximum in-flight Store hydration."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "task_id": "tk-245c861625ad",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-245c861625ad"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change/validation-projection.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/validator/validator.ts",
+        "plugin/src/tools/change/create-clarify.test.ts",
+        "plugin/src/validator/validator.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test isolation, lockfile policy, lint, and format checks all pass"
+        },
+        {
+          "command": "npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts",
+          "exit_code": 0,
+          "summary": "23 new TDD tests pass (concurrency, deadline, immutability, canConcludeClean)"
+        },
+        {
+          "command": "npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts",
+          "exit_code": 0,
+          "summary": "151 existing tests pass; no regressions in adv_change_validate or conflict inventory behavior"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Plugin + Temporal worker bundle build succeeds"
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Refactored loadValidationContext to start projection, specs, proposal, and Git context concurrently under one shared 8s deadline; removed the old per-peer store.changes.get loop in favor of the task1 validation inventory projection; capped spec hydration concurrency at 4; deep-freeze the returned snapshot; and wired validator pass computation to fail closed when conflictInventory.canConcludeClean is false. All durable verification passes.",
+        "suggested_next_action": "Run full suite via bin/oc-test full when host load permits, then proceed to verification task tk-f37bea64a674."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "release-evidence-1",
+          "label": "blocker",
+          "what": "Release contract and persisted acceptance evidence could not be inspected: both adv_change_show and adv_status timed out after supplied valid arguments.",
+          "why": "Release hardening cannot establish agreement/acceptance conformance or durable gate evidence while ADV Temporal reads are unavailable.",
+          "fix": "Restore ADV Temporal/plugin-host responsiveness, then rerun change-level artifact/gate review."
+        },
+        {
+          "id": "release-verification-1",
+          "label": "blocker",
+          "what": "Bounded smoke verification did not complete within 300000ms and was terminated without test results.",
+          "why": "Release readiness requires a completed broader verification result; targeted tests alone do not cover the complete release surface.",
+          "fix": "Diagnose or rerun bin/oc-test smoke after host capacity/runtime health is restored; inspect any resulting failure before release."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Validation inventory sends an internal validationConcurrency: 4 cap through Store list to bound disk and Temporal per-change hydration; keep a targeted projection test and storage-path regression coverage when changing this contract."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change/validation-projection.test.ts",
+          "pnpm --dir plugin run check",
+          "bin/oc-test smoke",
+          "bin/oc-test targeted -- src/storage/store-temporal/changes.test.ts src/storage/store-temporal/index.test.ts"
+        ],
+        "results": "fail",
+        "evidence": "Targeted validation projection: 10/10 passed (529ms). Static release checks (schemas, typecheck, isolation, lockfile policy, lint, format): passed. Targeted Temporal storage tests: 50/50 passed (3.32s). bin/oc-test smoke exceeded the bounded 300000ms timeout and emitted no test result."
+      },
+      "scope_drift": null,
+      "risks": [
+        "ADV MCP reads are unavailable in this session, preventing contract, acceptance, gate, and persisted report inspection.",
+        "Broader smoke suite has no terminal result; release coverage remains incomplete."
+      ],
+      "required_main_agent_actions": [
+        "Restore or restart the ADV plugin/Temporal worker, then rerun adv_change_show with agreement, acceptance, briefing packet, and persisted reports to complete contract-evidence review.",
+        "Diagnose and complete bin/oc-test smoke; inspect and remediate any actual failing test before release.",
+        "Leave implementation files unchanged: static checks and both scoped test groups passed; no clear in-scope release defect was found."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixValidationInputTimeout",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Chunking release evidence into exact affected test slices produces actionable verification without rerunning an opaque long-running composite; retain suite names, counts, duration, and static-check evidence in acceptance."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm run check",
+          "smoke exact two-test slice (68/68, 4.43s)",
+          "focused validation projection slice (10/10)",
+          "Temporal storage slice (50/50)"
+        ],
+        "results": "pass",
+        "evidence": "Supplied release evidence: pnpm run check passed; exact smoke two-test slice passed 68/68 in 4.43s; focused projection passed 10/10; Temporal storage passed 50/50. Worktree is clean and git diff --check is clean. Durable acceptance matrix marks SC1-SC3, AC1-AC7, C1-C5, and DONT1-DONT3 pass/respected; acceptance gate is done. No visual review applies: agreement declares backend-only visual_surface: false."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Release gate may proceed; no implementation edits or additional opaque smoke composite rerun are required for this hardening reassessment."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-7abd63c1600d": [
+      {
+        "runId": "tr_mro6crdz_4b1c3b20",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm test -- src/tools/change/validation-projection.test.ts",
+        "durationMs": 60161.155898000114,
+        "recordedAt": "2026-07-17T00:03:14.578Z"
+      },
+      {
+        "runId": "tr_mro6go4y_fb06ac6a",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && pnpm test -- src/tools/change/validation-projection.test.ts",
+        "durationMs": 145873.21935700066,
+        "recordedAt": "2026-07-17T00:06:17.059Z"
+      },
+      {
+        "runId": "tr_mro6gwky_d35302f6",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && pnpm exec vitest run src/tools/change/validation-projection.test.ts",
+        "durationMs": 1331.8022440001369,
+        "recordedAt": "2026-07-17T00:06:27.946Z"
+      },
+      {
+        "runId": "tr_mro6se9h_f001dd1c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change/validation-projection.test.ts",
+        "durationMs": 2100.9426170000806,
+        "recordedAt": "2026-07-17T00:15:24.152Z"
+      },
+      {
+        "runId": "tr_mro6spwb_a14e694e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/validator src/tools/change.test.ts",
+        "durationMs": 7071.975618000142,
+        "recordedAt": "2026-07-17T00:15:39.142Z"
+      }
+    ],
+    "tk-245c861625ad": [
+      {
+        "runId": "tr_mro7y2ks_462d9c09",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin && npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts",
+        "durationMs": 3322.586675999686,
+        "recordedAt": "2026-07-17T00:47:48.504Z"
+      },
+      {
+        "runId": "tr_mro8fo18_2e550262",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin && npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts",
+        "durationMs": 3141.1708509996533,
+        "recordedAt": "2026-07-17T01:01:29.463Z"
+      },
+      {
+        "runId": "tr_mro8fynj_3f96691c",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixValidationInputTimeout/plugin && npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts",
+        "durationMs": 4836.594193000346,
+        "recordedAt": "2026-07-17T01:01:43.165Z"
+      },
+      {
+        "runId": "tr_mro8ioy4_5966788b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 47045.8813509997,
+        "recordedAt": "2026-07-17T01:03:50.547Z"
+      },
+      {
+        "runId": "tr_mro8jbdv_d69769a4",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 21776.27642199956,
+        "recordedAt": "2026-07-17T01:04:19.666Z"
+      },
+      {
+        "runId": "tr_mroccycr_29778130",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/change/create-clarify.test.ts src/validator/validator.test.ts src/tools/change/validation-projection.test.ts",
+        "durationMs": 4516.251576000825,
+        "recordedAt": "2026-07-17T02:51:21.336Z"
+      },
+      {
+        "runId": "tr_mrocd12o_8aabb107",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/change.test.ts src/validator/conflict-inventory.test.ts",
+        "durationMs": 6849.103132000193,
+        "recordedAt": "2026-07-17T02:51:24.835Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-16T22:52:40.871Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal on 2026-07-16; GitHub issue #227 is linked origin evidence.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2beaf23ed44ce98886acc23c94c1fd50d86d9f1c5cb99db6276ede1c7c197b9c",
+        "non_whitespace_chars": 311,
+        "checked_at": "2026-07-16T22:11:00.943Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-16T23:10:10.624Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved agreement and ChangeContract minted; research established shared deadline, bounded concurrency, one-pass validation projection, and fail-closed incomplete inventory semantics.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "3a60b3d94a13462735c418648724210431eb76230256bf27dd4598bae3db2d98",
+        "non_whitespace_chars": 2360,
+        "checked_at": "2026-07-16T22:11:00.944Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-16T23:53:29.863Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator revalidated revised fail-closed design: pass, high confidence; `canConcludeClean:false` structurally prevents false-clean verdict.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "03e64fc192e773231c3047f5270a8c46939dcf118ed17b88b04fa693cfc70c9c",
+        "non_whitespace_chars": 2307,
+        "checked_at": "2026-07-16T22:11:00.945Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-16T23:55:35.343Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved three-task implementation plan on 2026-07-16."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-17T01:09:18.709Z",
+      "completed_by": "agent",
+      "approval_evidence": "All planned tasks checkpointed; focused validation/store suites, deadline tests, smoke, check, and build passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-17T02:53:02.296Z",
+      "completed_at": "2026-07-17T02:53:37.010Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved delivered fix; refreshed contract review matrix after acceptance re-entry.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "adda920a51481f9471bd6c9bd61c1044f507bc05cfbb7d13624ccdf0006c83e5",
+        "non_whitespace_chars": 1055,
+        "checked_at": "2026-07-16T22:11:00.947Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "acceptance",
+      "reason": "Refresh stale acceptance readiness after warning-free attempt-2 task report and typed evidence disposition resolved the prior verification evidence blocker.",
+      "scope_delta": "No product or implementation scope change; acceptance re-entry only refreshes durable readiness evaluation.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-17T02:52:44.872Z",
+      "gates_reset": [
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "fast_follow_of": {
+    "parent_change_id": "addToolContextTelemetry",
+    "linked_at": "2026-07-16T22:10:53.167Z"
+  },
+  "origin": {
+    "kind": "triage",
+    "issue_number": 227,
+    "source_artifact": "github-issue:227"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+      "approvedAt": "2026-07-16T23:10:10.624Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Independent validation inputs overlap rather than serially accumulating latency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Active-peer conflict inventory is complete or explicitly non-conclusive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Validation load does not exceed bounded Temporal/store concurrency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`loadValidationContext` uses one request-scoped deadline and starts spec, inventory, proposal, and Git-context branches concurrently.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Spec and peer hydration have stable input ordering and a maximum observed concurrency of 4.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Multiple active peers with overlapping capabilities are all represented in conflict validation under delayed-read fixtures within the existing 8,000 ms containment budget.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Store enumeration truncation, deadline exhaustion, or incomplete hydration metadata produces blocked inventory and no clean validation verdict.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "A single enumerated peer hydration failure preserves typed degraded diagnostics and checks hydrated peers, but machine-enforced `canConcludeClean: false` prevents a clean/pass verdict.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Late work after deadline cannot mutate the returned validation result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "A validation-specific Store projection returns inventory summaries plus needed capabilities in one pass, removing duplicate active-peer hydration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep 8,000 ms outer timeout as containment, not correctness mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Bound peer/spec concurrency to 4.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve stable deterministic result ordering.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve Temporal query read-only semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Unknown active-peer capabilities always prohibit a clean/pass conclusion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not increase timeout to mask work duplication.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not use unbounded `Promise.all` fan-out.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not silently omit slow peers or return a clean result from incomplete inventory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "General Store performance refactor beyond validation projection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing unrelated validation rules or conflict algorithms.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-17T02:53:28.332Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed inventory states verified."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Store cap four verified."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Shared-deadline branch tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Ordering/cap tests pass."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused suite 51/51 pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Truncation/deadline tests pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Fail-closed validator tests pass."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Late settlement tests pass."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "One list/zero peer-get tests pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "8s retained."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cap four."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Stable ordering."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Read-only queries preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Pass uses canConcludeClean."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No timeout increase."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Bounded batches."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Incomplete cannot pass."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`loadValidationContext` uses one request-scoped deadline and starts spec, inventory, proposal, and Git-context branches concurrently.",
+    "Spec and peer hydration have stable input ordering and a maximum observed concurrency of 4.",
+    "Multiple active peers with overlapping capabilities are all represented in conflict validation under delayed-read fixtures within the existing 8,000 ms containment budget.",
+    "Store enumeration truncation, deadline exhaustion, or incomplete hydration metadata produces blocked inventory and no clean validation verdict.",
+    "A single enumerated peer hydration failure preserves typed degraded diagnostics and checks hydrated peers, but machine-enforced `canConcludeClean: false` prevents a clean/pass verdict.",
+    "Late work after deadline cannot mutate the returned validation result.",
+    "A validation-specific Store projection returns inventory summaries plus needed capabilities in one pass, removing duplicate active-peer hydration."
+  ],
+  "documents": {
+    "proposal": "Eliminate `adv_change_validate` input-load timeouts while preserving authoritative conflict validation. Diagnose sequential spec/change/peer hydration, introduce bounded safe concurrency or other structural improvement, and add regression coverage. Success: validation completes with multiple active peer changes under the existing safe tool budget.",
+    "agreement": "# Agreement\n\n## Objectives\n- Make `adv_change_validate` input loading reliable within its existing bounded budget.\n- Preserve authoritative conflict validation; incomplete inventory must never yield a false-clean result.\n\n## Success Criteria\n- SC1: Independent validation inputs overlap rather than serially accumulating latency.\n- SC2: Active-peer conflict inventory is complete or explicitly non-conclusive.\n- SC3: Validation load does not exceed bounded Temporal/store concurrency.\n\n## Acceptance Criteria\n- AC1: `loadValidationContext` uses one request-scoped deadline and starts spec, inventory, proposal, and Git-context branches concurrently.\n- AC2: Spec and peer hydration have stable input ordering and a maximum observed concurrency of 4.\n- AC3: Multiple active peers with overlapping capabilities are all represented in conflict validation under delayed-read fixtures within the existing 8,000 ms containment budget.\n- AC4: Store enumeration truncation, deadline exhaustion, or incomplete hydration metadata produces blocked inventory and no clean validation verdict.\n- AC5: A single enumerated peer hydration failure preserves typed degraded diagnostics and checks hydrated peers, but machine-enforced `canConcludeClean: false` prevents a clean/pass verdict.\n- AC6: Late work after deadline cannot mutate the returned validation result.\n- AC7: A validation-specific Store projection returns inventory summaries plus needed capabilities in one pass, removing duplicate active-peer hydration.\n\n## Constraints\n- C1: Keep 8,000 ms outer timeout as containment, not correctness mechanism.\n- C2: Bound peer/spec concurrency to 4.\n- C3: Preserve stable deterministic result ordering.\n- C4: Preserve Temporal query read-only semantics.\n- C5: Unknown active-peer capabilities always prohibit a clean/pass conclusion.\n\n## Avoidances\n- DONT1: Do not increase timeout to mask work duplication.\n- DONT2: Do not use unbounded `Promise.all` fan-out.\n- DONT3: Do not silently omit slow peers or return a clean result from incomplete inventory.\n\n## Out of Scope\n- OOS1: General Store performance refactor beyond validation projection.\n- OOS2: Changing unrelated validation rules or conflict algorithms.\n\n## Preview Applicability\n- visual_surface: false\n- preview_expectation: exact_route_required: false; data_state_expectation: none; viewport_expectation: none; rationale: backend orchestration and validation behavior only.\n\n## Decisions\n### User Decisions\n- Incomplete inventory blocks instead of degrading to a clean conflict result.\n- Peer/spec hydration concurrency is capped at 4.\n- Include validation-specific one-pass Store projection in this change.\n- Peer failure is fail-closed: retain diagnostics but prohibit clean/pass conclusion.\n\n### Agent Decisions (LBP)\n- Use shared deadline admission checks and ordered bounded maps; preserve typed degraded diagnostics with structural non-conclusion.\n\n## Deferred Questions\n- None.\n\n## Sign-Off\n- User approved agreement amendment on 2026-07-16.",
+    "design": "# Design\n\n## Architecture Overview\nA validation-specific Store projection returns ordered inventory rows and needed capabilities in one bounded path. `loadValidationContext` starts projection, specs, proposal, and Git-context work under one request-scoped deadline. Ordered bounded maps cap work at four; no work starts after admission fails.\n\n## Key Decisions\n- Projection returns typed completeness, warnings, and hydration metadata; no duplicate per-peer hydration loop.\n- Enumeration truncation/deadline produces `blocked` inventory.\n- Individual peer failure preserves `degraded` diagnostic and hydrated-peer checks, but sets structural `canConcludeClean: false` consumed by validator pass computation.\n- Stable input ordering is reconstructed by index.\n- Deadline begins before any target/change/store read; outer 8s timeout is containment only.\n- Settled result object is immutable; late promises cannot change returned validation snapshot.\n\n## Implementation Strategy\n1. Define typed projection and conclusion-state fields at Store/validator boundaries.\n2. Thread one deadline through target change, specs, inventory, proposal, and Git branches.\n3. Reuse bounded ordered map with concurrency=4.\n4. Map inventory conditions to blocked/degraded/non-conclusive states and update pass computation.\n5. Add deterministic deferred-promise tests for all concurrency, deadline, ordering, incomplete, and late-settlement cases.\n\n## LBP Analysis\nOne-pass typed projection removes duplicate authoritative reads. Bounded concurrency reduces serial latency safely. Structural non-conclusion prevents missing capabilities from turning into false-clean output.\n\n## Affected Components\n- `plugin/src/tools/change/create-clarify.ts`\n- Store types and Temporal projection\n- `plugin/src/tools/change.ts`\n- Validator conflict/pass computation\n- Change/conflict-inventory/Temporal Store tests\n\n## Design-Derived Criteria\n- DC1: Maximum observed hydration concurrency is 4.\n- DC2: Output order equals input order.\n- DC3: Unknown peer capabilities set `canConcludeClean:false` and cannot produce `passed:true`.\n- DC4: Deadline begins before every input read and late settlement cannot mutate returned state.\n\n## Validator Resolution\n- Initial validator found degraded inventory could still pass.\n- User selected fail-closed behavior: preserve diagnostics and hydrated-peer checks but structurally prohibit clean/pass conclusion.\n\n## Risks / Mitigations\n- Projection API drift: private validation-focused type plus Store/mock tests.\n- RPC burst: hard cap asserted in tests.\n- Promise race: immutable settled snapshot and deterministic deferred-promise coverage.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n`adv_change_validate` now loads validation inputs concurrently under one request deadline instead of serially rehydrating active peer changes. The validation path consumes capabilities from the Store’s one-pass list projection and caps Store hydration at four.\n\n## Value\nValidation no longer spends its 8-second input budget repeating peer reads. Incomplete inventory remains visible but is fail-closed: `canConcludeClean: false` prevents a clean/pass verdict.\n\n## Verification\n- Focused validation/store suite: 51 passing tests.\n- Deadline/store suite: 30 passing tests.\n- Smoke test slice: 68 passing tests in 4.43s.\n- Check stage: `pnpm run check` passed.\n- Reviewer and harden verdicts: READY.\n\n## Risks and Follow-ups\n- No known release blockers.\n- Broader Store performance work remains out of scope.\n\n## Release Readiness Summary\n- Chunked fail-fast verification completed: check, smoke slice, projection, and Temporal storage tests all pass.\n- The previous opaque 300-second smoke composite timeout was isolated: its check stage and exact test slice pass independently; no active throttle lock/process was found.\n- Data/migration impact: none.\n- Frontend/preview impact: none.\n- Operational impact: validation Store hydration concurrency is capped at four.\n- Supporting commits: `b6bcc5a6`, `607e867a`, `a44ab374`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-17T02:53:28.332Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Independent validation inputs overlap rather than serially accumulating latency. | pass | Reviewer READY. |\n| SC2 | success_criterion | Active-peer conflict inventory is complete or explicitly non-conclusive. | pass | Typed inventory states verified. |\n| SC3 | success_criterion | Validation load does not exceed bounded Temporal/store concurrency. | pass | Store cap four verified. |\n| AC1 | acceptance_criterion | `loadValidationContext` uses one request-scoped deadline and starts spec, inventory, proposal, and Git-context branches concurrently. | pass | Shared-deadline branch tests pass. |\n| AC2 | acceptance_criterion | Spec and peer hydration have stable input ordering and a maximum observed concurrency of 4. | pass | Ordering/cap tests pass. |\n| AC3 | acceptance_criterion | Multiple active peers with overlapping capabilities are all represented in conflict validation under delayed-read fixtures within the existing 8,000 ms containment budget. | pass | Focused suite 51/51 pass. |\n| AC4 | acceptance_criterion | Store enumeration truncation, deadline exhaustion, or incomplete hydration metadata produces blocked inventory and no clean validation verdict. | pass | Truncation/deadline tests pass. |\n| AC5 | acceptance_criterion | A single enumerated peer hydration failure preserves typed degraded diagnostics and checks hydrated peers, but machine-enforced `canConcludeClean: false` prevents a clean/pass verdict. | pass | Fail-closed validator tests pass. |\n| AC6 | acceptance_criterion | Late work after deadline cannot mutate the returned validation result. | pass | Late settlement tests pass. |\n| AC7 | acceptance_criterion | A validation-specific Store projection returns inventory summaries plus needed capabilities in one pass, removing duplicate active-peer hydration. | pass | One list/zero peer-get tests pass. |\n| C1 | constraint | Keep 8,000 ms outer timeout as containment, not correctness mechanism. | respected | 8s retained. |\n| C2 | constraint | Bound peer/spec concurrency to 4. | respected | Cap four. |\n| C3 | constraint | Preserve stable deterministic result ordering. | respected | Stable ordering. |\n| C4 | constraint | Preserve Temporal query read-only semantics. | respected | Read-only queries preserved. |\n| C5 | constraint | Unknown active-peer capabilities always prohibit a clean/pass conclusion. | respected | Pass uses canConcludeClean. |\n| DONT1 | avoidance | Do not increase timeout to mask work duplication. | respected | No timeout increase. |\n| DONT2 | avoidance | Do not use unbounded `Promise.all` fan-out. | respected | Bounded batches. |\n| DONT3 | avoidance | Do not silently omit slow peers or return a clean result from incomplete inventory. | respected | Incomplete cannot pass. |\n| OOS1 | out_of_scope | General Store performance refactor beyond validation projection. | not_applicable | Out of scope. |\n| OOS2 | out_of_scope | Changing unrelated validation rules or conflict algorithms. | not_applicable | Out of scope. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-16T22:11:01.115Z",
+      "contentHash": "2beaf23ed44ce98886acc23c94c1fd50d86d9f1c5cb99db6276ede1c7c197b9c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-16T23:51:53.891Z",
+      "contentHash": "5b969a94cff1887537b57875a2a39bb31ab0436eb1465d416bfbdc8ee5a212c6",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-16T23:52:20.884Z",
+      "contentHash": "03e64fc192e773231c3047f5270a8c46939dcf118ed17b88b04fa693cfc70c9c",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-17T03:38:26.475Z",
+      "contentHash": "a8e48184a673b2cfb9cb521dce3d5765ca51ed973395d1a8c231f51c188b46ae",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-17T03:38:26.475Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-16T22:50:43.897Z"
+    }
+  ]
+}

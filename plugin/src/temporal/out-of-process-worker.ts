@@ -29,6 +29,15 @@ export interface OutOfProcessWorkerInput {
 
 export interface OutOfProcessWorker extends InProcessWorker {
   isAlive(): boolean;
+  /**
+   * First-class bundle-roll lifecycle (see `worker-multi.ts`
+   * `restartChild`). Distinct from crash-respawn and `shutdown()`:
+   * gracefully retires the current child (SIGTERM, hard-kill deadline
+   * exceeding the child Temporal shutdownGraceTime), spawns a
+   * replacement, and resolves after the replacement's ready handshake.
+   * Single-flight; never increments the crash restartCount.
+   */
+  restartChild(): Promise<void>;
   getDiagnostics(): Array<{
     queue: string;
     dead: boolean;
@@ -68,6 +77,10 @@ export async function createOutOfProcessWorker(
 
     isAlive(): boolean {
       return multi.isAlive();
+    },
+
+    async restartChild(): Promise<void> {
+      return multi.restartChild();
     },
 
     getDiagnostics() {

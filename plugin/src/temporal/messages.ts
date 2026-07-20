@@ -18,6 +18,7 @@
 import * as wf from "@temporalio/workflow";
 
 import type {
+  AcceptanceCriteriaProjection,
   AcceptanceCriteriaSetSignalPayload,
   AcceptanceUpdatedSignalPayload,
   AgreementUpdatedSignalPayload,
@@ -55,6 +56,8 @@ import type {
   OpsFollowupSeededSignalPayload,
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
+  LightweightProfileEvaluatedSignalPayload,
+  LightweightProfileRequestedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   Phase9StatusUpdatedSignalPayload,
@@ -62,6 +65,7 @@ import type {
   ShellAddedSignalPayload,
   ShellPromotedSignalPayload,
   SpecDeltaAddedSignalPayload,
+  SpecDeltaModifiedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
@@ -79,6 +83,7 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
+import type { MutationReceipt } from "./contracts";
 import type {
   ChangeWorkflowBootstrapState,
   ChangeWorkflowState,
@@ -86,6 +91,7 @@ import type {
   EpicWorkflowState,
 } from "./contracts";
 import type { WorkflowDirective } from "../utils/workflow-directive";
+import type { PhasePlan } from "../utils/phase-plan";
 import {
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
@@ -119,17 +125,28 @@ export const getGateCriteriaQuery = wf.defineQuery<
   ChangeWorkflowState["gateCriteria"],
   []
 >(CHANGE_WORKFLOW_QUERY_NAMES.getGateCriteria);
+export const getAcceptanceCriteriaProjectionQuery = wf.defineQuery<
+  AcceptanceCriteriaProjection,
+  []
+>(CHANGE_WORKFLOW_QUERY_NAMES.getAcceptanceCriteriaProjection);
 export const getWorktreesQuery = wf.defineQuery<
   NonNullable<ChangeWorkflowState["worktrees"]>
 >(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);
 export const getConformanceStateQuery = wf.defineQuery<
   ChangeWorkflowState["conformance"]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
+export const getMutationReceiptQuery = wf.defineQuery<
+  MutationReceipt | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
 export const getCurrentBucketQuery = wf.defineQuery<string>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
 );
 export const getDirectiveQuery = wf.defineQuery<WorkflowDirective>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective,
+);
+export const getPhasePlanQuery = wf.defineQuery<PhasePlan>(
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan,
 );
 export const getReadyTasksQuery = wf.defineQuery<
   ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>
@@ -242,6 +259,9 @@ export const wisdomAddedSignal = wf.defineSignal<[WisdomAddedSignalPayload]>(
 export const specDeltaAddedSignal = wf.defineSignal<
   [SpecDeltaAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAdded);
+export const specDeltaModifiedSignal = wf.defineSignal<
+  [SpecDeltaModifiedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaModified);
 export const reflectionRecordedSignal = wf.defineSignal<
   [ReflectionRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
@@ -296,6 +316,12 @@ export const opsRunUpsertedSignal = wf.defineSignal<
 export const opsRunEvidenceAppendedSignal = wf.defineSignal<
   [OpsRunEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunEvidenceAppended);
+export const lightweightProfileRequestedSignal = wf.defineSignal<
+  [LightweightProfileRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileRequested);
+export const lightweightProfileEvaluatedSignal = wf.defineSignal<
+  [LightweightProfileEvaluatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileEvaluated);
 export const epicMembershipSetSignal = wf.defineSignal<
   [EpicMembershipSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);

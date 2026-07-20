@@ -1,3 +1,4 @@
+import { Connection } from "@temporalio/client";
 import { collectErrorText } from "./error-text";
 
 export type TemporalErrorClass = "transient" | "fallback" | "fatal";
@@ -261,6 +262,18 @@ interface RetryOptions {
    * exhausted. Omit for mutation/long-running paths.
    */
   deadline?: TemporalReadDeadline;
+  /**
+   * SDK connection to use for native gRPC deadline/abort propagation.
+   * When provided alongside `deadline`, `Promise.race` is no longer the
+   * RPC timeout authority — the SDK's `Connection.withDeadline` and
+   * `withAbortSignal` cancel the in-flight RPC instead.
+   */
+  connection?: Connection;
+  /**
+   * Request-scoped abort signal. When provided, the SDK cancels the
+   * in-flight RPC if the signal is aborted.
+   */
+  abortSignal?: AbortSignal;
 }
 
 function delayMs(attempt: number, options: RetryOptions): number {
@@ -310,7 +323,24 @@ export async function withTemporalRetry<T>(
         ? Math.min(options.timeoutMs ?? remaining, remaining)
         : options.timeoutMs;
     try {
-      const result = await withTimeout(op(), attemptTimeoutMs);
+      let result: T;
+      if (deadline && options.connection) {
+        // rq-boundedAuthoritativeRead02: use the SDK's native gRPC deadline
+        // and abort propagation as the RPC timeout authority. The per-attempt
+        // deadline is the same cap that the legacy Promise.race fallback
+        // would have applied, but the SDK cancels the in-flight RPC instead
+        // of merely resolving a local race.
+        const attemptDeadlineAt =
+          Date.now() + (attemptTimeoutMs ?? remainingDeadlineMs(deadline));
+        result = await options.connection.withDeadline(attemptDeadlineAt, () =>
+          options.connection!.withAbortSignal(
+            options.abortSignal ?? new AbortController().signal,
+            op,
+          ),
+        );
+      } else {
+        result = await withTimeout(op(), attemptTimeoutMs);
+      }
       telemetry.lastOpAt = new Date().toISOString();
       telemetry.lastError = null;
       telemetry.lastAttempts = attempt;

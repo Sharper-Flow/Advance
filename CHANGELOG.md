@@ -13,6 +13,8 @@
 
 ### Changed
 
+- **Engineer-first classified UI delivery** — `metadata.frontend: "true"` now classifies work for initial `adv-engineer` implementation followed by a matching-cycle `adv-designer` UI/UX follow-up; it no longer directly routes initial implementation to `adv-designer`.
+- **`adv_delta_modify`** — narrow typed modification deltas can update an existing capability-local requirement through change-owned state; archive remains the sole global-spec writer, with remove, rename, full CRUD, and direct global writes excluded.
 - **Strict role-scoped tool visibility** — agent ADV-tool allowlists are now governed by an exhaustive code-owned role policy (`plugin/src/tool-role-policy.ts`) that mirrors `docs/tool-ownership.md`. CI fails when an agent manifest grants an unregistered, removed, or role-irrelevant ADV tool, or when the documented ownership matrix and the code policy diverge — including action-level dual-tool distinctions (`adv_snapshot_health#repair`, `adv_conformance#override`, `adv_status forceRefresh`, `adv_project_metadata write`).
 
 ## 2026-05-28 (v1.0.0)

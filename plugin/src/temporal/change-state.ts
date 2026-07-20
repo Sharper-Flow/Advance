@@ -34,10 +34,13 @@ import type {
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
   OriginRepairedSignalPayload,
+  LightweightProfileEvaluatedSignalPayload,
+  LightweightProfileRequestedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
   SpecDeltaAddedSignalPayload,
+  SpecDeltaModifiedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
@@ -57,7 +60,11 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
-import { createDefaultGates, GATE_ORDER } from "../types";
+import {
+  createDefaultGates,
+  GATE_ORDER,
+  SpecDeltaModifiedSignalPayloadSchema,
+} from "../types";
 import { CAPABILITY_KEY_PATTERN } from "../types/specs";
 import {
   normalizePersistedSubagentReportState,
@@ -67,15 +74,21 @@ import {
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
+import {
+  resolveTaskEvidence,
+  validateTaskEvidenceForStage,
+} from "../validator/task-classifier";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
   ArtifactMetadata,
   ChangeWorkflowInput,
   ChangeWorkflowState,
+  MutationReceipt,
   SignalRejection,
   TestRunRecord,
 } from "./contracts";
+import { MUTATION_RECEIPTS_FIFO_LIMIT } from "./contracts";
 
 export interface UpdateTaskInput {
   status: Task["status"];
@@ -143,6 +156,7 @@ export function createChangeWorkflowState(input: {
     reflections: [],
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
+    acceptanceReadinessRevision: 0,
   };
 }
 
@@ -172,6 +186,8 @@ export function changeSeedStateFromChange(
     lastSignalAt: safeChange.lastSignalAt,
     acceptanceCriteria: safeChange.acceptanceCriteria,
     contract: safeChange.contract,
+    acceptanceReadinessRevision: safeChange.acceptanceReadinessRevision,
+    acceptanceCriteriaSnapshot: safeChange.acceptanceCriteriaSnapshot,
     documents: safeChange.documents,
     origin: safeChange.origin,
     cross_project_origin: safeChange.cross_project_origin,
@@ -190,6 +206,7 @@ export function changeSeedStateFromChange(
     ops_followup: safeChange.ops_followup,
     ops_followup_links: safeChange.ops_followup_links,
     epic_membership: safeChange.epic_membership,
+    lightweight_profile: safeChange.lightweight_profile,
   };
 }
 
@@ -238,6 +255,58 @@ export function changeToDirectiveState(input: {
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
   if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;
+}
+
+function advanceAcceptanceReadinessRevision(state: ChangeWorkflowState): void {
+  state.acceptanceReadinessRevision =
+    (state.acceptanceReadinessRevision ?? 0) + 1;
+}
+
+/**
+ * rq-readinessMutationReceipt01: prepend a mutation receipt to
+ * `state.mutationReceipts` (most recent first), then cap the FIFO at
+ * {@link MUTATION_RECEIPTS_FIFO_LIMIT}. Callers invoke this AFTER the
+ * reducer has applied a readiness-affecting mutation, so the receipt
+ * is the structural proof that state mutation completed. No-ops when
+ * the caller did not supply a `mutationReceiptId`, preserving legacy
+ * compatibility (signal handler behavior is unchanged for callers that
+ * omit the field).
+ *
+ * The reducer is responsible for invocation timing — receipt recording
+ * belongs to the same reducer pass that applied the mutation. Callers
+ * must not invoke this from background or unrelated code paths.
+ */
+export function recordMutationReceipt(
+  state: ChangeWorkflowState,
+  input: {
+    signalName: string;
+    mutationReceiptId?: string;
+    recordedAt: string;
+  },
+): void {
+  if (!input.mutationReceiptId) return;
+  const receipt: MutationReceipt = {
+    id: input.mutationReceiptId,
+    signalName: input.signalName,
+    recordedAt: input.recordedAt,
+  };
+  const existing = state.mutationReceipts ?? [];
+  const next = [receipt, ...existing].slice(0, MUTATION_RECEIPTS_FIFO_LIMIT);
+  state.mutationReceipts = next;
+}
+
+/**
+ * rq-readinessMutationReceipt01: query-side helper that finds a receipt
+ * by id in the bounded FIFO. Returns the matching receipt or undefined
+ * when the id is not present (yet). Pure read — safe to call from any
+ * query handler, including the `getMutationReceipts` query itself.
+ */
+export function findMutationReceipt(
+  state: ChangeWorkflowState,
+  mutationReceiptId: string,
+): MutationReceipt | undefined {
+  const receipts = state.mutationReceipts ?? [];
+  return receipts.find((r) => r.id === mutationReceiptId);
 }
 
 export function applyCrossProjectCoordinationUpdatedToState(
@@ -413,6 +482,40 @@ export function applyOpsRunEvidenceAppendedToState(
     updated_at: payload.appendedAt,
   };
   setLastSignalAt(state, payload.appendedAt);
+  return state;
+}
+
+export function applyLightweightProfileRequestedToState(
+  state: ChangeWorkflowState,
+  payload: LightweightProfileRequestedSignalPayload,
+): ChangeWorkflowState {
+  state.lightweight_profile = {
+    request: payload.request,
+    omissionPolicy: payload.omissionPolicy,
+    evaluations: [],
+  };
+  setLastSignalAt(state, payload.requestedAt);
+  return state;
+}
+
+export function applyLightweightProfileEvaluatedToState(
+  state: ChangeWorkflowState,
+  payload: LightweightProfileEvaluatedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.lightweight_profile;
+  if (!existing) {
+    throw new Error(
+      "Cannot append lightweight profile evaluation: no profile request exists",
+    );
+  }
+  const key = payload.evaluation.evaluationKey;
+  if (existing.evaluations.some((entry) => entry.evaluationKey === key)) {
+    // Stable idempotency: same request/phase/fingerprint retry is a no-op.
+    setLastSignalAt(state, payload.evaluatedAt);
+    return state;
+  }
+  existing.evaluations.push(payload.evaluation);
+  setLastSignalAt(state, payload.evaluatedAt);
   return state;
 }
 
@@ -621,7 +724,7 @@ function applyContentWithSizeGuard(
   kind: ArtifactKind,
   text: string,
   at: string,
-): ChangeWorkflowState {
+): { state: ChangeWorkflowState; applied: boolean } {
   // Active content is Temporal-first; metadata intentionally omits active
   // filesystem paths until an archive/recovery/materialization step creates one.
   const temporalOnlyMetadata = (): ArtifactMetadata => ({
@@ -640,7 +743,7 @@ function applyContentWithSizeGuard(
       },
     };
     setLastSignalAt(state, at);
-    return state;
+    return { state, applied: false };
   }
 
   // Aggregate cap check (projects this content onto existing documents)
@@ -654,7 +757,7 @@ function applyContentWithSizeGuard(
       },
     };
     setLastSignalAt(state, at);
-    return state;
+    return { state, applied: false };
   }
 
   // Caps passed — apply content. Clear any prior rejection; record warning
@@ -668,7 +771,7 @@ function applyContentWithSizeGuard(
   state.documents = { ...(state.documents ?? {}), [kind]: text };
   state.artifacts = { ...state.artifacts, [kind]: nextArtifact };
   setLastSignalAt(state, at);
-  return state;
+  return { state, applied: true };
 }
 
 export function applyProposalUpdatedToState(
@@ -680,7 +783,7 @@ export function applyProposalUpdatedToState(
     "proposal",
     payload.text,
     payload.updatedAt,
-  );
+  ).state;
 }
 
 export function applyProblemStatementUpdatedToState(
@@ -692,7 +795,7 @@ export function applyProblemStatementUpdatedToState(
     "problemStatement",
     payload.text,
     payload.updatedAt,
-  );
+  ).state;
 }
 
 export function applyAgreementUpdatedToState(
@@ -704,43 +807,74 @@ export function applyAgreementUpdatedToState(
     "agreement",
     payload.text,
     payload.updatedAt,
-  );
+  ).state;
 }
 
 export function applyDesignUpdatedToState(
   state: ChangeWorkflowState,
   payload: DesignUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  return applyContentWithSizeGuard(
+  const { state: next, applied } = applyContentWithSizeGuard(
     state,
     "design",
     payload.text,
     payload.updatedAt,
   );
+  // rq-readinessMutationReceipt01: design content affects acceptance
+  // readiness (the design gate artifact backs acceptance review). Record
+  // only on successful content application.
+  if (applied) {
+    recordMutationReceipt(next, {
+      signalName: "designUpdated",
+      mutationReceiptId: payload.mutationReceiptId,
+      recordedAt: payload.updatedAt,
+    });
+  }
+  return next;
 }
 
 export function applyExecutiveSummaryUpdatedToState(
   state: ChangeWorkflowState,
   payload: ExecutiveSummaryUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  return applyContentWithSizeGuard(
+  const { state: next, applied } = applyContentWithSizeGuard(
     state,
     "executiveSummary",
     payload.text,
     payload.updatedAt,
   );
+  // rq-readinessMutationReceipt01: executive summary content gates
+  // acceptance readiness; record only on successful content application.
+  if (applied) {
+    recordMutationReceipt(next, {
+      signalName: "executiveSummaryUpdated",
+      mutationReceiptId: payload.mutationReceiptId,
+      recordedAt: payload.updatedAt,
+    });
+  }
+  return next;
 }
 
 export function applyAcceptanceUpdatedToState(
   state: ChangeWorkflowState,
   payload: AcceptanceUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  return applyContentWithSizeGuard(
+  const { state: next, applied } = applyContentWithSizeGuard(
     state,
     "acceptance",
     payload.text,
     payload.updatedAt,
   );
+  // rq-readinessMutationReceipt01: acceptance proof content gates
+  // release readiness; record only on successful content application.
+  if (applied) {
+    recordMutationReceipt(next, {
+      signalName: "acceptanceUpdated",
+      mutationReceiptId: payload.mutationReceiptId,
+      recordedAt: payload.updatedAt,
+    });
+  }
+  return next;
 }
 
 export function applyAcceptanceCriteriaSetToState(
@@ -766,6 +900,7 @@ export function applyContractSetToState(
 ): ChangeWorkflowState {
   state.contract = payload.contract;
   state.acceptanceCriteria = acceptanceCriteriaFromContract(payload.contract);
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -788,6 +923,7 @@ export function applyContractAmendedToState(
   ) {
     delete state.contract.reviewMatrix;
   }
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -800,7 +936,17 @@ export function applyContractReviewMatrixSetToState(
     throw new Error("Cannot set contract review matrix: no contract is set");
   }
   state.contract.reviewMatrix = payload.reviewMatrix;
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.updatedAt);
+  // rq-readinessMutationReceipt01: review matrix set advances the
+  // acceptance-readiness revision, clearing an otherwise-blocking
+  // readiness gap (rq-contractCoverageProjection01). Record the receipt
+  // after state apply so the query confirms the reducer ran.
+  recordMutationReceipt(state, {
+    signalName: "contractReviewMatrixSet",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.updatedAt,
+  });
   return state;
 }
 
@@ -897,6 +1043,10 @@ export function applyTaskCompletedToState(
     return state;
   }
 
+  // rq-delDefaults10: frontend completion structurally requires one
+  // matching-cycle adv-designer follow-up after successful engineer or safe
+  // inline implementation; the task's active apply cycle anchors that
+  // evidence — no cycle anchor, no completion.
   if (task.metadata?.frontend === "true") {
     const implementationCycleId = task.apply_cycle?.implementation_cycle_id;
     if (!implementationCycleId) {
@@ -917,6 +1067,17 @@ export function applyTaskCompletedToState(
     ) {
       throw new Error(
         `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.`,
+      );
+    }
+    if (
+      !hasMatchingFrontendImplementationReceipt({
+        taskId: payload.taskId,
+        implementationCycleId,
+        reports,
+      })
+    ) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires matching successful adv-engineer evidence or an inline provenance receipt for implementation cycle ${implementationCycleId}.`,
       );
     }
   }
@@ -964,6 +1125,27 @@ export function applyTaskCompletedToState(
     }
   }
 
+  // rq-evidencePlan01: validate the normalized evidence plan before completing.
+  // The resolver is the sole compatibility authority; unsupported routes fail
+  // structurally, and behavior-critical non-test routes require a linked review
+  // conclusion.
+  const evidenceResolution = resolveTaskEvidence(task);
+  if (!evidenceResolution.valid) {
+    throw new Error(
+      `TASK_COMPLETION_BLOCKED: task ${payload.taskId} has an invalid evidence plan: ${evidenceResolution.errors.join("; ")}`,
+    );
+  }
+  const completionValidation = validateTaskEvidenceForStage(
+    task,
+    "completion",
+    [...(state.subagent_reports ?? []), ...(task.subagent_reports ?? [])],
+  );
+  if (!completionValidation.valid) {
+    throw new Error(
+      `TASK_COMPLETION_BLOCKED: task ${payload.taskId} has invalid completion-stage evidence: ${completionValidation.errors.join("; ")}`,
+    );
+  }
+
   task.status = "done";
   task.verification = payload.verification;
   task.summary = payload.summary;
@@ -975,6 +1157,26 @@ export function applyTaskCompletedToState(
   task.completed_at = payload.completedAt;
   if (payload.structured_output) {
     task.structured_output = payload.structured_output;
+  }
+  // Preserve the resolved evidence plan as typed completion proof (additive to
+  // verification prose and run IDs). For legacy tasks this materializes the
+  // normalized legacy plan for the first time.
+  if (evidenceResolution.policy && evidenceResolution.proof_target) {
+    task.evidence_plan = {
+      policy: evidenceResolution.policy,
+      proof_target: evidenceResolution.proof_target,
+      ...(evidenceResolution.rationale
+        ? { rationale: evidenceResolution.rationale }
+        : {}),
+      ...(evidenceResolution.review_conclusion
+        ? { review_conclusion: evidenceResolution.review_conclusion }
+        : {}),
+      ...(evidenceResolution.review_evidence_ref
+        ? { review_evidence_ref: evidenceResolution.review_evidence_ref }
+        : {}),
+      ...(evidenceResolution.stage ? { stage: evidenceResolution.stage } : {}),
+      provenance: evidenceResolution.compatibility ?? "legacy",
+    };
   }
   setLastSignalAt(state, payload.completedAt);
   return state;
@@ -1063,6 +1265,62 @@ function hasMatchingDesignerApplyEvidence(input: {
   );
 }
 
+function hasMatchingSuccessfulEngineerEvidence(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): SubagentReportSubmittedSignalPayload["report"] | undefined {
+  return input.reports.find(
+    (report) =>
+      report.agent === "adv-engineer" &&
+      report.status === "complete" &&
+      report.blockers.length === 0 &&
+      report.verification.length > 0 &&
+      report.verification.every((entry) => entry.exit_code === 0) &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+}
+
+function hasMatchingFrontendImplementationReceipt(input: {
+  taskId: string;
+  implementationCycleId: string;
+  reports: SubagentReportSubmittedSignalPayload["report"][];
+}): boolean {
+  const successfulEngineers = input.reports.filter(
+    (report) =>
+      report.agent === "adv-engineer" &&
+      report.status === "complete" &&
+      report.blockers.length === 0 &&
+      report.verification.length > 0 &&
+      report.verification.every((entry) => entry.exit_code === 0) &&
+      taskIdFromReport(report) === input.taskId &&
+      subagentReportImplementationCycleId(report) ===
+        input.implementationCycleId,
+  );
+
+  return input.reports.some((report) => {
+    if (
+      report.agent !== "adv-designer" ||
+      report.status !== "complete" ||
+      taskIdFromReport(report) !== input.taskId ||
+      subagentReportImplementationCycleId(report) !==
+        input.implementationCycleId
+    ) {
+      return false;
+    }
+    const provenance = report.apply_context?.implementation_provenance;
+    if (provenance?.kind === "inline") return true;
+    return (
+      provenance?.kind === "engineer_report" &&
+      successfulEngineers.some(
+        (engineer) => reportKey(engineer) === provenance.report_key,
+      )
+    );
+  });
+}
+
 function reportKey(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): string {
@@ -1074,6 +1332,33 @@ function reportKey(
     attempt: report.attempt,
     implementationCycleId: subagentReportImplementationCycleId(report),
   });
+}
+
+/**
+ * Behavior-critical evidence plans only: code/verification tasks whose
+ * evidence_policy is set and not test/not_applicable. A reviewer report
+ * covering docs/ops/research tasks does not write a review_evidence_ref.
+ */
+function isBehaviorCriticalEvidencePlanTask(task: Task): boolean {
+  const type = task.type ?? "code";
+  if (type !== "code" && type !== "verification") return false;
+  const policy = task.evidence_plan?.policy ?? task.evidence_policy;
+  if (!policy) return false;
+  return policy !== "test" && policy !== "not_applicable";
+}
+
+/**
+ * Ensure the evidence_plan carries a stable `provenance` field. Legacy plans
+ * that omit it are normalized to "legacy" so downstream readiness checks can
+ * distinguish legacy readability from stage-v2 authority. Returns a partial
+ * patch keyed by field presence — used to merge into existing evidence_plan
+ * objects without dropping the original `policy`, `proof_target`, etc.
+ */
+function normalizeEvidencePlanCompatibility(plan: Task["evidence_plan"]): {
+  provenance: "legacy" | "new" | "reclassified";
+} {
+  if (!plan) return { provenance: "legacy" };
+  return { provenance: plan.provenance ?? "legacy" };
 }
 
 export function applySubagentReportSubmittedToState(
@@ -1121,6 +1406,24 @@ export function applySubagentReportSubmittedToState(
           `SUBAGENT_REPORT_ANCHOR_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} claims implementation cycle ${claimedCycleId} but the task has no matching active implementation cycle${activeCycleId ? ` (active cycle: ${activeCycleId})` : ""}.`,
         );
       }
+      const provenance =
+        payload.report.apply_context?.implementation_provenance;
+      if (provenance?.kind === "engineer_report") {
+        const reports = [
+          ...(state.subagent_reports ?? []),
+          ...(task?.subagent_reports ?? []),
+        ];
+        const engineer = hasMatchingSuccessfulEngineerEvidence({
+          taskId: taskId ?? "",
+          implementationCycleId: claimedCycleId,
+          reports,
+        });
+        if (!engineer || reportKey(engineer) !== provenance.report_key) {
+          throw new Error(
+            `SUBAGENT_REPORT_PROVENANCE_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} must cite a successful same-cycle adv-engineer report key.`,
+          );
+        }
+      }
     }
   }
 
@@ -1156,6 +1459,25 @@ export function applySubagentReportSubmittedToState(
     -SEEN_REPORT_IDS_RING_BUFFER_LIMIT,
   );
   state.seenReportIdsTotal = (state.seenReportIdsTotal ?? 0) + 1;
+
+  // Stage-v2 reviewer-owned evidence: when an adv-reviewer report is persisted
+  // for a behavior-critical task that uses a non-test route, write a typed
+  // review_evidence_ref to the task's evidence plan. Callers cannot author this
+  // ref — only the reviewer-report consumer does, and only on fresh (not
+  // duplicate) storage.
+  if (
+    task &&
+    taskScoped &&
+    payload.report.agent === "adv-reviewer" &&
+    task.evidence_plan &&
+    isBehaviorCriticalEvidencePlanTask(task)
+  ) {
+    task.evidence_plan = {
+      ...task.evidence_plan,
+      ...normalizeEvidencePlanCompatibility(task.evidence_plan),
+      review_evidence_ref: { report_key: reportId },
+    };
+  }
 
   const blockers = blockerSummary(payload.report);
   if (task && blockers) {
@@ -1279,7 +1601,24 @@ export function applyGateCompletedToState(
       [payload.gateId]: payload.criteria,
     };
   }
+  // Capture acceptance criteria snapshot keyed to the current readiness
+  // revision so stale audit evidence can never be surfaced as current pass.
+  if (payload.gateId === "acceptance" && payload.criteria) {
+    state.acceptanceCriteriaSnapshot = {
+      criteria: payload.criteria,
+      basisRevision: state.acceptanceReadinessRevision ?? 0,
+    };
+  }
   setLastSignalAt(state, payload.completedAt);
+  // rq-readinessMutationReceipt01: gate completion is the canonical
+  // readiness-affecting mutation; the receipt is recorded AFTER the
+  // reducer applies state so AC7 immediate gate readiness observes the
+  // applied state on its first valid attempt.
+  recordMutationReceipt(state, {
+    signalName: "gateCompleted",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.completedAt,
+  });
   return state;
 }
 
@@ -1292,6 +1631,7 @@ export function applyGateReenteredToState(
 ): ChangeWorkflowState {
   if (state.contract && payload.fromGateId !== "release") {
     delete state.contract.reviewMatrix;
+    advanceAcceptanceReadinessRevision(state);
   }
   reopenFromGateInChangeState(state, payload.fromGateId, {
     now: payload.reenteredAt,
@@ -1361,6 +1701,53 @@ export function applySpecDeltaAddedToState(
   return state;
 }
 
+/**
+ * Modify-only spec-delta reducer. The tool proves target existence against the
+ * current global spec before signaling; this reducer owns the durable conflict
+ * boundary. It validates the payload again, rejects duplicate delta identifiers
+ * globally, and permits only one modify intent per capability/requirement pair.
+ */
+export function applySpecDeltaModifiedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaModifiedSignalPayload,
+): ChangeWorkflowState {
+  const parsed = SpecDeltaModifiedSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid modify spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+    );
+  }
+  const validated = parsed.data;
+  const deltas = state.deltas ?? {};
+  for (const [capability, entries] of Object.entries(deltas)) {
+    for (const entry of entries) {
+      if (entry.id === validated.delta.id) {
+        throw new Error(
+          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+        );
+      }
+      if (
+        capability === validated.capability &&
+        entry.operation === "modify" &&
+        entry.target_id === validated.delta.target_id
+      ) {
+        throw new Error(
+          `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
+        );
+      }
+    }
+  }
+  state.deltas = {
+    ...deltas,
+    [validated.capability]: [
+      ...(deltas[validated.capability] ?? []),
+      validated.delta,
+    ],
+  };
+  setLastSignalAt(state, validated.modifiedAt);
+  return state;
+}
+
 // rq-designQualityEvidence01: typed disposition of a single design-quality
 // concern. Latest disposition wins for a given (taskId, concernKey) so the
 // gate-readiness evaluator reads a single current verdict per concern.
@@ -1382,6 +1769,14 @@ export function applyDesignConcernDispositionedToState(
   });
   state.design_concern_dispositions = next;
   setLastSignalAt(state, payload.dispositionedAt);
+  // rq-readinessMutationReceipt01: design-concern disposition clears an
+  // otherwise-blocking concern in the gate-readiness evaluator. Record
+  // the receipt AFTER state apply so the query confirms the reducer ran.
+  recordMutationReceipt(state, {
+    signalName: "designConcernDispositioned",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.dispositionedAt,
+  });
   return state;
 }
 
@@ -1406,6 +1801,14 @@ export function applyVerificationEvidenceDispositionedToState(
   });
   state.verification_evidence_dispositions = next;
   setLastSignalAt(state, payload.dispositionedAt);
+  // rq-readinessMutationReceipt01: verification-evidence disposition
+  // clears an otherwise-blocking VERIFICATION_EVIDENCE_MISSING readiness
+  // blocker. Record AFTER state apply.
+  recordMutationReceipt(state, {
+    signalName: "verificationEvidenceDispositioned",
+    mutationReceiptId: payload.mutationReceiptId,
+    recordedAt: payload.dispositionedAt,
+  });
   return state;
 }
 

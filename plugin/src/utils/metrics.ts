@@ -111,6 +111,17 @@ export function recordAdvToolCall(toolName: string): void {
     (counters.adv_tool_call_count_by_name[toolName] ?? 0) + 1;
 }
 
+/**
+ * Add a target-tool audit breakdown for a facade dispatch without counting a
+ * second tool invocation globally. The enclosing `adv_tool_invoke` call is
+ * already counted by the normal `tool.execute.after` hook.
+ */
+export function recordFacadedAdvToolTarget(toolName: string): void {
+  if (!toolName.startsWith("adv_")) return;
+  counters.adv_tool_call_count_by_name[toolName] =
+    (counters.adv_tool_call_count_by_name[toolName] ?? 0) + 1;
+}
+
 /** Add bytes written to `output.system[0]` for cache-aware analysis. */
 export function recordSystemBlockBytes(byteLen: number): void {
   if (byteLen > 0) counters.system_block_bytes += byteLen;

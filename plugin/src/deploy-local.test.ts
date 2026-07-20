@@ -230,7 +230,10 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("check_rsync");
       expect(content).toContain("command -v rsync");
       expect(content).toContain(
-        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
+      );
+      expect(content).toContain(
+        '"$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
       );
     });
 
@@ -247,7 +250,7 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("list_deployed_temporal_worker_matches");
 
       const syncIndex = content.indexOf(
-        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
       );
       const refreshIndex = content.indexOf(
         'refresh_deployed_temporal_workers "after-sync"',
@@ -764,7 +767,21 @@ describe("deploy-local.sh", () => {
       ).toContain("STSL");
       expect(deployWorkerBounce?.body).toContain("SIGTERM");
       expect(deployWorkerBounce?.body).toContain("[ADV:ACTION_REQUIRED]");
+      expect(deployWorkerBounce?.body).toContain(
+        "ADV_TEMPORAL_WORKER_SELF_ROLL=1",
+      );
+      expect(deployWorkerBounce?.body).toContain("self-roll");
       expect(deployWorkerBounce?.scenarios).toHaveLength(3);
+      expect(
+        deployWorkerBounce?.scenarios
+          ?.find((s) => s.id === "rq-deployWorkerBounce01.1")
+          ?.then.join("\n"),
+      ).toContain("ADV_TEMPORAL_WORKER_SELF_ROLL=1");
+      expect(
+        deployWorkerBounce?.scenarios?.find(
+          (s) => s.id === "rq-deployWorkerBounce01.2",
+        )?.title,
+      ).toContain("Self-roll");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.1");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.2");
       expect(scenarioIds).toContain("rq-deployWorkerBounce01.3");
@@ -913,10 +930,13 @@ describe("deploy-local.sh", () => {
       // adv.md is identical to trunk, which already accepts 371).
       // Ceiling raised from 371 → 372 after addDesignQualityGates shipped
       // adv_design_concern_disposition and we added it to the allowlists.
-      // Ceiling raised from 400 → 410 after adding adv_change_repair_origin to
-      // the canonical ADV agent allowlist.
+      // Ceiling raised from 400 → 411 after adding adv_change_repair_origin and
+      // adv_delta_modify to the canonical ADV agent allowlist.
+      // Ceiling raised from 411 → 412 after trunk added adv_tool_invoke,
+      // adv_archive_purge, adv_contract_mint, and adv_snapshot_health to the
+      // canonical ADV agent allowlist.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(410);
+      expect(lines).toBeLessThanOrEqual(412);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

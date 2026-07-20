@@ -620,12 +620,19 @@ describe("bounded one-pass change-list resolution", () => {
     );
 
     let queryCount = 0;
+    let resolveQueryStarted: (() => void) | undefined;
+    const queryStarted = new Promise<void>((resolve) => {
+      resolveQueryStarted = resolve;
+    });
     const temporal = {
       client: {
         workflow: {
           getHandle: () => ({
             query: async () => {
               queryCount += 1;
+              if (queryCount === 1 && resolveQueryStarted) {
+                resolveQueryStarted();
+              }
               return new Promise<never>(() => {});
             },
           }),
@@ -646,14 +653,11 @@ describe("bounded one-pass change-list resolution", () => {
     });
 
     const pending = store.changes.list({ includeArchived: true });
-    // Settle timer-free stages (enumeration, terminal-projection checks)
-    // at t=0 by waiting until the hung query's first attempt has actually
-    // started — fixture-driven synchronization instead of guessing how
-    // many event-loop turns the fs chain needs. The fake clock is frozen
-    // during this wait, so the aggregate deadline cannot expire here.
-    for (let i = 0; i < 5000 && queryCount === 0; i++) {
-      await new Promise<void>((resolve) => setImmediate(resolve));
-    }
+    // Wait until the hung query's first attempt has actually started —
+    // fixture-driven synchronization instead of guessing how many event-loop
+    // turns the fs chain needs. The fake clock is frozen during this wait,
+    // so the aggregate deadline cannot expire here.
+    await queryStarted;
     expect(queryCount).toBe(1);
     // Attempt-1 per-attempt timeout (5s) fires.
     await vi.advanceTimersByTimeAsync(5000);
@@ -711,19 +715,22 @@ describe("bounded one-pass change-list resolution", () => {
       },
     };
 
-    // Make the disk fallback read hang indefinitely. Calls come from:
-    //   1. loadDiskTerminalProjection inside getTemporalChange (fast)
-    //   2. getGuardedChangeHandle inside getTemporalChange (fast)
-    //   3. reseedChangeFromDisk inside getTemporalChange (fast)
-    //   4. loadCandidate fallback chain after fast Temporal failure (hang)
-    // Without the deadline wrapper the fallback read never resolves and the
-    // test times out (RED); with the wrapper the aggregate deadline rejects
-    // it and the candidate becomes a typed omission (GREEN).
+    // Make the first disk fallback read hang indefinitely. The exact number of
+    // preparatory reads is intentionally not authority: optimized paths may
+    // reach the bounded fallback on their first read. The observable contract
+    // is one admitted hanging read, deadline termination, and typed omission.
     const diskGetCalls = new Map<string, number>();
+    let resolveFallbackStarted: (() => void) | undefined;
+    const fallbackStarted = new Promise<void>((resolve) => {
+      resolveFallbackStarted = resolve;
+    });
     const realGet = legacy.changes.get.bind(legacy.changes);
     legacy.changes.get = (async (changeId: string) => {
       const count = (diskGetCalls.get(changeId) ?? 0) + 1;
       diskGetCalls.set(changeId, count);
+      if (count === 4 && resolveFallbackStarted) {
+        resolveFallbackStarted();
+      }
       if (count <= 3) {
         // loadDiskTerminalProjection + getGuardedChangeHandle + reseedChangeFromDisk — fast
         return realGet(changeId);
@@ -739,17 +746,11 @@ describe("bounded one-pass change-list resolution", () => {
     });
 
     const pending = store.changes.list({ includeArchived: true });
-    // Wait for the fallback read to start — source enumeration, the fast
-    // Temporal failure, the terminal-projection disk read, the owner-guard
-    // disk read, and the reseed disk read have already happened. The fourth
-    // diskGet call is the loadCandidate fallback.
-    for (
-      let i = 0;
-      i < 5000 && (diskGetCalls.get("slowDiskFallback") ?? 0) < 4;
-      i++
-    ) {
-      await new Promise<void>((resolve) => setImmediate(resolve));
-    }
+    // Wait until the loadCandidate fallback read has actually started —
+    // source enumeration, the fast Temporal failure, the terminal-projection
+    // disk read, the owner-guard disk read, and the reseed disk read have
+    // already happened. The fourth diskGet call is the loadCandidate fallback.
+    await fallbackStarted;
     expect(diskGetCalls.get("slowDiskFallback")).toBe(4);
     // Advance past the budget. The deadline wrapper (if present) rejects
     // the fallback read. Without the wrapper, the read hangs and the test
@@ -760,6 +761,86 @@ describe("bounded one-pass change-list resolution", () => {
     // The disk fallback read is bounded by the aggregate deadline.
     // The candidate is omitted with typed incompleteness — never a hang.
     expect(result.changes.map((c) => c.id)).not.toContain("slowDiskFallback");
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "SOURCE_DEADLINE_EXCEEDED",
+          source: "workflow_query",
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      deadlineExceeded: true,
+    });
+  }, 15_000);
+
+  it("regression: skips loadCandidate fallback once the aggregate deadline is exhausted", async () => {
+    // Regression guard for the flaky full-suite failure where the fallback
+    // stage was sometimes counted as after-expiry and skipped. This test
+    // freezes the stages before expiry (terminal-projection, owner-guard,
+    // reseed) and then advances the clock past the budget, proving that the
+    // fallback stage is correctly omitted while the earlier stages are not.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("expiredBeforeFallback"));
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw workflowNotFoundError();
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/expiredBeforeFallback" };
+          },
+          // Hang the reseed path after the third disk read so we can
+          // advance the fake clock and expire the budget before the
+          // loadCandidate fallback can begin.
+          start: async () => new Promise<never>(() => {}),
+        },
+      },
+    };
+
+    const diskGetCalls = new Map<string, number>();
+    let resolveThirdDiskGet: (() => void) | undefined;
+    const thirdDiskGet = new Promise<void>((resolve) => {
+      resolveThirdDiskGet = resolve;
+    });
+    const realGet = legacy.changes.get.bind(legacy.changes);
+    legacy.changes.get = (async (changeId: string) => {
+      const count = (diskGetCalls.get(changeId) ?? 0) + 1;
+      diskGetCalls.set(changeId, count);
+      if (count === 3 && resolveThirdDiskGet) {
+        resolveThirdDiskGet();
+      }
+      if (count <= 3) {
+        return realGet(changeId);
+      }
+      return new Promise<never>(() => {});
+    }) as typeof legacy.changes.get;
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const pending = store.changes.list({ includeArchived: true });
+    await thirdDiskGet;
+    // The budget is still intact at this point. Expire it before the
+    // loadCandidate fallback can begin.
+    await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1_000);
+    const result = await pending;
+
+    // The pre-expiry stages produced three disk reads; the fallback stage
+    // was correctly suppressed once the budget expired.
+    expect(diskGetCalls.get("expiredBeforeFallback")).toBe(3);
+    expect(result.changes.map((c) => c.id)).not.toContain(
+      "expiredBeforeFallback",
+    );
     expect(result.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -803,9 +884,16 @@ describe("bounded one-pass change-list resolution", () => {
     // No disk shadow — legacy.changes.get returns success: false so the
     // archive-only fallback (loadChange) is exercised.
     let diskGetCalls = 0;
+    let resolveDiskGetStarted: (() => void) | undefined;
+    const diskGetStarted = new Promise<void>((resolve) => {
+      resolveDiskGetStarted = resolve;
+    });
     const realGet = legacy.changes.get.bind(legacy.changes);
     legacy.changes.get = (async (changeId: string) => {
       diskGetCalls += 1;
+      if (diskGetCalls === 1 && resolveDiskGetStarted) {
+        resolveDiskGetStarted();
+      }
       const result = await realGet(changeId);
       if (!result.success) {
         return { success: false as const, error: "not found" };
@@ -826,11 +914,9 @@ describe("bounded one-pass change-list resolution", () => {
     });
 
     const pending = store.changes.list({ includeArchived: true });
-    // Wait for the disk fallback read to start — source enumeration and
-    // the fast Temporal failure have already happened.
-    for (let i = 0; i < 5000 && diskGetCalls === 0; i++) {
-      await new Promise<void>((resolve) => setImmediate(resolve));
-    }
+    // Wait until the disk fallback read has actually started — source
+    // enumeration and the fast Temporal failure have already happened.
+    await diskGetStarted;
     expect(diskGetCalls).toBe(1);
     // Advance past the budget. The deadline wrapper (if present) rejects
     // the fallback read. Without the wrapper, the read hangs and the test

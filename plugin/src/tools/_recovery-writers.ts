@@ -184,18 +184,31 @@ export async function saveRecoveredArtifactMetadata(input: {
  * `archiveChangeSignal` on the workflow — which is exactly what we are
  * recovering from. Write the disk projection directly via `saveChange`
  * without refreshing stale workflow state back over the disk repair.
+ *
+ * rq-shippedWorkflowTermination01 D5: when the recovery path converges
+ * terminal authority (e.g. adv_change_workflow_terminate after a pinned
+ * run is terminated), the caller MUST also pass `lifecycleState` so the
+ * disk projection carries an authoritative terminal lifecycle value.
+ * Without this, a stale literal `lifecycleState:"open"` on disk would
+ * survive `status:"archived"` writes because `normalizeChangeLifecycleState`
+ * trusts the stored literal before deriving from status. Existing status-only
+ * callers (adv_change_status_repair) continue to omit `lifecycleState` and
+ * remain compatible; their recovery does not converge live-workflow
+ * authority.
  */
 export async function saveRecoveredChangeStatus(input: {
   store: Store;
   change: Change;
   authorization: RecoveryWriteAuthorization;
   status: Change["status"];
+  lifecycleState?: Change["lifecycleState"];
   closure?: Change["closure"];
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
   const updated = {
     ...input.change,
     status: input.status,
+    ...(input.lifecycleState ? { lifecycleState: input.lifecycleState } : {}),
     ...(input.closure ? { closure: input.closure } : {}),
   } as Change;
   await saveChange(input.store.paths.changes, updated);
@@ -328,11 +341,16 @@ function recoveryReportTaskId(
  * be computed from this projection, never from the shadow.
  *
  * Validation is deliberately structural (parseable JSON object + canonical id
- * match + array-typed task/report carriers) rather than ChangeSchema: bundle
- * manifests legitimately carry recovery-audited reports, which the strict
- * ingest report schemas (`.strict()`, no recovery_audit field) reject.
- * Full-schema parsing would fail closed on the very bundles this writer
- * maintains. Every manifest field is preserved verbatim — no stripping.
+ * match + array-typed task/report carriers) rather than ChangeSchema. As of
+ * issue #258 (fixRecoverySchemaDrift), the strict ingest schemas
+ * (`DesignConcernDispositionSchema`, `VerificationEvidenceDispositionSchema`,
+ * `TaskScopedBaseSubagentReportSchema`, `ChangeScopedBaseSubagentReportSchema`)
+ * include `recovery_audit` as an optional typed field, so new bundles with
+ * recovery-audited reports DO round-trip through `ChangeSchema.parse`. This
+ * structural-only validation remains as defense-in-depth for older bundles
+ * that pre-date the schema extension and would otherwise fail closed on the
+ * very bundles this writer maintains. Every manifest field is preserved
+ * verbatim — no stripping.
  *
  * Fails closed on unreadable, unparseable, structurally-invalid, or
  * id-mismatched manifests: rewriting a terminal bundle from a stale shadow

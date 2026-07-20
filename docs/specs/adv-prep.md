@@ -242,7 +242,7 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 
 **ID:** `rq-prepNonCodeEvidence01` | **Priority:** **[MUST]**
 
-/adv-prep MUST map approved agreement and validated design decisions into structurally typed non-code tasks when the deliverable is docs, research, approval, verification, ops, writing, analysis, design improvement, or competitive research. Non-code tasks MUST carry a task type, contract_refs or bounded not_applicable_reason, metadata.tdd_intent appropriate to the task type, and a machine-readable evidence policy. Prep MUST NOT force fake red/green TDD for non-code deliverables; it must instead assign evidence policies such as source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference, static_check, review, or not_applicable with rationale.
+/adv-prep MUST map approved agreement and validated design decisions into structurally typed non-code tasks when the deliverable is docs, research, approval, verification, ops, writing, analysis, design improvement, or competitive research. Non-code tasks MUST carry a task type, contract_refs or bounded not_applicable_reason, metadata.tdd_intent appropriate to the task type, and a normalized evidence plan with a machine-readable evidence policy and a non-empty proof target. Prep MUST NOT force fake red/green TDD for non-code deliverables; it must instead assign evidence policies such as source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference, static_check, review, or not_applicable with rationale.
 
 **Tags:** `prep`, `non-code`, `tasks`, `evidence`, `tdd`
 

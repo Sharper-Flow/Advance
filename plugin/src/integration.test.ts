@@ -11,6 +11,14 @@ import {
   createTestProject,
 } from "./__tests__/setup";
 
+const ROOT_CLIENT = {
+  session: {
+    get: async ({ path }: { path: { id: string } }) => ({
+      data: { id: path.id, parentID: null },
+    }),
+  },
+};
+
 // Many plugin instances register SIGINT/SIGTERM listeners across describes.
 process.setMaxListeners(40);
 
@@ -43,6 +51,7 @@ describe("Wisdom Lifecycle Integration", () => {
 
   test("full wisdom lifecycle: tool calls and hook responses", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -68,7 +77,7 @@ describe("Wisdom Lifecycle Integration", () => {
 
     // 2. Start working on a task (sets active change via active-work mutator)
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_update" } as any,
+      { tool: "adv_task_update", sessionID: "test" } as any,
       { args: { changeId } } as any,
     );
 
@@ -140,6 +149,7 @@ describe("Workspace adapter registration", () => {
     const register = vi.fn();
 
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -184,6 +194,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_change_create, activeChangeId is set to the new change ID", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -219,6 +230,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_change_create with plain JSON output (no banner), activeChangeId is still set", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -241,6 +253,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_change_create with ToolResult object output, activeChangeId is still set", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -268,6 +281,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_task_update with ToolResult object output, completed task is tracked", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -307,6 +321,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("after adv_change_create with braces inside path string, activeChangeId is still set", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -339,6 +354,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("switching from one change to another via adv_change_create updates the title", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -373,6 +389,7 @@ describe("Active Change Title Update on adv_change_create", () => {
 
   test("malformed adv_change_create output does not clear existing active change", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -471,6 +488,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       await initGitRepo();
       const args = { [targetArg]: `${tempDir}/src/file.ts` };
       hooks = await AdvancePlugin({
+        client: ROOT_CLIENT,
         project: {
           id: "test",
           worktree: tempDir,
@@ -495,6 +513,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     await initGitRepo();
     await enableWorktreeGuard(false);
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -523,6 +542,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       await enableWorktreeGuard();
       const args = { [targetArg]: `${tempDir}/src/file.ts` };
       hooks = await AdvancePlugin({
+        client: ROOT_CLIENT,
         project: {
           id: "test",
           worktree: tempDir,
@@ -561,6 +581,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       mkdirSync(join(worktreePath, "src"), { recursive: true });
 
       hooks = await AdvancePlugin({
+        client: ROOT_CLIENT,
         project: {
           id: "test",
           worktree: tempDir,
@@ -622,6 +643,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       // Initialize the plugin with `directory` = worktree (post-warp).
       // The trunk is reachable via gitSession.mainCheckoutPath.
       hooks = await AdvancePlugin({
+        client: ROOT_CLIENT,
         project: {
           id: "test",
           worktree: tempDir, // project still points at trunk
@@ -664,6 +686,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
   test("blocks destructive bash targeting trunk checkout when worktree guard is omitted (defaults true)", async () => {
     await initGitRepo();
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -682,6 +705,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     await initGitRepo();
     await enableWorktreeGuard();
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -703,6 +727,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     await initGitRepo();
     await writeFile(join(tempDir, "project.json"), "{");
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -730,6 +755,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       }),
     );
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -762,6 +788,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     writeFileSync(join(worktreePath, "src", "local.ts"), "local");
 
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: {
         id: "test",
         worktree: worktreePath,
@@ -795,6 +822,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     const subdir = join(tempDir, "src");
 
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: subdir, time: { created: Date.now() } },
       directory: subdir,
       worktree: subdir,
@@ -812,6 +840,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
   test("allows all git commands without firewall classification", async () => {
     await initGitRepo();
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -831,6 +860,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
   test("allows canonical archive push command from trunk checkout", async () => {
     await initGitRepo();
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -859,6 +889,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       .trim();
     writeFileSync(join(tempDir, ".git", "MERGE_HEAD"), `${headSha}\n`);
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -873,8 +904,64 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ).resolves.toBeUndefined();
   }, 30_000);
 
+  test("allows trunk writes during detached rebase recovery", async () => {
+    const { execSync } = await import("child_process");
+    const { writeFileSync } = await import("fs");
+    const { join } = await import("path");
+    const { detectRepoState } = await import("./tools/checkpoint");
+
+    await initGitRepo();
+    await enableWorktreeGuard();
+
+    // Put the trunk checkout into a real mid-rebase state: HEAD detached at
+    // the rebase target with the rebase-merge state directory present. The
+    // conflicting rebase exits non-zero — that is the expected stop point.
+    writeFileSync(join(tempDir, "README.md"), "feature version");
+    execSync("git checkout -b feature", { cwd: tempDir });
+    execSync("git commit -am 'feature'", { cwd: tempDir });
+    execSync("git checkout main", { cwd: tempDir });
+    writeFileSync(join(tempDir, "README.md"), "main version");
+    execSync("git commit -am 'main'", { cwd: tempDir });
+    try {
+      execSync("git rebase feature", { cwd: tempDir, stdio: "ignore" });
+    } catch {
+      // Expected: conflicting histories halt the rebase mid-flight.
+    }
+
+    hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    // rq-twf01.3: a rebase runs with a detached HEAD by design, so the
+    // recovery state must classify structurally as rebasing — a bare
+    // "detached" verdict would mask the active recovery.
+    await expect(detectRepoState(tempDir)).resolves.toBe("rebasing");
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: join(tempDir, "src/file.ts") } } as any,
+      ),
+    ).resolves.toBeUndefined();
+
+    // Once the rebase is aborted, the strict trunk block returns.
+    execSync("git rebase --abort", { cwd: tempDir });
+    await expect(detectRepoState(tempDir)).resolves.toBe("ok");
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: join(tempDir, "src/file.ts") } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  }, 30_000);
+
   test("guard does not interfere with existing hook responsibilities", async () => {
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,
@@ -926,6 +1013,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
 
     try {
       hooks = await AdvancePlugin({
+        client: ROOT_CLIENT,
         project: {
           id: "test",
           worktree: tempDir,
@@ -978,6 +1066,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     await initGitRepo();
     await enableWorktreeGuard();
     hooks = await AdvancePlugin({
+      client: ROOT_CLIENT,
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
       worktree: tempDir,

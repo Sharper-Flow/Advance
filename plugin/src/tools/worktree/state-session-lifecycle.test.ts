@@ -402,6 +402,75 @@ describe("cross-change worktree visibility helpers (T22)", () => {
       }),
     ]);
   });
+
+  it("keeps 250 healthy owners while surfacing one poisoned workflow", async () => {
+    const healthyIds = Array.from(
+      { length: 250 },
+      (_, index) => `healthy-${index.toString().padStart(3, "0")}`,
+    );
+    workflowList.mockImplementationOnce(() =>
+      (async function* () {
+        for (const id of [...healthyIds, "poisoned-scale"]) {
+          yield { workflowId: `adv/change/test-id/${id}` };
+        }
+      })(),
+    );
+    workflowGetHandle.mockImplementation((workflowId: string) => {
+      const changeId = workflowId.split("/").pop() ?? "unknown";
+      if (changeId === "poisoned-scale") {
+        return {
+          query: vi.fn(async () => {
+            throw new Error("Failed to query Workflow");
+          }),
+          describe: vi.fn(async () => ({
+            workflowExecutionInfo: {
+              closeStatus: null,
+              taskQueue: "advance-test-id",
+            },
+            lastFailure: {
+              message:
+                "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100] Nondeterminism error",
+            },
+          })),
+        };
+      }
+      return {
+        query: vi.fn(async () => ({
+          changeId,
+          status: "active",
+          tasks: [],
+          worktrees: {
+            [`change/${changeId}`]: {
+              branch: `change/${changeId}`,
+              path: `/work/${changeId}`,
+              baseRef: "main",
+              headSha: "abc123",
+              status: "created",
+              createdAt: "2026-05-01T00:00:00.000Z",
+              source: "tool",
+              sourceVersion: 1,
+            },
+          },
+        })),
+        describe: vi.fn(),
+      };
+    });
+
+    const result = await listWorktreesAcrossChanges(access);
+
+    expect(result.candidateCount).toBe(251);
+    expect(result.records).toHaveLength(250);
+    expect(result.poisonedWorkflows).toEqual([
+      expect.objectContaining({
+        changeId: "poisoned-scale",
+        recoveryReason: "poisoned_history",
+        evidenceSummary: expect.stringContaining("TMPRL1100"),
+      }),
+    ]);
+    expect(
+      result.records.some((row) => row.changeId === "poisoned-scale"),
+    ).toBe(false);
+  });
 });
 
 describe("pending delete lifecycle", () => {

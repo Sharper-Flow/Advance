@@ -23,10 +23,11 @@ vi.mock("../utils/worker-process-probe", () => ({
 }));
 
 import { applyStatusView } from "./status-view";
+import { resetStatusHealthForTest } from "./status-health-test-reset";
 
 describe("fetchStatusWorkerProcesses", () => {
   beforeEach(() => {
-    vi.resetModules();
+    resetStatusHealthForTest();
     mockEnumerate.mockReset();
   });
 
@@ -39,9 +40,7 @@ describe("fetchStatusWorkerProcesses", () => {
         { pid: 202, ppid: 901, orphan: true },
       ],
     });
-    const { fetchStatusWorkerProcesses, _statusProbeCaches } =
-      await import("./status-health");
-    _statusProbeCaches.clear();
+    const { fetchStatusWorkerProcesses } = await import("./status-health");
 
     const result = await fetchStatusWorkerProcesses();
 

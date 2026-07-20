@@ -35,7 +35,7 @@ approval-gated recovery family that shares the same posture.
 | `adv_conformance` (`#override`) | operator-only | audit fields `user` + `reason` + `re_verify_deadline` | Overrides a locked conformance verdict; audit-escape hatch only. Other actions (`status`, `init`, `lock`, `unlock`, `run`) stay orchestrator-reachable |
 | `adv_change_status_repair` | operator-only | `approvedByUser` + `approvalEvidence` + recovery evidence | Single-change wedged-status flip. Decision matrix vs `adv_archive_repair action=reconcile`: status repair is the targeted single-change path gated on precise workflow evidence (no branch requirement, `target_path` routing); reconcile is the batch path gated on branch-merge evidence |
 | `adv_change_repair_origin` | operator-only | `approvedByUser` + `approvalEvidence` + `reason` | Repairs origin provenance linkage on an open change; claim-safe audited repair |
-| `adv_change_workflow_terminate` | operator-only | `approvedByUser` + `approvalEvidence` + shipped acceptance/release gate proof + poisoned-history describe evidence | Terminates the exact describe-pinned (`runId`) wedged run of a shipped change's workflow — NOT a Temporal Reset; dry-run pin assessment, idempotent completed/not-found handling only after eligibility, failure before any projection-cache refresh. Archived changes route to `adv_archive_purge` (rq-archivePurge01 semantics preserved) |
+| `adv_change_workflow_terminate` | operator-only | `approvedByUser` + `approvalEvidence` + shipped acceptance/release gate proof + (poisoned-history describe evidence OR shipped-terminal structural proof) | Terminates the exact describe-pinned (`runId`) wedged run of a shipped change's workflow — NOT a Temporal Reset; dry-run pin assessment, idempotent completed/not-found handling only after eligibility, failure before any projection-cache refresh. Two eligibility classes (rq-shippedWorkflowTermination01): `poisoned_history` (existing — describe carries poisoned-history evidence, terminate + cache refresh only) and `shipped_terminal` (new — describe shows RUNNING/PAUSED with no poison but disk carries all 7 gates done + phase9 done + schema-valid archive bundle matching changeId; terminate + atomic status/lifecycleState=archived convergence write + read-after-write verification). Shipped-terminal refusal codes: PROOF_INVALID_DISK_PROJECTION, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE, PROOF_BUNDLE_ID_MISMATCH. Convergence failure shape: `success:false, partialRecovery:true, pinnedRunTerminated:true, converged:false` with typed `successorRace` (pre-write), `lateSuccessorRace` (post-readback TOCTOU), or `readback`+`remediation`. Archived changes route to `adv_archive_purge` (rq-archivePurge01 semantics preserved) |
 | `adv_temporal_register_search_attributes` | operator-only | `approvedByUser` + `approvalEvidence` | Registers missing Temporal search attributes on the server; one-time metadata mutation |
 
 ## Dual Tools
@@ -66,6 +66,7 @@ class rather than operator-only.
 |---|---|---|
 | `adv_spec` | orchestrator | Spec list/show/search read |
 | `adv_delta_add` | orchestrator | Change-scoped spec-delta mutation; archive remains sole global-spec writer |
+| `adv_delta_modify` | orchestrator | Typed change-scoped spec modification; archive remains sole global-spec writer |
 
 ### Backlog
 
@@ -92,6 +93,12 @@ class rather than operator-only.
 | `adv_change_update_issues` | orchestrator | Issue linkage update |
 | `adv_change_reenter` | orchestrator | Gate re-entry |
 | `adv_change_forget` | orchestrator | In-memory session active-change pointer clear; no persistent mutation |
+
+### Lightweight change profile
+
+| Tool | Class | Notes |
+|---|---|---|
+| `adv_lightweight_profile_evaluate` | orchestrator | Host-side evidence collection + Temporal signal for gate-bound lightweight profile evaluation |
 
 ### Epic
 
@@ -131,7 +138,7 @@ class rather than operator-only.
 | `adv_contract_mint` | orchestrator | ChangeContract minting from approved agreement |
 | `adv_contract_review_matrix_set` | orchestrator | Review-matrix persistence |
 | `adv_design_concern_disposition` | orchestrator | Design-concern disposition |
-| `adv_verification_evidence_disposition` | orchestrator | Verification-evidence disposition |
+| `adv_verification_evidence_disposition` | orchestrator | Verification-evidence disposition clearing `VERIFICATION_EVIDENCE_MISSING` blockers on proof-bearing task policies (`fixed` / `rejected_with_evidence` / `split` / `fast_follow` with non-blank evidence; no `accepted_debt` path) |
 | `adv_followup_promote` | orchestrator | Ops follow-up promotion to child change |
 | `adv_report_followup_promote` | orchestrator | Report follow-up promotion |
 | `adv_subagent_report_submit` | orchestrator | Typed sub-agent report ingestion |
@@ -167,6 +174,9 @@ class rather than operator-only.
 | `adv_worktree_delete` | orchestrator | Worktree deletion (merge-before-delete) |
 | `adv_worktree_cleanup` | orchestrator | Worktree hygiene; `archived_branches` mode is operator-explicit (dry-run first) |
 | `adv_worktree_triage` | orchestrator | Read-only worktree inventory |
+| `adv_tool_catalog` | orchestrator | Bounded read-only catalog of canonical ADV tools with descriptive visibility metadata |
+| `adv_tool_describe` | orchestrator | Read-only single-tool schema/metadata projection; no handler invocation |
+| `adv_tool_invoke` | orchestrator | Strict in-process dispatcher through the canonical wrapped `ToolDefinition.execute`; preserves ToolContext, validation, authorization, approvals, recovery restrictions, and timeouts. Recursion-exclusion (`adv_tool_invoke`, `adv_tool_catalog`, `adv_tool_describe`, `execute`) is enforced before any lookup or dispatch (`addProviderToolSearch` AC1–AC4) |
 
 ## Removed Tools and Replacements
 
@@ -200,6 +210,10 @@ This matrix is the documented view. The code-owned enforcement lives in
 `plugin/src/tool-role-policy.ts`: an exhaustive role classification of every
 retained canonical tool (including the action-level dual distinctions above)
 plus the intended ADV allowlist per shipped agent manifest.
+`plugin/src/tool-role-firewall.ts` is the runtime backstop: `tool.execute.before`
+derives its blockable set as the complement of the spawned-agent allowlist
+union, permits that set only for the captured main session, and fails closed
+when role or policy resolution is unavailable.
 `plugin/src/tool-role-policy.test.ts` fails CI when the policy and this
 document disagree, when an agent manifest's ADV grants diverge from the
 intended allowed set, or when a non-orchestrator agent can reach an
@@ -209,3 +223,77 @@ trust boundary.
 Related surfaces: `docs/cli-surface-matrix.md` (CLI disposition per tool),
 `ADV_INSTRUCTIONS.md` worktree-cleanup repair decision matrix,
 `docs/store-consolidation.md`, `docs/snapshot-health.md`.
+
+## Visibility Profile (addProviderToolSearch AC5–AC7)
+
+The three Advance-owned facade tools (`adv_tool_catalog`,
+`adv_tool_describe`, `adv_tool_invoke`) compress the visible ADV tool
+surface for normal agents while every ADV operation still executes
+through canonical typed handlers with direct-tool-equivalent
+authorization, approval, target-path trust, recovery-only, lifecycle,
+timeout, cancellation, and audit semantics.
+
+Two config layers cooperate:
+
+1. **Agent YAML `tools:` frontmatter** (`/.opencode/agents/*.md`,
+   generated from `AGENT_TOOL_POLICY` via `pnpm run generate:manifests`):
+   every agent except `adv-ci-waiter` carries
+   `adv_tool_catalog: true`, `adv_tool_describe: true`,
+   `adv_tool_invoke: true` inside its `# >>> ADV-GENERATED` block.
+   `adv-ci-waiter` is excluded because its documented responsibility is
+   bash-only CI polling. The orchestrator (`adv`) carries every retained
+   ADV tool explicitly (no `adv_*: false` wildcard).
+
+2. **`~/.config/opencode/opencode.jsonc` `agent.<name>.permission`**:
+   every normal agent that already ships an `adv_*: deny` first-rule
+   (`adv-engineer`, `adv-designer`, `adv-researcher`, `adv-reviewer`,
+   `adv-visual-review`) also carries the three facade tools as explicit
+   `allow` entries immediately after the deny wildcard so last-match-wins
+   resolves them as visible. Agents without an `adv_*: deny` rule in
+   `opencode.jsonc` (`adv-tron`, `adv-temporal-repair`, `adv-verifier`,
+   `plan`, `build`, `general`, `explore`) inherit ADV visibility from
+   their agent YAML manifests alone; no `opencode.jsonc` edit is
+   required for them. The orchestrator (`adv`) keeps no `adv_*: deny`
+   rule, so direct ADV access is retained as the recovery/admin escape
+   hatch (AC6).
+
+### Post-deploy runtime verification
+
+After `pnpm run build` + `./scripts/deploy-local.sh --fix` + OpenCode
+restart, verify the live surface:
+
+1. **Facade registered**: `adv_tool_catalog` (describe, invoke) appears in
+   `adv_status` output and the SDK tool surface.
+2. **Normal-agent visibility**: an `adv-engineer` (or other normal agent)
+   session sees `adv_tool_invoke` in its tool list. Direct `adv_*` tools
+   not in its allowlist are absent.
+3. **Orchestrator escape hatch**: the `adv` orchestrator session retains
+   direct `adv_*` access (no `adv_*: deny` rule).
+4. **Facade dispatch**: `adv_tool_invoke(name: "adv_change_show",
+   args: { changeId: "<active-change>" })` returns the same payload a
+   direct `adv_change_show` call would.
+5. **Recursion rejection**: `adv_tool_invoke(name: "adv_tool_invoke",
+   args: {})` returns `RECURSIVE_INVOCATION` before any dispatch.
+6. **Schema rejection**: `adv_tool_invoke(name: "adv_change_list",
+   args: { limit: "not-a-number" })` returns `SCHEMA_VALIDATION_FAILED`
+   before any dispatch.
+
+### Rollback (AC7)
+
+The visibility profile is reversible without code changes. To
+restore direct ADV visibility for a normal agent:
+
+1. In `~/.config/opencode/opencode.jsonc`, remove the three
+   `adv_tool_catalog` / `adv_tool_describe` / `adv_tool_invoke` `allow`
+   lines from that agent's `permission` block (or remove the entire
+   `permission` block to revert to default-allow).
+2. In `.opencode/agents/<agent>.md`, remove the three lines from the
+   `# >>> ADV-GENERATED` block, or edit
+   `plugin/src/tool-role-policy.ts` `AGENT_TOOL_POLICY` and re-run
+   `pnpm run generate:manifests`.
+3. Restart OpenCode.
+
+The `adv_tool_invoke` plugin tool itself remains registered after
+rollback (it is part of `ADV_TOOL_NAMES`); only its visibility to normal
+agents changes. Direct tool semantics are unchanged because the facade
+was strictly additive — it never modified any underlying handler.

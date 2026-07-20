@@ -6,6 +6,7 @@ import {
   type Task,
 } from "../types";
 import { validateChange } from "./validator";
+import { projectContractCoverage } from "./contract";
 
 const createdAt = "2026-05-08T00:00:00.000Z";
 
@@ -203,6 +204,140 @@ describe("contract validation", () => {
       (issue) => issue.code.startsWith("CONTRACT_"),
     );
     expect(contractIssues).toEqual([]);
+  });
+});
+
+// =============================================================================
+// Contract Coverage Projection
+// =============================================================================
+
+describe("projectContractCoverage", () => {
+  test("only implements and verifies count as coverage", () => {
+    const result = projectContractCoverage(
+      change({
+        tasks: [
+          task({
+            id: "tk-respects",
+            contract_refs: { respects: ["AC1"] },
+          }),
+        ],
+      }),
+    );
+    expect(result.coveredIds.has("AC1")).toBe(false);
+    expect(result.uncoveredAcceptanceCriteria).toHaveLength(1);
+    expect(result.uncoveredAcceptanceCriteria[0].id).toBe("AC1");
+  });
+
+  test("cancelled tasks do not contribute coverage", () => {
+    const result = projectContractCoverage(
+      change({
+        tasks: [
+          task({
+            id: "tk-cancelled",
+            status: "cancelled",
+            contract_refs: { implements: ["AC1"] },
+          }),
+        ],
+      }),
+    );
+    expect(result.coveredIds.has("AC1")).toBe(false);
+    expect(result.uncoveredAcceptanceCriteria).toHaveLength(1);
+  });
+
+  test("cancellation metadata surfaces cancelled task ids and count", () => {
+    const result = projectContractCoverage(
+      change({
+        tasks: [
+          task({
+            id: "tk-active",
+            contract_refs: { implements: ["AC1"] },
+          }),
+          task({
+            id: "tk-cancelled-1",
+            status: "cancelled",
+            contract_refs: { implements: ["AC2"] },
+          }),
+          task({
+            id: "tk-cancelled-2",
+            status: "cancelled",
+            contract_refs: { implements: ["AC2"] },
+          }),
+        ],
+        contract: {
+          ...change().contract!,
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Active coverage",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+            {
+              id: "AC2",
+              kind: "acceptance_criterion",
+              text: "Cancelled coverage",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+        },
+      }),
+    );
+    expect(result.cancelledTaskIds).toEqual([
+      "tk-cancelled-1",
+      "tk-cancelled-2",
+    ]);
+    expect(result.cancelledTaskCount).toBe(2);
+  });
+
+  test("cancellation metadata is empty when no tasks are cancelled", () => {
+    const result = projectContractCoverage(
+      change({
+        tasks: [
+          task({
+            id: "tk-active",
+            contract_refs: { implements: ["AC1"] },
+          }),
+        ],
+      }),
+    );
+    expect(result.cancelledTaskIds).toEqual([]);
+    expect(result.cancelledTaskCount).toBe(0);
+  });
+
+  test("verificationRequired=false AC is not reported as uncovered", () => {
+    const result = projectContractCoverage(
+      change({
+        contract: {
+          ...change().contract!,
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Review proves AC1.",
+              sourceArtifact: "agreement",
+              verificationRequired: false,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+        },
+        tasks: [task({ contract_refs: undefined })],
+      }),
+    );
+    expect(result.uncoveredAcceptanceCriteria).toHaveLength(0);
+  });
+
+  test("returns per-task coverage entries", () => {
+    const result = projectContractCoverage(change());
+    expect(result.taskCoverage).toEqual([
+      { taskId: "tk-1", implements: ["AC1"], verifies: ["AC1"] },
+    ]);
   });
 });
 

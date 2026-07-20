@@ -100,7 +100,7 @@ Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) fo
 
 ### Non-Code Deliverable Evidence Policy
 
-For tasks whose deliverable is non-code (`docs`, `research`, `approval`, `verification`, `ops`, writing, analysis, design improvement, competitive research), set a machine-readable `evidence_policy` and trace the task to approved contract items instead of forcing fake red/green TDD.
+For tasks whose deliverable is non-code (`docs`, `research`, `approval`, `verification`, `ops`, writing, analysis, design improvement, competitive research), set a normalized `evidence_plan` with a machine-readable `evidence_policy`, a concrete `proof_target`, and trace the task to approved contract items instead of forcing fake red/green TDD. The evidence plan is the structural authority; title/path heuristics are advisory only.
 
 | Deliverable | Suggested evidence policy | TDD intent |
 | --- | --- | --- |
@@ -117,6 +117,7 @@ Rules:
 - `evidence_policy: not_applicable` is allowed only with `contract_refs.not_applicable_reason`.
 - Every non-code task MUST have `contract_refs` (`implements`/`verifies`/`respects`) or a bounded `not_applicable_reason`.
 - Use the shared `ContractEvidencePolicy` vocabulary: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, `test`, `design_proof`, `not_applicable`.
+- Every task (code and non-code) SHOULD carry an `evidence_plan` with exactly one policy and a non-empty `proof_target`. Legacy tasks without a plan are normalized on read; do not synthesize a plan from title or path heuristics. <!-- rq-PR010evidencePlan -->
 
 #### Ops Runbook Task Policy
 
@@ -164,7 +165,7 @@ If omitted, `/adv-apply` determines routing from `tdd_intent`, title heuristics,
 
 ### Frontend Routing Metadata
 
-When creating tasks whose owned scope is frontend/view/component UI work, `/adv-prep` MUST set `metadata.frontend = "true"` to give `/adv-apply` a structural routing signal for `adv-designer` (the apply-phase frontend worker). When the task scope is not frontend, omit the key (or set `"false"`).
+When creating tasks whose owned scope is frontend/view/component UI work, `/adv-prep` MUST set `metadata.frontend = "true"` to give `/adv-apply` a structural classification signal. Classified UI work starts with `adv-engineer` when delegated (or runs inline when risk-forced); successful same-cycle implementation then receives an `adv-designer` follow-up. When the task scope is not frontend, omit the key (or set `"false"`).
 
 Classification rule:
 
@@ -172,7 +173,7 @@ Classification rule:
 - Keep `metadata.frontend` unset (or `"false"`) for backend logic, storage, APIs, Temporal behavior, business rules, schemas, and infra tasks. `adv-engineer` owns these.
 - For mixed UI/backend work, **split into separate tasks** — a UI task with `metadata.frontend = "true"` and a backend task without. Use `blockedBy` to sequence them. Do not bundle both concerns in one task.
 
-`/adv-apply` reads `metadata.frontend` at Priority 1.5 in the delegation routing table (after `metadata.delegation_hint` Priority 1 explicit user override). See `.opencode/command/adv-apply.md § Delegation Routing` and `.opencode/agents/adv-designer.md` for the worker contract.
+`/adv-apply` uses `metadata.frontend` as a structural classification signal after `metadata.delegation_hint` (Priority 1) and risk routing. It does not directly route initial implementation to `adv-designer`; see `.opencode/command/adv-apply.md § Delegation Routing` and `.opencode/agents/adv-designer.md` for the engineer-first follow-up contract.
 
 × MUST NOT rely on title or path heuristics as the sole authority for frontend routing — set the metadata key structurally. Heuristics may assist discovery, never own correctness.
 
@@ -240,15 +241,17 @@ Action: `adv_task_cancel` (with approval) → update parent description → redi
 
 #### B. TDD Ordering
 
-Inline TDD is default. Use `metadata.tdd_intent` and a concrete `evidence_policy`:
+Inline TDD is default. Use `metadata.tdd_intent` and a concrete `evidence_plan` (policy + `proof_target`):
 
-| Value                   | Meaning                 | Evidence policy | Evidence? |
-| ----------------------- | ----------------------- | --------------- | --------- |
-| `inline` (or unset)     | Red/green within task   | `test` or `review` | Yes       |
-| `separate_verification` | Cross-cutting test      | `test`, `review`, or `static_check` | No        |
-| `not_applicable`        | Non-code (docs, config, research, approval, ops) | `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, or `not_applicable` with rationale | No        |
+| Value                   | Meaning                 | Evidence policy / plan | Evidence? |
+| ----------------------- | ----------------------- | ---------------------- | --------- |
+| `inline` (or unset)     | Red/green within task   | `test` or `review`; proof target names the regression being proved | Yes       |
+| `separate_verification` | Cross-cutting test      | `test`, `review`, or `static_check` with a non-empty proof target | No        |
+| `not_applicable`        | Non-code (docs, config, research, approval, ops) | `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, or `not_applicable` with rationale; proof target names the deliverable or check | No        |
 
-For non-code tasks, use `evidence_policy` instead of fake TDD. See **Non-Code Deliverable Evidence Policy** above.
+Behavior-critical tasks (`type: code` or `verification`) MUST NOT use `not_applicable` as their evidence route. A non-test route for logic-bearing work requires a bounded rationale and a linked `review_conclusion` in the evidence plan. <!-- rq-TDD013evp -->
+
+For non-code tasks, use an `evidence_plan` with a valid `evidence_policy` instead of fake TDD. See **Non-Code Deliverable Evidence Policy** above.
 
 Anti-pattern: same-scope test task blocked_by impl task (code-first, not test-first). Fix: merge test into impl, cancel test task.
 
@@ -454,6 +457,10 @@ For each gap: resolve inline (read code, query docs, ask specific question). Re-
 ### Mark Gate
 
 `adv_gate_complete changeId: {change-id} gateId: planning userApproved: true` (no-op if Phase 8.5 already passed).
+
+### Lightweight Change Profile
+
+If the change has requested a lightweight profile, completing the planning gate triggers the host-side collector to perform the initial evaluation and the execution-boundary revalidation. The result is appended to `lightweight_profile.evaluations` and becomes available to the workflow directive for execution and acceptance routing. A non-qualified change continues under standard workflow requirements from the current gate.
 
 ### Completion
 

@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
   const emitChangeSummarySignal = vi.fn();
   const persistStateToDisk = vi.fn();
   const specDeltasAdd = vi.fn();
+  const specDeltasModify = vi.fn();
   return {
     signal,
     query,
@@ -39,6 +40,7 @@ const mocks = vi.hoisted(() => {
     emitChangeSummarySignal,
     persistStateToDisk,
     specDeltasAdd,
+    specDeltasModify,
     canReachTemporalAddress: vi.fn(async () => true),
     getTemporalWorkerAliveness: vi.fn(() => true),
     getRegisteredTemporalWorkerQueues: vi.fn(() => ["advance-proj123"]),
@@ -92,7 +94,7 @@ vi.mock("../utils/project-id", async () => {
 });
 
 import { specDeltaTools } from "./spec-delta";
-import type { DeltaAdd } from "../types";
+import type { DeltaAdd, DeltaModify } from "../types";
 import type { Store } from "../storage/store-types";
 
 function makeValidDelta(overrides: Partial<DeltaAdd> = {}): DeltaAdd {
@@ -118,12 +120,25 @@ function makeValidDelta(overrides: Partial<DeltaAdd> = {}): DeltaAdd {
   };
 }
 
+function makeValidModifyDelta(
+  overrides: Partial<DeltaModify> = {},
+): DeltaModify {
+  return {
+    id: "dl-MOD11111",
+    operation: "modify",
+    target_id: "rq-existing01",
+    changes: { title: "Updated requirement" },
+    ...overrides,
+  };
+}
+
 function makeStore(overrides: Record<string, unknown> = {}): Store {
   return {
     paths: { root: "/repo", changes: "/repo/.adv/changes" } as Store["paths"],
     productContext: undefined,
     specDeltas: {
       add: mocks.specDeltasAdd,
+      modify: mocks.specDeltasModify,
     },
     changes: {
       get: vi.fn(async () => ({
@@ -211,6 +226,105 @@ describe("adv_delta_add — schema + happy path", () => {
 
     const callArgs = mocks.specDeltasAdd.mock.calls[0];
     expect(callArgs[3]).toEqual({ addedBy: "adv-engineer" });
+  });
+});
+
+describe("adv_delta_modify — schema + target validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.specDeltasModify.mockImplementation(
+      async (_changeId: string, _capability: string, delta: DeltaModify) =>
+        delta,
+    );
+  });
+
+  it("records a typed modification for an existing requirement", async () => {
+    const store = makeStore({
+      specs: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            name: "test-capability",
+            requirements: [{ id: "rq-existing01" }],
+          },
+        })),
+      },
+    });
+    const delta = makeValidModifyDelta();
+    const result = await specDeltaTools.adv_delta_modify.execute(
+      { changeId: "addFeature", capability: "test-capability", delta },
+      store,
+    );
+
+    expect(parse(result).success).toBe(true);
+    expect(mocks.specDeltasModify).toHaveBeenCalledWith(
+      "addFeature",
+      "test-capability",
+      delta,
+      undefined,
+    );
+  });
+
+  it.each([
+    ["empty changes", { changes: {} }],
+    ["unknown change key", { changes: { unknown: "nope" } }],
+    ["invalid target", { target_id: "bad-target" }],
+  ])("rejects %s without calling the store", async (_label, overrides) => {
+    const result = await specDeltaTools.adv_delta_modify.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: { ...makeValidModifyDelta(), ...overrides } as DeltaModify,
+      },
+      makeStore(),
+    );
+
+    expect(parse(result).success).not.toBe(true);
+    expect(mocks.specDeltasModify).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown and conflicting targets before calling the store", async () => {
+    const unknownTarget = await specDeltaTools.adv_delta_modify.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: makeValidModifyDelta(),
+      },
+      makeStore(),
+    );
+    expect(parse(unknownTarget).success).not.toBe(true);
+    expect(mocks.specDeltasModify).not.toHaveBeenCalled();
+
+    const conflictStore = makeStore({
+      specs: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: { requirements: [{ id: "rq-existing01" }] },
+        })),
+      },
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            id: "addFeature",
+            status: "draft",
+            deltas: {
+              "test-capability": [makeValidModifyDelta({ id: "dl-OTHER111" })],
+            },
+          },
+        })),
+      },
+    });
+    const conflict = await specDeltaTools.adv_delta_modify.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: makeValidModifyDelta(),
+      },
+      conflictStore,
+    );
+    expect(parse(conflict).error).toMatch(/Conflicting/);
+    expect(mocks.specDeltasModify).not.toHaveBeenCalled();
   });
 });
 

@@ -275,6 +275,70 @@
       ],
       "type": "object"
     },
+    "evidence_plan": {
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "enum": [
+            "test",
+            "review",
+            "static_check",
+            "design_proof",
+            "not_applicable",
+            "source_citation",
+            "source_audit",
+            "rubric_review",
+            "stakeholder_acceptance",
+            "artifact_reference"
+          ],
+          "type": "string"
+        },
+        "proof_target": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "provenance": {
+          "enum": [
+            "new",
+            "reclassified",
+            "legacy"
+          ],
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "review_conclusion": {
+          "type": "string"
+        },
+        "review_evidence_ref": {
+          "additionalProperties": false,
+          "properties": {
+            "report_key": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "report_key"
+          ],
+          "type": "object"
+        },
+        "stage": {
+          "enum": [
+            "stage-v1",
+            "stage-v2"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy",
+        "proof_target",
+        "provenance"
+      ],
+      "type": "object"
+    },
     "evidence_policy": {
       "enum": [
         "test",
@@ -634,6 +698,13 @@
                 },
                 "type": "array"
               },
+              "evidence_binding_version": {
+                "enum": [
+                  "typed-v1",
+                  "legacy-command-v0"
+                ],
+                "type": "string"
+              },
               "files_touched": {
                 "items": {
                   "minLength": 1,
@@ -647,6 +718,31 @@
                   "type": "string"
                 },
                 "type": "array"
+              },
+              "recovery_audit": {
+                "additionalProperties": false,
+                "properties": {
+                  "evidence": {
+                    "type": "string"
+                  },
+                  "persisted_via": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "recovered_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "evidence",
+                  "recovered_at",
+                  "persisted_via"
+                ],
+                "type": "object"
               },
               "related_scan": {
                 "minLength": 1,
@@ -787,7 +883,15 @@
                       "minimum": -9007199254740991,
                       "type": "integer"
                     },
+                    "run_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
                     "summary": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "test_run_id": {
                       "minLength": 1,
                       "type": "string"
                     }
@@ -1004,6 +1108,31 @@
                   "harden"
                 ],
                 "type": "string"
+              },
+              "recovery_audit": {
+                "additionalProperties": false,
+                "properties": {
+                  "evidence": {
+                    "type": "string"
+                  },
+                  "persisted_via": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "recovered_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "evidence",
+                  "recovered_at",
+                  "persisted_via"
+                ],
+                "type": "object"
               },
               "required_follow_ups": {
                 "items": {
@@ -1474,6 +1603,13 @@
                 ],
                 "type": "object"
               },
+              "evidence_binding_version": {
+                "enum": [
+                  "typed-v1",
+                  "legacy-command-v0"
+                ],
+                "type": "string"
+              },
               "files_touched": {
                 "items": {
                   "minLength": 1,
@@ -1517,6 +1653,31 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "recovery_audit": {
+                "additionalProperties": false,
+                "properties": {
+                  "evidence": {
+                    "type": "string"
+                  },
+                  "persisted_via": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "recovered_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "evidence",
+                  "recovered_at",
+                  "persisted_via"
+                ],
+                "type": "object"
               },
               "related_scan": {
                 "minLength": 1,
@@ -1657,7 +1818,15 @@
                       "minimum": -9007199254740991,
                       "type": "integer"
                     },
+                    "run_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
                     "summary": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "test_run_id": {
                       "minLength": 1,
                       "type": "string"
                     }

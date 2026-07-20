@@ -44,6 +44,10 @@ vi.mock("../../utils/stale-head", () => ({
 import { triageWorktrees } from "./triage";
 import { getWorktreeRegistrySnapshot, getPendingDeletes } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
+import {
+  createInventoryBudget,
+  type InventoryBudget,
+} from "./inventory-budget";
 
 const mockedRegistrySnapshot = vi.mocked(getWorktreeRegistrySnapshot);
 const mockedGetPendingDeletes = vi.mocked(getPendingDeletes);
@@ -467,5 +471,105 @@ describe("triageWorktrees (T18)", () => {
         recommendedFix: expect.stringContaining("adv_worktree_cleanup"),
       }),
     );
+  });
+
+  describe("bounded inventory (budget-aware triage)", () => {
+    function makeSequenceBudget(allowFirstN: number): InventoryBudget {
+      let calls = 0;
+      const controller = new AbortController();
+      return {
+        signal: controller.signal,
+        canStartInspection() {
+          return ++calls <= allowFirstN;
+        },
+        stopReason() {
+          return calls > allowFirstN ? "internal_budget_exhausted" : undefined;
+        },
+        snapshot() {
+          return calls > allowFirstN
+            ? {
+                complete: false,
+                stopReason: "internal_budget_exhausted" as const,
+              }
+            : { complete: true };
+        },
+        dispose() {},
+      };
+    }
+
+    it("returns complete true when no budget is exhausted", async () => {
+      const result = await triageWorktrees(repoRoot);
+      expect(result.complete).toBe(true);
+      expect(result.stopReason).toBeUndefined();
+    });
+
+    it("returns incomplete when budget is exhausted before any inspection", async () => {
+      const budget = createInventoryBudget({ timeoutMs: 0 });
+      const result = await triageWorktrees(repoRoot, undefined, { budget });
+
+      expect(result.complete).toBe(false);
+      expect(result.stopReason).toBe("internal_budget_exhausted");
+      expect(result.stoppedStage).toBe("stale_head");
+      expect(result.orphans).toHaveLength(0);
+      expect(result.omitted).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ scope: "stale_head" }),
+          expect.objectContaining({ scope: "init_state" }),
+        ]),
+      );
+    });
+
+    it("preserves inspected orphans and omits remaining worktrees when budget stops mid-collection", async () => {
+      // Two unregistered change worktrees. The first is inspected; the second
+      // is omitted when the budget closes admission.
+      execFileSync(
+        "git",
+        ["worktree", "add", "-b", "change/a", join(tempRoot, "wt-a"), "trunk"],
+        { cwd: repoRoot },
+      );
+      execFileSync(
+        "git",
+        ["worktree", "add", "-b", "change/b", join(tempRoot, "wt-b"), "trunk"],
+        { cwd: repoRoot },
+      );
+      mockRegistrySnapshot([]);
+
+      // Allow stale_head, init_state, disk_list, snapshot, and one
+      // missing_from_temporal inspection.
+      const budget = makeSequenceBudget(5);
+
+      const result = await triageWorktrees(repoRoot, undefined, { budget });
+
+      expect(result.complete).toBe(false);
+      expect(result.stopReason).toBe("internal_budget_exhausted");
+      // Exactly one inspected missing_from_temporal orphan.
+      const inspected = result.orphans.filter(
+        (o) => o.class === "missing_from_temporal",
+      );
+      expect(inspected).toHaveLength(1);
+      // The remaining worktree is explicitly omitted, not classified as clean.
+      expect(result.omitted).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            scope: "missing_from_temporal",
+            branch: "change/b",
+          }),
+        ]),
+      );
+      // No orphan was emitted for the omitted worktree.
+      const orphanBranches = result.orphans.map((o) => o.branch);
+      expect(orphanBranches).not.toContain("change/b");
+    });
+
+    it("propagates a caller abort signal as the stop reason", async () => {
+      const caller = new AbortController();
+      caller.abort("caller aborted");
+      const result = await triageWorktrees(repoRoot, undefined, {
+        callerSignal: caller.signal,
+      });
+
+      expect(result.complete).toBe(false);
+      expect(result.stopReason).toBe("caller_cancelled");
+    });
   });
 });

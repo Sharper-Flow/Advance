@@ -38,6 +38,11 @@ function buildRecordingDeps(): {
         text: p.text,
       });
     }),
+    query: vi.fn(async (_def: unknown, receiptId: string) => ({
+      id: receiptId,
+      signalName: "artifactUpdated",
+      recordedAt: "2026-07-19T20:00:00.000Z",
+    })),
   };
 
   const workflowClient = {

@@ -64,6 +64,8 @@ describe("subagent reports spec assets", () => {
       "rq-subagentReports21",
       "rq-subagentReports22",
       "rq-subagentReports23",
+      "rq-subagentReports24",
+      "rq-subagentReports25",
     ]);
   });
 
@@ -337,6 +339,27 @@ describe("subagent reports spec assets", () => {
     }
   });
 
+  test("rq-subagentReports24 spec law pins typed design-validation blockers, in-scope remediation, and preflight no-mutation", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const text = JSON.stringify(spec);
+
+    for (const anchor of [
+      "rq-subagentReports24",
+      "researcher:design-validation",
+      "in_scope_remediation",
+      "scope equal to the literal in_scope",
+      "out-of-scope alternatives",
+      "alternatives_considered",
+      "MAX_ZOD_PREFLIGHT_ISSUES",
+      "no signal, no error_recovery, and no workflow mutation",
+      "contract_ids",
+      "INVALID_REPORT",
+      "advisory-only",
+    ]) {
+      expect(text).toContain(anchor);
+    }
+  });
+
   test("design validator command maps dimensions into researcher Architecture Judgement", () => {
     const content = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-design.md"),
@@ -361,6 +384,45 @@ describe("subagent reports spec assets", () => {
     }
 
     expect(content).not.toContain("verdict: VALIDATED | CAUTION | CONFLICT");
+  });
+
+  test("design validator command declares AC13 in-scope blockers, contract_ids, and out-of-scope routing (parity with adv-researcher agent)", () => {
+    // rq-fixWorkflowReliabilityDefects/AC13: both the command and the agent
+    // must pin the validator scope enforcement: typed in-scope blockers,
+    // approved contract_ids, in_scope_remediation, and explicit out-of-scope
+    // routing through architecture_judgement.alternatives_considered.
+    const command = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-design.md"),
+      "utf8",
+    );
+    const agent = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/adv-researcher.md"),
+      "utf8",
+    );
+
+    for (const anchor of [
+      "Validator scope enforcement",
+      "in-scope typed object",
+      "contract_ids",
+      "in_scope_remediation",
+      'scope: "in_scope"',
+      "alternatives_considered",
+      "advisory-only",
+      "cannot classify out-of-scope alternatives as blockers",
+    ]) {
+      expect(command, `command missing ${anchor}`).toContain(anchor);
+    }
+    for (const anchor of [
+      "New design-validation blockers must be typed objects",
+      "contract_ids",
+      'scope: "in_scope"',
+      "in_scope_remediation",
+      "alternatives_considered",
+      "advisory",
+      "cannot hold, complete, or otherwise mutate an ADV gate",
+    ]) {
+      expect(agent, `agent missing ${anchor}`).toContain(anchor);
+    }
   });
 
   test("research command uses validation.status crosswalk and visible Architecture Judgement output", () => {
@@ -473,7 +535,7 @@ describe("subagent reports spec assets", () => {
     ]);
   });
 
-  test("delegation-defaults apply step lists Frontend Implementation with adv-designer typed_persisted_worker contract", () => {
+  test("delegation-defaults apply step exposes adv-designer's typed persisted follow-up contract", () => {
     const spec = readJson(DELEGATION_DEFAULTS_SPEC) as {
       delegation_matrix: Array<{
         step: string;
@@ -494,12 +556,12 @@ describe("subagent reports spec assets", () => {
     expect(apply).toBeDefined();
     expect(apply!.allowed_subagents).toContain("adv-designer");
 
-    const frontend = (apply!.delegated_substeps ?? []).find(
-      (substep) => substep.name === "Frontend Implementation",
+    const frontend = (apply!.delegated_substeps ?? []).find((substep) =>
+      substep.allowed_subagents?.includes("adv-designer"),
     );
     expect(
       frontend,
-      "apply step missing Frontend Implementation substep",
+      "apply step missing an adv-designer follow-up substep",
     ).toBeDefined();
     expect(frontend!.allowed_subagents).toEqual(["adv-designer"]);
 

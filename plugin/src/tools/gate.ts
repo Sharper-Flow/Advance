@@ -25,7 +25,7 @@ import {
 import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
-import { loadChange } from "../storage/json";
+import { loadChange, loadProjectConfig } from "../storage/json";
 import {
   normalizeGateArtifactEvidenceForReadback,
   readArtifact,
@@ -52,6 +52,7 @@ import {
   gateCompletedSignal,
   getGateStatusQuery,
   getGateCriteriaQuery,
+  getAcceptanceCriteriaProjectionQuery,
 } from "../temporal/messages";
 import {
   type WorktreeIsolationDeps,
@@ -85,6 +86,12 @@ import {
   changeToWorkflowState,
 } from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
+import {
+  degradedPhasePlan,
+  derivePhasePlanSafe,
+  type DegradedPhasePlan,
+} from "../utils/phase-plan";
+import { checkPlanRoutingGuard } from "../migration/routing-guard";
 import { createLogger } from "../utils/debug-log";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
@@ -97,8 +104,208 @@ import {
   workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
+import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
+import type { LightweightProfilePhase } from "../types";
+import {
+  PublicRootPolicy,
+  PublicRootPolicySchema,
+} from "../utils/lightweight-change-profile-evidence";
+import {
+  CRITERION_ORDER,
+  type LightweightProfileCriterionRecord,
+  type LightweightProfileEvaluation,
+  type LightweightProfileResult,
+} from "../types/lightweight-change-profile";
+import { lightweightProfileEvaluatedSignal } from "../temporal/messages";
 
 const logger = createLogger("gate");
+
+interface LightweightProfileBoundaryResult {
+  phase: LightweightProfilePhase;
+  result: string;
+  evaluationKey?: string;
+  downgradeReason?: string;
+}
+
+// rq-smallChangeProfile01: re-evaluate lightweight profile at gate boundaries.
+// Errors are best-effort logged; gate completion must not fail because the
+// optional profile evaluation encountered a transient host-side issue.
+//
+// When a boundary evaluation cannot be completed (collector/service/signal
+// failure), we durably record a non-qualifying result so a previously qualified
+// profile cannot remain directive state while the host is unable to revalidate
+// it. A prior qualified result is downgraded (no-reset semantics); otherwise it
+// is recorded as ineligible.
+async function evaluateLightweightProfileAtPhases(
+  store: Store,
+  change: Change,
+  changeId: string,
+  phases: LightweightProfilePhase[],
+  apiCompatibilityPolicy?: PublicRootPolicy,
+): Promise<LightweightProfileBoundaryResult[]> {
+  if (!change.lightweight_profile) return [];
+  const results: LightweightProfileBoundaryResult[] = [];
+  for (const phase of phases) {
+    try {
+      const evalResult = await evaluateLightweightProfileAndSignal({
+        store,
+        changeId,
+        phase,
+        apiCompatibilityPolicy,
+      });
+      if (evalResult.success && evalResult.evaluation) {
+        results.push({
+          phase,
+          result: evalResult.evaluation.result,
+          evaluationKey: evalResult.evaluation.evaluationKey,
+          downgradeReason: evalResult.evaluation.downgradeReason,
+        });
+      } else if (!evalResult.success) {
+        logger.warn(
+          `Lightweight profile evaluation skipped at ${phase} for ${changeId}: ${evalResult.error}`,
+        );
+        results.push(
+          await recordLightweightProfileBoundaryFailure(
+            store,
+            change,
+            changeId,
+            phase,
+            evalResult.error ?? "evaluation failed",
+          ),
+        );
+      }
+    } catch (error) {
+      logger.warn(
+        `Lightweight profile evaluation failed at ${phase} for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      results.push(
+        await recordLightweightProfileBoundaryFailure(
+          store,
+          change,
+          changeId,
+          phase,
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
+    }
+  }
+  return results;
+}
+
+/**
+ * Resolve a validated public-root API compatibility policy from project
+ * configuration. The policy is read from project.json (passthrough field) and
+ * validated centrally so it can be passed to every boundary evaluation.
+ */
+async function resolveApiCompatibilityPolicy(
+  store: Store,
+): Promise<PublicRootPolicy | undefined> {
+  try {
+    const config = store.config ?? (await loadProjectConfig(store.paths.root));
+    const raw = (config as Record<string, unknown> | null)?.public_root_policy;
+    if (!raw) return undefined;
+
+    const validated = PublicRootPolicySchema.safeParse(raw);
+    if (!validated.success) {
+      logger.warn(
+        `project.json public_root_policy failed validation: ${validated.error.message}`,
+      );
+      return undefined;
+    }
+    return validated.data;
+  } catch (error) {
+    logger.warn(
+      `Failed to resolve public-root API compatibility policy: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return undefined;
+  }
+}
+
+/**
+ * Durably record a non-qualifying boundary evaluation result. Keeps the profile
+ * from retaining a directive qualified state while the current boundary
+ * evaluation cannot be confirmed. Honors no-reset downgrade semantics: a prior
+ * qualified result becomes downgraded, not reset to ineligible.
+ */
+async function recordLightweightProfileBoundaryFailure(
+  store: Store,
+  change: Change,
+  changeId: string,
+  phase: LightweightProfilePhase,
+  error: string,
+): Promise<LightweightProfileBoundaryResult> {
+  const profile = change.lightweight_profile;
+  if (!profile) {
+    return { phase, result: "ineligible", downgradeReason: error };
+  }
+
+  const priorQualified = profile.evaluations.some(
+    (entry) => entry.result === "qualified",
+  );
+  const result: LightweightProfileResult = priorQualified
+    ? "downgraded"
+    : "ineligible";
+
+  const bundle = getService();
+  const projectId = bundle ? await getProjectId(store.paths.root) : null;
+  if (!bundle || !projectId) {
+    return {
+      phase,
+      result,
+      downgradeReason: priorQualified
+        ? `Boundary evaluation failed after prior qualification: ${error}`
+        : error,
+    };
+  }
+
+  const evaluationKey = `${profile.request.requestId}:${phase}:boundary_failure:${Date.now()}`;
+  const evaluatedAt = new Date().toISOString();
+  const criteria: LightweightProfileCriterionRecord[] = CRITERION_ORDER.map(
+    (criterion) => ({
+      criterion,
+      status: "unknown",
+      reason: `Boundary evaluation failed: ${error}`,
+    }),
+  );
+
+  const evaluation: LightweightProfileEvaluation = {
+    evaluationKey,
+    phase,
+    result,
+    criteria,
+    evidenceFingerprint: "boundary_failure",
+    observedRevision: "unknown",
+    evaluatedAt,
+    downgradeReason: priorQualified
+      ? `Boundary evaluation failed after prior qualification: ${error}`
+      : undefined,
+  };
+
+  const handle = getChangeHandle(bundle.client, projectId, changeId);
+  try {
+    await fireSignalAndRefresh(
+      handle,
+      store,
+      changeId,
+      lightweightProfileEvaluatedSignal,
+      {
+        evaluation,
+        evaluatedAt,
+      },
+    );
+  } catch (signalError) {
+    logger.warn(
+      `Failed to record lightweight profile boundary failure signal for ${changeId} at ${phase}: ${signalError instanceof Error ? signalError.message : String(signalError)}`,
+    );
+  }
+
+  return {
+    phase,
+    result,
+    evaluationKey,
+    downgradeReason: evaluation.downgradeReason,
+  };
+}
 
 // rq-releaseFinalization01: gate completion confirmation must be durable.
 const MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS = 20;
@@ -946,6 +1153,20 @@ async function handlePlanningGateCompletion({
     });
   }
 
+  const apiCompatibilityPolicy = await resolveApiCompatibilityPolicy(store);
+  const profileEvaluations = await evaluateLightweightProfileAtPhases(
+    store,
+    change,
+    changeId,
+    ["initial", "execution_boundary"],
+    apiCompatibilityPolicy,
+  );
+
+  const profilePayload =
+    profileEvaluations.length > 0
+      ? { lightweightProfileEvaluations: profileEvaluations }
+      : {};
+
   return completeGateAndBuildResponse({
     store,
     change,
@@ -958,6 +1179,7 @@ async function handlePlanningGateCompletion({
     extraPayload: {
       ...warningsPayload,
       ...clarifyPayload,
+      ...profilePayload,
     },
   });
 }
@@ -1006,6 +1228,9 @@ export const gateTools = {
             let gateCriteria:
               | Partial<Record<GateId, import("../types").GateCriterion[]>>
               | undefined;
+            let acceptanceCriteriaProjection:
+              | import("../types").AcceptanceCriteriaProjection
+              | undefined;
             let poisonedFallback = false;
             const bundle = getService();
             const projectId = bundle
@@ -1039,6 +1264,10 @@ export const gateTools = {
                 gateCriteria = await querySignal<
                   Partial<Record<GateId, import("../types").GateCriterion[]>>
                 >(handle, getGateCriteriaQuery);
+                // Query fresh acceptance criteria projection keyed to readiness revision
+                acceptanceCriteriaProjection = await querySignal<
+                  import("../types").AcceptanceCriteriaProjection
+                >(handle, getAcceptanceCriteriaProjectionQuery);
               } catch (queryError) {
                 // rq-fix-gate-tools-recovery AC1: poisoned-history fallback.
                 // The store's changes.get already returned a disk projection
@@ -1061,30 +1290,56 @@ export const gateTools = {
             // wrapper), the same derivation the workflow's getDirectiveQuery
             // and status enrichment consume. On derivation failure we fall
             // back to gate-derived next-action so gate-status stays useful.
-            const directive = deriveDirectiveSafe(
-              changeToDirectiveState({
-                projectId: projectId ?? result.data.adv_project_id ?? "unknown",
-                change: result.data,
-                gates: normalizedGates,
-              }),
-              Date.now(),
-            );
+            //
+            // AC9/DDC7 fail-closed: after an active build-bound cutover
+            // receipt, a degraded plan instead stops plan-dependent consumer
+            // routing — no gate-derived next action (DONT4), typed degraded
+            // diagnostics only, and zero Temporal signals/writes (DONT5).
+            const directiveState = changeToDirectiveState({
+              projectId: projectId ?? result.data.adv_project_id ?? "unknown",
+              change: result.data,
+              gates: normalizedGates,
+            });
+            const directive = deriveDirectiveSafe(directiveState, Date.now());
+            let failClosedPlan: DegradedPhasePlan | undefined;
+            let failClosedBasis: string | undefined;
             if (!directive) {
-              logger.warn(
-                `deriveWorkflowDirective failed in gate-status for ${changeId}; falling back to gate-derived next-action`,
-              );
+              const routingGuard = checkPlanRoutingGuard();
+              if (routingGuard.failClosed) {
+                const plan = derivePhasePlanSafe(directiveState, Date.now());
+                failClosedPlan =
+                  plan.kind === "degraded"
+                    ? plan
+                    : degradedPhasePlan(
+                        changeId,
+                        "derivation_error",
+                        "directive derivation failed while plan derivation succeeded; treating projections as conflicting",
+                      );
+                failClosedBasis = routingGuard.basis;
+                logger.warn(
+                  `deriveWorkflowDirective failed in gate-status for ${changeId}; plan routing fail-closed (${routingGuard.basis}) — next-action routing stopped`,
+                );
+              } else {
+                logger.warn(
+                  `deriveWorkflowDirective failed in gate-status for ${changeId}; falling back to gate-derived next-action`,
+                );
+              }
             }
             const fallbackNextGate =
               incomplete.length > 0 ? incomplete[0] : null;
             const canArchive = directive
               ? directive.canArchive
-              : allGatesSatisfied(normalizedGates);
+              : failClosedPlan
+                ? false
+                : allGatesSatisfied(normalizedGates);
             const nextGate = directive
               ? directive.canArchive
                 ? null
                 : ((directive.action.gateId as GateId | undefined) ??
                   fallbackNextGate)
-              : fallbackNextGate;
+              : failClosedPlan
+                ? null
+                : fallbackNextGate;
 
             return formatToolOutput({
               changeId,
@@ -1093,7 +1348,19 @@ export const gateTools = {
               canArchive,
               nextGate,
               ...(directive ? { _directive: directive } : {}),
+              ...(failClosedPlan
+                ? {
+                    _phasePlan: failClosedPlan,
+                    _routingStopped: {
+                      reason: failClosedPlan.reason,
+                      basis: failClosedBasis,
+                    },
+                  }
+                : {}),
               ...(gateCriteria ? { gateCriteria } : {}),
+              ...(acceptanceCriteriaProjection
+                ? { acceptanceCriteriaProjection }
+                : {}),
               ...(poisonedFallback
                 ? { _recovery: { reason: "poisoned_history" } }
                 : {}),
@@ -1256,6 +1523,9 @@ export const gateTools = {
           }
           throw error;
         }
+
+        const apiCompatibilityPolicy =
+          await resolveApiCompatibilityPolicy(activeStore);
 
         let gates: Gates = change.gates ?? createDefaultGates();
 
@@ -1503,6 +1773,21 @@ export const gateTools = {
           });
         }
 
+        const profileEvaluations =
+          gateId === "execution"
+            ? await evaluateLightweightProfileAtPhases(
+                activeStore,
+                change,
+                changeId,
+                ["acceptance_boundary"],
+                apiCompatibilityPolicy,
+              )
+            : [];
+        const profilePayload =
+          profileEvaluations.length > 0
+            ? { lightweightProfileEvaluations: profileEvaluations }
+            : {};
+
         return completeGateAndBuildResponse({
           store: activeStore,
           change,
@@ -1512,9 +1797,10 @@ export const gateTools = {
           notes,
           completedBy,
           boundaryWarning,
-          extraPayload: projectContext
-            ? { _projectContext: projectContext }
-            : {},
+          extraPayload: {
+            ...profilePayload,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          },
         });
       };
 

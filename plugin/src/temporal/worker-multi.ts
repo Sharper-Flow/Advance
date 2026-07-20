@@ -56,6 +56,16 @@ const MAX_RESTARTS = RESTART_BACKOFF_MS.length;
 export const MULTI_SHUTDOWN_GRACE_MS = 5_000;
 
 /**
+ * Parent-side hard-kill deadline for a first-class bundle roll
+ * (`restartChild`). After SIGTERM the child drains in-flight work for up
+ * to its explicit Temporal `shutdownGraceTime`
+ * (`TEMPORAL_WORKER_SHUTDOWN_GRACE_MS` = 5s in worker.ts). This deadline
+ * MUST strictly exceed that child grace so a draining child always gets
+ * its full window before the parent escalates to SIGKILL.
+ */
+export const RESTART_HARD_KILL_DEADLINE_MS = 10_000;
+
+/**
  * Maximum time the parent waits for the child to send
  * `{"type":"ready"}` after spawn. If this elapses, parent kills the
  * orphan child and rejects `createMultiWorker`. 30s covers Worker.create
@@ -146,6 +156,19 @@ export interface MultiWorkerInput {
 
 export interface MultiWorker extends InProcessWorker {
   isAlive(): boolean;
+  /**
+   * First-class bundle-roll lifecycle — distinct from BOTH crash-respawn
+   * (which increments `restartCount` and backs off) and `shutdown()`
+   * (which sets `shuttingDown` and suppresses respawn). Retires the
+   * current child gracefully (SIGTERM; SIGKILL only after
+   * `RESTART_HARD_KILL_DEADLINE_MS`), spawns a replacement, and resolves
+   * only after the replacement's ready handshake — callers gate the
+   * worker.lock `bundle_generation` stamp on that readiness.
+   *
+   * Single-flight: concurrent calls share one in-flight roll. Rejects
+   * when the worker is shutting down. Never touches `restartCount`.
+   */
+  restartChild(): Promise<void>;
   getDiagnostics(): {
     queues: string[];
     restartCount: number;
@@ -179,6 +202,15 @@ export async function createMultiWorker(
   let child: ChildProcess | null = null;
   let restartCount = 0;
   let shuttingDown = false;
+  /** In-flight bundle roll, if any — restartChild single-flights on this. */
+  let rollInFlight: Promise<void> | null = null;
+  /**
+   * Children retired by a bundle roll. The exit handler skips ALL crash
+   * accounting (restartCount, backoff respawn, exhaustion) and does not
+   * resolve the shutdown exitPromise for these — a roll exit is expected,
+   * not a crash and not a shutdown.
+   */
+  const expectedRollExits = new Set<ChildProcess>();
   const pendingRegistrations = new Map<
     string,
     {
@@ -190,9 +222,22 @@ export async function createMultiWorker(
   const registerErrors = new Map<string, string>();
   let exhaustedNotified = false;
   let resolveExit: () => void = () => {};
-  const exitPromise = new Promise<void>((resolve) => {
-    resolveExit = resolve;
-  });
+  const exitPromiseState: { promise: Promise<void> } = {
+    promise: new Promise<void>((resolve) => {
+      resolveExit = resolve;
+    }),
+  };
+
+  /**
+   * Re-arm the shutdown exit promise for a new child generation. A bundle
+   * roll retires one child and spawns another; the shutdown waiter must
+   * track the CURRENT generation, not the retired one.
+   */
+  function rearmExitPromise(): void {
+    exitPromiseState.promise = new Promise<void>((resolve) => {
+      resolveExit = resolve;
+    });
+  }
 
   /**
    * Handle a parsed JSON-line message from the child. Returns true if a
@@ -399,6 +444,15 @@ export async function createMultiWorker(
           );
         }
 
+        if (expectedRollExits.has(newChild)) {
+          // Bundle-roll retirement: expected exit. No crash accounting,
+          // no respawn, no shutdown-promise resolution — the roll owns
+          // the replacement spawn.
+          expectedRollExits.delete(newChild);
+          if (child === newChild) child = null;
+          return;
+        }
+
         if (shuttingDown || code === 0) {
           child = null;
           resolveExit();
@@ -433,6 +487,67 @@ export async function createMultiWorker(
     );
 
     return readyPromise;
+  }
+
+  async function restartChild(): Promise<void> {
+    if (shuttingDown) {
+      throw new Error(
+        "Cannot restart multi-queue Temporal worker child — worker is shutting down",
+      );
+    }
+    if (rollInFlight) return rollInFlight;
+
+    const roll = (async () => {
+      const oldChild = child;
+      if (oldChild && oldChild.exitCode === null) {
+        expectedRollExits.add(oldChild);
+        const oldExit = new Promise<void>((resolve) => {
+          oldChild.once("exit", () => resolve());
+        });
+        try {
+          oldChild.kill("SIGTERM");
+        } catch (e) {
+          debugLog(`roll SIGTERM threw: ${(e as Error).message}`);
+        }
+
+        // The child gets its full Temporal shutdownGraceTime to drain;
+        // only past the hard-kill deadline (which exceeds that grace) do
+        // we escalate to SIGKILL.
+        const timedOut = await Promise.race([
+          oldExit.then(() => false),
+          new Promise<boolean>((resolve) => {
+            setTimeout(
+              () => resolve(true),
+              RESTART_HARD_KILL_DEADLINE_MS,
+            ).unref();
+          }),
+        ]);
+        if (timedOut && oldChild.exitCode === null) {
+          debugLog("roll drain deadline exceeded — escalating to SIGKILL");
+          try {
+            oldChild.kill("SIGKILL");
+          } catch {
+            // best-effort
+          }
+          await oldExit;
+        }
+      }
+
+      // The retired child's exit must not satisfy future shutdown()
+      // waiters — re-arm for the replacement generation, then block on
+      // the replacement's ready handshake so callers only proceed (e.g.
+      // stamping worker.lock bundle_generation) once the new child is
+      // actually serving.
+      rearmExitPromise();
+      await spawnChild();
+    })();
+
+    rollInFlight = roll;
+    try {
+      await roll;
+    } finally {
+      rollInFlight = null;
+    }
   }
 
   function sendToChild(msg: ParentToChildMessage): boolean {
@@ -497,6 +612,12 @@ export async function createMultiWorker(
       if (shuttingDown) return;
       shuttingDown = true;
 
+      // A bundle roll in flight gets to finish (its deadlines are
+      // bounded) so shutdown then retires the CURRENT child generation.
+      if (rollInFlight) {
+        await rollInFlight.catch(() => undefined);
+      }
+
       for (const [queue, pending] of pendingRegistrations) {
         pending.reject(
           new Error(
@@ -515,7 +636,7 @@ export async function createMultiWorker(
       }
 
       const timedOut = await Promise.race([
-        exitPromise.then(() => false),
+        exitPromiseState.promise.then(() => false),
         new Promise<boolean>((resolve) => {
           setTimeout(() => resolve(true), MULTI_SHUTDOWN_GRACE_MS).unref();
         }),
@@ -530,13 +651,15 @@ export async function createMultiWorker(
         }
       }
 
-      await exitPromise;
+      await exitPromiseState.promise;
       child = null;
     },
 
     isAlive(): boolean {
       return Boolean(child && child.exitCode === null);
     },
+
+    restartChild,
 
     getDiagnostics() {
       return {

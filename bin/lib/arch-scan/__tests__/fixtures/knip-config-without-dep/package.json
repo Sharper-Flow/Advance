@@ -1,0 +1,19 @@
+{
+  "name": "knip-config-without-dep",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
+  "knip": {
+    "entry": ["src/index.ts"]
+  },
+  "eslintConfig": {
+    "root": true
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

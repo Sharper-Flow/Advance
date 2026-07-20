@@ -195,4 +195,32 @@ describe("listChangeWorkflowIds", () => {
     // O(N²) regressions.
     expect(p99).toBeLessThan(2000);
   });
+
+  it("remains an ID-only enumerator even when records carry search attributes", async () => {
+    const fakeClient = makeFakeClient([
+      {
+        workflowId: "adv/change/proj1/changeA",
+        searchAttributes: {
+          AdvLastSignalAt: ["2026-07-18T12:00:00.000Z"],
+          AdvCreatedAt: ["2026-07-18T10:00:00.000Z"],
+        },
+      },
+      {
+        workflowId: "adv/change/proj1/changeB",
+        searchAttributes: {
+          AdvLastSignalAt: ["2026-07-18T11:00:00.000Z"],
+          AdvCreatedAt: ["2026-07-18T09:00:00.000Z"],
+        },
+      },
+    ]);
+    const ids = await listChangeWorkflowIds(fakeClient, {
+      projectId: "proj1",
+    });
+    expect(Array.isArray(ids)).toBe(true);
+    expect(ids.every((id) => typeof id === "string")).toBe(true);
+    expect(ids.sort((a, b) => a.localeCompare(b))).toEqual([
+      "changeA",
+      "changeB",
+    ]);
+  });
 });

@@ -8,9 +8,24 @@
  */
 
 import { z } from "zod";
+import { GateRecoveryAuditSchema } from "./gates";
 import { WisdomTypeSchema } from "./wisdom";
 
 export const SUBAGENT_REPORT_SCHEMA_VERSION = "1.0";
+
+/**
+ * Recovery audit shape persisted on sub-agent reports when a poisoned or
+ * completed-workflow recovery write lands on the disk projection via
+ * saveRecoveredSubagentReport. Mirrors GateRecoveryAuditSchema with the
+ * additional `persisted_via` marker recorded by the writer
+ * (active-projection vs archive-sidecar) so read paths can route the
+ * sidecar back to the correct terminal projection.
+ */
+export const SubagentReportRecoveryAuditSchema = GateRecoveryAuditSchema.extend(
+  {
+    persisted_via: z.string().min(1),
+  },
+);
 
 export const SubagentAgentSchema = z.enum([
   "adv-engineer",
@@ -65,19 +80,70 @@ const TaskScopedBaseSubagentReportSchema = BaseSubagentReportSchema.extend({
   // should use { kind: "task", task_id } so later consumers can rely on
   // structural scope metadata without breaking legacy report ingestion.
   scope: z.union([TaskSubagentReportScopeSchema, z.string().min(1)]),
+  /**
+   * Recovery-audit marker stamped by saveRecoveredSubagentReport when a
+   * poisoned/completed-workflow recovery write lands on the disk projection.
+   * Carries the `persisted_via` routing marker so reads can route the sidecar
+   * back to the correct terminal projection.
+   */
+  recovery_audit: SubagentReportRecoveryAuditSchema.optional(),
 }).strict();
 
 const ChangeScopedBaseSubagentReportSchema = BaseSubagentReportSchema.extend({
   scope: ChangeSubagentReportScopeSchema,
+  /**
+   * Recovery-audit marker stamped by saveRecoveredSubagentReport when a
+   * poisoned/completed-workflow recovery write lands on the disk projection.
+   * Carries the `persisted_via` routing marker so reads can route the sidecar
+   * back to the correct terminal projection.
+   */
+  recovery_audit: SubagentReportRecoveryAuditSchema.optional(),
 }).strict();
 
 export const SubagentVerificationEntrySchema = z
   .object({
+    run_id: z.string().min(1).optional(),
+    // rq-subagentReports25: typed test-run binding. Canonical name
+    // preferred over the additive `run_id` alias. When present, the
+    // entry's identity is (test_run_id, exit_code); the `command` label is
+    // descriptive only and cosmetic differences (extra args, reordered
+    // flags, prefix vars, absolute paths) MUST NOT break identity match.
+    // Absence of both `run_id` and `test_run_id` normalizes the entry to
+    // the explicit legacy variant and binds by exact command only. No
+    // fuzzy normalization, no timestamp cutover. Authored reports should
+    // set `test_run_id` whenever `adv_run_test` recorded a run for the
+    // same task; legacy reports without either field remain readable.
+    test_run_id: z.string().min(1).optional(),
     command: z.string().min(1),
     exit_code: z.number().int(),
     summary: z.string().min(1),
   })
   .strict();
+
+export const EvidenceBindingVersionSchema = z.enum([
+  "typed-v1",
+  "legacy-command-v0",
+]);
+
+function requireTypedRunIds(
+  report: {
+    evidence_binding_version?: z.infer<typeof EvidenceBindingVersionSchema>;
+    verification: Array<{ run_id?: string; test_run_id?: string }>;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (report.evidence_binding_version !== "typed-v1") return;
+  report.verification.forEach((entry, index) => {
+    if (!entry.run_id && !entry.test_run_id) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["verification", index, "run_id"],
+        message:
+          "typed-v1 verification requires a durable test run ID (run_id or test_run_id)",
+      });
+    }
+  });
+}
 
 const ImplementationProvenanceSchema = z.discriminatedUnion("kind", [
   z
@@ -189,6 +255,13 @@ export const DesignConcernDispositionSchema = z
     ]),
     evidence: z.string().trim().min(1),
     dispositionedAt: z.string().trim().min(1),
+    /**
+     * Recovery-audit marker stamped by
+     * saveRecoveredDesignConcernDisposition when a poisoned/completed-workflow
+     * recovery write lands on the disk projection. Optional for backward
+     * compatibility with dispositions recorded via the normal signal path.
+     */
+    recovery_audit: GateRecoveryAuditSchema.optional(),
   })
   .strict();
 export type DesignConcernDisposition = z.infer<
@@ -221,6 +294,14 @@ export const VerificationEvidenceDispositionSchema = z
     ]),
     evidence: z.string().trim().min(1),
     dispositionedAt: z.string().trim().min(1),
+    /**
+     * Recovery-audit marker stamped by
+     * saveRecoveredVerificationEvidenceDisposition when a
+     * poisoned/completed-workflow recovery write lands on the disk projection.
+     * Optional for backward compatibility with dispositions recorded via the
+     * normal signal path.
+     */
+    recovery_audit: GateRecoveryAuditSchema.optional(),
   })
   .strict();
 export type VerificationEvidenceDisposition = z.infer<
@@ -231,6 +312,7 @@ export const EngineerSubagentReportSchema =
   TaskScopedBaseSubagentReportSchema.extend({
     agent: z.literal("adv-engineer"),
     status: z.enum(["complete", "error"]),
+    evidence_binding_version: EvidenceBindingVersionSchema.optional(),
     files_touched: z.array(z.string().min(1)),
     verification: z.array(SubagentVerificationEntrySchema).min(1),
     decisions: z.array(SubagentDecisionSchema),
@@ -248,7 +330,9 @@ export const EngineerSubagentReportSchema =
       .strict(),
     apply_context: SubagentApplyContextSchema.optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-  }).strict();
+  })
+    .strict()
+    .superRefine(requireTypedRunIds);
 
 export const DesignerDesignDimensionSchema = z.enum(["pass", "concern", "n/a"]);
 
@@ -299,6 +383,7 @@ export const DesignerSubagentReportSchema =
   TaskScopedBaseSubagentReportSchema.extend({
     agent: z.literal("adv-designer"),
     status: z.enum(["complete", "error"]),
+    evidence_binding_version: EvidenceBindingVersionSchema.optional(),
     files_touched: z.array(z.string().min(1)),
     verification: z.array(SubagentVerificationEntrySchema).min(1),
     decisions: z.array(SubagentDecisionSchema),
@@ -320,7 +405,9 @@ export const DesignerSubagentReportSchema =
     apply_context: SubagentApplyContextSchema.optional(),
     required_follow_ups: z.array(RequiredFollowUpSchema).optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-  }).strict();
+  })
+    .strict()
+    .superRefine(requireTypedRunIds);
 
 export const ReviewerFindingSchema = z
   .object({
@@ -397,10 +484,22 @@ export const SubagentSourceReferenceSchema = z
   })
   .strict();
 
+export const ResearcherValidationBlockerSchema = z
+  .object({
+    finding: z.string().min(1),
+    contract_ids: z.array(z.string().min(1)).min(1),
+    scope: z.literal("in_scope"),
+    in_scope_remediation: z.string().min(1),
+    source: SubagentSourceReferenceSchema,
+  })
+  .strict();
+
 export const ResearcherValidationSchema = z
   .object({
     status: z.enum(["pass", "caution", "fail", "unknown"]),
-    blockers: z.array(z.string().min(1)),
+    blockers: z.array(
+      z.union([z.string().min(1), ResearcherValidationBlockerSchema]),
+    ),
     notes: z.string().min(1),
   })
   .strict();
@@ -475,6 +574,19 @@ export const ResearcherSubagentReportSchema =
           code: "custom",
           path: ["validation", "blockers"],
           message: "fail validation requires at least one blocker",
+        });
+      }
+
+      if (report.scope.scope_key.startsWith("researcher:design-validation")) {
+        report.validation.blockers.forEach((blocker, index) => {
+          if (typeof blocker === "string") {
+            ctx.addIssue({
+              code: "custom",
+              path: ["validation", "blockers", index],
+              message:
+                "new design-validation blockers require typed contract IDs, in-scope remediation, and source evidence",
+            });
+          }
         });
       }
 

@@ -1,0 +1,1830 @@
+{
+  "id": "fixTriageTimeouts",
+  "title": "Fix triage timeouts",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-16T18:58:58.928Z",
+  "tasks": [
+    {
+      "id": "tk-fdceea81152f",
+      "title": "Add bounded inventory execution context",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-16T19:31:07.751Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T19:32:50.611Z",
+      "verification": "Added deterministic bounded inventory context. Red run tr_mrnwzzae_33dcfb19 failed because inventory-budget was absent; green run tr_mrnx0syb_9483c39f passed 4 tests. Verify run tr_mrnx39uy_7635c41c passed; typecheck tr_mrnx3q05_1f1955f3 passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/inventory-budget.test.ts",
+        "plugin/src/tools/worktree/inventory-budget.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/inventory-budget.test.ts",
+        "plugin/src/tools/worktree/inventory-budget.ts"
+      ],
+      "checkpointSha": "9b22c931904a74df2e19492d00a3816c001e0a91",
+      "completedAt": "2026-07-16T19:44:25.940Z",
+      "completed_at": "2026-07-16T19:44:25.940Z"
+    },
+    {
+      "id": "tk-1703833ae4ae",
+      "title": "Bound triage and worktree snapshot collection",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-16T19:31:20.147Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fdceea81152f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T19:44:49.444Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTriageTimeouts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+          "task_id": "tk-1703833ae4ae",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1703833ae4ae"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/worktree/triage.ts",
+            "plugin/src/tools/worktree/state.ts",
+            "plugin/src/tools/worktree/triage.test.ts",
+            "plugin/src/tools/worktree/state-snapshot-budget.test.ts",
+            "plugin/src/tools/worktree/inventory-budget.ts"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/tools/worktree/state-snapshot-budget.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/state-record-probe.test.ts",
+              "exit_code": 0,
+              "summary": "All 43 focused tests pass"
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/tools/worktree/",
+              "exit_code": 0,
+              "summary": "All 188 worktree tests pass"
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+              "exit_code": 0,
+              "summary": "All 30 adv-worktree tool tests pass"
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/utils/branch-integration.test.ts src/validator/file-overlap.test.ts src/validator/merge-order.test.ts src/tools/worktree/state-session-lifecycle.test.ts",
+              "exit_code": 0,
+              "summary": "All 46 downstream snapshot-consumer tests pass"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, isolation/lockfile checks, lint, and format:check all pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented bounded behavior via optional InventoryBudget rather than touching the global safeExecute default or tool registry.",
+              "why": "The task scope is limited to triage.ts and state.ts; the global default must remain 10 seconds, and tool-host signal integration is assigned to the next task."
+            },
+            {
+              "what": "Added stable sorting to snapshot records/warnings/poisonedWorkflows after concurrent collection.",
+              "why": "The design requires stable ordering; concurrent queries can finish out of order, so results are sorted by changeId and branch."
+            },
+            {
+              "what": "Did not wire the OpenCode ToolContext abort signal into the public adv_worktree_triage tool.",
+              "why": "adv-worktree.ts and tool-registry.ts are outside the current task scope, but the library functions are already signal-ready via callerSignal/options.budget."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Wire the OpenCode ToolContext abort signal into adv_worktree_triage (tool-registry.ts/adv-worktree.ts) and register the justified 60-second outer cap so the 55-second internal budget is effective.",
+            "Apply the same bounded snapshot primitive to adv_wip_state's worktree source in task tk-81702a220f7d."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed the same budget-admission/partial-result pattern in both triage.ts and getWorktreeRegistrySnapshot; added stable sorting and omission tracking to the snapshot collector; inventory-budget.ts only needed formatting.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Bounded inventory is implemented in triage.ts and state.ts. Both functions accept an optional InventoryBudget (or signal/timeout) and return typed partial results with complete, stopReason, stoppedStage, inspected/candidate counts, omitted scope, and stage timings. getWorktreeRegistrySnapshot uses a 4-worker admission-checked pool with stable sorting. All focused and related tests pass; typecheck and repo check pass.",
+            "suggested_next_action": "Wire the host ToolContext abort signal into adv_worktree_triage and set the documented 60-second outer cap in tool-registry.ts/adv-worktree.ts (task 3), then run the broader verification task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/worktree/state-snapshot-budget.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/state-record-probe.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/worktree/"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/adv-worktree.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/utils/branch-integration.test.ts src/validator/file-overlap.test.ts src/validator/merge-order.test.ts src/tools/worktree/state-session-lifecycle.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Delegated implementation report persisted. Main incremental verification tr_mrnxupnu_826dfbce passed 43 focused tests. Worker also verified 188 worktree tests, 30 adv-worktree tests, 46 downstream consumers, and pnpm run check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/inventory-budget.ts",
+        "plugin/src/tools/worktree/state-snapshot-budget.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/inventory-budget.ts",
+        "plugin/src/tools/worktree/state-snapshot-budget.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "checkpointSha": "62638a2f0cd7d34b11caa629cc8e64f9dd2ba99d",
+      "completedAt": "2026-07-16T20:05:36.167Z",
+      "completed_at": "2026-07-16T20:05:36.167Z"
+    },
+    {
+      "id": "tk-81702a220f7d",
+      "title": "Isolate WIP degradation and audit read timeouts",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-16T19:31:32.426Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fdceea81152f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "SC5",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T20:05:55.047Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTriageTimeouts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+          "task_id": "tk-81702a220f7d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-81702a220f7d"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/backlog.ts",
+            "plugin/src/tools/worktree/state.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/tools/backlog.test.ts",
+            "docs/specs/advance-meta.md"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/tools/backlog.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/triage.test.ts src/tool-registry.test.ts src/utils/safe-execute.test.ts src/tools/worktree/state-session-lifecycle.test.ts",
+              "exit_code": 0,
+              "summary": "6 test files passed; 130 tests (including 2 new WIP degradation/cancellation tests) green."
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts",
+              "exit_code": 0,
+              "summary": "2 test files passed; 39 tests green."
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/__tests__/backlog-coordination-regression.test.ts src/__tests__/backlog-concurrency.test.ts src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "3 test files passed; 18 tests green."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used a custom registerTool wrapper for adv_wip_state instead of bindTool so the SDK ToolContext abort signal can be forwarded without changing the generic bindTool/safeExecute signatures.",
+              "why": "Keeps the change ABI-safe and scoped to the one tool that needs the >10s timeout and cancellation semantics."
+            },
+            {
+              "what": "Set WIP_CALLER_TIMEOUT_MS to 60s and reused the existing 55s INVENTORY_INTERNAL_BUDGET_MS from inventory-budget.ts.",
+              "why": "Reserves 5s to render partial output before the caller-visible safety net fires, matching the design excerpt."
+            },
+            {
+              "what": "Made WipPoisonedWorkflowEntry.source optional on provider inputs.",
+              "why": "The default provider receives WorktreePoisonedWorkflowEntry (no source) from state.ts while test fixtures already supply source; the final response still always sets source via toWipPoisonedWorkflowEntry."
+            },
+            {
+              "what": "Changed listWorktreesAcrossChanges to return the full WorktreeRegistrySnapshot and accept an optional budget/signal/timeoutMs.",
+              "why": "Lets adv_wip_state propagate the inventory budget and read completeness metadata (complete/stopReason/inspectedCount/etc.) for typed degradation."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes outside the WIP worktree timeout path; audit of interactive read tools found no other >10s overrides to document.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_wip_state now uses a bounded worktree inventory (55s inner collector budget, 60s outer safeExecute cap) and preserves active_changes/peer_sessions when the snapshot is slow or incomplete, emitting a typed degradation.worktree warning. Host abort signals are forwarded defensively to the worktree collector only. All targeted WIP/registry/worktree tests and pnpm run check pass.",
+            "suggested_next_action": "Run the full suite (bin/oc-test full) before any merge, and consider whether adv_worktree_triage needs the same bounded snapshot treatment in a follow-up change."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/backlog.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/triage.test.ts src/tool-registry.test.ts src/utils/safe-execute.test.ts src/tools/worktree/state-session-lifecycle.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/__tests__/backlog-coordination-regression.test.ts src/__tests__/backlog-concurrency.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Delegated implementation report persisted. Main incremental verification tr_mrnyrt9h_dacc7d64 passed 48 backlog/registry tests. Worker reported 130 focused WIP tests, 39 registry tests, 18 coordination tests, and pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/specs/advance-meta.md",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "touched_files": [
+        "docs/specs/advance-meta.md",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "checkpointSha": "04fc3e2ffd31e86a8e0cde4732826bb7a0f8f0c7",
+      "completedAt": "2026-07-16T20:31:08.290Z",
+      "completed_at": "2026-07-16T20:31:08.290Z"
+    },
+    {
+      "id": "tk-8a963ce5c634",
+      "title": "Verify bounded inventory contract",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-16T19:31:43.715Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1703833ae4ae"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-81702a220f7d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-16T20:31:24.691Z",
+      "verification": "Independent verification triage report persisted (fixTriageTimeouts|change:verifier:bounded-inventory). Bounded inventory suite tr_mrnyword_f83ec612 passed 236 tests; verifier reported pnpm run check pass. Re-checkpoint to finalize wedged in_progress status after recorded checkpoint 04fc3e2f.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "04fc3e2ffd31e86a8e0cde4732826bb7a0f8f0c7",
+      "completedAt": "2026-07-17T04:31:59.422Z",
+      "completed_at": "2026-07-17T04:31:59.422Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTriageTimeouts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+          "task_id": "tk-8a963ce5c634",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8a963ce5c634"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/temporal/__tests__/with-test-env.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts",
+              "exit_code": 0,
+              "summary": "Target files pass in isolation: 2 test files, 23 tests passed, 1 expected fail."
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 1,
+              "summary": "Latest full suite: 381 test files passed, 2 failed. The in-scope target files passed; failures are unrelated (workflows.signal-handlers.test.ts and status-health.worker-processes.test.ts timeouts)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Did not edit source/tests for the cited failures",
+              "why": "The failures only appeared in a prior full run and are not reproducible in targeted runs or the latest full run; per STOP_WHEN, broad edits for unobserved global interference are not warranted."
+            },
+            {
+              "what": "Created and removed temporary probe files only",
+              "why": "Used to test the fake-timer-leak hypothesis; confirmed Vitest resets fake timers across files and the target tests' beforeEach/afterEach hooks are sufficient in isolation."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Unrelated full-suite failure: src/temporal/workflows.signal-handlers.test.ts > changeWorkflow Epic membership signals > sets and clears epic_membership projection through signals (timed out after 5s).",
+            "Unrelated full-suite failure: src/tools/status-health.worker-processes.test.ts > fetchStatusWorkerProcesses > returns workerCount + orphanCount + per-process list with freshness (timed out after 5s)."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Target files pass in isolation and in the current full suite. The cited prior full-run failures (with-test-env external AbortSignal timeout, bounded-read queryCount/diskGetCounts mismatch) did not reproduce deterministically. No source changes were made. Two unrelated full-suite failures remain in workflows.signal-handlers.test.ts and status-health.worker-processes.test.ts.",
+            "suggested_next_action": "Treat the cited target failures as non-reproducible full-suite interference; review the two unrelated failures (workflows.signal-handlers.test.ts and status-health.worker-processes.test.ts) separately if they persist."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/__tests__/with-test-env.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTriageTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:triage-timeout-lbp"
+      },
+      "agent": "adv-researcher",
+      "topic": "Triage timeout least-bad-pattern: cancellation, bounded reads, and partial results",
+      "sources": [
+        {
+          "label": "OpenCode plugin ToolContext API",
+          "locator": "https://github.com/anomalyco/opencode/blob/453b61e27b2f6c2752a60dd7d8412bdcf4e0aa3d/packages/plugin/src/tool.ts",
+          "summary": "Current ToolContext includes an AbortSignal named abort."
+        },
+        {
+          "label": "OpenCode plugin-tool registry bridge",
+          "locator": "https://github.com/anomalyco/opencode/blob/453b61e27b2f6c2752a60dd7d8412bdcf4e0aa3d/packages/opencode/src/tool/registry.ts#L120-L165",
+          "summary": "OpenCode spreads host tool context, including abort, into plugin tool execution."
+        },
+        {
+          "label": "Node.js v24 child_process",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/child_process.html",
+          "summary": "spawn/execFile accept AbortSignal; abort behaves like kill and reports AbortError. Signals do not guarantee process-tree termination."
+        },
+        {
+          "label": "Node.js v24 AbortSignal composition",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/globals.html#static-method-abortsignalanysignals",
+          "summary": "AbortSignal.any composes host cancellation and internal deadline signals; AbortSignal.timeout creates deadline signals."
+        },
+        {
+          "label": "Bun child-process API",
+          "locator": "https://bun.sh/docs/runtime/child-process",
+          "summary": "Bun.spawn supports signal, timeout, and killSignal."
+        },
+        {
+          "label": "Bun node:child_process execFile signal reference",
+          "locator": "https://bun.sh/reference/node/child_process/ExecFileOptionsWithStringEncoding/signal",
+          "summary": "Bun's Node-compatible execFile option surface includes AbortSignal."
+        },
+        {
+          "label": "Temporal TypeScript Connection cancellation/deadline implementation",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/55e4ad36a99e27c14bedb9326ddf7f7246240353/packages/client/src/connection.ts#L501-L593",
+          "summary": "Connection.withDeadline scopes gRPC deadlines; Connection.withAbortSignal scopes AbortSignal cancellation; generated unary RPCs call cancel on abort."
+        },
+        {
+          "label": "Temporal TypeScript workflow query implementation",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/55e4ad36a99e27c14bedb9326ddf7f7246240353/packages/client/src/workflow-client.ts#L947-L988",
+          "summary": "Workflow query is a unary queryWorkflow RPC; deadline/abort must be supplied through Connection call context rather than WorkflowHandle.query options."
+        },
+        {
+          "label": "Temporal query-handler semantics",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/55e4ad36a99e27c14bedb9326ddf7f7246240353/packages/workflow/src/index.ts",
+          "summary": "Query handlers are synchronous read-only handlers; cancelling the client RPC does not cancel or mutate Workflow execution."
+        },
+        {
+          "label": "Advance current safeExecute",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/utils/safe-execute.ts#L225-L305",
+          "summary": "Current 10-second outer wrapper uses Promise.race and explicitly leaves uncancellable execute work running after timeout."
+        },
+        {
+          "label": "Advance current worktree triage",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/worktree/triage.ts",
+          "summary": "Triage serially runs reachability and dirty checks and consumes a cross-change snapshot."
+        },
+        {
+          "label": "Advance current cross-change snapshot",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/plugin/src/tools/worktree/state.ts#L780-L895",
+          "summary": "Snapshot queries each listed change workflow serially with direct handle.query calls and no request deadline."
+        },
+        {
+          "label": "Advance bounded-read law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.adv/specs/advance-workflow/spec.json#L1349-L1395",
+          "summary": "Existing law establishes an 8-second aggregate internal deadline, explicit degraded metadata, and safeExecute as outer containment."
+        },
+        {
+          "label": "Advance timeout override law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.adv/specs/advance-meta/spec.json#L1458-L1490",
+          "summary": "Global 10-second default must remain; per-tool increase requires a legitimate inner budget plus modest headroom."
+        },
+        {
+          "label": "Advance worktree and WIP partial-result laws",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.adv/specs/worktree-lifecycle/spec.json#L70-L94",
+          "summary": "Healthy per-change worktree records must survive another workflow query failure."
+        },
+        {
+          "label": "Advance WIP isolation law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/main/.adv/specs/backlog-coordination/spec.json#L165-L195",
+          "summary": "adv_wip_state must retain healthy sections and expose structured worktree degradation without mutation."
+        }
+      ],
+      "architecture_assessment": "Current architecture has a major deviation from the repository's bounded-read reference pattern. OpenCode supplies ToolContext.abort, but bindTool discards SDK context. safeExecute races a timer without cancelling underlying work. triage performs serial Git checks; cross-change worktree snapshots issue serial direct WorkflowHandle.query calls without aggregate deadline or SDK cancellation. Option (a), global timeout increase, violates existing law and only delays the same all-or-nothing failure. Option (b), per-tool outer timeout alone, is permissible only as containment/headroom and still cannot preserve partial state or stop background work. Option (c), one internal request budget with explicit incomplete output and propagated cancellation, matches OpenCode, Node/Bun, Temporal, and existing Advance bounded-read laws. Use outer timeout only as a later defensive margin around a strictly shorter inner budget. Completed item findings remain authoritative; uninspected items must be named or counted as uninspected and never inferred clean or deletable. Actual stage latency distribution is unknown because this research did not run instrumentation or wall-clock benchmarks.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Direction (c) is strongly supported, but Bun 1.3.12 runtime behavior for every Node-compatible execFile abort edge and real 36-worktree stage latency still require deterministic compatibility tests and measurement. No architecture blocker found."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Internal budgeting and typed partial output add response-schema, cancellation-plumbing, and deterministic-test maintenance.",
+          "Sequential processing preserves simple ordering and bounded concurrency but may inspect fewer worktrees before deadline; bounded concurrency could increase coverage but adds cancellation and resource-control complexity.",
+          "AbortSignal can stop direct Git children and Temporal RPCs, but OS signals do not guarantee termination of grandchildren or processes that ignore SIGTERM, so cancellation claims must be scoped and tested.",
+          "A per-tool outer override can provide formatting/handoff headroom, but a larger ceiling increases worst-case user wait and must not become normal flow control."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Raise global safeExecute timeout",
+            "disposition": "rejected",
+            "rationale": "Contradicts rq-toolTimeoutOverride01, expands every tool's failure latency, and does not cancel work or preserve partial inventory."
+          },
+          {
+            "option": "Per-tool outer timeout only",
+            "disposition": "rejected",
+            "rationale": "Promise-race containment still drops collected results and permits underlying Git/Temporal work to continue."
+          },
+          {
+            "option": "Internal request budget, partial result, and cancellation propagation; optional shorter-inner/larger-outer headroom",
+            "disposition": "preferred",
+            "rationale": "Matches OpenCode AbortSignal, Node/Bun child-process controls, Temporal Connection deadlines/abort, and Advance's existing bounded authoritative-read law."
+          },
+          {
+            "option": "Unbounded parallel fan-out",
+            "disposition": "rejected",
+            "rationale": "May reduce elapsed time but increases Git/Temporal load and cancellation complexity; bounded reads should first use simple admission checks and modest measured concurrency only if needed."
+          }
+        ],
+        "recommendation": "Design one shared per-request read budget for worktree inventory. Thread composed host-abort and internal-deadline signals through triage stages, Git execFile calls, and Temporal Connection.withDeadline/withAbortSignal scopes. Stop admitting new work after expiry. Return typed complete/degraded status, inspected and omitted scope, retained findings, stopped stage, and diagnostics. Reuse this primitive in adv_wip_state while preserving healthy concurrent sections. Keep the 10-second global default; add a per-tool override only if measured inner budget plus formatting reserve cannot fit."
+      },
+      "recommendation": "Adopt option (c). Draft objectives/criteria: (1) with 36 representative change worktrees, each affected read returns complete or explicitly degraded before its declared internal budget and before outer containment; (2) degraded triage retains every completed finding, reports complete=false, stopped stage/reason, inspected count, total candidate count, and omitted/uninspected identifiers or bounded counts; (3) omitted worktrees are never represented as clean, safe, or deletable; (4) after cancellation/deadline, no new Git or Temporal operation starts, direct in-flight children receive cancellation, and in-flight Temporal unary RPCs are deadline/abort scoped; (5) adv_wip_state returns healthy active-change and peer-session sections when worktree inventory degrades; (6) deterministic controlled-promise/fake-child tests prove timeout classification and no post-result continuation, with a Bun-runtime compatibility test for execFile signal/timeout; (7) global DEFAULT_TOOL_TIMEOUT_MS remains 10,000 ms; any per-tool override documents a shorter measured inner budget and modest return reserve; (8) stage telemetry identifies stale-head, disk enumeration, visibility/registry query, reachability, dirty-state, and pending-delete costs without exposing sensitive paths beyond existing contract.",
+      "follow_ups": [
+        "Packet omitted explicit TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION labels. Research followed the user's supplied prose scope; identity anchors were not inferred.",
+        "Measure stage-level latency and completion coverage against the current 36-worktree inventory before fixing exact inner budget or concurrency.",
+        "Run deterministic Bun 1.3.12 compatibility tests for node:child_process execFile with pre-aborted, mid-flight aborted, timeout, ignored-SIGTERM, and direct-child exit cases.",
+        "Coordinate shared bounded-read/cancellation plumbing with fixTemporalQueryRecovery; do not duplicate its generic read-recovery contract."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTriageTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation",
+      "sources": [
+        {
+          "label": "Advance timeout override specification",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/advance-meta/spec.json#L1459-L1488",
+          "summary": "Requires 10s global default, explicit per-tool override, inner-budget rationale, and modest outer headroom."
+        },
+        {
+          "label": "Advance worktree lifecycle specification",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/worktree-lifecycle/spec.json",
+          "summary": "Requires per-workflow failure isolation, healthy-record preservation, explicit visibility unavailability, exact triage branch/path/blockers, and advisory-only cleanup evidence."
+        },
+        {
+          "label": "Advance backlog coordination specification",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/backlog-coordination/spec.json",
+          "summary": "Requires WIP source-failure isolation and preservation of healthy active-change, worktree, and peer-session sections."
+        },
+        {
+          "label": "Current safe-execute implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/utils/safe-execute.ts#L240-L305",
+          "summary": "Current outer timeout is Promise.race-based and explicitly leaves uncancellable execute work running; supports explicit timeoutMs overrides."
+        },
+        {
+          "label": "Current tool registry",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tool-registry.ts#L213-L257",
+          "summary": "Generic binders currently discard ToolContext beyond the wrapper, while the design needs host abort propagation."
+        },
+        {
+          "label": "Current worktree snapshot implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/worktree/state.ts#L768-L895",
+          "summary": "Cross-change workflow queries are currently serial; failures preserve healthy records but failure classification may perform a follow-on describe call."
+        },
+        {
+          "label": "Current triage implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/worktree/triage.ts#L183-L360",
+          "summary": "Triage currently performs sequential Git stages, preserves exact inspected evidence, and has no shared request budget or typed completeness metadata."
+        },
+        {
+          "label": "Current WIP implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/backlog.ts#L186-L293",
+          "summary": "WIP already isolates three sources with Promise.allSettled and preserves healthy sections, but providers do not receive a shared deadline or abort context."
+        },
+        {
+          "label": "OpenCode ToolContext source",
+          "locator": "https://github.com/anomalyco/opencode/blob/453b61e27b2f6c2752a60dd7d8412bdcf4e0aa3d/packages/plugin/src/tool.ts#L3-L21",
+          "summary": "ToolContext includes abort: AbortSignal, supporting host-cancellation propagation."
+        },
+        {
+          "label": "Node.js AbortSignal composition",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/globals.html#static-method-abortsignalanysignals",
+          "summary": "AbortSignal.any composes host and deadline signals and preserves the originating abort reason."
+        },
+        {
+          "label": "Node.js child_process cancellation",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/child_process.html#child_processexecfilefile-args-options-callback",
+          "summary": "execFile accepts AbortSignal; abort behaves like kill and reports AbortError. Child descendants may remain on Linux, so termination uncertainty must remain explicit."
+        },
+        {
+          "label": "Temporal TypeScript client cancellation and deadlines",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/base-client.ts",
+          "summary": "WorkflowClient exposes withDeadline and withAbortSignal, delegated to Connection for scoped gRPC request cancellation."
+        },
+        {
+          "label": "Bun subprocess cancellation",
+          "locator": "https://bun.sh/docs/runtime/child-process",
+          "summary": "Bun documents AbortSignal and timeout support for Bun.spawn; queried docs did not conclusively prove parity for promisified node:child_process.execFile."
+        }
+      ],
+      "architecture_assessment": "Design direction is correct and simpler than global timeout expansion: one request deadline, composed cancellation, bounded worker-pool admission, typed partial results, and source-local WIP degradation align with the cited specs and official cancellation APIs. Current source confirms the real gaps: serial cross-change queries, Promise.race outer containment that leaves work running, discarded ToolContext.abort, and WIP providers lacking request context. Before implementation, tighten three details: (1) all WIP providers—not only the worktree snapshot—must be bounded by the same return deadline so a healthy-but-slow independent source cannot consume the 5s reserve; (2) cancellation/error classification must not start handle.describe or any other follow-on inspection after admission closes; (3) concurrency four must be implemented as a true admission-checked worker pool with stable candidate-order projection, not eager Promise creation. Bun node:child_process AbortSignal parity remains unproven from retrieved official docs, so Bun-runtime tests are required.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract, security, or release blocker. Architecture is sound but deadline coverage and post-abort follow-on behavior need explicit design constraints. Bun compatibility is an acknowledged evidence gap."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "medium",
+        "risk": "medium",
+        "tradeoffs": [
+          "A 55s internal budget improves inventory completeness but increases caller latency and keeps resources occupied longer than the 10s default.",
+          "Fixed concurrency four reduces serial latency but can increase simultaneous Temporal load and requires deterministic result ordering.",
+          "Typed partial results enlarge schemas and tests but prevent unknown scope from being mistaken for clean or deletion-safe state.",
+          "One shared deadline simplifies reasoning, but independent WIP sources need source-local degradation so one timeout does not erase healthy sections."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Raise the global safeExecute timeout",
+            "disposition": "rejected",
+            "rationale": "Violates rq-toolTimeoutOverride01 and preserves opaque outer timeout/background-work behavior."
+          },
+          {
+            "option": "Keep serial cross-change workflow queries",
+            "disposition": "rejected",
+            "rationale": "Simpler implementation but cannot reliably inspect mature projects within the approved caller-visible cap."
+          },
+          {
+            "option": "Unbounded Promise.all fan-out",
+            "disposition": "rejected",
+            "rationale": "No admission control after cancellation and avoidable Temporal contention."
+          },
+          {
+            "option": "Fixed admission-checked worker pool of four",
+            "disposition": "preferred",
+            "rationale": "Boring bounded-concurrency mechanism; preserves explicit stop behavior when paired with stable indexed output."
+          },
+          {
+            "option": "Return only complete results or throw",
+            "disposition": "rejected",
+            "rationale": "Conflicts with agreement and specs requiring healthy evidence plus explicit omissions under partial failure."
+          }
+        ],
+        "recommendation": "Proceed after adding explicit design constraints for whole-WIP deadline coverage, no post-abort describe/classification inspection, stable-order admission-checked pooling, and Bun-runtime cancellation verification."
+      },
+      "recommendation": "Approve design with caution after the three clarifications; keep global 10s default and 60s maximum outer cap unchanged.",
+      "follow_ups": [
+        "BRIEFING PACKET unavailable under artifact-only rendering and truncated under normal rendering; validation used user-supplied inline agreement/design plus ADV tool-read specs and current source.",
+        "Specify whether aborted Temporal query failures skip poisoned-history describe enrichment or perform only a separately admitted, same-deadline describe call.",
+        "Require controlled cancellation tests under both Node/Vitest and deployed Bun runtime because official Bun docs retrieved did not conclusively establish node:child_process execFile AbortSignal parity.",
+        "Make interactive-read audit exhaustive from registered tool inventory and fail CI when a registration lacks default-or-override classification."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTriageTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+      "task_id": "tk-1703833ae4ae",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1703833ae4ae"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/worktree/triage.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/tools/worktree/state-snapshot-budget.test.ts",
+        "plugin/src/tools/worktree/inventory-budget.ts"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/tools/worktree/state-snapshot-budget.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/state-record-probe.test.ts",
+          "exit_code": 0,
+          "summary": "All 43 focused tests pass"
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/tools/worktree/",
+          "exit_code": 0,
+          "summary": "All 188 worktree tests pass"
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+          "exit_code": 0,
+          "summary": "All 30 adv-worktree tool tests pass"
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/utils/branch-integration.test.ts src/validator/file-overlap.test.ts src/validator/merge-order.test.ts src/tools/worktree/state-session-lifecycle.test.ts",
+          "exit_code": 0,
+          "summary": "All 46 downstream snapshot-consumer tests pass"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, isolation/lockfile checks, lint, and format:check all pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented bounded behavior via optional InventoryBudget rather than touching the global safeExecute default or tool registry.",
+          "why": "The task scope is limited to triage.ts and state.ts; the global default must remain 10 seconds, and tool-host signal integration is assigned to the next task."
+        },
+        {
+          "what": "Added stable sorting to snapshot records/warnings/poisonedWorkflows after concurrent collection.",
+          "why": "The design requires stable ordering; concurrent queries can finish out of order, so results are sorted by changeId and branch."
+        },
+        {
+          "what": "Did not wire the OpenCode ToolContext abort signal into the public adv_worktree_triage tool.",
+          "why": "adv-worktree.ts and tool-registry.ts are outside the current task scope, but the library functions are already signal-ready via callerSignal/options.budget."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Wire the OpenCode ToolContext abort signal into adv_worktree_triage (tool-registry.ts/adv-worktree.ts) and register the justified 60-second outer cap so the 55-second internal budget is effective.",
+        "Apply the same bounded snapshot primitive to adv_wip_state's worktree source in task tk-81702a220f7d."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed the same budget-admission/partial-result pattern in both triage.ts and getWorktreeRegistrySnapshot; added stable sorting and omission tracking to the snapshot collector; inventory-budget.ts only needed formatting.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Bounded inventory is implemented in triage.ts and state.ts. Both functions accept an optional InventoryBudget (or signal/timeout) and return typed partial results with complete, stopReason, stoppedStage, inspected/candidate counts, omitted scope, and stage timings. getWorktreeRegistrySnapshot uses a 4-worker admission-checked pool with stable sorting. All focused and related tests pass; typecheck and repo check pass.",
+        "suggested_next_action": "Wire the host ToolContext abort signal into adv_worktree_triage and set the documented 60-second outer cap in tool-registry.ts/adv-worktree.ts (task 3), then run the broader verification task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/worktree/state-snapshot-budget.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/state-record-probe.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/worktree/"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/adv-worktree.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/utils/branch-integration.test.ts src/validator/file-overlap.test.ts src/validator/merge-order.test.ts src/tools/worktree/state-session-lifecycle.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTriageTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+      "task_id": "tk-81702a220f7d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-81702a220f7d"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/backlog.test.ts",
+        "docs/specs/advance-meta.md"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/tools/backlog.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/triage.test.ts src/tool-registry.test.ts src/utils/safe-execute.test.ts src/tools/worktree/state-session-lifecycle.test.ts",
+          "exit_code": 0,
+          "summary": "6 test files passed; 130 tests (including 2 new WIP degradation/cancellation tests) green."
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts",
+          "exit_code": 0,
+          "summary": "2 test files passed; 39 tests green."
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/__tests__/backlog-coordination-regression.test.ts src/__tests__/backlog-concurrency.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "3 test files passed; 18 tests green."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used a custom registerTool wrapper for adv_wip_state instead of bindTool so the SDK ToolContext abort signal can be forwarded without changing the generic bindTool/safeExecute signatures.",
+          "why": "Keeps the change ABI-safe and scoped to the one tool that needs the >10s timeout and cancellation semantics."
+        },
+        {
+          "what": "Set WIP_CALLER_TIMEOUT_MS to 60s and reused the existing 55s INVENTORY_INTERNAL_BUDGET_MS from inventory-budget.ts.",
+          "why": "Reserves 5s to render partial output before the caller-visible safety net fires, matching the design excerpt."
+        },
+        {
+          "what": "Made WipPoisonedWorkflowEntry.source optional on provider inputs.",
+          "why": "The default provider receives WorktreePoisonedWorkflowEntry (no source) from state.ts while test fixtures already supply source; the final response still always sets source via toWipPoisonedWorkflowEntry."
+        },
+        {
+          "what": "Changed listWorktreesAcrossChanges to return the full WorktreeRegistrySnapshot and accept an optional budget/signal/timeoutMs.",
+          "why": "Lets adv_wip_state propagate the inventory budget and read completeness metadata (complete/stopReason/inspectedCount/etc.) for typed degradation."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes outside the WIP worktree timeout path; audit of interactive read tools found no other >10s overrides to document.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_wip_state now uses a bounded worktree inventory (55s inner collector budget, 60s outer safeExecute cap) and preserves active_changes/peer_sessions when the snapshot is slow or incomplete, emitting a typed degradation.worktree warning. Host abort signals are forwarded defensively to the worktree collector only. All targeted WIP/registry/worktree tests and pnpm run check pass.",
+        "suggested_next_action": "Run the full suite (bin/oc-test full) before any merge, and consider whether adv_worktree_triage needs the same bounded snapshot treatment in a follow-up change."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/backlog.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/triage.test.ts src/tool-registry.test.ts src/utils/safe-execute.test.ts src/tools/worktree/state-session-lifecycle.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/__tests__/backlog-coordination-regression.test.ts src/__tests__/backlog-concurrency.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTriageTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:bounded-inventory"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "../bin/oc-test targeted -- src/tools/worktree/ src/tools/backlog.test.ts src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts",
+          "exit_code": 0,
+          "duration_ms": 18292
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run check",
+          "exit_code": 0
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "Independent verifier and main ADV both observed the bounded inventory target suite pass; main run tr_mrnyword_f83ec612 passed 236 tests. Verifier observed pnpm run check pass.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "Bounded triage and inventory tests pass.",
+          "evidence": [
+            {
+              "label": "main targeted test",
+              "locator": "adv_run_test:tr_mrnyword_f83ec612",
+              "summary": "236 tests passed."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "info",
+          "summary": "Static validation pipeline passes.",
+          "evidence": [
+            {
+              "label": "verifier command",
+              "locator": "pnpm run check",
+              "summary": "schemas, typecheck, isolation, lockfile, lint, and formatting checks passed."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "suggested_handoff": {
+        "summary": "No remediation needed; proceed with task checkpoint.",
+        "in_scope": [
+          "record verification evidence"
+        ],
+        "out_of_scope": [
+          "code changes"
+        ],
+        "done_when": [
+          "verification task checkpointed"
+        ],
+        "verification": [
+          "main targeted test tr_mrnyword_f83ec612"
+        ]
+      },
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTriageTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+      "task_id": "tk-8a963ce5c634",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8a963ce5c634"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/temporal/__tests__/with-test-env.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts",
+          "exit_code": 0,
+          "summary": "Target files pass in isolation: 2 test files, 23 tests passed, 1 expected fail."
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "summary": "Latest full suite: 381 test files passed, 2 failed. The in-scope target files passed; failures are unrelated (workflows.signal-handlers.test.ts and status-health.worker-processes.test.ts timeouts)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Did not edit source/tests for the cited failures",
+          "why": "The failures only appeared in a prior full run and are not reproducible in targeted runs or the latest full run; per STOP_WHEN, broad edits for unobserved global interference are not warranted."
+        },
+        {
+          "what": "Created and removed temporary probe files only",
+          "why": "Used to test the fake-timer-leak hypothesis; confirmed Vitest resets fake timers across files and the target tests' beforeEach/afterEach hooks are sufficient in isolation."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Unrelated full-suite failure: src/temporal/workflows.signal-handlers.test.ts > changeWorkflow Epic membership signals > sets and clears epic_membership projection through signals (timed out after 5s).",
+        "Unrelated full-suite failure: src/tools/status-health.worker-processes.test.ts > fetchStatusWorkerProcesses > returns workerCount + orphanCount + per-process list with freshness (timed out after 5s)."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Target files pass in isolation and in the current full suite. The cited prior full-run failures (with-test-env external AbortSignal timeout, bounded-read queryCount/diskGetCounts mismatch) did not reproduce deterministically. No source changes were made. Two unrelated full-suite failures remain in workflows.signal-handlers.test.ts and status-health.worker-processes.test.ts.",
+        "suggested_next_action": "Treat the cited target failures as non-reproducible full-suite interference; review the two unrelated failures (workflows.signal-handlers.test.ts and status-health.worker-processes.test.ts) separately if they persist."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/__tests__/with-test-env.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTriageTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTriageTimeouts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/adv-worktree.ts",
+          "summary": "Made triage create/use the 55s inventory budget, forward caller cancellation, and project complete/stop/inspected/candidate/omitted metadata; incomplete inventory is not reported as successful.",
+          "verification": "97 targeted tests passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tool-registry.ts",
+          "summary": "Registered adv_worktree_triage with the documented 60s outer safeExecute cap and forwarded ToolContext abort signal, retaining the global default for every other tool.",
+          "verification": "97 targeted tests passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/worktree/state.ts",
+          "summary": "Stopped awaiting already-admitted slow Temporal workflow queries when the inventory budget aborts, returning explicit omitted scope before outer timeout while preventing follow-on failure classification.",
+          "verification": "Added bounded hung-query test; 97 targeted tests passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/worktree/state-snapshot-budget.test.ts",
+          "summary": "Added controlled hung workflow-query coverage proving partial inventory returns at budget exhaustion.",
+          "verification": "97 targeted tests passed."
+        },
+        {
+          "file": "plugin/src/tools/adv-worktree.test.ts",
+          "summary": "Added triage partial-result projection coverage and updated budget-forwarding expectations.",
+          "verification": "97 targeted tests passed."
+        },
+        {
+          "file": "docs/specs/advance-meta.md",
+          "summary": "Documented triage alongside WIP as a 60s-capped reader with a 55s inner budget and typed honest partial behavior.",
+          "verification": "pnpm run check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Bounded collector admission alone cannot guarantee a typed response: an already-admitted hanging Temporal query can consume the outer safeExecute timeout. Race collector waiting against its cancellation signal and report that item as omitted; do not classify it after the deadline."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "cd plugin && ../bin/oc-test targeted -- src/tools/worktree/inventory-budget.test.ts src/tools/worktree/state-snapshot-budget.test.ts src/tools/worktree/triage.test.ts src/tools/adv-worktree.test.ts src/tools/backlog.test.ts src/tool-registry.test.ts",
+          "cd plugin && pnpm run check",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 6 files, 97 tests passed. pnpm run check passed schemas, typecheck, manifest check, isolation/lockfile checks, lint, and formatting. git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Underlying Temporal queries already admitted when cancellation fires may still settle in the background; their results are deliberately ignored and reported as omitted, so no incomplete inventory is presented as complete.",
+        "Change is not deployed; production behavior remains unchanged until normal build/deploy/restart workflow."
+      ],
+      "required_main_agent_actions": [
+        "Record this acceptance evidence and run the strict 22-row contract review matrix; all 22 rows can pass on reviewed implementation and verification.",
+        "Do not revisit unrelated full-suite timeout observations from prior verification; they are outside this scoped triage/WIP contract.",
+        "Before production validation, deploy the approved plugin bundle and restart the plugin host per repository deployment guidance."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-fdceea81152f": [
+      {
+        "runId": "tr_mrnwz44y_77ff6eb0",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/tools/worktree/inventory-budget.test.ts",
+        "durationMs": 120191.95435400028,
+        "recordedAt": "2026-07-16T19:40:41.524Z"
+      },
+      {
+        "runId": "tr_mrnwzp9i_0245f2a0",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/worktree/inventory-budget.test.ts",
+        "durationMs": 3034.840007999912,
+        "recordedAt": "2026-07-16T19:41:08.892Z"
+      },
+      {
+        "runId": "tr_mrnwzzae_33dcfb19",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/inventory-budget.test.ts",
+        "durationMs": 3708.625918000005,
+        "recordedAt": "2026-07-16T19:41:21.773Z"
+      },
+      {
+        "runId": "tr_mrnx0syb_9483c39f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/inventory-budget.test.ts",
+        "durationMs": 5198.616119000129,
+        "recordedAt": "2026-07-16T19:42:00.347Z"
+      },
+      {
+        "runId": "tr_mrnx27fa_b3b6bb06",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run typecheck",
+        "durationMs": 25169.449731000233,
+        "recordedAt": "2026-07-16T19:43:05.879Z"
+      },
+      {
+        "runId": "tr_mrnx39uy_7635c41c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/inventory-budget.test.ts",
+        "durationMs": 4578.791821000166,
+        "recordedAt": "2026-07-16T19:43:55.558Z"
+      },
+      {
+        "runId": "tr_mrnx3q05_1f1955f3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 25340.03462800011,
+        "recordedAt": "2026-07-16T19:44:16.467Z"
+      }
+    ],
+    "tk-1703833ae4ae": [
+      {
+        "runId": "tr_mrnxupnu_826dfbce",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/state-snapshot-budget.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/inventory-budget.test.ts src/tools/worktree/state-record-probe.test.ts",
+        "durationMs": 7512.874502999708,
+        "recordedAt": "2026-07-16T20:05:15.817Z"
+      },
+      {
+        "runId": "tr_mroggqjp_27d9161c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/ src/tools/adv-worktree.test.ts",
+        "durationMs": 16715.23881400004,
+        "recordedAt": "2026-07-17T04:46:16.368Z"
+      }
+    ],
+    "tk-81702a220f7d": [
+      {
+        "runId": "tr_mrnyrt9h_dacc7d64",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/backlog.test.ts src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts",
+        "durationMs": 11552.821434999816,
+        "recordedAt": "2026-07-16T20:30:59.953Z"
+      },
+      {
+        "runId": "tr_mrogh7ck_50819b4c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/backlog.test.ts src/tool-registry.test.ts src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts src/utils/safe-execute.test.ts",
+        "durationMs": 8063.536377999932,
+        "recordedAt": "2026-07-17T04:46:38.015Z"
+      }
+    ],
+    "tk-8a963ce5c634": [
+      {
+        "runId": "tr_mrnyword_f83ec612",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/ src/tools/backlog.test.ts src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts",
+        "durationMs": 18292.458287999965,
+        "recordedAt": "2026-07-16T20:34:47.358Z"
+      },
+      {
+        "runId": "tr_mro0xc83_a62e63cb",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/with-test-env.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts",
+        "durationMs": 5939.155606999993,
+        "recordedAt": "2026-07-16T21:31:17.013Z"
+      },
+      {
+        "runId": "tr_mrofz8h7_8727e6fb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/inventory-budget.test.ts src/temporal/__tests__/with-test-env.test.ts src/storage/store-temporal/bounded-read-deadline.test.ts",
+        "durationMs": 6692.628357000649,
+        "recordedAt": "2026-07-17T04:32:39.699Z"
+      },
+      {
+        "runId": "tr_mrogeeo3_88e305c1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/worktree/inventory-budget.test.ts src/tools/worktree/state-snapshot-budget.test.ts src/tools/adv-worktree.test.ts",
+        "durationMs": 10737.44886700064,
+        "recordedAt": "2026-07-17T04:44:27.616Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:03:35.639Z",
+      "completed_by": "user",
+      "approval_evidence": "User proceeded into the /adv-discover workflow after reviewing the proposal; this is Tier A approval of the proposal.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "3b1f7905f937c75019d79269789a6d2d0078521fed79076797c774ba4697a4a5",
+        "non_whitespace_chars": 5050,
+        "checked_at": "2026-07-16T18:58:59.042Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:23:23.451Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the discovery success and acceptance criteria via reply `approve`; strict ChangeContract minted with 22 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "non_whitespace_chars": 4172,
+        "checked_at": "2026-07-16T18:58:59.043Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:30:38.086Z",
+      "completed_by": "agent",
+      "approval_evidence": "Bounded inventory design persisted. Independent validator returned caution; clarifications incorporated. No user-value tradeoff, validator conflict, or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "434482489c6d8303b3fd383f316a331b87174c197430482eceecf87e2ecaa5ee",
+        "non_whitespace_chars": 6787,
+        "checked_at": "2026-07-16T18:58:59.044Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-16T19:32:33.046Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the four-task graph via reply `approve`. Strict validation could not produce a verdict because its own 8s input deadline exhausted; task graph has complete contract references."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-17T04:35:47.105Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done with checkpoints (final: tk-8a963ce5c634 re-checkpoint 04fc3e2f, checkpointRecorded:true). Trunk merged into branch; targeted suites green with durable evidence (tr_mrofz8h7_8727e6fb: 27+1xfail; tr_mrnyword_f83ec612: 236 tests; check green). Verification-evidence warning dispositioned (fixed). adv_change_validate returned degraded VALIDATION_TIME_BUDGET_EXHAUSTED on 3 attempts incl. post worker-restart — no verdict produced; known tool defect under active fix (fixValidationInputTimeout); same degradation was user-accepted at this change's planning gate."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-17T04:45:41.116Z",
+      "completed_at": "2026-07-17T04:47:00.571Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted (\"accept\") after independent READY review (0 findings, remediation committed), 22/22 strict contract matrix, durable test evidence (tr_mroggqjp_27d9161c: 220; tr_mrogh7ck_50819b4c: 136; tr_mrogeeo3_88e305c1: 42; tr_mrnyword_f83ec612: 236), verification-evidence gaps dispositioned, executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "bbadf93841394cf3d677cec83f6df365e692aed0dc96da2cf3eeebc377234695",
+        "non_whitespace_chars": 2003,
+        "checked_at": "2026-07-16T18:58:59.045Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+      "approvedAt": "2026-07-16T19:23:09.110Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Given 36 representative `change/*` worktrees, when triage runs, then it returns a complete result or explicitly incomplete result within its documented caller-visible budget, capped at 60 seconds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_triage"
+        ]
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Given inspection ends before all candidates are evaluated, when triage responds, then it preserves collected findings and identifies inspected scope, omitted scope, and stop reason; omitted worktrees are never classified as clean or deletion-safe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_triage"
+        ]
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Given an internal budget or caller cancellation ends inspection, when remaining work would otherwise start, then no additional Git or workflow inspection begins; cancellation or termination uncertainty is reported explicitly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_triage",
+          "tool:adv_wip_state"
+        ]
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Given all interactive ADV read tools, when the audit completes, then 100% have a recorded decision: retain the 10-second default or use a documented per-tool budget at or below 60 seconds with an internal bound and typed degraded behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Given a slow worktree source, when WIP renders, then active-change and peer-session sections remain available while worktree degradation is explicit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_wip_state"
+        ]
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Controlled slow Git and workflow probes produce an actionable partial triage response rather than an opaque wrapper timeout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_triage"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Controlled slow worktree inventory leaves WIP active-change and peer-session output available with a worktree warning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_wip_state"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Any interactive read tool receiving outer headroom has a documented inner budget, rationale, typed timeout behavior, and outer cap no greater than 60 seconds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-toolTimeoutOverride01"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Tests prove incomplete inventory cannot authorize cleanup or label omitted worktrees clean.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Tests prove cancellation stops new inspection admission and preserves honest incomplete state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "The global `safeExecute` default remains 10,000 milliseconds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The change remains read-only for triage and WIP behavior; it introduces no cleanup, deletion, recovery, or state mutation authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "A per-tool outer timeout may exceed 10 seconds only when a shorter internal budget, return reserve, rationale, and typed degraded behavior are documented.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "The change must preserve exact branch, path, and blocker evidence for worktree findings that were inspected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "The change must coordinate with but not expand the approved contract of `fixTemporalQueryRecovery`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not raise the global timeout default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not classify uninspected worktrees as clean, merged, or safe to delete.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not start additional Git or workflow inspection after cancellation or budget exhaustion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not hide incomplete inspection behind a successful-looking complete result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Automatic cleanup, deletion, workflow recovery, or state mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "OpenCode host configuration or lifecycle changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Unrelated timeout changes without an audit finding for an interactive read tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-17T04:44:59.158Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY: bounded inventory context gives triage a documented caller-visible budget ≤60s (55s inner/60s outer); returns complete or explicitly incomplete result (inventory-budget + adv-worktree tests, 97 reviewer-run + tr_mrogeeo3_88e305c1: 42 post-commit)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Partial responses preserve collected findings with inspected scope, omitted scope, stop reason; omitted worktrees never classified clean/deletion-safe (honest partial projection, reviewer-remediated + tested)."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Cancellation propagation stops new Git/workflow inspection admission; termination uncertainty reported explicitly (reviewer remediation + AC5 tests)."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Interactive read-tool audit complete: 10s default retained globally; documented per-tool budgets ≤60s with internal bound + typed degraded behavior recorded (advance-meta spec + tool-registry, rq-toolTimeoutOverride01)."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "WIP renders active-change and peer-session sections while worktree source degradation is explicit (state-snapshot-budget tests, AC2)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Controlled slow Git/workflow probes yield actionable partial triage response, not opaque wrapper timeout (adv-worktree.test.ts hung-query partial return; runs tr_mrogeeo3_88e305c1, tr_mrnyword_f83ec612)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Controlled slow worktree inventory leaves WIP active-change + peer-session output available with worktree warning (state-snapshot-budget.test.ts, 42-test run green)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Every tool receiving outer headroom has documented inner budget, rationale, typed timeout behavior, outer cap ≤60s (spec rq-toolTimeoutOverride01 assertions + tool-registry tests in reviewer 97-test run)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tests prove incomplete inventory cannot authorize cleanup or label omitted worktrees clean (inventory-budget.test.ts red-first evidence tr_mrnwzzae→tr_mrnx0syb; DONT2 assertions)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tests prove cancellation stops new inspection admission and preserves honest incomplete state (cancellation propagation tests in reviewer run + tr_mrogeeo3_88e305c1)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Global safeExecute default remains 10000ms (unchanged; pnpm run check green; reviewer static review)."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Triage/WIP remain read-only; no cleanup, deletion, recovery, or mutation authority added (diff review)."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Per-tool outer timeouts >10s carry shorter internal budget, return reserve, rationale, and typed degraded behavior (documented per rq-toolTimeoutOverride01)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Exact branch, path, and blocker evidence preserved for inspected worktree findings (C4 assertions in adv-worktree tests)."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Coordinates with fixTemporalQueryRecovery bounded-read work without expanding its contract (bounded-read-deadline.test.ts untouched semantics; verified green tr_mrofz8h7_8727e6fb)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Global timeout default not raised (C1 evidence; reviewer READY 0 findings)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Uninspected worktrees never classified clean/merged/deletion-safe (AC4 tests + honest partial projection)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No additional Git/workflow inspection starts after cancellation or budget exhaustion (SC3/AC5 admission-stop tests)."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Incomplete inspection surfaces explicitly (inspected/omitted/stop reason); never a successful-looking complete result (SC2 tests)."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No automatic cleanup/deletion/recovery/mutation added."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No OpenCode host configuration or lifecycle changes."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No unrelated timeout changes; every timeout change is backed by an interactive read-tool audit finding."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Controlled slow Git and workflow probes produce an actionable partial triage response rather than an opaque wrapper timeout.",
+    "Controlled slow worktree inventory leaves WIP active-change and peer-session output available with a worktree warning.",
+    "Any interactive read tool receiving outer headroom has a documented inner budget, rationale, typed timeout behavior, and outer cap no greater than 60 seconds.",
+    "Tests prove incomplete inventory cannot authorize cleanup or label omitted worktrees clean.",
+    "Tests prove cancellation stops new inspection admission and preserves honest incomplete state."
+  ],
+  "documents": {
+    "proposal": "# Fix triage timeouts\n\n## Why\n\n`adv_worktree_triage` loses all useful inventory when a valid read-only scan exceeds Advance’s 10-second safety wrapper. The repository currently has 36 `change/*` worktrees. The tool performs serial Git and cross-workflow registry enrichment, and the outer wrapper returns a generic timeout without cancelling the remaining work. Temporal health is currently good, so the problem is bounded inventory behavior rather than a general Temporal outage.\n\n## What Changes\n\nEstablish a bounded inspection experience for worktree triage: preserve collected findings, make incomplete inspection explicit, and expose enough diagnostic context to identify the constraining stage. Review other inventory and aggregate reads that share this workload shape, including `adv_wip_state`, and apply a tool-specific timeout only when measurement shows a legitimate bounded operation needs outer-wrapper headroom.\n\n## User Outcomes\n\n- A person investigating worktree hygiene receives useful findings instead of only an opaque timeout.\n- An agent can distinguish an incomplete inventory from a clean worktree state and can identify the inspection stage that stopped early.\n- Operators receive consistent, explained timeout behavior from affected inventory and aggregate read tools.\n\n## Affected Code\n\n- Worktree triage and cross-change worktree snapshot paths.\n- Tool-registration timeout policy and timeout-result formatting.\n- WIP aggregation where it shares the worktree snapshot path.\n- Focused tests for inventory scale, partial output, cancellation, and timeout classification.\n\n## Related Repositories\n\n- Current repository only: Advance plugin.\n\n## Constraints\n\n- Preserve the 10-second global safety-net default; existing spec policy forbids raising it globally.\n- Preserve `worktree-lifecycle` requirements for exact branch/path/blocker visibility and for partial results when one workflow query fails.\n- Preserve `backlog-coordination` requirements that `adv_wip_state` keeps healthy sections when another section degrades.\n- Keep read-only tools read-only; no cleanup, deletion, workflow recovery, or state mutation may be introduced.\n- Coordinate with `fixTemporalQueryRecovery`: consume compatible generic bounded-read behavior without expanding that change’s approved contract.\n\n## Impact\n\n- Worktree operators and multi-agent cleanup flows receive transparent degraded results instead of all-or-nothing failure.\n- No product-linked repositories are configured; scope is this repository.\n\n## Context\n\n- GitHub issue #224: `adv_worktree_triage` exceeded 10 seconds during `/adv-cleanup` dry-run and returned no partial inventory.\n- Local reproduction returned the same `ToolExecutionTimeout` with valid arguments.\n- `adv_temporal_diagnose` reported reachable server, live worker, initialized STSL, and serviceable queue.\n- `adv_wip_state` also timed out. It concurrently aggregates changes, worktrees, and peer sessions; its worktree source shares cross-change worktree snapshot behavior.\n- Existing policy requires a justified per-tool `safeExecute` override for operations that legitimately exceed ten seconds and forbids raising the global default.\n\n## Scope\n\n### In Scope\n\n- Bounded, safe `adv_worktree_triage` inventory and diagnostics.\n- Evidence-driven audit of related inventory or aggregate read tools for the same scaling pattern.\n- Justified per-tool outer timeout headroom only where a tool has an explicit shorter internal budget and typed degraded result.\n- Relevant specification deltas for `worktree-lifecycle`, `backlog-coordination`, and `advance-meta` when behavior changes.\n\n### Out of Scope\n\n- Raising the global `safeExecute` default timeout.\n- Automatic cleanup, deletion, or mutation of worktrees.\n- OpenCode host configuration, worker lifecycle changes, or Temporal recovery policy changes.\n- Broad redesign of unrelated tool timeout behavior without measured evidence.\n\n### Must Not\n\n- Treat uninspected worktrees as clean or safe to delete.\n- Return a successful-looking result without identifying incomplete inspection.\n- Leave uncancelled background inventory work after a bounded tool result.\n- Duplicate or weaken the approved safety boundaries of `fixTemporalQueryRecovery`.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence |\n| --- | --- | --- |\n| Skills Considered | PASS | `adv-worktree` loaded; 27 global skills scanned; no pending reviews. |\n| Prior Research Extension | PASS | `docs/repo-improve-prep.md` cited; new finding: triage and WIP share an unbounded cross-worktree snapshot path. |\n| Conflict & Related-Work Scan | PASS, degraded | Active `fixTemporalQueryRecovery` overlaps generic Temporal-read cancellation; archived `fixTemporalTimeoutsWorker` is related history. Change inventory returned 47 records but omitted 70 terminal candidates after its 8s deadline; no clean no-conflict claim is made. |\n| Edge Case Investigation | PASS | Partial inventory, subprocess abort, poisoned workflow, and concurrent callers examined. |\n| Design Question Depth | PASS | User-facing behavior questions separated from technical choices. |\n| Draft Spec Deltas | PASS | Draft shapes below. |\n| Related Pattern Scan | PASS | Existing bounded pending-delete loop and explicit per-tool timeout registrations found. |\n| LBP Check | PASS | Internal budget plus cancellation and typed partial result is preferred. |\n| Completeness Verification | PASS | Triaging and WIP snapshot surfaces verified; no sole-entry claim is relied on. |\n\n### Skills Considered\n\n- `adv-worktree`: matched worktree inventory, multi-session coordination, and triage semantics; loaded.\n- No other skill matched the core bounded-inventory problem.\n- Global skill frontmatter scan found no pending reviews.\n\n### Extends\n\n`docs/repo-improve-prep.md` identified latency telemetry and deterministic bounded tool-read plans as high-value improvements. New finding: `adv_worktree_triage` and `adv_wip_state` share `getWorktreeRegistrySnapshot`; it queries matching workflows serially, so both tools can exceed the outer safety wrapper even when the Temporal service is healthy.\n\n### Conflict Scan\n\n- `fixTemporalQueryRecovery` is active and owns generic Temporal read context, deadlines, and abort semantics. This change must reuse compatible primitives without editing its approved mutation-safety contract.\n- `fixTemporalTimeoutsWorker` is archived related context for prior timeout policy.\n- The cross-change inventory is degraded: 47 records returned; 70 terminal candidates omitted and an aggregate 8-second workflow-query deadline was exceeded. Conflict evidence is therefore incomplete, not clean.\n- Target validation itself returned `VALIDATION_TIME_BUDGET_EXHAUSTED`; no own-change conflict verdict was produced. Expected pre-prep omissions such as no tasks or deltas are not treated as conflicts.\n\n### Current State\n\n- `safeExecute` applies a 10,000ms outer `Promise.race`; its documented behavior leaves the underlying promise running after timeout (`plugin/src/utils/safe-execute.ts:225-305`).\n- `adv_worktree_triage` uses default registration, so it has no timeout classifier or tool-specific headroom (`plugin/src/tool-registry.ts:213-225`, `:892-896`).\n- Triage performs serial reachability probes for unregistered branches and serial dirty-state probes for every `change/*` worktree (`plugin/src/tools/worktree/triage.ts:115-146`, `:234-262`, `:319-341`).\n- Cross-change worktree snapshot queries matching workflows serially (`plugin/src/tools/worktree/state.ts:824-859`).\n- `adv_wip_state` runs changes, worktrees, and sessions concurrently, but its worktree provider shares this unbounded snapshot and has no source deadline (`plugin/src/tools/backlog.ts:115-140`, `:200-205`).\n- Existing `drainPendingDeletes` demonstrates shared budget, minimum-start floor, per-item timeout, and retained incomplete state (`plugin/src/tools/worktree/index.ts:2847-2966`).\n\n### Edge Cases\n\n- A partial triage result must not classify an uninspected worktree as clean, merged, or safe to delete.\n- A Git child process may ignore or outlive an abort signal; result semantics must stay incomplete even if process termination is delayed.\n- One poisoned or slow workflow query must preserve healthy worktree records and expose a structured warning rather than block all inventory.\n- Concurrent triage and WIP callers must stop admitting additional Git or Temporal operations when their own budget expires.\n\n### Open Design Questions\n\n- **Partial-result presentation** — Trust model: user-only. Blast radius: operators may mistake a partial inventory for a full hygiene assessment. Alternatives: clearly marked partial result versus hard error; recommend clearly marked partial result with inspected and omitted scope.\n- **Interactive wait versus fuller inventory** — Trust model: user-only. Blast radius: longer waits can affect agent throughput; shorter waits can defer inspection. Alternatives: bounded interactive response versus longer tool-specific wait; recommend bounded interactive response with measured per-tool headroom only when necessary.\n- **Cancellation composition** — Trust model: agent-only. Blast radius: failure can leave Git or Temporal operations running after caller return. Alternatives: outer race only, internal deadline only, composed host abort plus internal deadline; recommend composed cancellation with tests for delayed termination.\n- **Cross-change snapshot scheduling** — Trust model: agent-only. Blast radius: unbounded concurrency can overload Temporal while serial work can starve inventory. Alternatives: serial, bounded concurrency, or visibility-only projection; recommend measured bounded concurrency with explicit omissions.\n\n### Draft Spec Deltas\n\n- `rq-worktreeTriageBoundedInventory01`: Given a triage request with more candidates than its remaining inspection budget, when the next enrichment cannot start safely, then the response returns collected findings plus typed incomplete scope and stopped-stage evidence.\n- `rq-worktreeSnapshotBudget01`: Given one slow or failing owning workflow, when cross-change worktree snapshot runs, then healthy records remain visible and the slow owner is returned as a structured warning or omission.\n- `rq-wipBoundedWorktreeSource01`: Given WIP worktree inventory exceeds its source budget, when WIP renders, then active-change and peer-session sections remain available and worktree degradation is explicit.\n- `rq-toolTimeoutOverride01` amendment: Given a read-only tool has a measured inner budget, when it needs outer-wrapper headroom, then its explicit registration timeout exceeds that inner budget and its timeout result remains typed and non-misleading.\n\n### Related Pattern Scan\n\n- `drainPendingDeletes` already uses a shared budget, per-item timeouts, a minimum-start threshold, and explicit retained state; triage lacks this pattern.\n- `adv_change_archive`, `adv_gate_complete`, `adv_run_test`, `adv_task_checkpoint`, and `adv_temporal_worker_restart` already register justified outer timeout overrides. Neither triage nor WIP does.\n\n### Completeness Verification\n\n- **Problem completeness — high confidence:** reproduction is classified `broken_capability`: `adv_worktree_triage` is an advertised read-only inventory tool and a valid invocation produced `ToolExecutionTimeout` instead of inventory or typed degradation. The investigation covers both host Git fan-out and shared Temporal snapshot latency, not only the first observed tool call.\n- **Solution scope — medium-high confidence:** no sole-chokepoint claim is used. Verified affected surfaces are triage and WIP through their shared snapshot. `adv_wip_state` is explicitly in scope as a secondary surface. Other tools remain out of scope unless the evidence-driven audit proves they share the same workload shape.\n\n### LBP Check\n\nInternal staged budgets, cancellation propagation, admission checks, and typed partial results align with the existing bounded cleanup pattern and current Node, Bun, OpenCode, and Temporal APIs. Raising the global timeout conflicts with `advance-meta`; a per-tool outer override is only defense-in-depth around a shorter internal budget. External replacement is not viable for this internal reliability fix.\n\n### Recommended Objectives\n\n1. Make triage and affected shared worktree inventory reads return complete or explicitly incomplete results within their stated budgets.\n2. Preserve collected evidence and protect operators from treating omitted worktrees as clean or deletion-safe.\n3. Stop new Git and Temporal work after cancellation or budget exhaustion, while accurately reporting any operation whose termination cannot be confirmed immediately.\n4. Preserve healthy WIP sections when worktree inventory degrades.\n5. Keep the global 10-second default and require measured, tool-specific outer headroom only where justified.\n\n### AMBIGUITY ANALYSIS\n\n| ID | Severity | Category | Finding | Evidence | Reason |\n| --- | --- | --- | --- | --- | --- |\n| S1 | MEDIUM | Completion Signals | Exact interactive and outer-headroom budgets remain undecided. | \"apply a tool-specific timeout only when measurement shows a legitimate bounded operation needs outer-wrapper headroom\" | User-facing responsiveness preference is not yet selected. |\n| M1 | MEDIUM | Missing Information | Partial-result presentation remains a user outcome decision. | \"make incomplete inspection explicit\" | The proposal does not yet state whether partial output is returned as a normal result or error-class result. |\n\nCoverage: B:C F:C S:P M:P\n\n## Discovery Agenda\n\nDiscovery completed the initial codebase, ecosystem, and integration research. Remaining user decisions appear in the agreement questions; detailed budgets and implementation mechanisms remain for design.\n",
+    "problemStatement": "`adv_worktree_triage` cannot reliably inspect the current repository’s worktree inventory. With 36 `change/*` worktrees, it performs unbounded serial Git and workflow-registry enrichment beneath Advance’s fixed 10-second, non-cancelling safety wrapper. A valid request therefore returns an opaque timeout with no partial inventory, and concurrent callers can leave overlapping background work. Temporal service health is currently good, so the problem is inventory scaling and bounded-result behavior rather than a general service outage. The system needs safe, bounded triage that reports collected findings, incompleteness, and slow-stage diagnostics; it also needs evidence-driven review of other inventory or aggregate tools that may legitimately need a tool-specific outer timeout.",
+    "agreement": "# Agreement — Fix triage timeouts\n\n## Objectives\n\n1. Return complete or explicitly incomplete worktree inventory safely.\n2. Preserve collected findings and prevent omitted worktrees from being treated as clean or deletion-safe.\n3. Audit every interactive ADV read tool for timeout behavior and document each decision.\n4. Allow a proven slow interactive read to wait up to 60 seconds while retaining the 10-second global default for tools without a justified exception.\n5. Preserve healthy WIP sections when the worktree source degrades.\n\n## Success Criteria\n\n- SC1: Given 36 representative `change/*` worktrees, when triage runs, then it returns a complete result or explicitly incomplete result within its documented caller-visible budget, capped at 60 seconds. [warrant: tool:adv_worktree_triage]\n- SC2: Given inspection ends before all candidates are evaluated, when triage responds, then it preserves collected findings and identifies inspected scope, omitted scope, and stop reason; omitted worktrees are never classified as clean or deletion-safe. [warrant: tool:adv_worktree_triage]\n- SC3: Given an internal budget or caller cancellation ends inspection, when remaining work would otherwise start, then no additional Git or workflow inspection begins; cancellation or termination uncertainty is reported explicitly. [warrant: tool:adv_worktree_triage, tool:adv_wip_state]\n- SC4: Given all interactive ADV read tools, when the audit completes, then 100% have a recorded decision: retain the 10-second default or use a documented per-tool budget at or below 60 seconds with an internal bound and typed degraded behavior.\n- SC5: Given a slow worktree source, when WIP renders, then active-change and peer-session sections remain available while worktree degradation is explicit. [warrant: tool:adv_wip_state]\n\n## Acceptance Criteria\n\n- AC1: Controlled slow Git and workflow probes produce an actionable partial triage response rather than an opaque wrapper timeout. [warrant: tool:adv_worktree_triage]\n- AC2: Controlled slow worktree inventory leaves WIP active-change and peer-session output available with a worktree warning. [warrant: tool:adv_wip_state]\n- AC3: Any interactive read tool receiving outer headroom has a documented inner budget, rationale, typed timeout behavior, and outer cap no greater than 60 seconds. [warrant: spec:rq-toolTimeoutOverride01]\n- AC4: Tests prove incomplete inventory cannot authorize cleanup or label omitted worktrees clean.\n- AC5: Tests prove cancellation stops new inspection admission and preserves honest incomplete state.\n\n## Constraints\n\n- C1: The global `safeExecute` default remains 10,000 milliseconds.\n- C2: The change remains read-only for triage and WIP behavior; it introduces no cleanup, deletion, recovery, or state mutation authority.\n- C3: A per-tool outer timeout may exceed 10 seconds only when a shorter internal budget, return reserve, rationale, and typed degraded behavior are documented.\n- C4: The change must preserve exact branch, path, and blocker evidence for worktree findings that were inspected.\n- C5: The change must coordinate with but not expand the approved contract of `fixTemporalQueryRecovery`.\n\n## Avoidances\n\n- DONT1: Do not raise the global timeout default.\n- DONT2: Do not classify uninspected worktrees as clean, merged, or safe to delete.\n- DONT3: Do not start additional Git or workflow inspection after cancellation or budget exhaustion.\n- DONT4: Do not hide incomplete inspection behind a successful-looking complete result.\n\n## Out of Scope\n\n- OOS1: Automatic cleanup, deletion, workflow recovery, or state mutation.\n- OOS2: OpenCode host configuration or lifecycle changes.\n- OOS3: Unrelated timeout changes without an audit finding for an interactive read tool.\n\n## Preview Applicability\n\n- visual_surface: false\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- Rationale: this change affects plugin read behavior and structured tool output only; no browser-visible surface is affected.\n\n## Decisions\n\n### User Decisions\n\n- Partial inventory should return an explicit partial result with collected findings, omitted scope, and stop reason.\n- Favor fuller inventory over the shortest response; a proven slow interactive read may wait up to 60 seconds.\n- Audit all interactive ADV read tools, not only currently proven shared worktree readers.\n\n### Agent Decisions (LBP)\n\n- Use an internal budget, cancellation propagation, admission checks, and typed partial results as the primary mechanism.\n- Keep per-tool outer headroom as defense-in-depth only; do not raise the global default.\n- Reuse the existing bounded pending-delete pattern where compatible and preserve healthy WIP sections under source degradation.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user via reply `approve` on 2026-07-16.",
+    "design": "# Design — Fix triage timeouts\n\n## Architecture Overview\n\nIntroduce a bounded inventory execution model for read-only worktree surfaces. A request owns one absolute internal deadline and one composed cancellation signal: the OpenCode caller abort signal plus an internal deadline signal. Every stage checks remaining budget before admitting new work and returns typed incomplete state before the outer tool wrapper becomes the primary timeout authority.\n\nThe model has three layers:\n\n1. **Inventory context** — deadline, cancellation signal, stage timing, inspected and omitted counters, and a stop reason.\n2. **Bounded collectors** — shared helpers for Git enrichment and cross-change workflow queries. They preserve completed records, issue structured omissions for work that cannot start, and use a fixed admission-checked worker pool rather than serial unbounded loops or eager fan-out.\n3. **Tool adapters** — triage renders exact inspected branch/path/blocker findings plus incomplete metadata; WIP preserves independently completed change and peer-session sections while annotating any degraded source.\n\n## Key Decisions\n\n### Internal budget is authoritative; outer timeout is containment\n\nA proven slow interactive reader may use a 60-second outer wrapper. Its internal collector stops by 55 seconds, reserving five seconds for source settlement, formatting, and wrapper handoff. The global 10-second default remains unchanged for tools without a documented exception.\n\n### Explicit partial state, never inferred cleanliness\n\nA result carries completion state, stopped stage, reason, inspected count, candidate count, omitted scope, and stage timings. Only inspected worktrees may yield branch/path/blocker findings. Omitted worktrees stay unknown and cannot be represented as clean, merged, or deletion-safe.\n\n### Cancellation closes every admission path\n\nTool registration preserves the host `ToolContext.abort` signal. Internal deadline and host abort compose before Git and Temporal work begins. After either signal fires, no Git status, reachability, workflow query, pending-delete lookup, or follow-on workflow `describe` classification begins unless it was already admitted under the same remaining budget. Delayed child-process termination is recorded as uncertainty, not claimed complete cancellation.\n\n### Shared bounded snapshot for triage and WIP\n\n`getWorktreeRegistrySnapshot` becomes deadline-aware and uses a fixed worker pool of four admission-checked workflow queries with stable output ordering. Triage and WIP use the same bounded snapshot primitive. WIP gives every source an independent bounded collection window under its request reserve; a slow worktree source yields a warning without hiding independently completed changes or sessions.\n\n### Audit all interactive reads without global behavior change\n\nEnumerate interactive ADV read registrations and record a default-or-override decision for every one. Only tools with measured inner work that needs headroom receive an override. A structural audit test or artifact prevents uncategorized interactive reads from bypassing that decision.\n\n## ADR Drafts\n\nNo ADR draft. These are localized plugin reliability decisions and do not meet the hard-to-reverse architecture-decision threshold.\n\n## Implementation Strategy\n\n1. Add a typed inventory budget/result model and tests for completion, incompleteness, stop reason, stable ordering, and no-new-work admission.\n2. Thread execution context through tool registration and compose host cancellation with the internal deadline.\n3. Convert shared worktree snapshot queries to the four-worker bounded collector, retaining healthy records and structured per-workflow omissions.\n4. Convert triage reachability, dirty-state, and pending-delete stages to consume the shared budget and preserve partial findings.\n5. Adapt WIP so changes, worktrees, and sessions each settle independently under the request reserve.\n6. Audit all interactive read registrations; document or test every default/override decision. Register only proven slow tools with outer headroom and typed timeout containment.\n7. Add controlled slow Git, slow Temporal, pre-abort, mid-flight abort, delayed child termination, WIP-isolation, stable-order, and timeout-registration tests on supported Node and deployed Bun runtimes.\n\n## LBP Analysis\n\nThe design follows existing bounded pending-delete mechanics: shared budget, minimum-start check, per-item timeout, and explicit retained state. It aligns with `fixTemporalQueryRecovery` by using real cancellation/deadline context rather than an outer `Promise.race` as work authority. A global timeout increase is rejected by current policy and would retain opaque failure plus background work. Unbounded parallelism is rejected because it amplifies multi-agent contention.\n\n## Affected Components\n\n- `plugin/src/tool-registry.ts`: retain execution context and register justified heavy read tools with explicit containment.\n- `plugin/src/utils/safe-execute.ts`: remain last-resort containment with typed results.\n- `plugin/src/tools/worktree/triage.ts`: staged budget-aware triage collection and partial result projection.\n- `plugin/src/tools/worktree/state.ts`: bounded cross-change workflow snapshot and admission-checked classification.\n- `plugin/src/tools/backlog.ts`: independent bounded WIP source projection.\n- Worktree, backlog, registry, and tool-registration tests.\n\n## Interfaces\n\n- Internal inventory result: `complete`, `stoppedStage`, `stopReason`, `inspectedCount`, `candidateCount`, `omitted`, `stageTimings`, `orphans`, and warnings.\n- Internal execution context: absolute deadline, composed abort signal, and remaining-budget/admission helpers.\n- Public triage output extends existing advisory output with explicit completeness metadata; WIP extends existing warnings without removing healthy source sections.\n\n## Design-Derived Criteria\n\n- DDC1: A 60-second-cap interactive reader stops internal collection by 55 seconds and reserves at least 5 seconds for source settlement, formatting, and wrapper handoff.\n- DDC2: At most four cross-change workflow queries run concurrently for one inventory request; output ordering remains stable.\n- DDC3: Every admission point, including follow-on failure classification, checks cancellation and remaining budget before starting Git or Temporal work.\n- DDC4: Every WIP source has a bounded collection window; one slow source cannot erase independently completed source output.\n- DDC5: Timeout-policy audit records a default-or-override decision for every interactive ADV read registration.\n\n## Risks / Mitigations\n\n- **Subprocess termination is delayed:** report cancellation uncertainty and verify deployed-Bun abort behavior.\n- **Bounded concurrency still strains Temporal:** cap at four, stage timing, stable ordering, and independent source degradation.\n- **Broader audit expands scope:** audit all interactive reads, but change behavior only where measured evidence supports an exception.\n- **Active recovery change overlap:** consume compatible Temporal cancellation primitives; do not alter mutation safety paths.\n\n## Design Leverage Scout\n\nInconclusive: required researcher briefing packet was omitted by artifact-only rendering and truncated by the normal rendering surface, so a compliant packet injection was unavailable. No leverage candidate was adopted without the required packet.\n\n## Independent Validation\n\nValidator: caution, medium confidence. The design complies with the 10-second-default law and supports honest partial inventory. Incorporated clarifications: bound all WIP sources, admit no post-abort `describe` classification, and implement concurrency as an admission-checked stable-order worker pool. Deployed-Bun `execFile` abort parity remains a verification requirement; no contract compromise was found.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`adv_worktree_triage` and `adv_wip_state` no longer die with opaque 10-second wrapper timeouts on real project inventories (~36 worktrees). They now run under a documented bounded budget (55s inner / 60s outer cap) and always return something honest: a complete result, or an explicitly incomplete one that names what was inspected, what was omitted, and why it stopped.\n\n## Value\n\nDirectly fixes the tool failures observed live in this very session (triage/WIP/status timeouts during project cleanup). Operators get actionable partial data instead of nothing — and the partial data can never lie: omitted worktrees are never labeled clean or deletion-safe, so incomplete inventory can never authorize cleanup.\n\n## Delivered\n\n- Deterministic bounded inventory execution context with admission control — cancellation/budget exhaustion stops NEW Git/workflow inspections from starting\n- Honest partial projection: inspected scope, omitted scope, stop reason; hung queries return partial results\n- WIP degrades gracefully: worktree section carries an explicit warning while active-change and peer-session sections stay available\n- Interactive read-tool timeout audit: global 10s `safeExecute` default unchanged; every tool with outer headroom has documented inner budget, rationale, and typed degraded behavior (spec `rq-toolTimeoutOverride01`), outer cap ≤60s\n- Reviewer remediation: outer/inner timeout wiring, cancellation propagation, honest partial projection, hung-query partial return\n\n## Verification\n\n- Independent reviewer verdict: READY, 0 findings; all 22 strict-contract matrix rows pass\n- 97 reviewer-run targeted tests + 42-test post-remediation durable run + 236-test bounded-inventory suite; red-first TDD evidence recorded; `pnpm run check` green on trunk-merged tree\n- Contract matrix 22/22 (strict rigor)\n\n## Risks / follow-ups\n\n- Fix activates only after release + deploy + session restart (plugin has no hot reload — the staleness banner from detectStalePluginBundle will flag this)\n- Known validator defect (`VALIDATION_TIME_BUDGET_EXHAUSTED`) prevented a machine validation verdict; peer change fixValidationInputTimeout shipped its fix to trunk this hour\n- Full-suite verdict delegated to release CI; two unrelated straggler test timeouts are owned by fixFullSuiteStability",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-17T04:44:59.158Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Given 36 representative `change/*` worktrees, when triage runs, then it returns a complete result or explicitly incomplete result within its documented caller-visible budget, capped at 60 seconds. | pass | Reviewer READY: bounded inventory context gives triage a documented caller-visible budget ≤60s (55s inner/60s outer); returns complete or explicitly incomplete result (inventory-budget + adv-worktree tests, 97 reviewer-run + tr_mrogeeo3_88e305c1: 42 post-commit). |\n| SC2 | success_criterion | Given inspection ends before all candidates are evaluated, when triage responds, then it preserves collected findings and identifies inspected scope, omitted scope, and stop reason; omitted worktrees are never classified as clean or deletion-safe. | pass | Partial responses preserve collected findings with inspected scope, omitted scope, stop reason; omitted worktrees never classified clean/deletion-safe (honest partial projection, reviewer-remediated + tested). |\n| SC3 | success_criterion | Given an internal budget or caller cancellation ends inspection, when remaining work would otherwise start, then no additional Git or workflow inspection begins; cancellation or termination uncertainty is reported explicitly. | pass | Cancellation propagation stops new Git/workflow inspection admission; termination uncertainty reported explicitly (reviewer remediation + AC5 tests). |\n| SC4 | success_criterion | Given all interactive ADV read tools, when the audit completes, then 100% have a recorded decision: retain the 10-second default or use a documented per-tool budget at or below 60 seconds with an internal bound and typed degraded behavior. | pass | Interactive read-tool audit complete: 10s default retained globally; documented per-tool budgets ≤60s with internal bound + typed degraded behavior recorded (advance-meta spec + tool-registry, rq-toolTimeoutOverride01). |\n| SC5 | success_criterion | Given a slow worktree source, when WIP renders, then active-change and peer-session sections remain available while worktree degradation is explicit. | pass | WIP renders active-change and peer-session sections while worktree source degradation is explicit (state-snapshot-budget tests, AC2). |\n| AC1 | acceptance_criterion | Controlled slow Git and workflow probes produce an actionable partial triage response rather than an opaque wrapper timeout. | pass | Controlled slow Git/workflow probes yield actionable partial triage response, not opaque wrapper timeout (adv-worktree.test.ts hung-query partial return; runs tr_mrogeeo3_88e305c1, tr_mrnyword_f83ec612). |\n| AC2 | acceptance_criterion | Controlled slow worktree inventory leaves WIP active-change and peer-session output available with a worktree warning. | pass | Controlled slow worktree inventory leaves WIP active-change + peer-session output available with worktree warning (state-snapshot-budget.test.ts, 42-test run green). |\n| AC3 | acceptance_criterion | Any interactive read tool receiving outer headroom has a documented inner budget, rationale, typed timeout behavior, and outer cap no greater than 60 seconds. | pass | Every tool receiving outer headroom has documented inner budget, rationale, typed timeout behavior, outer cap ≤60s (spec rq-toolTimeoutOverride01 assertions + tool-registry tests in reviewer 97-test run). |\n| AC4 | acceptance_criterion | Tests prove incomplete inventory cannot authorize cleanup or label omitted worktrees clean. | pass | Tests prove incomplete inventory cannot authorize cleanup or label omitted worktrees clean (inventory-budget.test.ts red-first evidence tr_mrnwzzae→tr_mrnx0syb; DONT2 assertions). |\n| AC5 | acceptance_criterion | Tests prove cancellation stops new inspection admission and preserves honest incomplete state. | pass | Tests prove cancellation stops new inspection admission and preserves honest incomplete state (cancellation propagation tests in reviewer run + tr_mrogeeo3_88e305c1). |\n| C1 | constraint | The global `safeExecute` default remains 10,000 milliseconds. | respected | Global safeExecute default remains 10000ms (unchanged; pnpm run check green; reviewer static review). |\n| C2 | constraint | The change remains read-only for triage and WIP behavior; it introduces no cleanup, deletion, recovery, or state mutation authority. | respected | Triage/WIP remain read-only; no cleanup, deletion, recovery, or mutation authority added (diff review). |\n| C3 | constraint | A per-tool outer timeout may exceed 10 seconds only when a shorter internal budget, return reserve, rationale, and typed degraded behavior are documented. | respected | Per-tool outer timeouts >10s carry shorter internal budget, return reserve, rationale, and typed degraded behavior (documented per rq-toolTimeoutOverride01). |\n| C4 | constraint | The change must preserve exact branch, path, and blocker evidence for worktree findings that were inspected. | respected | Exact branch, path, and blocker evidence preserved for inspected worktree findings (C4 assertions in adv-worktree tests). |\n| C5 | constraint | The change must coordinate with but not expand the approved contract of `fixTemporalQueryRecovery`. | respected | Coordinates with fixTemporalQueryRecovery bounded-read work without expanding its contract (bounded-read-deadline.test.ts untouched semantics; verified green tr_mrofz8h7_8727e6fb). |\n| DONT1 | avoidance | Do not raise the global timeout default. | respected | Global timeout default not raised (C1 evidence; reviewer READY 0 findings). |\n| DONT2 | avoidance | Do not classify uninspected worktrees as clean, merged, or safe to delete. | respected | Uninspected worktrees never classified clean/merged/deletion-safe (AC4 tests + honest partial projection). |\n| DONT3 | avoidance | Do not start additional Git or workflow inspection after cancellation or budget exhaustion. | respected | No additional Git/workflow inspection starts after cancellation or budget exhaustion (SC3/AC5 admission-stop tests). |\n| DONT4 | avoidance | Do not hide incomplete inspection behind a successful-looking complete result. | respected | Incomplete inspection surfaces explicitly (inspected/omitted/stop reason); never a successful-looking complete result (SC2 tests). |\n| OOS1 | out_of_scope | Automatic cleanup, deletion, workflow recovery, or state mutation. | not_applicable | No automatic cleanup/deletion/recovery/mutation added. |\n| OOS2 | out_of_scope | OpenCode host configuration or lifecycle changes. | not_applicable | No OpenCode host configuration or lifecycle changes. |\n| OOS3 | out_of_scope | Unrelated timeout changes without an audit finding for an interactive read tool. | not_applicable | No unrelated timeout changes; every timeout change is backed by an interactive read-tool audit finding. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-16T19:16:53.821Z",
+      "contentHash": "b03baeab189d3c01f9e92e30e0f8facd9e7ffd849765a13e75564ea4d99e2184",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-16T18:58:59.257Z",
+      "contentHash": "ceb6bee12a941852822f7e129581c496537656d8016b7fee0cb0633d335115ae",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-16T19:23:02.760Z",
+      "contentHash": "d7976d7197c52e10e918dd0d67ca34aa5c5ca23685f592d496bebc7bbd9dd0d2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-16T19:30:19.602Z",
+      "contentHash": "434482489c6d8303b3fd383f316a331b87174c197430482eceecf87e2ecaa5ee",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-17T04:45:10.149Z",
+      "contentHash": "bbadf93841394cf3d677cec83f6df365e692aed0dc96da2cf3eeebc377234695",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-17T04:47:00.571Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

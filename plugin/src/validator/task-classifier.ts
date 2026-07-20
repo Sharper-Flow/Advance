@@ -18,7 +18,15 @@ import {
   TDD_TRIVIAL_PATTERNS,
   TDD_REQUIRED_PATTERNS,
 } from "../types";
-import type { Task } from "../types";
+import type {
+  ContractEvidencePolicy,
+  ScopedSubagentReport,
+  Task,
+  TaskEvidenceCompatibility,
+  TaskEvidenceResolution,
+  TaskType,
+} from "../types";
+import { reportKeyFromReport } from "../types";
 
 // =============================================================================
 // Types
@@ -161,4 +169,240 @@ export function getTaskTddCompliance(
   }
 
   return "missing";
+}
+
+// =============================================================================
+// Task Evidence Resolver
+// =============================================================================
+
+import {
+  ContractEvidencePolicySchema,
+  TaskEvidenceCompatibilitySchema,
+} from "../types";
+
+const DEFAULT_POLICY_BY_TYPE: Record<
+  Exclude<TaskType, "code" | "verification">,
+  ContractEvidencePolicy
+> = {
+  docs: "source_citation",
+  ops: "artifact_reference",
+  research: "source_citation",
+  approval: "stakeholder_acceptance",
+};
+
+function defaultPolicyFor(type: TaskType): ContractEvidencePolicy {
+  if (type === "code" || type === "verification") {
+    return "test";
+  }
+  return DEFAULT_POLICY_BY_TYPE[type];
+}
+
+function proofTargetFor(policy: ContractEvidencePolicy): string {
+  const targets: Record<ContractEvidencePolicy, string> = {
+    test: "Automated red/green tests evidenced by adv_run_test",
+    review: "Structured review conclusion",
+    static_check: "Static analysis or check output",
+    design_proof: "Design proof or design artifact",
+    not_applicable: "No evidence required",
+    source_citation: "Source citation or reference",
+    source_audit: "Source audit or inspection",
+    rubric_review: "Rubric-based review",
+    stakeholder_acceptance: "Stakeholder acceptance evidence",
+    artifact_reference: "Artifact reference or operational output",
+  };
+  return targets[policy];
+}
+
+function isBehaviorCritical(type: TaskType): boolean {
+  return type === "code" || type === "verification";
+}
+
+function countNonWhitespace(value: string): number {
+  return value.replace(/\s/g, "").length;
+}
+
+function resolveCompatibility(
+  task: Pick<Task, "evidence_plan" | "tdd_reclassification">,
+): TaskEvidenceCompatibility {
+  if (task.evidence_plan?.provenance) {
+    return TaskEvidenceCompatibilitySchema.parse(task.evidence_plan.provenance);
+  }
+  if (task.tdd_reclassification) {
+    return "reclassified";
+  }
+  return "legacy";
+}
+
+/**
+ * Pure, table-driven resolver for a task's normalized evidence plan.
+ *
+ * Returns exactly one evidence policy, one proof target, explicit compatibility
+ * provenance, and structural errors for new or materially reclassified tasks.
+ *
+ * Rules:
+ * - New/reclassified tasks default to a type-appropriate policy when none is
+ *   declared, so they always carry exactly one policy and proof target.
+ * - Behavior-critical tasks (code / verification) may not use
+ *   evidence_policy 'not_applicable'.
+ * - Non-test routes for behavior-critical work require a bounded rationale and
+ *   a linked review conclusion.
+ * - Legacy tasks without plan provenance are normalized on read with
+ *   compatibility 'legacy'; no heuristic cutover is performed.
+ *
+ * @param task Task to resolve evidence for
+ * @returns Normalized evidence resolution
+ */
+export function resolveTaskEvidence(task: Task): TaskEvidenceResolution {
+  const errors: string[] = [];
+
+  const compatibility = resolveCompatibility(task);
+  const isNewOrReclassified =
+    compatibility === "new" || compatibility === "reclassified";
+  const effectiveType = task.type ?? "code";
+  const behaviorCritical = isBehaviorCritical(effectiveType);
+
+  // Determine effective policy, defaulting by type when absent.
+  const declaredPolicy = task.evidence_plan?.policy ?? task.evidence_policy;
+  let policy: ContractEvidencePolicy;
+  if (declaredPolicy) {
+    const parsed = ContractEvidencePolicySchema.safeParse(declaredPolicy);
+    if (parsed.success) {
+      policy = parsed.data;
+    } else {
+      policy = defaultPolicyFor(effectiveType);
+      errors.push(`Invalid evidence_policy: ${declaredPolicy}`);
+    }
+  } else {
+    policy = defaultPolicyFor(effectiveType);
+  }
+
+  // Behavior-critical not_applicable prohibition.
+  if (behaviorCritical && policy === "not_applicable") {
+    errors.push(
+      "Behavior-critical task cannot use evidence_policy 'not_applicable'. Use a proof-bearing route such as test, review, or static_check.",
+    );
+  }
+
+  const proofTarget =
+    task.evidence_plan?.proof_target?.trim() ?? proofTargetFor(policy);
+
+  const rationale = task.evidence_plan?.rationale?.trim();
+  const reviewConclusion = task.evidence_plan?.review_conclusion?.trim();
+  const reviewEvidenceRef = task.evidence_plan?.review_evidence_ref;
+  const stage = task.evidence_plan?.stage;
+
+  // Non-test routes for behavior-critical work always require a bounded
+  // rationale. Stage-v2 defers reviewer-owned proof to completion; older plans
+  // preserve the linked-conclusion requirement for compatibility.
+  if (isNewOrReclassified && behaviorCritical && policy !== "test") {
+    if (!rationale) {
+      errors.push(
+        `Non-test route '${policy}' for logic-bearing work requires a bounded rationale.`,
+      );
+    } else if (countNonWhitespace(rationale) > 500) {
+      errors.push(
+        `Rationale exceeds 500 non-whitespace characters (got ${countNonWhitespace(rationale)}).`,
+      );
+    }
+    if (stage !== "stage-v2" && !reviewConclusion && !reviewEvidenceRef) {
+      errors.push(
+        `Non-test route '${policy}' for logic-bearing work requires a linked review conclusion or reviewer evidence reference.`,
+      );
+    }
+  }
+
+  const valid = errors.length === 0;
+
+  return {
+    valid,
+    policy,
+    proof_target: proofTarget,
+    ...(rationale ? { rationale } : {}),
+    ...(reviewConclusion ? { review_conclusion: reviewConclusion } : {}),
+    ...(reviewEvidenceRef ? { review_evidence_ref: reviewEvidenceRef } : {}),
+    compatibility,
+    ...(stage ? { stage } : {}),
+    errors,
+  };
+}
+
+// =============================================================================
+// Stage-aware evidence validation (v2)
+// =============================================================================
+
+export type TaskEvidenceStage = "prep" | "completion";
+
+export interface TaskEvidenceStageValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Stage-aware evidence validator.
+ *
+ * - prep: policy, proof target, compatible TDD intent, bounded rationale.
+ * - completion: prep validity plus review_evidence_ref resolving to a persisted
+ *   task-scoped reviewer report for non-test behavior-critical tasks.
+ *
+ * Legacy plans (no stage or provenance legacy) accept review_conclusion as a
+ * readability fallback; stage-v2 plans require the typed reviewer reference.
+ */
+export function validateTaskEvidenceForStage(
+  task: Task,
+  stage: TaskEvidenceStage,
+  reports: ScopedSubagentReport[] = [],
+): TaskEvidenceStageValidationResult {
+  const base = resolveTaskEvidence(task);
+  const errors: string[] = [...base.errors];
+
+  const effectiveType = task.type ?? "code";
+  const behaviorCritical =
+    effectiveType === "code" || effectiveType === "verification";
+  const policy = base.policy;
+
+  const planStage = task.evidence_plan?.stage;
+  const isStageV2 = planStage === "stage-v2";
+
+  if (stage === "completion") {
+    if (
+      behaviorCritical &&
+      policy &&
+      policy !== "test" &&
+      policy !== "not_applicable"
+    ) {
+      const reviewEvidenceRef = task.evidence_plan?.review_evidence_ref;
+      const reviewConclusion = task.evidence_plan?.review_conclusion;
+
+      if (isStageV2) {
+        if (!reviewEvidenceRef) {
+          errors.push(
+            `Stage-v2 non-test route '${policy}' requires a reviewer-owned review_evidence_ref by completion.`,
+          );
+        } else {
+          const matchingReport = reports.find(
+            (r) =>
+              reportKeyFromReport(r) === reviewEvidenceRef.report_key &&
+              r.agent === "adv-reviewer" &&
+              (typeof r.scope !== "string" && r.scope.kind === "task"
+                ? r.scope.task_id === task.id
+                : "task_id" in r && r.task_id === task.id),
+          );
+          if (!matchingReport) {
+            errors.push(
+              `review_evidence_ref ${reviewEvidenceRef.report_key} does not resolve to a persisted task-scoped reviewer report owned by task ${task.id}.`,
+            );
+          }
+        }
+      } else if (!reviewConclusion && !reviewEvidenceRef) {
+        errors.push(
+          `Non-test route '${policy}' requires a linked review conclusion or reviewer evidence reference.`,
+        );
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
 }

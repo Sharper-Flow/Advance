@@ -1,7 +1,7 @@
 # Architecture Scan
 
-> **Version:** 1.1.0
-> **Updated:** 2026-05-22
+> **Version:** 1.2.0
+> **Updated:** 2026-07-20
 
 ## Purpose
 
@@ -182,3 +182,139 @@ Capability: /adv-arch-scan command — detect architecture inconsistencies with 
 - The JSON object includes coverage.missingPacks
 - The JSON object includes coverage.skippedDetectors
 - The JSON object includes coverage.degradedDetectors
+
+---
+
+### Capability Consistency Detection
+
+**ID:** `rq-archcap01` | **Priority:** **[MUST]**
+
+/adv-arch-scan must detect cross-artifact capability inconsistencies (config↔code↔deps disagreements) via the typed arch-scan pipeline (`bin/arch-scan.ts`). The typed pipeline is the primary detector; the markdown layer is advisory only. Each shipped rule in `bin/lib/arch-scan/registry.ts` must produce evidence-backed findings with file:line cross-references per P34, must respect the `intent_required` gate for Phase 3 rules (false-positive protection), and must honor `exception_semantics` (`suppress` | `escalate`) per entry.
+
+**Tags:** `capability-consistency`, `phase-1`, `phase-3`, `evidence`, `intent-gate`
+
+#### Scenarios
+
+**Phase 1 deterministic rules produce evidence-backed findings** (`rq-archcap01.1`)
+
+**Given:**
+
+- a project with an `env-var-injection-vs-sdk-import` disagreement (APPLICATIONINSIGHTS_CONNECTION_STRING in bicep without @azure/monitor-* SDK and without autoinstrumentation)
+- the capability-consistency pack applies (project has package.json AND IaC files AND/OR manifest references)
+
+**When:** the capability-consistency pack runs via `bun run bin/arch-scan.ts`
+
+**Then:**
+
+- a CapabilityFinding is produced with structured evidence (file:line for trigger)
+- absence_proof is populated with searchedRoots, includedGlobs, parseFailures
+- detection_method is 'regex' or 'ast'
+- confidence is 'high' or 'medium'
+
+**Phase 1 config-vs-dependency-presence rule respects workspace-hoist exception** (`rq-archcap01.2`)
+
+**Given:**
+
+- a project with a `config-vs-dependency-presence` disagreement (package.json declares knip/eslintConfig/prettier/stylelint/commitlint config block without the owning runtime/dev dependency)
+- no workspace hoist configuration suppresses the finding
+
+**When:** the capability-consistency pack runs Phase 1
+
+**Then:**
+
+- a CapabilityFinding is produced for the missing dependency owner
+- when a workspace hoist exception_signal matches (pnpm-workspace.yaml or lerna.json), the finding IS suppressed (exception_semantics: suppress default)
+- evidence cites the config block file:line
+
+**Exception escalation semantics for deferred-state rules** (`rq-archcap01.3`)
+
+**Given:**
+
+- a Content-Security-Policy-Report-Only header set without enforced equivalent or reporting endpoint
+- a nearby TODO/FIXME/HACK/XXX comment referencing enforcement within the scanDebtMarkers window
+- the `report-only-header-with-deferred-todo` rule has `exception_semantics: 'escalate'`
+
+**When:** the `report-only-header-with-deferred-todo` rule runs
+
+**Then:**
+
+- a finding is produced (NOT suppressed — escalate semantics invert the default suppress behavior)
+- severity is escalated by 1 level (major→blocker, capped at blocker)
+- evidence includes the exception signal location (TODO file:line)
+
+**Phase 3 manifest-reference-vs-runtime-registration rule respects intent_required gate** (`rq-archcap01.4`)
+
+**Given:**
+
+- a project with a `manifest-reference-vs-runtime-registration` trigger (HTML/TSX/Svelte references web app manifest) but no intent evidence (no Workbox dep, no declared PWA policy, no Chrome installability criteria)
+- the rule declares `intent_required` covering Workbox dependency, PWA policy, and installability criteria
+
+**When:** the capability-consistency pack runs Phase 3
+
+**Then:**
+
+- no finding is produced (intent gate closed — no declaration matches)
+- coverage_entry.state is 'skipped' with reason mentioning 'intent'
+- false-positive protection per AC MUST #8
+
+**Phase 3 scaffold-vs-test-green-path rule respects intent_required gate** (`rq-archcap01.5`)
+
+**Given:**
+
+- a project with a `scaffold-vs-test-green-path` trigger (android/ios/detox/cypress scaffold directory present) without a matching test runner configuration
+- no intent declaration matches (no script entry referencing the scaffold, no CI job, no declared field)
+
+**When:** the capability-consistency pack runs Phase 3
+
+**Then:**
+
+- no finding is produced (intent gate closed)
+- coverage_entry.state is 'skipped' with reason mentioning 'intent'
+- when a script entry, CI job, or declared field matches, the rule produces a low-severity finding (intent declared but scaffold unused)
+
+---
+
+## Capability Consistency
+
+Cross-artifact capability consistency detects disagreements between **what a project claims to do** (config, IaC, manifests, scaffolding) and **what it actually does** (source code, dependencies, runtime registration). It is distinct from sibling arch-scan concerns:
+
+| Concern | What it detects | Detector |
+|---------|-----------------|----------|
+| Spec drift | spec↔implementation disagreement | ADV spec validators (rq-archstack02) |
+| AI smells | AI-generated code quality | slop-scan |
+| Configuration drift | config-vs-expected-shape | config-vs-dependency-presence rule |
+| **Capability consistency** | **config↔code↔deps disagreement** | **typed arch-scan pipeline (this pack)** |
+
+### Rule categories
+
+Five rule categories ship in v1, routed to detection phases via `detection_phase` on each registry entry:
+
+| Rule ID | Phase | Category |
+|---------|-------|----------|
+| `env-var-injection-vs-sdk-import` | 1 | Env var plumbed via IaC without SDK import |
+| `config-vs-dependency-presence` | 1 | Config block present without owning dependency |
+| `report-only-header-with-deferred-todo` | 1 | Report-Only security header with deferred enforcement |
+| `manifest-reference-vs-runtime-registration` | 3 | Web app manifest referenced without service worker |
+| `scaffold-vs-test-green-path` | 3 | Native/E2E scaffold present without test runner |
+
+Phase 1 rules are deterministic and run on every scan. Phase 3 rules are heuristic-shaped and require intent corroboration (see intent gate below) — they do NOT follow the default Phase 3 skip-when-no-prior-findings behavior.
+
+### `intent_required` gate (Phase 3 false-positive protection)
+
+Phase 3 rules declare an `intent_required` list of declaration strings (e.g., Workbox dependency in package.json, declared PWA policy in README). When none of these declarations appear in the repo, the rule is skipped with `coverage_entry.state: "skipped"` and a reason mentioning "intent". This prevents false positives on projects that intentionally omit a capability (e.g., a marketing site that references a manifest for icons but ships no offline support).
+
+### `exception_semantics` field (`suppress` | `escalate`)
+
+Each registry entry may declare how the evaluator interprets a matched `exception_signal`:
+
+- **`suppress`** (default when omitted): the rule does NOT fire when any exception_signal matches. Backward-compatible with v0 registry entries.
+- **`escalate`**: the rule FIRES even when an exception_signal matches; severity is boosted by one level (nit → minor → major → blocker, capped at blocker) and the matched signal is attached as `exception` evidence. Used by the `report-only-header-with-deferred-todo` rule to detect deferred enforcement.
+
+### CLI usage
+
+```bash
+bun run bin/arch-scan.ts --help
+bun run bin/arch-scan.ts --format json <repoRoot>
+```
+
+The typed pipeline is the primary detector; markdown-layer documentation (command.md + SKILL.md) is advisory only and cites the typed pipeline as the structural owner per P33.

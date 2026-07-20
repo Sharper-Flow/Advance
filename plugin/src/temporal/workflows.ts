@@ -1,5 +1,6 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
+import { derivePhasePlanFromState } from "../utils/phase-plan";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
 import type { ChangeStatus, GateReadinessBlocker } from "../types";
 import { normalizeLegacyChangeStatus } from "../types";
@@ -8,6 +9,7 @@ import {
   ARTIFACT_BACKED_GATES,
   evaluateGateReadiness,
   evaluateGateCriteria,
+  deriveAcceptanceCriteriaProjection,
   MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS,
   renderAcceptanceProjection,
   stateBackedAcceptanceProof,
@@ -51,6 +53,8 @@ import {
   applyGateInProgressToState,
   applyGateReenteredToState,
   applyGateStuckToState,
+  applyLightweightProfileEvaluatedToState,
+  applyLightweightProfileRequestedToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
   applyOpsRunEvidenceAppendedToState,
@@ -74,6 +78,7 @@ import {
   applyTestRunRecordedToState,
   applyWisdomAddedToState,
   applySpecDeltaAddedToState,
+  applySpecDeltaModifiedToState,
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
@@ -82,6 +87,7 @@ import {
   archiveChangeInChangeState,
   closeChangeInChangeState,
   createChangeWorkflowState,
+  findMutationReceipt,
   getTaskFromChangeState,
   getReadyTasksFromChangeState,
   listTasksFromChangeState,
@@ -125,6 +131,8 @@ interface ChangeProjectionActivities {
     archivedAt: string;
     approvalEvidence: string;
     approvedBy: string;
+    mode?: "legacy_mutate" | "verify_summary";
+    projectionProof?: import("../types").ArchiveProjectionProofReceipt;
   }): Promise<
     | { ok: true; changeId: string; projects: unknown[] }
     | { ok: false; error: string; phase: string }
@@ -218,12 +226,20 @@ const getGateCriteriaQuery = wf.defineQuery<
   ChangeWorkflowState["gateCriteria"],
   []
 >(CHANGE_WORKFLOW_QUERY_NAMES.getGateCriteria);
+const getAcceptanceCriteriaProjectionQuery = wf.defineQuery<
+  import("../types").AcceptanceCriteriaProjection,
+  []
+>(CHANGE_WORKFLOW_QUERY_NAMES.getAcceptanceCriteriaProjection);
 const getWorktreesQuery = wf.defineQuery<
   NonNullable<ChangeWorkflowState["worktrees"]>
 >(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);
 const getConformanceStateQuery = wf.defineQuery<
   ChangeWorkflowState["conformance"]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
+const getMutationReceiptQuery = wf.defineQuery<
+  import("./contracts").MutationReceipt | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
 const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [
@@ -240,6 +256,9 @@ const getCurrentBucketQuery = wf.defineQuery<ReturnType<typeof deriveBucket>>(
 const getDirectiveQuery = wf.defineQuery<
   ReturnType<typeof deriveWorkflowDirective>
 >(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective);
+const getPhasePlanQuery = wf.defineQuery<
+  ReturnType<typeof derivePhasePlanFromState>
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getPhasePlan);
 const getInvestmentReportQuery = wf.defineQuery<{
   taskCounts: {
     total: number;
@@ -356,6 +375,9 @@ const wisdomAddedSignal = wf.defineSignal<
 const specDeltaAddedSignal = wf.defineSignal<
   [import("../types").SpecDeltaAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAdded);
+const specDeltaModifiedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaModifiedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaModified);
 const reflectionRecordedSignal = wf.defineSignal<
   [import("../types").ReflectionRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
@@ -389,6 +411,14 @@ const conformanceOverriddenSignal = wf.defineSignal<
 const archiveRequestedSignal = wf.defineSignal<
   [import("../types").ArchiveRequestedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+
+// Old branch: archiveChangeActivity applied spec deltas and wrote the durable
+// summary. New branch: archive/tool reconciliation owns the sole spec mutation;
+// the activity requires a verified projection receipt and writes summary only.
+// Non-deprecation rationale: retain until all histories that may have scheduled
+// the legacy archive activity are terminal and removed from replay coverage.
+export const ARCHIVE_PROJECTION_RECONCILER_PATCH =
+  "archive-projection-reconciler-v1";
 const phase9StatusUpdatedSignal = wf.defineSignal<
   [import("../types").Phase9StatusUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);
@@ -410,6 +440,12 @@ const opsRunUpsertedSignal = wf.defineSignal<
 const opsRunEvidenceAppendedSignal = wf.defineSignal<
   [import("../types").OpsRunEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunEvidenceAppended);
+const lightweightProfileRequestedSignal = wf.defineSignal<
+  [import("../types").LightweightProfileRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileRequested);
+const lightweightProfileEvaluatedSignal = wf.defineSignal<
+  [import("../types").LightweightProfileEvaluatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.lightweightProfileEvaluated);
 const epicMembershipSetSignal = wf.defineSignal<
   [import("../types").EpicMembershipSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
@@ -629,6 +665,14 @@ export async function changeWorkflow(
     if (input.seedState.contract) {
       state.contract = input.seedState.contract;
     }
+    if (typeof input.seedState.acceptanceReadinessRevision !== "undefined") {
+      state.acceptanceReadinessRevision =
+        input.seedState.acceptanceReadinessRevision;
+    }
+    if (input.seedState.acceptanceCriteriaSnapshot) {
+      state.acceptanceCriteriaSnapshot =
+        input.seedState.acceptanceCriteriaSnapshot;
+    }
     if (input.seedState.documents) state.documents = input.seedState.documents;
     if (input.seedState.reflections) {
       state.reflections = input.seedState.reflections;
@@ -692,6 +736,9 @@ export async function changeWorkflow(
     if (input.seedState.ops_followup_links) {
       state.ops_followup_links = [...input.seedState.ops_followup_links];
     }
+    if (input.seedState.lightweight_profile) {
+      state.lightweight_profile = input.seedState.lightweight_profile;
+    }
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
     }
@@ -710,8 +757,14 @@ export async function changeWorkflow(
     gateId ? state.gates[gateId] : state.gates,
   );
   wf.setHandler(getGateCriteriaQuery, () => state.gateCriteria);
+  wf.setHandler(getAcceptanceCriteriaProjectionQuery, () =>
+    deriveAcceptanceCriteriaProjection(state),
+  );
   wf.setHandler(getWorktreesQuery, () => ({ ...(state.worktrees ?? {}) }));
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
+  wf.setHandler(getMutationReceiptQuery, (receiptId) =>
+    findMutationReceipt(state, receiptId),
+  );
   wf.setHandler(
     changeTasksQuery,
     (
@@ -725,6 +778,14 @@ export async function changeWorkflow(
   );
   wf.setHandler(getDirectiveQuery, () =>
     deriveWorkflowDirective(state, workflowEpoch),
+  );
+  // SC1/AC1/AC3: typed plan query — canonical PhasePlan derived on read from
+  // the same durable state as the directive. Read-only: no signals, no
+  // persistence, no mutation authority (DDC3). A derivation throw surfaces
+  // deterministically inside the workflow (never masked); tool-layer readers
+  // own safe degradation.
+  wf.setHandler(getPhasePlanQuery, () =>
+    derivePhasePlanFromState(state, workflowEpoch),
   );
   wf.setHandler(getInvestmentReportQuery, () =>
     deriveInvestmentReportFromState(state),
@@ -800,10 +861,23 @@ export async function changeWorkflow(
   ): Promise<boolean> => {
     if (!input.archiveProjects || input.archiveProjects.length === 0)
       return true;
+    const useProjectionReceipt = wf.patched(
+      ARCHIVE_PROJECTION_RECONCILER_PATCH,
+    );
+    if (useProjectionReceipt && !payload.projectionProof) {
+      wf.log.warn("archive-activity-proof-missing", {
+        changeId: state.changeId,
+      });
+      return false;
+    }
     const result = await archiveChangeActivity({
       state: snapshotState(),
       projects: input.archiveProjects,
       status: "archived",
+      mode: useProjectionReceipt ? "verify_summary" : "legacy_mutate",
+      ...(payload.projectionProof
+        ? { projectionProof: payload.projectionProof }
+        : {}),
       archivedAt: payload.requestedAt,
       approvalEvidence: payload.approvalEvidence,
       approvedBy: payload.requestedBy,
@@ -932,6 +1006,12 @@ export async function changeWorkflow(
   // histories replay the legacy disk-read command sequence.
   const STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH =
     "state-backed-gate-artifact-proof-v1";
+  // Patch rationale: acceptance readiness revision fence prevents acceptance
+  // gate completion from using stale criteria when the contract or review
+  // matrix changes between the readiness check and the final completion. New
+  // histories record this marker before checking the revision; old histories
+  // skip the fence entirely.
+  const ACCEPTANCE_READINESS_FENCE_PATCH = "acceptance-readiness-revision-v1";
   // Patch rationale (completeStateBackedGate, AC3): acceptance gate proof moved
   // from disk inspectArtifactActivity to workflow state.documents.executiveSummary
   // + state.artifacts.executiveSummary metadata. The Temporal-only store no
@@ -944,6 +1024,7 @@ export async function changeWorkflow(
   // Deprecation plan: keep until pre-migration acceptance histories are
   // archived/closed and replay fixtures no longer cover the disk-inspect path;
   // then replace with wf.deprecatePatch before final removal.
+  // rq-acceptancePatchReplay01: consume this marker before legacy branch return.
   const STATE_BACKED_ACCEPTANCE_PROOF_PATCH =
     "state-backed-acceptance-proof-v1";
 
@@ -978,9 +1059,36 @@ export async function changeWorkflow(
     remediation: input.remediation,
   });
 
+  const acceptanceReadinessChangedBlocker = (
+    payload: import("../types").GateCompletedSignalPayload,
+    capturedRevision: number,
+    currentRevision: number,
+  ): GateReadinessBlocker => ({
+    code: "ACCEPTANCE_READINESS_CHANGED",
+    gateId: payload.gateId,
+    message:
+      `Acceptance readiness revision changed from ${capturedRevision} to ${currentRevision} ` +
+      "while acceptance evidence was being gathered; the contract or review matrix may have changed.",
+    remediation:
+      "Retry acceptance gate completion after the contract/review matrix change has settled.",
+  });
+
   const completeGateWithReadiness = async (
     payload: import("../types").GateCompletedSignalPayload,
   ): Promise<void> => {
+    // Replay invariant: every acceptance attempt consumes this marker exactly
+    // once before readiness/artifact branches can return. Histories that
+    // already recorded the marker must see the same command sequence even
+    // when current state now satisfies an earlier branch.
+    const acceptanceReadinessFenceActive =
+      payload.gateId === "acceptance" &&
+      wf.patched(ACCEPTANCE_READINESS_FENCE_PATCH);
+    const stateBackedAcceptanceProofActive =
+      payload.gateId === "acceptance" &&
+      wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH);
+    const capturedAcceptanceReadinessRevision = acceptanceReadinessFenceActive
+      ? (state.acceptanceReadinessRevision ?? 0)
+      : undefined;
     const readiness = evaluateGateReadiness(state, payload.gateId, {
       compatibilityReason: payload.compatibilityReason,
       enforceDiscoveryContract:
@@ -1013,7 +1121,7 @@ export async function changeWorkflow(
         artifactEvidence = stateArtifactReadiness.evidence;
       } else if (
         artifactKind === "acceptance" &&
-        wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)
+        stateBackedAcceptanceProofActive
       ) {
         // State-backed acceptance (completeStateBackedGate AC1/AC2/AC7).
         // Proof comes from workflow state, NOT disk inspection. The L1
@@ -1227,6 +1335,21 @@ export async function changeWorkflow(
       });
     }
 
+    if (
+      acceptanceReadinessFenceActive &&
+      (state.acceptanceReadinessRevision ?? 0) !==
+        capturedAcceptanceReadinessRevision
+    ) {
+      markGateStuckForBlockers(payload, [
+        acceptanceReadinessChangedBlocker(
+          payload,
+          capturedAcceptanceReadinessRevision!,
+          state.acceptanceReadinessRevision ?? 0,
+        ),
+      ]);
+      return;
+    }
+
     applyGateCompletedToState(state, {
       ...payload,
       artifactEvidence,
@@ -1416,6 +1539,12 @@ export async function changeWorkflow(
     specDeltaAddedSignal,
     signalMutation("specDeltaAdded", (payload) =>
       applySpecDeltaAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    specDeltaModifiedSignal,
+    signalMutation("specDeltaModified", (payload) =>
+      applySpecDeltaModifiedToState(state, payload),
     ),
   );
   wf.setHandler(
@@ -1616,6 +1745,18 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    lightweightProfileRequestedSignal,
+    signalMutation("lightweightProfileRequested", (payload) =>
+      applyLightweightProfileRequestedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    lightweightProfileEvaluatedSignal,
+    signalMutation("lightweightProfileEvaluated", (payload) =>
+      applyLightweightProfileEvaluatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     epicMembershipSetSignal,
     signalMutation("epicMembershipSet", (payload) =>
       applyEpicMembershipSetToState(state, payload),
@@ -1745,6 +1886,8 @@ export async function changeWorkflow(
       terminated: state.terminated,
       acceptanceCriteria: state.acceptanceCriteria,
       contract: state.contract,
+      acceptanceReadinessRevision: state.acceptanceReadinessRevision,
+      acceptanceCriteriaSnapshot: state.acceptanceCriteriaSnapshot,
       documents: state.documents,
       reflections: state.reflections,
       worktrees: state.worktrees,
@@ -1770,6 +1913,7 @@ export async function changeWorkflow(
       signal_rejections_total: state.signal_rejections_total,
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
+      lightweight_profile: state.lightweight_profile,
       epic_membership: state.epic_membership,
     },
   };

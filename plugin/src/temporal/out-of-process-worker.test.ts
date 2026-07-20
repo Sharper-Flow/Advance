@@ -522,4 +522,33 @@ describe("createOutOfProcessWorker restart policy", () => {
 
     await worker.shutdown();
   });
+
+  it("restartChild rolls the shared child without touching crash counters", async () => {
+    const first = makeFakeChild();
+    const replacement = makeFakeChild();
+    spawnWithReady(first);
+    spawnWithReady(replacement);
+
+    const { createOutOfProcessWorker } =
+      await import("./out-of-process-worker");
+
+    const worker = await createOutOfProcessWorker({
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      queues: ["advance-q"],
+      workerScript: "/plugin/dist/temporal/worker.js",
+      projectId: "q",
+    });
+
+    await worker.restartChild();
+
+    expect(first.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(mocks.spawn).toHaveBeenCalledTimes(2);
+    expect(worker.isAlive()).toBe(true);
+    for (const diag of worker.getDiagnostics()) {
+      expect(diag.restartCount).toBe(0);
+    }
+
+    await worker.shutdown();
+  });
 });

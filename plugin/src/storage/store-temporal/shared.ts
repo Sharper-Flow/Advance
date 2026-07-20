@@ -1,3 +1,4 @@
+import type { Connection } from "@temporalio/client";
 import {
   normalizePersistedSubagentReportState,
   type Change,
@@ -23,6 +24,12 @@ import { createLogger } from "../../utils/debug-log";
 import type { ChangeSummaryMemo, ChangeSummary } from "../store-temporal-memo";
 import type { Store } from "../store-types";
 import type { TemporalClientBundle } from "../../temporal/client";
+import {
+  classifyMutationOutcome,
+  requireMutationEligible,
+  type TemporalMutationOutcome,
+} from "../../temporal/mutation-safety";
+import { isSchemaError } from "../json";
 
 const logger = createLogger("store-temporal-shared");
 
@@ -99,6 +106,7 @@ export function mapTemporalChangeStateToChange(
     ops_followup: safeState.ops_followup,
     ops_followup_links: safeState.ops_followup_links,
     epic_membership: safeState.epic_membership,
+    lightweight_profile: safeState.lightweight_profile,
   };
 }
 
@@ -109,6 +117,78 @@ export function getChangeHandle(
   const workflowId = buildChangeWorkflowId(input.projectId, changeId);
   const bundle = input.temporal as { client: TemporalHandleClient };
   return bundle.client.workflow.getHandle(workflowId);
+}
+
+/**
+ * SC4 wiring: fire a signal on a change workflow handle ONLY when the
+ * supplied workflow diagnostic permits mutation. When the caller has a
+ * recent failed-read diagnostic (recovery routing), this guard refuses
+ * the signal so a mutation-ineligible workflow cannot be signaled. When
+ * no diagnostic is supplied, the helper behaves like a normal signal —
+ * the SC4 contract scopes the guard to recovery routing.
+ */
+export async function signalChangeWorkflowGuarded(
+  input: TemporalStoreBackendInput,
+  changeId: string,
+  signal: unknown,
+  args: unknown[],
+  eligibility?: import("../../temporal/mutation-safety").TemporalWorkflowDiagnostic,
+): Promise<void> {
+  if (eligibility) {
+    requireMutationEligible(eligibility);
+  }
+  await runTemporal(async () =>
+    (await getGuardedChangeHandle(input, changeId)).signal(signal, ...args),
+  );
+}
+
+/**
+ * SC6 wiring: classify the outcome of a post-signal readback query so the
+ * caller can distinguish a confirmed mutation from a confirmed-ambiguous
+ * one. `outcome_unknown_readback_unavailable` is the outcome the contract
+ * requires for any readback failure; callers MUST NOT outer-retry on it.
+ *
+ * Optional `signalError` carries any error thrown BEFORE the server
+ * acknowledged the signal — when present, the outcome short-circuits to
+ * `failed_before_ack`.
+ */
+export interface StoragePostSignalReadbackResult<T> {
+  outcome: import("../../temporal/mutation-safety").TemporalMutationOutcome;
+  data?: T;
+  error?: unknown;
+}
+
+export async function queryChangeWorkflowReadback<T>(
+  readback: () => Promise<T>,
+  signalError?: unknown,
+): Promise<StoragePostSignalReadbackResult<T>> {
+  if (signalError !== undefined && signalError !== null) {
+    return {
+      outcome: classifyMutationOutcome({ signalError }),
+      error: signalError,
+    };
+  }
+  try {
+    const data = await readback();
+    return { outcome: classifyMutationOutcome({}), data };
+  } catch (error) {
+    return {
+      outcome: classifyMutationOutcome({ readbackError: error }),
+      error,
+    };
+  }
+}
+
+/**
+ * Extract the underlying Temporal Connection from the store input when one
+ * is present. Production bundles expose it; test fixtures and target-path
+ * snapshots may omit it and fall back to the Promise.race-based wrapper.
+ */
+export function getTemporalConnection(
+  input: TemporalStoreBackendInput,
+): Connection | undefined {
+  const bundle = input.temporal as { connection?: Connection };
+  return bundle.connection;
 }
 
 /**
@@ -156,6 +236,9 @@ export async function getGuardedChangeHandle(
       })`,
     );
     return getChangeHandle(input, changeId);
+  }
+  if (isSchemaError(legacyResult)) {
+    throw new Error(legacyResult.error);
   }
   if (legacyResult.success && legacyResult.data?.adv_project_id) {
     const owningProjectId = legacyResult.data.adv_project_id;
@@ -264,6 +347,17 @@ export async function runTemporalQuery<T>(
 }
 
 export {
+  createTemporalReadContext,
+  runTemporalRead,
+  abortTemporalRead,
+  isTemporalReadExpired,
+  type TemporalReadContext,
+  type TemporalReadMetadata,
+  type TemporalReadResult,
+  type RunTemporalReadOptions,
+} from "./read-context";
+
+export {
   createTemporalReadDeadline,
   remainingDeadlineMs,
   TEMPORAL_READ_DEADLINE_BUDGET_MS,
@@ -349,14 +443,43 @@ export interface TemporalReadFailureClassification {
    * "query_failed").
    */
   recoveryReason?: RecoveryReason;
+  /**
+   * rq-temporalMutationSafety01 — SC6 mutation outcome classification.
+   * `confirmed` means the readback succeeded; `outcome_unknown_readback_unavailable`
+   * means the signal ACK happened but the readback could not confirm the
+   * mutation; `failed_before_ack` means the signal call itself errored.
+   *
+   * Callers that perform a signal+readback sequence should pass
+   * `signalError` here so the result can be threaded back to the caller's
+   * outcome classification. The default value `confirmed` is the
+   * readback-only case (no preceding signal).
+   */
+  outcome?: TemporalMutationOutcome;
 }
 
 export async function classifyTemporalReadFailure(
   input: TemporalStoreBackendInput,
   changeId: string,
   error: unknown,
-  deadline?: TemporalReadDeadline,
+  deadlineOrSignalError?: TemporalReadDeadline | unknown,
+  maybeSignalError?: unknown,
 ): Promise<TemporalReadFailureClassification> {
+  // Tolerate the legacy 4-arg shape (deadline) AND the new 5-arg shape
+  // (deadline, signalError) for SC6 outcome classification.
+  let deadline: TemporalReadDeadline | undefined;
+  let signalError: unknown;
+  if (
+    deadlineOrSignalError &&
+    typeof deadlineOrSignalError === "object" &&
+    "budgetMs" in (deadlineOrSignalError as Record<string, unknown>) &&
+    "deadlineAt" in (deadlineOrSignalError as Record<string, unknown>)
+  ) {
+    deadline = deadlineOrSignalError as TemporalReadDeadline;
+    signalError = maybeSignalError;
+  } else {
+    signalError = deadlineOrSignalError;
+  }
+
   const errorClass = classifyTemporalError(error);
 
   if (
@@ -364,13 +487,27 @@ export async function classifyTemporalReadFailure(
     GENERIC_QUERY_FAILURE_RE.test(collectErrorText(error)) &&
     (await hasPoisonedWorkflowDescription(input, changeId, deadline))
   ) {
-    return { errorClass: "fallback", recoveryReason: "poisoned_history" };
+    return {
+      errorClass: "fallback",
+      recoveryReason: "poisoned_history",
+      outcome: classifyMutationOutcome({
+        ...(signalError !== undefined ? { signalError } : {}),
+        readbackError: error,
+      }),
+    };
   }
 
   // Total three-way classification of every other reachable query failure:
   // poisoned → poisoned_history, completed/not-found → missing_workflow,
   // anything else → query_failed (never mutation-authorizing).
-  return { errorClass, recoveryReason: recoveryReasonFromError(error) };
+  return {
+    errorClass,
+    recoveryReason: recoveryReasonFromError(error),
+    outcome: classifyMutationOutcome({
+      ...(signalError !== undefined ? { signalError } : {}),
+      readbackError: error,
+    }),
+  };
 }
 
 export interface StoreDeps {
@@ -408,7 +545,10 @@ export interface StoreDeps {
   resolveChangeId: (taskId: string) => Promise<string | null>;
   getTemporalChange: (
     changeId: string,
-    opts?: { deadline?: TemporalReadDeadline },
+    opts?: {
+      deadline?: TemporalReadDeadline;
+      context?: import("./read-context").TemporalReadContext;
+    },
   ) => Promise<ReturnType<Store["changes"]["get"]>>;
   listResolvedChanges: (
     filter?: {
@@ -416,7 +556,7 @@ export interface StoreDeps {
       includeClosed?: boolean;
     },
     deadline?: TemporalReadDeadline,
-    options?: { candidateLimit?: number },
+    options?: { candidateLimit?: number; hydrationConcurrency?: number },
   ) => Promise<import("../store-types").ResolvedChangeList>;
   reseedChangeFromDisk: (
     changeId: string,
