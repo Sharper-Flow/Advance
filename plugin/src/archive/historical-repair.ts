@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ChangeSchema, SpecSchema, type Change, type Spec } from "../types";
+import { z } from "zod";
+import { DeltaSchema, SpecSchema, type Spec } from "../types";
 import { loadAllSpecs, saveSpec } from "../storage/json";
 import { spawnSyncGit } from "../utils/git-binary";
 import { generateSpecDocFile } from "./docs";
@@ -33,6 +34,22 @@ export interface HistoricalArchiveRepairResult {
   docsDir: string;
 }
 
+const HistoricalArchiveChangeSchema = z
+  .object({
+    id: z.string().min(1),
+    created_at: z.string(),
+    phase9_status: z
+      .object({
+        completedAt: z.string().optional(),
+        changeTipSha: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    deltas: z.record(z.string(), z.array(DeltaSchema)),
+  })
+  .passthrough();
+type HistoricalArchiveChange = z.infer<typeof HistoricalArchiveChangeSchema>;
+
 function gitText(repo: string, args: string[]): string | null {
   const result = spawnSyncGit(args, { cwd: repo, encoding: "utf8" });
   return result.status === 0 ? String(result.stdout).trim() : null;
@@ -40,7 +57,7 @@ function gitText(repo: string, args: string[]): string | null {
 
 function loadBaselineSpec(
   repo: string,
-  change: Change,
+  change: HistoricalArchiveChange,
   capability: string,
 ): Spec | undefined {
   const refs = [
@@ -73,13 +90,15 @@ async function loadArchiveChanges(archiveDir: string): Promise<
     path: string;
     archivedAt: string;
     changeId: string;
-    change?: Change;
+    change?: HistoricalArchiveChange;
     error?: string;
   }>
 > {
   let entries: string[];
   try {
-    entries = await readdir(archiveDir);
+    entries = (await readdir(archiveDir, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
   } catch {
     return [];
   }
@@ -87,13 +106,13 @@ async function loadArchiveChanges(archiveDir: string): Promise<
     path: string;
     archivedAt: string;
     changeId: string;
-    change?: Change;
+    change?: HistoricalArchiveChange;
     error?: string;
   }> = [];
   for (const entry of entries) {
     const path = join(archiveDir, entry);
     try {
-      const change = ChangeSchema.parse(
+      const change = HistoricalArchiveChangeSchema.parse(
         JSON.parse(await readFile(join(path, "change.json"), "utf8")),
       );
       loaded.push({
@@ -185,7 +204,10 @@ export async function reconcileHistoricalArchiveDeltas(input: {
       });
       details.push(
         `${capability}: ${plan.dispositions
-          .map((row) => `${row.deltaId}=${row.status}`)
+          .map(
+            (row) =>
+              `${row.deltaId}${row.targetId ? `[${row.targetId}]` : ""}=${row.status}${row.reason ? ` (${row.reason})` : ""}`,
+          )
           .join(", ")}`,
       );
       if (plan.status === "blocked" || !plan.targetSpec) {

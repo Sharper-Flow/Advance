@@ -51,7 +51,7 @@ async function writeBundle(
       title: changeId,
       status: "archived",
       created_at: "2026-01-01T00:00:00.000Z",
-      tasks: [],
+      tasks: [{ metadata: { contract_refs: { legacy: true } } }],
       deltas: {
         example: [
           {
@@ -88,6 +88,7 @@ describe("historical archive delta reconciliation", () => {
       "conflict-change",
       "Conflicting body",
     );
+    await writeFile(join(archiveDir, "summary.md"), "Not an archive bundle");
 
     const dryRun = await reconcileHistoricalArchiveDeltas({
       archiveDir,

@@ -2,46 +2,19 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import {
   DeltaSchema,
-  PrioritySchema,
+  RequirementSchema,
   SHA256DigestSchema,
+  SpecSchema,
   type Delta,
   type Requirement,
   type Spec,
 } from "../types";
 
-const ProjectionScenarioSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    given: z.array(z.string()),
-    when: z.string(),
-    then: z.array(z.string()),
-  })
-  .strict();
-
-const ProjectionRequirementSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    body: z.string(),
-    priority: PrioritySchema,
-    tags: z.array(z.string()).optional(),
-    scenarios: z.array(ProjectionScenarioSchema).optional(),
-    meta: z.object({ merged_from: z.string() }).strict().optional(),
-  })
-  .strict();
-
-const ProjectionSpecSchema = z
-  .object({
-    $schema: z.string().optional(),
-    name: z.string(),
-    title: z.string(),
-    purpose: z.string(),
-    version: z.string(),
-    updated_at: z.string(),
-    requirements: z.array(ProjectionRequirementSchema),
-  })
-  .strict();
+// Global specs intentionally support typed extension fields through the
+// authoritative passthrough schemas. Projection must preserve and hash those
+// fields rather than narrowing a valid spec to the core shape.
+const ProjectionRequirementSchema = RequirementSchema;
+const ProjectionSpecSchema = SpecSchema;
 
 export const DeltaProjectionDispositionSchema = z
   .object({

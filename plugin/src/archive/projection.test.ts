@@ -56,6 +56,37 @@ describe("archive projection planning", () => {
     expect(result.targetSpec?.version).toBe("1.2.3");
   });
 
+  it("preserves valid spec and requirement extension fields", () => {
+    const input: Spec = {
+      ...spec([
+        requirement({
+          extension_policy: { mode: "preserve" },
+        }),
+      ]),
+      delegation_matrix: [{ step: "apply", lane: "engineer" }],
+    };
+    const result = planSpecProjection({
+      spec: input,
+      deltas: [
+        {
+          id: "dl-add-extension",
+          operation: "add",
+          requirement: requirement({ id: "rq-example02" }),
+        },
+      ],
+      authority: { kind: "current" },
+      projectedAt: "2026-02-01T00:00:00.000Z",
+    });
+
+    expect(result.status).toBe("safe");
+    expect(result.targetSpec?.delegation_matrix).toEqual([
+      { step: "apply", lane: "engineer" },
+    ]);
+    expect(result.targetSpec?.requirements[0].extension_policy).toEqual({
+      mode: "preserve",
+    });
+  });
+
   it("fails closed when a same-id add has different content", () => {
     const result = planSpecProjection({
       spec: spec([requirement({ body: "Current law" })]),
