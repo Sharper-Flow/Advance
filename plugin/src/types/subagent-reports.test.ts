@@ -23,6 +23,7 @@ import {
   TronSubagentReportSchema,
   VerificationTriageBundleSubagentReportSchema,
 } from "./subagent-reports";
+import { ChangeSchema } from "./changes";
 
 const engineerReport = {
   schema_version: "1.0",
@@ -184,6 +185,15 @@ const legacyResearcherReport = (() => {
   const { architecture_judgement: _judgement, ...legacy } = researcherReport;
   return legacy;
 })();
+
+const minimalValidChange = {
+  id: "test-change",
+  title: "Test",
+  status: "draft",
+  created_at: "2026-01-01T00:00:00.000Z",
+  tasks: [],
+  deltas: {},
+};
 
 const tronReport = {
   schema_version: "1.0",
@@ -425,9 +435,16 @@ describe("Subagent report schemas", () => {
       },
       architecture_judgement: applicableJudgement,
     };
-    expect(() =>
-      ResearcherSubagentReportSchema.parse(designValidationReport),
-    ).toThrow(/typed contract IDs/);
+    // Legacy tolerance: bare-string blockers on researcher:design-validation
+    // reports are preserved verbatim on read. Enforcement lives at
+    // adv_subagent_report_submit (rq-subagentReports24.1) — see
+    // makeLegacyDesignValidation.
+    const parsedLegacy = ResearcherSubagentReportSchema.parse(
+      designValidationReport,
+    );
+    expect(parsedLegacy.validation.blockers).toEqual([
+      "Change OpenCode core instead.",
+    ]);
     expect(
       ResearcherSubagentReportSchema.parse({
         ...designValidationReport,
@@ -470,6 +487,54 @@ describe("Subagent report schemas", () => {
         },
       }),
     ).toThrow();
+  });
+
+  it("preserves multiple legacy string design-validation blockers through ChangeSchema.parse (AC1)", () => {
+    const applicableJudgement = {
+      applicability: "applicable" as const,
+      confidence: "medium" as const,
+      risk: "medium" as const,
+      tradeoffs: ["Adds schema/test maintenance."],
+      alternatives_considered: [
+        {
+          option: "Prompt-only guidance",
+          disposition: "rejected" as const,
+          rationale: "Prompt-only guidance is not durable.",
+        },
+      ],
+      recommendation: "Add typed researcher judgement.",
+    };
+
+    const legacyReport = {
+      ...researcherReport,
+      scope: {
+        kind: "change" as const,
+        scope_key: "researcher:design-validation",
+      },
+      validation: {
+        status: "fail" as const,
+        blockers: [
+          "First legacy string blocker.",
+          "Second legacy string blocker.",
+          "Third legacy string blocker.",
+        ],
+        notes: "Historical failed-attempt report.",
+      },
+      architecture_judgement: applicableJudgement,
+    };
+
+    const changeWithLegacyReports = {
+      ...minimalValidChange,
+      subagent_reports: [legacyReport],
+    };
+
+    const parsed = ChangeSchema.parse(changeWithLegacyReports);
+    expect(parsed.subagent_reports).toHaveLength(1);
+    expect(parsed.subagent_reports[0].validation.blockers).toEqual([
+      "First legacy string blocker.",
+      "Second legacy string blocker.",
+      "Third legacy string blocker.",
+    ]);
   });
 
   it("requires run IDs for typed-v1 engineer verification while reading legacy rows", () => {

@@ -577,18 +577,12 @@ export const ResearcherSubagentReportSchema =
         });
       }
 
-      if (report.scope.scope_key.startsWith("researcher:design-validation")) {
-        report.validation.blockers.forEach((blocker, index) => {
-          if (typeof blocker === "string") {
-            ctx.addIssue({
-              code: "custom",
-              path: ["validation", "blockers", index],
-              message:
-                "new design-validation blockers require typed contract IDs, in-scope remediation, and source evidence",
-            });
-          }
-        });
-      }
+      // NOTE: design-validation bare-string-blocker enforcement lives at the
+      // adv_subagent_report_submit write boundary (subagent-report.ts executeSubmit).
+      // rq-subagentReports24.1 names the submit tool as the canonical enforcement
+      // point. Do NOT re-add schema-time rejection here — it would re-wedge
+      // historical changes whose legacy reports carry string blockers (see
+      // makeLegacyDesignValidation).
 
       if (
         judgement.applicability === "not_applicable" &&
