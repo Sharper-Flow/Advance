@@ -2799,6 +2799,146 @@ export interface GitFinalizeContext {
   artifactPaths?: string[];
 }
 
+/**
+ * Internal per-invocation accumulator for finalizeRelease (rq-optimizePhase9GitCalls).
+ *
+ * Caches idempotent git queries within a single finalizeRelease invocation so
+ * that repeated calls (e.g. classifyFinalizationRoute at lines ~2862, ~3029,
+ * ~3067) only hit git once. State mutations (commit / merge / push / reset)
+ * call `invalidate(state, kind)` to drop entries they could stale.
+ *
+ * Backward-compat: subfunctions accept `state?: FinalizeInvocationState` as a
+ * trailing optional parameter. When undefined, no caching occurs (current
+ * behavior). External callers (none in production; existing tests) are
+ * unaffected.
+ *
+ * NOT exported. Lives only inside this module.
+ */
+interface FinalizeInvocationState {
+  // Static (set at construction)
+  readonly mainCheckout: string;
+  readonly defaultBranch: string;
+  readonly deps: GitFinalizeDeps;
+
+  // Cached idempotent queries (lazy)
+  remoteUrl?: string;
+  route?: FinalizationRoute;
+  originHeadSha?: string;
+  localHeadSha?: string;
+  committerIdent?: { ok: boolean; message?: string };
+  mainInProgress?: { inProgress: boolean; state?: string };
+
+  // Fetch dedup flag: true once `fetch origin <default>` succeeds in this invocation
+  originDefaultFetched: boolean;
+}
+
+type MutationKind =
+  | "commit-archive-artifacts"
+  | "commit-dirty-main-checkpoint"
+  | "merge-change-branch"
+  | "push-to-origin"
+  | "push-change-branch"
+  | "reset-main-to-origin-default"
+  | "execute-pull-request-handoff";
+
+function createState(
+  mainCheckout: string,
+  defaultBranch: string,
+  deps: GitFinalizeDeps,
+): FinalizeInvocationState {
+  return {
+    mainCheckout,
+    defaultBranch,
+    deps,
+    originDefaultFetched: false,
+  };
+}
+
+/**
+ * Drop cache entries that the given mutation kind could stale. Per the
+ * invalidation matrix in design.md:
+ *
+ *   mutation                         | entries invalidated
+ *   ---------------------------------+----------------------------------------
+ *   commit-archive-artifacts         | (none — workdir commit, not main)
+ *   commit-dirty-main-checkpoint     | localHeadSha, mainInProgress
+ *   merge-change-branch              | originHeadSha, localHeadSha, mainInProgress
+ *   push-to-origin                   | originHeadSha
+ *   push-change-branch               | (none — main unaffected)
+ *   reset-main-to-origin-default     | originHeadSha, localHeadSha, mainInProgress, fetched flag
+ *   execute-pull-request-handoff     | originHeadSha, localHeadSha, fetched flag
+ *
+ * MUST be called on BOTH success and throw paths (rq-optimizePhase9GitCalls AC4).
+ */
+function invalidate(
+  state: FinalizeInvocationState | undefined,
+  kind: MutationKind,
+): void {
+  if (!state) return;
+  switch (kind) {
+    case "commit-archive-artifacts":
+    case "push-change-branch":
+      return;
+    case "commit-dirty-main-checkpoint":
+      delete state.localHeadSha;
+      delete state.mainInProgress;
+      return;
+    case "merge-change-branch":
+      delete state.originHeadSha;
+      delete state.localHeadSha;
+      delete state.mainInProgress;
+      return;
+    case "push-to-origin":
+      delete state.originHeadSha;
+      return;
+    case "reset-main-to-origin-default":
+      delete state.originHeadSha;
+      delete state.localHeadSha;
+      delete state.mainInProgress;
+      state.originDefaultFetched = false;
+      return;
+    case "execute-pull-request-handoff":
+      delete state.originHeadSha;
+      delete state.localHeadSha;
+      state.originDefaultFetched = false;
+      return;
+  }
+}
+
+/** Cached accessor for the finalization route. Stable across mutations
+ *  (route depends on remote URL + branch protection rules, neither of which
+ *  changes during one invocation). */
+function getRoute(state: FinalizeInvocationState): FinalizationRoute {
+  if (state.route) return state.route;
+  state.route = classifyFinalizationRoute(
+    state.mainCheckout,
+    state.defaultBranch,
+    state.deps,
+  );
+  return state.route;
+}
+
+/** Runs `fetch origin <default>` at most once per invocation. Subsequent calls
+ *  no-op (returns synthetic success). Failed fetches do NOT set the flag,
+ *  allowing callers to retry. */
+function ensureOriginDefaultFetched(
+  state: FinalizeInvocationState,
+): RunGitResult {
+  if (state.originDefaultFetched) {
+    return { status: 0, stdout: "", stderr: "" };
+  }
+  const runGit = state.deps.runGit ?? defaultRunGit;
+  const result = runGit(state.mainCheckout, [
+    "fetch",
+    "origin",
+    state.defaultBranch,
+  ]);
+  if (result.status === 0) {
+    state.originDefaultFetched = true;
+  }
+  return result;
+}
+
 export async function finalizeRelease(
   ctx: GitFinalizeContext,
   deps: GitFinalizeDeps = {},
@@ -2837,6 +2977,10 @@ export async function finalizeRelease(
   }
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps);
 
+  // Per-invocation accumulator: caches idempotent git queries and tracks
+  // fetch dedup. Mutations call invalidate(state, kind) to drop stale entries.
+  const state = createState(mainCheckout, defaultBranch, deps);
+
   // Commit in-repo archive artifacts before merge
   const commitResult = commitArchiveArtifacts(
     ctx.workdir,
@@ -2844,6 +2988,7 @@ export async function finalizeRelease(
     deps,
     ctx.artifactPaths,
   );
+  invalidate(state, "commit-archive-artifacts");
   if (commitResult.error) {
     return {
       status: "blocked",
@@ -2858,9 +3003,7 @@ export async function finalizeRelease(
   }
 
   if (ctx.archiveMode === "pr") {
-    const route = coercePrWorkflowRoute(
-      classifyFinalizationRoute(mainCheckout, defaultBranch, deps),
-    );
+    const route = coercePrWorkflowRoute(getRoute(state));
     if (route.route === "no_remote" || route.route === "blocked") {
       return {
         status: "blocked",
@@ -2964,6 +3107,7 @@ export async function finalizeRelease(
     ctx.changeId,
     deps,
   );
+  invalidate(state, "commit-dirty-main-checkpoint");
   if (checkpoint.error) {
     return {
       status: "blocked",
@@ -3008,6 +3152,7 @@ export async function finalizeRelease(
   let mergeCommitSha: string | undefined;
   if (!beforeMergeReachability.reachable) {
     const merge = mergeToTrunk(mainCheckout, defaultBranch, ctx.changeId, deps);
+    invalidate(state, "merge-change-branch");
     if (merge.status === "blocked") {
       return {
         status: "blocked",
@@ -3026,11 +3171,7 @@ export async function finalizeRelease(
     mergeCommitSha = runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps);
   }
 
-  const routeAfterMerge = classifyFinalizationRoute(
-    mainCheckout,
-    defaultBranch,
-    deps,
-  );
+  const routeAfterMerge = getRoute(state);
   if (routeAfterMerge.route === "no_remote") {
     return {
       status: "shipped",
@@ -3050,6 +3191,7 @@ export async function finalizeRelease(
     skipPush: ctx.skipPush,
     runGit: deps.runGit,
   });
+  invalidate(state, "push-to-origin");
 
   if (push.status === "pushed") {
     return {
@@ -3064,7 +3206,7 @@ export async function finalizeRelease(
   }
 
   if (push.status === "failed") {
-    const route = classifyFinalizationRoute(mainCheckout, defaultBranch, deps);
+    const route = getRoute(state);
     if (route.route === "merge_queue") {
       if (mainCheckpointCommitSha) {
         return {
