@@ -177,11 +177,7 @@ describe("createSpecDeltaOps", () => {
     const ops = createSpecDeltaOps(deps as never);
 
     await expect(
-      ops.modify(
-        "spec-delta-store-test",
-        "collection-dashboard",
-        MODIFY_DELTA,
-      ),
+      ops.modify("spec-delta-store-test", "collection-dashboard", MODIFY_DELTA),
     ).rejects.toThrow(/payload|mismatch|exact/i);
     expect(deps.setCachedChange).not.toHaveBeenCalled();
     expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
