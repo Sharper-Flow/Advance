@@ -1492,8 +1492,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // If the pre-bundle Temporal read is still used, the first handler call to
     // store.changes.get will reject and fail the archive. The later proposal load
     // is allowed to reject because it falls back to a scaffold.
-    const getSpy = vi
-      .mocked(store.changes.get)
+    vi.mocked(store.changes.get)
       .mockRejectedValueOnce(
         Object.assign(new Error("Failed to query Workflow"), {
           name: "WorkflowNotFoundError",
