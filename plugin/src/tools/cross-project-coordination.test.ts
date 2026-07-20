@@ -217,6 +217,11 @@ describe("cross-project coordination metadata", () => {
   });
 
   test("product-linked create defaults scope_repos to current repo", async () => {
+    sourceStore.close();
+    sourceStore = await createLegacyStore(sourceDir, {
+      externalRoot: join(sourceDir, ".adv-product-test-state"),
+    });
+    await sourceStore.init();
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
@@ -255,6 +260,11 @@ describe("cross-project coordination metadata", () => {
   });
 
   test("product-linked create validates explicit scope_repos", async () => {
+    sourceStore.close();
+    sourceStore = await createLegacyStore(sourceDir, {
+      externalRoot: join(sourceDir, ".adv-product-test-state"),
+    });
+    await sourceStore.init();
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
