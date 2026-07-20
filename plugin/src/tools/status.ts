@@ -27,7 +27,7 @@ import { getMetrics, withRecordedPhase } from "../utils/metrics";
 import { scanOpenCodeSessionDebt } from "../utils/opencode-session-debt";
 import { getToolSchemaManifest } from "../utils/tool-schema-telemetry";
 import { getCacheTokenTelemetry } from "../utils/cache-token-telemetry";
-import { getLaneProjections } from "../utils/tool-lane-projection";
+import type { ToolSchemaProjection } from "../utils/tool-schema-projection";
 import { z } from "zod";
 import { withOptionalTargetPathStore } from "./target-project";
 import { resolveMainCheckout } from "./archive-helpers/git-finalize";
@@ -459,6 +459,9 @@ export const statusTools = {
             | Awaited<ReturnType<typeof getPluginRuntimeInfo>>
             | undefined;
           let healthExecution: Record<string, unknown> | undefined;
+          let toolLaneProjections:
+            | Record<string, ToolSchemaProjection>
+            | undefined;
 
           if (view !== "health") {
             if (plan.temporalHealth) {
@@ -799,6 +802,7 @@ export const statusTools = {
               status,
               healthResult._health_execution,
             );
+            toolLaneProjections = healthResult.tool_lane_projections;
 
             if (queueServiceability && temporalHealth) {
               pushQueueServiceabilityRecommendations({
@@ -970,15 +974,14 @@ export const statusTools = {
               )
             : undefined;
 
-          // T4: tool-context telemetry is only required for the health view;
-          // skip the expensive opencode lane-permission probes for other views.
+          // T4: tool-context telemetry is only required for the health view.
+          // Lane-permission probes ran under the request-owned bounded health
+          // execution plan; static telemetry here only reads retained state.
           const toolContextTelemetry =
             view === "health"
               ? {
                   manifest: getToolSchemaManifest(),
-                  lane_projections: await getLaneProjections(
-                    getToolSchemaManifest(),
-                  ),
+                  lane_projections: toolLaneProjections ?? {},
                   cache_tokens: getCacheTokenTelemetry(),
                   limitations: [
                     "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",

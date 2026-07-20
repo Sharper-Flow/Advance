@@ -47,6 +47,7 @@ import {
   recordStepFinishTokens,
   resetCacheTokenTelemetry,
 } from "./utils/cache-token-telemetry";
+import { resetLaneProjectionsCache } from "./utils/tool-lane-projection";
 
 import {
   createToolMap,
@@ -460,6 +461,7 @@ const advancePluginImpl: Plugin = async (input) => {
   // metrics in-memory only; no persistence across plugin restarts.
   resetMetrics();
   resetCacheTokenTelemetry();
+  resetLaneProjectionsCache();
   // AC1 — schema conversion is amortized at init; request hooks only read the
   // retained manifest through the status health surface.
   // Map PublicToolEntry (object form, consolidateAdvToolSurface2) to the

@@ -43,6 +43,9 @@ import { loadProjectConfigWithDiagnostics } from "../storage/json";
 import { withStabilityFeatureDefaults } from "../types";
 import { listPeerSessions } from "./session/index";
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
+import { getToolSchemaManifest } from "../utils/tool-schema-telemetry";
+import { getLaneProjections } from "../utils/tool-lane-projection";
+import type { ToolSchemaProjection } from "../utils/tool-schema-projection";
 import {
   getPendingDeletes,
   initStateDb as initWorktreeStateDb,
@@ -102,6 +105,8 @@ export interface HealthStatusOutput {
   terminal_cleanup_retained: PendingDeleteSummary;
   migration_status: unknown;
   requirement_count: number;
+  /** Bounded, best-effort shell probe captured inside the health execution plan. */
+  tool_lane_projections: Record<string, ToolSchemaProjection> | undefined;
   configResult: Awaited<ReturnType<typeof loadProjectConfigWithDiagnostics>>;
   _health_execution: Record<string, unknown>;
   _freshness: Record<string, ProbeCacheFreshness>;
@@ -636,6 +641,24 @@ export async function runHealthStatus(
         }
       },
     },
+    // Advisory and potentially process-bound: schedule after the established
+    // health diagnostics so it cannot displace their static priority order.
+    {
+      source: "tool_lane_projections",
+      dependencies: [],
+      cap: 5_000,
+      cancellability: "bounded_non_cancellable",
+      async run(ctx): Promise<HealthProviderOutcome> {
+        const providerStart = ctx.clock.now();
+        const projections = await getLaneProjections(getToolSchemaManifest());
+        captureValue("tool_lane_projections", { value: projections });
+        return {
+          kind: "ok",
+          value: projections,
+          elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
+        };
+      },
+    },
   ];
 
   const result: HealthExecutionResult = await executeHealthPlan({
@@ -726,6 +749,9 @@ export async function runHealthStatus(
     },
     migration_status: getCaptured<unknown>("migration_status") ?? null,
     requirement_count: getCaptured<number>("spec_requirement_count") ?? 0,
+    tool_lane_projections: getCaptured<Record<string, ToolSchemaProjection>>(
+      "tool_lane_projections",
+    ),
     configResult: projectConfig?.configResult ?? {
       success: false,
       type: "not_found",

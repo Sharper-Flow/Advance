@@ -457,6 +457,7 @@ describe("health view bounded pressure contract", () => {
       "migration_status",
       "spec_requirement_count",
       "temporal_queue_serviceability",
+      "tool_lane_projections",
     ];
     expect(sources).toEqual(expectedOrder);
   });
