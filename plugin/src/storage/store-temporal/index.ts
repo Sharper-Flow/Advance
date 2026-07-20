@@ -482,9 +482,12 @@ export function createTemporalStoreBackend(
     if (!legacy.paths.archive) return null;
 
     const exact = await loadChange(legacy.paths.archive, changeId);
-    if (isSchemaError(exact)) {
-      throw new Error(exact.error);
-    }
+    // Note: schema_error in archive bundles is intentionally NOT propagated
+    // here. Archive bundles are write-targets for recovery (split-brain
+    // scenario: corrupt/empty bundle overwritten by in-memory state).
+    // Throwing on schema-invalid bundles would break reconcileArchivedBundleRetry.
+    // The active change.json path (loadDiskTerminalProjection) still surfaces
+    // schema errors verbatim — that's the read path users/agents need to see.
     if (exact.success && exact.data?.id === changeId) {
       return withProjectionRecovery(exact.data, "archive", reason);
     }
@@ -510,9 +513,8 @@ export function createTemporalStoreBackend(
       if (deadline && remainingDeadlineMs(deadline) <= 0) return null;
       if (archiveDir === changeId) continue;
       const loaded = await loadChange(legacy.paths.archive, archiveDir);
-      if (isSchemaError(loaded)) {
-        throw new Error(loaded.error);
-      }
+      // Archive-bundle schema errors are recoverable (see comment above);
+      // do not throw here either.
       if (loaded.success && loaded.data?.id === changeId) {
         return withProjectionRecovery(loaded.data, "archive", reason);
       }

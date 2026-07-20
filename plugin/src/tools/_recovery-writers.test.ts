@@ -383,10 +383,13 @@ describe("saveRecoveredDesignConcernDisposition", () => {
     // persistence layer must round-trip through ChangeSchema. Before the fix,
     // the strict disposition schema rejected the recovery_audit field and the
     // next ChangeSchema.parse would throw on the disk projection.
-    const persistedToDisk = (mockedSaveChange as unknown as ReturnType<typeof vi.fn>)
-      .mock.calls[0][1] as Change;
+    const persistedToDisk = (
+      mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][1] as Change;
     expect(() => ChangeSchema.parse(persistedToDisk)).not.toThrow();
-    expect(persistedToDisk.design_concern_dispositions?.[0]?.recovery_audit).toMatchObject({
+    expect(
+      persistedToDisk.design_concern_dispositions?.[0]?.recovery_audit,
+    ).toMatchObject({
       reason: "completed_workflow_design_concern_recovery",
       evidence: "WorkflowNotFoundError: workflow execution already completed",
       recovered_at: expect.any(String),
@@ -474,8 +477,9 @@ describe("saveRecoveredVerificationEvidenceDisposition", () => {
     // the strict verification-evidence disposition schema rejected the
     // recovery_audit field and the next ChangeSchema.parse would throw on the
     // disk projection.
-    const persistedToDisk = (mockedSaveChange as unknown as ReturnType<typeof vi.fn>)
-      .mock.calls[0][1] as Change;
+    const persistedToDisk = (
+      mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][1] as Change;
     expect(() => ChangeSchema.parse(persistedToDisk)).not.toThrow();
     expect(
       persistedToDisk.verification_evidence_dispositions?.[0]?.recovery_audit,
@@ -529,11 +533,11 @@ describe("saveRecoveredVerificationEvidenceDisposition", () => {
 
     // Override the mocked saveChange to actually persist to disk for this
     // test so the serial-reload data path is exercised end-to-end.
-    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      async (_dir: string, change: Change) => {
-        await writeFile(changePath, JSON.stringify(change, null, 2));
-      },
-    );
+    (
+      mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+    ).mockImplementation(async (_dir: string, change: Change) => {
+      await writeFile(changePath, JSON.stringify(change, null, 2));
+    });
 
     const authorization = {
       reason: "completed_workflow_verification_evidence_recovery",
@@ -557,7 +561,9 @@ describe("saveRecoveredVerificationEvidenceDisposition", () => {
 
       // Reload the change from disk for the second call — this is the
       // correct serial-recovery pattern that avoids the in-memory clobber.
-      const reloaded = JSON.parse(await readFile(changePath, "utf-8")) as Change;
+      const reloaded = JSON.parse(
+        await readFile(changePath, "utf-8"),
+      ) as Change;
 
       // Second disposition on a DIFFERENT taskId.
       await saveRecoveredVerificationEvidenceDisposition({
@@ -592,16 +598,17 @@ describe("saveRecoveredVerificationEvidenceDisposition", () => {
         expect(d.recovery_audit).toBeDefined();
         expect(d.recovery_audit).toMatchObject({
           reason: "completed_workflow_verification_evidence_recovery",
-          evidence: "WorkflowNotFoundError: workflow execution already completed",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
           recovered_at: expect.any(String),
         });
       }
     } finally {
       // Restore the default no-op mock so subsequent tests are unaffected.
       (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockReset();
-      (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        async () => undefined,
-      );
+      (
+        mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => undefined);
       await rm(root, { recursive: true, force: true });
     }
   });

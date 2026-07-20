@@ -987,15 +987,14 @@ export async function hasArchiveBundle(
     if (loaded.success && loaded.data?.id === changeId) {
       return true;
     }
-    if (!loaded.success && loaded.type === "schema_error") {
-      // Schema-invalid bundle exists on disk; do not silently skip. Return
-      // true so callers route through loadArchiveBundleDominantProjection
-      // which propagates the schema error verbatim (issue #258 Defect 1).
-      logger.warn(
-        `Schema-invalid archive bundle for ${changeId}: ${loaded.error}`,
-      );
-      return true;
-    }
+    // Schema-invalid archive bundles are intentionally NOT reported here.
+    // Archive bundles are write-targets for split-brain recovery; reporting
+    // them as existing would cause loadArchiveBundleDominantProjection to
+    // be entered, but the bundle content is unreadable. Letting the scan
+    // continue (and returning false if no valid bundle matches) allows the
+    // caller to fall through to the live workflow path, which is what
+    // recovery needs. Schema errors in the ACTIVE change.json are still
+    // surfaced verbatim via loadDiskTerminalProjection (issue #258 Defect 1).
   }
 
   return false;

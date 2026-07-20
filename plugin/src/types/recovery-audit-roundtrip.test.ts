@@ -80,12 +80,15 @@ const engineerReport = {
   files_touched: ["plugin/src/types/subagent-reports.ts"],
   verification: [
     {
-      command: "bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts",
+      command:
+        "bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts",
       exit_code: 0,
       summary: "round-trip tests pass",
     },
   ],
-  decisions: [{ what: "Extend strict schemas via .extend()", why: "P33 boundary" }],
+  decisions: [
+    { what: "Extend strict schemas via .extend()", why: "P33 boundary" },
+  ],
   blockers: [],
   scope_drift: null,
   follow_ups: [],
@@ -112,7 +115,9 @@ const taskReviewerReport = {
   changes_made: [],
   wisdom_candidates: [],
   verification: {
-    tests_run: ["bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts"],
+    tests_run: [
+      "bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts",
+    ],
     results: "pass" as const,
     evidence: "exit code 0",
   },
@@ -135,7 +140,9 @@ const changeScopedReviewerReport = {
   changes_made: [],
   wisdom_candidates: [],
   verification: {
-    tests_run: ["bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts"],
+    tests_run: [
+      "bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts",
+    ],
     results: "pass" as const,
     evidence: "exit code 0",
   },
@@ -161,9 +168,7 @@ const designerReport = {
       summary: "component tests pass",
     },
   ],
-  decisions: [
-    { what: "Use semantic <button>", why: "Accessibility baseline" },
-  ],
+  decisions: [{ what: "Use semantic <button>", why: "Accessibility baseline" }],
   blockers: [],
   scope_drift: null,
   follow_ups: [],
@@ -218,7 +223,8 @@ const researcherReport = {
         rationale: "Read-side strip hides a write-side defect class.",
       },
     ],
-    recommendation: "Persist the field; opt-in shape via SubagentReportRecoveryAuditSchema.",
+    recommendation:
+      "Persist the field; opt-in shape via SubagentReportRecoveryAuditSchema.",
   },
   recommendation: "Extend the strict schemas.",
   follow_ups: [],
@@ -286,7 +292,8 @@ const verificationTriageReport = {
   targets: [
     {
       kind: "command" as const,
-      command: "bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts",
+      command:
+        "bin/oc-test targeted -- src/types/recovery-audit-roundtrip.test.ts",
       exit_code: 0,
       duration_ms: 1234,
     },
@@ -352,7 +359,9 @@ describe("recovery_audit round-trips through ChangeSchema.parse", () => {
           acceptance: { status: "done", recovery_audit: gateRecoveryAudit },
         },
       });
-      expect(change.gates?.acceptance?.recovery_audit).toEqual(gateRecoveryAudit);
+      expect(change.gates?.acceptance?.recovery_audit).toEqual(
+        gateRecoveryAudit,
+      );
     });
   });
 
@@ -364,9 +373,9 @@ describe("recovery_audit round-trips through ChangeSchema.parse", () => {
           { ...designDisposition, recovery_audit: gateRecoveryAudit },
         ],
       });
-      expect(
-        change.design_concern_dispositions?.[0].recovery_audit,
-      ).toEqual(gateRecoveryAudit);
+      expect(change.design_concern_dispositions?.[0].recovery_audit).toEqual(
+        gateRecoveryAudit,
+      );
     });
 
     it("rejects unknown field on disposition (strictness preserved)", () => {
@@ -437,9 +446,7 @@ describe("recovery_audit round-trips through ChangeSchema.parse", () => {
       expect(() =>
         ChangeSchema.parse({
           ...baseChange,
-          subagent_reports: [
-            { ...engineerReport, recovery_audit: missingVia },
-          ],
+          subagent_reports: [{ ...engineerReport, recovery_audit: missingVia }],
         }),
       ).toThrow();
     });
@@ -466,9 +473,9 @@ describe("recovery_audit round-trips through ChangeSchema.parse", () => {
           },
         ],
       });
-      expect(
-        change.tasks[0].subagent_reports?.[0].recovery_audit,
-      ).toEqual(subagentRecoveryAudit);
+      expect(change.tasks[0].subagent_reports?.[0].recovery_audit).toEqual(
+        subagentRecoveryAudit,
+      );
     });
   });
 

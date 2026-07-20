@@ -356,10 +356,7 @@ describe("task tools — signal/query adapters", () => {
       });
 
       await expect(
-        taskTools.adv_task_show.execute(
-          { taskId: "tk-schema-broken" },
-          store,
-        ),
+        taskTools.adv_task_show.execute({ taskId: "tk-schema-broken" }, store),
       ).rejects.toThrow(/Schema validation failed/);
     });
   });
