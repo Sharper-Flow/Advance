@@ -217,6 +217,25 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
       store,
     );
 
+    // Every synchronous git phase receives an injected, bounded runner. This
+    // includes setup and the worktree safety filter, not only merge detection.
+    expect(mocks.resolveMainCheckout).toHaveBeenCalledWith(
+      "/tmp/main",
+      expect.objectContaining({ runGit: expect.any(Function) }),
+    );
+    expect(mocks.detectDefaultBranch).toHaveBeenCalledWith(
+      "/tmp/main",
+      expect.objectContaining({ runGit: expect.any(Function) }),
+    );
+    expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ runGit: expect.any(Function) }),
+    );
+    expect(mocks.getCheckedOutChangeBranches).toHaveBeenCalledWith(
+      "/tmp/main",
+      expect.objectContaining({ runGit: expect.any(Function) }),
+    );
+
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.mode).toBe("archived_branches");

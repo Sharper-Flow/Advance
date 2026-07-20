@@ -297,9 +297,18 @@ export async function cleanupArchivedMergedBranches(
   const budget = (effectiveTimeoutMs ?? SAFE_BUDGET_MS) - RETURN_RESERVE_MS;
   const deadlineAt = Date.now() + Math.max(MIN_PER_ITEM_MS, budget);
   const remaining = () => Math.max(0, deadlineAt - Date.now());
+  // Setup and safety-filter git calls are synchronous spawnSync calls too.
+  // Give each its own bounded runner; otherwise one stuck call could block the
+  // event loop past both this helper's deadline and the handler's timer.
+  const boundedRunGit = () =>
+    makeBoundedRunGit(Math.max(1, Math.min(MIN_PER_CALL_GIT_MS, remaining())));
 
-  const mainCheckout = resolveMainCheckout(store.paths.root);
-  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+  const mainCheckout = resolveMainCheckout(store.paths.root, {
+    runGit: boundedRunGit(),
+  });
+  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, {
+    runGit: boundedRunGit(),
+  });
 
   // PHASE 2 — build target archived ids (per-id inversion) + omissions.
   let targetArchivedChangeIds: string[];
@@ -393,9 +402,20 @@ export async function cleanupArchivedMergedBranches(
       details: detect.details,
     };
   }
+  if (remaining() <= 0) {
+    return buildPartialResult({
+      dryRun,
+      mainCheckout,
+      defaultBranch,
+      omissions: withDeadlineExceeded(omissions, targetArchivedChangeIds),
+      fetchWarnings,
+    });
+  }
 
   // PHASE 5 — worktree safety filter.
-  const checkedOut = getCheckedOutChangeBranches(mainCheckout);
+  const checkedOut = getCheckedOutChangeBranches(mainCheckout, {
+    runGit: boundedRunGit(),
+  });
   if (checkedOut.status === "blocked") {
     return {
       success: false,
