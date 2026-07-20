@@ -63,6 +63,13 @@ export function isSearchAttributeArchiveFailure(errorText: string): boolean {
 }
 export type StatusRepairReadback = {
   showStatus?: Change["status"];
+  /**
+   * rq-shippedWorkflowTermination01 D6: lifecycleState readback. The read
+   * normalizer (`normalizeChangeLifecycleState`) trusts the stored literal
+   * first, so a stale `lifecycleState:"open"` survives status-only writes.
+   * Terminal recovery paths assert both status and lifecycleState.
+   */
+  showLifecycleState?: Change["lifecycleState"];
   inFlightCount: number;
   archivedCount: number;
 };
@@ -79,6 +86,14 @@ export type StatusRepairReadbackResult =
 export async function verifyStatusRepairReadAfterWrite(input: {
   store: Store;
   changeId: string;
+  /**
+   * rq-shippedWorkflowTermination01 D6: when true (caller is converging
+   * terminal authority after a pinned-run termination), the readback also
+   * asserts `showLifecycleState === "archived"`. Existing callers
+   * (adv_change_status_repair) omit this flag and retain status-only
+   * assertions.
+   */
+  requireLifecycleState?: boolean;
 }): Promise<StatusRepairReadbackResult> {
   let showResult: Awaited<ReturnType<Store["changes"]["get"]>>;
   let inFlight: Awaited<ReturnType<Store["changes"]["list"]>>;
@@ -110,6 +125,9 @@ export async function verifyStatusRepairReadAfterWrite(input: {
   const showStatus = showResult.success
     ? (showResult.data?.status as Change["status"] | undefined)
     : undefined;
+  const showLifecycleState = showResult.success
+    ? (showResult.data?.lifecycleState as Change["lifecycleState"] | undefined)
+    : undefined;
   const inFlightCount = inFlight.changes.filter(
     (change) => change.id === input.changeId,
   ).length;
@@ -118,6 +136,7 @@ export async function verifyStatusRepairReadAfterWrite(input: {
   ).length;
   const readback: StatusRepairReadback = {
     showStatus,
+    showLifecycleState,
     inFlightCount,
     archivedCount,
   };
@@ -125,6 +144,11 @@ export async function verifyStatusRepairReadAfterWrite(input: {
   if (showStatus !== "archived") {
     failures.push(
       `adv_change_show-equivalent status is ${showStatus ?? "missing"}`,
+    );
+  }
+  if (input.requireLifecycleState && showLifecycleState !== "archived") {
+    failures.push(
+      `adv_change_show-equivalent lifecycleState is ${showLifecycleState ?? "missing"} (expected archived)`,
     );
   }
   if (inFlightCount !== 0) {
