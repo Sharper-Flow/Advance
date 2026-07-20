@@ -65,6 +65,7 @@ describe("subagent reports spec assets", () => {
       "rq-subagentReports22",
       "rq-subagentReports23",
       "rq-subagentReports24",
+      "rq-subagentReports25",
     ]);
   });
 
@@ -354,6 +355,35 @@ describe("subagent reports spec assets", () => {
       "contract_ids",
       "INVALID_REPORT",
       "advisory-only",
+    ]) {
+      expect(text).toContain(anchor);
+    }
+  });
+
+  test("rq-subagentReports25 spec law pins typed run-identity binding, exit-status authority, and reviewer non-authority", () => {
+    // rq-fixWorkflowReliabilityDefects/AC6: typed binding provenance for
+    // engineer/designer verification entries. Cosmetic command-label
+    // differences MUST NOT break identity match; reviewer aggregate prose
+    // MUST NOT prove runs.
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const text = JSON.stringify(spec);
+
+    for (const anchor of [
+      "rq-subagentReports25",
+      "typed run reference",
+      "test_run_id",
+      "run_id",
+      "evidence_binding_version",
+      "typed-v1",
+      "legacy-command-v0",
+      "exit_code",
+      "cosmetic command-label differences",
+      "same-task durable",
+      "verification.tests_run",
+      "verification.evidence",
+      "verification_mismatch",
+      "verification_missing",
+      "descriptive-only",
     ]) {
       expect(text).toContain(anchor);
     }
