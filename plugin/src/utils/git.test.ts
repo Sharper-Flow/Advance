@@ -26,6 +26,20 @@ describe("git utilities", () => {
     it("rejects on invalid git command", async () => {
       await expect(execGit(["not-a-real-command"], tempDir)).rejects.toThrow();
     });
+
+    it("honors a short timeoutMs by killing a slow git command (rq-execGitTimeoutParam01)", async () => {
+      await execGit(["init"], tempDir);
+      // Register a git alias that shells out to a long sleep; git waits for it.
+      // execFile's timeout must SIGTERM the git process well before the sleep
+      // (and before the 5000ms default) completes.
+      await execGit(["config", "alias.slowcmd", "!sleep 10"], tempDir);
+      const start = Date.now();
+      await expect(execGit(["slowcmd"], tempDir, 200)).rejects.toThrow();
+      const elapsed = Date.now() - start;
+      // With the honored 200ms budget this rejects fast; the pre-fix path
+      // (hardcoded 5000ms) would only reject at ~5000ms.
+      expect(elapsed).toBeLessThan(2000);
+    });
   });
 
   describe("getDefaultBranch", () => {
