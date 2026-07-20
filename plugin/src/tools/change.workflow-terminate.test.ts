@@ -1000,6 +1000,8 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(mocks.terminate).not.toHaveBeenCalled();
     expect(store.changes.refresh).not.toHaveBeenCalled();
   });
+
+  test("refuses when shipped-terminal proof fails on PROOF_BUNDLE_ID_MISMATCH", async () => {
     const diskChange = shippedTerminalChange();
     await writeChangeToDisk(diskChange);
 
