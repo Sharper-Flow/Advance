@@ -124,6 +124,25 @@ export const CapabilityKeySchema = z
 
 export type CapabilityKey = z.infer<typeof CapabilityKeySchema>;
 
+export const SHA256DigestSchema = z
+  .string()
+  .regex(/^[a-f0-9]{64}$/, "Expected a lowercase SHA-256 hex digest");
+
+/**
+ * Structural authority captured when a mutating delta is recorded. Optional
+ * for legacy bundle compatibility; historical reconciliation fails closed
+ * when neither this precondition nor another immutable baseline is available.
+ */
+export const DeltaPreconditionSchema = z
+  .object({
+    schema_version: z.literal(1),
+    target_requirement_sha256: SHA256DigestSchema,
+    new_id_absent: z.boolean().optional(),
+  })
+  .strict();
+
+export type DeltaPrecondition = z.infer<typeof DeltaPreconditionSchema>;
+
 export const DeltaAddSchema = z.object({
   id: z.string(), // dl-Xt5zW3vB
   operation: z.literal("add"),
@@ -158,6 +177,7 @@ export const DeltaModifySchema = z
     operation: z.literal("modify"),
     target_id: z.string(), // Requirement ID to modify
     changes: DeltaModifyChangesSchema, // Typed fields to update
+    precondition: DeltaPreconditionSchema.optional(),
   })
   .superRefine((delta, ctx) => {
     for (const [index, scenario] of (delta.changes.scenarios ?? []).entries()) {
@@ -174,24 +194,30 @@ export const DeltaModifySchema = z
 
 export type DeltaModify = z.infer<typeof DeltaModifySchema>;
 
-const DeltaRemoveSchema = z.object({
+export const DeltaRemoveSchema = z.object({
   id: z.string(),
   operation: z.literal("remove"),
   target_id: z.string(),
   reason: z.string(),
+  precondition: DeltaPreconditionSchema.optional(),
 });
+
+export type DeltaRemove = z.infer<typeof DeltaRemoveSchema>;
 
 /**
  * Rename delta - changes a requirement's title and optionally its ID.
  * Applied before remove/modify/add to avoid target-not-found errors.
  */
-const DeltaRenameSchema = z.object({
+export const DeltaRenameSchema = z.object({
   id: z.string(), // dl-{nanoid}
   operation: z.literal("rename"),
   target_id: z.string(), // Existing requirement ID
   new_title: z.string(), // New title for the requirement
   new_id: z.string().optional(), // Optional new ID (if renaming the identifier too)
+  precondition: DeltaPreconditionSchema.optional(),
 });
+
+export type DeltaRename = z.infer<typeof DeltaRenameSchema>;
 
 export const DeltaSchema = z.discriminatedUnion("operation", [
   DeltaAddSchema,
