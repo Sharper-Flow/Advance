@@ -2134,6 +2134,29 @@ describe("reviewer-owned evidence reference", () => {
     });
   });
 
+  it("creates evidence_plan with review_evidence_ref when task has evidence_policy but no evidence_plan", () => {
+    // Regression: tasks created with only task-level evidence_policy (no
+    // evidence_plan object) must still get review_evidence_ref auto-linked
+    // when a reviewer report is persisted. Previously the truthy guard on
+    // task.evidence_plan silently skipped the write, permanently blocking
+    // task completion for review-policy tasks.
+    const state = stateWithReviewTask("review", undefined);
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-review",
+      report: makeReviewerReport("reviewer-evidence-test", "tk-review"),
+      submittedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.evidence_plan).toBeDefined();
+    expect(task.evidence_plan?.review_evidence_ref).toEqual({
+      report_key: "reviewer-evidence-test|tk-review|adv-reviewer|1",
+    });
+    expect(task.evidence_plan?.provenance).toBe("legacy");
+    expect(task.evidence_plan?.policy).toBe("review");
+  });
+
   it("does not write review_evidence_ref for test-route tasks", () => {
     const state = stateWithReviewTask("test", {
       policy: "test",

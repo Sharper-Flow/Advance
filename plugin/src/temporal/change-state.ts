@@ -1464,19 +1464,35 @@ export function applySubagentReportSubmittedToState(
   // for a behavior-critical task that uses a non-test route, write a typed
   // review_evidence_ref to the task's evidence plan. Callers cannot author this
   // ref — only the reviewer-report consumer does, and only on fresh (not
-  // duplicate) storage.
+  // duplicate) storage. Tasks created with only task-level evidence_policy
+  // (no evidence_plan object) get the plan created here so the ref is never
+  // silently dropped.
   if (
     task &&
     taskScoped &&
     payload.report.agent === "adv-reviewer" &&
-    task.evidence_plan &&
     isBehaviorCriticalEvidencePlanTask(task)
   ) {
-    task.evidence_plan = {
-      ...task.evidence_plan,
-      ...normalizeEvidencePlanCompatibility(task.evidence_plan),
-      review_evidence_ref: { report_key: reportId },
-    };
+    if (task.evidence_plan) {
+      task.evidence_plan = {
+        ...task.evidence_plan,
+        ...normalizeEvidencePlanCompatibility(task.evidence_plan),
+        review_evidence_ref: { report_key: reportId },
+      };
+    } else {
+      // Task has task-level evidence_policy but no evidence_plan object.
+      // isBehaviorCriticalEvidencePlanTask already guaranteed the policy
+      // exists and is a non-test route for behavior-critical work.
+      const policy = task.evidence_policy;
+      if (policy) {
+        task.evidence_plan = {
+          policy,
+          proof_target: "Reviewer-owned evidence",
+          provenance: "legacy",
+          review_evidence_ref: { report_key: reportId },
+        };
+      }
+    }
   }
 
   const blockers = blockerSummary(payload.report);
