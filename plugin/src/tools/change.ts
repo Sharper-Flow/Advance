@@ -1573,7 +1573,18 @@ export const changeTools = {
       }
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);
       const createdChangeResult = await store.changes.get(result.changeId);
-      if (createdChangeResult.success && createdChangeResult.data) {
+      if (!createdChangeResult.success) {
+        // rq-schemaDriftToolLayer: a load failure on the just-created change
+        // (e.g. schema validation) is a real corruption signal — the
+        // change.json written by create is unreadable. Propagate verbatim
+        // instead of silently omitting the snapshot and returning a
+        // misleading success.
+        return formatToolOutput({
+          error: createdChangeResult.error,
+          changeId: result.changeId,
+        });
+      }
+      if (createdChangeResult.data) {
         const { content: proposalText } = await loadProposalForContext(
           store,
           result.changeId,
@@ -1791,7 +1802,13 @@ export const changeTools = {
         // structured error that names the source-of-truth tools so the
         // agent can self-correct without guessing.
         const existing = await activeStore.changes.get(changeId);
-        if (!existing.success || !existing.data) {
+        if (!existing.success) {
+          // rq-schemaDriftToolLayer: propagate LoadResult errors (including
+          // schema validation failures) verbatim instead of masking them as
+          // "Change not found" — the store layer (T2) already formats these.
+          return formatToolOutput({ error: existing.error });
+        }
+        if (!existing.data) {
           return formatToolOutput({
             error: `Change '${changeId}' not found.`,
             hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
@@ -2318,6 +2335,18 @@ export const changeTools = {
               closed++;
             } catch (err) {
               const existing = await activeStore.changes.get(id);
+              if (!existing.success) {
+                // rq-schemaDriftToolLayer: load failure on change.json (e.g.
+                // schema validation) — propagate verbatim. Recovery cannot
+                // proceed without a readable change, and the load error is
+                // more informative than the original signal error.
+                results.push({
+                  changeId: id,
+                  success: false,
+                  error: existing.error,
+                });
+                continue;
+              }
               if (existing.success && existing.data) {
                 const closeInput = {
                   approvalEvidence,
@@ -4417,6 +4446,15 @@ export const changeTools = {
           },
         );
         const readback = await activeStore.changes.get(changeId);
+        if (!readback.success) {
+          // rq-schemaDriftToolLayer: best-effort post-mutation readback. The
+          // repair signal already landed; do not mask it as a hard failure.
+          // Surface the schema error text so the operator can investigate
+          // while still seeing the successful repair outcome below.
+          logger.warn(
+            `repair_origin readback failed for ${changeId}: ${readback.error}`,
+          );
+        }
         const readbackOrigin =
           readback.success && readback.data ? readback.data.origin : undefined;
         return formatToolOutput({

@@ -340,6 +340,28 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.task).toEqual(fallbackTask);
       expect(store.changes.list).toHaveBeenCalledTimes(1);
     });
+
+    // rq-schemaDriftToolLayer: schema errors from store.tasks.show must
+    // propagate verbatim. They are not recoverable via the structural fallback
+    // scan (which also reads change.json), so masking them as "Task not found"
+    // hides a real corruption signal. Pre-fix this throws nothing and returns
+    // "Task not found"; post-fix resolveChangeId rethrows schema errors.
+    test("propagates schema errors from store.tasks.show verbatim instead of masking as 'Task not found'", async () => {
+      const schemaErrorText =
+        'Schema validation failed for change "test-change":\n  status: invalid';
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async () => Promise.reject(new Error(schemaErrorText))),
+        },
+      });
+
+      await expect(
+        taskTools.adv_task_show.execute(
+          { taskId: "tk-schema-broken" },
+          store,
+        ),
+      ).rejects.toThrow(/Schema validation failed/);
+    });
   });
 
   describe("adv_task_list", () => {

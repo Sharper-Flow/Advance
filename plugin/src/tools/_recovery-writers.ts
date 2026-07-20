@@ -328,11 +328,16 @@ function recoveryReportTaskId(
  * be computed from this projection, never from the shadow.
  *
  * Validation is deliberately structural (parseable JSON object + canonical id
- * match + array-typed task/report carriers) rather than ChangeSchema: bundle
- * manifests legitimately carry recovery-audited reports, which the strict
- * ingest report schemas (`.strict()`, no recovery_audit field) reject.
- * Full-schema parsing would fail closed on the very bundles this writer
- * maintains. Every manifest field is preserved verbatim — no stripping.
+ * match + array-typed task/report carriers) rather than ChangeSchema. As of
+ * issue #258 (fixRecoverySchemaDrift), the strict ingest schemas
+ * (`DesignConcernDispositionSchema`, `VerificationEvidenceDispositionSchema`,
+ * `TaskScopedBaseSubagentReportSchema`, `ChangeScopedBaseSubagentReportSchema`)
+ * include `recovery_audit` as an optional typed field, so new bundles with
+ * recovery-audited reports DO round-trip through `ChangeSchema.parse`. This
+ * structural-only validation remains as defense-in-depth for older bundles
+ * that pre-date the schema extension and would otherwise fail closed on the
+ * very bundles this writer maintains. Every manifest field is preserved
+ * verbatim — no stripping.
  *
  * Fails closed on unreadable, unparseable, structurally-invalid, or
  * id-mismatched manifests: rewriting a terminal bundle from a stale shadow
