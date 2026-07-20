@@ -45,6 +45,13 @@ import {
   listLocalChangeBranchEntries,
   getCheckedOutChangeBranches,
   syncDefaultBranchAfterMerge,
+  // rq-optimizePhase9GitCalls AC7 — internal accumulator exports for direct matrix testing.
+  createState,
+  invalidate,
+  getRoute,
+  ensureOriginDefaultFetched,
+  type FinalizeInvocationState,
+  type MutationKind,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -4269,5 +4276,308 @@ describe("adv-archive.md auto-drive (rq-releaseFinalization02 DONT3)", () => {
     expect(section).toContain("verifyReleaseEvidenceFromMain");
     // And the new helper it delegates to.
     expect(section).toContain("syncDefaultBranchAfterMerge");
+  });
+});
+
+/**
+ * rq-optimizePhase9GitCalls AC7 — cache hit/miss/invalidation/failure-rollback tests.
+ *
+ * Tests the FinalizeInvocationState accumulator and the invalidation matrix
+ * directly. The matrix is the C4-critical surface: every (mutation, cacheKey)
+ * cell marked invalidate in design.md must drop the entry, including on
+ * failure-rollback paths.
+ */
+describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () => {
+  /** Mock runGit that records every call so tests can assert call counts. */
+  function makeRecordingRunGit(
+    impl: (cwd: string, args: string[]) => {
+      status: number;
+      stdout: string;
+      stderr: string;
+    },
+  ): { runGit: (cwd: string, args: string[]) => any; calls: any[] } {
+    const calls: Array<{ cwd: string; args: string[] }> = [];
+    return {
+      runGit: (cwd: string, args: string[]) => {
+        calls.push({ cwd, args });
+        return impl(cwd, args);
+      },
+      calls,
+    };
+  }
+
+  /** Stub runGit that simulates an empty no-remote repo (default route = no_remote). */
+  function noRemoteRunGit() {
+    return (_cwd: string, args: string[]) => {
+      if (args[0] === "remote" && args[1] === "get-url") {
+        return { status: 128, stdout: "", stderr: "no remote configured" };
+      }
+      if (args[0] === "rev-parse") {
+        return { status: 0, stdout: "deadbeef\n", stderr: "" };
+      }
+      if (args[0] === "branch" && args[1] === "--show-current") {
+        return { status: 0, stdout: "trunk\n", stderr: "" };
+      }
+      if (args[0] === "status" && args[1] === "--porcelain") {
+        return { status: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "var") {
+        return { status: 0, stdout: "ADV Test <adv@test>\n", stderr: "" };
+      }
+      if (args[0] === "ls-files") {
+        return { status: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "fetch") {
+        return { status: 128, stdout: "", stderr: "no remote" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    };
+  }
+
+  it("AC2: getRoute caches — repeated call does not re-invoke underlying classifyFinalizationRoute", () => {
+    const rec = makeRecordingRunGit(noRemoteRunGit());
+    const state = createState("/fake/main", "trunk", { runGit: rec.runGit });
+
+    const first = getRoute(state);
+    const firstCallCount = rec.calls.filter(
+      (c) => c.args[0] === "remote" && c.args[1] === "get-url",
+    ).length;
+    expect(firstCallCount).toBe(1);
+
+    const second = getRoute(state);
+    const secondCallCount = rec.calls.filter(
+      (c) => c.args[0] === "remote" && c.args[1] === "get-url",
+    ).length;
+    expect(secondCallCount).toBe(1); // no additional call
+    expect(second).toBe(first); // same object reference (cached)
+  });
+
+  it("AC2: cache miss on first query — first call invokes underlying exactly once", () => {
+    const rec = makeRecordingRunGit(noRemoteRunGit());
+    const state = createState("/fake/main", "trunk", { runGit: rec.runGit });
+
+    getRoute(state);
+
+    const routeCalls = rec.calls.filter(
+      (c) => c.args[0] === "remote" && c.args[1] === "get-url",
+    );
+    expect(routeCalls.length).toBe(1);
+  });
+
+  it("AC3: invalidate(commit-dirty-main-checkpoint) drops localHeadSha and mainInProgress only", () => {
+    const state = createState("/fake/main", "trunk", {});
+    // Populate all cache entries
+    state.route = { route: "no_remote" };
+    state.remoteUrl = "git@github.com:foo/bar";
+    state.originHeadSha = "aaa";
+    state.localHeadSha = "bbb";
+    state.committerIdent = { ok: true };
+    state.mainInProgress = { inProgress: false };
+
+    invalidate(state, "commit-dirty-main-checkpoint");
+
+    expect(state.route).toBeDefined(); // untouched
+    expect(state.remoteUrl).toBeDefined(); // untouched
+    expect(state.originHeadSha).toBeDefined(); // untouched
+    expect(state.localHeadSha).toBeUndefined(); // dropped
+    expect(state.committerIdent).toBeDefined(); // untouched
+    expect(state.mainInProgress).toBeUndefined(); // dropped
+  });
+
+  it("AC3: invalidate(merge-change-branch) drops originHeadSha, localHeadSha, mainInProgress", () => {
+    const state = createState("/fake/main", "trunk", {});
+    state.route = { route: "no_remote" };
+    state.remoteUrl = "git@github.com:foo/bar";
+    state.originHeadSha = "aaa";
+    state.localHeadSha = "bbb";
+    state.committerIdent = { ok: true };
+    state.mainInProgress = { inProgress: false };
+
+    invalidate(state, "merge-change-branch");
+
+    expect(state.route).toBeDefined();
+    expect(state.remoteUrl).toBeDefined();
+    expect(state.originHeadSha).toBeUndefined(); // dropped
+    expect(state.localHeadSha).toBeUndefined(); // dropped
+    expect(state.committerIdent).toBeDefined();
+    expect(state.mainInProgress).toBeUndefined(); // dropped
+  });
+
+  it("AC3: invalidate(push-to-origin) drops originHeadSha only", () => {
+    const state = createState("/fake/main", "trunk", {});
+    state.route = { route: "no_remote" };
+    state.remoteUrl = "git@github.com:foo/bar";
+    state.originHeadSha = "aaa";
+    state.localHeadSha = "bbb";
+    state.committerIdent = { ok: true };
+    state.mainInProgress = { inProgress: false };
+
+    invalidate(state, "push-to-origin");
+
+    expect(state.route).toBeDefined();
+    expect(state.remoteUrl).toBeDefined();
+    expect(state.originHeadSha).toBeUndefined(); // dropped
+    expect(state.localHeadSha).toBeDefined(); // untouched
+    expect(state.committerIdent).toBeDefined();
+    expect(state.mainInProgress).toBeDefined(); // untouched
+  });
+
+  it("AC3: invalidate(commit-archive-artifacts) and invalidate(push-change-branch) drop nothing", () => {
+    const state = createState("/fake/main", "trunk", {});
+    state.route = { route: "no_remote" };
+    state.originHeadSha = "aaa";
+    state.localHeadSha = "bbb";
+    state.mainInProgress = { inProgress: false };
+
+    invalidate(state, "commit-archive-artifacts");
+    invalidate(state, "push-change-branch");
+
+    // Nothing dropped for these mutation kinds
+    expect(state.route).toBeDefined();
+    expect(state.originHeadSha).toBeDefined();
+    expect(state.localHeadSha).toBeDefined();
+    expect(state.mainInProgress).toBeDefined();
+  });
+
+  it("AC3: invalidate(reset-main-to-origin-default) drops all main-state entries + fetched flag", () => {
+    const state = createState("/fake/main", "trunk", {});
+    state.originHeadSha = "aaa";
+    state.localHeadSha = "bbb";
+    state.mainInProgress = { inProgress: false };
+    state.originDefaultFetched = true;
+
+    invalidate(state, "reset-main-to-origin-default");
+
+    expect(state.originHeadSha).toBeUndefined();
+    expect(state.localHeadSha).toBeUndefined();
+    expect(state.mainInProgress).toBeUndefined();
+    expect(state.originDefaultFetched).toBe(false); // flag cleared
+  });
+
+  it("AC3: invalidate(execute-pull-request-handoff) drops main-state + fetched flag (not mainInProgress)", () => {
+    const state = createState("/fake/main", "trunk", {});
+    state.originHeadSha = "aaa";
+    state.localHeadSha = "bbb";
+    state.mainInProgress = { inProgress: false };
+    state.originDefaultFetched = true;
+
+    invalidate(state, "execute-pull-request-handoff");
+
+    expect(state.originHeadSha).toBeUndefined();
+    expect(state.localHeadSha).toBeUndefined();
+    expect(state.mainInProgress).toBeDefined(); // untouched per matrix
+    expect(state.originDefaultFetched).toBe(false);
+  });
+
+  it("AC3: invalidate(undefined-state) is a safe no-op", () => {
+    expect(() => invalidate(undefined, "merge-change-branch")).not.toThrow();
+  });
+
+  it("AC4: invalidate is callable on failure-rollback paths (no hidden state)", () => {
+    // Simulate a mutation that throws; verify invalidate can still be called
+    // from a catch/finally path. The function itself is pure — no side effects
+    // beyond clearing entries — so the rollback pattern is straightforward.
+    const state = createState("/fake/main", "trunk", {});
+    state.originHeadSha = "stale-after-failed-merge";
+    state.localHeadSha = "also-stale";
+
+    // Simulate failed mutation pattern: try { mutate } catch { invalidate; rethrow }
+    try {
+      throw new Error("simulated git merge failure");
+    } catch {
+      invalidate(state, "merge-change-branch");
+    }
+
+    expect(state.originHeadSha).toBeUndefined();
+    expect(state.localHeadSha).toBeUndefined();
+  });
+
+  it("AC2: ensureOriginDefaultFetched dedupes successful fetches (happy path)", () => {
+    let fetchCount = 0;
+    const rec = makeRecordingRunGit((_cwd, args) => {
+      if (args[0] === "fetch") {
+        fetchCount++;
+        return { status: 0, stdout: "", stderr: "" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    });
+    const state = createState("/fake/main", "trunk", { runGit: rec.runGit });
+
+    const first = ensureOriginDefaultFetched(state);
+    const second = ensureOriginDefaultFetched(state);
+
+    expect(first.status).toBe(0);
+    expect(second.status).toBe(0);
+    expect(fetchCount).toBe(1); // only one underlying fetch
+    expect(state.originDefaultFetched).toBe(true);
+  });
+
+  it("AC2: ensureOriginDefaultFetched retries after failure (does not cache failure)", () => {
+    let fetchCount = 0;
+    const rec = makeRecordingRunGit((_cwd, args) => {
+      if (args[0] === "fetch") {
+        fetchCount++;
+        return { status: 128, stdout: "", stderr: "transient" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    });
+    const state = createState("/fake/main", "trunk", { runGit: rec.runGit });
+
+    const first = ensureOriginDefaultFetched(state);
+    const second = ensureOriginDefaultFetched(state);
+
+    expect(first.status).toBe(128); // failure surfaced
+    expect(second.status).toBe(128); // retried
+    expect(fetchCount).toBe(2); // two underlying fetches (no caching on failure)
+    expect(state.originDefaultFetched).toBe(false); // still not flagged
+  });
+
+  it("SC1+SC2: end-to-end finalizeRelease on no-op fixture uses ≤1 fetch and ≤1 route classification", async () => {
+    const tempRoot = await createTempDir("adv-finalize-cache-");
+    try {
+      const main = join(tempRoot, "main");
+      const worktree = join(tempRoot, "wt");
+      await mkdir(main);
+      await initRepo(main);
+      // No remote configured → route = no_remote, fetches return non-zero (no-op).
+      git(main, ["worktree", "add", "-b", "change/example", worktree]);
+      // Put a file in the worktree so there's an artifact to commit.
+      await writeFile(join(worktree, "bundle.txt"), "archive bundle\n");
+      git(worktree, ["add", "bundle.txt"]);
+
+      // Wrap runGit to count fetch + remote-get-url calls without changing behavior.
+      let fetchCount = 0;
+      let remoteGetUrlCount = 0;
+      const realRunGit = (cwd: string, args: string[], timeoutMs?: number) => {
+        if (args[0] === "fetch") fetchCount++;
+        if (args[0] === "remote" && args[1] === "get-url") remoteGetUrlCount++;
+        return spawnSync("git", args, { cwd, encoding: "utf8", timeout: timeoutMs }) as any;
+      };
+
+      const result = await finalizeRelease(
+        {
+          changeId: "example",
+          workdir: worktree,
+          archiveMode: "direct",
+          autoPush: false,
+          artifactPaths: ["bundle.txt"],
+        },
+        { runGit: realRunGit },
+      );
+
+      // No remote → route is "no_remote", status shipped, push skipped.
+      expect(result.status).toBe("shipped");
+      expect(result.route).toBe("no_remote");
+
+      // SC1: at most 1 fetch attempt (and the no-remote repo returns 128, but
+      // the count tracks attempts, not successes).
+      expect(fetchCount).toBeLessThanOrEqual(1);
+
+      // SC2 (route component): classifyFinalizationRoute called 3× historically;
+      // now reduced to 1 underlying remote-get-url call.
+      expect(remoteGetUrlCount).toBeLessThanOrEqual(1);
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+    }
   });
 });

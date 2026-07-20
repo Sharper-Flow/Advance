@@ -2812,9 +2812,11 @@ export interface GitFinalizeContext {
  * behavior). External callers (none in production; existing tests) are
  * unaffected.
  *
- * NOT exported. Lives only inside this module.
+ * Exported for direct unit testing of the invalidation matrix (rq-optimizePhase9GitCalls AC7).
+ * Not part of the stable public API; consumers outside this module should not
+ * import these symbols.
  */
-interface FinalizeInvocationState {
+export interface FinalizeInvocationState {
   // Static (set at construction)
   readonly mainCheckout: string;
   readonly defaultBranch: string;
@@ -2832,7 +2834,7 @@ interface FinalizeInvocationState {
   originDefaultFetched: boolean;
 }
 
-type MutationKind =
+export type MutationKind =
   | "commit-archive-artifacts"
   | "commit-dirty-main-checkpoint"
   | "merge-change-branch"
@@ -2841,7 +2843,7 @@ type MutationKind =
   | "reset-main-to-origin-default"
   | "execute-pull-request-handoff";
 
-function createState(
+export function createState(
   mainCheckout: string,
   defaultBranch: string,
   deps: GitFinalizeDeps,
@@ -2870,7 +2872,7 @@ function createState(
  *
  * MUST be called on BOTH success and throw paths (rq-optimizePhase9GitCalls AC4).
  */
-function invalidate(
+export function invalidate(
   state: FinalizeInvocationState | undefined,
   kind: MutationKind,
 ): void {
@@ -2908,7 +2910,7 @@ function invalidate(
 /** Cached accessor for the finalization route. Stable across mutations
  *  (route depends on remote URL + branch protection rules, neither of which
  *  changes during one invocation). */
-function getRoute(state: FinalizeInvocationState): FinalizationRoute {
+export function getRoute(state: FinalizeInvocationState): FinalizationRoute {
   if (state.route) return state.route;
   state.route = classifyFinalizationRoute(
     state.mainCheckout,
@@ -2921,7 +2923,7 @@ function getRoute(state: FinalizeInvocationState): FinalizationRoute {
 /** Runs `fetch origin <default>` at most once per invocation. Subsequent calls
  *  no-op (returns synthetic success). Failed fetches do NOT set the flag,
  *  allowing callers to retry. */
-function ensureOriginDefaultFetched(
+export function ensureOriginDefaultFetched(
   state: FinalizeInvocationState,
 ): RunGitResult {
   if (state.originDefaultFetched) {
