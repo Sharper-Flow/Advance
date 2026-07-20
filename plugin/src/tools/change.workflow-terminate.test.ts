@@ -27,7 +27,10 @@
      returns a structured error and never refreshes the projection cache.
  */
 
-import { describe, expect, test, vi, beforeEach } from "vitest";
+import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
+import { mkdtemp, mkdir, writeFile, rm, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { changeTools } from "./change";
 import { ADV_TOOL_NAMES } from "../tool-registry";
 import type { Change } from "../types";
@@ -563,7 +566,321 @@ describe("adv_change_workflow_terminate", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.workflowTerminated).toBe(true);
+    expect(parsed.eligibilityClass).toBe("poisoned_history");
     expect(mocks.terminate).toHaveBeenCalledTimes(1);
     expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+  });
+});
+
+// =============================================================================
+// rq-shippedWorkflowTermination01 — alternate "shipped_terminal" eligibility
+// branch. These tests use real filesystem fixtures (temp dirs with valid
+// archive bundles) so computeShippedTerminalProof can read actual change.json
+// files and the convergence write hits real disk.
+// =============================================================================
+
+function allGatesDone(): NonNullable<Change["gates"]> {
+  const done = { status: "done" } as const;
+  return {
+    proposal: { ...done },
+    discovery: { ...done },
+    design: { ...done },
+    planning: { ...done },
+    execution: { ...done },
+    acceptance: { ...done },
+    release: { ...done },
+  } as NonNullable<Change["gates"]>;
+}
+
+function shippedTerminalChange(overrides: Partial<Change> = {}): Change {
+  return {
+    id: "fixWorkflowReliabilityDefects",
+    title: "Fix workflow reliability defects",
+    status: "draft",
+    lifecycleState: "open",
+    created_at: "2026-01-01T00:00:00Z",
+    created_by: "test",
+    tasks: [],
+    deltas: {},
+    wisdom: [],
+    gates: allGatesDone(),
+    phase9_status: {
+      status: "done",
+      startedAt: "2026-01-01T00:00:00Z",
+      completedAt: "2026-01-02T00:00:00Z",
+      route: "direct",
+      changeTipSha: "abc123",
+    },
+    ...overrides,
+  } as Change;
+}
+
+/** RUNNING describe with NO poisoned-history evidence — exercises the new branch. */
+function shippedTerminalRunningDescription(runId = "run-shipped-1") {
+  return {
+    workflowId: "adv-change-test-project-id-fixWorkflowReliabilityDefects",
+    runId,
+    status: { code: 1, name: "RUNNING" },
+    // No pendingWorkflowTask.lastFailure → poisonedDescriptionEvidence returns null.
+    raw: {},
+  };
+}
+
+describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shippedWorkflowTermination01)", () => {
+  let tempRoot: string;
+  let changesDir: string;
+  let archiveDir: string;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    tempRoot = await mkdtemp(join(tmpdir(), "adv-wf-terminate-shipped-"));
+    changesDir = join(tempRoot, "changes");
+    archiveDir = join(tempRoot, "archive");
+    await mkdir(changesDir, { recursive: true });
+    await mkdir(archiveDir, { recursive: true });
+
+    mocks.getService.mockReturnValue({ client: { workflow: {} } });
+    mocks.getProjectId.mockResolvedValue("test-project-id");
+    mocks.getChangeHandle.mockReturnValue({
+      describe: mocks.describe,
+      terminate: mocks.terminate,
+      signal: vi.fn(),
+      query: vi.fn(),
+    });
+    mocks.describe.mockResolvedValue(shippedTerminalRunningDescription());
+    mocks.terminate.mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  async function writeChangeToDisk(change: Change): Promise<void> {
+    const dir = join(changesDir, change.id);
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, "change.json"),
+      JSON.stringify(change, null, 2),
+    );
+  }
+
+  async function writeBundle(change: Change): Promise<void> {
+    const bundlePath = join(archiveDir, `2026-01-15-${change.id}`);
+    await mkdir(bundlePath, { recursive: true });
+    await writeFile(
+      join(bundlePath, "change.json"),
+      JSON.stringify(change, null, 2),
+    );
+  }
+
+  function createDiskBackedStore(change: Change): Store {
+    // Mock store.changes.get returns the in-memory change (live workflow
+    // state) but store.paths point at real disk so computeShippedTerminalProof
+    // and saveRecoveredChangeStatus can read/write actual files.
+    return {
+      paths: {
+        root: tempRoot,
+        changes: changesDir,
+        archive: archiveDir,
+      } as Store["paths"],
+      config: { name: "test", features: {} } as Store["config"],
+      changes: {
+        get: vi.fn(async (changeId: string) => ({
+          success: true,
+          data: change && change.id === changeId ? change : null,
+        })),
+        refresh: vi.fn(async () => undefined),
+        list: vi.fn(async () => ({ changes: [] })),
+        save: vi.fn(async () => undefined),
+      } as unknown as Store["changes"],
+    } as unknown as Store;
+  }
+
+  test("refuses RUNNING run without poison AND without shipped-terminal proof (no bundle)", async () => {
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    // No bundle written → PROOF_NO_BUNDLE.
+    const store = createDiskBackedStore(change);
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toMatch(/shipped-terminal proof failed/);
+    expect(parsed.shippedTerminalProof.refusalCode).toBe("PROOF_NO_BUNDLE");
+    expect(parsed.eligibilityClass).toBe("none");
+    expect(mocks.terminate).not.toHaveBeenCalled();
+  });
+
+  test("dryRun returns eligibilityClass=shipped_terminal with full proof when bundle is valid", async () => {
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+        dryRun: true,
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.eligibilityClass).toBe("shipped_terminal");
+    expect(parsed.runId).toBe("run-shipped-1");
+    expect(parsed.runStatus).toBe("RUNNING");
+    expect(parsed.shippedTerminalProof.ok).toBe(true);
+    expect(parsed.shippedTerminalProof.bundlePath).toContain(
+      "fixWorkflowReliabilityDefects",
+    );
+    expect(mocks.describe).toHaveBeenCalledTimes(1);
+    expect(mocks.terminate).not.toHaveBeenCalled();
+  });
+
+  test("terminates pinned run, writes status+lifecycleState=archived, readback verifies convergence", async () => {
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+
+    // store.changes.list for readback returns the just-written change as archived.
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async (query: unknown) => {
+        const q = query as { status?: string } | null;
+        // Read the freshly-written disk projection.
+        const text = await readFile(
+          join(changesDir, change.id, "change.json"),
+          "utf-8",
+        );
+        const fresh = JSON.parse(text) as Change;
+        if (q && q.status === "archived") {
+          return { changes: [fresh] };
+        }
+        return { changes: [] }; // in-flight list is empty after convergence.
+      },
+    );
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id !== change.id) return { success: true, data: null };
+        const text = await readFile(
+          join(changesDir, change.id, "change.json"),
+          "utf-8",
+        );
+        return { success: true, data: JSON.parse(text) as Change };
+      },
+    );
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.eligibilityClass).toBe("shipped_terminal");
+    expect(parsed.workflowTerminated).toBe(true);
+    expect(parsed.converged).toBe(true);
+    expect(parsed.fromStatus).toBe("draft");
+    expect(parsed.toStatus).toBe("archived");
+    expect(parsed.readback.showStatus).toBe("archived");
+    expect(parsed.readback.showLifecycleState).toBe("archived");
+    expect(parsed.readback.inFlightCount).toBe(0);
+    expect(parsed.readback.archivedCount).toBe(1);
+
+    // Confirm real disk projection was written atomically.
+    const diskText = await readFile(
+      join(changesDir, change.id, "change.json"),
+      "utf-8",
+    );
+    const disk = JSON.parse(diskText) as Change;
+    expect(disk.status).toBe("archived");
+    expect(disk.lifecycleState).toBe("archived");
+
+    // Terminate targeted the exact pinned run.
+    expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+      expect.anything(),
+      "test-project-id",
+      "fixWorkflowReliabilityDefects",
+      "run-shipped-1",
+    );
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  test("refuses when shipped-terminal proof fails on PROOF_BUNDLE_ID_MISMATCH", async () => {
+    const diskChange = shippedTerminalChange();
+    await writeChangeToDisk(diskChange);
+
+    // Bundle directory suffix matches but embedded id is different.
+    const bundlePath = join(
+      archiveDir,
+      `2026-01-15-${diskChange.id}`,
+    );
+    await mkdir(bundlePath, { recursive: true });
+    const mismatchedBundle = { ...diskChange, id: "someOtherChangeId" };
+    await writeFile(
+      join(bundlePath, "change.json"),
+      JSON.stringify(mismatchedBundle, null, 2),
+    );
+
+    const store = createDiskBackedStore(diskChange);
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.shippedTerminalProof.refusalCode).toBe(
+      "PROOF_BUNDLE_ID_MISMATCH",
+    );
+    expect(parsed.eligibilityClass).toBe("none");
+    expect(mocks.terminate).not.toHaveBeenCalled();
+  });
+
+  test("dryRun preserves eligibilityClass=poisoned_history for poisoned runs (no proof required)", async () => {
+    // A poisoned run with no archive bundle still qualifies via the existing
+    // poisoned-history branch.
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    // No bundle.
+    mocks.describe.mockResolvedValue(poisonedRunningDescription("run-poison-1"));
+    const store = createDiskBackedStore(change);
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved poisoned-history recovery",
+        dryRun: true,
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.eligibilityClass).toBe("poisoned_history");
+    expect(parsed.wedgedEvidence).toBeTruthy();
+    expect(parsed.runId).toBe("run-poison-1");
   });
 });
