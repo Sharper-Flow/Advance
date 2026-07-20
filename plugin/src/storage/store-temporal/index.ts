@@ -3,7 +3,12 @@ import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
+import {
+  hasArchiveBundle,
+  isSchemaError,
+  listChangeDirs,
+  loadChange,
+} from "../json";
 import { buildChangeRecency } from "../store-types";
 import type {
   ChangeStatus,
@@ -477,6 +482,9 @@ export function createTemporalStoreBackend(
     if (!legacy.paths.archive) return null;
 
     const exact = await loadChange(legacy.paths.archive, changeId);
+    if (isSchemaError(exact)) {
+      throw new Error(exact.error);
+    }
     if (exact.success && exact.data?.id === changeId) {
       return withProjectionRecovery(exact.data, "archive", reason);
     }
@@ -502,6 +510,9 @@ export function createTemporalStoreBackend(
       if (deadline && remainingDeadlineMs(deadline) <= 0) return null;
       if (archiveDir === changeId) continue;
       const loaded = await loadChange(legacy.paths.archive, archiveDir);
+      if (isSchemaError(loaded)) {
+        throw new Error(loaded.error);
+      }
       if (loaded.success && loaded.data?.id === changeId) {
         return withProjectionRecovery(loaded.data, "archive", reason);
       }
@@ -528,6 +539,9 @@ export function createTemporalStoreBackend(
     }
 
     const diskProjection = await legacy.changes.get(changeId);
+    if (isSchemaError(diskProjection)) {
+      throw new Error(diskProjection.error);
+    }
     if (diskProjection.success && diskProjection.data?.id === changeId) {
       return setCachedProjection(
         withProjectionRecovery(
@@ -573,6 +587,9 @@ export function createTemporalStoreBackend(
     // rq-replayFallback01: poisoned or missing workflow reads fall back to
     // durable disk/archive projections instead of forcing manual bundle work.
     const legacyRead = await legacy.changes.get(changeId);
+    if (isSchemaError(legacyRead)) {
+      throw new Error(legacyRead.error);
+    }
     if (!legacyRead.success || !legacyRead.data) {
       return loadArchiveProjection(changeId, reason, deadline);
     }
@@ -836,33 +853,45 @@ export function createTemporalStoreBackend(
   const loadDiskTerminalProjection = async (
     changeId: string,
   ): Promise<Change | null> => {
+    // rq-schemaErrorPropagation01 (issue #258 Defect 1): the disk read is
+    // pulled OUT of the swallow try/catch below so schema errors can
+    // propagate. The catch remains for genuine I/O / unreadable-state
+    // failures (transient fs errors, ENOENT, permissions); those still fall
+    // through to Temporal/missing-workflow logic. A schema_error is not
+    // transient — it must surface verbatim, not be masked as a generic
+    // "Failed to query Workflow" by the workflow round-trip that follows.
+    let result;
     try {
-      const result = await legacy.changes.get(changeId);
-      // rq-terminalProjectionTruth01 / poison read-resilience: a terminal
-      // change.json (archived OR closed) is disk-authoritative and MUST be
-      // served without a live workflow round-trip. Archived previously relied
-      // solely on loadArchiveBundleDominantProjection (bundle-present); when the
-      // archive bundle is missing/raced, an archived change fell through to the
-      // live query and could hit a poisoned/terminated workflow (TMPRL1100),
-      // paying a wasteful query + describe() probe per candidate before the
-      // catch→reseedChangeFromDisk path finally returned the same disk data.
-      // Short-circuiting both terminal statuses here mirrors reseedChangeFromDisk
-      // and keeps enumeration/status reads fast even against poisoned terminal
-      // workflows.
-      if (
-        result.success &&
-        result.data &&
-        (result.data.status === "closed" || result.data.status === "archived")
-      ) {
-        // Mark the disk source so callers report source "disk" (matching the
-        // prior catch→reseedChangeFromDisk path). This is terminal-projection
-        // dominance, NOT a temporal_query_fallback recovery, so it does not
-        // carry the _recovery reconciliation marker.
-        return { ...result.data, _source: "disk" } as Change;
-      }
+      result = await legacy.changes.get(changeId);
     } catch {
       // Disk projection is only a terminal-state dominance check. Missing or
       // unreadable disk state falls through to Temporal/missing-workflow logic.
+      return null;
+    }
+    if (isSchemaError(result)) {
+      throw new Error(result.error);
+    }
+    // rq-terminalProjectionTruth01 / poison read-resilience: a terminal
+    // change.json (archived OR closed) is disk-authoritative and MUST be
+    // served without a live workflow round-trip. Archived previously relied
+    // solely on loadArchiveBundleDominantProjection (bundle-present); when the
+    // archive bundle is missing/raced, an archived change fell through to the
+    // live query and could hit a poisoned/terminated workflow (TMPRL1100),
+    // paying a wasteful query + describe() probe per candidate before the
+    // catch→reseedChangeFromDisk path finally returned the same disk data.
+    // Short-circuiting both terminal statuses here mirrors reseedChangeFromDisk
+    // and keeps enumeration/status reads fast even against poisoned terminal
+    // workflows.
+    if (
+      result.success &&
+      result.data &&
+      (result.data.status === "closed" || result.data.status === "archived")
+    ) {
+      // Mark the disk source so callers report source "disk" (matching the
+      // prior catch→reseedChangeFromDisk path). This is terminal-projection
+      // dominance, NOT a temporal_query_fallback recovery, so it does not
+      // carry the _recovery reconciliation marker.
+      return { ...result.data, _source: "disk" } as Change;
     }
     return null;
   };
@@ -1253,6 +1282,9 @@ export function createTemporalStoreBackend(
           getTemporalChange(changeId, { context: ctx }),
           deadline,
         );
+        if (isSchemaError(result)) {
+          throw new Error(result.error);
+        }
         if (result.success && result.data) {
           return {
             change: result.data,
@@ -1292,6 +1324,9 @@ export function createTemporalStoreBackend(
           legacy.changes.get(changeId),
           deadline,
         );
+        if (isSchemaError(result)) {
+          throw new Error(result.error);
+        }
         if (result.success && result.data) {
           const terminal =
             result.data.status === "archived" ||
@@ -1347,6 +1382,9 @@ export function createTemporalStoreBackend(
               loadChange(legacy.paths.archive, changeId),
               deadline,
             );
+            if (isSchemaError(archiveLoad)) {
+              throw new Error(archiveLoad.error);
+            }
             if (archiveLoad.success && archiveLoad.data) {
               return {
                 change: archiveLoad.data,

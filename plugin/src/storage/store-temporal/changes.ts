@@ -36,6 +36,7 @@ import { randomUUID } from "node:crypto";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import {
   hasArchiveBundle,
+  isSchemaError,
   listChangeDirs,
   loadChange,
   removeChangeDir,
@@ -283,6 +284,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // No artifacts passed — content flows via signals only.
       });
       const created = await legacy.changes.get(result.changeId);
+      if (isSchemaError(created)) {
+        throw new Error(created.error);
+      }
       if (!created.success || !created.data) {
         throw new Error(
           `Created change ${result.changeId} but could not reload scaffolded change state`,
@@ -879,6 +883,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // The documents live on `.data`, never on the wrapper — read through
         // the success branch so the aggregate cap projection sees the real
         // persisted documents (QUAL-002).
+        if (isSchemaError(snapshot)) {
+          throw new Error(snapshot.error);
+        }
         if (snapshot.success && snapshot.data) {
           existingDocuments =
             (snapshot.data.documents as typeof existingDocuments) ?? {};
@@ -1360,6 +1367,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             getTemporalChange(id, { context: ctx }),
             ctx.deadline,
           );
+          if (isSchemaError(loaded)) {
+            throw new Error(loaded.error);
+          }
           if (loaded.success && loaded.data) {
             fromHydration += 1;
             const change = loaded.data;
@@ -1517,6 +1527,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           };
         }
 
+        if (diskResult && isSchemaError(diskResult)) {
+          throw new Error(diskResult.error);
+        }
         if (diskResult?.success && diskResult.data) {
           const data = diskResult.data;
           if (data.id !== changeId) {

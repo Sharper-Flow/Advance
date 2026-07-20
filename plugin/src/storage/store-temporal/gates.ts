@@ -21,6 +21,7 @@ import {
 } from "../../temporal/mutation-safety";
 import { collectErrorText } from "../../temporal/error-text";
 import { createLogger } from "../../utils/debug-log";
+import { isSchemaError } from "../json";
 
 export { fireSignalWithMutationGuard };
 
@@ -106,6 +107,9 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
       const ctx: TemporalReadContext = createTemporalReadContext();
       try {
         const result = await getTemporalChange(changeId, { context: ctx });
+        if (isSchemaError(result)) {
+          throw new Error(result.error);
+        }
         if (result.success && result.data) {
           return result.data.gates ?? null;
         }
@@ -129,6 +133,13 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
           );
         }
         const recovered = await getTemporalChange(changeId, { context: ctx });
+        if (isSchemaError(recovered)) {
+          // Preserve the outer caught `error` as cause for traceability
+          // (preserve-caught-error). The schema_error message in
+          // `recovered.error` is the primary symptom; `error` is the
+          // Temporal read failure that triggered the fallback path.
+          throw new Error(recovered.error, { cause: error });
+        }
         if (recovered.success && recovered.data) {
           return recovered.data.gates ?? null;
         }

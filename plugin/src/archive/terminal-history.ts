@@ -24,7 +24,7 @@ import {
   TemporalQueryTimeoutError,
   type TemporalReadDeadline,
 } from "../temporal/retry-wrapper";
-import { listChangeDirs, loadChange } from "../storage/json";
+import { listChangeDirs, loadChange, isSchemaError } from "../storage/json";
 import { computeLastActivity, firstOpenGate } from "../storage/store-types";
 import {
   TERMINAL_SUMMARY_FILE,
@@ -190,6 +190,9 @@ async function loadArchiveBundleRow(
       loadChange(archivePath, bundleDir),
       deadline,
     );
+    if (isSchemaError(loaded)) {
+      throw new Error(loaded.error);
+    }
     if (
       loaded.success &&
       loaded.data &&
@@ -212,6 +215,9 @@ async function loadDiskTerminalRow(
   archiveBundleDirs: string[],
 ): Promise<TerminalHistoryRow | null> {
   const loaded = await raceWithDeadline(loadChange(changesPath, dir), deadline);
+  if (isSchemaError(loaded)) {
+    throw new Error(loaded.error);
+  }
   if (!loaded.success || !loaded.data) return null;
   const change = loaded.data;
   if (change.status !== "archived" && change.status !== "closed") {
