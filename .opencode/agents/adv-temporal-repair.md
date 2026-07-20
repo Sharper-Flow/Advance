@@ -28,13 +28,16 @@ tools:
   adv_status: true
   adv_subagent_report_submit: true
   adv_temporal_diagnose: true
-  adv_wip_state: true
+  adv_tool_catalog: true
   # Blocked: no nested delegation, writes, shell, lifecycle, or approval-gated repairs
   task: false
   bash: false
   write: false
   edit: false
   morph_edit: false
+  adv_tool_describe: true
+  adv_tool_invoke: true
+  adv_wip_state: true
   adv_change_archive: false
   adv_change_update: false
   adv_gate_complete: false

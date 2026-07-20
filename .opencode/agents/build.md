@@ -59,9 +59,12 @@ tools:
   # === ADV writes — task-level execution only ===
   adv_task_show: true
   adv_task_update: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  # === BLOCKED: Orchestration and gate management ===
+  adv_tool_invoke: true
   adv_wisdom_add: true
   adv_wisdom_list: true
-  # === BLOCKED: Orchestration and gate management ===
   adv_change_archive: false
   adv_change_create: false
   adv_change_reenter: false

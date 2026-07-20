@@ -42,6 +42,9 @@ tools:
   adv_spec: true
   adv_status: true
   adv_subagent_report_submit: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
   adv_change_update: false
   # <<< ADV-GENERATED adv_* tools <<<
   # UX tools

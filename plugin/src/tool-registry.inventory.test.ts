@@ -88,6 +88,7 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_lightweight_profile_evaluate",
   "adv_tool_catalog",
   "adv_tool_describe",
+  "adv_tool_invoke",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
