@@ -350,6 +350,8 @@ import {
   reconcileHistoricalArchiveDeltas,
   canonicalSha256,
   resolveGitCommitSha,
+  HistoricalConflictDispositionSchema,
+  type HistoricalConflictDisposition,
 } from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { withTimeout, TimeoutError } from "../utils/with-timeout";
@@ -3593,6 +3595,26 @@ export const changeTools = {
         .describe(
           "Trusted active repair change worktree required for action='reconcile_deltas'.",
         ),
+      expectedSeedHeadSha: z
+        .string()
+        .regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/)
+        .optional()
+        .describe(
+          "Reviewed dry-run seed HEAD required to execute reconcile_deltas.",
+        ),
+      expectedSeedProjectionSha256: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .optional()
+        .describe(
+          "Reviewed dry-run canonical seed projection digest required to execute reconcile_deltas.",
+        ),
+      conflictDispositions: z
+        .array(HistoricalConflictDispositionSchema)
+        .optional()
+        .describe(
+          "Exact add-only preserve-current conflict dispositions; every row must bind a planner-proven conflict.",
+        ),
     },
     execute: async (
       {
@@ -3603,6 +3625,9 @@ export const changeTools = {
         approvalEvidence,
         recoveryReason,
         worktreePath,
+        expectedSeedHeadSha,
+        expectedSeedProjectionSha256,
+        conflictDispositions,
       }: {
         action: "scan" | "redrive" | "reconcile" | "reconcile_deltas";
         changeId?: string;
@@ -3611,6 +3636,9 @@ export const changeTools = {
         approvalEvidence?: string;
         recoveryReason?: string;
         worktreePath?: string;
+        expectedSeedHeadSha?: string;
+        expectedSeedProjectionSha256?: string;
+        conflictDispositions?: HistoricalConflictDisposition[];
       },
       store: Store,
     ) => {
@@ -3660,6 +3688,9 @@ export const changeTools = {
             archiveDir: store.paths.archive,
             repairWorktree: worktreePath,
             dryRun: dryRun === true,
+            expectedSeedHeadSha,
+            expectedSeedProjectionSha256,
+            conflictDispositions,
           });
           return formatToolOutput({
             action,

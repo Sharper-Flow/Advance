@@ -30,6 +30,7 @@ import {
   specSha256,
   type SpecProjectionManifest,
 } from "./projection";
+import { withArchiveProjectionLock } from "./projection-lock";
 import {
   addProjectWisdom,
   listProjectWisdom,
@@ -790,7 +791,7 @@ function projectionUpdateResult(
   };
 }
 
-export async function archiveChange(
+async function archiveChangeUnderLock(
   context: ArchiveContext,
 ): Promise<ArchiveOperationResult> {
   const { change, specs, paths, dryRun = false } = context;
@@ -1085,6 +1086,15 @@ export async function archiveChange(
     ...(wisdomPromoted > 0 && { wisdomPromoted }),
     ...(terminalSummaryDegradation && { terminalSummaryDegradation }),
   };
+}
+
+export async function archiveChange(
+  context: ArchiveContext,
+): Promise<ArchiveOperationResult> {
+  const worktree = dirname(dirname(context.paths.specs));
+  return withArchiveProjectionLock(worktree, () =>
+    archiveChangeUnderLock(context),
+  );
 }
 
 /**
