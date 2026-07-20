@@ -8,6 +8,10 @@ tools:
   read: true
   glob: true
   grep: true
+  # CodeMode entry point — exposes lgrep as tools.lgrep.<name> inside the
+  # confined interpreter. Required because OPENCODE_EXPERIMENTAL_CODE_MODE=true
+  # moves MCP tools out of top-level.
+  execute: true
   lgrep_search_text: true
   lgrep_get_file_outline: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===

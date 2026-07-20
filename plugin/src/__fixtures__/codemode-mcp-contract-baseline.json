@@ -6,12 +6,12 @@
   "contractBytes": 305,
   "prompts": {
     "adv-ci-waiter": {
-      "bytes": 4328,
+      "bytes": 4223,
       "mcpCapable": false,
       "grants": []
     },
     "adv-designer": {
-      "bytes": 24676,
+      "bytes": 25046,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -32,7 +32,7 @@
       ]
     },
     "adv-engineer": {
-      "bytes": 16830,
+      "bytes": 16946,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -53,7 +53,7 @@
       ]
     },
     "adv-researcher": {
-      "bytes": 11662,
+      "bytes": 11937,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -72,7 +72,7 @@
       ]
     },
     "adv-reviewer": {
-      "bytes": 25261,
+      "bytes": 25121,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -93,12 +93,12 @@
       ]
     },
     "adv-temporal-repair": {
-      "bytes": 6127,
+      "bytes": 5987,
       "mcpCapable": true,
       "grants": ["lgrep_get_file_outline=true", "lgrep_search_text=true"]
     },
     "adv-tron": {
-      "bytes": 10435,
+      "bytes": 10295,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -118,7 +118,7 @@
       ]
     },
     "adv-verifier": {
-      "bytes": 7469,
+      "bytes": 7329,
       "mcpCapable": true,
       "grants": [
         "lgrep_get_file_outline=true",
@@ -130,7 +130,7 @@
       ]
     },
     "adv-visual-review": {
-      "bytes": 8242,
+      "bytes": 8102,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -148,7 +148,7 @@
       ]
     },
     "adv": {
-      "bytes": 27852,
+      "bytes": 27837,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -171,7 +171,7 @@
       ]
     },
     "build": {
-      "bytes": 9867,
+      "bytes": 9727,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -199,7 +199,7 @@
       ]
     },
     "plan": {
-      "bytes": 11665,
+      "bytes": 11548,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
