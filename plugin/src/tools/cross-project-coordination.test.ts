@@ -220,13 +220,13 @@ describe("cross-project coordination metadata", () => {
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
-      repoProjectId: "w".repeat(40),
+      repoProjectId: "a".repeat(40),
       productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
       repos: {
-        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        web: { id: "web", root: sourceDir, repoProjectId: "a".repeat(40) },
         backend: {
           id: "backend",
           root: targetDir,
@@ -249,7 +249,7 @@ describe("cross-project coordination metadata", () => {
     expect(parsed.scope_repos).toEqual([
       expect.objectContaining({
         repo_id: "web",
-        repo_project_id: "w".repeat(40),
+        repo_project_id: "a".repeat(40),
       }),
     ]);
   });
@@ -258,13 +258,13 @@ describe("cross-project coordination metadata", () => {
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
-      repoProjectId: "w".repeat(40),
+      repoProjectId: "a".repeat(40),
       productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
       repos: {
-        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        web: { id: "web", root: sourceDir, repoProjectId: "a".repeat(40) },
       },
       mode: "secondary",
       missingPrimaryPolicy: "block",
@@ -286,13 +286,13 @@ describe("cross-project coordination metadata", () => {
     sourceStore.productContext = {
       currentRoot: sourceDir,
       currentRepoId: "web",
-      repoProjectId: "w".repeat(40),
+      repoProjectId: "a".repeat(40),
       productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
       repos: {
-        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        web: { id: "web", root: sourceDir, repoProjectId: "a".repeat(40) },
         backend: {
           id: "backend",
           root: targetDir,
