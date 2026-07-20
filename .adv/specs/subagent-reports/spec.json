@@ -3,21 +3,27 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.7.3",
-  "updated_at": "2026-07-13T00:00:00.000Z",
-  "conformance_required": false,
+  "version": "1.8.0",
+  "updated_at": "2026-07-19T15:18:28.366Z",
   "requirements": [
     {
       "id": "rq-subagentReports01",
       "title": "Typed tool-call report ingest",
       "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, adv-scanner-bundle, and orchestrator-submitted adv-verification-triage-bundle payload variants, and rejects malformed or unsupported payloads before persistence. adv-researcher payloads additionally include an Architecture Judgement object per rq-subagentReports20 with status consistency against validation.status.",
       "priority": "must",
-      "tags": ["subagents", "reports", "zod", "ingest"],
+      "tags": [
+        "subagents",
+        "reports",
+        "zod",
+        "ingest"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports01.1",
           "title": "Malformed report rejected",
-          "given": ["A caller submits a report missing required fields"],
+          "given": [
+            "A caller submits a report missing required fields"
+          ],
           "when": "adv_subagent_report_submit validates the payload",
           "then": [
             "The tool returns INVALID_REPORT",
@@ -72,7 +78,12 @@
       "title": "Signal-persisted sidecar report state",
       "body": "Accepted reports MUST persist via subagentReportSubmittedSignal into a change-level sidecar report store. Task-scoped adv-engineer and adv-reviewer reports keep legacy task.subagent_reports[] read compatibility, but new canonical persistence MUST be scope-aware sidecar storage. The workflow MUST dedupe repeated submissions by (change_id, scope, agent, attempt) using deterministic workflow state, and MUST map task-scoped report blockers into task error_recovery without defineUpdate-based mutations.",
       "priority": "must",
-      "tags": ["temporal", "signals", "dedupe", "tasks"],
+      "tags": [
+        "temporal",
+        "signals",
+        "dedupe",
+        "tasks"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports02.1",
@@ -107,7 +118,11 @@
       "title": "Queryable reports and consumers",
       "body": "adv_change_show include.subagentReports MUST return persisted sidecar report data with explicit source metadata. Legacy reports that still live on task.subagent_reports[] MUST remain readable through the same opt-in readback. Tool-layer consumers MUST retain follow_ups[] as source-attributed report metadata and surface verification cross-check warnings without rolling back an already persisted report. Follow-ups are promoted only through the typed adv_report_followup_promote / adv_followup_promote paths, not by consumer-side queue writes.",
       "priority": "must",
-      "tags": ["read-surface", "verification", "consumers"],
+      "tags": [
+        "read-surface",
+        "verification",
+        "consumers"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports03.1",
@@ -125,7 +140,9 @@
         {
           "id": "rq-subagentReports03.2",
           "title": "Follow-ups remain source-attributed report metadata after persistence",
-          "given": ["An engineer report contains follow_ups"],
+          "given": [
+            "An engineer report contains follow_ups"
+          ],
           "when": "adv_subagent_report_submit succeeds",
           "then": [
             "The report signal is fired before any consumer runs",
@@ -140,12 +157,19 @@
       "title": "No ADV worker fenced-report transport",
       "body": "ADV worker contracts MUST instruct persisted worker lanes to call adv_subagent_report_submit before exit. Apply, review, and harden context packets MUST include ATTEMPT so the report key is stable. Legacy TaskStructuredOutput extraction remains available for non-ADV callers but MUST short-circuit for tasks that already have persisted sub-agent reports.",
       "priority": "must",
-      "tags": ["agents", "contracts", "legacy", "attempt"],
+      "tags": [
+        "agents",
+        "contracts",
+        "legacy",
+        "attempt"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports04.1",
           "title": "Worker contracts use tool-call transport",
-          "given": ["adv-engineer or adv-reviewer is spawned by ADV"],
+          "given": [
+            "adv-engineer or adv-reviewer is spawned by ADV"
+          ],
           "when": "The worker completes its scope",
           "then": [
             "The worker builds a schema-specific report object",
@@ -156,7 +180,9 @@
         {
           "id": "rq-subagentReports04.2",
           "title": "Legacy extraction skips persisted report tasks",
-          "given": ["A task already has task.subagent_reports[]"],
+          "given": [
+            "A task already has task.subagent_reports[]"
+          ],
           "when": "adv_task_checkpoint or compatible task completion sees legacy adv-output text",
           "then": [
             "The completion signal omits structured_output extracted from the legacy text",
@@ -170,7 +196,12 @@
       "title": "Schema-aligned worker context packets",
       "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. Task-scoped adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT identity anchors. Task-scoped adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT identity anchors. Task-scoped adv-designer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT identity anchors. Change-scoped adv-researcher and adv-tron worker packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT identity anchors. Orchestrator-submitted scanner bundle packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT identity anchors. Missing schema-derived identity anchors produce malformed reports and MUST remain INVALID_REPORT. Newly-added non-identity packet anchors are warn-first during rollout: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. These anchors define explicit scope boundaries, completion conditions, stop conditions, and verification expectations. Out-of-scope findings use finish owned scope if safe, then report; workers stop immediately only for contract/security/release blockers. Verification commands are required when possible and workers may add relevant additional checks. Individual scanner lanes are separate non-persisted analysis workers and MUST NOT claim worker report transport or call adv_subagent_report_submit.",
       "priority": "must",
-      "tags": ["subagents", "packets", "schema", "scanners"],
+      "tags": [
+        "subagents",
+        "packets",
+        "schema",
+        "scanners"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports05.1",
@@ -189,7 +220,9 @@
         {
           "id": "rq-subagentReports05.2",
           "title": "Scanner lanes remain non-persisted",
-          "given": ["ADV spawns explore scanners during review or harden"],
+          "given": [
+            "ADV spawns explore scanners during review or harden"
+          ],
           "when": "The scanner returns dimension-specific analysis JSON",
           "then": [
             "The scanner packet is classified as scanner, not worker",
@@ -219,7 +252,11 @@
       "title": "Strict report scope model",
       "body": "Persisted reports MUST carry structural scope metadata. Task evidence reports use scope.kind task with task_id. Optimized handoff reports use scope.kind change with a structural scope_key. The schema MUST enforce agent/scope pairing: adv-engineer and adv-designer are task-scoped only; adv-reviewer is task-scoped for remediation and change-scoped for independent review and harden summaries; adv-researcher, adv-tron, adv-scanner-bundle, and adv-verification-triage-bundle are change-scoped. Verification triage bundles use scope_key verifier:<slug>.",
       "priority": "must",
-      "tags": ["schema", "scope", "structural-correctness"],
+      "tags": [
+        "schema",
+        "scope",
+        "structural-correctness"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports06.1",
@@ -251,7 +288,9 @@
         {
           "id": "rq-subagentReports06.2",
           "title": "Source metadata preserved",
-          "given": ["A valid change-scoped report is submitted"],
+          "given": [
+            "A valid change-scoped report is submitted"
+          ],
           "when": "The report is read through include.subagentReports",
           "then": [
             "The response includes agent, scope, workdir_used, attempt, and submitted_at source metadata",
@@ -266,12 +305,21 @@
       "title": "Optimized handoff variants",
       "body": "adv-researcher and adv-tron reports MUST persist compact optimized handoff fields instead of raw transcripts. adv-scanner-bundle reports MUST be orchestrator-submitted scanner bundle summaries; individual scanners keep no ADV tool access and cannot submit reports directly. adv-verification-triage-bundle reports MUST persist orchestrator-submitted verification triage bundle evidence for local_verify and ci_check phases; verification workers keep no ADV tool access and cannot submit reports directly.",
       "priority": "must",
-      "tags": ["research", "recon", "scanner", "handoff", "verification", "triage"],
+      "tags": [
+        "research",
+        "recon",
+        "scanner",
+        "handoff",
+        "verification",
+        "triage"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports07.1",
           "title": "Research and recon reports stay compact",
-          "given": ["A researcher or tron worker returns findings"],
+          "given": [
+            "A researcher or tron worker returns findings"
+          ],
           "when": "The report is submitted",
           "then": [
             "The payload includes evidence, assessment, blockers or open questions, and recommended next action",
@@ -299,7 +347,11 @@
       "title": "Bounded follow-up retention",
       "body": "Persisted report follow_ups[] MUST be retained as bounded, source-attributed report metadata. Harden MUST inspect report follow-ups and fix those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable follow-ups MUST get rationale instead of silent ignore. Promotion to durable owners happens only through adv_report_followup_promote / adv_followup_promote.",
       "priority": "must",
-      "tags": ["follow-ups", "harden", "campsite"],
+      "tags": [
+        "follow-ups",
+        "harden",
+        "campsite"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports08.1",
@@ -317,7 +369,9 @@
         {
           "id": "rq-subagentReports08.2",
           "title": "Harden inspects report follow-ups",
-          "given": ["Report follow-ups exist during harden"],
+          "given": [
+            "Report follow-ups exist during harden"
+          ],
           "when": "Harden evaluates local safe fixes",
           "then": [
             "Safe adjacent campsite items are fixed",
@@ -332,7 +386,12 @@
       "title": "Temporal replay and legacy compatibility",
       "body": "Sub-agent report persistence MUST preserve Temporal replay safety. Key-shape changes from legacy task_id keys to scope-aware sidecar keys MUST be versioned or compatibility-preserved. Existing adv-engineer and adv-reviewer behavior remains backward-compatible, including task/checkpoint consumers that detect legacy task.subagent_reports[].",
       "priority": "must",
-      "tags": ["temporal", "replay", "compatibility", "legacy"],
+      "tags": [
+        "temporal",
+        "replay",
+        "compatibility",
+        "legacy"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports09.1",
@@ -367,7 +426,12 @@
       "title": "Legacy report default normalization on readback",
       "body": "Persisted legacy task and sidecar sub-agent reports missing fields added after initial rollout MUST be deterministically normalized at readback, workflow seed, and projection boundaries before strict whole-change parsing. Missing task-scoped scope_drift defaults to null, and missing required_main_agent_actions defaults to an empty array. New adv_subagent_report_submit payload validation remains strict and MUST NOT accept those omissions as valid new ingest.",
       "priority": "must",
-      "tags": ["legacy", "normalization", "readback", "zod"],
+      "tags": [
+        "legacy",
+        "normalization",
+        "readback",
+        "zod"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports10.1",
@@ -402,12 +466,19 @@
       "title": "Independent review and harden structural anchors",
       "body": "Independent adv-reviewer reports for acceptance review and release hardening MUST use a supported change-scoped structural anchor, never synthetic task IDs. Acceptance review uses scope.kind change with scope_key review:acceptance. Release hardening uses scope.kind change with scope_key harden:release. Remediation reviewer reports tied to a task remain task-scoped and MUST reference an existing ADV task ID.",
       "priority": "must",
-      "tags": ["review", "harden", "scope", "anchors"],
+      "tags": [
+        "review",
+        "harden",
+        "scope",
+        "anchors"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports11.1",
           "title": "Acceptance reviewer report uses change scope",
-          "given": ["ADV runs independent acceptance review"],
+          "given": [
+            "ADV runs independent acceptance review"
+          ],
           "when": "The reviewer persists its report",
           "then": [
             "The report uses scope.kind change",
@@ -418,7 +489,9 @@
         {
           "id": "rq-subagentReports11.2",
           "title": "Harden reviewer report uses change scope",
-          "given": ["ADV runs release hardening"],
+          "given": [
+            "ADV runs release hardening"
+          ],
           "when": "The reviewer persists its report",
           "then": [
             "The report uses scope.kind change",
@@ -433,12 +506,18 @@
       "title": "Invalid task anchors return actionable diagnostics",
       "body": "Task-scoped sub-agent report submissions that reference a task outside the change MUST fail before signaling with a typed INVALID_TASK_ANCHOR diagnostic. The response MUST identify changeId, taskId, agent, attempt, valid task anchors, and guidance explaining when to use task scope, independent reviewer change scope, or non-persisted scanner lanes.",
       "priority": "must",
-      "tags": ["diagnostics", "task-anchor", "tooling"],
+      "tags": [
+        "diagnostics",
+        "task-anchor",
+        "tooling"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports12.1",
           "title": "Invalid task id is actionable",
-          "given": ["A task-scoped worker report references a missing task ID"],
+          "given": [
+            "A task-scoped worker report references a missing task ID"
+          ],
           "when": "adv_subagent_report_submit validates task anchoring",
           "then": [
             "The tool returns INVALID_TASK_ANCHOR",
@@ -454,7 +533,12 @@
       "title": "Structural scope in worker prompts",
       "body": "New ADV worker prompts, packet examples, and command contracts MUST use structural `scope` objects. String scope remains compatibility-only for legacy persisted records and legacy callers until a future removal, but it MUST NOT be promoted in new examples. Task workers use scope.kind task with task_id. Independent reviewer packets use scope.kind change with scope_key review:acceptance or harden:release.",
       "priority": "must",
-      "tags": ["prompts", "scope", "compatibility", "contracts"],
+      "tags": [
+        "prompts",
+        "scope",
+        "compatibility",
+        "contracts"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports13.1",
@@ -516,7 +600,12 @@
       "title": "Artifact-Wide Sub-Agent State Access Policy",
       "body": "ADV worker prompts and command packets MUST instruct sub-agents to access ADV artifacts through ADV tools or packet-provided content, not by direct reads of external ADV state paths. The forbidden artifact list includes proposal, problem statement, agreement, design, executive summary, acceptance, change, agenda, wisdom, and conformance state files.",
       "priority": "must",
-      "tags": ["subagents", "artifacts", "prompts", "state-access"],
+      "tags": [
+        "subagents",
+        "artifacts",
+        "prompts",
+        "state-access"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentArtifactAccess01.1",
@@ -587,7 +676,9 @@
         {
           "id": "rq-opsFollowPromotion01.2",
           "title": "Duplicate promotion returns existing link",
-          "given": ["The same required follow-up has already been promoted"],
+          "given": [
+            "The same required follow-up has already been promoted"
+          ],
           "when": "Promotion is called again with the same source artifact ID",
           "then": [
             "The tool returns the existing link/change without creating a duplicate",
@@ -597,7 +688,9 @@
         {
           "id": "rq-opsFollowPromotion01.3",
           "title": "Plain follow-up promotes as non-blocking",
-          "given": ["A report follow_ups[] contains an advisory item"],
+          "given": [
+            "A report follow_ups[] contains an advisory item"
+          ],
           "when": "It is promoted",
           "then": [
             "A linked change is created",
@@ -612,7 +705,13 @@
       "title": "Review Packets Surface Non-Code Evidence Policies",
       "body": "ADV review and scanner worker packets MUST surface task type and evidence policy for non-code deliverables so reviewers can evaluate research, writing, design, approval, and documentation tasks against the approved contract without requiring fake TDD evidence. Persisted reviewer or scanner-bundle reports MUST preserve enough evidence summary for the orchestrator to build contract.reviewMatrix rows using the applicable evidence policy.",
       "priority": "must",
-      "tags": ["subagents", "review", "non-code", "evidence", "contracts"],
+      "tags": [
+        "subagents",
+        "review",
+        "non-code",
+        "evidence",
+        "contracts"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentNonCodeEvidence01.1",
@@ -647,28 +746,52 @@
       "title": "Designer Design-Dimension Rationale",
       "body": "DESIGNER_REPORT.design_dimensions MUST remain a strict six-dimension typed object using pass, concern, or n/a for component_correctness, semantic_html_a11y, responsive_behavior, visual_polish, site_design_consistency, and finer_details. When any dimension is concern or n/a, the report MUST include non-empty notes that explain the non-pass or non-applicable dimension. All-pass reports MAY omit notes for backward-compatible compactness. This rationale requirement MUST be enforced by schema validation before report persistence.",
       "priority": "must",
-      "tags": ["subagents", "adv-designer", "reports", "design-quality", "zod"],
+      "tags": [
+        "subagents",
+        "adv-designer",
+        "reports",
+        "design-quality",
+        "zod"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports18.1",
           "title": "Concern without notes is rejected",
-          "given": ["An adv-designer report has design_dimensions.visual_polish set to concern", "The design_dimensions object omits notes or provides blank notes"],
+          "given": [
+            "An adv-designer report has design_dimensions.visual_polish set to concern",
+            "The design_dimensions object omits notes or provides blank notes"
+          ],
           "when": "adv_subagent_report_submit validates the report",
-          "then": ["The report is rejected as INVALID_REPORT", "No workflow signal is fired", "No sidecar report is persisted"]
+          "then": [
+            "The report is rejected as INVALID_REPORT",
+            "No workflow signal is fired",
+            "No sidecar report is persisted"
+          ]
         },
         {
           "id": "rq-subagentReports18.2",
           "title": "N/A without notes is rejected",
-          "given": ["An adv-designer report has design_dimensions.responsive_behavior set to n/a", "The design_dimensions object omits notes or provides blank notes"],
+          "given": [
+            "An adv-designer report has design_dimensions.responsive_behavior set to n/a",
+            "The design_dimensions object omits notes or provides blank notes"
+          ],
           "when": "adv_subagent_report_submit validates the report",
-          "then": ["The report is rejected as INVALID_REPORT", "The diagnostic identifies the missing design-dimension rationale"]
+          "then": [
+            "The report is rejected as INVALID_REPORT",
+            "The diagnostic identifies the missing design-dimension rationale"
+          ]
         },
         {
           "id": "rq-subagentReports18.3",
           "title": "All-pass report remains compact",
-          "given": ["An adv-designer report marks all six design dimensions pass"],
+          "given": [
+            "An adv-designer report marks all six design dimensions pass"
+          ],
           "when": "adv_subagent_report_submit validates the report",
-          "then": ["The report is accepted even when notes is omitted", "Existing all-pass report compatibility is preserved"]
+          "then": [
+            "The report is accepted even when notes is omitted",
+            "Existing all-pass report compatibility is preserved"
+          ]
         }
       ]
     },
@@ -677,28 +800,57 @@
       "title": "Verification Triage Bundle Semantics",
       "body": "adv-verification-triage-bundle MUST be an orchestrator-submitted verification triage bundle for local verification bursts and CI/check-run failures. It MUST use scope.kind change with scope_key verifier:<slug>, phase local_verify or ci_check, targets with command or ci_check identity, status pass|fail|inconclusive, error_class SEMANTIC|TRANSIENT|ENVIRONMENTAL|FATAL|UNKNOWN, confidence, evidence_basis, findings, recommended_next_action, scope_risk, optional suggested_handoff, required_main_agent_actions, optional consumer_warnings, and follow_ups. UNKNOWN is routing-only and must not write task error_recovery. route_adv_engineer is valid only when error_class is SEMANTIC, scope_risk is false, confidence is high or medium, and suggested_handoff is populated. The bundle is evidence, not authority: it MUST NOT complete gates, mutate tasks, change scope, edit code, publish final user-facing conclusions, or spawn remediation workers.",
       "priority": "must",
-      "tags": ["subagents", "verification", "triage", "ci", "reports", "zod"],
+      "tags": [
+        "subagents",
+        "verification",
+        "triage",
+        "ci",
+        "reports",
+        "zod"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports19.1",
           "title": "Local verification and CI targets are structurally represented",
-          "given": ["The orchestrator submits a verification triage bundle"],
+          "given": [
+            "The orchestrator submits a verification triage bundle"
+          ],
           "when": "The bundle describes phase local_verify or ci_check",
-          "then": ["local_verify targets include command identity and exit code", "ci_check targets include repo/check identity and head SHA", "Evidence is bounded and source-backed"]
+          "then": [
+            "local_verify targets include command identity and exit code",
+            "ci_check targets include repo/check identity and head SHA",
+            "Evidence is bounded and source-backed"
+          ]
         },
         {
           "id": "rq-subagentReports19.2",
           "title": "Triage classifications have routing-safe evidence policy",
-          "given": ["A triage bundle classifies a failure"],
+          "given": [
+            "A triage bundle classifies a failure"
+          ],
           "when": "The classification is SEMANTIC, TRANSIENT, ENVIRONMENTAL, FATAL, or UNKNOWN",
-          "then": ["SEMANTIC indicates deterministic failure evidence", "TRANSIENT requires rerun or infrastructure evidence", "ENVIRONMENTAL requires missing dependency, credential, service, or external-system evidence", "FATAL indicates unsafe or unrecoverable conditions", "UNKNOWN is routing-only and must not write task error_recovery"]
+          "then": [
+            "SEMANTIC indicates deterministic failure evidence",
+            "TRANSIENT requires rerun or infrastructure evidence",
+            "ENVIRONMENTAL requires missing dependency, credential, service, or external-system evidence",
+            "FATAL indicates unsafe or unrecoverable conditions",
+            "UNKNOWN is routing-only and must not write task error_recovery"
+          ]
         },
         {
           "id": "rq-subagentReports19.3",
           "title": "Engineer handoff remains main-ADV owned",
-          "given": ["A triage bundle recommends route_adv_engineer"],
+          "given": [
+            "A triage bundle recommends route_adv_engineer"
+          ],
           "when": "The schema and orchestrator evaluate routing predicates",
-          "then": ["error_class is SEMANTIC", "scope_risk is false", "confidence is high or medium", "suggested_handoff is present", "Main ADV independently validates scope before spawning adv-engineer"]
+          "then": [
+            "error_class is SEMANTIC",
+            "scope_risk is false",
+            "confidence is high or medium",
+            "suggested_handoff is present",
+            "Main ADV independently validates scope before spawning adv-engineer"
+          ]
         }
       ]
     },
@@ -777,33 +929,55 @@
       "title": "Briefing Packets Derive from Structured Sub-Agent Report State",
       "body": "Briefing packets MUST be generated read-only projections derived from persisted sub-agent reports and workflow structured state. Lane identity anchors MUST match SUBAGENT_REPORT_FIELD_SOURCES / getSubagentReportPacketAnchors() for each supported persisted worker or bundle lane. Packet slices MUST be bounded and lane-specific; raw report bodies, raw artifacts, and raw transcripts MUST NOT be dumped into every packet. Missing structured state MUST render explicit unavailable markers or warnings instead of heuristically fabricating correctness-critical fields. Session/tool-read metadata MUST remain audit-only and MUST NOT be persisted as live briefing packet state.",
       "priority": "must",
-      "tags": ["subagents", "reports", "briefing_packets", "projection", "anchors"],
+      "tags": [
+        "subagents",
+        "reports",
+        "briefing_packets",
+        "projection",
+        "anchors"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports21.1",
           "title": "Engineer lane anchors match task-scoped identity fields",
-          "given": ["A briefing packet is requested for the engineer lane"],
+          "given": [
+            "A briefing packet is requested for the engineer lane"
+          ],
           "when": "Lane identity anchors are derived from report field sources",
-          "then": ["Anchors include CHANGE, TASK, ATTEMPT, WORKING DIRECTORY", "Anchors do not include warn-first scope/done/stop/verification anchors"]
+          "then": [
+            "Anchors include CHANGE, TASK, ATTEMPT, WORKING DIRECTORY",
+            "Anchors do not include warn-first scope/done/stop/verification anchors"
+          ]
         },
         {
           "id": "rq-subagentReports21.2",
           "title": "Reviewer lane anchors match phase and task-scoped identity fields",
-          "given": ["A briefing packet is requested for the reviewer lane"],
+          "given": [
+            "A briefing packet is requested for the reviewer lane"
+          ],
           "when": "Lane identity anchors are derived from report field sources",
-          "then": ["Anchors include CHANGE, TASK, PHASE, ATTEMPT, WORKING DIRECTORY"]
+          "then": [
+            "Anchors include CHANGE, TASK, PHASE, ATTEMPT, WORKING DIRECTORY"
+          ]
         },
         {
           "id": "rq-subagentReports21.3",
           "title": "Archive lane is not a worker lane",
-          "given": ["A briefing packet is requested for the archive lane"],
+          "given": [
+            "A briefing packet is requested for the archive lane"
+          ],
           "when": "The lane is classified",
-          "then": ["The archive lane does not map to a persisted sub-agent report agent", "Archive digest anchors are deterministic and terminal-state focused"]
+          "then": [
+            "The archive lane does not map to a persisted sub-agent report agent",
+            "Archive digest anchors are deterministic and terminal-state focused"
+          ]
         },
         {
           "id": "rq-subagentReports21.4",
           "title": "Researcher sources render as bounded stable-order research_citation facts",
-          "given": ["An adv-researcher report contains a non-empty sources array"],
+          "given": [
+            "An adv-researcher report contains a non-empty sources array"
+          ],
           "when": "The briefing fact classifier processes the report",
           "then": [
             "The first RESEARCH_CITATION_RENDER_LIMIT sources render as research_citation facts in stable report order",
@@ -815,7 +989,9 @@
         {
           "id": "rq-subagentReports21.5",
           "title": "Strict identity and warn-first context anchor boundary is pinned",
-          "given": ["Packet-contract asset tests run against command/agent assets"],
+          "given": [
+            "Packet-contract asset tests run against command/agent assets"
+          ],
           "when": "Anchor tier membership is asserted",
           "then": [
             "Identity anchors (CHANGE, TASK, ATTEMPT, WORKING DIRECTORY, plus agent-specific PHASE / SCOPE KEY) remain strict",
@@ -830,56 +1006,104 @@
       "title": "Post-archive report persistence via disk-projection fallback",
       "body": "When the owning change workflow is terminal (archived or closed), adv_subagent_report_submit MUST persist the report via a disk-projection fallback rather than failing with SUBMIT_SIGNAL_FAILED. Archived changes write to the archive bundle change.json subagent_reports[] (or task.subagent_reports[] for task-scoped reports); closed changes write to the active changes dir change.json. The persisted report carries a recovery_audit marker distinguishing it from signal-persisted reports. Persistence is idempotent by report key (change_id, scope, agent, attempt). The read path needs no change — terminal projection dominance already routes archived/closed reads through the disk projection. Report consumers (follow_ups, required_follow_ups, design concerns) run after disk persistence because they operate on the persisted report projection and work post-archive. The active-workflow signal path (rq-subagentReports02), readback normalization (rq-subagentReports09, rq-subagentReports10), and Temporal replay safety (rq-subagentReports09) are unchanged.",
       "priority": "must",
-      "tags": ["temporal", "terminal", "disk-projection", "post-archive", "persistence"],
+      "tags": [
+        "temporal",
+        "terminal",
+        "disk-projection",
+        "post-archive",
+        "persistence"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports22.1",
           "title": "Terminal change report persists via disk projection",
-          "given": ["A change workflow is terminal (archived or closed)"],
+          "given": [
+            "A change workflow is terminal (archived or closed)"
+          ],
           "when": "adv_subagent_report_submit is called with a valid report",
-          "then": ["The report persists to the terminal disk projection subagent_reports[] (archive bundle change.json for archived; active changes dir for closed)", "The report carries a recovery_audit marker with persisted_via indicating the projection type", "The tool returns success (not SUBMIT_SIGNAL_FAILED)", "The signal path is not invoked"]
+          "then": [
+            "The report persists to the terminal disk projection subagent_reports[] (archive bundle change.json for archived; active changes dir for closed)",
+            "The report carries a recovery_audit marker with persisted_via indicating the projection type",
+            "The tool returns success (not SUBMIT_SIGNAL_FAILED)",
+            "The signal path is not invoked"
+          ]
         },
         {
           "id": "rq-subagentReports22.2",
           "title": "Post-archive report is queryable without a live workflow",
-          "given": ["A report was persisted via the disk-projection fallback"],
+          "given": [
+            "A report was persisted via the disk-projection fallback"
+          ],
           "when": "adv_change_show include.subagentReports reads the change",
-          "then": ["The report appears in _subagentReports", "The read succeeds without a live/running workflow for the change", "The report is loaded from the terminal disk projection"]
+          "then": [
+            "The report appears in _subagentReports",
+            "The read succeeds without a live/running workflow for the change",
+            "The report is loaded from the terminal disk projection"
+          ]
         },
         {
           "id": "rq-subagentReports22.3",
           "title": "Post-archive re-submit is idempotent",
-          "given": ["A report was already persisted via the disk-projection fallback"],
+          "given": [
+            "A report was already persisted via the disk-projection fallback"
+          ],
           "when": "The same report key is re-submitted",
-          "then": ["The tool returns duplicate true", "No duplicate entry is appended"]
+          "then": [
+            "The tool returns duplicate true",
+            "No duplicate entry is appended"
+          ]
         },
         {
           "id": "rq-subagentReports22.4",
           "title": "Consumers run after post-archive persistence",
-          "given": ["A report with follow_ups is submitted for a terminal change"],
+          "given": [
+            "A report with follow_ups is submitted for a terminal change"
+          ],
           "when": "The disk-projection persistence succeeds",
-          "then": ["follow_ups are retained as source-attributed report metadata", "required_follow_ups are retained as required-obligation report metadata", "The early-return that previously blocked consumers is replaced by the disk-projection path"]
+          "then": [
+            "follow_ups are retained as source-attributed report metadata",
+            "required_follow_ups are retained as required-obligation report metadata",
+            "The early-return that previously blocked consumers is replaced by the disk-projection path"
+          ]
         },
         {
           "id": "rq-subagentReports22.5",
           "title": "Active workflow signal path unchanged",
-          "given": ["A change workflow is active (draft, pending, or active)"],
+          "given": [
+            "A change workflow is active (draft, pending, or active)"
+          ],
           "when": "adv_subagent_report_submit is called",
-          "then": ["The signal path (subagentReportSubmittedSignal) is used as before", "No disk-projection fallback is triggered", "A defensive catch routes authorized completed-workflow race errors to the fallback"]
+          "then": [
+            "The signal path (subagentReportSubmittedSignal) is used as before",
+            "No disk-projection fallback is triggered",
+            "A defensive catch routes authorized completed-workflow race errors to the fallback"
+          ]
         },
         {
           "id": "rq-subagentReports22.6",
           "title": "Non-terminal WorkflowNotFound recovery is authorized",
-          "given": ["A change workflow is active (not archived/closed) but the signal fails with a completed-workflow error"],
+          "given": [
+            "A change workflow is active (not archived/closed) but the signal fails with a completed-workflow error"
+          ],
           "when": "adv_subagent_report_submit catches the signal failure",
-          "then": ["The structural completed-workflow classifier (isWorkflowCompletedError) authorizes the disk-projection fallback", "One deduplicated, authorized disk projection is written via saveRecoveredSubagentReport", "The tool returns success and does not re-signal the unreachable workflow"]
+          "then": [
+            "The structural completed-workflow classifier (isWorkflowCompletedError) authorizes the disk-projection fallback",
+            "One deduplicated, authorized disk projection is written via saveRecoveredSubagentReport",
+            "The tool returns success and does not re-signal the unreachable workflow"
+          ]
         },
         {
           "id": "rq-subagentReports22.7",
           "title": "Non-terminal signal failure without completed-workflow evidence returns typed failure",
-          "given": ["A change workflow is active and the signal fails with an error that is NOT a completed-workflow error (e.g. transient timeout, or a benign message containing 'WorkflowNotFound' as a substring)"],
+          "given": [
+            "A change workflow is active and the signal fails with an error that is NOT a completed-workflow error (e.g. transient timeout, or a benign message containing 'WorkflowNotFound' as a substring)"
+          ],
           "when": "adv_subagent_report_submit catches the signal failure",
-          "then": ["No disk-projection fallback is triggered", "The tool returns SUBMIT_SIGNAL_FAILED with a failureRecord when task identity is available", "The transient error path is unchanged"]
+          "then": [
+            "No disk-projection fallback is triggered",
+            "The tool returns SUBMIT_SIGNAL_FAILED with a failureRecord when task identity is available",
+            "The transient error path is unchanged"
+          ]
         }
       ]
     },
@@ -1021,6 +1245,59 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-subagentReports25",
+      "title": "Typed Test-Run Binding for New Worker Reports",
+      "body": "New engineer/designer verification evidence MUST bind to durable same-task test-run IDs and matching exit status. Display command text and reviewer aggregate prose are descriptive only for new evidence. Historical reports without typed-binding provenance MAY retain exact-command compatibility through an explicit legacy variant; fuzzy normalization and timestamp cutovers are forbidden.",
+      "priority": "must",
+      "tags": [
+        "reports",
+        "verification",
+        "test-runs",
+        "compatibility"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports25.1",
+          "title": "Typed run survives cosmetic command labels",
+          "given": [
+            "A new engineer or designer report references a durable same-task test run",
+            "The displayed command label differs cosmetically"
+          ],
+          "when": "Verification evidence is evaluated",
+          "then": [
+            "The run ID and exit status establish the match",
+            "Display command text does not control authority"
+          ]
+        },
+        {
+          "id": "rq-subagentReports25.2",
+          "title": "Missing or mismatched typed evidence blocks",
+          "given": [
+            "A typed report references a missing run, another task's run, or mismatched exit status"
+          ],
+          "when": "Readiness is evaluated",
+          "then": [
+            "A typed verification warning or blocker is emitted",
+            "Reviewer aggregate prose does not satisfy the gap"
+          ]
+        },
+        {
+          "id": "rq-subagentReports25.3",
+          "title": "Historical compatibility is explicit",
+          "given": [
+            "A persisted historical report lacks typed-binding provenance"
+          ],
+          "when": "It is read or evaluated",
+          "then": [
+            "It normalizes to an explicit legacy variant",
+            "Exact-command compatibility may be used",
+            "No timestamp or fuzzy command inference is used"
+          ]
+        }
+      ]
     }
-  ]
+  ],
+  "conformance_required": false
 }

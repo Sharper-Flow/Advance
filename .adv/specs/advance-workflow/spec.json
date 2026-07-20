@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.30.0",
-  "updated_at": "2026-07-19T02:59:24.570Z",
+  "version": "1.31.0",
+  "updated_at": "2026-07-19T15:18:28.366Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -6113,6 +6113,150 @@
             "The candidate is represented through typed omission/degradation",
             "Enumeration order is not treated as recency",
             "Health does not claim globally complete orientation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-readinessMutationReceipt01",
+      "title": "Readiness Writes Confirm Workflow Application",
+      "body": "A readiness-affecting write MUST NOT report success from Signal RPC acceptance or cache refresh alone. The workflow records a unique bounded mutation receipt only after successful state application, and the tool confirms that exact receipt before returning success. Unconfirmed application returns a typed non-success result.",
+      "priority": "must",
+      "tags": [
+        "temporal",
+        "signals",
+        "readiness",
+        "receipts"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-readinessMutationReceipt01.1",
+          "title": "Exact receipt proves application",
+          "given": [
+            "A readiness-affecting mutation carries a unique receipt ID"
+          ],
+          "when": "Its workflow handler applies the mutation successfully",
+          "then": [
+            "The workflow records the receipt after state application",
+            "The tool confirms that exact receipt before success",
+            "Immediate gate readiness observes applied state"
+          ]
+        },
+        {
+          "id": "rq-readinessMutationReceipt01.2",
+          "title": "Other mutations and cache changes do not prove application",
+          "given": [
+            "The target receipt is not recorded",
+            "Another mutation or cache refresh completes"
+          ],
+          "when": "The caller waits for confirmation",
+          "then": [
+            "The target mutation remains unconfirmed",
+            "No delay, retry, or cache state substitutes for the exact receipt"
+          ]
+        },
+        {
+          "id": "rq-readinessMutationReceipt01.3",
+          "title": "Unconfirmed application fails typed",
+          "given": [
+            "Receipt query times out, fails, or the workflow completes before confirmation"
+          ],
+          "when": "The bounded wait ends",
+          "then": [
+            "The tool returns MUTATION_APPLICATION_UNCONFIRMED or equivalent typed non-success",
+            "Stale blocker state is not presented as successful mutation evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-acceptancePatchReplay01",
+      "title": "Acceptance Patch Markers Are Consumed Before Branch Returns",
+      "body": "Acceptance workflow version markers recorded in live history MUST be evaluated on every corresponding acceptance attempt before state-dependent readiness, artifact, or early-return branches can skip the matching change command. A marker remains stable and non-deprecated while matching histories exist. Replay fixtures MUST cover recorded-marker histories whose current state now takes a different artifact-evidence branch.",
+      "priority": "must",
+      "tags": [
+        "temporal",
+        "replay",
+        "patching",
+        "acceptance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-acceptancePatchReplay01.1",
+          "title": "Recorded marker is consumed despite changed current state",
+          "given": [
+            "History contains state-backed-acceptance-proof-v1",
+            "Current state already contains acceptance artifact evidence"
+          ],
+          "when": "The history replays under current workflow code",
+          "then": [
+            "The matching patched command is evaluated before branch-dependent returns",
+            "Replay completes without TMPRL1100",
+            "Current-state evidence does not skip marker consumption"
+          ]
+        },
+        {
+          "id": "rq-acceptancePatchReplay01.2",
+          "title": "Marker lifetime remains compatible",
+          "given": [
+            "Running histories may contain state-backed-acceptance-proof-v1"
+          ],
+          "when": "Workflow code evolves",
+          "then": [
+            "The marker ID is not renamed, deprecated, or removed",
+            "Legacy and state-backed replay fixtures remain passing"
+          ]
+        },
+        {
+          "id": "rq-acceptancePatchReplay01.3",
+          "title": "Repair does not bypass product gates",
+          "given": [
+            "A target project has workflows poisoned by the marker mismatch"
+          ],
+          "when": "The repaired worker is deployed and reachability is checked",
+          "then": [
+            "Queries resume without reset, termination, status repair, or archive recovery",
+            "Pending acceptance and release gates remain pending",
+            "Target product code is unchanged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-contractCoverageProjection01",
+      "title": "Task Writes Surface Remaining Contract Coverage",
+      "body": "Contract coverage MUST be projected by one cancellation-aware authority. Only implements and verifies task references cover success and acceptance criteria; respects references do not. Prep and task-write responses MUST reuse the same projection and identify remaining uncovered contract IDs actionably.",
+      "priority": "must",
+      "tags": [
+        "contracts",
+        "tasks",
+        "coverage",
+        "diagnostics"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-contractCoverageProjection01.1",
+          "title": "Coverage verbs remain exact",
+          "given": [
+            "A contract acceptance criterion is referenced only through respects or a cancelled task"
+          ],
+          "when": "Coverage is projected",
+          "then": [
+            "The criterion remains uncovered",
+            "Only active implements or verifies references cover it"
+          ]
+        },
+        {
+          "id": "rq-contractCoverageProjection01.2",
+          "title": "Task writes return remaining gaps",
+          "given": [
+            "A task add or pre-planning update changes contract references"
+          ],
+          "when": "The write succeeds",
+          "then": [
+            "The response returns remaining uncovered success/acceptance IDs",
+            "Prep uses the same projection",
+            "No semantic drift exists between write guidance and planning readiness"
           ]
         }
       ]
