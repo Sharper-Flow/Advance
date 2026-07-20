@@ -28,7 +28,10 @@ import {
 } from "../../temporal/messages";
 import { getMutationReceiptQuery } from "../../temporal/messages";
 import type { MutationReceipt } from "../../temporal/contracts";
-import { waitForQueryPredicate } from "../../utils/query-predicate";
+import {
+  MutationApplicationUnconfirmedError,
+  waitForQueryPredicate,
+} from "../../utils/query-predicate";
 import { randomUUID } from "node:crypto";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import {
@@ -202,11 +205,7 @@ async function fireContentSignalsSequentially(
         (candidate) => candidate?.id === mutationReceiptId,
       );
       if (!receipt) {
-        const error = new Error(
-          `MUTATION_APPLICATION_UNCONFIRMED: receipt ${mutationReceiptId}`,
-        );
-        error.name = "MutationApplicationUnconfirmedError";
-        throw error;
+        throw new MutationApplicationUnconfirmedError(mutationReceiptId);
       }
     }
 

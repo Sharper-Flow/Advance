@@ -1737,7 +1737,6 @@ describe("subagentReportTools", () => {
     // invalid[] (≤10) rows and the handler is never called. No signal is
     // fired; no task state is mutated.
     const { registerTool } = await import("../tool-registry");
-    const { z } = await import("zod");
 
     let handlerCalled = false;
     const handler = async () => {
@@ -1789,7 +1788,6 @@ describe("subagentReportTools", () => {
       expect(issue.field).toContain("report");
       expect(typeof issue.message).toBe("string");
     }
-    void z; // satisfy bundler
   });
 
   test("design-validation handler rejects typed blockers with unknown contract IDs (AC13)", async () => {

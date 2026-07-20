@@ -15,3 +15,12 @@ export async function waitForQueryPredicate<T>(
   }
   return latest;
 }
+
+export class MutationApplicationUnconfirmedError extends Error {
+  readonly code = "MUTATION_APPLICATION_UNCONFIRMED";
+
+  constructor(readonly receiptId: string) {
+    super(`Mutation application was not confirmed for receipt ${receiptId}`);
+    this.name = "MutationApplicationUnconfirmedError";
+  }
+}

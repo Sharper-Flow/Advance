@@ -24,8 +24,14 @@ import {
   getMutationReceiptQuery,
 } from "../temporal/messages";
 import type { MutationReceipt } from "../temporal/contracts";
-import { waitForQueryPredicate } from "../utils/query-predicate";
-export { waitForQueryPredicate } from "../utils/query-predicate";
+import {
+  MutationApplicationUnconfirmedError,
+  waitForQueryPredicate,
+} from "../utils/query-predicate";
+export {
+  MutationApplicationUnconfirmedError,
+  waitForQueryPredicate,
+} from "../utils/query-predicate";
 import type { GateCompletion, GateId } from "../types";
 import {
   classifyMutationOutcome,
@@ -55,14 +61,6 @@ export async function waitForAppliedReceipt(
     (receipt) => receipt?.id === receiptId,
     opts,
   );
-}
-
-export class MutationApplicationUnconfirmedError extends Error {
-  readonly code = "MUTATION_APPLICATION_UNCONFIRMED";
-  constructor(readonly receiptId: string) {
-    super(`Mutation application was not confirmed for receipt ${receiptId}`);
-    this.name = "MutationApplicationUnconfirmedError";
-  }
 }
 
 /**

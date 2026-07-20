@@ -36,17 +36,6 @@ function hasAnyTaskRef(refs: TaskWithContractRefs["contract_refs"]): boolean {
   return refs ? allTaskRefs(refs).length > 0 : false;
 }
 
-function _hasTaskCoverage(change: Change, contractId: string): boolean {
-  return change.tasks.some((task) => {
-    if (task.status === "cancelled") return false;
-    const refs = taskContractRefs(task);
-    return (
-      refs?.implements?.includes(contractId) === true ||
-      refs?.verifies?.includes(contractId) === true
-    );
-  });
-}
-
 function legacyAcceptanceCriteria(change: Change): string[] | undefined {
   return (change as Change & { acceptanceCriteria?: string[] })
     .acceptanceCriteria;

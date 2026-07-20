@@ -167,7 +167,7 @@ export function roleFirewallCheck(input: RoleFirewallCheckInput): void {
 
   throw new RoleFirewallError(
     toolName,
-    `Tool ${toolName} is blocked from sub-agent sessions; it is reserved for the main/orchestrator session.`,
+    `Tool ${toolName} is blocked from sub-agent sessions; it is reserved for the SDK-derived orchestrator root session.`,
     "sub_agent",
   );
 }
