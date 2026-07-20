@@ -91,27 +91,26 @@ tools:
   adv_reflect: true
   adv_reflection_list: true
   adv_report_followup_promote: true
-  adv_roadmap: true
   adv_run_test: true
-  # Temporal / workflow ops
   adv_session_list: true
+  # Temporal / workflow ops
   adv_session_show: true
   adv_snapshot_health: true
   adv_spec: true
-  # Store maintenance (operator-only)
   adv_status: true
+  # Store maintenance (operator-only)
   adv_store_cleanup: true
-  # Snapshot health diagnostics
   adv_store_consolidate: true
-  # Reflection
+  # Snapshot health diagnostics
   adv_subagent_report_submit: true
+  # Reflection
   adv_task_add: true
   adv_task_cancel: true
-  # Project metadata
   adv_task_checkpoint: true
+  # Project metadata
   adv_task_list: true
-  # === Epics — optional initiative containers ===
   adv_task_ready: true
+  # === Epics — optional initiative containers ===
   adv_task_reclassify_tdd: true
   adv_task_show: true
   adv_task_update: true
@@ -123,8 +122,8 @@ tools:
   adv_tool_describe: true
   adv_verification_evidence_disposition: true
   adv_wip_state: true
-  # === Worktree — orchestrator owns lifecycle ===
   adv_wisdom_add: true
+  # === Worktree — orchestrator owns lifecycle ===
   adv_wisdom_list: true
   adv_worktree_cleanup: true
   adv_worktree_create: true
