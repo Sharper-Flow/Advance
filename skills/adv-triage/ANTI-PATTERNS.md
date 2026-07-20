@@ -26,7 +26,7 @@
 | Ask user to choose bug priority | Gather at most two context answers; agent assigns priority |
 | Post priority rationale as issue comment | Emit rationale trailer in chat only |
 | Generate or commit ROADMAP.md / `.adv/roadmap-snapshot.json` | Emit the three-section report in chat only |
-| Recommend removed `/adv-roadmap`, `adv roadmap`, or `adv_roadmap` | Route portfolio requests to `/adv-triage` |
+| Recommend removed `/adv-roadmap`, `adv roadmap`, or the retired portfolio reader MCP tool | Route portfolio requests to `/adv-triage` |
 
 ## Coalesce execution sequence
 

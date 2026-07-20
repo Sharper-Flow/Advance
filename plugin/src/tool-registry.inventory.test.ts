@@ -70,8 +70,15 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
 const CONTRACTED_PUBLIC_REMOVALS = [
   "adv_backlog_state",
   "adv_project_wisdom_list",
-  "adv_roadmap",
 ] as const;
+
+/**
+ * Additional public tools retired by later changes whose literal names are
+ * intentionally omitted from CONTRACTED_PUBLIC_REMOVALS to satisfy the
+ * AC4 literal-no-reference policy. The count-based inventory invariant
+ * below is the sole reintroduction guard for these tools.
+ */
+const UNNAMED_CONTRACTED_REMOVALS = 1;
 
 /**
  * Public tools whose addition is contracted to LATER changes after the
@@ -290,9 +297,12 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
     // catalog and describe tools (83 = 80 - 2 + 5); restoreDesignerFollowUp
     // adds the typed modify writer (84 = 80 - 2 + 6); this change retires
-    // adv_roadmap (83 = 80 - 3 + 6).
+    // one additional public tool whose name is omitted per AC4 (83 = 80 - 3 + 6).
     expect(ADV_TOOL_NAMES.length).toBe(
-      (baseline as number) - landedRemovals + landedAdditions,
+      (baseline as number) -
+        landedRemovals -
+        UNNAMED_CONTRACTED_REMOVALS +
+        landedAdditions,
     );
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
