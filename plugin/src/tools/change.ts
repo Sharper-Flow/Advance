@@ -1469,19 +1469,23 @@ export const changeTools = {
         providers.claimRaceCheckMs ?? DEFAULT_CLAIM_RACE_CHECK_MS;
       const claimCoordinationEnabled =
         providers.claimChecker !== undefined || getService() !== null;
+      // reshapeTriagePortfolioBalance: claim check fires on any
+      // issue-linked origin regardless of kind label, matching runtime
+      // semantics reframed by rq-backlogCoord02.
+      const issueNumberForClaim = origin?.issue_number;
       const shouldClaimCheck =
         claimCoordinationEnabled &&
-        origin?.issue_number !== undefined &&
-        (origin.kind === "roadmap" || origin.kind === "triage");
-      if (shouldClaimCheck && origin?.issue_number !== undefined) {
+        issueNumberForClaim !== undefined &&
+        issueNumberForClaim > 0;
+      if (shouldClaimCheck && issueNumberForClaim !== undefined) {
         const projectId = (await getProjectId(store.paths.root)) ?? "";
-        const existing = await claimChecker(projectId, origin.issue_number);
+        const existing = await claimChecker(projectId, issueNumberForClaim);
         if (existing.length > 0) {
           const first = existing[0];
           return formatToolOutput({
-            error: `Issue #${origin.issue_number} is already claimed by change ${first.changeId} (status: ${first.status})`,
+            error: `Issue #${issueNumberForClaim} is already claimed by change ${first.changeId} (status: ${first.status})`,
             code: "CLAIM_CONFLICT",
-            issue_number: origin.issue_number,
+            issue_number: issueNumberForClaim,
             existing_change_id: first.changeId,
             existing_change_status: first.status,
             hint: `Resume that change with /adv-apply ${first.changeId}, or omit origin_issue_number to create an unlinked change.`,

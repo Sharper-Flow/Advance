@@ -227,14 +227,12 @@ export async function closeLinkedIssue(options: {
     existingBundlePath,
     worktreePath,
   } = options;
-  const kind = change.origin?.kind;
   const issueNumber = change.origin?.issue_number;
-  if (
-    !kind ||
-    !["roadmap", "triage"].includes(kind) ||
-    !issueNumber ||
-    issueNumber <= 0
-  ) {
+  // reshapeTriagePortfolioBalance: close-eligibility reframed around
+  // issue linkage rather than origin kind enumeration. Any origin kind
+  // carrying an issue_number > 0 is close-eligible (legacy 'roadmap'
+  // origins still close on archive; current 'triage' origins likewise).
+  if (!issueNumber || issueNumber <= 0) {
     return { issue_closed: [] };
   }
   if (noCloseIssue) {

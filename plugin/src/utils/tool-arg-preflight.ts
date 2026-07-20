@@ -718,19 +718,14 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     // rq-backlogCoord08: validate creation-origin linkage structurally before
     // adv_change_create execution can seed workflow state or claim metadata.
     if (originKind === "roadmap") {
-      if (!hasIssueNumber) {
-        invalid.push({
-          field: "origin_issue_number",
-          message: "origin_issue_number is required for roadmap origins.",
-        });
-      }
-      if (hasSourceArtifact) {
-        invalid.push({
-          field: "origin_source_artifact",
-          message:
-            "origin_source_artifact is only allowed for triage or discovery origins.",
-        });
-      }
+      // reshapeTriagePortfolioBalance: 'roadmap' is readable legacy only.
+      // New writes (create path) reject this kind; archived changes still
+      // carry it for read compatibility.
+      invalid.push({
+        field: "origin_kind",
+        message:
+          "ORIGIN_KIND_ROADMAP_RETIRED: origin_kind 'roadmap' is retired for new writes. Use 'triage' for issue-linked changes.",
+      });
     } else if (originKind === "discovery") {
       if (hasIssueNumber) {
         invalid.push({
@@ -794,19 +789,13 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     const originKind = args.origin_kind;
 
     if (originKind === "roadmap") {
-      if (!hasIssueNumber) {
-        invalid.push({
-          field: "origin_issue_number",
-          message: "origin_issue_number is required for roadmap origins.",
-        });
-      }
-      if (hasSourceArtifact) {
-        invalid.push({
-          field: "origin_source_artifact",
-          message:
-            "origin_source_artifact is only allowed for triage or discovery origins.",
-        });
-      }
+      // reshapeTriagePortfolioBalance: 'roadmap' is readable legacy only.
+      // Repair path also rejects this kind for new writes.
+      invalid.push({
+        field: "origin_kind",
+        message:
+          "ORIGIN_KIND_ROADMAP_RETIRED: origin_kind 'roadmap' is retired and cannot be set via repair. Use 'triage' for issue-linked changes.",
+      });
     } else if (originKind === "discovery") {
       if (hasIssueNumber) {
         invalid.push({
