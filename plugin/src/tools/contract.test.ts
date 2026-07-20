@@ -687,111 +687,15 @@ describe("contractTools", () => {
     expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("poisoned-history mint recovery writes disk projection with warning", async () => {
-    const changesDir = await writeAgreement("contractRecovery");
-    const change = baseChange({
-      _source: "disk",
-      _recovery: {
-        mode: "temporal_query_fallback",
-        reason: "poisoned_history",
-      },
-    } as Partial<Change>);
-    const store = createStore(change, changesDir);
-    fireSignalAndRefresh.mockRejectedValueOnce(
-      new Error("TMPRL1100: Nondeterminism error"),
-    );
-
-    const output = parse(
-      await contractTools.adv_contract_mint.execute(
-        {
-          changeId: "contractRecovery",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "TMPRL1100: Nondeterminism error in workflow history",
-        },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output._recoveryMutation).toBe(true);
-    expect(output.reconciliationWarning).toContain("not healed");
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contract: expect.objectContaining({ items: expect.any(Array) }),
-        acceptanceCriteria: ["Contract minting fires a production signal."],
-      }),
-    );
-    expect(fireSignalAndRefresh).toHaveBeenCalled();
-  });
-
-  test("poisoned-history review matrix recovery writes disk projection with warning", async () => {
-    const change = baseChange({
-      _source: "disk",
-      _recovery: {
-        mode: "temporal_query_fallback",
-        reason: "poisoned_history",
-      },
-      contract: {
-        version: 1,
-        rigor: "standard",
-        source: { artifact: "agreement", approvedAt },
-        items: [
-          {
-            id: "AC1",
-            kind: "acceptance_criterion",
-            text: "Contract minting fires a production signal.",
-            sourceArtifact: "agreement",
-            verificationRequired: true,
-            evidencePolicy: "test",
-            status: "approved",
-          },
-        ],
-        amendments: [],
-      },
-    } as Partial<Change>);
-    const store = createStore(change, "/tmp/unused");
-    fireSignalAndRefresh.mockRejectedValueOnce(
-      new Error("TMPRL1100: Nondeterminism error"),
-    );
-
-    const output = parse(
-      await contractTools.adv_contract_review_matrix_set.execute(
-        {
-          changeId: "contractRecovery",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "TMPRL1100: Nondeterminism error in workflow history",
-          recoveryReason: "review matrix recovery after poisoned history",
-          priorApprovalEvidence: "User approved acceptance: approve",
-          rows: [
-            {
-              contractId: "AC1",
-              kind: "acceptance_criterion",
-              status: "pass",
-              evidencePolicy: "test",
-              evidence: "passing test",
-            },
-          ],
-        },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output._recoveryMutation).toBe(true);
-    expect(output.reconciliationWarning).toContain("not healed");
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contract: expect.objectContaining({
-          reviewMatrix: expect.objectContaining({
-            rows: [expect.objectContaining({ contractId: "AC1" })],
-          }),
-        }),
-      }),
-    );
-    expect(fireSignalAndRefresh).toHaveBeenCalled();
-  });
+  // rq-extend-poisoned-recovery AC5 (probe-first migration): the prior
+  // catch-path positive recovery tests ("poisoned-history mint recovery
+  // writes disk projection with warning" and the review-matrix parallel)
+  // are unreachable under probe-first semantics. Precise recoveryEvidence
+  // now triggers probe-first BEFORE the signal fires, so the catch-branch
+  // is end-to-end unreachable when evidence is precise (matching the
+  // migration in design-concern.test.ts). The probe-first positive tests
+  // below ("AC5: ... takes probe-first recovery path ...") cover the same
+  // observable contract; the catch-branch code remains as defense-in-depth.
 
   test("poisoned-history recovery requires explicit recoveryEvidence", async () => {
     const changesDir = await writeAgreement("contractRecovery");
@@ -862,79 +766,42 @@ describe("contractTools", () => {
     expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("missing-workflow errors do not authorize poisoned-history recovery", async () => {
+  // The prior negative tests "missing-workflow errors do not authorize
+  // poisoned-history recovery" and "stale poisoned-history markers do not
+  // bypass healthy Temporal signaling" asserted that precise evidence does
+  // NOT trigger recovery when the signal error or describe() output
+  // disagrees. Under probe-first semantics (rq-extend-poisoned-recovery
+  // AC5), precise operator-supplied recoveryEvidence IS the authority —
+  // probe-first fires before the signal is sent, so the signal error /
+  // describe output is never observed for the recovery decision. The
+  // catch-branch + describe-probe remain in contract.ts as defense-in-depth
+  // but are end-to-end unreachable when evidence is precise.
+
+  // rq-fix-gate-tools-recovery AC3/AC4 describe-path tests removed under
+  // probe-first migration (rq-extend-poisoned-recovery AC5). The three
+  // deleted tests asserted that describe()-reported nondeterminism
+  // triggers disk-direct recovery when the signal succeeds or throws a
+  // generic error. Under probe-first semantics, precise operator-supplied
+  // recoveryEvidence fires the recovery branch BEFORE the signal — the
+  // describe() probe is never consulted for the recovery decision. The
+  // describe-path code remains in contract.ts as defense-in-depth but is
+  // end-to-end unreachable when evidence is precise. The probe-first AC5
+  // tests below cover the new authority model.
+
+  // rq-extend-poisoned-recovery AC5 (probe-first): when the operator supplies
+  // precise poisoned-history evidence, the recovery branch fires BEFORE the
+  // signal. Temporal signals are fire-and-forget server-acceptance; they
+  // silently resolve on poisoned replay, so the catch-branch is unreachable
+  // for the common poison case (issue #198, #253). Only probe-first can
+  // recover this case. RED today: contract.ts has no probe-first gate, so
+  // fireSignalAndRefresh IS called and recovery never triggers when the
+  // signal "succeeds" silently.
+  test("AC5: adv_contract_mint takes probe-first recovery path when operator supplies precise evidence", async () => {
     const changesDir = await writeAgreement("contractRecovery");
     const store = createStore(baseChange(), changesDir);
-    fireSignalAndRefresh.mockRejectedValueOnce(
-      new Error("Workflow execution not found"),
-    );
-
-    const output = parse(
-      await contractTools.adv_contract_mint.execute(
-        {
-          changeId: "contractRecovery",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "TMPRL1100: Nondeterminism error in workflow history",
-        },
-        store,
-      ),
-    );
-
-    expect(output.error).toContain("Workflow execution not found");
-    expect(output._recoveryMutation).toBeUndefined();
-    expect(store.changes.save).not.toHaveBeenCalled();
-  });
-
-  test("stale poisoned-history markers do not bypass healthy Temporal signaling", async () => {
-    const changesDir = await writeAgreement("contractRecovery");
-    const change = baseChange({
-      _source: "disk",
-      _recovery: {
-        mode: "temporal_query_fallback",
-        reason: "poisoned_history",
-      },
-    } as Partial<Change>);
-    const store = createStore(change, changesDir);
-
-    const output = parse(
-      await contractTools.adv_contract_mint.execute(
-        {
-          changeId: "contractRecovery",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "TMPRL1100: Nondeterminism error in workflow history",
-        },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output._recoveryMutation).toBeUndefined();
-    expect(store.changes.save).not.toHaveBeenCalled();
-    expect(fireSignalAndRefresh).toHaveBeenCalledWith(
-      expect.anything(),
-      store,
-      "contractRecovery",
-      contractSetSignal,
-      expect.anything(),
-    );
-  });
-
-  // rq-fix-gate-tools-recovery AC3: signal succeeds (no isPoisonedHistoryError)
-  // but workflow describe reports nondeterminism — recover via disk.
-  test("adv_contract_mint persists to disk when describe shows poisoned despite signal success", async () => {
-    const changesDir = await writeAgreement("contractRecovery");
-    const store = createStore(baseChange(), changesDir);
+    // Default mock resolves — simulating a fire-and-forget signal that the
+    // poisoned workflow silently drops during replay.
     fireSignalAndRefresh.mockResolvedValueOnce(undefined);
-    const describeMock = vi.fn(async () => ({
-      searchAttributes: {
-        TemporalReportedProblems: [
-          "cause=WorkflowTaskFailedCauseNonDeterministicError",
-        ],
-      },
-    }));
-    (workflowHandle as { describe?: unknown }).describe = describeMock;
 
     const output = parse(
       await contractTools.adv_contract_mint.execute(
@@ -942,72 +809,28 @@ describe("contractTools", () => {
           changeId: "contractRecovery",
           recoveryMode: "poisoned_history",
           recoveryEvidence:
-            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+            "WorkflowNotFoundError: workflow execution already completed",
         },
         store,
       ),
     );
 
+    // CRITICAL: probe-first path taken; fireSignalAndRefresh NOT called.
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
     expect(output.success).toBe(true);
     expect(output._recoveryMutation).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
+    expect(output.recovered).toBe(true);
     expect(output.reconciliationWarning).toContain("not healed");
-    expect(fireSignalAndRefresh).toHaveBeenCalled();
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contract: expect.objectContaining({ items: expect.any(Array) }),
-      }),
-    );
-    expect(describeMock).toHaveBeenCalled();
-
-    delete (workflowHandle as { describe?: unknown }).describe;
+    expect(output.note).toContain("Disk-direct recovery");
+    expect(output.itemCount).toBe(2);
   });
 
-  // rq-fix-gate-tools-recovery AC3: signal throws generic error AND describe
-  // shows poisoned evidence — recover.
-  test("adv_contract_mint recovers when signal throws generic error and describe shows poisoned", async () => {
-    const changesDir = await writeAgreement("contractRecovery");
-    const store = createStore(baseChange(), changesDir);
-    fireSignalAndRefresh.mockRejectedValueOnce(
-      new Error("Failed to send signal"),
-    );
-    const describeMock = vi.fn(async () => ({
-      searchAttributes: {
-        TemporalReportedProblems: [
-          "cause=WorkflowTaskFailedCauseNonDeterministicError",
-        ],
-      },
-    }));
-    (workflowHandle as { describe?: unknown }).describe = describeMock;
-
-    const output = parse(
-      await contractTools.adv_contract_mint.execute(
-        {
-          changeId: "contractRecovery",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
-        },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output._recoveryMutation).toBe(true);
-    expect(store.changes.save).toHaveBeenCalled();
-    expect(describeMock).toHaveBeenCalled();
-
-    delete (workflowHandle as { describe?: unknown }).describe;
-  });
-
-  // rq-fix-gate-tools-recovery AC4: review matrix path with signal success +
-  // poisoned describe.
-  test("adv_contract_review_matrix_set persists to disk when describe shows poisoned despite signal success", async () => {
+  test("AC5: adv_contract_review_matrix_set takes probe-first recovery path when operator supplies precise evidence", async () => {
+    // Review-matrix recovery requires a change with an existing contract.
+    // Use a real temp dir because diskDirect: true writes through saveChange.
+    tempDir = await createTempDir("adv-contract-tool-");
     const change = baseChange({
-      _source: "disk",
-      _recovery: {
-        mode: "temporal_query_fallback",
-        reason: "poisoned_history",
-      },
       contract: {
         version: 1,
         rigor: "standard",
@@ -1026,16 +849,9 @@ describe("contractTools", () => {
         amendments: [],
       },
     } as Partial<Change>);
-    const store = createStore(change, "/tmp/unused");
+    const store = createStore(change, tempDir);
+    // Default mock resolves — simulating silent fire-and-forget on poison.
     fireSignalAndRefresh.mockResolvedValueOnce(undefined);
-    const describeMock = vi.fn(async () => ({
-      searchAttributes: {
-        TemporalReportedProblems: [
-          "cause=WorkflowTaskFailedCauseNonDeterministicError",
-        ],
-      },
-    }));
-    (workflowHandle as { describe?: unknown }).describe = describeMock;
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
@@ -1043,7 +859,7 @@ describe("contractTools", () => {
           changeId: "contractRecovery",
           recoveryMode: "poisoned_history",
           recoveryEvidence:
-            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+            "WorkflowNotFoundError: workflow execution already completed",
           recoveryReason: "review matrix recovery after poisoned history",
           priorApprovalEvidence: "User approved acceptance: approve",
           rows: [
@@ -1060,19 +876,38 @@ describe("contractTools", () => {
       ),
     );
 
+    // CRITICAL: probe-first path taken; fireSignalAndRefresh NOT called.
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
     expect(output.success).toBe(true);
     expect(output._recoveryMutation).toBe(true);
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contract: expect.objectContaining({
-          reviewMatrix: expect.objectContaining({
-            rows: [expect.objectContaining({ contractId: "AC1" })],
-          }),
-        }),
-      }),
-    );
-    expect(describeMock).toHaveBeenCalled();
+    expect(output.recoveryMode).toBe("poisoned_history");
+    expect(output.recovered).toBe(true);
+    expect(output.reconciliationWarning).toContain("not healed");
+    expect(output.note).toContain("Disk-direct recovery");
+    expect(output.rowCount).toBe(1);
+  });
 
-    delete (workflowHandle as { describe?: unknown }).describe;
+  // Probe-first requires PRECISE evidence — vague evidence must NOT trigger
+  // the disk-direct branch and must fall through to the signal path.
+  test("AC5: adv_contract_mint does not take probe-first path on vague recoveryEvidence", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(baseChange(), changesDir);
+    fireSignalAndRefresh.mockResolvedValueOnce(undefined);
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          // Vague evidence — recoveryEvidenceError rejects this BEFORE the
+          // probe-first gate. The output is an error, not a recovery.
+          recoveryEvidence: "it failed somehow",
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("precise poisoned-history");
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 });

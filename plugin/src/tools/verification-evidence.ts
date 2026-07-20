@@ -16,7 +16,11 @@ import {
   MutationApplicationUnconfirmedError,
 } from "./_adapters";
 import { saveRecoveredVerificationEvidenceDisposition } from "./_recovery-writers";
-import { classifyCompletedOrPoisonedRecovery } from "./recovery-probe";
+import {
+  classifyCompletedOrPoisonedRecovery,
+  logRecoveryProbeDiagnostics,
+  shouldTakeRecoveryBranch,
+} from "./recovery-probe";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -153,6 +157,40 @@ async function executeDisposition(
   }
 
   const handle = await getChangeHandleForChangeId(store, args.changeId);
+
+  // Probe-first recovery: when the operator supplies precise evidence, take the
+  // disk-direct path WITHOUT firing the signal. Temporal signals are
+  // fire-and-forget (server acceptance, not workflow processing); on a
+  // poisoned replay the signal silently resolves, so the existing catch-branch
+  // is unreachable for the common poison case. shouldTakeRecoveryBranch
+  // already enforces recoveryMode=poisoned_history AND precise evidence via
+  // isPreciseWorkflowRecoveryEvidence; recoveryEvidenceError validated the
+  // reason above. SaveRecoveredVerificationEvidenceDisposition is the SAME
+  // writer the catch-branch uses; reusing it preserves audit + idempotency.
+  if (shouldTakeRecoveryBranch(args)) {
+    await logRecoveryProbeDiagnostics(handle, args.changeId);
+    await saveRecoveredVerificationEvidenceDisposition({
+      store,
+      change,
+      authorization: {
+        reason: args.recoveryReason?.trim() ?? "",
+        evidence: args.recoveryEvidence?.trim() ?? "",
+      },
+      disposition,
+    });
+    return formatToolOutput({
+      success: true,
+      changeId: args.changeId,
+      disposition,
+      _recoveryMutation: true,
+      recovered: true,
+      recoveryMode: args.recoveryMode,
+      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+      note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
+      ...proj,
+    });
+  }
+
   const mutationReceiptId = `mrec_${randomUUID()}`;
   try {
     await fireSignalAndRefresh(

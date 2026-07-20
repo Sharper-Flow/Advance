@@ -84,9 +84,15 @@ const validArgs = {
 
 describe("adv_verification_evidence_disposition", () => {
   beforeEach(() => {
-    mocks.fireSignalAndRefresh.mockClear();
+    // mockReset (not mockClear) clears one-time implementations set via
+    // mockRejectedValueOnce/mockResolvedValueOnce from prior tests; under the
+    // probe-first pattern some tests no longer consume their once-queue entries.
+    mocks.fireSignalAndRefresh.mockReset();
     mocks.fireSignalAndRefresh.mockImplementation(async () => undefined);
-    mocks.saveRecoveredVerificationEvidenceDisposition.mockClear();
+    mocks.saveRecoveredVerificationEvidenceDisposition.mockReset();
+    mocks.saveRecoveredVerificationEvidenceDisposition.mockImplementation(
+      async () => undefined,
+    );
   });
 
   test("fires verificationEvidenceDispositionedSignal with the typed disposition", async () => {
@@ -213,7 +219,44 @@ describe("adv_verification_evidence_disposition", () => {
     });
   });
 
-  test("does not recover generic signal failures", async () => {
+  test("AC5: takes probe-first recovery path when fireSignalAndRefresh would silently resolve", async () => {
+    // Setup: default mock for fireSignalAndRefresh RESOLVES (set in beforeEach).
+    // This simulates a fire-and-forget signal on a poisoned workflow: the
+    // server accepts the signal, but the workflow silently drops it during
+    // replay. The catch-branch is unreachable; only the probe-first path
+    // can save the disposition via the disk-direct writer.
+    const store = storeFor(change());
+
+    const output = parse(
+      await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
+        {
+          ...validArgs,
+          disposition: "fixed",
+          evidence: "verification re-run and captured in commit abc123",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+          recoveryReason: "poisoned workflow",
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
+    // CRITICAL: probe-first path was taken; fireSignalAndRefresh was NOT called.
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    // Disk-direct writer WAS called with the operator-supplied evidence.
+    expect(
+      mocks.saveRecoveredVerificationEvidenceDisposition,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.saveRecoveredVerificationEvidenceDisposition.mock.calls[0][0]
+        .authorization.evidence,
+    ).toContain("WorkflowNotFoundError");
+  });
+
+  test("does not recover generic signal failures when recovery is not requested", async () => {
     const store = storeFor(change());
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(
       new Error("task queue unavailable"),
@@ -223,10 +266,9 @@ describe("adv_verification_evidence_disposition", () => {
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         {
           ...validArgs,
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason: "completed workflow recovery",
+          // recoveryMode omitted: probe-first does not fire, and the
+          // catch-branch's recovery gate (recoveryMode === "poisoned_history")
+          // is false, so the generic signal error must propagate.
         },
         store,
       ),

@@ -34,6 +34,8 @@ import {
 } from "./_adapters";
 import {
   classifyCompletedOrPoisonedRecovery,
+  logRecoveryProbeDiagnostics,
+  shouldTakeRecoveryBranch,
   workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
 import {
@@ -365,6 +367,35 @@ export const contractTools = {
             });
           }
           const handle = await healthySignalHandle(activeStore, args.changeId);
+          // rq-extend-poisoned-recovery AC5 (probe-first): when the operator
+          // supplies precise poisoned-history evidence, take the disk-direct
+          // recovery branch BEFORE firing the signal. Temporal signals are
+          // fire-and-forget server-acceptance; they silently resolve on
+          // poisoned replay, so the catch-branch below is unreachable for the
+          // common poison case (issue #198, #253). describe() diagnostics are
+          // advisory only; recovery authority comes solely from operator-
+          // supplied recoveryEvidence (validated by shouldTakeRecoveryBranch).
+          if (shouldTakeRecoveryBranch(args)) {
+            await logRecoveryProbeDiagnostics(handle, args.changeId);
+            await saveRecoveredContract({
+              store: activeStore,
+              change,
+              contract,
+              diskDirect: true,
+            });
+            return formatToolOutput({
+              success: true,
+              changeId: args.changeId,
+              itemCount: contract.items.length,
+              contractIds: contract.items.map((item) => item.id),
+              _recoveryMutation: true,
+              recovered: true,
+              recoveryMode: "poisoned_history",
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
           try {
             await fireSignalAndRefresh(
               handle,
@@ -550,6 +581,40 @@ export const contractTools = {
           }
           const handle = await healthySignalHandle(activeStore, args.changeId);
           const mutationReceiptId = `mrec_${randomUUID()}`;
+          // rq-extend-poisoned-recovery AC5 (probe-first): when the operator
+          // supplies precise poisoned-history evidence, take the disk-direct
+          // recovery branch BEFORE firing the signal. See the matching block
+          // in adv_contract_mint for the full rationale. review-matrix
+          // recovery already required recoveryReason + priorApprovalEvidence
+          // upstream, so authorization is fully populated here.
+          if (shouldTakeRecoveryBranch(args)) {
+            await logRecoveryProbeDiagnostics(handle, args.changeId);
+            await saveRecoveredReviewMatrix({
+              store: activeStore,
+              change,
+              reviewMatrix,
+              authorization: {
+                reason: args.recoveryReason ?? "review_matrix_recovery",
+                evidence:
+                  args.recoveryEvidence ?? "operator-supplied poisoned evidence",
+              },
+              diskDirect: true,
+            });
+            return formatToolOutput({
+              success: true,
+              changeId: args.changeId,
+              rowCount: reviewMatrix.rows.length,
+              failingRows: reviewMatrix.rows.filter((row) =>
+                isFailingContractReviewStatus(row.status),
+              ).length,
+              _recoveryMutation: true,
+              recovered: true,
+              recoveryMode: "poisoned_history",
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
           try {
             await fireSignalAndRefresh(
               handle,
