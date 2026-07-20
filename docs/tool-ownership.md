@@ -223,3 +223,56 @@ trust boundary.
 Related surfaces: `docs/cli-surface-matrix.md` (CLI disposition per tool),
 `ADV_INSTRUCTIONS.md` worktree-cleanup repair decision matrix,
 `docs/store-consolidation.md`, `docs/snapshot-health.md`.
+
+## Visibility Profile (addProviderToolSearch AC5–AC7)
+
+The three Advance-owned facade tools (`adv_tool_catalog`,
+`adv_tool_describe`, `adv_tool_invoke`) compress the visible ADV tool
+surface for normal agents while every ADV operation still executes
+through canonical typed handlers with direct-tool-equivalent
+authorization, approval, target-path trust, recovery-only, lifecycle,
+timeout, cancellation, and audit semantics.
+
+Two config layers cooperate:
+
+1. **Agent YAML `tools:` frontmatter** (`/.opencode/agents/*.md`,
+   generated from `AGENT_TOOL_POLICY` via `pnpm run generate:manifests`):
+   every agent except `adv-ci-waiter` carries
+   `adv_tool_catalog: true`, `adv_tool_describe: true`,
+   `adv_tool_invoke: true` inside its `# >>> ADV-GENERATED` block.
+   `adv-ci-waiter` is excluded because its documented responsibility is
+   bash-only CI polling. The orchestrator (`adv`) carries every retained
+   ADV tool explicitly (no `adv_*: false` wildcard).
+
+2. **`~/.config/opencode/opencode.jsonc` `agent.<name>.permission`**:
+   every normal agent that already ships an `adv_*: deny` first-rule
+   (`adv-engineer`, `adv-designer`, `adv-researcher`, `adv-reviewer`,
+   `adv-visual-review`) also carries the three facade tools as explicit
+   `allow` entries immediately after the deny wildcard so last-match-wins
+   resolves them as visible. Agents without an `adv_*: deny` rule in
+   `opencode.jsonc` (`adv-tron`, `adv-temporal-repair`, `adv-verifier`,
+   `plan`, `build`, `general`, `explore`) inherit ADV visibility from
+   their agent YAML manifests alone; no `opencode.jsonc` edit is
+   required for them. The orchestrator (`adv`) keeps no `adv_*: deny`
+   rule, so direct ADV access is retained as the recovery/admin escape
+   hatch (AC6).
+
+### Rollback (AC7)
+
+The visibility profile is reversibleible without code changes. To
+restore direct ADV visibility for a normal agent:
+
+1. In `~/.config/opencode/opencode.jsonc`, remove the three
+   `adv_tool_catalog` / `adv_tool_describe` / `adv_tool_invoke` `allow`
+   lines from that agent's `permission` block (or remove the entire
+   `permission` block to revert to default-allow).
+2. In `.opencode/agents/<agent>.md`, remove the three lines from the
+   `# >>> ADV-GENERATED` block, or edit
+   `plugin/src/tool-role-policy.ts` `AGENT_TOOL_POLICY` and re-run
+   `pnpm run generate:manifests`.
+3. Restart OpenCode.
+
+The `adv_tool_invoke` plugin tool itself remains registered after
+rollback (it is part of `ADV_TOOL_NAMES`); only its visibility to normal
+agents changes. Direct tool semantics are unchanged because the facade
+was strictly additive — it never modified any underlying handler.
