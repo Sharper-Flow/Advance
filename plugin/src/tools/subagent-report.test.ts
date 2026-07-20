@@ -1839,7 +1839,7 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("PROBE: design-validation handler rejects string blockers (will be replaced by tk-4)", async () => {
+  test("design-validation handler rejects string blockers with typed-contract-IDs-required message (AC3)", async () => {
     const baseChange = change();
     const store = storeFor(baseChange);
     const report = researcherReport({
@@ -1861,6 +1861,88 @@ describe("subagentReportTools", () => {
     );
     expect(output.code).toBe("INVALID_REPORT");
     expect(output.details.stringBlockerIndices).toEqual([0]);
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("design-validation handler rejects string blockers BEFORE unknown-contract-IDs diagnostics (C7 ordering)", async () => {
+    // C7 invariant: the string-blocker check must run BEFORE the AC13
+    // unknown-contract-IDs flatMap. Without this ordering, bare strings
+    // are silently mapped to [] by the AC13 guard, and the response would
+    // report only the typed-blocker unknown IDs — misrepresenting which
+    // blocker was rejected.
+    const baseChange = change();
+    baseChange.contract = {
+      items: [{ id: "AC4", summary: "Approved criteria summary." }],
+    };
+    const store = storeFor(baseChange);
+
+    const report = researcherReport({
+      scope: { kind: "change", scope_key: "researcher:design-validation" },
+      validation: {
+        status: "fail",
+        blockers: [
+          "bare string blocker at index 0",
+          {
+            finding: "Typed blocker with unknown contract ID.",
+            contract_ids: ["AC_UNKNOWN"],
+            scope: "in_scope",
+            in_scope_remediation: "Cite an approved contract ID.",
+            source: {
+              label: "test",
+              locator: "L0",
+              summary: "Probe.",
+            },
+          },
+        ],
+        notes: "Mixed string + typed-unknown.",
+      },
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    // String-blocker error wins, not unknown-contract-IDs:
+    expect(output.error).toBe(
+      "new design-validation blockers require typed contract IDs, in-scope remediation, and source evidence",
+    );
+    expect(output.code).toBe("INVALID_REPORT");
+    expect(output.details.stringBlockerIndices).toEqual([0]);
+    expect(output.details.unknownContractIds).toBeUndefined();
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("non-design-validation researcher scopes do NOT reject string blockers (scope isolation)", async () => {
+    // The string-blocker check is scoped to researcher:design-validation* only.
+    // Other researcher scopes (e.g., researcher:temporal-docs) accept string
+    // blockers via the base schema's z.union([string, typed]).
+    const baseChange = change();
+    const store = storeFor(baseChange);
+
+    const report = researcherReport({
+      scope: { kind: "change", scope_key: "researcher:temporal-docs" },
+      validation: {
+        status: "fail",
+        blockers: ["bare string blocker on non-design-validation scope"],
+        notes: "Scope isolation probe.",
+      },
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    // No string-blocker rejection — report flows through normally:
+    expect(output.error).toBeUndefined();
+    expect(output.success).toBe(true);
+    // Signal WAS called (report accepted):
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
   });
 
   test("design-validation handler accepts typed blockers whose contract IDs are all approved", async () => {
