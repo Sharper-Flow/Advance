@@ -287,19 +287,118 @@ async function convergeTerminalAuthority(input: {
       };
     }
   } catch (error) {
-    // Not-found here is fine — means no successor. Other errors are
-    // surfaced but do not retroactively fail convergence (the write +
-    // readback already succeeded).
+    // rq-shippedWorkflowTermination01 AC8: a non-completed error from the
+    // final successor check cannot prove absence of a live successor. Surface
+    // as a typed partial-recovery result so the operator knows convergence
+    // authority is unverifiable. Not-found/completed is acceptable (means
+    // no successor exists).
     const { isWorkflowCompletedError } =
       await import("../temporal/recovery-classification");
     if (!isWorkflowCompletedError(error)) {
-      logger.debug(
-        `Post-readback successor describe failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      return {
+        kind: "readbackFailed",
+        error: `post-readback successor describe failed (convergence authority unverifiable): ${error instanceof Error ? error.message : String(error)}`,
+        readback: {
+          showStatus: "archived",
+          showLifecycleState: "archived",
+          inFlightCount: 0,
+          archivedCount: 1,
+        },
+      };
     }
   }
 
   return { kind: "converged", readback: readback.readback };
+}
+
+/**
+ * Format a non-converged result from convergeTerminalAuthority into the
+ * operator-facing tool output. Used by both the terminate-then-converge and
+ * idempotent-then-converge paths so failure shapes stay consistent.
+ */
+function formatConvergeFailure(input: {
+  converge: Exclude<ConvergeTerminalAuthorityResult, { kind: "converged" }>;
+  changeId: string;
+  runId: string;
+  eligibilityClass: "shipped_terminal";
+  fromStatus: Change["status"];
+  shippedTerminalProof: ShippedTerminalProofResult | null;
+}): string {
+  const { converge, changeId, runId, eligibilityClass, fromStatus } = input;
+  if (converge.kind === "successorRace") {
+    return formatToolOutput({
+      success: false,
+      partialRecovery: true,
+      pinnedRunTerminated: true,
+      converged: false,
+      changeId,
+      runId,
+      eligibilityClass,
+      fromStatus,
+      successorRace: {
+        pinnedRunId: runId,
+        successorRunId: converge.successorRunId,
+        phase: converge.phase,
+      },
+      remediation:
+        "A different live successor run appeared before convergence write. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId, or adv_archive_purge once status converges.",
+    });
+  }
+  if (converge.kind === "lateSuccessorRace") {
+    return formatToolOutput({
+      success: false,
+      partialRecovery: true,
+      pinnedRunTerminated: true,
+      converged: false,
+      changeId,
+      runId,
+      eligibilityClass,
+      fromStatus,
+      attemptedStatus: "archived",
+      attemptedLifecycleState: "archived",
+      lateSuccessorRace: {
+        pinnedRunId: runId,
+        successorRunId: converge.successorRunId,
+        phase: converge.phase,
+      },
+      remediation:
+        "Late successor appeared after convergence write. Disk projection is archived but a new live run exists. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId.",
+    });
+  }
+  if (converge.kind === "writeFailed") {
+    return formatToolOutput({
+      success: false,
+      partialRecovery: true,
+      pinnedRunTerminated: true,
+      converged: false,
+      changeId,
+      runId,
+      eligibilityClass,
+      fromStatus,
+      attemptedStatus: "archived",
+      attemptedLifecycleState: "archived",
+      error: `Convergence write failed: ${converge.error}`,
+      remediation:
+        "Pinned run was terminated but the disk projection write failed. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
+    });
+  }
+  // readbackFailed
+  return formatToolOutput({
+    success: false,
+    partialRecovery: true,
+    pinnedRunTerminated: true,
+    converged: false,
+    changeId,
+    runId,
+    eligibilityClass,
+    fromStatus,
+    attemptedStatus: "archived",
+    attemptedLifecycleState: "archived",
+    error: `Terminal readback failed: ${converge.error}`,
+    readback: converge.readback,
+    remediation:
+      "Workflow run was terminated and disk projection was written, but terminal readback did not converge. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
+  });
 }
 
 /**
@@ -4446,7 +4545,7 @@ export const changeTools = {
   },
   adv_change_workflow_terminate: {
     description:
-      "Operator-only maintenance tool: terminate the EXACT wedged run of a shipped change's Temporal workflow, pinned by runId via describe() — NOT a Temporal Reset. Eligibility is strict and ordered: approval-first (approvedByUser + non-blank approvalEvidence before any read or mutation); the change must exist and NOT be archived (archived changes route to adv_archive_purge, the sole archived-change lever — rq-archivePurge01 semantics preserved); shipped proof required (acceptance AND release gates done on the disk projection). The workflow is then described once and the exact run pinned: a not-found/completed describe or an already-terminal run status is idempotent success ONLY after that eligibility has passed; a RUNNING/PAUSED run without poisoned-history describe evidence is refused (never terminate a healthy workflow); a run with no pin-able runId or an unclassifiable status is refused. dryRun returns the full structured pin assessment without terminating or touching the projection cache. Termination targets the pinned run via getHandle(workflowId, runId); a not-found terminate is idempotent success, and any other terminate failure returns a structured error BEFORE any projection-cache refresh (failure-before-projection-mutation). On success the projection cache is refreshed so subsequent reads fall through to the durable disk projection. Not a routine autonomous agent action — invoke only on explicit operator instruction.",
+      "Operator-only maintenance tool: terminate the EXACT wedged or shipped-terminal run of a change's Temporal workflow, pinned by runId via describe() — NOT a Temporal Reset. Eligibility is strict and ordered: approval-first (approvedByUser + non-blank approvalEvidence before any read or mutation); the change must exist and NOT be archived (archived changes route to adv_archive_purge, the sole archived-change lever — rq-archivePurge01 semantics preserved); shipped proof required (acceptance AND release gates done on the disk projection). The workflow is then described once and the exact run pinned. Two eligibility classes (rq-shippedWorkflowTermination01): (1) poisoned_history — describe carries poisoned-history evidence; terminate + cache refresh only (no convergence write). (2) shipped_terminal — describe shows RUNNING/PAUSED with no poison but the durable disk projection carries all 7 gates done + phase9_status done + a schema-valid archive bundle whose embedded change.id strictly equals the requested changeId; terminate + atomic status/lifecycleState=archived convergence write + read-after-write verification + two successor-race checks (pre-write + post-readback). A not-found/completed describe or an already-terminal run status is idempotent success ONLY for the poisoned class; for the shipped_terminal class it routes through convergence (or refuses with IDEMPOTENT_BUT_PROOF_MISSING if proof fails). Shipped-terminal refusal codes: PROOF_INVALID_DISK_PROJECTION, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE, PROOF_BUNDLE_ID_MISMATCH. A run with no pin-able runId or an unclassifiable status is refused. RUNNING/PAUSED status alone never authorizes termination. dryRun returns the full structured pin assessment (eligibilityClass + proof components) without terminating or touching the projection cache. Termination targets the pinned run via getHandle(workflowId, runId); a not-found terminate is idempotent success, and any other terminate failure returns a structured error BEFORE any projection-cache refresh (failure-before-projection-mutation). On shipped_terminal success, the projection cache is refreshed and readback asserts both status and lifecycleState converged to archived. Not a routine autonomous agent action — invoke only on explicit operator instruction.",
     args: {
       changeId: z
         .string()
@@ -4582,42 +4681,212 @@ export const changeTools = {
         await import("../temporal/recovery-classification");
 
       let description: unknown;
+      let describeThrewCompleted = false;
       try {
         description = await handle.describe();
       } catch (error) {
         if (isWorkflowCompletedError(error)) {
+          // rq-shippedWorkflowTermination01 D11: idempotent completed paths
+          // require shipped-terminal proof when this could be a shipped-
+          // terminal recovery. Poisoned runs that threw not-found have no
+          // description to check, but we still must verify structural proof
+          // before declaring success on a shipped-terminal-shape change.
+          describeThrewCompleted = true;
+          description = null;
+        } else {
+          return formatToolOutput({
+            success: false,
+            error: `Failed to describe change workflow: ${error instanceof Error ? error.message : String(error)}`,
+            changeId,
+            workflowTerminated: false,
+          });
+        }
+      }
+
+      const { runId, statusName } = describeThrewCompleted
+        ? { runId: undefined, statusName: "COMPLETED" as string | undefined }
+        : workflowRunPinFromDescription(description);
+
+      // Determine eligibility class up front so idempotent paths can route
+      // correctly: poisoned-history may refresh-only; shipped-terminal must
+      // converge authority.
+      const { poisonedDescriptionEvidence } = await import("./recovery-probe");
+      const wedgedEvidence = describeThrewCompleted
+        ? null
+        : poisonedDescriptionEvidence(description);
+      let shippedTerminalProof: ShippedTerminalProofResult | null = null;
+      if (!wedgedEvidence) {
+        // Try the alternate eligibility branch: compute structural
+        // shipped-terminal proof from disk projection + archive bundle.
+        shippedTerminalProof = await computeShippedTerminalProof({
+          changesDir: store.paths.changes,
+          archiveDir: store.paths.archive,
+          changeId,
+        });
+      }
+
+      // Already-terminal / describe-not-found idempotent paths.
+      if (
+        describeThrewCompleted ||
+        (statusName && TERMINAL_WORKFLOW_RUN_STATUSES.has(statusName))
+      ) {
+        // Poisoned-history path: refresh + idempotent success (no convergence
+        // write — a poisoned run may have never reached archive; this path
+        // is the existing behavior, unchanged).
+        if (wedgedEvidence) {
           await refreshProjectionCache();
           return formatToolOutput({
             success: true,
             changeId,
             workflowTerminated: true,
             alreadyTerminated: true,
-            message: `Change ${changeId} workflow is already gone (completed/not-found); nothing to terminate.`,
+            eligibilityClass: "poisoned_history",
+            ...(runId ? { runId } : {}),
+            ...(statusName ? { runStatus: statusName } : {}),
+            message: `Change ${changeId} workflow run is already gone; nothing to terminate (poisoned-history class).`,
           });
         }
-        return formatToolOutput({
-          success: false,
-          error: `Failed to describe change workflow: ${error instanceof Error ? error.message : String(error)}`,
-          changeId,
-          workflowTerminated: false,
-        });
+
+        // No poison evidence available. For describe-throws-not-found we
+        // cannot distinguish poisoned-from-shipped-terminal (no description),
+        // so preserve the legacy idempotent refresh+success behavior to keep
+        // poisoned-history ghost-workflow cleanup working. If shipped-terminal
+        // proof IS valid we additionally converge authority (better outcome).
+        if (describeThrewCompleted) {
+          if (!shippedTerminalProof?.ok) {
+            // Legacy behavior: refresh + idempotent success. The change may
+            // be a poisoned-history cleanup; without a description we cannot
+            // require convergence.
+            await refreshProjectionCache();
+            return formatToolOutput({
+              success: true,
+              changeId,
+              workflowTerminated: true,
+              alreadyTerminated: true,
+              eligibilityClass: "unknown",
+              message: `Change ${changeId} workflow is already gone (completed/not-found); nothing to terminate. Shipped-terminal proof not available (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}); falling back to cache refresh only.`,
+            });
+          }
+          // Proof OK: converge authority (write status+lifecycleState, readback).
+          const fromStatus = change.status;
+          const converge = await convergeTerminalAuthority({
+            store,
+            changeId,
+            pinnedRunId: runId ?? "unknown",
+            authorization: {
+              reason: "shipped_terminal_workflow_termination",
+              evidence,
+            },
+            describeUnpinned: async () => {
+              if (typeof handle.describe !== "function") {
+                throw new Error(
+                  "Change workflow handle does not support describe()",
+                );
+              }
+              return handle.describe();
+            },
+          });
+          if (converge.kind === "converged") {
+            return formatToolOutput({
+              success: true,
+              changeId,
+              workflowTerminated: true,
+              alreadyTerminated: true,
+              converged: true,
+              eligibilityClass: "shipped_terminal",
+              fromStatus,
+              toStatus: "archived",
+              shippedTerminalProof: {
+                ok: true,
+                bundlePath: shippedTerminalProof.bundlePath,
+              },
+              readback: converge.readback,
+              message: `Change ${changeId} workflow run was already gone; converged terminal authority (status+lifecycleState=archived).`,
+            });
+          }
+          return formatConvergeFailure({
+            converge,
+            changeId,
+            runId: runId ?? "unknown",
+            eligibilityClass: "shipped_terminal",
+            fromStatus,
+            shippedTerminalProof,
+          });
+        }
+
+        // describe returned a terminal status (not threw). We have a
+        // description but no poison evidence. Per D11, this path requires
+        // shipped-terminal proof — half-shipped changes cannot be declared
+        // converged without structural proof + convergence write.
+        if (!shippedTerminalProof?.ok) {
+          return formatToolOutput({
+            success: false,
+            error: `Workflow termination refused: change ${changeId} run is already ${statusName} but shipped-terminal proof failed (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}) — cannot declare converged (IDEMPOTENT_BUT_PROOF_MISSING).`,
+            changeId,
+            eligibilityClass: "none",
+            shippedTerminalProof: shippedTerminalProof?.ok
+              ? undefined
+              : {
+                  ok: false,
+                  refusalCode:
+                    shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE",
+                  evidence:
+                    shippedTerminalProof?.evidence ??
+                    "no shipped-terminal proof available",
+                },
+            hint: "Idempotent terminal-status requires complete shipped-terminal proof (all 7 disk gates + phase9 done + valid archive bundle). Complete the proof or use adv_archive_purge if the change is already archived on disk.",
+          });
+        }
+
+        // Proof OK: converge authority.
+        {
+          const fromStatus = change.status;
+          const converge = await convergeTerminalAuthority({
+            store,
+            changeId,
+            pinnedRunId: runId ?? "unknown",
+            authorization: {
+              reason: "shipped_terminal_workflow_termination",
+              evidence,
+            },
+            describeUnpinned: async () => {
+              if (typeof handle.describe !== "function") {
+                throw new Error(
+                  "Change workflow handle does not support describe()",
+                );
+              }
+              return handle.describe();
+            },
+          });
+          if (converge.kind === "converged") {
+            return formatToolOutput({
+              success: true,
+              changeId,
+              workflowTerminated: true,
+              alreadyTerminated: true,
+              converged: true,
+              eligibilityClass: "shipped_terminal",
+              fromStatus,
+              toStatus: "archived",
+              shippedTerminalProof: {
+                ok: true,
+                bundlePath: shippedTerminalProof.bundlePath,
+              },
+              readback: converge.readback,
+              message: `Change ${changeId} workflow run was already ${statusName}; converged terminal authority (status+lifecycleState=archived).`,
+            });
+          }
+          return formatConvergeFailure({
+            converge,
+            changeId,
+            runId: runId ?? "unknown",
+            eligibilityClass: "shipped_terminal",
+            fromStatus,
+            shippedTerminalProof,
+          });
+        }
       }
 
-      const { runId, statusName } = workflowRunPinFromDescription(description);
-
-      // Already-terminal run → idempotent success (after eligibility).
-      if (statusName && TERMINAL_WORKFLOW_RUN_STATUSES.has(statusName)) {
-        await refreshProjectionCache();
-        return formatToolOutput({
-          success: true,
-          changeId,
-          workflowTerminated: true,
-          alreadyTerminated: true,
-          ...(runId ? { runId } : {}),
-          runStatus: statusName,
-          message: `Change ${changeId} workflow run is already ${statusName}; nothing to terminate.`,
-        });
-      }
       if (!statusName || !TERMINABLE_WORKFLOW_RUN_STATUSES.has(statusName)) {
         return formatToolOutput({
           success: false,
@@ -4628,37 +4897,27 @@ export const changeTools = {
         });
       }
 
-      // Healthy guard: a live run must carry poisoned-history describe
-      // evidence, OR present a complete shipped-terminal proof per
-      // rq-shippedWorkflowTermination01 D2 (alternate eligibility branch).
-      // Never terminate a healthy workflow on RUNNING+approval alone.
-      const { poisonedDescriptionEvidence } = await import("./recovery-probe");
-      const wedgedEvidence = poisonedDescriptionEvidence(description);
-      let shippedTerminalProof: ShippedTerminalProofResult | null = null;
-      if (!wedgedEvidence) {
-        // Try the alternate eligibility branch: compute structural
-        // shipped-terminal proof from disk projection + archive bundle.
-        shippedTerminalProof = await computeShippedTerminalProof({
-          changesDir: store.paths.changes,
-          archiveDir: store.paths.archive,
+      // TERMINABLE: refuse if neither poison nor shipped-terminal proof.
+      if (!wedgedEvidence && !shippedTerminalProof?.ok) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} run is ${statusName} with no poisoned-history evidence, and shipped-terminal proof failed (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}).`,
           changeId,
+          ...(runId ? { runId } : {}),
+          runStatus: statusName,
+          eligibilityClass: "none",
+          shippedTerminalProof: shippedTerminalProof?.ok
+            ? undefined
+            : {
+                ok: false,
+                refusalCode:
+                  shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE",
+                evidence:
+                  shippedTerminalProof?.evidence ??
+                  "no shipped-terminal proof available",
+              },
+          hint: "This tool only terminates wedged (poisoned-history) runs OR shipped-terminal runs (all 7 disk gates done + phase9 done + valid archive bundle matching changeId). Refusing to terminate a healthy workflow.",
         });
-        if (!shippedTerminalProof.ok) {
-          return formatToolOutput({
-            success: false,
-            error: `Workflow termination refused: change ${changeId} run is ${statusName} with no poisoned-history evidence, and shipped-terminal proof failed (${shippedTerminalProof.refusalCode}).`,
-            changeId,
-            ...(runId ? { runId } : {}),
-            runStatus: statusName,
-            eligibilityClass: "none",
-            shippedTerminalProof: {
-              ok: false,
-              refusalCode: shippedTerminalProof.refusalCode,
-              evidence: shippedTerminalProof.evidence,
-            },
-            hint: "This tool only terminates wedged (poisoned-history) runs OR shipped-terminal runs (all 7 disk gates done + phase9 done + valid archive bundle matching changeId). Refusing to terminate a healthy workflow.",
-          });
-        }
       }
       if (!runId) {
         return formatToolOutput({
@@ -4705,6 +4964,7 @@ export const changeTools = {
         changeId,
         runId,
       );
+      let alreadyTerminated = false;
       try {
         await (
           pinnedHandle as unknown as {
@@ -4715,25 +4975,21 @@ export const changeTools = {
         );
       } catch (error) {
         if (isWorkflowCompletedError(error)) {
-          await refreshProjectionCache();
+          // The pinned run ended after describe but before terminate landed.
+          // A shipped-terminal recovery still must converge and verify the
+          // terminal projection; only poisoned-history keeps its legacy
+          // refresh-only completion behavior.
+          alreadyTerminated = true;
+        } else {
+          // failure-before-projection-mutation: no refresh, no disk write.
           return formatToolOutput({
-            success: true,
+            success: false,
+            error: `Failed to terminate change workflow: ${error instanceof Error ? error.message : String(error)}`,
             changeId,
-            workflowTerminated: true,
-            alreadyTerminated: true,
             runId,
-            eligibilityClass,
-            message: `Change ${changeId} run ${runId} ended before termination landed (completed/not-found); treated as already terminated.`,
+            workflowTerminated: false,
           });
         }
-        // failure-before-projection-mutation: no refresh, no disk write.
-        return formatToolOutput({
-          success: false,
-          error: `Failed to terminate change workflow: ${error instanceof Error ? error.message : String(error)}`,
-          changeId,
-          runId,
-          workflowTerminated: false,
-        });
       }
 
       // rq-shippedWorkflowTermination01 D12: shipped_terminal path funnels
@@ -4766,6 +5022,7 @@ export const changeTools = {
             success: true,
             changeId,
             workflowTerminated: true,
+            ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
             converged: true,
             runId,
             runStatus: statusName,
@@ -4781,82 +5038,15 @@ export const changeTools = {
           });
         }
 
-        if (converge.kind === "successorRace") {
-          return formatToolOutput({
-            success: false,
-            partialRecovery: true,
-            pinnedRunTerminated: true,
-            converged: false,
-            changeId,
-            runId,
-            eligibilityClass,
-            fromStatus,
-            successorRace: {
-              pinnedRunId: runId,
-              successorRunId: converge.successorRunId,
-              phase: converge.phase,
-            },
-            remediation:
-              "A different live successor run appeared before convergence write. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId, or adv_archive_purge once status converges.",
-          });
-        }
-
-        if (converge.kind === "lateSuccessorRace") {
-          return formatToolOutput({
-            success: false,
-            partialRecovery: true,
-            pinnedRunTerminated: true,
-            converged: false,
-            changeId,
-            runId,
-            eligibilityClass,
-            fromStatus,
-            attemptedStatus: "archived",
-            attemptedLifecycleState: "archived",
-            lateSuccessorRace: {
-              pinnedRunId: runId,
-              successorRunId: converge.successorRunId,
-              phase: converge.phase,
-            },
-            remediation:
-              "Late successor appeared after convergence write. Disk projection is archived but a new live run exists. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId.",
-          });
-        }
-
-        if (converge.kind === "writeFailed") {
-          return formatToolOutput({
-            success: false,
-            partialRecovery: true,
-            pinnedRunTerminated: true,
-            converged: false,
-            changeId,
-            runId,
-            eligibilityClass,
-            fromStatus,
-            attemptedStatus: "archived",
-            attemptedLifecycleState: "archived",
-            error: `Convergence write failed: ${converge.error}`,
-            remediation:
-              "Pinned run was terminated but the disk projection write failed. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
-          });
-        }
-
-        // readbackFailed
-        return formatToolOutput({
-          success: false,
-          partialRecovery: true,
-          pinnedRunTerminated: true,
-          converged: false,
+        // Non-converged outcomes: delegate to the shared formatter used by
+        // both the terminate-then-converge and idempotent-then-converge paths.
+        return formatConvergeFailure({
+          converge,
           changeId,
           runId,
           eligibilityClass,
           fromStatus,
-          attemptedStatus: "archived",
-          attemptedLifecycleState: "archived",
-          error: `Terminal readback failed: ${converge.error}`,
-          readback: converge.readback,
-          remediation:
-            "Workflow run was terminated and disk projection was written, but terminal readback did not converge. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
+          shippedTerminalProof,
         });
       }
 
@@ -4866,6 +5056,7 @@ export const changeTools = {
         success: true,
         changeId,
         workflowTerminated: true,
+        ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
         runId,
         runStatus: statusName,
         eligibilityClass,

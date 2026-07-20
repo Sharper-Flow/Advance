@@ -345,12 +345,22 @@ describe("adv_change_workflow_terminate", () => {
     expect(store.changes.refresh).not.toHaveBeenCalled();
   });
 
-  test("treats already-terminal run status as idempotent alreadyTerminated", async () => {
+  test("treats already-terminal run status as idempotent alreadyTerminated (poisoned-history class)", async () => {
+    // rq-shippedWorkflowTermination01 D11: already-terminal runs route through
+    // poisoned-history (refresh-only) when poison evidence is present in the
+    // description. Without poison, shipped-terminal proof + convergence is
+    // required (covered by the shipped-terminal describe block below).
     const store = createMockStore(wedgedChange());
     mocks.describe.mockResolvedValue({
       workflowId: "adv-change-test-project-id-wedgedChange",
       runId: "run-123",
       status: { code: 3, name: "TERMINATED" },
+      raw: {
+        pendingWorkflowTask: {
+          lastFailure:
+            "WorkflowTaskFailedCauseNonDeterministicError: TMPRL1100 No command scheduled for event",
+        },
+      },
     });
 
     const result = await tool().execute(
@@ -366,8 +376,43 @@ describe("adv_change_workflow_terminate", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.workflowTerminated).toBe(true);
     expect(parsed.alreadyTerminated).toBe(true);
+    expect(parsed.eligibilityClass).toBe("poisoned_history");
     expect(mocks.terminate).not.toHaveBeenCalled();
     expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+  });
+
+  test("refuses already-terminal run without poison AND without shipped-terminal proof (IDEMPOTENT_BUT_PROOF_MISSING)", async () => {
+    // D11: already-terminal with no poison evidence must produce shipped-
+    // terminal proof or refuse. A half-shipped stale run cannot be declared
+    // converged without structural proof.
+    const store = createMockStore(wedgedChange());
+    mocks.describe.mockResolvedValue({
+      workflowId: "adv-change-test-project-id-wedgedChange",
+      runId: "run-123",
+      status: { code: 3, name: "TERMINATED" },
+      // No raw.pendingWorkflowTask.lastFailure → no poison evidence.
+    });
+
+    const result = await tool().execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: TERMINATE_EVIDENCE,
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toMatch(/IDEMPOTENT_BUT_PROOF_MISSING/);
+    // Mock store points at /tmp/main/.adv/changes which does not exist on
+    // disk, so loadChange fails first → PROOF_INVALID_DISK_PROJECTION. Any
+    // proof-refusal code is acceptable; what matters is that idempotent
+    // success is NOT returned without either poison evidence or valid proof.
+    expect(parsed.shippedTerminalProof.refusalCode).toMatch(/^PROOF_/);
+    expect(parsed.eligibilityClass).toBe("none");
+    expect(mocks.terminate).not.toHaveBeenCalled();
+    expect(store.changes.refresh).not.toHaveBeenCalled();
   });
 
   test("refuses a RUNNING run without poisoned-history describe evidence", async () => {
@@ -819,6 +864,51 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(mocks.terminate).toHaveBeenCalledTimes(1);
   });
 
+  test("converges shipped-terminal authority when the pinned terminate is already completed", async () => {
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+    mocks.terminate.mockRejectedValue(notFoundError());
+
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id !== change.id) return { success: true, data: null };
+        const text = await readFile(
+          join(changesDir, change.id, "change.json"),
+          "utf-8",
+        );
+        return { success: true, data: JSON.parse(text) as Change };
+      },
+    );
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async (query: unknown) => {
+        const fresh = JSON.parse(
+          await readFile(join(changesDir, change.id, "change.json"), "utf-8"),
+        ) as Change;
+        return (query as { status?: string } | null)?.status === "archived"
+          ? { changes: [fresh] }
+          : { changes: [] };
+      },
+    );
+
+    const result = await tool().execute(
+      {
+        changeId: change.id,
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.alreadyTerminated).toBe(true);
+    expect(parsed.converged).toBe(true);
+    expect(parsed.readback.showLifecycleState).toBe("archived");
+    expect(parsed.readback.archivedCount).toBe(1);
+  });
+
   test("refuses when shipped-terminal proof fails on PROOF_BUNDLE_ID_MISMATCH", async () => {
     const diskChange = shippedTerminalChange();
     await writeChangeToDisk(diskChange);
@@ -1014,6 +1104,78 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(parsed.lateSuccessorRace.phase).toBe("post_readback");
     expect(parsed.remediation).toBeTruthy();
     expect(mocks.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  test("successor check #2 describe failure surfaces typed partial-recovery (not silent success)", async () => {
+    // rq-shippedWorkflowTermination01 AC8: a non-completed error from the
+    // post-readback successor describe cannot prove absence of a live
+    // successor. The call must return a typed partial-recovery shape rather
+    // than reporting full convergence success.
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+
+    let describeCallCount = 0;
+    mocks.describe.mockImplementation(async () => {
+      describeCallCount++;
+      if (describeCallCount <= 2) {
+        // Pinned describe + pre-write successor check: original run, then terminated.
+        return shippedTerminalRunningDescription("run-original-2");
+      }
+      // Post-readback describe throws a non-completed error.
+      throw new Error("gRPC channel closed unexpectedly");
+    });
+
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id !== change.id) return { success: true, data: null };
+        try {
+          const text = await readFile(
+            join(changesDir, change.id, "change.json"),
+            "utf-8",
+          );
+          return { success: true, data: JSON.parse(text) as Change };
+        } catch {
+          return { success: true, data: change };
+        }
+      },
+    );
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async (query: unknown) => {
+        const q = query as { status?: string } | null;
+        try {
+          const text = await readFile(
+            join(changesDir, change.id, "change.json"),
+            "utf-8",
+          );
+          const fresh = JSON.parse(text) as Change;
+          if (q && q.status === "archived") {
+            return { changes: [fresh] };
+          }
+          return { changes: [] };
+        } catch {
+          return { changes: [] };
+        }
+      },
+    );
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.partialRecovery).toBe(true);
+    expect(parsed.pinnedRunTerminated).toBe(true);
+    expect(parsed.converged).toBe(false);
+    expect(parsed.error).toMatch(/post-readback successor describe failed/);
+    expect(parsed.remediation).toMatch(/adv_change_status_repair/);
   });
 
   test("readback failure returns typed partialRecovery with attempted fields and remediation", async () => {
