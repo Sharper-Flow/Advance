@@ -257,6 +257,27 @@ Two config layers cooperate:
    rule, so direct ADV access is retained as the recovery/admin escape
    hatch (AC6).
 
+### Post-deploy runtime verification
+
+After `pnpm run build` + `./scripts/deploy-local.sh --fix` + OpenCode
+restart, verify the live surface:
+
+1. **Facade registered**: `adv_tool_catalog` (describe, invoke) appears in
+   `adv_status` output and the SDK tool surface.
+2. **Normal-agent visibility**: an `adv-engineer` (or other normal agent)
+   session sees `adv_tool_invoke` in its tool list. Direct `adv_*` tools
+   not in its allowlist are absent.
+3. **Orchestrator escape hatch**: the `adv` orchestrator session retains
+   direct `adv_*` access (no `adv_*: deny` rule).
+4. **Facade dispatch**: `adv_tool_invoke(name: "adv_change_show",
+   args: { changeId: "<active-change>" })` returns the same payload a
+   direct `adv_change_show` call would.
+5. **Recursion rejection**: `adv_tool_invoke(name: "adv_tool_invoke",
+   args: {})` returns `RECURSIVE_INVOCATION` before any dispatch.
+6. **Schema rejection**: `adv_tool_invoke(name: "adv_change_list",
+   args: { limit: "not-a-number" })` returns `SCHEMA_VALIDATION_FAILED`
+   before any dispatch.
+
 ### Rollback (AC7)
 
 The visibility profile is reversibleible without code changes. To
