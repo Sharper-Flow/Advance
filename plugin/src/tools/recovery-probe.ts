@@ -14,8 +14,12 @@
 
 import {
   isPoisonedHistoryError,
+  isPreciseWorkflowRecoveryEvidence,
   isWorkflowCompletedError,
 } from "../temporal/recovery-classification";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("recovery-probe");
 
 // Keep the core markers aligned with `temporal/recovery-classification.ts`.
 // This probe intentionally accepts richer `describe()` output shapes while the
@@ -119,6 +123,64 @@ export async function workflowPoisonedDescriptionEvidence(
     return poisonedDescriptionEvidence(await handle.describe());
   } catch {
     return null;
+  }
+}
+
+/**
+ * Probe-first recovery gate. Returns true when the operator has supplied
+ * sufficient evidence to take the disk-direct recovery branch WITHOUT
+ * firing the signal — required because Temporal signals are fire-and-forget
+ * (server acceptance, not workflow processing) and silently resolve on
+ * poisoned replay, so the existing catch-gated path is unreachable for
+ * the common poison case (issue #198, #253).
+ *
+ * Authority model: operator-supplied precise recoveryEvidence (textual
+ * markers like WorkflowNotFoundError, WorkflowExecutionAlreadyCompleted,
+ * TMPRL1100). describe() is NOT authoritative per validator findings —
+ * DescribeWorkflowExecutionResponse has no Workflow Task failure cause/
+ * details field in the Temporal API proto.
+ *
+ * Callers MUST still emit recovery_audit (reason + evidence + recovered_at)
+ * on the disk-direct write.
+ *
+ * Constraint: per agreement C2, recoveryEvidence must be precise poisoned/
+ * completed evidence via isPreciseWorkflowRecoveryEvidence. This helper
+ * enforces that — it does NOT accept vague evidence.
+ */
+export function shouldTakeRecoveryBranch(args: {
+  recoveryMode?: "normal" | "poisoned_history";
+  recoveryEvidence?: string;
+}): boolean {
+  return (
+    args.recoveryMode === "poisoned_history" &&
+    typeof args.recoveryEvidence === "string" &&
+    args.recoveryEvidence.trim().length > 0 &&
+    isPreciseWorkflowRecoveryEvidence(args.recoveryEvidence)
+  );
+}
+
+/**
+ * Optional diagnostic probe — logs describe() content for operator visibility
+ * but NEVER returns a recovery decision. Recovery authority comes solely
+ * from operator-supplied recoveryEvidence via shouldTakeRecoveryBranch.
+ *
+ * Kept as an export so callers can log "describe said X" alongside the
+ * recovery_audit trail without inventing a parallel classification path.
+ * Best-effort: describe() failures are swallowed (returns void).
+ */
+export async function logRecoveryProbeDiagnostics(
+  handle: PoisonedDescribeProbeTarget,
+  changeId: string,
+): Promise<void> {
+  try {
+    const evidence = await workflowPoisonedDescriptionEvidence(handle);
+    if (evidence) {
+      logger.info(
+        `Recovery probe diagnostics for ${changeId}: describe() carried poisoned markers (advisory only; operator evidence is authority)`,
+      );
+    }
+  } catch {
+    // Best-effort diagnostic; never throw.
   }
 }
 

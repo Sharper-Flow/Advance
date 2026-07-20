@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   classifyCompletedOrPoisonedRecovery,
+  logRecoveryProbeDiagnostics,
+  shouldTakeRecoveryBranch,
   workflowHasPoisonedDescription,
   workflowPoisonedDescriptionEvidence,
   workflowHasPoisonedRecoveryEvidence,
@@ -140,5 +142,98 @@ describe("classifyCompletedOrPoisonedRecovery", () => {
       new Error("network unavailable"),
     );
     expect(result).toEqual({ completedWorkflow: false, recover: false });
+  });
+});
+
+describe("shouldTakeRecoveryBranch", () => {
+  it("returns true for poisoned_history + precise WorkflowNotFoundError evidence", () => {
+    expect(
+      shouldTakeRecoveryBranch({
+        recoveryMode: "poisoned_history",
+        recoveryEvidence: "WorkflowNotFoundError: workflow execution already completed",
+      }),
+    ).toBe(true);
+  });
+
+  it("returns true for poisoned_history + precise TMPRL1100 evidence", () => {
+    expect(
+      shouldTakeRecoveryBranch({
+        recoveryMode: "poisoned_history",
+        recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError TMPRL1100",
+      }),
+    ).toBe(true);
+  });
+
+  it("returns false for normal recoveryMode", () => {
+    expect(
+      shouldTakeRecoveryBranch({
+        recoveryMode: "normal",
+        recoveryEvidence: "WorkflowNotFoundError",
+      }),
+    ).toBe(false);
+  });
+
+  it("returns false for unset recoveryMode", () => {
+    expect(
+      shouldTakeRecoveryBranch({
+        recoveryEvidence: "WorkflowNotFoundError",
+      }),
+    ).toBe(false);
+  });
+
+  it("returns false for empty recoveryEvidence", () => {
+    expect(
+      shouldTakeRecoveryBranch({
+        recoveryMode: "poisoned_history",
+        recoveryEvidence: "",
+      }),
+    ).toBe(false);
+  });
+
+  it("returns false for whitespace-only recoveryEvidence", () => {
+    expect(
+      shouldTakeRecoveryBranch({
+        recoveryMode: "poisoned_history",
+        recoveryEvidence: "   ",
+      }),
+    ).toBe(false);
+  });
+
+  it("returns false for imprecise recoveryEvidence", () => {
+    expect(
+      shouldTakeRecoveryBranch({
+        recoveryMode: "poisoned_history",
+        recoveryEvidence: "something went wrong",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("logRecoveryProbeDiagnostics", () => {
+  it("does not throw when describe() throws", async () => {
+    const handle = {
+      describe: async () => {
+        throw new Error("network failure");
+      },
+    };
+    await expect(
+      logRecoveryProbeDiagnostics(handle, "test-change"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("does not throw when describe returns clean (no markers)", async () => {
+    const handle = {
+      describe: async () => ({ status: "RUNNING" }),
+    };
+    await expect(
+      logRecoveryProbeDiagnostics(handle, "test-change"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("does not throw when handle has no describe function", async () => {
+    const handle = {};
+    await expect(
+      logRecoveryProbeDiagnostics(handle as never, "test-change"),
+    ).resolves.toBeUndefined();
   });
 });
