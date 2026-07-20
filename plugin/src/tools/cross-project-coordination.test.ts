@@ -243,10 +243,14 @@ describe("cross-project coordination metadata", () => {
     };
 
     const output = await changeTools.adv_change_create.execute(
-      { summary: "Add scoped change", capability: "test-capability" },
+      {
+        summary: `Add scoped ${sourceDir.slice(-8)}`,
+        capability: "test-capability",
+      },
       sourceStore,
     );
     const parsed = parseToolOutput(output);
+    expect(parsed.error, JSON.stringify(parsed)).toBeUndefined();
     expect(parsed.scope_repos).toEqual([
       expect.objectContaining({ repo_id: "web" }),
     ]);
