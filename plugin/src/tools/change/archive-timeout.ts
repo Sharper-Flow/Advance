@@ -4,8 +4,8 @@
  * fixArchiveTerminalProjection SC3/AC4: adv_change_archive is bundle-first
  * (rq-archiveRetirement01 / rq-archiveOrdering01). When the safety-net tool
  * timeout fires AFTER the archive bundle is durable on disk, the only work
- * lost is the terminal projection (status flip, cleanup, issue closure) —
- * all of which an idempotent re-run reconciles. In that case the caller
+ * remaining work includes immutable spec projection proof before terminal
+ * state. An idempotent re-run routes through that shared proof gate. The caller
  * must receive a typed "still_finalizing / re-run to reconcile" result
  * instead of a bare ToolExecutionTimeout (aligns rq-terminalAggregateRead01:
  * structural degradation, not an unclassified whole-tool timeout).
@@ -98,22 +98,24 @@ export async function formatArchiveTimeoutResult(
     error:
       `Archive interrupted: adv_change_archive exceeded its ${timeoutMs}ms ` +
       `safety-net budget after the archive bundle for '${changeId}' was ` +
-      "written. The bundle is durable; only the terminal projection " +
-      "(status flip / cleanup / issue closure) was interrupted.",
+      "written. The bundle is durable, but accepted delta projection and " +
+      "terminal state may still require immutable proof.",
     errorClass: "ToolExecutionTimeout",
     tool: "adv_change_archive",
     changeId,
     archiveStatus: "still_finalizing",
     bundleDurable: true,
+    projectionStatus: "unverified_after_timeout",
     archivePath,
     timeoutMs,
     retrySafe: true,
-    requirement: "rq-archiveOrdering01",
+    retryRoute: "through_shared_projection_proof_gate",
+    requirement: "rq-archiveDeltaReconciliation01",
     remediation:
       "Re-run adv_change_archive with the same arguments. The archive " +
-      "bundle is durable on disk, so the re-run is idempotent: it skips " +
-      "the bundle write, re-drives the terminal projection, and " +
-      "reconciles the change to archived. If the change already reads as " +
+      "bundle is durable on disk, so the idempotent re-run reuses it, reconciles any " +
+      "proven-safe missing projection in the trusted worktree, verifies the " +
+      "immutable released commit, then re-drives terminal state. If the change already reads as " +
       "archived, the re-run is a bounded metadata reconcile.",
     hint: "Re-run adv_change_archive (same changeId, worktreePath, and target_path if used). Do not start a new archive or delete the bundle.",
   });

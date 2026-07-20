@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { createHash } from "crypto";
 import { rm } from "fs/promises";
-import { join, resolve } from "path";
+import { basename, join, relative, resolve } from "path";
 import type { FastFollowOf, ChangeOrigin } from "../types";
 import {
   createDefaultGates,
@@ -28,6 +28,7 @@ import {
   type BriefingPacketLane,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
+import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
 import { getProjectId } from "../utils/project-id";
 import { validateChange } from "../validator";
@@ -344,6 +345,13 @@ import {
   findArchiveBundle,
   getArchiveContractProofErrors,
   reconcileInRepoArchive,
+  readProjectionManifest,
+  verifyProjectionAtGitCommit,
+  reconcileHistoricalArchiveDeltas,
+  canonicalSha256,
+  resolveGitCommitSha,
+  HistoricalConflictDispositionSchema,
+  type HistoricalConflictDisposition,
 } from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { withTimeout, TimeoutError } from "../utils/with-timeout";
@@ -2811,7 +2819,6 @@ export const changeTools = {
             changeId,
           });
         }
-        const specs = await loadSpecsMap(store);
         // Run the archive operation
         // Include in-repo archive path: resolves within the repo at .adv/archive/.
         // When worktreePath is provided (e.g. /adv-archive Phase 9 from a worktree),
@@ -2820,14 +2827,42 @@ export const changeTools = {
         // checkout) for backward compatibility.
         const inRepoBase = worktreePath ?? store.paths.root;
         const inRepoArchive = join(inRepoBase, ".adv", "archive");
+        const projectionSpecs = join(inRepoBase, ".adv", "specs");
+        const projectionDocs = join(inRepoBase, "docs", "specs");
+        const specs = worktreePath
+          ? await loadAllSpecs(projectionSpecs)
+          : await loadSpecsMap(store);
         const archivePaths =
           store.config?.features?.wisdom_accumulation === false
-            ? { ...store.paths, wisdom: undefined, inRepoArchive }
-            : { ...store.paths, inRepoArchive };
+            ? {
+                ...store.paths,
+                specs: projectionSpecs,
+                docs: projectionDocs,
+                wisdom: undefined,
+                inRepoArchive,
+              }
+            : {
+                ...store.paths,
+                specs: projectionSpecs,
+                docs: projectionDocs,
+                inRepoArchive,
+              };
         const existingBundlePath = !dryRun
           ? await findArchiveBundle(archivePaths.archive, changeId)
           : null;
         if (!dryRun) {
+          if (
+            !worktreePath &&
+            Object.values(change.deltas).some((deltas) => deltas.length > 0)
+          ) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Archive delta projection requires worktreePath; tracked specs and docs are never written through the main checkout.",
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+            });
+          }
           if (
             !worktreePath &&
             phase9 !== "skip" &&
@@ -2872,6 +2907,55 @@ export const changeTools = {
           change.status === "archived" &&
           existingBundlePath !== null
         ) {
+          if (
+            Object.values(change.deltas).some((deltas) => deltas.length > 0)
+          ) {
+            const manifest = await readProjectionManifest(existingBundlePath);
+            const release = verifyReleaseEvidenceFromMain({
+              store,
+              changeId,
+              archiveMode,
+              change,
+            });
+            if (
+              !manifest ||
+              release.status !== "shipped" ||
+              !release.mergeCommitSha
+            ) {
+              return formatToolOutput({
+                success: false,
+                error:
+                  "Archived retry cannot prove accepted delta projection; run approved archive delta reconciliation in a trusted repair worktree.",
+                requirement: "rq-archiveDeltaReconciliation01",
+                changeId,
+                archivePath: existingBundlePath,
+              });
+            }
+            const proof = await verifyProjectionAtGitCommit({
+              manifest,
+              repo: release.mainCheckout,
+              releasedCommitSha: release.mergeCommitSha,
+              manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
+              expectedChangeId: change.id,
+              expectedDeltaSetSha256: canonicalSha256(change.deltas),
+              expectedDeltaIdsByCapability: Object.fromEntries(
+                Object.entries(change.deltas).map(([capability, deltas]) => [
+                  capability,
+                  deltas.map((delta) => delta.id),
+                ]),
+              ),
+            });
+            if (!proof.ok) {
+              return formatToolOutput({
+                success: false,
+                error: `Archived retry projection proof failed: ${proof.code}: ${proof.message}`,
+                requirement: "rq-archiveDeltaReconciliation01",
+                changeId,
+                archivePath: existingBundlePath,
+                projectionFailure: proof,
+              });
+            }
+          }
           return reconcileArchivedBundleRetry({
             store,
             change,
@@ -2894,12 +2978,13 @@ export const changeTools = {
         //      transition (below) complete the recovery.
         let archiveResult: import("../archive/types").ArchiveOperationResult;
         if (existingBundlePath !== null) {
+          let reconciledInRepoPath: string | undefined;
           if (
             !dryRun &&
             archivePaths.inRepoArchive &&
             (worktreePath || phase9 === "skip")
           ) {
-            await reconcileInRepoArchive(
+            reconciledInRepoPath = await reconcileInRepoArchive(
               change,
               archivePaths.inRepoArchive,
               archivePaths.changes
@@ -2907,15 +2992,27 @@ export const changeTools = {
                 : undefined,
             );
           }
-          archiveResult = {
-            success: true,
-            changeId,
-            specsUpdated: [],
-            docsGenerated: [],
-            archivePath: existingBundlePath,
-            errors: [],
-            archivedAt: new Date().toISOString(),
-          };
+          archiveResult = Object.values(change.deltas).some(
+            (deltas) => deltas.length > 0,
+          )
+            ? await archiveChange({
+                change,
+                specs,
+                paths: archivePaths,
+                dryRun,
+                productId: store.productContext?.productId,
+                reuseExistingBundlePath: existingBundlePath,
+              })
+            : {
+                success: true,
+                changeId,
+                specsUpdated: [],
+                docsGenerated: [],
+                commitPaths: reconciledInRepoPath ? [reconciledInRepoPath] : [],
+                archivePath: existingBundlePath,
+                errors: [],
+                archivedAt: new Date().toISOString(),
+              };
         } else {
           archiveResult = await archiveChange({
             change,
@@ -2957,6 +3054,9 @@ export const changeTools = {
                   expectedMainCheckout: store.paths.root,
                   archiveMode,
                   autoPush,
+                  artifactPaths: (archiveResult.commitPaths ?? []).map((path) =>
+                    relative(worktreePath, path),
+                  ),
                 })
               : verifyReleaseEvidenceFromMain({
                   store,
@@ -3145,6 +3245,65 @@ export const changeTools = {
             ...releaseResult,
             gate: durableProof.gate,
           };
+        }
+        const hasAcceptedDeltas = Object.values(change.deltas).some(
+          (deltas) => deltas.length > 0,
+        );
+        if (!dryRun && archiveResult.success && hasAcceptedDeltas) {
+          const committedBundlePath = archiveResult.commitPaths.find((path) =>
+            relative(inRepoBase, path)
+              .replaceAll("\\", "/")
+              .startsWith(".adv/archive/"),
+          );
+          const proofOutcome =
+            finalization ??
+            verifyReleaseEvidenceFromMain({
+              store,
+              changeId,
+              archiveMode,
+              change,
+            });
+          if (
+            proofOutcome.status !== "shipped" ||
+            !proofOutcome.mergeCommitSha ||
+            !archiveResult.projectionManifest ||
+            !committedBundlePath
+          ) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Archive projection proof requires a manifest and immutable released commit SHA.",
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: archiveResult.archivePath,
+              finalization: proofOutcome,
+            });
+          }
+          const projectionProof = await verifyProjectionAtGitCommit({
+            manifest: archiveResult.projectionManifest,
+            repo: proofOutcome.mainCheckout,
+            releasedCommitSha: proofOutcome.mergeCommitSha,
+            manifestGitPath: `${relative(inRepoBase, committedBundlePath).replaceAll("\\", "/")}/spec-projection.json`,
+            expectedChangeId: change.id,
+            expectedDeltaSetSha256: canonicalSha256(change.deltas),
+            expectedDeltaIdsByCapability: Object.fromEntries(
+              Object.entries(change.deltas).map(([capability, deltas]) => [
+                capability,
+                deltas.map((delta) => delta.id),
+              ]),
+            ),
+          });
+          if (!projectionProof.ok) {
+            return formatToolOutput({
+              success: false,
+              error: `Archive released projection proof failed: ${projectionProof.code}: ${projectionProof.message}`,
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: archiveResult.archivePath,
+              projectionFailure: projectionProof,
+            });
+          }
+          change.archive_projection_proof = projectionProof.receipt;
         }
         // rq-releaseFinalization01 AC1: Archive status transition happens AFTER
         // release gate completion and durable proof verification. This is the
@@ -3426,10 +3585,10 @@ export const changeTools = {
       "Scan/redrive archived change branches, or reconcile bundle-present fully-shipped changes whose terminal archived projection is wedged. Branch cleanup is NOT here: post-merge local change/* branch deletion is git hygiene owned by adv_worktree_cleanup mode=archived_branches. Repair decision matrix: use action=reconcile for batch terminal-projection repair across all release-stuck candidates (branch-merge evidence gate); use adv_change_status_repair for a single wedged change (precise workflow-evidence gate, no branch requirement, target_path routing).",
     args: {
       action: z
-        .enum(["scan", "redrive", "reconcile"])
+        .enum(["scan", "redrive", "reconcile", "reconcile_deltas"])
         .describe(
           "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change; " +
-            "reconcile = audited repair of only bundle-present, fully-gated, merged changes stuck before archived status",
+            "reconcile = audited terminal-status repair; reconcile_deltas = audited current-repo spec projection repair in a trusted change worktree",
         ),
       changeId: z
         .string()
@@ -3459,6 +3618,32 @@ export const changeTools = {
         .describe(
           "Required for action='reconcile'. Explain why bundle-anchored terminal-projection recovery is appropriate.",
         ),
+      worktreePath: z
+        .string()
+        .optional()
+        .describe(
+          "Trusted active repair change worktree required for action='reconcile_deltas'.",
+        ),
+      expectedSeedHeadSha: z
+        .string()
+        .regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/)
+        .optional()
+        .describe(
+          "Reviewed dry-run seed HEAD required to execute reconcile_deltas.",
+        ),
+      expectedSeedProjectionSha256: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .optional()
+        .describe(
+          "Reviewed dry-run canonical seed projection digest required to execute reconcile_deltas.",
+        ),
+      conflictDispositions: z
+        .array(HistoricalConflictDispositionSchema)
+        .optional()
+        .describe(
+          "Exact add-only preserve-current conflict dispositions; every row must bind a planner-proven conflict.",
+        ),
     },
     execute: async (
       {
@@ -3468,18 +3653,91 @@ export const changeTools = {
         approvedByUser,
         approvalEvidence,
         recoveryReason,
+        worktreePath,
+        expectedSeedHeadSha,
+        expectedSeedProjectionSha256,
+        conflictDispositions,
       }: {
-        action: "scan" | "redrive" | "reconcile";
+        action: "scan" | "redrive" | "reconcile" | "reconcile_deltas";
         changeId?: string;
         dryRun?: boolean;
         approvedByUser?: true;
         approvalEvidence?: string;
         recoveryReason?: string;
+        worktreePath?: string;
+        expectedSeedHeadSha?: string;
+        expectedSeedProjectionSha256?: string;
+        conflictDispositions?: HistoricalConflictDisposition[];
       },
       store: Store,
     ) => {
       const mainCheckout = resolveMainCheckout(store.paths.root);
       const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+      if (action === "reconcile_deltas") {
+        if (!changeId || !worktreePath) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error:
+              "reconcile_deltas requires the active repair changeId and worktreePath",
+          });
+        }
+        if (!dryRun) {
+          if (approvedByUser !== true || !approvalEvidence?.trim()) {
+            return formatToolOutput({
+              success: false,
+              action,
+              error:
+                "approvedByUser and approvalEvidence are required to execute reconcile_deltas",
+            });
+          }
+          if (!recoveryReason?.trim()) {
+            return formatToolOutput({
+              success: false,
+              action,
+              error: "recoveryReason is required to execute reconcile_deltas",
+            });
+          }
+        }
+        const worktree = validateChangeWorktree(worktreePath, changeId, {
+          requireCleanWorktree: true,
+        });
+        if (!worktree.valid || worktree.mainCheckout !== mainCheckout) {
+          return formatToolOutput({
+            success: false,
+            action,
+            changeId,
+            error:
+              worktree.error ??
+              "reconcile_deltas requires a trusted clean worktree for this project",
+          });
+        }
+        try {
+          const result = await reconcileHistoricalArchiveDeltas({
+            archiveDir: store.paths.archive,
+            repairWorktree: worktreePath,
+            dryRun: dryRun === true,
+            expectedSeedHeadSha,
+            expectedSeedProjectionSha256,
+            conflictDispositions,
+          });
+          return formatToolOutput({
+            action,
+            changeId,
+            approved: dryRun === true ? false : true,
+            approvalEvidence: dryRun === true ? undefined : approvalEvidence,
+            recoveryReason: dryRun === true ? undefined : recoveryReason,
+            ...result,
+          });
+        } catch (error) {
+          return formatToolOutput({
+            success: false,
+            action,
+            changeId,
+            error: `Archive delta reconciliation failed: ${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+      }
       if (action === "reconcile") {
         const evidence = approvalEvidence?.trim() ?? "";
         const reason = recoveryReason?.trim() ?? "";
@@ -3610,6 +3868,63 @@ export const changeTools = {
               disposition: "skipped_unmerged_branch",
             });
             continue;
+          }
+          if (
+            Object.values(change.deltas).some((deltas) => deltas.length > 0)
+          ) {
+            const manifest = await readProjectionManifest(archivePath);
+            const releasedCommitSha =
+              branch.mergeProof.kind === "tree-identical"
+                ? branch.mergeProof.trunkCommitSha
+                : resolveGitCommitSha(mainCheckout, defaultBranch);
+            if (!releasedCommitSha) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "skipped_projection_unverified",
+                detail: `Could not pin ${defaultBranch} to an immutable commit SHA`,
+              });
+              continue;
+            }
+            if (!manifest) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "skipped_projection_unverified",
+                detail: "Projection manifest is missing or invalid",
+              });
+              continue;
+            }
+            const proof = await verifyProjectionAtGitCommit({
+              manifest,
+              repo: mainCheckout,
+              releasedCommitSha,
+              manifestGitPath: `.adv/archive/${basename(archivePath)}/spec-projection.json`,
+              expectedChangeId: change.id,
+              expectedDeltaSetSha256: canonicalSha256(change.deltas),
+              expectedDeltaIdsByCapability: Object.fromEntries(
+                Object.entries(change.deltas).map(([capability, deltas]) => [
+                  capability,
+                  deltas.map((delta) => delta.id),
+                ]),
+              ),
+            });
+            if (!proof.ok) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "skipped_projection_unverified",
+                detail: `${proof.code}: ${proof.message}`,
+              });
+              continue;
+            }
+            change.archive_projection_proof = proof.receipt;
           }
           if (dryRun) {
             results.push({
@@ -4915,6 +5230,56 @@ export const changeTools = {
             changeId,
             hint: "Run adv_change_archive first so the archive bundle is written, then repair the wedged status.",
           });
+        }
+        if (Object.values(change.deltas).some((deltas) => deltas.length > 0)) {
+          const manifest = await readProjectionManifest(bundlePath);
+          const { archiveMode } = detectArchiveMode(activeStore.config ?? {});
+          const release = verifyReleaseEvidenceFromMain({
+            store: activeStore,
+            changeId,
+            archiveMode,
+            change,
+          });
+          if (
+            !manifest ||
+            release.status !== "shipped" ||
+            !release.mergeCommitSha
+          ) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Cannot repair status: accepted delta projection lacks a manifest or immutable released commit proof.",
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: bundlePath,
+              hint: "Run approved archive delta reconciliation in a trusted repair worktree before status repair.",
+            });
+          }
+          const projectionProof = await verifyProjectionAtGitCommit({
+            manifest,
+            repo: release.mainCheckout,
+            releasedCommitSha: release.mergeCommitSha,
+            manifestGitPath: `.adv/archive/${basename(bundlePath)}/spec-projection.json`,
+            expectedChangeId: change.id,
+            expectedDeltaSetSha256: canonicalSha256(change.deltas),
+            expectedDeltaIdsByCapability: Object.fromEntries(
+              Object.entries(change.deltas).map(([capability, deltas]) => [
+                capability,
+                deltas.map((delta) => delta.id),
+              ]),
+            ),
+          });
+          if (!projectionProof.ok) {
+            return formatToolOutput({
+              success: false,
+              error: `Cannot repair status: projection proof failed: ${projectionProof.code}: ${projectionProof.message}`,
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+              archivePath: bundlePath,
+              projectionFailure: projectionProof,
+            });
+          }
+          change.archive_projection_proof = projectionProof.receipt;
         }
         if (dryRun) {
           return formatToolOutput({

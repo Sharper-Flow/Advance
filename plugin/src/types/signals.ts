@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
 import {
   EpicChangeRefSchema,
   EpicMergedIntoSchema,
@@ -503,6 +504,7 @@ export const ArchiveRequestedSignalPayloadSchema = z.object({
   approvalEvidence: z.string().min(1),
   requestedBy: z.string(),
   requestedAt: IsoTimestampSchema,
+  projectionProof: ArchiveProjectionProofReceiptSchema.optional(),
 });
 export type ArchiveRequestedSignalPayload = z.infer<
   typeof ArchiveRequestedSignalPayloadSchema

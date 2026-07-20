@@ -29,6 +29,10 @@ import { renderBriefSummary } from "../utils/archive-summary";
 import { applySpecDelta } from "../utils/spec-deltas";
 import { appendWisdom } from "../utils/wisdom-append";
 import { execGit } from "../utils/git";
+import {
+  ArchiveProjectionProofReceiptSchema,
+  type ArchiveProjectionProofReceipt,
+} from "../types";
 
 // =============================================================================
 // Disk-artifact activities (P2.1)
@@ -534,6 +538,9 @@ export interface ArchiveChangeActivityInput {
   archivedAt: string;
   approvalEvidence: string;
   approvedBy: string;
+  /** Legacy replays mutate specs; new histories verify proof and write summary only. */
+  mode?: "legacy_mutate" | "verify_summary";
+  projectionProof?: ArchiveProjectionProofReceipt;
 }
 
 export type ArchiveChangeActivityResult =
@@ -589,6 +596,21 @@ export async function archiveChangeActivity(
     return { ok: false, phase: "preflight", error: "No projects to archive" };
   }
 
+  if (input.mode === "verify_summary") {
+    const proof = ArchiveProjectionProofReceiptSchema.safeParse(
+      input.projectionProof,
+    );
+    if (!proof.success || proof.data.change_id !== input.state.changeId) {
+      return {
+        ok: false,
+        phase: "preflight",
+        error: proof.success
+          ? `Projection proof change mismatch: ${proof.data.change_id} != ${input.state.changeId}`
+          : "Verified archive projection proof is required",
+      };
+    }
+  }
+
   try {
     for (const project of input.projects) {
       await ensureCleanWorktree(project.projectPath);
@@ -621,7 +643,7 @@ export async function archiveChangeActivity(
         ["rev-parse", "HEAD"],
         "pending",
       );
-      if (input.status === "archived") {
+      if (input.status === "archived" && input.mode !== "verify_summary") {
         for (const [capability, deltas] of Object.entries(
           input.state.deltas ?? {},
         )) {

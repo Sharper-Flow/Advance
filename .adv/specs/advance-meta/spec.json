@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.28.0",
-  "updated_at": "2026-07-19T02:59:24.500Z",
+  "version": "1.29.0",
+  "updated_at": "2026-07-19T15:18:28.366Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -3163,6 +3163,58 @@
             "The completed request output is unchanged",
             "Request-scoped cache publication does not occur",
             "Cached data cannot establish authoritative truth"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-sessionPrincipal01",
+      "title": "Structural Session Principal and Orphan Visibility",
+      "body": "ADV MUST derive root versus descendant session authority from bounded OpenCode parentID ancestry, never first-caller order or caller-supplied role. Root-only mutations fail closed when ancestry is unresolved. Cross-session work projections MAY emit bounded warning-only orphan-task diagnostics from privacy-safe live session IDs, but MUST NOT mutate task state or expose peer PID/full working directory.",
+      "priority": "must",
+      "tags": [
+        "sessions",
+        "role-firewall",
+        "privacy",
+        "tasks"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-sessionPrincipal01.1",
+          "title": "Root and descendant derive structurally",
+          "given": [
+            "A root OpenCode session and a descendant session exist"
+          ],
+          "when": "Each calls a root-only ADV tool before any system transform ordering guarantee",
+          "then": [
+            "The root is allowed",
+            "The descendant is blocked",
+            "Caller arguments cannot elevate the descendant"
+          ]
+        },
+        {
+          "id": "rq-sessionPrincipal01.2",
+          "title": "Unresolved ancestry fails closed",
+          "given": [
+            "Session lookup is missing, malformed, cyclic, over depth, or unavailable"
+          ],
+          "when": "A root-only tool is called",
+          "then": [
+            "The mutation is blocked",
+            "Union-floor reads remain available"
+          ]
+        },
+        {
+          "id": "rq-sessionPrincipal01.3",
+          "title": "Orphan diagnostics are warning-only and private",
+          "given": [
+            "An in-progress task assignment is absent from the live privacy-safe session set"
+          ],
+          "when": "WIP state is projected",
+          "then": [
+            "A bounded warning identifies task and change",
+            "No task mutation occurs",
+            "Peer PID and full working directory are omitted"
           ]
         }
       ]

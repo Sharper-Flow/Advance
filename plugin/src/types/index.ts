@@ -67,6 +67,9 @@ export {
   CAPABILITY_KEY_PATTERN,
   CapabilityKeySchema,
   type CapabilityKey,
+  SHA256DigestSchema,
+  DeltaPreconditionSchema,
+  type DeltaPrecondition,
   DeltaSchema,
   type Delta,
   DeltaAddSchema,
@@ -75,6 +78,10 @@ export {
   type DeltaModifyChanges,
   DeltaModifySchema,
   type DeltaModify,
+  DeltaRemoveSchema,
+  type DeltaRemove,
+  DeltaRenameSchema,
+  type DeltaRename,
 } from "./specs";
 
 // =============================================================================
@@ -529,3 +536,4 @@ export {
 // Signal Payloads
 // =============================================================================
 export * from "./signals";
+export * from "./archive-projection";

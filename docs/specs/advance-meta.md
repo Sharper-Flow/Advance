@@ -1,6 +1,6 @@
 # Advance Meta
 
-> **Version:** 1.28.0
+> **Version:** 1.29.0
 > **Updated:** 2026-07-19
 
 ## Purpose
@@ -2905,5 +2905,52 @@ Every provider admitted by `adv_status view:health` MUST produce a discriminated
 - The completed request output is unchanged
 - Request-scoped cache publication does not occur
 - Cached data cannot establish authoritative truth
+
+---
+
+### Structural Session Principal and Orphan Visibility
+
+**ID:** `rq-sessionPrincipal01` | **Priority:** **[MUST]**
+
+ADV MUST derive root versus descendant session authority from bounded OpenCode parentID ancestry, never first-caller order or caller-supplied role. Root-only mutations fail closed when ancestry is unresolved. Cross-session work projections MAY emit bounded warning-only orphan-task diagnostics from privacy-safe live session IDs, but MUST NOT mutate task state or expose peer PID/full working directory.
+
+**Tags:** `sessions`, `role-firewall`, `privacy`, `tasks`
+
+#### Scenarios
+
+**Root and descendant derive structurally** (`rq-sessionPrincipal01.1`)
+
+**Given:**
+- A root OpenCode session and a descendant session exist
+
+**When:** Each calls a root-only ADV tool before any system transform ordering guarantee
+
+**Then:**
+- The root is allowed
+- The descendant is blocked
+- Caller arguments cannot elevate the descendant
+
+**Unresolved ancestry fails closed** (`rq-sessionPrincipal01.2`)
+
+**Given:**
+- Session lookup is missing, malformed, cyclic, over depth, or unavailable
+
+**When:** A root-only tool is called
+
+**Then:**
+- The mutation is blocked
+- Union-floor reads remain available
+
+**Orphan diagnostics are warning-only and private** (`rq-sessionPrincipal01.3`)
+
+**Given:**
+- An in-progress task assignment is absent from the live privacy-safe session set
+
+**When:** WIP state is projected
+
+**Then:**
+- A bounded warning identifies task and change
+- No task mutation occurs
+- Peer PID and full working directory are omitted
 
 ---

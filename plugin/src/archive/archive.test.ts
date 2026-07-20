@@ -176,6 +176,140 @@ describe("contract archive traceability", () => {
     expect(trace).toContain("AC1");
   });
 
+  test("archiveChange writes reconciled spec, docs, and manifest only to supplied worktree paths", async () => {
+    const root = await tempProject();
+    const mainSpecs = join(root, "main", ".adv", "specs");
+    const worktree = join(root, "worktree");
+    const worktreeSpecs = join(worktree, ".adv", "specs");
+    const worktreeDocs = join(worktree, "docs", "specs");
+    const inRepoArchive = join(worktree, ".adv", "archive");
+    const baseline = {
+      name: "example",
+      title: "Example",
+      purpose: "Example capability",
+      version: "1.0.0",
+      updated_at: createdAt,
+      requirements: [],
+    };
+    await mkdir(join(mainSpecs, "example"), { recursive: true });
+    await writeFile(
+      join(mainSpecs, "example", "spec.json"),
+      JSON.stringify(baseline),
+    );
+
+    const result = await archiveChange({
+      change: changeWithContract({
+        id: "worktree-projection",
+        deltas: {
+          example: [
+            {
+              id: "dl-add",
+              operation: "add",
+              requirement: {
+                id: "rq-example01",
+                title: "Example law",
+                body: "Archive projects this law",
+                priority: "must",
+                scenarios: [
+                  {
+                    id: "rq-example01.1",
+                    title: "Projected",
+                    given: ["An accepted delta"],
+                    when: "Archive succeeds",
+                    then: ["The worktree contains the law"],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      }),
+      specs: new Map([["example", baseline]]),
+      paths: {
+        specs: worktreeSpecs,
+        docs: worktreeDocs,
+        archive: join(root, "external-archive"),
+        inRepoArchive,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(
+      JSON.parse(
+        await readFile(join(worktreeSpecs, "example", "spec.json"), "utf8"),
+      ).requirements.map((row: { id: string }) => row.id),
+    ).toContain("rq-example01");
+    expect(
+      JSON.parse(
+        await readFile(join(mainSpecs, "example", "spec.json"), "utf8"),
+      ).requirements,
+    ).toEqual([]);
+    expect(await readFile(join(worktreeDocs, "example.md"), "utf8")).toContain(
+      "Example law",
+    );
+    expect(
+      JSON.parse(
+        await readFile(
+          join(result.archivePath, "spec-projection.json"),
+          "utf8",
+        ),
+      ).change_id,
+    ).toBe("worktree-projection");
+    expect(
+      result.commitPaths.some((path) => path.endsWith("docs/specs/example.md")),
+    ).toBe(true);
+    expect(
+      result.commitPaths.some((path) => path.includes("/.adv/archive/")),
+    ).toBe(true);
+  });
+
+  test("semantic projection conflict writes no bundle or spec", async () => {
+    const root = await tempProject();
+    const baseline = {
+      name: "example",
+      title: "Example",
+      purpose: "Example capability",
+      version: "1.0.0",
+      updated_at: createdAt,
+      requirements: [
+        {
+          id: "rq-example01",
+          title: "Current",
+          body: "Current law",
+          priority: "must" as const,
+        },
+      ],
+    };
+    const result = await archiveChange({
+      change: changeWithContract({
+        id: "projection-conflict",
+        deltas: {
+          example: [
+            {
+              id: "dl-add",
+              operation: "add",
+              requirement: {
+                ...baseline.requirements[0],
+                title: "Conflicting",
+              },
+            },
+          ],
+        },
+      }),
+      specs: new Map([["example", baseline]]),
+      paths: {
+        specs: join(root, "worktree", ".adv", "specs"),
+        docs: join(root, "worktree", "docs", "specs"),
+        archive: join(root, "external-archive"),
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errors.join("\n")).toContain("conflicting");
+    expect(existsSync(result.archivePath)).toBe(false);
+    expect(existsSync(join(root, "worktree", ".adv", "specs"))).toBe(false);
+  });
+
   test("archiveChange reconciles missing in-repo archive when external bundle already exists", async () => {
     const root = await tempProject();
     const change = changeWithContract();

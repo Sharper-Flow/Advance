@@ -398,6 +398,63 @@ describe("createChangeOps", () => {
     );
   });
 
+  test("refuses terminal archive state for accepted deltas without projection proof", async () => {
+    const signalMock = vi.fn();
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: { save: vi.fn() },
+    };
+    const workflowClient = {
+      workflow: {
+        start: vi.fn(),
+        getHandle: vi.fn(() => ({ signal: signalMock })),
+      },
+    };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-proof",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await expect(
+      ops.save({
+        id: "deltaArchive",
+        title: "Delta archive",
+        status: "archived",
+        created_at: "2026-07-20T00:00:00.000Z",
+        tasks: [],
+        wisdom: [],
+        deltas: {
+          example: [
+            {
+              id: "dl-example",
+              operation: "add",
+              requirement: {
+                id: "rq-example01",
+                title: "Example",
+                body: "Example body",
+                priority: "must",
+              },
+            },
+          ],
+        },
+      } as never),
+    ).rejects.toThrow("accepted deltas require archive_projection_proof");
+    expect(signalMock).not.toHaveBeenCalled();
+  });
+
   describe("listSummary (rq-changeSummaryReadModel01)", () => {
     test("serves memo-only candidates without per-change full hydration", async () => {
       const memo = new ChangeSummaryMemo();
