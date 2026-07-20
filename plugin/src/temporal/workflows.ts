@@ -1024,6 +1024,7 @@ export async function changeWorkflow(
   // Deprecation plan: keep until pre-migration acceptance histories are
   // archived/closed and replay fixtures no longer cover the disk-inspect path;
   // then replace with wf.deprecatePatch before final removal.
+  // rq-acceptancePatchReplay01: consume this marker before legacy branch return.
   const STATE_BACKED_ACCEPTANCE_PROOF_PATCH =
     "state-backed-acceptance-proof-v1";
 

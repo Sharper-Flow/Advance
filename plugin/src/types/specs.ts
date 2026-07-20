@@ -155,6 +155,7 @@ export type DeltaAdd = z.infer<typeof DeltaAddSchema>;
  * Typed partial of RequirementSchema for modify delta changes.
  * Only allows known requirement fields with correct types.
  * Uses .strict() to reject unknown keys at parse time.
+ * rq-typedmod: typed modification keys are enforced at this schema boundary.
  */
 export const DeltaModifyChangesSchema = z
   .object({

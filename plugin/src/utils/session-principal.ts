@@ -11,6 +11,7 @@
  *     exhaustion, and SDK failures all resolve to null (fail-closed).
  *   - An optional in-memory cache may be supplied, but correctness never
  *     depends on it.
+ * rq-sessionPrincipal01: structural ancestry is the session authority boundary.
  */
 
 export interface SessionAncestryClient {
