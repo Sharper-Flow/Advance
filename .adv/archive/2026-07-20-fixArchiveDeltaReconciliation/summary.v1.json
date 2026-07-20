@@ -1,0 +1,22 @@
+{
+  "archived_at": "2026-07-20T16:03:33.326Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "a16f1778456addf1122f54e71fdbe49d957da0b0e02fc018f3f5eeb5115c047e",
+  "change_id": "fixArchiveDeltaReconciliation",
+  "completed_tasks": 7,
+  "created_at": "2026-07-20T05:13:43.420Z",
+  "current_gate": "release",
+  "fast_follow_of": {
+    "linked_at": "2026-07-20T05:13:39.225Z",
+    "parent_change_id": "fixWorkflowReliabilityDefects"
+  },
+  "last_activity_at": "2026-07-20T15:58:36.889Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "9fbc6e53eb42a46fbaab09aa21e0ce11bb74f9c63f3bba4aa77afbd7dbc8f695",
+  "task_count": 7,
+  "title": "Fix archive delta reconciliation",
+  "version": "1"
+}
