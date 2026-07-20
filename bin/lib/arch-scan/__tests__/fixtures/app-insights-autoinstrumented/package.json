@@ -1,0 +1,10 @@
+{
+  "name": "app-insights-autoinstrumented",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "echo no-op"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
