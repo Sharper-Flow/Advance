@@ -12,7 +12,7 @@
  *     firing content signals.
  *
  * Deeper integration tests cover the signal pipeline:
- *   - `temporal/workflows.signal-handlers.test.ts` — signals populate
+ *   - `temporal/workflows.signal-handlers.itest.ts` — signals populate
  *     state.documents end-to-end via real TestWorkflowEnvironment.
  *   - `tools/change.read-artifact.test.ts` — readArtifact prefers
  *     state.documents over disk; disk-deletion-mid-test still returns

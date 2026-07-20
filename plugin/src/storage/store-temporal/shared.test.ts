@@ -361,9 +361,13 @@ describe("classifyTemporalReadFailure", () => {
       "change-a",
       new Error("Workflow execution not found for workflowId: change-p-a"),
     );
-    expect(failure).toEqual({
+    expect(failure).toMatchObject({
       errorClass: "fallback",
       recoveryReason: "missing_workflow",
+      // SC6 wiring: a readback failure with no preceding signal is
+      // classified as outcome_unknown_readback_unavailable so callers
+      // can surface the typed outcome rather than mask ambiguity.
+      outcome: "outcome_unknown_readback_unavailable",
     });
   });
 
@@ -376,9 +380,10 @@ describe("classifyTemporalReadFailure", () => {
         "[TMPRL1100] Nondeterminism error: No command scheduled for event X",
       ),
     );
-    expect(failure).toEqual({
+    expect(failure).toMatchObject({
       errorClass: "fallback",
       recoveryReason: "poisoned_history",
+      outcome: "outcome_unknown_readback_unavailable",
     });
   });
 
@@ -397,9 +402,10 @@ describe("classifyTemporalReadFailure", () => {
       "change-a",
       new Error("Failed to query Workflow"),
     );
-    expect(failure).toEqual({
+    expect(failure).toMatchObject({
       errorClass: "fallback",
       recoveryReason: "poisoned_history",
+      outcome: "outcome_unknown_readback_unavailable",
     });
   });
 

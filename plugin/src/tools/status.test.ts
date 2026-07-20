@@ -11,6 +11,7 @@ import {
   statusTools,
   _healthSnapshotCache,
   _statusProbeCaches,
+  resetStatusHealthForTest,
 } from "./status";
 import { _healthRequestProbeCaches } from "./status-health-plan";
 import {
@@ -133,7 +134,7 @@ describe("Status Tools", () => {
       records: [],
       warnings: [],
     });
-    _statusProbeCaches.clear();
+    resetStatusHealthForTest();
     _healthRequestProbeCaches.clear();
     mockScanSnapshotHealth.mockReset();
     mockScanSnapshotHealth.mockResolvedValue({
@@ -189,6 +190,7 @@ describe("Status Tools", () => {
   afterEach(async () => {
     store.close();
     await cleanupTempDir(tempDir);
+    vi.useRealTimers();
   });
 
   describe("adv_status", () => {
@@ -894,6 +896,7 @@ Vague in-flight work.
     });
 
     test("health view includes probe freshness and reuses cached temporal health", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
       const firstResult = await statusTools.adv_status.execute(
         { view: "health" },
         store,
@@ -1138,7 +1141,8 @@ Vague in-flight work.
 
     describe("_healthSnapshot", () => {
       beforeEach(() => {
-        _healthSnapshotCache.clear();
+        resetStatusHealthForTest();
+        _healthRequestProbeCaches.clear();
       });
 
       test("includes _healthSnapshot with disk leak metrics", async () => {

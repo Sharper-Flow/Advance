@@ -30,7 +30,7 @@
  * Mutation-response snapshots (change-create, gate-complete) render through
  * the same formatter and are covered by formatter-level parity. The workflow
  * `getDirective`/`getPhasePlan` query handlers bind the same derivation
- * kernel; their binding is covered by temporal/workflows.queries.test.ts.
+ * kernel; their binding is covered by temporal/workflows.queries.itest.ts.
  *
  * The malformed row has no `gateStatus` expectation: adv_gate_status throws
  * on a gate record with missing entries before its directive fallback

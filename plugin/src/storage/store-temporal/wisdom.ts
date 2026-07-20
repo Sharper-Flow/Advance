@@ -7,6 +7,7 @@ import {
   getGuardedChangeHandle,
   type StoreDeps,
 } from "./shared";
+import { fireSignalWithMutationGuard } from "./gates";
 
 export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
   const {
@@ -23,9 +24,12 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
     add: async (changeId, type: WisdomType, content, sourceTask, origin) => {
       invalidateChange(changeId);
       const now = new Date().toISOString();
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          wisdomAddedSignal,
+      // SC4 + SC6: guard the signal; classify readback outcome.
+      const outcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        wisdomAddedSignal,
+        [
           {
             entry: {
               id: `ws-${Date.now()}`,
@@ -37,8 +41,13 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
             },
             addedAt: now,
           },
-        ),
+        ],
       );
+      if (outcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `wisdom.add(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
+        );
+      }
       const state = (await runTemporal(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;

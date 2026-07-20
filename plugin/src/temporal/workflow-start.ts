@@ -9,6 +9,7 @@ import { changeSeedStateFromChange } from "./change-state";
 import { buildTemporalSearchAttributes } from "./observability";
 import { readDiskArtifactsForHydration } from "../storage/store-temporal/hydrate-documents";
 import { changeWorkflow, epicWorkflow } from "./workflows";
+import { enforceMutationEligibilityForError } from "./mutation-safety";
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -98,6 +99,12 @@ export async function ensureChangeWorkflowStarted(
     if (isAlreadyStartedError(error)) {
       return client.workflow.getHandle(workflowId);
     }
+    // SC4 mutation-eligibility guard: a workflow-start failure classified
+    // as mutation-ineligible (no-poller / query_failed_or_not_registered /
+    // deadline / unknown) must not be retried via the outer path. Surface
+    // `TemporalMutationIneligibleError` so callers can require an operator
+    // recovery action before retrying.
+    enforceMutationEligibilityForError(error);
     throw error;
   }
 }

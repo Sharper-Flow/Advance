@@ -27,6 +27,13 @@ import type { MutationReceipt } from "../temporal/contracts";
 import { waitForQueryPredicate } from "../utils/query-predicate";
 export { waitForQueryPredicate } from "../utils/query-predicate";
 import type { GateCompletion, GateId } from "../types";
+import {
+  classifyMutationOutcome,
+  enforceMutationEligibilityForError,
+  requireMutationEligible,
+  type TemporalMutationOutcome,
+  type TemporalWorkflowDiagnostic,
+} from "../temporal/mutation-safety";
 
 // Temporal signal processing + projection can take several seconds under load.
 // 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
@@ -101,6 +108,17 @@ async function resolveChangeHandle(
 /**
  * Fire-and-forget signal to a change workflow handle.
  * Wrapped with Temporal retry (transient failures are retried).
+ *
+ * SC4 mutation-eligibility guard (rq-temporalMutationSafety01): if the
+ * underlying `runTemporal` retry-and-timeout layer exhausts its budget
+ * without server acknowledgement, the error is classified into a
+ * `TemporalWorkflowDiagnostic` and re-thrown as
+ * `TemporalMutationIneligibleError` for any SC4 mutation-ineligible class
+ * (no-poller, unregistered-query, deadline, unknown, query-rejected,
+ * resource-exhaustion, permission). `not_found` and `poisoned_history` are
+ * intentionally NOT blocked here — they require separate operator
+ * safeguards (approval, exact run pinning, shipped proof, dry-run) handled
+ * by `evaluateDestructiveWorkflowRecoveryPreconditions`.
  */
 export async function fireSignal<Args extends unknown[]>(
   handle: WorkflowHandleLike,
@@ -124,7 +142,30 @@ export async function fireSignal<Args extends unknown[]>(
   );
   const signal = isWorkflowHandleLike(target) ? signalOrChangeId : args[0];
   const signalArgs = isWorkflowHandleLike(target) ? args : args.slice(1);
-  await runTemporal(() => handle.signal(signal, ...signalArgs));
+  let error: unknown;
+  try {
+    await runTemporal(() => handle.signal(signal, ...signalArgs));
+    return;
+  } catch (err) {
+    error = err;
+  }
+  // SC4: classify-and-rethrow. classifyTemporalWorkflowFailure maps known
+  // Temporal gRPC and JS errors to a `TemporalWorkflowDiagnostic`; the SC4
+  // guard then ensures mutation-ineligible classes never reach the caller.
+  const diagnostic: TemporalWorkflowDiagnostic =
+    enforceMutationEligibilityForError(error);
+  // diagnostic.class is `reachable` only when the error is null/undefined,
+  // which we already handled above by short-circuiting on success. Any
+  // remaining path here means the diagnostic was SC4-pass (not_found /
+  // poisoned_history) — surface the original error so the caller can decide.
+  if (diagnostic.class === "reachable") {
+    throw new Error(
+      `fireSignal: unexpected reachable diagnostic after error: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  throw error;
 }
 
 /**
@@ -262,6 +303,144 @@ export async function fireSignalAndRefresh<Args extends unknown[]>(
     if (!receipt) throw new MutationApplicationUnconfirmedError(receiptId);
   }
   await store.changes.refresh(changeId);
+}
+
+/**
+ * SC4 wiring: fire a change-workflow signal only after a workflow
+ * diagnostic has been vetted for mutation eligibility. When the caller has a
+ * recent failed-read diagnostic (e.g. recovery routing after a no-poller,
+ * unregistered-query, deadline, or unknown-query failure), this guard
+ * refuses the signal so a mutation-ineligible workflow cannot be signaled.
+ *
+ * Callers WITHOUT a recent diagnostic should continue using the
+ * un-guarded `fireSignal` overloads — the guard is a recovery-routing
+ * guard, not a universal pre-signal hook (see SC4 wording: "when
+ * recovery routing runs").
+ *
+ * Throws `TemporalMutationIneligibleError` (re-exported from
+ * `mutation-safety`) when the diagnostic is mutation-ineligible.
+ */
+export async function fireSignalGuarded<Args extends unknown[]>(
+  handle: WorkflowHandleLike,
+  eligibility: TemporalWorkflowDiagnostic,
+  signal: unknown,
+  ...args: Args
+): Promise<void>;
+export async function fireSignalGuarded<Args extends unknown[]>(
+  input: TemporalStoreBackendInput,
+  changeId: string,
+  eligibility: TemporalWorkflowDiagnostic,
+  signal: unknown,
+  ...args: Args
+): Promise<void>;
+export async function fireSignalGuarded<Args extends unknown[]>(
+  target: SignalTarget,
+  eligibilityOrChangeId: TemporalWorkflowDiagnostic | string,
+  signalOrEligibility: unknown,
+  ...args: Args
+): Promise<void> {
+  if (isWorkflowHandleLike(target)) {
+    const eligibility = eligibilityOrChangeId as TemporalWorkflowDiagnostic;
+    requireMutationEligible(eligibility);
+    await fireSignal(target, signalOrEligibility, ...args);
+    return;
+  }
+  const changeId = String(eligibilityOrChangeId);
+  const eligibility = signalOrEligibility as TemporalWorkflowDiagnostic;
+  requireMutationEligible(eligibility);
+  await fireSignal(target, changeId, args[0], ...args.slice(1));
+}
+
+/**
+ * SC4 wiring: fire-and-refresh variant that requires a mutation-eligible
+ * workflow diagnostic. The subsequent `store.changes.refresh(changeId)`
+ * counts as a cache-authority promotion under SC4, so the same guard must
+ * gate the whole sequence.
+ */
+export async function fireSignalAndRefreshGuarded<Args extends unknown[]>(
+  handle: WorkflowHandleLike,
+  store: Store,
+  changeId: string,
+  eligibility: TemporalWorkflowDiagnostic,
+  signal: unknown,
+  ...args: Args
+): Promise<void>;
+export async function fireSignalAndRefreshGuarded<Args extends unknown[]>(
+  input: TemporalStoreBackendInput,
+  store: Store,
+  changeId: string,
+  eligibility: TemporalWorkflowDiagnostic,
+  signal: unknown,
+  ...args: Args
+): Promise<void>;
+export async function fireSignalAndRefreshGuarded<Args extends unknown[]>(
+  target: SignalTarget,
+  store: Store,
+  changeId: string,
+  eligibilityOrSignal: TemporalWorkflowDiagnostic | unknown,
+  ...args: Args
+): Promise<void> {
+  if (isWorkflowHandleLike(target)) {
+    const eligibility = eligibilityOrSignal as TemporalWorkflowDiagnostic;
+    requireMutationEligible(eligibility);
+    await fireSignalAndRefresh(
+      target,
+      store,
+      changeId,
+      args[0],
+      ...args.slice(1),
+    );
+    return;
+  }
+  const eligibility = eligibilityOrSignal as TemporalWorkflowDiagnostic;
+  requireMutationEligible(eligibility);
+  await fireSignalAndRefresh(
+    target,
+    store,
+    changeId,
+    args[0],
+    ...args.slice(1),
+  );
+}
+
+/**
+ * SC6 wiring: classify the outcome of a post-signal readback query so the
+ * caller can distinguish a confirmed mutation from a confirmed-ambiguous
+ * one. `outcome_unknown_readback_unavailable` is the outcome the contract
+ * requires for any readback failure (no poller, unregistered query,
+ * deadline, unknown query, or generic Failed-to-query error); callers
+ * MUST NOT outer-retry on that outcome.
+ *
+ * The optional `signalError` argument carries any error thrown BEFORE the
+ * server acknowledged the signal — when present, the outcome short-circuits
+ * to `failed_before_ack` (the signal did not land; the mutation is a
+ * no-op, transport-layer retry may still apply).
+ */
+export interface PostSignalReadbackResult<T> {
+  outcome: TemporalMutationOutcome;
+  data?: T;
+  error?: unknown;
+}
+
+export async function runPostSignalReadback<T>(
+  readback: () => Promise<T>,
+  signalError?: unknown,
+): Promise<PostSignalReadbackResult<T>> {
+  if (signalError !== undefined && signalError !== null) {
+    return {
+      outcome: classifyMutationOutcome({ signalError }),
+      error: signalError,
+    };
+  }
+  try {
+    const data = await readback();
+    return { outcome: classifyMutationOutcome({}), data };
+  } catch (error) {
+    return {
+      outcome: classifyMutationOutcome({ readbackError: error }),
+      error,
+    };
+  }
 }
 
 /**

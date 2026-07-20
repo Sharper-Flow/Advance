@@ -34,7 +34,7 @@ function makeEpicInput(): EpicWorkflowInput {
 async function queryState(
   handle: WorkflowHandle<typeof import("./workflows").epicWorkflow>,
 ): Promise<EpicWorkflowState> {
-  return handle.query(getEpicStateQuery);
+  return handle.query(getEpicStateQuery, undefined, { timeout: 60_000 });
 }
 
 describe("epicWorkflow", () => {
@@ -103,7 +103,9 @@ describe("epicWorkflow", () => {
         expect(state.epic.entries[0].kind).toBe("change");
         expect(state.epic.entries[1].kind).toBe("change");
 
-        const epic = await handle.query(getEpicQuery);
+        const epic = await handle.query(getEpicQuery, undefined, {
+          timeout: 60_000,
+        });
         expect(epic.id).toBe(input.epicId);
       });
     });

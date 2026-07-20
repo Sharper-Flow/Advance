@@ -182,6 +182,12 @@ export async function fetchStatusSnapshotHealth(
   );
 }
 
+/** Clears cache state owned by this module; composed by the test reset owner. */
+export function resetStatusHealthModuleForTest(): void {
+  healthSnapshotCache.clear();
+  _statusProbeCaches.clear();
+}
+
 /** Exported for test isolation only */
 export const _healthSnapshotCache = healthSnapshotCache;
 export function computeSearchAttributesSnapshot(): SearchAttributesSnapshot {
