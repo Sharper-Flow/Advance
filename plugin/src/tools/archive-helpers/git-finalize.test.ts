@@ -42,6 +42,7 @@ import {
   redriveArchivedUnmergedBranch,
   detectSquashMergeByTree,
   detectArchivedMergedBranches,
+  listLocalChangeBranchEntries,
   getCheckedOutChangeBranches,
   syncDefaultBranchAfterMerge,
 } from "./git-finalize";
@@ -1768,6 +1769,68 @@ describe("git-finalize helpers", () => {
       status: "blocked",
       reason: "LOCAL_BRANCH_LIST_FAILED",
       details: ["fatal: not a git repository"],
+    });
+  });
+
+  describe("listLocalChangeBranchEntries", () => {
+    it("parses change/* branch porcelain into entries", () => {
+      const result = listLocalChangeBranchEntries("/repo", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 0,
+              stdout: "change/abc def0123\nchange/xyz aa11bb22\n",
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      });
+      expect(result).toEqual({
+        status: "ok",
+        entries: [
+          { changeId: "abc", branch: "change/abc", localSha: "def0123" },
+          { changeId: "xyz", branch: "change/xyz", localSha: "aa11bb22" },
+        ],
+      });
+    });
+
+    it("returns blocked with LOCAL_BRANCH_LIST_FAILED on git failure", () => {
+      const result = listLocalChangeBranchEntries("/repo", {
+        runGit: () => ({
+          status: 1,
+          stdout: "",
+          stderr: "fatal: not a git repository\n",
+        }),
+      });
+      expect(result).toEqual({
+        status: "blocked",
+        reason: "LOCAL_BRANCH_LIST_FAILED",
+        details: ["fatal: not a git repository"],
+      });
+    });
+
+    it("ignores lines that are not well-formed change/* refs", () => {
+      const result = listLocalChangeBranchEntries("/repo", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              // A blank line, a non-change branch (filtered by the change/*
+              // list glob in practice, defensive here), and a prefix-only ref.
+              status: 0,
+              stdout: "change/abc def0123\n\nchange/ deadbeef\n",
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      });
+      expect(result).toEqual({
+        status: "ok",
+        entries: [
+          { changeId: "abc", branch: "change/abc", localSha: "def0123" },
+        ],
+      });
     });
   });
 

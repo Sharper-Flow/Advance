@@ -2076,6 +2076,54 @@ function parseLocalChangeBranchRefs(output: string): Array<{
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 }
 
+export interface LocalChangeBranchEntry {
+  changeId: string;
+  branch: string;
+  localSha: string;
+}
+
+export type ListLocalChangeBranchesResult =
+  | { status: "ok"; entries: LocalChangeBranchEntry[] }
+  | {
+      status: "blocked";
+      reason: "LOCAL_BRANCH_LIST_FAILED";
+      details: string[];
+    };
+
+/**
+ * Enumerate the local `change/*` branches with their object names.
+ *
+ * Extracted from `detectArchivedMergedBranches` so the archived-branch
+ * cleanup helper can build its archived-id set per local branch (via
+ * `store.changes.get`) instead of enumerating the whole archive. Behavior
+ * is identical to the previous inline logic: same `git branch --list`
+ * invocation, same parse, same fail-closed blocked result
+ * (rq-archivedBranchCleanupInversion01).
+ */
+export function listLocalChangeBranchEntries(
+  mainCheckout: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): ListLocalChangeBranchesResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const localBranches = runGit(mainCheckout, [
+    "branch",
+    "--list",
+    "--format=%(refname:short) %(objectname)",
+    "change/*",
+  ]);
+  if (localBranches.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "LOCAL_BRANCH_LIST_FAILED",
+      details: splitLines(localBranches.stderr || localBranches.stdout),
+    };
+  }
+  return {
+    status: "ok",
+    entries: parseLocalChangeBranchRefs(localBranches.stdout),
+  };
+}
+
 export function detectArchivedMergedBranches(
   input: {
     mainCheckout: string;
@@ -2089,21 +2137,16 @@ export function detectArchivedMergedBranches(
     ? new Set(input.archivedChangeIds)
     : null;
 
-  const localBranches = runGit(input.mainCheckout, [
-    "branch",
-    "--list",
-    "--format=%(refname:short) %(objectname)",
-    "change/*",
-  ]);
-  if (localBranches.status !== 0) {
+  const local = listLocalChangeBranchEntries(input.mainCheckout, deps);
+  if (local.status === "blocked") {
     return {
       status: "blocked",
-      reason: "LOCAL_BRANCH_LIST_FAILED",
-      details: splitLines(localBranches.stderr || localBranches.stdout),
+      reason: local.reason,
+      details: local.details,
     };
   }
 
-  const candidates = parseLocalChangeBranchRefs(localBranches.stdout).filter(
+  const candidates = local.entries.filter(
     (entry) => !archivedSet || archivedSet.has(entry.changeId),
   );
 
