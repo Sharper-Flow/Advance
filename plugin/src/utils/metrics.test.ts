@@ -11,6 +11,7 @@ import {
   getMetrics,
   RECENT_PHASE_BUFFER_LIMIT,
   recordAdvToolCall,
+  recordFacadedAdvToolTarget,
   recordPhaseDuration,
   recordSubagentSpawn,
   recordSystemBlockBytes,
@@ -63,6 +64,17 @@ describe("recordAdvToolCall", () => {
     const m = getMetrics();
     expect(m.adv_tool_calls).toBe(0);
     expect(m.adv_tool_call_count_by_name).toEqual({});
+  });
+
+  it("records a facaded target only in the per-name breakdown", () => {
+    recordAdvToolCall("adv_tool_invoke");
+    recordFacadedAdvToolTarget("adv_change_show");
+    const m = getMetrics();
+    expect(m.adv_tool_calls).toBe(1);
+    expect(m.adv_tool_call_count_by_name).toEqual({
+      adv_tool_invoke: 1,
+      adv_change_show: 1,
+    });
   });
 });
 

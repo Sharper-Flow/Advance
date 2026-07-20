@@ -120,6 +120,7 @@ tools:
   adv_temporal_worker_restart: true
   adv_tool_catalog: true
   adv_tool_describe: true
+  adv_tool_invoke: true
   adv_verification_evidence_disposition: true
   adv_wip_state: true
   adv_wisdom_add: true

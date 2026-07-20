@@ -185,6 +185,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_temporal_worker_restart",
       "adv_tool_catalog",
       "adv_tool_describe",
+      "adv_tool_invoke",
       "adv_task_checkpoint",
       "adv_reflection_list",
       "adv_reflect",

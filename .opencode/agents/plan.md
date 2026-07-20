@@ -29,6 +29,9 @@ tools:
   adv_project_context: true
   adv_spec: true
   adv_status: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
   # <<< ADV-GENERATED adv_* tools <<<
   # Local code intelligence
   lgrep_search_semantic: true

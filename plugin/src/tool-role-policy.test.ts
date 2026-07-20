@@ -223,6 +223,42 @@ describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
     }
   });
 
+  test("facade tools are granted to every agent except adv-ci-waiter (addProviderToolSearch AC5)", () => {
+    // The compressed tool surface relies on every normal agent (and the
+    // orchestrator) being able to discover and dispatch ADV tools through
+    // the three Advance-owned facade tools. adv-ci-waiter is the only
+    // exception: it is a bash-only CI poller with no ADV responsibility,
+    // so it keeps an empty allowlist with the deny wildcard.
+    const FACADE_TOOLS = [
+      "adv_tool_catalog",
+      "adv_tool_describe",
+      "adv_tool_invoke",
+    ] as const;
+    const EXPECTED_FACADE_HOLDER = new Set<string>(FACADE_TOOLS);
+    for (const policy of AGENT_TOOL_POLICY) {
+      if (policy.agent === "adv-ci-waiter") {
+        for (const tool of FACADE_TOOLS) {
+          expect(
+            policy.allowed.includes(tool),
+            `adv-ci-waiter must NOT carry facade tool ${tool} (no ADV surface)`,
+          ).toBe(false);
+        }
+        continue;
+      }
+      const allowed = new Set(policy.allowed);
+      for (const tool of FACADE_TOOLS) {
+        expect(
+          allowed.has(tool),
+          `${policy.agent} must grant facade tool ${tool} so its rendered tool surface includes the compressed ADV dispatch surface`,
+        ).toBe(true);
+      }
+    }
+    // Sanity: the expected facade set is exactly the three Advance-owned
+    // facade tools (no more, no less). Updates here require a corresponding
+    // AC / design update.
+    expect(EXPECTED_FACADE_HOLDER.size).toBe(3);
+  });
+
   test("committed manifests equal generated output for every agent (AC2/AC3)", () => {
     for (const policy of AGENT_TOOL_POLICY) {
       const path = join(AGENTS_DIR, `${policy.agent}.md`);
@@ -273,6 +309,14 @@ describe("tool role policy — runtime blockable set derivation (AC5)", () => {
     "adv_task_list",
     "adv_task_ready",
     "adv_task_show",
+    // Facade tools (addProviderToolSearch AC5): every sub-agent's allowed
+    // list carries the three Advance-owned facade tools so normal agents can
+    // discover and dispatch ADV tools through the compressed surface. They
+    // remain non-blockable from sub-agent sessions because the wrapped
+    // execute re-runs authorization/approval/recovery enforcement.
+    "adv_tool_catalog",
+    "adv_tool_describe",
+    "adv_tool_invoke",
     "adv_wisdom_add",
     "adv_wisdom_list",
     "adv_session_list",

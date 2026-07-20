@@ -5671,4 +5671,67 @@ This requirement supersedes legacy rq-aw-backlog01. Issue claim search attribute
 - All seven gates operate normally
 - No snapshot or roadmap reader is consulted
 
+### Shipped-terminal workflow termination uses structural proof
+
+**ID:** `rq-shippedWorkflowTermination01` | **Priority:** **[MUST]**
+
+Operator-approved exact-run termination MAY recover a live RUNNING or PAUSED change workflow without poisoned-history describe evidence only when a typed shipped-terminal proof is complete: all seven gates are done on the durable disk projection, phase9_status is done, and a schema-valid archive bundle embeds the requested change ID. RUNNING status alone never authorizes termination. The operation MUST pin the described runId, preserve archive bundles, fail before projection mutation when termination fails, converge status and lifecycleState to archived, detect successor-run races, and verify terminal readback before reporting full success. Existing poisoned-history eligibility remains a separate valid path.
+
+**Tags:** `workflow`, `recovery`, `termination`, `archive`, `operator-only`
+
+#### Scenarios
+
+**Complete shipped-terminal proof authorizes exact-run termination** (`rq-shippedWorkflowTermination01.1`)
+
+**Given:**
+- An operator explicitly approved recovery
+- All seven gates are done on the durable disk projection
+- phase9_status is done
+- A schema-valid archive bundle embeds the requested change ID
+- Temporal describe reports a RUNNING or PAUSED run with a non-empty runId
+
+**When:** adv_change_workflow_terminate evaluates shipped-terminal recovery
+
+**Then:**
+- The run qualifies without requiring poisoned-history text in describe output
+- Termination targets only the described runId
+- The archive bundle is preserved
+
+**Incomplete or mismatched proof refuses without mutation** (`rq-shippedWorkflowTermination01.2`)
+
+**Given:**
+- A live workflow lacks at least one required shipped-terminal proof component
+
+**When:** adv_change_workflow_terminate evaluates the run
+
+**Then:**
+- The call returns a typed refusal naming the missing or mismatched proof
+- No termination, cache refresh, or projection mutation occurs
+- RUNNING or PAUSED status alone does not authorize recovery
+
+**Successful termination converges terminal authority** (`rq-shippedWorkflowTermination01.3`)
+
+**Given:**
+- An eligible exact pinned run terminates or is idempotently already gone
+
+**When:** Recovery finalization runs
+
+**Then:**
+- The durable projection records status archived and lifecycleState archived
+- Read-after-write shows archived, excludes the change from in-flight results, and includes it exactly once in archived results
+- A different live successor run produces a typed race result instead of full success
+
+**Terminate failure precedes projection mutation** (`rq-shippedWorkflowTermination01.4`)
+
+**Given:**
+- An eligible pinned run is selected
+- Temporal termination fails with a non-idempotent error
+
+**When:** adv_change_workflow_terminate handles the failure
+
+**Then:**
+- No projection or cache mutation occurs
+- The exact runId and termination error are returned
+- The call does not report successful recovery
+
 ---
