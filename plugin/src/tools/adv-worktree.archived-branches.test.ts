@@ -152,7 +152,10 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.resolveMainCheckout.mockReturnValue("/tmp/main");
-    mocks.detectDefaultBranch.mockReturnValue({ branch: "trunk", source: "test" });
+    mocks.detectDefaultBranch.mockReturnValue({
+      branch: "trunk",
+      source: "test",
+    });
     mocks.listLocalChangeBranchEntries.mockReturnValue(
       localEntries(["archived-one", "already-merged"]),
     );
@@ -541,7 +544,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     );
     // changeId fast path verifies just that id — no local branch enumeration.
     expect(mocks.listLocalChangeBranchEntries).not.toHaveBeenCalled();
-    expect((store.changes.get as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
+    expect(store.changes.get as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
       "X",
     );
   });
@@ -693,7 +696,9 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
       store,
     );
 
-    expect((store.changes.list as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect(
+      store.changes.list as ReturnType<typeof vi.fn>,
+    ).not.toHaveBeenCalled();
     const get = store.changes.get as ReturnType<typeof vi.fn>;
     expect(get).toHaveBeenCalledTimes(2);
     expect(get).toHaveBeenCalledWith("archived-one");
@@ -747,7 +752,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
           : {
               success: false as const,
               type: "schema_error" as const,
-              error: "Schema validation failed for change \"broken\"",
+              error: 'Schema validation failed for change "broken"',
             },
     );
     mocks.detectArchivedMergedBranches.mockReturnValueOnce({

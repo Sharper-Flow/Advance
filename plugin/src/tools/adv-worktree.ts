@@ -271,7 +271,9 @@ async function executeWorktreeCleanup(
     // bounded fetch, per-call detect) and self-returns typed partial results.
     // The outer race is an emergency last-resort guard only — the helper's
     // internal deadline is tighter, so it normally returns partial first.
-    const { effectiveTimeoutMs, wasClamped } = clampToSafeBudget(args.timeoutMs);
+    const { effectiveTimeoutMs, wasClamped } = clampToSafeBudget(
+      args.timeoutMs,
+    );
 
     const cleanupPromise = cleanupArchivedMergedBranches({
       store,

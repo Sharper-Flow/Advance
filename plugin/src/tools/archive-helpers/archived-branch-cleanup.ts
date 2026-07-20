@@ -259,7 +259,9 @@ function buildPartialResult(params: {
     mainCheckout: params.mainCheckout,
     defaultBranch: params.defaultBranch,
     omissions: params.omissions,
-    ...(params.fetchWarnings.length > 0 ? { warnings: params.fetchWarnings } : {}),
+    ...(params.fetchWarnings.length > 0
+      ? { warnings: params.fetchWarnings }
+      : {}),
   };
   if (params.dryRun) {
     return { ...base, candidates: [], skipped: [], count: 0 };
