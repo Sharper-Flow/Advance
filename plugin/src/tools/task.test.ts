@@ -39,6 +39,18 @@ const mocks = vi.hoisted(() => {
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     fetchChangeContextTicker: vi.fn(async () => null),
+    saveRecoveredTaskMutation: vi.fn(async (input) => {
+      const actual = await vi.importActual<
+        typeof import("./_recovery-writers")
+      >("./_recovery-writers");
+      return actual.saveRecoveredTaskMutation(input);
+    }),
+    saveRecoveredTaskAdd: vi.fn(async (input) => {
+      const actual = await vi.importActual<
+        typeof import("./_recovery-writers")
+      >("./_recovery-writers");
+      return actual.saveRecoveredTaskAdd(input);
+    }),
     resolveGitSessionContext: vi.fn(() => ({
       isWorktree: true,
       isMainCheckout: false,
@@ -112,6 +124,17 @@ vi.mock("./_adapters", () => ({
 vi.mock("../storage/context-snapshot-fetch", () => ({
   fetchChangeContextTicker: mocks.fetchChangeContextTicker,
 }));
+
+vi.mock("./_recovery-writers", async () => {
+  const actual = await vi.importActual<typeof import("./_recovery-writers")>(
+    "./_recovery-writers",
+  );
+  return {
+    ...actual,
+    saveRecoveredTaskMutation: mocks.saveRecoveredTaskMutation,
+    saveRecoveredTaskAdd: mocks.saveRecoveredTaskAdd,
+  };
+});
 
 vi.mock("../utils/git-session", () => ({
   resolveGitSessionContext: mocks.resolveGitSessionContext,
@@ -224,6 +247,8 @@ describe("task tools — signal/query adapters", () => {
     vi.clearAllMocks();
     mocks.querySignal.mockReset();
     mocks.querySignal.mockResolvedValue([]);
+    mocks.fireSignalAndRefresh.mockReset();
+    mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
     mocks.resolveGitSessionContext.mockImplementation(() => ({
       isWorktree: true,
       isMainCheckout: false,
@@ -739,6 +764,71 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.reconciliationWarning).toContain("not healed");
       expect(store.changes.save).toHaveBeenCalled();
       delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    // rq-extend-poisoned-recovery AC5: probe-first path must recover even when
+    // fireSignalAndRefresh resolves silently (fire-and-forget server acceptance).
+    test("recovers via probe-first path when fireSignalAndRefresh silently resolves", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Done Task",
+              status: "pending",
+              type: "code",
+              section: "Implementation",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        } as import("../types").Change,
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          implementation_summary: "Recovered via probe-first",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledTimes(1);
+      expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          store,
+          change: expect.objectContaining({ id: "test-change" }),
+          taskId: "tk-abc",
+        }),
+      );
+      expect(store.changes.save).toHaveBeenCalled();
     });
 
     // rq-extend-poisoned-recovery AC9: no disk-only recovery in normal mode.
@@ -1519,6 +1609,49 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.error).toContain("unknown contract item");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+
+    // rq-extend-poisoned-recovery AC5: probe-first path must recover even when
+    // fireSignalAndRefresh resolves silently (fire-and-forget server acceptance).
+    test("recovers via probe-first path when fireSignalAndRefresh silently resolves", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue([]);
+      mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Probe-first task",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.saveRecoveredTaskAdd).toHaveBeenCalledTimes(1);
+      expect(mocks.saveRecoveredTaskAdd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          store,
+          change: expect.objectContaining({ id: "test-change" }),
+          task: expect.objectContaining({ title: "Probe-first task" }),
+        }),
+      );
+      expect(store.changes.save).toHaveBeenCalled();
+    });
   });
 
   describe("adv_task_cancel", () => {
@@ -1690,6 +1823,57 @@ describe("task tools — signal/query adapters", () => {
         expect.any(Function),
       );
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    // rq-extend-poisoned-recovery AC5: probe-first path must recover even when
+    // fireSignalAndRefresh resolves silently (fire-and-forget server acceptance).
+    test("recovers via probe-first path when fireSignalAndRefresh silently resolves", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Task to cancel",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        } as import("../types").Change,
+      });
+      mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-abc"],
+          reasons: { "tk-abc": "No longer needed" },
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledTimes(1);
+      expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          store,
+          change: expect.objectContaining({ id: "test-change" }),
+          taskId: "tk-abc",
+        }),
+      );
+      expect(store.changes.save).toHaveBeenCalled();
     });
   });
 

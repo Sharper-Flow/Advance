@@ -4337,6 +4337,11 @@ describe("change tools — signal-driven lifecycle", () => {
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
         store.paths.archive = `${tempDir}/archive`;
+        await mkdir(`${tempDir}/changes/test-change`, { recursive: true });
+        await writeFile(
+          `${tempDir}/changes/test-change/change.json`,
+          JSON.stringify((await store.changes.get("test-change")).data),
+        );
         vi.mocked(store.changes.save).mockRejectedValueOnce(
           Object.assign(new Error("workflow execution already completed"), {
             name: "WorkflowNotFoundError",

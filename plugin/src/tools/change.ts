@@ -30,6 +30,7 @@ import {
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
+import { loadChange } from "../storage/json";
 import { getProjectId } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
@@ -103,6 +104,7 @@ import {
   computeShippedTerminalProof,
   type ShippedTerminalProofResult,
 } from "./change/recovery";
+import { shouldTakeRecoveryBranch } from "./recovery-probe";
 import { reconcileRecoveredGates } from "./gate";
 const logger = createLogger("change");
 const STATUS_REPAIR_PHASE9_EVIDENCE_RE =
@@ -2983,19 +2985,38 @@ export const changeTools = {
         // contract-proof failures. Refresh is best-effort; failures fall
         // through to the existing read (which still has its own poisoned-
         // history fallback) so we don't mask real outages.
-        try {
-          await store.changes.refresh(changeId);
-        } catch {
-          // intentionally swallowed; the next get() will surface a real error.
+        //
+        // rq-poisonedArchiveRead01: when operator evidence is precise, skip the
+        // live Temporal round-trip entirely and read the durable disk projection
+        // directly. This prevents "Failed to query Workflow" on workflows that
+        // are already completed or poisoned.
+        let change: Change;
+        if (shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence })) {
+          const diskResult = await loadChange(store.paths.changes, changeId);
+          if (!diskResult.success) {
+            return formatToolOutput({ error: diskResult.error });
+          }
+          if (!diskResult.data) {
+            return formatToolOutput({
+              error: `Change not found on disk: ${changeId}`,
+            });
+          }
+          change = diskResult.data;
+        } else {
+          try {
+            await store.changes.refresh(changeId);
+          } catch {
+            // intentionally swallowed; the next get() will surface a real error.
+          }
+          const result = await store.changes.get(changeId);
+          if (!result.success) {
+            return formatToolOutput({ error: result.error });
+          }
+          if (!result.data) {
+            return formatToolOutput({ error: `Change not found: ${changeId}` });
+          }
+          change = result.data;
         }
-        const result = await store.changes.get(changeId);
-        if (!result.success) {
-          return formatToolOutput({ error: result.error });
-        }
-        if (!result.data) {
-          return formatToolOutput({ error: `Change not found: ${changeId}` });
-        }
-        const change = result.data;
         const openOpsObligations = getOpenOpsFollowupObligations(
           change.ops_followup_links,
         );

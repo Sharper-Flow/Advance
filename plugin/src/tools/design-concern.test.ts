@@ -298,7 +298,9 @@ describe("adv_design_concern_disposition", () => {
     // CRITICAL: probe-first path taken; fireSignalAndRefresh NOT called.
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     // Disk-direct writer WAS called.
-    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledTimes(1);
+    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledTimes(
+      1,
+    );
     // Output still reports a successful recovery.
     expect(output.success).toBe(true);
     expect(output.recoveryMode).toBe("poisoned_history");

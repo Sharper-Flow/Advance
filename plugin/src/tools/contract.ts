@@ -596,7 +596,8 @@ export const contractTools = {
               authorization: {
                 reason: args.recoveryReason ?? "review_matrix_recovery",
                 evidence:
-                  args.recoveryEvidence ?? "operator-supplied poisoned evidence",
+                  args.recoveryEvidence ??
+                  "operator-supplied poisoned evidence",
               },
               diskDirect: true,
             });

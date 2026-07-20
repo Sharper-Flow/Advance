@@ -150,7 +150,8 @@ describe("shouldTakeRecoveryBranch", () => {
     expect(
       shouldTakeRecoveryBranch({
         recoveryMode: "poisoned_history",
-        recoveryEvidence: "WorkflowNotFoundError: workflow execution already completed",
+        recoveryEvidence:
+          "WorkflowNotFoundError: workflow execution already completed",
       }),
     ).toBe(true);
   });
@@ -159,7 +160,8 @@ describe("shouldTakeRecoveryBranch", () => {
     expect(
       shouldTakeRecoveryBranch({
         recoveryMode: "poisoned_history",
-        recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError TMPRL1100",
+        recoveryEvidence:
+          "WorkflowTaskFailedCauseNonDeterministicError TMPRL1100",
       }),
     ).toBe(true);
   });
