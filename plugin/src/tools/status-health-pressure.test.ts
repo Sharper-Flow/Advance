@@ -498,7 +498,7 @@ describe("health view bounded pressure contract", () => {
   });
 
   test("one request deadline owns delayed status, probes, and spec counting", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.useFakeTimers();
     try {
       const baseStatus = await store.status();
       store.status = vi.fn().mockImplementation(
@@ -514,7 +514,6 @@ describe("health view bounded pressure contract", () => {
           }),
       );
 
-      const start = Date.now();
       const executePromise = statusTools.adv_status.execute(
         { view: "health", forceRefresh: true },
         store,
@@ -523,7 +522,12 @@ describe("health view bounded pressure contract", () => {
       const result = await executePromise;
       const parsed = parseToolOutput(result);
 
-      expect(Date.now() - start).toBeLessThanOrEqual(8_000);
+      // Assert the executor's captured request duration, not Date.now() after
+      // result parsing: `shouldAdvanceTime` also adds real scheduler delay to
+      // the fake clock under full-suite pressure.
+      expect(parsed._health_execution.meta.elapsed_ms).toBeLessThanOrEqual(
+        8_000,
+      );
       expect(parsed._health_execution.degraded).toBe(true);
       expect(parsed._health_execution.execution_cutoff_ms).toBe(7_500);
       expect(store.specs.list).not.toHaveBeenCalled();

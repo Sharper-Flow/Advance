@@ -275,7 +275,7 @@ Artifact content comes from packet inline content or `adv_change_show include: {
 | All tasks for a change | `adv_task_list` |
 | List all active changes | `adv_change_list` |
 
-If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead.
+Failed direct read: **do not retry another path**; call `adv_change_show`.
 
 ## DESIGNER_REPORT Payload
 
