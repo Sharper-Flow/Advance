@@ -29,6 +29,7 @@ import {
   requireMutationEligible,
   type TemporalMutationOutcome,
 } from "../../temporal/mutation-safety";
+import { isSchemaError } from "../json";
 
 const logger = createLogger("store-temporal-shared");
 
@@ -235,6 +236,9 @@ export async function getGuardedChangeHandle(
       })`,
     );
     return getChangeHandle(input, changeId);
+  }
+  if (isSchemaError(legacyResult)) {
+    throw new Error(legacyResult.error);
   }
   if (legacyResult.success && legacyResult.data?.adv_project_id) {
     const owningProjectId = legacyResult.data.adv_project_id;

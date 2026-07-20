@@ -8,9 +8,24 @@
  */
 
 import { z } from "zod";
+import { GateRecoveryAuditSchema } from "./gates";
 import { WisdomTypeSchema } from "./wisdom";
 
 export const SUBAGENT_REPORT_SCHEMA_VERSION = "1.0";
+
+/**
+ * Recovery audit shape persisted on sub-agent reports when a poisoned or
+ * completed-workflow recovery write lands on the disk projection via
+ * saveRecoveredSubagentReport. Mirrors GateRecoveryAuditSchema with the
+ * additional `persisted_via` marker recorded by the writer
+ * (active-projection vs archive-sidecar) so read paths can route the
+ * sidecar back to the correct terminal projection.
+ */
+export const SubagentReportRecoveryAuditSchema = GateRecoveryAuditSchema.extend(
+  {
+    persisted_via: z.string().min(1),
+  },
+);
 
 export const SubagentAgentSchema = z.enum([
   "adv-engineer",
@@ -65,10 +80,24 @@ const TaskScopedBaseSubagentReportSchema = BaseSubagentReportSchema.extend({
   // should use { kind: "task", task_id } so later consumers can rely on
   // structural scope metadata without breaking legacy report ingestion.
   scope: z.union([TaskSubagentReportScopeSchema, z.string().min(1)]),
+  /**
+   * Recovery-audit marker stamped by saveRecoveredSubagentReport when a
+   * poisoned/completed-workflow recovery write lands on the disk projection.
+   * Carries the `persisted_via` routing marker so reads can route the sidecar
+   * back to the correct terminal projection.
+   */
+  recovery_audit: SubagentReportRecoveryAuditSchema.optional(),
 }).strict();
 
 const ChangeScopedBaseSubagentReportSchema = BaseSubagentReportSchema.extend({
   scope: ChangeSubagentReportScopeSchema,
+  /**
+   * Recovery-audit marker stamped by saveRecoveredSubagentReport when a
+   * poisoned/completed-workflow recovery write lands on the disk projection.
+   * Carries the `persisted_via` routing marker so reads can route the sidecar
+   * back to the correct terminal projection.
+   */
+  recovery_audit: SubagentReportRecoveryAuditSchema.optional(),
 }).strict();
 
 export const SubagentVerificationEntrySchema = z
@@ -226,6 +255,13 @@ export const DesignConcernDispositionSchema = z
     ]),
     evidence: z.string().trim().min(1),
     dispositionedAt: z.string().trim().min(1),
+    /**
+     * Recovery-audit marker stamped by
+     * saveRecoveredDesignConcernDisposition when a poisoned/completed-workflow
+     * recovery write lands on the disk projection. Optional for backward
+     * compatibility with dispositions recorded via the normal signal path.
+     */
+    recovery_audit: GateRecoveryAuditSchema.optional(),
   })
   .strict();
 export type DesignConcernDisposition = z.infer<
@@ -258,6 +294,14 @@ export const VerificationEvidenceDispositionSchema = z
     ]),
     evidence: z.string().trim().min(1),
     dispositionedAt: z.string().trim().min(1),
+    /**
+     * Recovery-audit marker stamped by
+     * saveRecoveredVerificationEvidenceDisposition when a
+     * poisoned/completed-workflow recovery write lands on the disk projection.
+     * Optional for backward compatibility with dispositions recorded via the
+     * normal signal path.
+     */
+    recovery_audit: GateRecoveryAuditSchema.optional(),
   })
   .strict();
 export type VerificationEvidenceDisposition = z.infer<

@@ -865,6 +865,26 @@
             "minLength": 1,
             "type": "string"
           },
+          "recovery_audit": {
+            "additionalProperties": false,
+            "properties": {
+              "evidence": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "recovered_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "evidence",
+              "recovered_at"
+            ],
+            "type": "object"
+          },
           "taskId": {
             "minLength": 1,
             "type": "string"
@@ -3770,6 +3790,31 @@
                     },
                     "type": "array"
                   },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
+                  },
                   "related_scan": {
                     "minLength": 1,
                     "type": "string"
@@ -4134,6 +4179,31 @@
                       "harden"
                     ],
                     "type": "string"
+                  },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
                   },
                   "required_follow_ups": {
                     "items": {
@@ -4655,6 +4725,31 @@
                     },
                     "type": "array"
                   },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
+                  },
                   "related_scan": {
                     "minLength": 1,
                     "type": "string"
@@ -5025,6 +5120,31 @@
                       "harden"
                     ],
                     "type": "string"
+                  },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
                   },
                   "required_follow_ups": {
                     "items": {
@@ -5399,6 +5519,31 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
+                  },
                   "schema_version": {
                     "const": "1.0",
                     "type": "string"
@@ -5663,6 +5808,31 @@
                     },
                     "type": "array"
                   },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
+                  },
                   "risks": {
                     "items": {
                       "minLength": 1,
@@ -5848,6 +6018,31 @@
                       "harden"
                     ],
                     "type": "string"
+                  },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
                   },
                   "scanner_count": {
                     "maximum": 9007199254740991,
@@ -6050,6 +6245,31 @@
                       "no_action"
                     ],
                     "type": "string"
+                  },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
                   },
                   "required_main_agent_actions": {
                     "items": {
@@ -6344,6 +6564,31 @@
                   "image": {
                     "minLength": 1,
                     "type": "string"
+                  },
+                  "recovery_audit": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence": {
+                        "type": "string"
+                      },
+                      "persisted_via": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "recovered_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason",
+                      "evidence",
+                      "recovered_at",
+                      "persisted_via"
+                    ],
+                    "type": "object"
                   },
                   "schema_version": {
                     "const": "1.0",
@@ -7144,6 +7389,31 @@
                       },
                       "type": "array"
                     },
+                    "recovery_audit": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "evidence": {
+                          "type": "string"
+                        },
+                        "persisted_via": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "recovered_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "evidence",
+                        "recovered_at",
+                        "persisted_via"
+                      ],
+                      "type": "object"
+                    },
                     "related_scan": {
                       "minLength": 1,
                       "type": "string"
@@ -7508,6 +7778,31 @@
                         "harden"
                       ],
                       "type": "string"
+                    },
+                    "recovery_audit": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "evidence": {
+                          "type": "string"
+                        },
+                        "persisted_via": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "recovered_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "evidence",
+                        "recovered_at",
+                        "persisted_via"
+                      ],
+                      "type": "object"
                     },
                     "required_follow_ups": {
                       "items": {
@@ -8029,6 +8324,31 @@
                       },
                       "type": "array"
                     },
+                    "recovery_audit": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "evidence": {
+                          "type": "string"
+                        },
+                        "persisted_via": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "recovered_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "evidence",
+                        "recovered_at",
+                        "persisted_via"
+                      ],
+                      "type": "object"
+                    },
                     "related_scan": {
                       "minLength": 1,
                       "type": "string"
@@ -8496,6 +8816,26 @@
           "evidence": {
             "minLength": 1,
             "type": "string"
+          },
+          "recovery_audit": {
+            "additionalProperties": false,
+            "properties": {
+              "evidence": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "recovered_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "evidence",
+              "recovered_at"
+            ],
+            "type": "object"
           },
           "taskId": {
             "minLength": 1,

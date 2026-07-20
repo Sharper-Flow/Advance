@@ -44,6 +44,25 @@ export type LoadResult<T> =
     };
 
 /**
+ * Predicate: true when a LoadResult carries a schema_error.
+ *
+ * Workflow-touching callers MUST check this before falling through to a
+ * Temporal query: schema errors are not recoverable through a workflow
+ * round-trip and surface as generic "Failed to query Workflow" errors when
+ * masked (issue #258 Defect 1).
+ *
+ * The existing LoadResult flow already propagates `result.error` verbatim
+ * through tool-layer `if (!result.success) return formatToolOutput({error})`
+ * patterns. This predicate exists to make "do not fall through on
+ * schema_error" explicit at every store-layer swallow site.
+ */
+export function isSchemaError<T>(
+  result: LoadResult<T>,
+): result is { success: false; error: string; type: "schema_error" } {
+  return !result.success && result.type === "schema_error";
+}
+
+/**
  * Format a Zod validation error into a human-readable string for AI agents.
  */
 function formatZodError(
@@ -968,6 +987,14 @@ export async function hasArchiveBundle(
     if (loaded.success && loaded.data?.id === changeId) {
       return true;
     }
+    // Schema-invalid archive bundles are intentionally NOT reported here.
+    // Archive bundles are write-targets for split-brain recovery; reporting
+    // them as existing would cause loadArchiveBundleDominantProjection to
+    // be entered, but the bundle content is unreadable. Letting the scan
+    // continue (and returning false if no valid bundle matches) allows the
+    // caller to fall through to the live workflow path, which is what
+    // recovery needs. Schema errors in the ACTIVE change.json are still
+    // surfaced verbatim via loadDiskTerminalProjection (issue #258 Defect 1).
   }
 
   return false;

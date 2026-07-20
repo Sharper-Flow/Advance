@@ -332,7 +332,20 @@ async function resolveChangeId(
   try {
     const result = await store.tasks.show(taskId);
     if (result?.changeId) return result.changeId;
-  } catch {
+  } catch (err) {
+    // rq-schemaDriftToolLayer: schema errors are not recoverable via the
+    // structural fallback scan below (which also reads change.json files),
+    // so propagating them through the fallback would only re-encounter the
+    // same corruption. Surface verbatim instead of masking as "Task not
+    // found". Detection is a substring heuristic on the canonical store
+    // error format ("Schema validation failed for ..."); a typed error
+    // class would be cleaner but is out of scope for this task.
+    if (
+      err instanceof Error &&
+      err.message.includes("Schema validation failed")
+    ) {
+      throw err;
+    }
     // A stale reverse index can point store.tasks.show at an unavailable or
     // wrong workflow. Fall through to the read-only structural scan below so a
     // live active workflow can still own the task without requiring projection
@@ -348,7 +361,15 @@ async function resolveChangeId(
   let changes: Awaited<ReturnType<Store["changes"]["list"]>>["changes"];
   try {
     changes = (await store.changes.list()).changes;
-  } catch {
+  } catch (err) {
+    // rq-schemaDriftToolLayer: same rationale as above — schema errors in
+    // the change list are not recoverable via the per-change workflow scan.
+    if (
+      err instanceof Error &&
+      err.message.includes("Schema validation failed")
+    ) {
+      throw err;
+    }
     return null;
   }
 

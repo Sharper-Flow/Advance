@@ -10,8 +10,10 @@ import {
   saveRecoveredSubagentReport,
   saveRecoveredTaskAdd,
   saveRecoveredTaskMutation,
+  saveRecoveredVerificationEvidenceDisposition,
 } from "./_recovery-writers";
 import type { Change } from "../types";
+import { ChangeSchema } from "../types/changes";
 
 vi.mock("../storage/json", () => ({
   saveChange: vi.fn(async (_changesDir: string, _change: Change) => undefined),
@@ -376,6 +378,22 @@ describe("saveRecoveredDesignConcernDisposition", () => {
         ],
       }),
     );
+
+    // AC2/AC3 regression (issue #258 Defect 2): the object handed to the
+    // persistence layer must round-trip through ChangeSchema. Before the fix,
+    // the strict disposition schema rejected the recovery_audit field and the
+    // next ChangeSchema.parse would throw on the disk projection.
+    const persistedToDisk = (
+      mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][1] as Change;
+    expect(() => ChangeSchema.parse(persistedToDisk)).not.toThrow();
+    expect(
+      persistedToDisk.design_concern_dispositions?.[0]?.recovery_audit,
+    ).toMatchObject({
+      reason: "completed_workflow_design_concern_recovery",
+      evidence: "WorkflowNotFoundError: workflow execution already completed",
+      recovered_at: expect.any(String),
+    });
   });
 
   it("requires recovery authorization for design concern recovery", async () => {
@@ -393,6 +411,206 @@ describe("saveRecoveredDesignConcernDisposition", () => {
         },
       } as any),
     ).rejects.toThrow(/recovery authorization/);
+  });
+});
+
+describe("saveRecoveredVerificationEvidenceDisposition", () => {
+  it("records latest-wins disposition through disk-direct saveChange", async () => {
+    const { store, saveCalls } = createMockStore();
+    const change = {
+      ...baseChange(),
+      verification_evidence_dispositions: [
+        {
+          taskId: "tk-1",
+          concernKey: "verification_mismatch",
+          disposition: "fast_follow",
+          evidence: "old follow-up",
+          dispositionedAt: "2026-05-21T00:00:00Z",
+        },
+      ],
+    } as Change;
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const updated = await saveRecoveredVerificationEvidenceDisposition({
+      store,
+      change,
+      authorization: {
+        reason: "completed_workflow_verification_evidence_recovery",
+        evidence: "WorkflowNotFoundError: workflow execution already completed",
+      },
+      disposition: {
+        taskId: "tk-1",
+        concernKey: "verification_mismatch",
+        disposition: "fixed",
+        evidence: "re-ran targeted suite; binding now matches",
+        dispositionedAt: "2026-05-22T00:00:00Z",
+      },
+    });
+
+    expect(updated.verification_evidence_dispositions).toHaveLength(1);
+    expect(updated.verification_evidence_dispositions?.[0]).toMatchObject({
+      taskId: "tk-1",
+      concernKey: "verification_mismatch",
+      disposition: "fixed",
+      evidence: "re-ran targeted suite; binding now matches",
+      recovery_audit: expect.objectContaining({
+        reason: "completed_workflow_verification_evidence_recovery",
+      }),
+    });
+    expect(saveCalls).toHaveLength(0);
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({
+        verification_evidence_dispositions: [
+          expect.objectContaining({
+            taskId: "tk-1",
+            concernKey: "verification_mismatch",
+            disposition: "fixed",
+          }),
+        ],
+      }),
+    );
+
+    // AC2/AC3 regression (issue #258 Defect 2): the object handed to the
+    // persistence layer must round-trip through ChangeSchema. Before the fix,
+    // the strict verification-evidence disposition schema rejected the
+    // recovery_audit field and the next ChangeSchema.parse would throw on the
+    // disk projection.
+    const persistedToDisk = (
+      mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][1] as Change;
+    expect(() => ChangeSchema.parse(persistedToDisk)).not.toThrow();
+    expect(
+      persistedToDisk.verification_evidence_dispositions?.[0]?.recovery_audit,
+    ).toMatchObject({
+      reason: "completed_workflow_verification_evidence_recovery",
+      evidence: "WorkflowNotFoundError: workflow execution already completed",
+      recovered_at: expect.any(String),
+    });
+  });
+
+  it("requires recovery authorization for verification evidence recovery", async () => {
+    const { store } = createMockStore();
+    await expect(
+      saveRecoveredVerificationEvidenceDisposition({
+        store,
+        change: baseChange(),
+        disposition: {
+          taskId: "tk-1",
+          concernKey: "verification_mismatch",
+          disposition: "fixed",
+          evidence: "fixed",
+          dispositionedAt: "2026-05-22T00:00:00Z",
+        },
+      } as any),
+    ).rejects.toThrow(/recovery authorization/);
+  });
+
+  it("AC4/AC7: two serial poisoned_history dispositions on different taskIds both persist and round-trip", async () => {
+    // Issue #258 Defect 2 data-loss scenario: two serial recovery writes on
+    // the same change with DIFFERENT taskIds must both persist. The caller
+    // reloads the change from disk between calls (the correct usage pattern
+    // for serial recovery writes); the second call must append rather than
+    // clobber the first. The final disk projection must round-trip through
+    // ChangeSchema with both dispositions carrying recovery_audit.
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-serial-"));
+    const changesDir = join(root, "changes");
+    const changeDir = join(changesDir, "test-change");
+    await mkdir(changeDir, { recursive: true });
+    const changePath = join(changeDir, "change.json");
+
+    const initialChange: Change = {
+      ...baseChange(),
+      id: "test-change",
+    } as Change;
+    await writeFile(changePath, JSON.stringify(initialChange, null, 2));
+
+    const store: any = {
+      paths: { root, changes: changesDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    // Override the mocked saveChange to actually persist to disk for this
+    // test so the serial-reload data path is exercised end-to-end.
+    (
+      mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+    ).mockImplementation(async (_dir: string, change: Change) => {
+      await writeFile(changePath, JSON.stringify(change, null, 2));
+    });
+
+    const authorization = {
+      reason: "completed_workflow_verification_evidence_recovery",
+      evidence: "WorkflowNotFoundError: workflow execution already completed",
+    };
+
+    try {
+      // First disposition on tk-first.
+      await saveRecoveredVerificationEvidenceDisposition({
+        store,
+        change: initialChange,
+        authorization,
+        disposition: {
+          taskId: "tk-first",
+          concernKey: "verification_mismatch",
+          disposition: "fixed",
+          evidence: "first evidence",
+          dispositionedAt: "2026-05-22T00:00:00Z",
+        },
+      });
+
+      // Reload the change from disk for the second call — this is the
+      // correct serial-recovery pattern that avoids the in-memory clobber.
+      const reloaded = JSON.parse(
+        await readFile(changePath, "utf-8"),
+      ) as Change;
+
+      // Second disposition on a DIFFERENT taskId.
+      await saveRecoveredVerificationEvidenceDisposition({
+        store,
+        change: reloaded,
+        authorization,
+        disposition: {
+          taskId: "tk-second",
+          concernKey: "verification_mismatch",
+          disposition: "fixed",
+          evidence: "second evidence",
+          dispositionedAt: "2026-05-22T00:01:00Z",
+        },
+      });
+
+      const finalRaw = await readFile(changePath, "utf-8");
+      const final = JSON.parse(finalRaw);
+
+      // Both dispositions persist on disk (no clobber).
+      expect(final.verification_evidence_dispositions).toHaveLength(2);
+      expect(
+        (final.verification_evidence_dispositions ?? [])
+          .map((d: { taskId: string }) => d.taskId)
+          .sort(),
+      ).toEqual(["tk-first", "tk-second"]);
+
+      // AC2/AC3: the final projection round-trips through ChangeSchema.
+      expect(() => ChangeSchema.parse(final)).not.toThrow();
+
+      // AC4/AC7: both dispositions carry the recovery_audit stamp.
+      for (const d of final.verification_evidence_dispositions) {
+        expect(d.recovery_audit).toBeDefined();
+        expect(d.recovery_audit).toMatchObject({
+          reason: "completed_workflow_verification_evidence_recovery",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+          recovered_at: expect.any(String),
+        });
+      }
+    } finally {
+      // Restore the default no-op mock so subsequent tests are unaffected.
+      (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockReset();
+      (
+        mockedSaveChange as unknown as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => undefined);
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 
@@ -470,6 +688,17 @@ describe("saveRecoveredSubagentReport", () => {
     expect(persisted.subagent_reports[0].recovery_audit.persisted_via).toBe(
       "archive-sidecar",
     );
+
+    // AC2/AC3 regression (issue #258 Defect 2): persisted archive bundle
+    // projection must round-trip through ChangeSchema after the recovery
+    // write stamps recovery_audit onto the report.
+    expect(() => ChangeSchema.parse(persisted)).not.toThrow();
+    expect(persisted.subagent_reports[0].recovery_audit).toMatchObject({
+      persisted_via: "archive-sidecar",
+      reason: expect.any(String),
+      evidence: expect.any(String),
+      recovered_at: expect.any(String),
+    });
 
     // Archive-sidecar change.json ends with exactly one trailing newline (AC3/SC2)
     const rawBundleChange = await readFile(
@@ -683,6 +912,17 @@ describe("saveRecoveredSubagentReport", () => {
     // Did NOT write to active dir
     expect(mockedSaveChange).not.toHaveBeenCalled();
 
+    // AC2/AC3 regression (issue #258 Defect 2): the race-fallback write path
+    // stamps recovery_audit on the archive bundle; the persisted projection
+    // must round-trip through ChangeSchema.
+    expect(() => ChangeSchema.parse(persisted)).not.toThrow();
+    expect(persisted.subagent_reports[0].recovery_audit).toMatchObject({
+      persisted_via: "archive-sidecar",
+      reason: expect.any(String),
+      evidence: expect.any(String),
+      recovered_at: expect.any(String),
+    });
+
     await rm(root, { recursive: true, force: true });
   });
 
@@ -786,6 +1026,18 @@ describe("saveRecoveredSubagentReport", () => {
       "archive-sidecar",
     );
     expect(mockedSaveChange).not.toHaveBeenCalled();
+
+    // AC2/AC3 regression (issue #258 Defect 2): the terminal archive
+    // projection carries a recovery_audit-stamped report alongside a
+    // pre-existing non-audited report; the full projection must round-trip
+    // through ChangeSchema after the recovery write.
+    expect(() => ChangeSchema.parse(persisted)).not.toThrow();
+    expect(persisted.subagent_reports[1].recovery_audit).toMatchObject({
+      persisted_via: "archive-sidecar",
+      reason: expect.any(String),
+      evidence: expect.any(String),
+      recovered_at: expect.any(String),
+    });
 
     // Re-submitting the same report against the same stale shadow is a
     // deduplicated no-op: bundle unchanged, still exactly one audited report.

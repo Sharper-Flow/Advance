@@ -2260,6 +2260,30 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
     });
 
+    // rq-schemaDriftToolLayer: schema errors from store.changes.get must
+    // propagate verbatim. Pre-fix the L1793 check masks them as
+    // "Change '...' not found."; post-fix the check splits so schema errors
+    // surface directly.
+    test("propagates schema errors from changes.get verbatim instead of masking as 'Change not found'", async () => {
+      const schemaErrorText =
+        'Schema validation failed for change "test-change":\n  status: invalid';
+      const store = createMockStore();
+      vi.mocked(store.changes.get).mockResolvedValue({
+        success: false,
+        error: schemaErrorText,
+      });
+
+      const result = await changeTools.adv_change_update.execute(
+        { changeId: "test-change", proposal: "# update" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("Schema validation failed");
+      expect(parsed.error).not.toContain("not found");
+      expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+    });
+
     test("allows omitted artifact fields to remain unchanged", async () => {
       const store = createMockStore();
       vi.mocked(store.changes.updateArtifacts).mockResolvedValueOnce({
