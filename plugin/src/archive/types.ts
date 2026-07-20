@@ -5,6 +5,7 @@
  */
 
 import type { Change, Spec } from "../types";
+import type { SpecProjectionManifest } from "./projection";
 
 // =============================================================================
 // Delta Application Result
@@ -51,6 +52,10 @@ export interface ArchiveOperationResult {
   specsUpdated: SpecUpdateResult[];
   /** Documentation files generated */
   docsGenerated: string[];
+  /** Exact worktree-owned paths that release finalization may stage. */
+  commitPaths: string[];
+  /** Derived full-projection proof written into new archive bundles. */
+  projectionManifest?: SpecProjectionManifest;
   /** Path to the archived change */
   archivePath: string;
   /** Errors encountered */

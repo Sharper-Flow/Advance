@@ -177,7 +177,10 @@ function hasPreimageAuthority(
     (baselineRequirement(authority, delta.target_id)
       ? requirementSha256(baselineRequirement(authority, delta.target_id)!)
       : undefined);
-  return expectedDigest !== undefined && expectedDigest === requirementSha256(current);
+  return (
+    expectedDigest !== undefined &&
+    expectedDigest === requirementSha256(current)
+  );
 }
 
 function blockedStatus(
@@ -203,7 +206,8 @@ function bumpProjectionVersion(
 ): string {
   if (missing.length === 0) return version;
   const parts = version.split(".").map(Number);
-  if (parts.length !== 3 || parts.some(Number.isNaN)) return `${version}-updated`;
+  if (parts.length !== 3 || parts.some(Number.isNaN))
+    return `${version}-updated`;
   const [major, minor, patch] = parts;
   return missing.some((row) => row.operation === "add")
     ? `${major}.${minor + 1}.0`
@@ -236,7 +240,9 @@ export function planSpecProjection(
             : "conflicting",
           ...(sameValue(existing, delta.requirement)
             ? {}
-            : { reason: "same requirement id has different normalized content" }),
+            : {
+                reason: "same requirement id has different normalized content",
+              }),
         });
       } else {
         working.requirements.push(
@@ -286,7 +292,8 @@ export function planSpecProjection(
           operation: "modify",
           targetId: delta.target_id,
           status: blockedStatus(hasAuthoritySource(input.authority, delta)),
-          reason: "current requirement does not match an authoritative preimage",
+          reason:
+            "current requirement does not match an authoritative preimage",
         });
       }
       continue;
@@ -333,7 +340,10 @@ export function planSpecProjection(
           renamed?.title === delta.new_title ? "identical" : "conflicting",
         ...(renamed?.title === delta.new_title
           ? {}
-          : { reason: "rename source is absent and expected postimage is missing" }),
+          : {
+              reason:
+                "rename source is absent and expected postimage is missing",
+            }),
       });
       continue;
     }

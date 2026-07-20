@@ -1,6 +1,6 @@
 import { realpathSync } from "fs";
 import { spawnSync } from "child_process";
-import { dirname } from "path";
+import { dirname, isAbsolute, normalize, sep as pathSeparator } from "path";
 import { spawnSyncGit } from "../../utils/git-binary";
 import { parseWorktreeListPorcelain } from "../worktree/porcelain-parser";
 import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
@@ -2675,11 +2675,27 @@ export function commitArchiveArtifacts(
   workdir: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
+  artifactPaths?: string[],
 ): { committed: boolean; commitSha?: string; error?: string } {
   const runGit = deps.runGit ?? defaultRunGit;
+  const paths = artifactPaths?.length ? [...new Set(artifactPaths)] : [".adv/"];
+  const invalidPath = paths.find((path) => {
+    const normalized = normalize(path);
+    return (
+      isAbsolute(path) ||
+      normalized === ".." ||
+      normalized.startsWith(`..${pathSeparator}`)
+    );
+  });
+  if (invalidPath) {
+    return {
+      committed: false,
+      error: `Archive artifact path must stay within the worktree: ${invalidPath}`,
+    };
+  }
 
   // Check if there are any changes to commit
-  const status = runGit(workdir, ["status", "--porcelain", ".adv/"]);
+  const status = runGit(workdir, ["status", "--porcelain", "--", ...paths]);
   if (status.status !== 0) {
     return {
       committed: false,
@@ -2692,7 +2708,7 @@ export function commitArchiveArtifacts(
   }
 
   // Stage and commit
-  const add = runGit(workdir, ["add", ".adv/"]);
+  const add = runGit(workdir, ["add", "--", ...paths]);
   if (add.status !== 0) {
     return {
       committed: false,
@@ -2723,6 +2739,8 @@ export interface GitFinalizeContext {
   archiveMode: ArchiveMode;
   autoPush: boolean;
   skipPush?: boolean;
+  /** Exact worktree-relative bundle/spec/doc paths owned by archive. */
+  artifactPaths?: string[];
 }
 
 export async function finalizeRelease(
@@ -2764,7 +2782,12 @@ export async function finalizeRelease(
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps);
 
   // Commit in-repo archive artifacts before merge
-  const commitResult = commitArchiveArtifacts(ctx.workdir, ctx.changeId, deps);
+  const commitResult = commitArchiveArtifacts(
+    ctx.workdir,
+    ctx.changeId,
+    deps,
+    ctx.artifactPaths,
+  );
   if (commitResult.error) {
     return {
       status: "blocked",

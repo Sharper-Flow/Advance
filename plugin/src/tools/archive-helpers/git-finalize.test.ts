@@ -2741,6 +2741,52 @@ describe("git-finalize helpers", () => {
     expect(committed.commitSha).toBeDefined();
   });
 
+  it("commitArchiveArtifacts stages only explicit bundle, spec, and doc paths", async () => {
+    const repo = join(tempRoot, "repo-explicit-archive-paths");
+    await mkdir(repo);
+    await initRepo(repo);
+    git(repo, ["checkout", "-b", "change/example"]);
+
+    await mkdir(join(repo, ".adv", "archive", "example"), {
+      recursive: true,
+    });
+    await mkdir(join(repo, ".adv", "specs", "example"), {
+      recursive: true,
+    });
+    await mkdir(join(repo, "docs", "specs"), { recursive: true });
+    await writeFile(
+      join(repo, ".adv", "archive", "example", "change.json"),
+      "{}\n",
+    );
+    await writeFile(
+      join(repo, ".adv", "specs", "example", "spec.json"),
+      "{}\n",
+    );
+    await writeFile(join(repo, "docs", "specs", "example.md"), "# Example\n");
+    await writeFile(join(repo, ".adv", "unrelated.txt"), "leave unstaged\n");
+
+    const committed = commitArchiveArtifacts(repo, "example", {}, [
+      ".adv/archive/example",
+      ".adv/specs/example/spec.json",
+      "docs/specs/example.md",
+    ]);
+
+    expect(committed.committed).toBe(true);
+    const names = git(repo, [
+      "show",
+      "--pretty=format:",
+      "--name-only",
+      "HEAD",
+    ]);
+    expect(names).toContain(".adv/archive/example/change.json");
+    expect(names).toContain(".adv/specs/example/spec.json");
+    expect(names).toContain("docs/specs/example.md");
+    expect(names).not.toContain(".adv/unrelated.txt");
+    expect(git(repo, ["status", "--porcelain"])).toContain(
+      "?? .adv/unrelated.txt",
+    );
+  });
+
   it("redactGitOutput masks credentials and tokens", () => {
     expect(redactGitOutput("remote: https://user:pass@github.com")).toContain(
       "***REDACTED***",

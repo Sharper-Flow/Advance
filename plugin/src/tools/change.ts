@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { createHash } from "crypto";
 import { rm } from "fs/promises";
-import { join, resolve } from "path";
+import { join, relative, resolve } from "path";
 import type { FastFollowOf, ChangeOrigin } from "../types";
 import {
   createDefaultGates,
@@ -28,6 +28,7 @@ import {
   type BriefingPacketLane,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
+import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
 import { getProjectId } from "../utils/project-id";
 import { validateChange } from "../validator";
@@ -2782,7 +2783,6 @@ export const changeTools = {
             changeId,
           });
         }
-        const specs = await loadSpecsMap(store);
         // Run the archive operation
         // Include in-repo archive path: resolves within the repo at .adv/archive/.
         // When worktreePath is provided (e.g. /adv-archive Phase 9 from a worktree),
@@ -2791,14 +2791,42 @@ export const changeTools = {
         // checkout) for backward compatibility.
         const inRepoBase = worktreePath ?? store.paths.root;
         const inRepoArchive = join(inRepoBase, ".adv", "archive");
+        const projectionSpecs = join(inRepoBase, ".adv", "specs");
+        const projectionDocs = join(inRepoBase, "docs", "specs");
+        const specs = worktreePath
+          ? await loadAllSpecs(projectionSpecs)
+          : await loadSpecsMap(store);
         const archivePaths =
           store.config?.features?.wisdom_accumulation === false
-            ? { ...store.paths, wisdom: undefined, inRepoArchive }
-            : { ...store.paths, inRepoArchive };
+            ? {
+                ...store.paths,
+                specs: projectionSpecs,
+                docs: projectionDocs,
+                wisdom: undefined,
+                inRepoArchive,
+              }
+            : {
+                ...store.paths,
+                specs: projectionSpecs,
+                docs: projectionDocs,
+                inRepoArchive,
+              };
         const existingBundlePath = !dryRun
           ? await findArchiveBundle(archivePaths.archive, changeId)
           : null;
         if (!dryRun) {
+          if (
+            !worktreePath &&
+            Object.values(change.deltas).some((deltas) => deltas.length > 0)
+          ) {
+            return formatToolOutput({
+              success: false,
+              error:
+                "Archive delta projection requires worktreePath; tracked specs and docs are never written through the main checkout.",
+              requirement: "rq-archiveDeltaReconciliation01",
+              changeId,
+            });
+          }
           if (
             !worktreePath &&
             phase9 !== "skip" &&
@@ -2865,12 +2893,13 @@ export const changeTools = {
         //      transition (below) complete the recovery.
         let archiveResult: import("../archive/types").ArchiveOperationResult;
         if (existingBundlePath !== null) {
+          let reconciledInRepoPath: string | undefined;
           if (
             !dryRun &&
             archivePaths.inRepoArchive &&
             (worktreePath || phase9 === "skip")
           ) {
-            await reconcileInRepoArchive(
+            reconciledInRepoPath = await reconcileInRepoArchive(
               change,
               archivePaths.inRepoArchive,
               archivePaths.changes
@@ -2883,6 +2912,7 @@ export const changeTools = {
             changeId,
             specsUpdated: [],
             docsGenerated: [],
+            commitPaths: reconciledInRepoPath ? [reconciledInRepoPath] : [],
             archivePath: existingBundlePath,
             errors: [],
             archivedAt: new Date().toISOString(),
@@ -2928,6 +2958,9 @@ export const changeTools = {
                   expectedMainCheckout: store.paths.root,
                   archiveMode,
                   autoPush,
+                  artifactPaths: (archiveResult.commitPaths ?? []).map((path) =>
+                    relative(worktreePath, path),
+                  ),
                 })
               : verifyReleaseEvidenceFromMain({
                   store,

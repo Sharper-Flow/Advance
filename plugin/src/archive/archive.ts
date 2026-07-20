@@ -8,7 +8,7 @@
 import { join, dirname } from "path";
 import { readdir, readFile, mkdir } from "fs/promises";
 import { atomicWriteFile, syncDir } from "../utils/fs";
-import { ChangeSchema, type Spec, type Change } from "../types";
+import { ChangeSchema, SpecSchema, type Spec, type Change } from "../types";
 import {
   buildTerminalArchiveSummary,
   serializeTerminalArchiveSummary,
@@ -20,8 +20,16 @@ import type {
   ArchiveOperationResult,
   SpecUpdateResult,
 } from "./types";
-import { applyDeltasToSpec, createSpecFromDeltas } from "./delta";
-import { generateSpecDocFile } from "./docs";
+import { generateSpecDoc, generateSpecDocFile } from "./docs";
+import { SPEC_SCHEMA_URL } from "../schema-registry";
+import {
+  SpecProjectionManifestSchema,
+  canonicalSha256,
+  planSpecProjection,
+  requirementSha256,
+  specSha256,
+  type SpecProjectionManifest,
+} from "./projection";
 import {
   addProjectWisdom,
   listProjectWisdom,
@@ -97,6 +105,7 @@ async function writeArchiveBundleFiles(
   archivePath: string,
   multiRepo: MultiRepoArchiveMetadata | undefined,
   archivedAt: string,
+  projectionManifest?: SpecProjectionManifest,
 ): Promise<ArchiveBundleWriteResult> {
   const archivedChange: Change = { ...change, status: "archived" };
 
@@ -104,6 +113,14 @@ async function writeArchiveBundleFiles(
   const changeJson = bundleJsonStringify(archivedChange);
   await atomicWriteFile(join(archivePath, "change.json"), changeJson);
   const changeHash = sha256HexString(changeJson);
+  if (projectionManifest) {
+    await atomicWriteFile(
+      join(archivePath, "spec-projection.json"),
+      bundleJsonStringify(
+        SpecProjectionManifestSchema.parse(projectionManifest),
+      ),
+    );
+  }
 
   // Terminal summary is derived from the validated archived Change and bound to
   // the exact change.json bytes via changeHash. Summary failure does NOT
@@ -188,6 +205,7 @@ const GENERATED_BUNDLE_FILES = new Set([
   "CONTRACT_TRACEABILITY.md",
   "wisdom.json",
   "multi-repo-archive.json",
+  "spec-projection.json",
 ]);
 
 function buildTerminalGateSummary(change: Change): Record<string, string> {
@@ -729,6 +747,49 @@ export function generateContractTraceability(change: Change): string | null {
 /**
  * Archive a change - applies deltas to specs and generates documentation.
  */
+function emptySpecForProjection(capability: string, projectedAt: string): Spec {
+  const title = capability
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  return {
+    $schema: SPEC_SCHEMA_URL,
+    name: capability,
+    title,
+    purpose: `Capability: ${title}`,
+    version: "0.0.0",
+    updated_at: projectedAt,
+    requirements: [],
+  };
+}
+
+function projectionUpdateResult(
+  capability: string,
+  originalVersion: string,
+  newVersion: string,
+  dispositions: ReturnType<typeof planSpecProjection>["dispositions"],
+  updatedSpec?: Spec,
+): SpecUpdateResult {
+  return {
+    capability,
+    originalVersion,
+    newVersion,
+    deltaResults: dispositions.map((row) => ({
+      success: row.status === "missing" || row.status === "identical",
+      deltaId: row.deltaId,
+      operation: row.operation,
+      targetId: row.targetId,
+      ...(row.operation === "add" && row.targetId
+        ? { newId: row.targetId }
+        : {}),
+      ...(row.status === "conflicting" || row.status === "unverified"
+        ? { error: `${row.status}: ${row.reason ?? "projection proof failed"}` }
+        : {}),
+    })),
+    ...(updatedSpec ? { updatedSpec } : {}),
+  };
+}
+
 export async function archiveChange(
   context: ArchiveContext,
 ): Promise<ArchiveOperationResult> {
@@ -736,7 +797,9 @@ export async function archiveChange(
   const errors: string[] = [];
   const specsUpdated: SpecUpdateResult[] = [];
   const docsGenerated: string[] = [];
+  const commitPaths: string[] = [];
   const targetArchivePath = archiveBundlePath(paths.archive, change.id);
+  const archivedAt = new Date().toISOString();
 
   const contractProofErrors = getArchiveContractProofErrors(change);
   if (contractProofErrors.length > 0) {
@@ -745,9 +808,10 @@ export async function archiveChange(
       changeId: change.id,
       specsUpdated,
       docsGenerated,
+      commitPaths,
       archivePath: targetArchivePath,
       errors: contractProofErrors,
-      archivedAt: new Date().toISOString(),
+      archivedAt,
     };
   }
 
@@ -761,107 +825,194 @@ export async function archiveChange(
       changeId: change.id,
       specsUpdated,
       docsGenerated,
+      commitPaths,
       archivePath: targetArchivePath,
       errors: multiRepo.errors,
-      archivedAt: new Date().toISOString(),
+      archivedAt,
       ...(multiRepo.metadata ? { multiRepo: multiRepo.metadata } : {}),
     };
   }
 
-  // Process each capability's deltas
+  const planned: Array<{
+    capability: string;
+    targetSpec: Spec;
+    result: SpecUpdateResult;
+    dispositions: ReturnType<typeof planSpecProjection>["dispositions"];
+  }> = [];
+
+  // Semantic preflight is whole-change: no spec, doc, or bundle write occurs
+  // until every affected capability has a safe target projection.
   for (const [capability, deltas] of Object.entries(change.deltas)) {
     if (deltas.length === 0) continue;
-
-    let spec = specs.get(capability);
-    let result: SpecUpdateResult;
-
-    if (spec) {
-      // Apply deltas to existing spec
-      const originalVersion = spec.version;
-      result = applyDeltasToSpec(
-        structuredClone(spec),
-        deltas,
-        originalVersion,
+    const existing = specs.get(capability);
+    const base = existing
+      ? structuredClone(existing)
+      : emptySpecForProjection(capability, archivedAt);
+    const plan = planSpecProjection({
+      spec: base,
+      deltas,
+      authority: { kind: "current" },
+      projectedAt: archivedAt,
+    });
+    if (!existing && plan.status === "safe" && plan.targetSpec) {
+      plan.targetSpec.version = "1.0.0";
+      plan.targetVersion = "1.0.0";
+    }
+    const result = projectionUpdateResult(
+      capability,
+      base.version,
+      plan.targetVersion,
+      plan.dispositions,
+      plan.targetSpec,
+    );
+    specsUpdated.push(result);
+    if (plan.status === "blocked" || !plan.targetSpec) {
+      const blockedRows = plan.dispositions
+        .filter(
+          (row) => row.status === "conflicting" || row.status === "unverified",
+        )
+        .map(
+          (row) =>
+            `${row.deltaId}=${row.status}${row.reason ? ` (${row.reason})` : ""}`,
+        );
+      errors.push(
+        `Failed to reconcile deltas for ${capability}: ${blockedRows.join(", ")}`,
       );
+      continue;
+    }
+    planned.push({
+      capability,
+      targetSpec: plan.targetSpec,
+      result,
+      dispositions: plan.dispositions,
+    });
+  }
 
-      if (result.updatedSpec) {
-        spec = result.updatedSpec;
-        specs.set(capability, spec);
-      } else {
+  if (errors.length > 0) {
+    return {
+      success: false,
+      changeId: change.id,
+      specsUpdated,
+      docsGenerated,
+      commitPaths,
+      archivePath: targetArchivePath,
+      errors,
+      archivedAt,
+      ...(multiRepo.metadata ? { multiRepo: multiRepo.metadata } : {}),
+    };
+  }
+
+  const capabilityManifests: SpecProjectionManifest["capabilities"] = [];
+  for (const projection of planned) {
+    const specPath = join(paths.specs, projection.capability, "spec.json");
+    const docPath = join(paths.docs, `${projection.capability}.md`);
+    let docContent: string;
+
+    if (!dryRun) {
+      try {
+        await writeSpecToDisk(projection.targetSpec, paths.specs);
+        const readback = SpecSchema.parse(
+          JSON.parse(await readFile(specPath, "utf8")),
+        );
+        if (specSha256(readback) !== specSha256(projection.targetSpec)) {
+          throw new Error("spec readback digest mismatch");
+        }
+        specs.set(projection.capability, readback);
+        commitPaths.push(specPath);
+      } catch (err) {
+        errors.push(`Failed to write spec ${projection.capability}: ${err}`);
+        continue;
+      }
+
+      try {
+        const doc = await generateSpecDocFile(
+          projection.targetSpec,
+          paths.docs,
+        );
+        docContent = doc.content;
+        const readback = await readFile(doc.filePath, "utf8");
+        if (canonicalSha256(readback) !== canonicalSha256(doc.content)) {
+          throw new Error("generated doc readback digest mismatch");
+        }
+        docsGenerated.push(doc.filePath);
+        commitPaths.push(doc.filePath);
+      } catch (err) {
         errors.push(
-          `Failed to apply deltas to ${capability}: ${result.deltaResults.find((r) => !r.success)?.error ?? "unknown error"}`,
+          `Failed to generate docs for ${projection.capability}: ${err}`,
         );
         continue;
       }
     } else {
-      // Create new spec from deltas
-      const { spec: newSpec, result: createResult } = createSpecFromDeltas(
-        capability,
-        deltas,
-      );
-      spec = newSpec;
-      result = createResult;
-      specs.set(capability, spec);
+      docContent = generateSpecDoc(projection.targetSpec);
+      docsGenerated.push(docPath);
+      commitPaths.push(specPath, docPath);
     }
 
-    specsUpdated.push(result);
-
-    // Write updated spec to disk
-    if (!dryRun) {
-      try {
-        await writeSpecToDisk(spec, paths.specs);
-      } catch (err) {
-        errors.push(`Failed to write spec ${capability}: ${err}`);
-      }
-    }
-
-    // Generate documentation
-    if (!dryRun) {
-      try {
-        const doc = await generateSpecDocFile(spec, paths.docs);
-        docsGenerated.push(doc.filePath);
-      } catch (err) {
-        errors.push(`Failed to generate docs for ${capability}: ${err}`);
-      }
-    } else {
-      // In dry run, still record what would be generated
-      docsGenerated.push(join(paths.docs, `${capability}.md`));
-    }
+    capabilityManifests.push({
+      capability: projection.capability,
+      base_version: projection.result.originalVersion,
+      target_version: projection.result.newVersion,
+      spec_sha256: specSha256(projection.targetSpec),
+      document_sha256: canonicalSha256(docContent),
+      requirement_sha256: Object.fromEntries(
+        projection.targetSpec.requirements.map((requirement) => [
+          requirement.id,
+          requirementSha256(requirement),
+        ]),
+      ),
+      dispositions: projection.dispositions,
+    });
   }
 
-  // Auto-promote convention/pattern wisdom to project level
+  // A projection write/readback failure cannot create a durable bundle that a
+  // later retry could mistake for complete archive work.
+  if (errors.length > 0) {
+    return {
+      success: false,
+      changeId: change.id,
+      specsUpdated,
+      docsGenerated,
+      commitPaths,
+      archivePath: targetArchivePath,
+      errors,
+      archivedAt,
+      ...(multiRepo.metadata ? { multiRepo: multiRepo.metadata } : {}),
+    };
+  }
+
+  const projectionManifest = SpecProjectionManifestSchema.parse({
+    schema_version: 1,
+    change_id: change.id,
+    delta_set_sha256: canonicalSha256(change.deltas),
+    capabilities: capabilityManifests,
+  });
+
+  // Auto-promote convention/pattern wisdom to project level.
   let wisdomPromoted = 0;
   if (!dryRun && paths.wisdom && change.wisdom && change.wisdom.length > 0) {
-    // Types eligible for promotion: convention and pattern only
     const promotableTypes = new Set(["convention", "pattern"]);
     const promotable = change.wisdom.filter((w) => promotableTypes.has(w.type));
-
     if (promotable.length > 0) {
-      // Load existing project wisdom to avoid duplicates
-      const projectDir = dirname(dirname(paths.wisdom)); // project dir derived from wisdom path
+      const projectDir = dirname(dirname(paths.wisdom));
       const existing = await listProjectWisdom(projectDir, {
         wisdomPath: paths.wisdom,
       });
-      const existingContents = new Set(existing.map((e) => e.content));
-
+      const existingContents = new Set(existing.map((entry) => entry.content));
       for (const entry of promotable) {
-        if (!existingContents.has(entry.content)) {
-          try {
-            await addProjectWisdom(projectDir, {
-              type: entry.type,
-              content: entry.content,
-              sourceChange: change.id,
-              sourceTask: entry.source_task,
-              wisdomPath: paths.wisdom,
-            });
-            wisdomPromoted++;
-          } catch (err) {
-            errors.push(`Failed to promote wisdom "${entry.content}": ${err}`);
-          }
+        if (existingContents.has(entry.content)) continue;
+        try {
+          await addProjectWisdom(projectDir, {
+            type: entry.type,
+            content: entry.content,
+            sourceChange: change.id,
+            sourceTask: entry.source_task,
+            wisdomPath: paths.wisdom,
+          });
+          wisdomPromoted++;
+        } catch (err) {
+          errors.push(`Failed to promote wisdom "${entry.content}": ${err}`);
         }
       }
-
-      // Compact if we added entries (enforce cap)
       if (wisdomPromoted > 0) {
         try {
           await compactProjectWisdom(projectDir, { wisdomPath: paths.wisdom });
@@ -872,11 +1023,9 @@ export async function archiveChange(
     }
   }
 
-  // Create archive directory and copy change (+ sibling files if changes dir provided)
   const sourceChangeDir = paths.changes
     ? join(paths.changes, change.id)
     : undefined;
-  const archivedAt = new Date().toISOString();
   const { path: archivePath, terminalSummaryDegradation } = await createArchive(
     change,
     paths.archive,
@@ -885,22 +1034,26 @@ export async function archiveChange(
     errors,
     multiRepo.metadata,
     archivedAt,
+    projectionManifest,
   );
 
-  // In-repo archive: write identical bundle to in-repo path (warning-only on failure)
-  if (paths.inRepoArchive && !dryRun) {
-    try {
-      await createInRepoArchive(
-        change,
-        paths.inRepoArchive,
-        sourceChangeDir,
-        multiRepo.metadata,
-        archivedAt,
-      );
-    } catch {
-      // In-repo failure is warning-only — do NOT add to errors array
-      // to avoid failing the overall archive operation. Error binding is
-      // intentionally omitted; would be logged here if a logger were wired.
+  if (paths.inRepoArchive) {
+    if (!dryRun) {
+      try {
+        const inRepoPath = await createInRepoArchive(
+          change,
+          paths.inRepoArchive,
+          sourceChangeDir,
+          multiRepo.metadata,
+          archivedAt,
+          projectionManifest,
+        );
+        commitPaths.push(inRepoPath);
+      } catch (err) {
+        errors.push(`Failed to write in-repo archive bundle: ${err}`);
+      }
+    } else {
+      commitPaths.push(archiveBundlePath(paths.inRepoArchive, change.id));
     }
   }
 
@@ -909,6 +1062,8 @@ export async function archiveChange(
     changeId: change.id,
     specsUpdated,
     docsGenerated,
+    commitPaths,
+    projectionManifest,
     archivePath,
     errors,
     archivedAt,
@@ -939,6 +1094,7 @@ async function createArchive(
   errors?: string[],
   multiRepo?: MultiRepoArchiveMetadata,
   archivedAt: string = new Date().toISOString(),
+  projectionManifest?: SpecProjectionManifest,
 ): Promise<{
   path: string;
   terminalSummaryDegradation?: {
@@ -960,6 +1116,7 @@ async function createArchive(
       archivePath,
       multiRepo,
       archivedAt,
+      projectionManifest,
     );
     terminalSummaryDegradation = writeResult.terminalSummaryDegradation;
 
@@ -1055,13 +1212,20 @@ export async function createInRepoArchive(
   sourceChangeDir?: string,
   multiRepo?: MultiRepoArchiveMetadata,
   archivedAt: string = new Date().toISOString(),
+  projectionManifest?: SpecProjectionManifest,
 ): Promise<string> {
   const archivePath = await archiveBundlePathForWrite(
     inRepoArchiveDir,
     change.id,
   );
 
-  await writeArchiveBundleFiles(change, archivePath, multiRepo, archivedAt);
+  await writeArchiveBundleFiles(
+    change,
+    archivePath,
+    multiRepo,
+    archivedAt,
+    projectionManifest,
+  );
 
   // Copy sibling files from source change directory
   if (sourceChangeDir) {

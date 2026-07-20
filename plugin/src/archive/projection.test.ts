@@ -99,7 +99,9 @@ describe("archive projection planning", () => {
       ...delta,
       precondition: {
         schema_version: 1,
-        target_requirement_sha256: canonicalSha256(requirement({ body: "Old body" })),
+        target_requirement_sha256: canonicalSha256(
+          requirement({ body: "Old body" }),
+        ),
       },
     };
     const proven = planSpecProjection({
@@ -146,7 +148,9 @@ describe("archive projection planning", () => {
       authority: { kind: "historical" },
       projectedAt: "2026-03-01T00:00:00.000Z",
     });
-    expect(second.dispositions.every((row) => row.status === "identical")).toBe(true);
+    expect(second.dispositions.every((row) => row.status === "identical")).toBe(
+      true,
+    );
     expect(second.targetSpec).toEqual(first.targetSpec);
   });
 
@@ -159,7 +163,8 @@ describe("archive projection planning", () => {
     };
 
     expect(
-      SpecProjectionManifestSchema.safeParse({ ...base, unexpected: true }).success,
+      SpecProjectionManifestSchema.safeParse({ ...base, unexpected: true })
+        .success,
     ).toBe(false);
     expect(
       SpecProjectionManifestSchema.safeParse({
