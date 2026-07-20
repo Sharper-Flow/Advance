@@ -21,7 +21,7 @@ Archive change → apply deltas to specs → canonical ship/finalize path via ma
   $ARGUMENTS
 </UserRequest>
 ## Target Resolution
-Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional), `--no-close-issue` (optional, see Phase 9 Step 8.5), `--close-issue` (optional backward-compatible explicit affirmative; default already closes linked roadmap/triage issues).
+Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional), `--no-close-issue` (optional, see Phase 9 Step 8.5), `--close-issue` (optional backward-compatible explicit affirmative; default already closes linked issue-origin issues).
 If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain.
 
 ---
@@ -473,7 +473,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 **Trigger (tool-enforced):**
 
 - `--no-close-issue` NOT passed.
-- `origin.kind ∈ {'roadmap', 'triage'}` and `origin.issue_number > 0`.
+- `origin.issue_number > 0` (any origin kind carrying an issue link; legacy `roadmap` origins remain close-eligible).
 - Final release proof passed; archive status durable; release gate recorded.
 - `dryRun` false.
 
@@ -492,7 +492,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 | × Bad | ✓ Good |
 |---|---|
 | Agent manually runs `gh issue close` after archive | Tool handles closure; agent surfaces errors only. |
-| Close issue for `origin.kind === 'discovery'` or `'adhoc'` | Auto-close roadmap/triage origins only. |
+| Close issue for `origin.kind === 'discovery'` or `'adhoc'` (no `issue_number`) | Auto-close issue-linked origins only (`origin.issue_number > 0`). |
 | Roll back archive on close failure | Archive state canonical; close failure advisory. |
 
 ### Completion

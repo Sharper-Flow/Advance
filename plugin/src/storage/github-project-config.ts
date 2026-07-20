@@ -74,8 +74,8 @@ function configPath(repoRoot: string): string {
  *
  * Returns `null` (not error) for the not-found case so callers can
  * choose whether to treat it as a hard error or a "needs bootstrap"
- * hint. Both `adv_roadmap source: 'live'` and `/adv-triage` Phase 0
- * use the null return to surface actionable error messages.
+ * hint. `/adv-triage` Phase 0 uses the null return to surface
+ * actionable error messages.
  */
 export async function readGitHubProjectConfig(
   repoRoot: string,

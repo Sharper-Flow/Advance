@@ -2,8 +2,8 @@
  * Change Origin Tests
  *
  * Verifies the typed origin field on adv_change_create:
- *   - all four kinds (roadmap, discovery, triage, adhoc) are accepted
- *   - kind=roadmap requires origin_issue_number
+ *   - roadmap remains readable legacy provenance but is rejected for new writes
+ *   - discovery, triage, and adhoc remain accepted
  *   - origin without kind is rejected
  *   - persisted origin survives a round-trip via store.changes.get
  *
@@ -37,29 +37,18 @@ describe("adv_change_create origin field", () => {
     await cleanupTempDir(dir);
   });
 
-  test("origin_kind=roadmap with issue_number persists full origin", async () => {
+  test("origin_kind=roadmap is rejected for new writes", async () => {
     const output = await changeTools.adv_change_create.execute(
       {
-        summary: "Wire roadmap origin",
+        summary: "Reject roadmap origin",
         origin_kind: "roadmap",
         origin_issue_number: 51,
       },
       store,
     );
     const parsed = parseToolOutput(output);
-    expect(parsed.changeId).toBe("wireRoadmapOrigin");
-    expect(parsed.origin).toEqual({
-      kind: "roadmap",
-      issue_number: 51,
-    });
-
-    // Round-trip: origin survives store read
-    const change = await store.changes.get("wireRoadmapOrigin");
-    expect(change.success).toBe(true);
-    expect(change.data?.origin).toEqual({
-      kind: "roadmap",
-      issue_number: 51,
-    });
+    expect(parsed.error).toContain("ORIGIN_KIND_ROADMAP_RETIRED");
+    expect(parsed.fields).toEqual(["origin_kind"]);
   });
 
   test("origin_kind=triage with source_artifact persists origin", async () => {
@@ -120,7 +109,7 @@ describe("adv_change_create origin field", () => {
     expect(parsed.origin).toEqual({ kind: "adhoc" });
   });
 
-  test("origin_kind=roadmap without issue_number is rejected", async () => {
+  test("origin_kind=roadmap without issue_number reports retirement", async () => {
     const output = await changeTools.adv_change_create.execute(
       {
         summary: "Missing roadmap issue",
@@ -129,10 +118,11 @@ describe("adv_change_create origin field", () => {
       store,
     );
     const parsed = parseToolOutput(output);
-    expect(parsed.error).toMatch(/origin_issue_number is required/);
+    expect(parsed.error).toContain("ORIGIN_KIND_ROADMAP_RETIRED");
+    expect(parsed.fields).toEqual(["origin_kind"]);
   });
 
-  test("origin_kind=roadmap rejects source_artifact", async () => {
+  test("origin_kind=roadmap with source_artifact reports retirement", async () => {
     const output = await changeTools.adv_change_create.execute(
       {
         summary: "Roadmap with source",
@@ -143,8 +133,8 @@ describe("adv_change_create origin field", () => {
       store,
     );
     const parsed = parseToolOutput(output);
-    expect(parsed.error).toMatch(/origin_source_artifact is only allowed/);
-    expect(parsed.fields).toEqual(["origin_source_artifact"]);
+    expect(parsed.error).toContain("ORIGIN_KIND_ROADMAP_RETIRED");
+    expect(parsed.fields).toEqual(["origin_kind"]);
   });
 
   test("origin_kind=discovery rejects issue_number", async () => {

@@ -1,9 +1,9 @@
 /**
  * Tests for the claim-collision pre/post-create checks added by C3
  * (rq-backlogCoord02, rq-backlogCoord03). Verifies:
- *   - origin.kind === 'roadmap' fires pre-create Visibility query
+ *   - any positive origin.issue_number fires pre-create Visibility query
  *   - CLAIM_CONFLICT returned when existing change holds same issue
- *   - origin.kind !== 'roadmap' skips Visibility queries
+ *   - origins without issue_number skip Visibility queries
  *   - changes without origin work unchanged
  *   - post-create double-check surfaces CLAIM_RACE_DETECTED on N>1
  */
@@ -36,13 +36,13 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     await cleanupTempDir(dir);
   });
 
-  test("origin.kind=roadmap fires pre-create Visibility query (rq-backlogCoord02)", async () => {
+  test("origin.kind=triage with issue_number fires pre-create Visibility query (rq-backlogCoord02)", async () => {
     const claimChecker = vi.fn().mockResolvedValue([]);
 
     await changeTools.adv_change_create.execute(
       {
         summary: "Backlog feature 51",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 51,
       },
       store,
@@ -64,7 +64,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     const output = await changeTools.adv_change_create.execute(
       {
         summary: "Backlog feature 51 attempt 2",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 51,
       },
       store,
@@ -153,7 +153,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     const output = await changeTools.adv_change_create.execute(
       {
         summary: "My new change",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 7,
       },
       store,
@@ -181,7 +181,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     const output = await changeTools.adv_change_create.execute(
       {
         summary: "My new change",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 8,
       },
       store,

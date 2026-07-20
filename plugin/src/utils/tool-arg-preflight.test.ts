@@ -303,18 +303,12 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
-  // Zero omission only for the two positive-int optionals; blank omission
+  // Zero omission for the retained positive-int optional; blank omission
   // for adv_ops_run_evidence_add optional evidence fields and the twelve
   // registered Epic tools' optional string / target-routing fields.
   {
     toolName: "adv_change_repair_origin",
     field: "origin_issue_number",
-    policy: "zero",
-    action: "omit",
-  },
-  {
-    toolName: "adv_roadmap",
-    field: "top",
     policy: "zero",
     action: "omit",
   },
@@ -881,15 +875,15 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     normalizedArgs: { summary: "Add artifact guard", proposal: "valid" },
   },
   {
-    label: "roadmap requires issue number",
+    label: "roadmap origin is retired for new create writes",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: { summary: "Promote roadmap", origin_kind: "roadmap" },
     ok: false,
-    fields: ["origin_issue_number"],
+    fields: ["origin_kind"],
   },
   {
-    label: "roadmap rejects source artifact",
+    label: "roadmap origin retirement takes precedence over linkage fields",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: {
@@ -899,7 +893,7 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       origin_source_artifact: "ag-1",
     },
     ok: false,
-    fields: ["origin_source_artifact"],
+    fields: ["origin_kind"],
   },
   {
     label: "triage permits source artifact",
@@ -1199,7 +1193,7 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     toolName: "adv_change_repair_origin",
     rawArgs: {
       changeId: "c",
-      origin_kind: "roadmap",
+      origin_kind: "triage",
       origin_issue_number: 42,
       approvalEvidence: "ok",
       approvedByUser: true,
@@ -1208,26 +1202,12 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     ok: true,
     normalizedArgs: {
       changeId: "c",
-      origin_kind: "roadmap",
+      origin_kind: "triage",
       origin_issue_number: 42,
       approvalEvidence: "ok",
       approvedByUser: true,
       reason: "real rationale",
     },
-  },
-  {
-    label: "zero roadmap top normalizes to omitted",
-    toolName: "adv_roadmap",
-    rawArgs: { top: 0 },
-    ok: true,
-    normalizedArgs: {},
-  },
-  {
-    label: "non-zero roadmap top is preserved",
-    toolName: "adv_roadmap",
-    rawArgs: { top: 5 },
-    ok: true,
-    normalizedArgs: { top: 5 },
   },
   {
     label: "blank ops-run-evidence optional fields normalize to omitted",
@@ -2316,9 +2296,9 @@ describe("tool arg preflight", () => {
       },
     );
     expect(invalidRoadmapSource.invalid).toContainEqual({
-      field: "origin_source_artifact",
+      field: "origin_kind",
       message:
-        "origin_source_artifact is only allowed for triage or discovery origins.",
+        "ORIGIN_KIND_ROADMAP_RETIRED: origin_kind 'roadmap' is retired for new writes. Use 'triage' for issue-linked changes.",
     });
 
     const validTriage = validateToolArgsBeforeExecute(
@@ -2707,19 +2687,19 @@ describe("tool arg preflight", () => {
         "adv_change_create",
         {
           summary: z.string(),
-          origin_kind: z.enum(["roadmap"]).optional(),
+          origin_kind: z.enum(["triage"]).optional(),
           origin_issue_number: z.number().int().positive().optional(),
         },
         {
-          summary: "Promote roadmap item",
-          origin_kind: "roadmap",
+          summary: "Promote triage item",
+          origin_kind: "triage",
           origin_issue_number: 42,
         },
       );
       expect(result.ok).toBe(true);
       expect(result.normalizedArgs).toEqual({
-        summary: "Promote roadmap item",
-        origin_kind: "roadmap",
+        summary: "Promote triage item",
+        origin_kind: "triage",
         origin_issue_number: 42,
       });
     });

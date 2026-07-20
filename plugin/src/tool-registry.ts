@@ -30,7 +30,6 @@ import type { OpencodeClient } from "./utils/opencode-types";
 
 import { specTools } from "./tools/spec";
 import { specDeltaTools } from "./tools/spec-delta";
-import { roadmapTools } from "./tools/roadmap";
 import { backlogTools, WIP_CALLER_TIMEOUT_MS } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
@@ -242,7 +241,7 @@ interface ToolDefWithContext<TArgs> {
 
 /**
  * Bind a store-based tool definition to a store instance.
- * Usage: `adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store)`
+ * Usage: `adv_spec: bindTool(specTools.adv_spec, "adv_spec", store)`
  */
 function bindTool<TArgs, TStore>(
   def: ToolDef<TArgs, TStore>,
@@ -323,12 +322,6 @@ export function createToolMap(
       "adv_delta_modify",
       store,
     ),
-
-    // Roadmap Tool — the sole backlog reader. Reads the backlog snapshot
-    // (or live GitHub Project) and queries Visibility directly for O(1)
-    // active-change annotation; adv_backlog_state was removed by
-    // consolidateAdvToolSurface2 (tk-f022bfadbd81).
-    adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
 
     // adv_wip_state — fixTriageTimeouts.
     //
@@ -1289,7 +1282,6 @@ export const toolCatalogTools = {
 const PUBLIC_TOOL_GROUPS = [
   specTools,
   specDeltaTools,
-  roadmapTools,
   backlogTools,
   backlogShellTools,
   changeTools,
@@ -1441,7 +1433,6 @@ const REALM_OVERRIDES: Record<string, ToolRealm> = {
   adv_followup_promote: "followup",
   adv_report_followup_promote: "report",
   adv_subagent_report_submit: "report",
-  adv_roadmap: "backlog",
   adv_run_test: "test",
   adv_snapshot_health: "snapshot",
   adv_spec: "spec",
@@ -1518,7 +1509,6 @@ const GROUP_OVERRIDES: Record<string, ToolGroup> = {
   adv_gate_status: "read",
   adv_project_context: "read",
   adv_reflection_list: "read",
-  adv_roadmap: "read",
   adv_session_list: "read",
   adv_session_show: "read",
   adv_spec: "read",

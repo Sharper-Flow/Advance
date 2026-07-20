@@ -4,7 +4,7 @@
  * rq-backlogCoord01-07 — see .adv/specs/backlog-coordination/spec.json.
  * adv_backlog_state was removed by consolidateAdvToolSurface2
  * (tk-f022bfadbd81); its TTL-freshness and O(1) Visibility annotation
- * coverage moved to plugin/src/tools/roadmap.test.ts.
+ * retired roadmap-reader coverage moved to removal tombstone tests.
  */
 
 import { describe, expect, it, vi } from "vitest";

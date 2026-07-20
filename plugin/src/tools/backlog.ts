@@ -9,8 +9,9 @@
  *
  * consolidateAdvToolSurface2 (tk-f022bfadbd81): `adv_backlog_state` was
  * removed completely; its TTL-bounded freshness and O(1) Visibility
- * annotation behavior moved into the retained sole backlog reader,
- * `adv_roadmap` (plugin/src/tools/roadmap.ts). No wrapper or alias remains.
+ * annotation behavior moved into the sole backlog reader at the time.
+ * reshapeTriagePortfolioBalance later retired the portfolio reader tool itself;
+ * portfolio-balance output now lives in `/adv-triage`.
  *
  * Snapshot invariant: all scoring fields may be null; this tool is read-only
  * on snapshot. GH Project remains canonical for any remaining numeric data.

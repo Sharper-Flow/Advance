@@ -2,7 +2,7 @@
 /**
  * adv — ADV (Advance) terminal CLI
  *
- * Status, roadmap, slop-scan, epic list, and dashboard reads are read-only.
+ * Status, slop-scan, epic list, and dashboard reads are read-only.
  * dashboard install mutates local user service configuration.
  *
  * Runtime: Bun 1.3+
@@ -26,7 +26,6 @@ import {
   RESET,
   emitJson,
 } from "./lib/render";
-import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
 import { runSlopScan } from "./lib/slop-scan/scan";
 import { renderSlopScanReport } from "./lib/slop-scan/render";
 import {
@@ -170,38 +169,6 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
     }
     return 2;
   }
-}
-
-async function runRoadmap(
-  noColor: boolean,
-  json: boolean,
-  kind: "bug" | "feature" | "all",
-  top: number | undefined,
-  priority: "critical" | "high" | "medium" | "low" | undefined,
-): Promise<number> {
-  const cwd = process.cwd();
-  const repoRoot = await resolveRepoRoot(cwd);
-
-  const result = await readSnapshotFile(repoRoot);
-  if (!result.ok) {
-    process.stderr.write(`error: ${result.error}\n`);
-    process.stderr.write(`hint: ${result.hint}\n`);
-    return 2;
-  }
-
-  const useColor = shouldUseColor(noColor);
-  const now = new Date();
-
-  if (json) {
-    process.stdout.write(
-      roadmapJson(result.snapshot, { kind, top, priority }, now) + "\n",
-    );
-  } else {
-    process.stdout.write(
-      renderRoadmap(result.snapshot, { kind, top, priority }, useColor, now),
-    );
-  }
-  return 0;
 }
 
 async function runSlopScanCommand(
@@ -547,7 +514,6 @@ SUBCOMMANDS:
   dashboard            Run local read-only ADV/GitHub dashboard
   dashboard install     Mutating install of dashboard user service profile
   dashboard doctor      Check dashboard user service health
-  roadmap              Show prioritized backlog from file snapshot
   slop-scan            Run deterministic slop scanner
   epic list            Show live Epic IDs from Temporal Visibility (JSON-only)
 
@@ -555,14 +521,7 @@ FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
-      --json              Output JSON for status, roadmap, slop-scan; required for epic list
-
-FLAGS (roadmap only):
-      --kind {bug|feature|all}
-                          Filter by item kind (default: all)
-      --top <N>           Limit features to top N
-      --priority {critical|high|medium|low}
-                          Filter bugs to a single priority tier
+      --json              Output JSON for status, slop-scan; required for epic list
 
 FLAGS (dashboard only):
       --config <path>      Dashboard config JSON (schema_version 1)
@@ -578,7 +537,6 @@ EXIT CODES:
   0  Success
   1  Not in a git repo, git failure, or unknown command
   2  Live Temporal status unavailable (status)
-     Roadmap snapshot missing (roadmap)
      Epic list unavailable or JSON flag missing (epic list)
      Dashboard config/server error (dashboard)
 
@@ -638,79 +596,6 @@ async function main(argv: string[]): Promise<number> {
     return runStatus(
       (sValues["no-color"] as boolean) ?? false,
       (sValues.json as boolean) ?? false,
-    );
-  }
-
-  if (subcommand === "roadmap") {
-    // Strict parse for roadmap flags only
-    const roadmapArgv = argv.slice(1); // drop "roadmap" positional
-    let rValues: Record<string, unknown>;
-    try {
-      const parsed = parseArgs({
-        args: roadmapArgv,
-        options: {
-          "no-color": { type: "boolean" },
-          json: { type: "boolean" },
-          kind: { type: "string" },
-          top: { type: "string" },
-          priority: { type: "string" },
-        },
-        allowPositionals: false,
-        strict: true,
-      });
-      rValues = parsed.values as Record<string, unknown>;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`roadmap: ${msg}\n`);
-      return 2;
-    }
-
-    const kindVal = rValues.kind;
-    const validKind = ["bug", "feature", "all"] as const;
-    const kind: "bug" | "feature" | "all" = validKind.includes(kindVal as any)
-      ? (kindVal as any)
-      : "all";
-    if (kindVal !== undefined && !validKind.includes(kindVal as any)) {
-      process.stderr.write(
-        `roadmap: invalid --kind "${kindVal}". Use bug, feature, or all.\n`,
-      );
-      return 2;
-    }
-
-    const priorityVal = rValues.priority;
-    const validPriority = ["critical", "high", "medium", "low"] as const;
-    const priority: "critical" | "high" | "medium" | "low" | undefined =
-      validPriority.includes(priorityVal as any)
-        ? (priorityVal as any)
-        : undefined;
-    if (
-      priorityVal !== undefined &&
-      !validPriority.includes(priorityVal as any)
-    ) {
-      process.stderr.write(
-        `roadmap: invalid --priority "${priorityVal}". Use critical, high, medium, or low.\n`,
-      );
-      return 2;
-    }
-
-    let top: number | undefined;
-    if (rValues.top !== undefined) {
-      const n = Number(rValues.top);
-      if (!Number.isFinite(n) || n < 1 || !Number.isInteger(n)) {
-        process.stderr.write(
-          `roadmap: invalid --top "${rValues.top}". Use a positive integer.\n`,
-        );
-        return 2;
-      }
-      top = n;
-    }
-
-    return runRoadmap(
-      (rValues["no-color"] as boolean) ?? false,
-      (rValues.json as boolean) ?? false,
-      kind,
-      top,
-      priority,
     );
   }
 

@@ -117,16 +117,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     agentActions: ["read", "list"],
     operatorActions: ["write"],
   },
-  adv_roadmap: {
-    class: "dual",
-    rationale:
-      "Backlog reads (file/live with TTL-bounded freshness and O(1) active-change annotation) are agent-safe; roadmap mirror regeneration via /adv-triage and live GitHub Project refresh are operator-triggered.",
-    agentActions: ["file source read", "live source read"],
-    operatorActions: [
-      "/adv-triage mirror regeneration",
-      "live Project refresh",
-    ],
-  },
   adv_session_list: {
     class: "dual",
     rationale:
@@ -562,7 +552,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_reflect",
       "adv_reflection_list",
       "adv_report_followup_promote",
-      "adv_roadmap",
       "adv_run_test",
       "adv_session_list",
       "adv_session_show",

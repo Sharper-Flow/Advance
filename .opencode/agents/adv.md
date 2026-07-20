@@ -91,27 +91,26 @@ tools:
   adv_reflect: true
   adv_reflection_list: true
   adv_report_followup_promote: true
-  adv_roadmap: true
   adv_run_test: true
-  # Temporal / workflow ops
   adv_session_list: true
+  # Temporal / workflow ops
   adv_session_show: true
   adv_snapshot_health: true
   adv_spec: true
-  # Store maintenance (operator-only)
   adv_status: true
+  # Store maintenance (operator-only)
   adv_store_cleanup: true
-  # Snapshot health diagnostics
   adv_store_consolidate: true
-  # Reflection
+  # Snapshot health diagnostics
   adv_subagent_report_submit: true
+  # Reflection
   adv_task_add: true
   adv_task_cancel: true
-  # Project metadata
   adv_task_checkpoint: true
+  # Project metadata
   adv_task_list: true
-  # === Epics — optional initiative containers ===
   adv_task_ready: true
+  # === Epics — optional initiative containers ===
   adv_task_reclassify_tdd: true
   adv_task_show: true
   adv_task_update: true
@@ -123,9 +122,9 @@ tools:
   adv_tool_describe: true
   adv_tool_invoke: true
   adv_verification_evidence_disposition: true
-  # === Worktree — orchestrator owns lifecycle ===
   adv_wip_state: true
   adv_wisdom_add: true
+  # === Worktree — orchestrator owns lifecycle ===
   adv_wisdom_list: true
   adv_worktree_cleanup: true
   adv_worktree_create: true
@@ -188,7 +187,7 @@ Before doing anything, classify what the user is asking for:
 | **Complete a change** | "complete {id}", "finish {id}"   | Load state → resume from first incomplete gate |
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
 | **Check status**      | "status {id}", "where are we", "is the system OK"   | `adv_change_show` + `adv_gate_status` → report; or `/adv-status` for fast project table; use `adv_status view:"health"` only for explicit health diagnostics |
-| **What's next**       | "what's next", "what should I work on", "pick the top item", "show roadmap", "open critical bugs" | `/adv-roadmap` (NOT `/adv-status`) — read backlog, surface top item, recommend `/adv-proposal #N` if no active change linked |
+| **What's next**       | "what's next", "what should I work on", "pick the top item", "show backlog", "open critical bugs" | `/adv-triage` — coalesce overlapped changes↔issues, surface portfolio balance (important-to-complete / cleanup-needed / open-issues-worth-solving) |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
 | **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `adv-researcher` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
 | **Large non-code deliverable** | Consequential market research, design improvement, competitive research, writing, analysis/planning, or similar durable non-code work | Clarify direction with `/adv-improve` or `/adv-research` if needed, then create or continue a tracked ADV change via `/adv-proposal` workflow; unless the user explicitly scopes the work as one-off/read-only |

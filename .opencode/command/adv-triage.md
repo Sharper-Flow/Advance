@@ -1,14 +1,14 @@
 ---
 name: adv-triage
-description: Triage backlog sources, reconcile into GH issues, apply bug priority labels, regenerate ROADMAP.md
+description: Triage issues, changes, and Epics into an actionable portfolio balance
 ---
-# ADV Triage — Backlog Reconciliation, Bug Priority, Roadmap Regen
+# ADV Triage — Issue Reconciliation and Portfolio Balance
 
-Reconcile backlog sources into GH issues, apply `priority:*` labels to bugs autonomously, and regenerate `ROADMAP.md`. Roadmap issue flow uses GH Projects v2 as truth. `ROADMAP.md` = generated mirror, committed and pushed at end. User questions gather bug context only; the agent owns priority assignment.
+Reconcile backlog sources into GitHub issues, apply `priority:*` labels to bugs autonomously, coalesce unlinked issue↔change overlaps with explicit approval, and report what to finish, clean up, or start. GitHub Projects v2 remains canonical for issue/project membership. Temporal-backed ADV changes and Epics remain canonical for work in progress. ROADMAP.md, `.adv/roadmap-snapshot.json`, `/adv-roadmap`, and `adv roadmap` are retired surfaces; the portfolio reader MCP tool is also retired.
 
-> **rq-backlogCoord01 / AC7 note:** After the agentic-backlog-coordination cutover, `/adv-triage` focuses on **reconciling, prioritizing bugs, and adding items**. Active-change annotation freshness is no longer this command's responsibility — `adv_roadmap` derives it on demand via Temporal Visibility (`AdvBacklogIssueNumber`) under a TTL-bounded contract (default 5 min). Routine "is the backlog fresh?" use no longer requires running `/adv-triage`.
+> **rq-backlogCoord01 / rq-backlogCoord05 note:** Issue claims use `AdvBacklogIssueNumber` through bounded Temporal Visibility reads. `/adv-triage` may correlate the open issue pool with active changes, but MUST NOT perform per-change fallback reads when Visibility is unavailable.
 
-> **CHECKLIST**: Default execute. `--dry-run` previews without mutations. Tier B inline approval required before opening issues, before writing/pushing ROADMAP.md, before deprecating local sources — gates run in execute mode regardless of invocation. Bug priority via `priority:{critical,high,medium,low}` labels. Scoring fields on features are read-only on snapshot; GH Project remains canonical for any remaining numeric data.
+> **CHECKLIST**: Default execute. `--dry-run` previews without mutations. Tier B inline approval required before opening issues, mutating cleanup state, or linking coalesce pairs. Bug priority uses `priority:{critical,high,medium,low}` labels. Heuristics may nominate pairs, never authorize links or suppression (P33).
 
 <UserRequest>
   $ARGUMENTS
@@ -16,13 +16,12 @@ Reconcile backlog sources into GH issues, apply `priority:*` labels to bugs auto
 
 ## Phase 0: Load Skill
 
-`skill("adv-triage")` → bootstrap rules, source enumeration, match algorithm, prompt templates, ROADMAP layout, commit sequence, echo format, report template, anti-patterns. If unavailable, continue with embedded protocol.
+`skill("adv-triage")` → source enumeration, structural matching, cleanup validation, coalesce evidence tiers, approval parser, portfolio-balance schema, report template, and anti-patterns. If unavailable, continue with this embedded protocol.
 
 ## Parse Flags
 
-- `--dry-run` — preview only; skip GH/file/git mutations + Tier B prompts
-- `--no-commit` — write ROADMAP.md but skip commit/push (ignored when `--dry-run`)
-- `--source <name>` — limit Phase 2 scan: `gh`/`wisdom`/`notes`/`changes`/`todos`
+- `--dry-run` — preview only; skip GH/link/cleanup mutations + Tier B prompts
+- `--source <name>` — limit Phase 2 scan: `gh`/`wisdom`/`notes`/`changes`/`epics`/`todos`
 
 Reject unknown flags: single-line error + valid list.
 
@@ -44,7 +43,7 @@ Any failure → `[ADV:BLOCKED]` + cause, stop. Resolve project handle, ensure cu
 
 ## Phase 2: Gather Sources
 
-Inline parallel reads (I/O bound, no sub-agents). 6 sources: GH issues, GH Projects items, ADV changes, wisdom, cross-session notes, TODO/FIXMEs. Cap each 100; overflow → recency sort + "(N more not shown)". Build inventory records with `kind_hint` heuristic (advisory only, P33). See skill § Phase 1.
+Inline parallel reads (I/O bound, no sub-agents). 7 sources: open GH issues, GH Projects items, active ADV changes, active ADV Epics, wisdom, cross-session notes, TODO/FIXMEs. Cap each 100; overflow → recency sort + `(N more not shown)`. Build inventory records with stable refs, linkage fields, optional Epic membership, and advisory `kind_hint`. Use `adv_change_list status:'in-flight'`, `adv_epic_list`, and bounded `adv_epic_show` only for plausible relevant Epics. See skill § Phase 1.
 
 ---
 
@@ -67,7 +66,7 @@ Source-specific actions after approval:
 
 MUST NOT create or open issue candidates before cleanup validation completes for the source pool. MUST NOT apply bug priority labels before cleanup validation completes. Title similarity and agent inference are advisory only (P33): they may flag cleanup candidates, never mutate, close, suppress, or remove without structural evidence and explicit approval. See skill § Source cleanup validation.
 
-If `unrepresented[]` is empty, represented issues have required fields, and cleanup validation has completed with no unresolved cleanup/clarification actions → skip to Phase 5 ("No new issues, no label gaps.").
+If `unrepresented[]` is empty, represented issues have required fields, and cleanup validation has completed with no unresolved cleanup/clarification actions → skip Phase 4a issue creation, then continue through Phase 5 coalesce and Phase 6 portfolio balance.
 
 ---
 
@@ -103,34 +102,86 @@ If `--dry-run`, emit the planned assignments and rationale trailers instead of m
 
 ---
 
-## Phase 5: Generate ROADMAP.md
+## Phase 5: Coalesce Unlinked Changes ↔ Issues (Tier B)
 
-Fresh `gh project item-list` read (do NOT reuse Phase 2 caches). Apply `repository_filter` server-side scoping (rq-repoFilter01). Emit BOTH `ROADMAP.md` (repo root) AND `.adv/roadmap-snapshot.json` (programmatic mirror). Sort features issue # asc when all scoring fields are null; bugs by priority tier. Local source deprecation Tier B prompt. ROADMAP commit Tier B prompt. `commit and push` runs on default branch only (P32). See skill § Phase 5.
+Build candidates only between **active ADV changes and open GitHub issues**. Change↔change duplicate/supersession remains `/adv-cleanup` ownership. Epic state supplies context, not an implicit link authority.
+
+### 5a. Existing-link exclusion
+
+Skip pairs already linked by any structural source:
+- `change.origin.issue_number`
+- linked issue URL in `change.issues`
+- stable issue reference in a typed Epic entry or explicit Epic membership metadata
+
+Never propose a second link for an already-linked pair.
+
+### 5b. Evidence tiers
+
+| Tier | Evidence | Treatment |
+|---|---|---|
+| `structural` | stable `#N` / `closes #N` / issue URL in proposal or problem statement; exact distinctive body excerpt | show as strong candidate |
+| `heuristic` | normalized title/token similarity only | show as advisory candidate; never auto-link |
+
+Each displayed pair includes: numbered index, change ID/title, issue number/title, evidence tier, verbatim bounded evidence, and Epic context (`epic_id`, entry order/title) when present.
+
+### 5c. Approval parser
+
+Display at most 20 pairs per batch. Hidden overflow is never authorized by a response to the displayed batch.
+
+Reply grammar (exact, no LLM fallback):
+- `approve all` — link all DISPLAYED pairs only
+- `reject all` — skip displayed pairs
+- `link N` / `link N,M` — link only numbered pairs
+- `skip N` / `skip N,M` — link every displayed pair except numbered pairs
+- `stop` / `abort` — halt without linking
+
+Anything else → re-prompt. On approval, call `adv_change_update_issues changeId:<id> add:[<issue-url>]` per approved pair. Partial failure is safe: retain successful links, report failed pairs with exact retry calls, continue only when failure does not corrupt linkage authority. `--dry-run` emits candidates and proposed calls without prompting or mutating.
 
 ---
 
-## Phase 5.5: Roadmap Echo (mandatory)
+## Phase 6: Portfolio-Balance Report
 
-After ROADMAP.md written: agent MUST emit full content as fenced markdown in chat. NOT optional. NOT replaceable by pointer or top-N truncation. See skill § Phase 5.5.
+Emit exactly three sections. Cap each section at 10 rows and append `(N more not shown)` when truncated. No chat popup and no file write.
+
+### Important to complete
+
+Rank active changes by existing signals only:
+1. linked issue priority (`critical` → `high` → `medium` → `low` → none),
+2. gate proximity to release (release/acceptance/execution before earlier gates),
+3. recent activity as deterministic tie-breaker.
+
+Each row includes change ID/title, current gate, task progress, last activity, linked issue + priority, and optional Epic ID/title/order. Epic order is advisory: warn when earlier entries remain incomplete, never block work solely due to order. Resume pointer: `→ /adv-apply {change-id}`.
+
+### Cleanup needed
+
+Report counts + top IDs for `/adv-cleanup` buckets: ready-to-archive, stuck-at-proposal, abandoned-mid-flight, duplicate/superseded. Include stale Epic-entry projection warnings when found, but route repair through typed Epic repair tools or `/adv-cleanup`; `/adv-triage` MUST NOT close/cancel/archive changes or mutate Epic membership in this section.
+
+Pointer: `→ /adv-cleanup`.
+
+### Open issues worth solving
+
+List open issues with no linked active ADV change after Phase 5, sorted by `priority:*` then recency. Annotate related Epic shell/entry context when structurally present. Pointer: `→ /adv-proposal #N` (new issue-linked changes use `origin_kind:'triage'`). Never silently suppress overflow or heuristic overlaps.
 
 ---
 
-## Phase 6: Final Report
+## Phase 7: Final Report
 
-Emit structured report: sources scanned, issues created/updated/prioritized/deferred/skipped, roadmap counts, local sources deprecated, file written. See skill § Phase 6. If `--dry-run`: append `Re-run without --dry-run to apply mutations.`
+Emit: sources scanned, issues created, priorities assigned, coalesce pairs proposed/linked/rejected/failed, active Epics inspected, and three portfolio-balance counts. If `--dry-run`, append `Re-run without --dry-run to apply mutations.`
 
 ---
 
 ## Constraints
 
 - × MUST NOT auto-create GH issues without Tier B approval
+- × MUST NOT auto-link a coalesce pair without approval covering that displayed pair
+- × MUST NOT let `approve all` authorize hidden overflow pairs
+- × MUST NOT use heuristic similarity as linkage, cleanup, gate, or suppression authority (P33)
+- × MUST NOT own change closure or Epic repair from the portfolio report; delegate to typed paths
 - × MUST NOT write feature scoring fields from this command
 - × MUST NOT write `priority:*` labels to non-bug issues
-- × MUST NOT skip Phase 5.5 echo or replace with truncation
-- × MUST NOT commit ROADMAP.md from non-default branch (P32)
-- × MUST NOT use `git add -A` for roadmap commit — explicit paths
+- × MUST NOT generate, echo, stage, commit, or push ROADMAP.md or `.adv/roadmap-snapshot.json`
 - × MUST NOT post priority rationale as issue comments
-- × MUST NOT use `question` tool to confirm priority choice — only to gather context
+- × MUST NOT use `question` to confirm priority choice — only gather bounded context
 
 ---
 
@@ -145,9 +196,9 @@ Emit structured report: sources scanned, issues created/updated/prioritized/defe
 | List project items | `gh project item-list <N> --owner <owner> --format json` |
 | Add to project | `gh project item-add` |
 | Project metadata | `adv_project_metadata` (read/write `github_project`) |
-| Active ADV changes | `adv_change_list status: 'in-flight'` |
+| Active ADV changes | `adv_change_list status:'in-flight'` |
+| Change detail/linkage | `adv_change_show`, `adv_change_update_issues` |
+| Active Epics | `adv_epic_list`, bounded `adv_epic_show` |
 | Wisdom | `adv_wisdom_list` |
 | Local source scan | `glob`, `read`, lgrep text search |
 | Bug priority loop | `gh issue edit --add-label` |
-| Roadmap write | `write` (whole file, deterministic from project state) |
-| Git ops | `bash` (`git status`, `git add ROADMAP.md`, `git commit`, `git pull --rebase`, `git push`) |

@@ -4,7 +4,7 @@
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
   "version": "1.32.0",
-  "updated_at": "2026-07-20T22:10:37.841Z",
+  "updated_at": "2026-07-20T22:15:50.874Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -6260,6 +6260,59 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-AwB1gN3w01",
+      "title": "Issue and portfolio coordination stays orthogonal to seven gates",
+      "body": "This requirement supersedes legacy rq-aw-backlog01. Issue claim search attributes and portfolio-balance reads remain side effects/read models around normal change workflow signals. The seven gate semantics are unaffected. Gate transitions upsert AdvBacklogIssueNumber whenever state.origin.issue_number is set; no gate logic depends on issue linkage, portfolio ranking, retired roadmap snapshots, or removed roadmap surfaces.",
+      "priority": "must",
+      "tags": [
+        "backlog-coordination",
+        "gates",
+        "portfolio-balance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-AwB1gN3w01.1",
+          "title": "Gate transitions preserve issue claim attributes",
+          "given": [
+            "A triage-origin change has state.origin.issue_number = 42"
+          ],
+          "when": "Any gate completes",
+          "then": [
+            "buildChangeSearchAttributes upserts AdvBacklogIssueNumber = ['42']",
+            "AdvCurrentGate reflects gate progress",
+            "Gate semantics remain unchanged"
+          ]
+        },
+        {
+          "id": "rq-AwB1gN3w01.2",
+          "title": "Changes without issue linkage omit claim attribute",
+          "given": [
+            "state.origin.issue_number is absent"
+          ],
+          "when": "Any gate completes",
+          "then": [
+            "AdvBacklogIssueNumber is absent",
+            "Other gate attributes populate normally"
+          ]
+        },
+        {
+          "id": "rq-AwB1gN3w01.3",
+          "title": "Retired roadmap projections do not affect gates",
+          "given": [
+            "ROADMAP.md, .adv/roadmap-snapshot.json, and adv_roadmap are absent"
+          ],
+          "when": "A change advances through gates",
+          "then": [
+            "All seven gates operate normally",
+            "No snapshot or roadmap reader is consulted"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "rq-aw-backlog01"
+      }
     },
     {
       "id": "rq-shippedWorkflowTermination01",

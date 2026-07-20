@@ -1,0 +1,20 @@
+{
+  "archived_at": "2026-07-20T22:15:50.874Z",
+  "capabilities": [
+    "advance-meta",
+    "advance-workflow",
+    "backlog-coordination"
+  ],
+  "change_hash": "3fdf0486bdb718baeab0b98bdea88b1daa6b2289c61b7a9771ea2c7236437d0b",
+  "change_id": "reshapeTriagePortfolioBalance",
+  "completed_tasks": 12,
+  "created_at": "2026-07-20T19:53:59.350Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-20T22:12:41.814Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "e8add3bfe9010bd07b2b263fcf2b29d0a43e476c63988aa7e44638772e22c771",
+  "task_count": 12,
+  "title": "Reshape triage portfolio balance",
+  "version": "1"
+}

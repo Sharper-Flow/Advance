@@ -406,16 +406,10 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     completion_signal: { blank: "omit" },
   },
   // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
-  // Zero omission for the positive-int optionals (adv_roadmap.top here,
-  // adv_change_repair_origin.origin_issue_number above); blank omission for
+  // Zero omission for the positive-int optionals
+  // (adv_change_repair_origin.origin_issue_number above); blank omission for
   // adv_ops_run_evidence_add optional evidence fields and the twelve
   // registered Epic tools' optional string / target-routing fields.
-  adv_roadmap: {
-    // rq-toolPlaceholderPolicy01.5: strict-mode providers fill optional
-    // .positive() ints with 0. top is a feature-slice limit; 0 means
-    // "no limit provided", so normalize to omitted.
-    top: { zero: "omit" },
-  },
   adv_ops_run_evidence_add: {
     // Optional ops-run-evidence context fields. Strict-mode providers fill
     // optional strings with ""; normalize to omitted so the handler treats
@@ -724,19 +718,14 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     // rq-backlogCoord08: validate creation-origin linkage structurally before
     // adv_change_create execution can seed workflow state or claim metadata.
     if (originKind === "roadmap") {
-      if (!hasIssueNumber) {
-        invalid.push({
-          field: "origin_issue_number",
-          message: "origin_issue_number is required for roadmap origins.",
-        });
-      }
-      if (hasSourceArtifact) {
-        invalid.push({
-          field: "origin_source_artifact",
-          message:
-            "origin_source_artifact is only allowed for triage or discovery origins.",
-        });
-      }
+      // reshapeTriagePortfolioBalance: 'roadmap' is readable legacy only.
+      // New writes (create path) reject this kind; archived changes still
+      // carry it for read compatibility.
+      invalid.push({
+        field: "origin_kind",
+        message:
+          "ORIGIN_KIND_ROADMAP_RETIRED: origin_kind 'roadmap' is retired for new writes. Use 'triage' for issue-linked changes.",
+      });
     } else if (originKind === "discovery") {
       if (hasIssueNumber) {
         invalid.push({
@@ -800,19 +789,13 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     const originKind = args.origin_kind;
 
     if (originKind === "roadmap") {
-      if (!hasIssueNumber) {
-        invalid.push({
-          field: "origin_issue_number",
-          message: "origin_issue_number is required for roadmap origins.",
-        });
-      }
-      if (hasSourceArtifact) {
-        invalid.push({
-          field: "origin_source_artifact",
-          message:
-            "origin_source_artifact is only allowed for triage or discovery origins.",
-        });
-      }
+      // reshapeTriagePortfolioBalance: 'roadmap' is readable legacy only.
+      // Repair path also rejects this kind for new writes.
+      invalid.push({
+        field: "origin_kind",
+        message:
+          "ORIGIN_KIND_ROADMAP_RETIRED: origin_kind 'roadmap' is retired and cannot be set via repair. Use 'triage' for issue-linked changes.",
+      });
     } else if (originKind === "discovery") {
       if (hasIssueNumber) {
         invalid.push({

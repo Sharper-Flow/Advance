@@ -120,7 +120,7 @@ describe("adv_change_repair_origin", () => {
     const missingEvidence = await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 42,
         approvedByUser: true,
         reason: REPAIR_REASON,
@@ -134,7 +134,7 @@ describe("adv_change_repair_origin", () => {
     const missingReason = await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 42,
         approvalEvidence: REPAIR_EVIDENCE,
         approvedByUser: true,
@@ -149,18 +149,19 @@ describe("adv_change_repair_origin", () => {
   test("enforces origin linkage matrix", async () => {
     const store = createMockStore(activeChange());
 
-    const roadmapNoIssue = await changeTools.adv_change_repair_origin.execute(
+    const retiredRoadmap = await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
         origin_kind: "roadmap",
+        origin_issue_number: 42,
         approvalEvidence: REPAIR_EVIDENCE,
         approvedByUser: true,
         reason: REPAIR_REASON,
       },
       store,
     );
-    expect(parseToolOutput(roadmapNoIssue).error).toMatch(
-      /origin_issue_number is required/,
+    expect(parseToolOutput(retiredRoadmap).error).toContain(
+      "ORIGIN_KIND_ROADMAP_RETIRED",
     );
 
     const discoveryWithIssue =
@@ -225,7 +226,7 @@ describe("adv_change_repair_origin", () => {
     const result = await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 99,
         approvalEvidence: REPAIR_EVIDENCE,
         approvedByUser: true,
@@ -254,7 +255,7 @@ describe("adv_change_repair_origin", () => {
     const result = await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 99,
         approvalEvidence: REPAIR_EVIDENCE,
         approvedByUser: true,
@@ -313,7 +314,7 @@ describe("adv_change_repair_origin", () => {
     await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 55,
         approvalEvidence: REPAIR_EVIDENCE,
         approvedByUser: true,
@@ -335,7 +336,7 @@ describe("adv_change_repair_origin", () => {
     const result = await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 55,
         approvalEvidence: REPAIR_EVIDENCE,
         approvedByUser: true,
@@ -349,7 +350,7 @@ describe("adv_change_repair_origin", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.dryRun).toBe(true);
     expect(parsed.previousOrigin).toEqual(previous);
-    expect(parsed.origin).toEqual({ kind: "roadmap", issue_number: 55 });
+    expect(parsed.origin).toEqual({ kind: "triage", issue_number: 55 });
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
@@ -372,8 +373,8 @@ describe("adv_change_repair_origin", () => {
     const result = await changeTools.adv_change_repair_origin.execute(
       {
         changeId: "repairMe",
-        origin_kind: "discovery",
-        origin_source_artifact: "note-1",
+        origin_kind: "triage",
+        origin_issue_number: 55,
         approvalEvidence: REPAIR_EVIDENCE,
         approvedByUser: true,
         reason: REPAIR_REASON,

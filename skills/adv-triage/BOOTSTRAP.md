@@ -18,7 +18,7 @@
 | `Priority` | SINGLE_SELECT | `critical,high,medium,low` |
 | `Status` | SINGLE_SELECT | `Backlog,Ready,In Progress,Blocked,Done` only if absent; GH provides default |
 
-Project may retain legacy scoring fields (`Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF`) for backward compatibility, but `/adv-triage` treats them as read-only on snapshot. Do not create new scoring fields.
+Project may retain legacy scoring fields (`Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF`) for backward compatibility, but `/adv-triage` treats them as read-only. Do not create new scoring fields.
 
 Persist config via project metadata or typed `.adv/github-project.json` with owner, project number, project id, and field ids.
 
@@ -43,6 +43,7 @@ Re-runs MUST NOT mutate existing filter. Manual edits to `.adv/github-project.js
 | GH open issues | `gh issue list --state open --limit 500 --json number,title,body,labels,url,createdAt` | issues + labels |
 | GH Project items | `gh project item-list <N> --owner <owner> --format json --limit 500` plus `--query "repo:<owner>/<repository_filter>"` when configured | items + fields |
 | Active ADV changes | `adv_change_list status: 'in-flight'` | id, title, summary |
+| Active ADV Epics | `adv_epic_list` then bounded `adv_epic_show` for plausible relevant Epics | id, title, narrative, entry order/status |
 | ADV wisdom | `adv_wisdom_list type: 'failure'` then `type: 'gotcha'` | snippets |
 | Cross-session notes | `glob .adv/CROSS-SESSION-NOTES-*.md` + `read` | bullets/headings/action lines |
 | TODO/FIXME | lgrep text search (query `TODO\|FIXME`, path `<repo-root>`) filtered to source dirs | file:line + text |
@@ -59,4 +60,5 @@ Advisory only. P33: may prefill prompts, never create issues, mutate labels, or 
 | `wisdom type:gotcha` | likely bug; verify body |
 | TODO/FIXME | bug if text mentions broken/fix/wrong/crash/leak, else feature |
 | ADV active changes | feature for add/modify capability; bug for bugfix; else unknown |
+| ADV Epic entries | context only; never infer bug/feature from Epic membership |
 | Notes | unknown |

@@ -20,6 +20,8 @@ const GIT_TEST_IDENTITY = [
 ];
 
 function makeSnapshot() {
+  // Unused after CLI dispatcher cleanup; kept temporarily to avoid churn
+  // in unrelated test setup. Safe to delete in a follow-up if no test references it.
   return {
     version: 1,
     generated_at: "2024-06-01T12:00:00Z",
@@ -41,6 +43,7 @@ function makeSnapshot() {
     deferred: [],
   };
 }
+void makeSnapshot;
 
 interface RunAdvOptions {
   cwd?: string;
@@ -92,7 +95,7 @@ describe("adv dispatcher metadata", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("USAGE:");
     expect(stdout).toContain("epic list");
-    expect(stdout).toContain("status, roadmap, slop-scan; required for epic list");
+    expect(stdout).toContain("status, slop-scan; required for epic list");
     expect(stdout.match(/--json/g)).toHaveLength(1);
   });
 
@@ -106,92 +109,6 @@ describe("adv dispatcher metadata", () => {
     const { exitCode, stderr } = await runAdv(["nonsense"]);
     expect(exitCode).toBe(1);
     expect(stderr).toContain("unknown command");
-  });
-});
-
-describe("adv roadmap dispatcher", () => {
-  test("exit 0 with valid snapshot", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
-    await mkdir(join(tmp, ".adv"), { recursive: true });
-    await writeFile(
-      join(tmp, ".adv/roadmap-snapshot.json"),
-      JSON.stringify(makeSnapshot()),
-    );
-    const { exitCode, stdout } = await runAdv(["roadmap", "--no-color"], tmp);
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("Roadmap (source: file");
-    expect(stdout).toContain("Test feature");
-  });
-
-  test("exit 2 when snapshot missing", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
-    const { exitCode, stderr } = await runAdv(["roadmap", "--no-color"], tmp);
-    expect(exitCode).toBe(2);
-    expect(stderr).toContain("not found");
-    expect(stderr).toContain("/adv-triage");
-  });
-
-  test("--json outputs JSON with annotation marker", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
-    await mkdir(join(tmp, ".adv"), { recursive: true });
-    await writeFile(
-      join(tmp, ".adv/roadmap-snapshot.json"),
-      JSON.stringify(makeSnapshot()),
-    );
-    const { exitCode, stdout } = await runAdv(
-      ["roadmap", "--no-color", "--json"],
-      tmp,
-    );
-    expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout);
-      expect(parsed.active_change_annotation).toBe("unavailable_cli_file_mode");
-      expect(parsed.epic_annotation).toBe("unavailable_cli_file_mode");
-      expect(parsed.features).toHaveLength(1);
-  });
-
-  test("invalid --kind exits 2", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
-    await mkdir(join(tmp, ".adv"), { recursive: true });
-    await writeFile(
-      join(tmp, ".adv/roadmap-snapshot.json"),
-      JSON.stringify(makeSnapshot()),
-    );
-    const { exitCode, stderr } = await runAdv(
-      ["roadmap", "--no-color", "--kind", "oops"],
-      tmp,
-    );
-    expect(exitCode).toBe(2);
-    expect(stderr).toContain("invalid --kind");
-  });
-
-  test("invalid --priority exits 2", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
-    await mkdir(join(tmp, ".adv"), { recursive: true });
-    await writeFile(
-      join(tmp, ".adv/roadmap-snapshot.json"),
-      JSON.stringify(makeSnapshot()),
-    );
-    const { exitCode, stderr } = await runAdv(
-      ["roadmap", "--no-color", "--priority", "urgent"],
-      tmp,
-    );
-    expect(exitCode).toBe(2);
-    expect(stderr).toContain("invalid --priority");
-  });
-
-  test("invalid --top exits 2", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
-    await mkdir(join(tmp, ".adv"), { recursive: true });
-    await writeFile(
-      join(tmp, ".adv/roadmap-snapshot.json"),
-      JSON.stringify(makeSnapshot()),
-    );
-    const { exitCode, stderr } = await runAdv(
-      ["roadmap", "--no-color", "--top", "abc"],
-      tmp,
-    );
-    expect(exitCode).toBe(2);
-    expect(stderr).toContain("invalid --top");
   });
 });
 

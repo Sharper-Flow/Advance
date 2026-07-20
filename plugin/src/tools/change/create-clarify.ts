@@ -396,34 +396,25 @@ export function validateCreateOriginLinkage(input: {
         error:
           "origin_issue_number / origin_source_artifact require origin_kind to be set",
         fields,
-        hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside allowed linkage fields, or omit linkage fields for an unlinked change.",
+        hint: "Pass origin_kind ('discovery' | 'triage' | 'adhoc') alongside allowed linkage fields, or omit linkage fields for an unlinked change. ('roadmap' is readable legacy only — retired for new writes.)",
       };
     }
     return undefined;
   }
   if (input.origin_kind === "roadmap") {
-    if (!hasIssue) {
-      return {
-        error: "origin_issue_number is required when origin_kind is 'roadmap'",
-        fields: ["origin_issue_number"],
-        hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
-      };
-    }
-    if (hasSource) {
-      return {
-        error:
-          "origin_source_artifact is only allowed for triage or discovery origins.",
-        fields: ["origin_source_artifact"],
-        hint: "Omit origin_source_artifact for roadmap origins; the issue number is the roadmap linkage.",
-      };
-    }
+    // reshapeTriagePortfolioBalance: 'roadmap' is readable legacy only.
+    return {
+      error:
+        "ORIGIN_KIND_ROADMAP_RETIRED: origin_kind 'roadmap' is retired for new writes.",
+      fields: ["origin_kind"],
+      hint: "Use origin_kind 'triage' for issue-linked changes, or 'discovery' / 'adhoc' for non-issue-driven changes. (The 'roadmap' kind remains readable on archived changes for backward compatibility.)",
+    };
   }
   if (input.origin_kind === "discovery" && hasIssue) {
     return {
-      error:
-        "origin_issue_number is only allowed for roadmap or triage origins.",
+      error: "origin_issue_number is only allowed for triage origins.",
       fields: ["origin_issue_number"],
-      hint: "Use origin_kind 'roadmap' or 'triage' for issue-linked changes, or omit origin_issue_number for discovery origins.",
+      hint: "Use origin_kind 'triage' for issue-linked changes, or omit origin_issue_number for discovery origins.",
     };
   }
   if (input.origin_kind === "adhoc") {

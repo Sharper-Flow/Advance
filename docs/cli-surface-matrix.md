@@ -19,7 +19,6 @@
 | Command | Disposition | Rationale |
 |---|---|---|
 | `/adv-status` | `cli-bridge-primary` | Thin bridge over `adv status --no-color`; MCP kept for `view:"health"` |
-| `/adv-roadmap` | `cli-bridge-primary` | Thin bridge over `adv roadmap --no-color`; MCP kept for live + annotation |
 | `/adv-validate` | `mcp+cli-additive` | Gates/archive need MCP; CLI/CI verdict additive (deferred to C5) |
 | `/adv-audit` | `mcp+cli-additive` | Deterministic phase scan; additive CLI JSON output |
 | `/adv-slop-scan` | `mcp+cli-additive` | Deterministic detector phase; additive CLI JSON output |
@@ -54,7 +53,6 @@
 | Subcommand | Boundary | Rationale |
 |---|---|---|
 | `adv status` | read-only | Live active-change table; no local service writes |
-| `adv roadmap` | read-only | Reads generated backlog snapshot |
 | `adv slop-scan` | read-only scanner | Deterministic scan/report only |
 | `adv epic list` | read-only | Lists live Epic IDs from Temporal Visibility |
 | `adv dashboard` | read-only local server | Serves configured state over loopback by default |
@@ -66,7 +64,6 @@
 | Tool | Disposition | Rationale |
 |---|---|---|
 | `adv_status` | `mcp+cli-additive` | CLI table shipped; MCP kept for `view:"health"` depth |
-| `adv_roadmap` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation (typed `annotations_unavailable` on Visibility outage, never per-change fallback) |
 | `adv_backlog_add` | `no-cli-dangerous` | Backlog mutation |
 | `adv_backlog_list` | `keep-mcp-only` | Agent-facing backlog read |
 | `adv_backlog_show` | `keep-mcp-only` | Agent-facing backlog read |
@@ -160,11 +157,15 @@
 ## Removed Tools
 
 `adv_backlog_state`, `adv_project_wisdom_list`, `adv_gate_criteria`,
-`adv_epic_update_scope`, and `adv_epic_merge` were removed completely by
-`consolidateAdvToolSurface2`; none has a CLI or MCP surface. Replacement
-paths: `adv_roadmap` for backlog state (sole backlog reader; TTL-bounded
-freshness, O(1) annotation, typed `annotations_unavailable` degradation) and
-`adv_wisdom_list` with `project_only: true` for project wisdom (bounded by
-`maxEntries` after filtering). The three latent tools have no agent-callable
-replacement. Full mapping: `docs/tool-ownership.md` → Removed Tools and
-Replacements.
+`adv_epic_update_scope`, `adv_epic_merge`, and `adv_roadmap` were removed
+completely; none has a current CLI or MCP surface. Replacement paths:
+`adv_change_list status: 'in-flight'` + `adv_epic_show` for backlog/roadmap
+read (post portfolio-balance reshape), and `adv_wisdom_list` with
+`project_only: true` for project wisdom (bounded by `maxEntries` after
+filtering). The three latent tools (`adv_backlog_state`,
+`adv_project_wisdom_list`, `adv_gate_criteria`) have no agent-callable
+replacement. `adv_roadmap` was retired by `reshapeTriagePortfolioBalance`
+in favor of `/adv-triage` portfolio-balance output; CLI subcommand
+`adv roadmap`, command `/adv-roadmap`, and lib `bin/lib/roadmap.ts` were
+removed in the same change. Full mapping: `docs/tool-ownership.md` →
+Removed Tools and Replacements.

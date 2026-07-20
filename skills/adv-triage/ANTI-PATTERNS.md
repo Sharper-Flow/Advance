@@ -4,54 +4,47 @@
 
 | Command | Role | Relationship to `/adv-triage` |
 |---|---|---|
-| `/adv-status` | Read-only project overview | Prioritization counterpart |
-| `/adv-cleanup` | Triage abandoned/duplicate ADV changes | Disjoint: cleanup on ADV changes; triage on GH backlog |
-| `/adv-idea` / `/adv-problem` | Shape ideas / triage bugs into changes | Triage runs after items settle into typed backlog/notes; promotes to GH |
-| `/adv-improve` | Suggest spec/implementation improvements | Suggestions become inventory items |
-| `/adv-tron` | Codebase recon, hotspot detection | Findings → typed follow-up or backlog promotion → triage promotes to issues |
+| `/adv-status` | Read-only project overview | Health/status counterpart, not portfolio prioritization |
+| `/adv-cleanup` | Close/archive abandoned, duplicate, or completed ADV changes | Owns cleanup mutations surfaced by triage |
+| `/adv-epic` | Create/update Epic initiative containers | Supplies initiative context; triage never mutates membership implicitly |
+| `/adv-proposal` | Start issue-linked work | Consumes Open issues worth solving pointers |
+| `/adv-idea` / `/adv-problem` | Shape ideas or bugs | Their durable outputs may enter triage inventory |
 
 ## Anti-patterns
 
 | × Bad | ✓ Good |
 |---|---|
 | Auto-create GH issues without Tier B approval | Batch unrepresented items into explicit approval prompt |
-| Create/open GH issues before source cleanup validation | Run cleanup validation after match/gap and before issue creation |
-| `git add -A` before roadmap commit | `git add ROADMAP.md .adv/roadmap-snapshot.json` only |
-| Commit ROADMAP.md from feature branch | Commit only on default branch; abort otherwise |
-| Apply bug priority labels autonomously without context | Gather up to 2 context questions per bug, then assign; default to medium + `context_insufficient` if still unclear |
-| Ask users to assign priority to stale or already-addressed items | Relevance-check field-gap candidates first; resolve stale/duplicate items with explicit approval |
-| Ask users for priority before cleanup validation completes | Complete source cleanup validation before any bug priority assignment |
-| Ask users to confirm or choose a priority | User questions gather context only; agent owns priority choice |
-| Close, complete, cancel, remove, suppress, merge-note, or deprioritize items from title similarity alone | Treat title similarity as advisory; require structural evidence and explicit approval |
-| Assume `gh issue close --duplicate-of` exists or never exists | Capability-detect via `gh issue close --help`; fallback to `Duplicate of #N` comment semantics plus supported close reasons |
-| Drop low-priority TODOs silently | Surface all inventory items, even deferred |
-| Post priority rationale as an issue comment | Emit `<issue#>: priority=<tier> :: <rationale>` in chat output only |
-| Emit only top-N features | Phase 5.5 requires full `ROADMAP.md` fenced markdown echo |
-| Replace echo with “see ROADMAP.md” | Echo + file are two required surfaces |
+| Create issues or assign priorities before cleanup validation | Complete source cleanup validation first |
+| Link a change↔issue pair from title similarity alone | Show heuristic evidence and require approval |
+| `approve all` links hidden overflow pairs | Limit authority to displayed indices; prompt next batch separately |
+| Propose a pair already linked by origin, issue URL, or typed Epic evidence | Exclude existing links before numbering candidates |
+| Detect change↔change duplicates in Coalesce | Delegate duplicate/superseded changes to `/adv-cleanup` |
+| Close/cancel/archive changes from Portfolio balance | Report bucket counts/IDs and point to `/adv-cleanup` |
+| Treat Epic order as blocking | Use order as advisory context only |
+| Suppress issue-only work because of heuristic overlap | Keep it visible until structurally linked or explicitly resolved |
+| Ask user to choose bug priority | Gather at most two context answers; agent assigns priority |
+| Post priority rationale as issue comment | Emit rationale trailer in chat only |
+| Generate or commit ROADMAP.md / `.adv/roadmap-snapshot.json` | Emit the three-section report in chat only |
+| Recommend removed `/adv-roadmap`, `adv roadmap`, or the retired portfolio reader MCP tool | Route portfolio requests to `/adv-triage` |
 
-## Commit execution sequence
+## Coalesce execution sequence
 
-1. Resolve default branch via `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
-2. Verify current branch is default branch. Otherwise abort.
-3. Verify clean tree except `ROADMAP.md` + `.adv/roadmap-snapshot.json`.
-4. Stage explicit paths only.
-5. Commit `chore(roadmap): /adv-triage update {YYYY-MM-DD}`.
-6. `git pull --rebase --autostash origin <default-branch>`.
-7. `git push origin <default-branch>` if user chose push.
-8. Emit pushed commit SHA.
+1. Exclude existing structural links.
+2. Produce structural candidates before heuristic candidates.
+3. Attach bounded evidence and optional Epic context.
+4. Display at most 20 numbered candidates.
+5. Parse only the exact Tier B grammar.
+6. Call `adv_change_update_issues` for approved displayed pairs.
+7. Preserve successful links when another pair fails; report exact retry calls.
+8. Prompt overflow as a new authority batch.
 
-Any step failure → stop, surface command + stderr, do not retry automatically.
+Any ambiguous response re-prompts. No LLM fallback.
 
-## Roadmap echo
+## Portfolio rendering
 
-After `ROADMAP.md` is written, echo full generated content:
-
-````markdown
-## ROADMAP.md (generated)
-
-```markdown
-{full ROADMAP.md content}
-```
-````
-
-Default execute echoes after commit or after write when `--no-commit`. Tier B `dry run` echoes instead of writing. `--dry-run` flag skips echo because no artifact was generated.
+- Exactly: Important to complete, Cleanup needed, Open issues worth solving.
+- Cap 10 rows each; show explicit overflow count.
+- Use issue priority, gate proximity, then recency for deterministic ordering.
+- Include Epic context without creating a fourth section or blocking on Epic order.
+- Never write files or perform git operations.

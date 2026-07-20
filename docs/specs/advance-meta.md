@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.29.0
-> **Updated:** 2026-07-19
+> **Version:** 1.29.1
+> **Updated:** 2026-07-20
 
 ## Purpose
 
@@ -448,53 +448,39 @@ The local `adv dashboard` routine `/api/state` refresh must build ADV summary ca
 
 ---
 
-### Roadmap Slash Command Uses CLI Bridge
+### Roadmap CLI and slash-command surfaces are retired
 
 **ID:** `rq-roadmapCliBridge01` | **Priority:** **[MUST]**
 
-The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.
+The /adv-roadmap command, adv roadmap CLI subcommand, adv_roadmap MCP tool, and bin/lib/roadmap implementation are retired and MUST remain absent. What's-next and portfolio-balancing requests route to /adv-triage, which uses typed ADV state plus current GitHub issue/project data.
 
 **Tags:** `roadmap`, `command`, `cli`, `no-fanout`
 
 #### Scenarios
 
-**Default slash command runs CLI table** (`rq-roadmapCliBridge01.1`)
+**Retired surfaces are absent** (`rq-roadmapCliBridge01.1`)
 
 **Given:**
-- A user invokes /adv-roadmap
-- The installed `adv` CLI is available on PATH
+- The command, CLI, and MCP inventories are inspected
 
-**When:** The OpenCode command template is processed
+**When:** Roadmap retirement conformance runs
 
 **Then:**
-- The command template injects shell output from `adv roadmap --no-color`
-- The default output is the CLI roadmap table
-- ANSI color/control output is disabled for stable command-template rendering
+- .opencode/command/adv-roadmap.md is absent
+- bin/adv does not dispatch roadmap
+- adv_roadmap is absent from the registry and manifests
+- bin/lib/roadmap.ts is absent
 
-**Default slash command forbids agent fanout** (`rq-roadmapCliBridge01.2`)
+**Portfolio requests route to triage** (`rq-roadmapCliBridge01.2`)
 
 **Given:**
-- The /adv-roadmap command file is inspected
+- A user asks what to finish, clean up, or start
 
-**When:** Its default body is evaluated for roadmap work instructions
-
-**Then:**
-- It does not instruct the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, or adv_spec
-- It does not instruct the agent to build active-change cross-reference, synthesize recommendations, or read freshness metadata
-- It tells the agent to return the command output verbatim without analysis
-
-**CLI failure does not fallback to ADV tools** (`rq-roadmapCliBridge01.3`)
-
-**Given:**
-- The /adv-roadmap command template runs `adv roadmap --no-color`
-- The CLI is missing, exits non-zero, or writes an error
-
-**When:** The default /adv-roadmap path handles that result
+**When:** ADV intent routing evaluates the request
 
 **Then:**
-- The shell command error or stderr is surfaced to the user
-- No fallback path instructs the agent to call ADV MCP roadmap/backlog/list/show/spec tools
-- Active-change annotation remains an explicit MCP opt-in action
+- The request routes to /adv-triage
+- No removed roadmap surface is recommended
 
 ---
 

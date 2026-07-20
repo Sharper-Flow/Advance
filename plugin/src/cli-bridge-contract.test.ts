@@ -7,7 +7,6 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const ADVANCE_META_SPEC = join(REPO_ROOT, ".adv/specs/advance-meta/spec.json");
 const ADV_CLI = join(REPO_ROOT, "bin/adv");
 const ADV_STATUS_LIVE = join(REPO_ROOT, "bin/lib/live-status.ts");
-const ADV_ROADMAP = join(REPO_ROOT, "bin/lib/roadmap.ts");
 const ADV_EPIC_LIST = join(REPO_ROOT, "bin/lib/epic-list.ts");
 
 function readAdvanceMetaSpec(): {
@@ -33,16 +32,10 @@ const BRIDGES: BridgeCase[] = [
     token: "!`adv status --no-color`",
     specId: "rq-statusCliBridge01",
   },
-  {
-    command: ".opencode/command/adv-roadmap.md",
-    token: "!`adv roadmap --no-color`",
-    specId: "rq-roadmapCliBridge01",
-  },
 ];
 
 const FORBIDDEN_FANOUT_TOKENS = [
   "adv_status",
-  "adv_roadmap",
   "adv_change_list",
   "adv_change_show",
   "adv_gate_status",
@@ -127,7 +120,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_spec",
       "adv_delta_add",
       "adv_delta_modify",
-      "adv_roadmap",
       "adv_wip_state",
       "adv_backlog_add",
       "adv_backlog_list",
@@ -219,7 +211,7 @@ describe("NO-CLI-MUTATION GUARD (AC9/DONT3)", () => {
   test("bin/adv dispatch only recognizes safe subcommands", () => {
     const content = readFileSync(ADV_CLI, "utf8");
 
-    const allowedDispatch = ["status", "roadmap"];
+    const allowedDispatch = ["status"];
     const allowedGlobalFlags = ["help", "version"];
     const forbidden = [
       "create",
@@ -360,17 +352,6 @@ describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
 
     expect(content).not.toContain('join(root, "changes")');
     expect(content).not.toContain("isDashboardActiveStatus");
-  });
-
-  test("roadmap file-snapshot bridge behavior remains unchanged", () => {
-    const roadmapCommand = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-roadmap.md"),
-      "utf8",
-    );
-    const roadmapCli = readFileSync(ADV_ROADMAP, "utf8");
-
-    expect(roadmapCommand).toContain("!`adv roadmap --no-color`");
-    expect(roadmapCli).toContain("unavailable_cli_file_mode");
   });
 
   test("status live implementation has no mutation authority", () => {

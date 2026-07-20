@@ -121,7 +121,7 @@ After each assignment, emit `<issue#>: priority=<tier> :: <rationale>` in chat o
 ### Response handling
 
 1. Concrete answer → record context.
-2. `Defer` → exclude from roadmap.
+2. `Defer` → exclude from the current Open issues worth solving list.
 3. Write-in/custom → validate; invalid means inline error + same-item re-prompt.
 4. After all items → apply label assignments as batch.
 
@@ -139,32 +139,33 @@ Reply EXACTLY one of:
 - `deprecate all` — apply per-source deprecation
 - `deprecate N` (or `deprecate N,M`) — apply only listed numbers
 - `keep all` — leave local sources intact
-- `stop` / `abort` — halt before commit
+- `stop` / `abort` — halt before further mutation
 
 Anything else → re-prompt with the same options.
 ```
 
 Per-source actions: TODO/FIXME comment → `// see #{num}`; wisdom → append promotion note; cross-session note → strikethrough line; active ADV change → no deprecation.
 
-## ROADMAP.md commit prompt (Tier B)
+## Coalesce link approval prompt (Tier B)
 
 ```text
-Ready to commit and push ROADMAP.md to {default-branch}.
+Coalesce — link these active changes to open GitHub issues?
 
-Diff summary:
-- {bug_count_delta} bugs ({by_tier})
-- {feature_count_delta} features
-- {deferred_count} deferred
+1. {change-id} — {change-title} ↔ #{issue-number} — {issue-title}
+   Evidence: {structural|heuristic}: {bounded evidence}
+   Epic: {epic-id / entry order / title, or none}
+2. ...
 
-Files staged: ROADMAP.md and .adv/roadmap-snapshot.json only
-Commit: chore(roadmap): /adv-triage update {YYYY-MM-DD}
-Target: origin/{default-branch}
+Displayed: {displayed_count}; overflow: {overflow_count}
 
 Reply EXACTLY one of:
-- `commit and push` — stage, commit, pull --rebase, push
-- `commit only` — commit locally, no push
-- `dry run` — print full ROADMAP.md to chat, no file write, no commit
-- `cancel` / `stop` — halt; do not write file
+- `approve all` — link every DISPLAYED pair only; overflow is not approved
+- `reject all` — link none of the displayed pairs
+- `link N` (or `link N,M`) — link only listed pairs
+- `skip N` (or `skip N,M`) — link every displayed pair except listed pairs
+- `stop` / `abort` — halt without linking
 
 Anything else → re-prompt with the same options.
 ```
+
+After approval, call `adv_change_update_issues` once per approved pair. Hidden overflow requires a separate prompt. Partial failures preserve successful links and report exact retry calls.
