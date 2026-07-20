@@ -1058,4 +1058,142 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(parsed.readback).toBeDefined();
     expect(parsed.remediation).toMatch(/adv_change_status_repair/);
   });
+
+  // ===========================================================================
+  // AC9 regression fixture: reproduces the observed incident shape
+  // (fixWorkflowReliabilityDefects). Verifies the full recovery flow:
+  // classify → terminate pinned → converge authority → readback proves
+  // terminal → re-invoke after convergence is refused via archived route.
+  // ===========================================================================
+  test("AC9 regression: fixWorkflowReliabilityDefects-shaped state recovers end-to-end", async () => {
+    // Live workflow state: status="draft", lifecycleState="open", all gates
+    // done, phase9 done. This is the exact wedge the original incident hit:
+    // shipped-terminal projection vs RUNNING draft workflow.
+    const liveChange = shippedTerminalChange({
+      id: "fixWorkflowReliabilityDefects",
+      title: "Fix workflow reliability defects",
+      status: "draft",
+      lifecycleState: "open",
+    });
+    await writeChangeToDisk(liveChange);
+    await writeBundle(liveChange);
+
+    // describe returns RUNNING with no poisoned-history evidence (the exact
+    // state the old poison-only guard refused to recover).
+    mocks.describe.mockResolvedValue(shippedTerminalRunningDescription("run-wedge-1"));
+
+    const store = createDiskBackedStore(liveChange);
+    // Make store.changes.get/list read the on-disk projection so the
+    // convergence write + readback see consistent state.
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id !== liveChange.id) return { success: true, data: null };
+        try {
+          const text = await readFile(
+            join(changesDir, liveChange.id, "change.json"),
+            "utf-8",
+          );
+          return { success: true, data: JSON.parse(text) as Change };
+        } catch {
+          return { success: true, data: liveChange };
+        }
+      },
+    );
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async (query: unknown) => {
+        const q = query as { status?: string } | null;
+        try {
+          const text = await readFile(
+            join(changesDir, liveChange.id, "change.json"),
+            "utf-8",
+          );
+          const fresh = JSON.parse(text) as Change;
+          if (q && q.status === "archived") {
+            return { changes: fresh.status === "archived" ? [fresh] : [] };
+          }
+          return { changes: fresh.status === "draft" ? [fresh] : [] };
+        } catch {
+          return { changes: [] };
+        }
+      },
+    );
+
+    // Step 1: dryRun qualifies as shipped_terminal with full proof.
+    const dryRunResult = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence:
+          "operator approved shipped-terminal recovery for fixWorkflowReliabilityDefects wedge",
+        dryRun: true,
+      },
+      store,
+    );
+    const dryParsed = JSON.parse(dryRunResult);
+    expect(dryParsed.success).toBe(true);
+    expect(dryParsed.eligibilityClass).toBe("shipped_terminal");
+    expect(dryParsed.shippedTerminalProof.ok).toBe(true);
+    expect(dryParsed.runId).toBe("run-wedge-1");
+    expect(dryParsed.runStatus).toBe("RUNNING");
+    expect(mocks.terminate).not.toHaveBeenCalled();
+
+    // Step 2: execute terminates the exact pinned run + converges authority.
+    const execResult = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence:
+          "operator approved shipped-terminal recovery for fixWorkflowReliabilityDefects wedge",
+      },
+      store,
+    );
+    const execParsed = JSON.parse(execResult);
+    expect(execParsed.success).toBe(true);
+    expect(execParsed.eligibilityClass).toBe("shipped_terminal");
+    expect(execParsed.workflowTerminated).toBe(true);
+    expect(execParsed.converged).toBe(true);
+    expect(execParsed.fromStatus).toBe("draft");
+    expect(execParsed.toStatus).toBe("archived");
+    expect(execParsed.readback.showStatus).toBe("archived");
+    expect(execParsed.readback.showLifecycleState).toBe("archived");
+    expect(execParsed.readback.inFlightCount).toBe(0);
+    expect(execParsed.readback.archivedCount).toBe(1);
+
+    // Pinned terminate targeted the exact run.
+    expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+      expect.anything(),
+      "test-project-id",
+      "fixWorkflowReliabilityDefects",
+      "run-wedge-1",
+    );
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+
+    // Disk projection was written atomically.
+    const diskText = await readFile(
+      join(changesDir, liveChange.id, "change.json"),
+      "utf-8",
+    );
+    const disk = JSON.parse(diskText) as Change;
+    expect(disk.status).toBe("archived");
+    expect(disk.lifecycleState).toBe("archived");
+
+    // Step 3: idempotent re-invocation sees status:"archived" and routes to
+    // adv_archive_purge (the archived-only lever). It does NOT re-converge
+    // or duplicate work.
+    const reInvokeResult = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence:
+          "operator re-approved for verification of idempotent recovery",
+      },
+      store,
+    );
+    const reParsed = JSON.parse(reInvokeResult);
+    expect(reParsed.success).toBe(false);
+    expect(reParsed.error).toMatch(/archived/i);
+    expect(reParsed.hint).toMatch(/adv_archive_purge/);
+    // No additional terminate call beyond the first execution.
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+  });
 });
