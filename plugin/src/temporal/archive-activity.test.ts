@@ -147,7 +147,7 @@ describe("archiveChangeActivity", () => {
           schema_version: 1,
           change_id: "archive-change",
           manifest_sha256: "a".repeat(64),
-          released_commit_sha: "abc1234",
+          released_commit_sha: "b".repeat(40),
           status: "verified",
           verified_at: "2026-05-05T01:00:00.000Z",
         },

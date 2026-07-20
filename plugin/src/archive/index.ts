@@ -13,3 +13,11 @@ export {
   generateContractTraceability,
   getArchiveContractProofErrors,
 } from "./archive";
+export {
+  readProjectionManifest,
+  verifyProjectionAtGitCommit,
+  verifyProjectionAtPaths,
+  resolveGitCommitSha,
+} from "./projection-proof";
+export { canonicalSha256 } from "./projection";
+export { reconcileHistoricalArchiveDeltas } from "./historical-repair";

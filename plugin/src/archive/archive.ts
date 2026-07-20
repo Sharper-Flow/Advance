@@ -798,7 +798,9 @@ export async function archiveChange(
   const specsUpdated: SpecUpdateResult[] = [];
   const docsGenerated: string[] = [];
   const commitPaths: string[] = [];
-  const targetArchivePath = archiveBundlePath(paths.archive, change.id);
+  const targetArchivePath =
+    context.reuseExistingBundlePath ??
+    archiveBundlePath(paths.archive, change.id);
   const archivedAt = new Date().toISOString();
 
   const contractProofErrors = getArchiveContractProofErrors(change);
@@ -1026,16 +1028,28 @@ export async function archiveChange(
   const sourceChangeDir = paths.changes
     ? join(paths.changes, change.id)
     : undefined;
-  const { path: archivePath, terminalSummaryDegradation } = await createArchive(
-    change,
-    paths.archive,
-    dryRun,
-    sourceChangeDir,
-    errors,
-    multiRepo.metadata,
-    archivedAt,
-    projectionManifest,
-  );
+  const { path: archivePath, terminalSummaryDegradation } =
+    context.reuseExistingBundlePath
+      ? { path: context.reuseExistingBundlePath }
+      : await createArchive(
+          change,
+          paths.archive,
+          dryRun,
+          sourceChangeDir,
+          errors,
+          multiRepo.metadata,
+          archivedAt,
+          projectionManifest,
+        );
+  if (context.reuseExistingBundlePath && projectionManifest && !dryRun) {
+    await atomicWriteFile(
+      join(archivePath, "spec-projection.json"),
+      bundleJsonStringify(
+        SpecProjectionManifestSchema.parse(projectionManifest),
+      ),
+    );
+    await syncDir(archivePath);
+  }
 
   if (paths.inRepoArchive) {
     if (!dryRun) {

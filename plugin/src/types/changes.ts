@@ -25,6 +25,7 @@ import { GatesSchema, GateIdSchema } from "./gates";
 import { AcceptanceCriteriaSnapshotSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
 import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
+import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
 export {
   ContractEvidencePolicySchema,
   type ContractEvidencePolicy,
@@ -1104,6 +1105,9 @@ export const ChangeSchema = z
      * observe this field via adv_change_show to confirm completion.
      */
     phase9_status: Phase9FinalizationStatusSchema.optional(),
+
+    /** Immutable released-projection proof required by terminal archive state. */
+    archive_projection_proof: ArchiveProjectionProofReceiptSchema.optional(),
 
     /**
      * Lightweight change profile state: request, immutable omission policy, and

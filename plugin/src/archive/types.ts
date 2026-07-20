@@ -154,4 +154,6 @@ export interface ArchiveContext {
   dryRun?: boolean;
   /** Product id for multi-repo archive metadata. */
   productId?: string;
+  /** Existing external bundle reused by retry; projection is reconciled without rewriting it. */
+  reuseExistingBundlePath?: string;
 }

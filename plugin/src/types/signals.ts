@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
 import {
   EpicChangeRefSchema,
   EpicMergedIntoSchema,
@@ -497,22 +498,6 @@ export const ConformanceOverriddenSignalPayloadSchema = z.object({
 });
 export type ConformanceOverriddenSignalPayload = z.infer<
   typeof ConformanceOverriddenSignalPayloadSchema
->;
-
-export const ArchiveProjectionProofReceiptSchema = z
-  .object({
-    schema_version: z.literal(1),
-    change_id: z.string().min(1),
-    manifest_sha256: z
-      .string()
-      .regex(/^[a-f0-9]{64}$/, "Expected a lowercase SHA-256 hex digest"),
-    released_commit_sha: z.string().min(1),
-    status: z.literal("verified"),
-    verified_at: IsoTimestampSchema,
-  })
-  .strict();
-export type ArchiveProjectionProofReceipt = z.infer<
-  typeof ArchiveProjectionProofReceiptSchema
 >;
 
 export const ArchiveRequestedSignalPayloadSchema = z.object({

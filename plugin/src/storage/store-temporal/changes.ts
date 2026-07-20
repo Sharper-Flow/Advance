@@ -15,6 +15,7 @@ import {
   acceptanceUpdatedSignal,
   agreementUpdatedSignal,
   archiveChangeSignal,
+  archiveRequestedSignal,
   closeChangeSignal,
   designUpdatedSignal,
   epicMembershipClearedSignal,
@@ -420,12 +421,36 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // `outcome_unknown_readback_unavailable` if it fails after the
         // signal ACK. Either failure surfaces a typed error rather than
         // silently authorizing the disk write below.
-        const outcome = await fireSignalWithMutationGuard(
-          input,
-          change.id,
-          archiveChangeSignal,
-          [],
+        const hasAcceptedDeltas = Object.values(change.deltas).some(
+          (deltas) => deltas.length > 0,
         );
+        if (hasAcceptedDeltas && !change.archive_projection_proof) {
+          throw new Error(
+            `changes.save(${change.id}, archived): accepted deltas require archive_projection_proof before terminal state.`,
+          );
+        }
+        const outcome = change.archive_projection_proof
+          ? await fireSignalWithMutationGuard(
+              input,
+              change.id,
+              archiveRequestedSignal,
+              [
+                {
+                  approvalEvidence:
+                    change.gates?.release?.approval_evidence ??
+                    "Archive projection proof verified before terminal state",
+                  requestedBy: "archive-projection-reconciler",
+                  requestedAt: change.archive_projection_proof.verified_at,
+                  projectionProof: change.archive_projection_proof,
+                },
+              ],
+            )
+          : await fireSignalWithMutationGuard(
+              input,
+              change.id,
+              archiveChangeSignal,
+              [],
+            );
         if (outcome === "outcome_unknown_readback_unavailable") {
           throw new Error(
             `changes.save(${change.id}, archived): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,

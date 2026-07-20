@@ -536,3 +536,4 @@ export {
 // Signal Payloads
 // =============================================================================
 export * from "./signals";
+export * from "./archive-projection";
