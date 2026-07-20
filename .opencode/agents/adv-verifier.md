@@ -37,6 +37,9 @@ tools:
   todowrite: false
 
   # Disabled — no ADV orchestration mutation or report submission
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
   adv_change_archive: false
   adv_change_close: false
   adv_change_create: false

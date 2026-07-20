@@ -273,6 +273,14 @@ describe("tool role policy — runtime blockable set derivation (AC5)", () => {
     "adv_task_list",
     "adv_task_ready",
     "adv_task_show",
+    // Facade tools (addProviderToolSearch AC5): every sub-agent's allowed
+    // list carries the three Advance-owned facade tools so normal agents can
+    // discover and dispatch ADV tools through the compressed surface. They
+    // remain non-blockable from sub-agent sessions because the wrapped
+    // execute re-runs authorization/approval/recovery enforcement.
+    "adv_tool_catalog",
+    "adv_tool_describe",
+    "adv_tool_invoke",
     "adv_wisdom_add",
     "adv_wisdom_list",
     "adv_session_list",

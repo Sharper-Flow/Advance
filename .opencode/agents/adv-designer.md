@@ -52,10 +52,13 @@ tools:
   adv_task_ready: true
   adv_task_show: true
   # === ADV evidence/test (task-level only) ===
+  adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
+  # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   adv_wisdom_add: true
   adv_wisdom_list: true
   adv_change_archive: false
-  # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   adv_change_close: false
   adv_change_create: false
   adv_change_reenter: false

@@ -12,7 +12,9 @@ function createMockDefinition(result: string): MockToolDefinition {
   };
 }
 
-function wrapDefinition(mock: MockToolDefinition): ToolLookupResult["definition"] {
+function wrapDefinition(
+  mock: MockToolDefinition,
+): ToolLookupResult["definition"] {
   return mock as unknown as ToolLookupResult["definition"];
 }
 
@@ -91,7 +93,10 @@ describe("adv_tool_invoke", () => {
 
   test("AC4: approval-required tool still delegates to wrapped execute", async () => {
     const mockTool = createMockDefinition(
-      JSON.stringify({ status: "APPROVAL_REQUIRED", tool: "adv_approval_tool" }),
+      JSON.stringify({
+        status: "APPROVAL_REQUIRED",
+        tool: "adv_approval_tool",
+      }),
     );
     const lookup = vi.fn().mockReturnValue({
       definition: wrapDefinition(mockTool),

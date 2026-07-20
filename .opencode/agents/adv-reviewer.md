@@ -54,10 +54,13 @@ tools:
   adv_task_ready: true
   # === ADV evidence/wisdom (bounded emit) ===
   adv_task_show: true
-  adv_wisdom_add: true
-  adv_wisdom_list: true
+  adv_tool_catalog: true
+  adv_tool_describe: true
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   task: false
+  adv_tool_invoke: true
+  adv_wisdom_add: true
+  adv_wisdom_list: true
   adv_change_archive: false
   adv_change_close: false
   adv_change_create: false

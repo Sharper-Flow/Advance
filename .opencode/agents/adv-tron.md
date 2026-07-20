@@ -29,7 +29,7 @@ tools:
   adv_spec: true
   adv_subagent_report_submit: true
   adv_task_list: true
-  adv_wisdom_list: true
+  adv_tool_catalog: true
   # Disabled - Tron is repo read-only
   write: false
   edit: false
@@ -38,6 +38,9 @@ tools:
   task: false
 
   # Disabled - no ADV orchestration mutations beyond own optimized report submit
+  adv_tool_describe: true
+  adv_tool_invoke: true
+  adv_wisdom_list: true
   adv_change_create: false
   adv_gate_complete: false
   adv_task_add: false

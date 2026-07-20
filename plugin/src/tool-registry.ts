@@ -1021,9 +1021,16 @@ export function createToolMap(
         async (args, sdkContext) =>
           advInvokeTools.adv_tool_invoke.execute(
             args as { name: string; args: Record<string, unknown> },
-            (name): import("./tools/adv-invoke").ToolLookupResult | undefined => {
+            (
+              name,
+            ): import("./tools/adv-invoke").ToolLookupResult | undefined => {
               const entry = PUBLIC_TOOL_ENTRIES.find((e) => e.name === name);
-              const def = (baseToolMap as Record<string, import("@opencode-ai/plugin").ToolDefinition>)[name];
+              const def = (
+                baseToolMap as Record<
+                  string,
+                  import("@opencode-ai/plugin").ToolDefinition
+                >
+              )[name];
               if (!entry || !def) return undefined;
               return { definition: def, rawArgs: entry.args };
             },
