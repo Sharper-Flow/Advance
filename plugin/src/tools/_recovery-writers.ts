@@ -208,9 +208,7 @@ export async function saveRecoveredChangeStatus(input: {
   const updated = {
     ...input.change,
     status: input.status,
-    ...(input.lifecycleState
-      ? { lifecycleState: input.lifecycleState }
-      : {}),
+    ...(input.lifecycleState ? { lifecycleState: input.lifecycleState } : {}),
     ...(input.closure ? { closure: input.closure } : {}),
   } as Change;
   await saveChange(input.store.paths.changes, updated);

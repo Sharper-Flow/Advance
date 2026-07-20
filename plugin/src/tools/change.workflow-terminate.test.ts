@@ -658,10 +658,7 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
   async function writeChangeToDisk(change: Change): Promise<void> {
     const dir = join(changesDir, change.id);
     await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, "change.json"),
-      JSON.stringify(change, null, 2),
-    );
+    await writeFile(join(dir, "change.json"), JSON.stringify(change, null, 2));
   }
 
   async function writeBundle(change: Change): Promise<void> {
@@ -827,10 +824,7 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     await writeChangeToDisk(diskChange);
 
     // Bundle directory suffix matches but embedded id is different.
-    const bundlePath = join(
-      archiveDir,
-      `2026-01-15-${diskChange.id}`,
-    );
+    const bundlePath = join(archiveDir, `2026-01-15-${diskChange.id}`);
     await mkdir(bundlePath, { recursive: true });
     const mismatchedBundle = { ...diskChange, id: "someOtherChangeId" };
     await writeFile(
@@ -864,7 +858,9 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     const change = shippedTerminalChange();
     await writeChangeToDisk(change);
     // No bundle.
-    mocks.describe.mockResolvedValue(poisonedRunningDescription("run-poison-1"));
+    mocks.describe.mockResolvedValue(
+      poisonedRunningDescription("run-poison-1"),
+    );
     const store = createDiskBackedStore(change);
 
     const result = await tool().execute(
@@ -951,7 +947,8 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
       if (describeCallCount === 2) {
         // Pre-write successor check: no successor yet.
         return {
-          workflowId: "adv-change-test-project-id-fixWorkflowReliabilityDefects",
+          workflowId:
+            "adv-change-test-project-id-fixWorkflowReliabilityDefects",
           runId: "run-original",
           status: { code: 3, name: "TERMINATED" },
         };
@@ -1032,7 +1029,10 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
       async (id: string) => {
         if (id !== change.id) return { success: true, data: null };
         // Return a draft-state change to force readback failure.
-        return { success: true, data: { ...change, status: "draft", lifecycleState: "open" } };
+        return {
+          success: true,
+          data: { ...change, status: "draft", lifecycleState: "open" },
+        };
       },
     );
     (store.changes.list as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -1080,7 +1080,9 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
 
     // describe returns RUNNING with no poisoned-history evidence (the exact
     // state the old poison-only guard refused to recover).
-    mocks.describe.mockResolvedValue(shippedTerminalRunningDescription("run-wedge-1"));
+    mocks.describe.mockResolvedValue(
+      shippedTerminalRunningDescription("run-wedge-1"),
+    );
 
     const store = createDiskBackedStore(liveChange);
     // Make store.changes.get/list read the on-disk projection so the

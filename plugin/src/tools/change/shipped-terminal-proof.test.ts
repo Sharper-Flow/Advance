@@ -8,12 +8,9 @@
  */
 
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { mkdir, writeFile, rm } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
-import {
-  createTempDir,
-  cleanupTempDir,
-} from "../../__tests__/setup";
+import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import {
   computeShippedTerminalProof,
   type ShippedTerminalProofRefusalCode,
@@ -26,9 +23,17 @@ import { createDefaultGates } from "../../types/gates";
 // field to exercise each refusal code.
 function makeValidChange(): Change {
   const allDone = Object.fromEntries(
-    (["proposal", "discovery", "design", "planning", "execution", "acceptance", "release"] as const).map(
-      (g) => [g, { status: "done" as const }],
-    ),
+    (
+      [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release",
+      ] as const
+    ).map((g) => [g, { status: "done" as const }]),
   );
   return {
     id: "fixWorkflowReliabilityDefects",
@@ -72,10 +77,7 @@ describe("computeShippedTerminalProof", () => {
   async function writeDiskChange(change: Change): Promise<void> {
     const dir = join(changesDir, change.id);
     await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, "change.json"),
-      JSON.stringify(change, null, 2),
-    );
+    await writeFile(join(dir, "change.json"), JSON.stringify(change, null, 2));
   }
 
   async function writeBundle(

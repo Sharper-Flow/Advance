@@ -145,7 +145,9 @@ const TERMINABLE_WORKFLOW_RUN_STATUSES: ReadonlySet<string> = new Set([
 type ConvergeTerminalAuthorityResult =
   | {
       kind: "converged";
-      readback: Awaited<ReturnType<typeof verifyStatusRepairReadAfterWrite>>["readback"];
+      readback: Awaited<
+        ReturnType<typeof verifyStatusRepairReadAfterWrite>
+      >["readback"];
     }
   | {
       kind: "successorRace";
@@ -164,7 +166,9 @@ type ConvergeTerminalAuthorityResult =
   | {
       kind: "readbackFailed";
       error: string;
-      readback: Awaited<ReturnType<typeof verifyStatusRepairReadAfterWrite>>["readback"];
+      readback: Awaited<
+        ReturnType<typeof verifyStatusRepairReadAfterWrite>
+      >["readback"];
     };
 
 /**
@@ -204,9 +208,8 @@ async function convergeTerminalAuthority(input: {
   } catch (error) {
     // not-found/completed is acceptable — the pinned run is gone and no
     // successor exists. Any other error falls through to convergence.
-    const { isWorkflowCompletedError } = await import(
-      "../temporal/recovery-classification"
-    );
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
     if (!isWorkflowCompletedError(error)) {
       // Surface as writeFailed with describe error so the operator sees it.
       return {
@@ -287,9 +290,8 @@ async function convergeTerminalAuthority(input: {
     // Not-found here is fine — means no successor. Other errors are
     // surfaced but do not retroactively fail convergence (the write +
     // readback already succeeded).
-    const { isWorkflowCompletedError } = await import(
-      "../temporal/recovery-classification"
-    );
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
     if (!isWorkflowCompletedError(error)) {
       logger.debug(
         `Post-readback successor describe failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -4749,7 +4751,14 @@ export const changeTools = {
             reason: "shipped_terminal_workflow_termination",
             evidence,
           },
-          describeUnpinned: () => handle.describe(),
+          describeUnpinned: async () => {
+            if (typeof handle.describe !== "function") {
+              throw new Error(
+                "Change workflow handle does not support describe()",
+              );
+            }
+            return handle.describe();
+          },
         });
 
         if (converge.kind === "converged") {

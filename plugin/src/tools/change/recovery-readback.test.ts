@@ -68,7 +68,10 @@ function makeChange(overrides: Partial<Change> = {}): Change {
 
 describe("verifyStatusRepairReadAfterWrite — lifecycleState extension", () => {
   it("returns ok:true when status AND lifecycleState are archived (requireLifecycleState:true)", async () => {
-    const change = makeChange({ status: "archived", lifecycleState: "archived" });
+    const change = makeChange({
+      status: "archived",
+      lifecycleState: "archived",
+    });
     const store = makeStore({
       showChange: change,
       inFlightChanges: [],
