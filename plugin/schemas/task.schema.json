@@ -719,6 +719,31 @@
                 },
                 "type": "array"
               },
+              "recovery_audit": {
+                "additionalProperties": false,
+                "properties": {
+                  "evidence": {
+                    "type": "string"
+                  },
+                  "persisted_via": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "recovered_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "evidence",
+                  "recovered_at",
+                  "persisted_via"
+                ],
+                "type": "object"
+              },
               "related_scan": {
                 "minLength": 1,
                 "type": "string"
@@ -1083,6 +1108,31 @@
                   "harden"
                 ],
                 "type": "string"
+              },
+              "recovery_audit": {
+                "additionalProperties": false,
+                "properties": {
+                  "evidence": {
+                    "type": "string"
+                  },
+                  "persisted_via": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "recovered_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "evidence",
+                  "recovered_at",
+                  "persisted_via"
+                ],
+                "type": "object"
               },
               "required_follow_ups": {
                 "items": {
@@ -1603,6 +1653,31 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "recovery_audit": {
+                "additionalProperties": false,
+                "properties": {
+                  "evidence": {
+                    "type": "string"
+                  },
+                  "persisted_via": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "recovered_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "evidence",
+                  "recovered_at",
+                  "persisted_via"
+                ],
+                "type": "object"
               },
               "related_scan": {
                 "minLength": 1,
