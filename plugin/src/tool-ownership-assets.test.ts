@@ -32,7 +32,6 @@ const DUAL_TOOLS = [
   "adv_status",
   "adv_project_metadata",
   "adv_wip_state",
-  "adv_roadmap",
   "adv_session_list",
   "adv_session_show",
 ] as const;

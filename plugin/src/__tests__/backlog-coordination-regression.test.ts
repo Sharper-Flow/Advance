@@ -1,7 +1,7 @@
 /**
- * Backlog coordination regression suite (AC10 / rq-backlogCoord01..07).
+ * Backlog coordination regression suite for retained claim/Visibility laws.
  *
- * Each test maps explicitly to a Regression List (RL-1 .. RL-7) item
+ * Each test maps explicitly to a retained Regression List item
  * from the v2 discovery findings. The mechanism resolving each RL is
  * documented inline so future regressions can be traced back to the
  * coordination contract they violate.
@@ -10,29 +10,17 @@
  *   - plugin/src/temporal/visibility-claim-queries.test.ts (B1, B2 helpers)
  *   - plugin/src/temporal/search-attributes.test.ts (A1 attribute pop)
  *   - plugin/src/temporal/change-state.test.ts (A0 state.origin)
- *   - plugin/src/tools/roadmap.test.ts (D1 TTL helpers)
  *   - plugin/src/tools/backlog.test.ts (C1/C2 tools)
  *   - plugin/src/tools/change-claim.test.ts (C3 claim checks)
  *
- * This suite is the integration-level "all seven failure modes are
- * structurally prevented" verification that AC10 demands.
+ * Retired roadmap snapshot/reader behavior is covered by tombstone and
+ * asset-removal tests, not by runtime snapshot fixtures.
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { mkdir, writeFile, rm } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-
 import { createLegacyStore, type Store } from "../storage/store";
 import { cleanupTempDir, createTempDir, createTestProject } from "./setup";
 import { changeTools } from "../tools/change";
-import type { RoadmapSnapshot } from "../tools/roadmap";
-import {
-  assessAnnotationFreshness,
-  buildRefreshMetadata,
-  DEFAULT_ANNOTATION_TTL_MS,
-  roadmapTools,
-} from "../tools/roadmap";
 import { buildChangeSearchAttributes } from "../temporal/search-attributes";
 import {
   buildClaimVisibilityQuery,
@@ -66,57 +54,6 @@ function makeState(
   };
 }
 
-const SAMPLE_SNAPSHOT: RoadmapSnapshot = {
-  version: 1,
-  generated_at: "2026-05-11T00:00:00.000Z",
-  project: { owner: "TestOrg", number: 1, title: "ADV: Test" },
-  counts: { total: 3, bugs: 1, features: 2, deferred: 0 },
-  bugs: [{ number: 100, title: "Bug A", priority: "high", labels: [] }],
-  features: [
-    {
-      number: 51,
-      title: "Feature X",
-      value: 8,
-      time_criticality: 3,
-      rroe: 13,
-      effort: 3,
-      wsjf: 8.0,
-      labels: [],
-    },
-    {
-      number: 52,
-      title: "Feature Y",
-      value: 5,
-      time_criticality: 1,
-      rroe: 2,
-      effort: 1,
-      wsjf: 8.0,
-      labels: [],
-    },
-  ],
-  deferred: [],
-};
-
-async function writeFixture(snapshot: RoadmapSnapshot): Promise<string> {
-  const dir = join(
-    tmpdir(),
-    `adv-regression-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  );
-  await mkdir(join(dir, ".adv"), { recursive: true });
-  await writeFile(
-    join(dir, ".adv", "roadmap-snapshot.json"),
-    JSON.stringify(snapshot, null, 2),
-  );
-  return dir;
-}
-
-function makeStoreAt(root: string): Store {
-  return {
-    paths: { root, changes: join(root, ".adv/changes") },
-    changes: { list: vi.fn().mockResolvedValue({ changes: [] }) },
-  } as unknown as Store;
-}
-
 // =============================================================================
 // RL-1: Duplicate work (two sessions claim the same issue)
 // Mechanism: Pre-create Visibility query in adv_change_create returns
@@ -145,7 +82,7 @@ describe("RL-1: duplicate work prevented by pre-create claim check", () => {
     const output = await changeTools.adv_change_create.execute(
       {
         summary: "Second attempt at #51",
-        origin_kind: "roadmap",
+        origin_kind: "triage",
         origin_issue_number: 51,
       },
       store,
@@ -161,39 +98,6 @@ describe("RL-1: duplicate work prevented by pre-create claim check", () => {
     expect(parsed.code).toBe("CLAIM_CONFLICT");
     expect(parsed.existing_change_id).toBe("firstClaim");
     expect(claimChecker).toHaveBeenCalledTimes(1);
-  });
-});
-
-// =============================================================================
-// RL-2: Stale priorities (snapshot diverges from GH Project)
-// Mechanism: adv_roadmap surfaces TTL-bounded annotation freshness
-// (consolidated from the removed adv_backlog_state); it reports
-// needs_refresh: true when snapshot age > ttl_ms (default 5 min).
-// =============================================================================
-
-describe("RL-2: stale priorities surface via freshness metadata", () => {
-  test("snapshot beyond TTL reports needs_refresh: true", () => {
-    const freshness = assessAnnotationFreshness(
-      { last_refreshed: "2026-05-11T00:00:00.000Z", ttl_ms: 300_000 },
-      new Date("2026-05-11T00:06:00.000Z"), // 6 min later, TTL=5min
-    );
-    expect(freshness.needs_refresh).toBe(true);
-  });
-
-  test("fresh snapshot reports needs_refresh: false within TTL window", () => {
-    const freshness = assessAnnotationFreshness(
-      { last_refreshed: "2026-05-11T00:00:00.000Z", ttl_ms: 300_000 },
-      new Date("2026-05-11T00:03:00.000Z"), // 3 min later, within 5min TTL
-    );
-    expect(freshness.needs_refresh).toBe(false);
-  });
-
-  test("buildRefreshMetadata produces fresh metadata on refresh write", () => {
-    const meta = buildRefreshMetadata({
-      now: new Date("2026-05-11T00:00:00.000Z"),
-    });
-    expect(meta.ttl_ms).toBe(DEFAULT_ANNOTATION_TTL_MS);
-    expect(meta.next_refresh_after).toBe("2026-05-11T00:05:00.000Z");
   });
 });
 
@@ -230,7 +134,7 @@ describe("RL-3: orphaned claims auto-released by lifecycle transition", () => {
 describe("RL-4: every change with origin.issue_number indexes itself", () => {
   test("buildChangeSearchAttributes emits AdvBacklogIssueNumber on origin-bearing state", () => {
     const state = makeState({
-      origin: { kind: "roadmap", issue_number: 42 },
+      origin: { kind: "triage", issue_number: 42 },
     });
     const attrs = buildChangeSearchAttributes(state);
     expect(attrs.AdvBacklogIssueNumber).toEqual(["42"]);
@@ -240,89 +144,6 @@ describe("RL-4: every change with origin.issue_number indexes itself", () => {
     const state = makeState({ origin: undefined });
     const attrs = buildChangeSearchAttributes(state);
     expect(attrs.AdvBacklogIssueNumber).toBeUndefined();
-  });
-});
-
-// =============================================================================
-// RL-5: Snapshot drift (snapshot file vs. live state diverges silently)
-// Mechanism: Active-change annotation uses Visibility, not the snapshot
-// file. Visibility is the live coordination layer; snapshot is just the
-// ranking/V cache. So even a stale snapshot shows accurate annotations.
-// =============================================================================
-
-describe("RL-5: annotation is decoupled from snapshot file freshness", () => {
-  test("adv_roadmap annotates from Visibility regardless of snapshot age", async () => {
-    // Snapshot refreshed 1 hour ago — well past the 5-min annotation TTL.
-    const oldSnapshot: RoadmapSnapshot = {
-      ...SAMPLE_SNAPSHOT,
-      last_refreshed: "2026-05-11T00:00:00.000Z",
-      ttl_ms: 300_000,
-    };
-    const root = await writeFixture(oldSnapshot);
-    try {
-      const store = makeStoreAt(root);
-
-      const result = await roadmapTools.adv_roadmap.execute(
-        {},
-        store,
-        undefined,
-        {
-          activeChangesAnnotator: async (_pid, issues) => {
-            const m = new Map<number, { changeId: string }>();
-            // Annotator returns a live result even though snapshot is stale.
-            if (issues.includes(51)) {
-              m.set(51, { changeId: "liveActiveChange" });
-            }
-            return m;
-          },
-        },
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.annotation_freshness.needs_refresh).toBe(true);
-      const annotated = parsed.features.find(
-        (f: { number: number }) => f.number === 51,
-      );
-      expect(annotated.active_change).toBe("liveActiveChange");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-});
-
-// =============================================================================
-// RL-6: Unbounded triage (must run /adv-triage to see fresh state)
-// Mechanism: adv_roadmap derives active-change annotation from Visibility
-// on every call, independent of when /adv-triage last ran.
-// =============================================================================
-
-describe("RL-6: backlog state queryable without prior /adv-triage", () => {
-  test("adv_roadmap runs against legacy snapshot without TTL fields", async () => {
-    // Snapshot missing the v2 TTL fields entirely (pre-cutover format).
-    const legacySnapshot: RoadmapSnapshot = { ...SAMPLE_SNAPSHOT };
-    const root = await writeFixture(legacySnapshot);
-    try {
-      const store = makeStoreAt(root);
-
-      const result = await roadmapTools.adv_roadmap.execute(
-        {},
-        store,
-        undefined,
-        {
-          activeChangesAnnotator: async () => new Map(),
-        },
-      );
-
-      const parsed = JSON.parse(result);
-      // Backward-compat: missing TTL fields → needs_refresh: true (force
-      // refresh next time) — but the tool returns data, doesn't error.
-      expect(parsed.annotation_freshness.needs_refresh).toBe(true);
-      expect(parsed.annotation_freshness.age_ms).toBeNull();
-      expect(parsed.bugs.high).toHaveLength(1);
-      expect(parsed.features).toHaveLength(2);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
   });
 });
 
@@ -361,7 +182,7 @@ describe("RL-7: cross-session claim visibility via shared Visibility query", () 
 describe("rq-aw-backlog01: 7-gate lifecycle unaffected by backlog coordination", () => {
   test("Gate transitions emit AdvBacklogIssueNumber when origin set", () => {
     const state = makeState({
-      origin: { kind: "roadmap", issue_number: 42 },
+      origin: { kind: "triage", issue_number: 42 },
       gates: {
         ...createDefaultGates(),
         proposal: { status: "done", completed_at: "2026-05-11T00:01:00.000Z" },

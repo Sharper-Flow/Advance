@@ -81,7 +81,7 @@ export function buildClaimVisibilityQuery(
  * null when `issueNumbers` is empty so the caller skips the Temporal call.
  *
  * rq-backlogCoord05: replaces the O(n×m) `buildActiveChangeIndex` in
- * `plugin/src/tools/roadmap.ts` with a single Visibility query per chunk.
+ * portfolio-balance annotation with a single Visibility query per chunk.
  */
 export function buildActiveClaimsVisibilityQuery(
   options: BulkClaimQueryOptions,

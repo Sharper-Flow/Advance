@@ -402,7 +402,8 @@ describe("/adv-epic command contract", () => {
     expect(content).toContain("adv_epic_list");
     expect(content).toContain("adv_epic_show");
     expect(content).toContain("adv_change_list");
-    expect(content).toContain("adv_roadmap");
+    expect(content).not.toContain("adv_roadmap");
+    expect(content).toContain("adv_change_list");
     expect(content).toMatch(/neutral/i);
     expect(content).toMatch(/update\/clarify existing/i);
     expect(content).toMatch(/create new/i);

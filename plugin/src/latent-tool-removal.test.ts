@@ -14,8 +14,9 @@ import { wisdomTools } from "./tools/wisdom";
  * unreachable: absent from ADV_TOOL_NAMES and the runtime registry, yet still
  * defined on their `*Tools` groups and therefore visible on the
  * warrant-visible surface (`getToolSurface`). `adv_backlog_state` was a
- * registered public reader whose TTL-freshness and O(1) Visibility
- * annotation behavior moved into the retained `adv_roadmap`.
+ * registered public reader whose coordination behavior was later folded into
+ * `/adv-triage` portfolio balance. `adv_roadmap` was subsequently retired by
+ * reshapeTriagePortfolioBalance.
  * `adv_project_wisdom_list` was a registered public reader whose project-only
  * listing and bounded limit moved into the retained `adv_wisdom_list`. All
  * removals are complete and non-backward-compatible — no wrappers, aliases,
@@ -42,6 +43,8 @@ const REMOVED_TOOLS = [
   },
 ] as const;
 
+const REMOVED_PUBLIC_TOOLS = ["adv_roadmap"] as const;
+
 describe("removed tool tombstones", () => {
   test.each(REMOVED_TOOLS)(
     "$name has no definition on $groupName",
@@ -60,6 +63,17 @@ describe("removed tool tombstones", () => {
   test.each(REMOVED_TOOLS)(
     "$name is absent from the warrant-visible tool surface",
     ({ name }) => {
+      expect(getToolSurface().has(name)).toBe(false);
+    },
+  );
+
+  test.each(REMOVED_PUBLIC_TOOLS)("%s is absent from ADV_TOOL_NAMES", (name) => {
+    expect(ADV_TOOL_NAMES).not.toContain(name);
+  });
+
+  test.each(REMOVED_PUBLIC_TOOLS)(
+    "%s is absent from the warrant-visible tool surface",
+    (name) => {
       expect(getToolSurface().has(name)).toBe(false);
     },
   );

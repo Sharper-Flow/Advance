@@ -76,15 +76,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-proposal", "adv-apply", "adv-roadmap"],
-  },
-  "adv-roadmap": {
-    name: "adv-roadmap",
-    description: "Show fast ADV roadmap table",
-    phase: "core",
-    requiresChangeId: false,
-    prerequisites: [],
-    successors: ["adv-proposal", "adv-triage"],
+    successors: ["adv-proposal", "adv-apply", "adv-triage"],
   },
   "adv-proposal": {
     name: "adv-proposal",
@@ -467,7 +459,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-triage": {
     name: "adv-triage",
     description:
-      "Triage backlog sources, reconcile into GH issues, apply bug priority labels, coalesce overlapped changes with issues, emit portfolio-balance report",
+      "Triage sources, coalesce issue links, assign bug priority, and balance portfolio",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
