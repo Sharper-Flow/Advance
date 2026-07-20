@@ -4747,24 +4747,33 @@ export const changeTools = {
           });
         }
 
-        // No poison evidence available. For describe-throws-not-found we
-        // cannot distinguish poisoned-from-shipped-terminal (no description),
-        // so preserve the legacy idempotent refresh+success behavior to keep
-        // poisoned-history ghost-workflow cleanup working. If shipped-terminal
-        // proof IS valid we additionally converge authority (better outcome).
+        // No poison evidence available. describe-throws-not-found gives no
+        // description to inspect, so we cannot distinguish poisoned-history
+        // from shipped-terminal by describe alone. rq-shippedWorkflowTermination01
+        // AC3/AC5/AC7: refuse unless the typed shipped-terminal proof is
+        // complete. The legacy refresh+idempotent-success path masked
+        // half-shipped states and violated terminal-authority convergence;
+        // the operator must instead use adv_change_status_repair (poisoned
+        // disk projection) or complete the shipped-terminal proof so the
+        // converge path runs.
         if (describeThrewCompleted) {
           if (!shippedTerminalProof?.ok) {
-            // Legacy behavior: refresh + idempotent success. The change may
-            // be a poisoned-history cleanup; without a description we cannot
-            // require convergence.
-            await refreshProjectionCache();
             return formatToolOutput({
-              success: true,
+              success: false,
+              error: `Workflow termination refused: change ${changeId} describe threw completed/not-found with no poisoned-history evidence, and shipped-terminal proof failed (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}) — cannot declare converged (IDEMPOTENT_BUT_PROOF_MISSING).`,
               changeId,
-              workflowTerminated: true,
-              alreadyTerminated: true,
-              eligibilityClass: "unknown",
-              message: `Change ${changeId} workflow is already gone (completed/not-found); nothing to terminate. Shipped-terminal proof not available (${shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE"}); falling back to cache refresh only.`,
+              eligibilityClass: "none",
+              shippedTerminalProof: shippedTerminalProof?.ok
+                ? undefined
+                : {
+                    ok: false,
+                    refusalCode:
+                      shippedTerminalProof?.refusalCode ?? "PROOF_NO_BUNDLE",
+                    evidence:
+                      shippedTerminalProof?.evidence ??
+                      "no shipped-terminal proof available",
+                  },
+              hint: "Idempotent completed/not-found describe requires complete shipped-terminal proof (all 7 disk gates + phase9 done + valid archive bundle). Complete the proof, use adv_change_status_repair for a poisoned disk projection, or use adv_archive_purge if the change is already archived on disk.",
             });
           }
           // Proof OK: converge authority (write status+lifecycleState, readback).

@@ -302,7 +302,12 @@ describe("adv_change_workflow_terminate", () => {
     expect(mocks.terminate).not.toHaveBeenCalled();
   });
 
-  test("treats not-found describe as idempotent alreadyTerminated after eligibility", async () => {
+  test("refuses not-found describe with no poison AND no shipped-terminal proof (IDEMPOTENT_BUT_PROOF_MISSING)", async () => {
+    // rq-shippedWorkflowTermination01 AC3/AC5/AC7 (blocker remediation):
+    // describe-throws-not-found with no poison evidence cannot establish
+    // terminal authority. Legacy refresh+idempotent-success masked
+    // half-shipped states; the new contract requires typed refusal so the
+    // operator uses adv_change_status_repair or completes the proof.
     const store = createMockStore(wedgedChange());
     mocks.describe.mockRejectedValue(notFoundError());
 
@@ -316,11 +321,13 @@ describe("adv_change_workflow_terminate", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.workflowTerminated).toBe(true);
-    expect(parsed.alreadyTerminated).toBe(true);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toMatch(/IDEMPOTENT_BUT_PROOF_MISSING/);
+    expect(parsed.eligibilityClass).toBe("none");
+    expect(parsed.shippedTerminalProof.refusalCode).toMatch(/^PROOF_/);
+    expect(parsed.alreadyTerminated).toBeUndefined();
     expect(mocks.terminate).not.toHaveBeenCalled();
-    expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+    expect(store.changes.refresh).not.toHaveBeenCalled();
   });
 
   test("idempotent not-found handling never precedes eligibility (gates not shipped → refusal)", async () => {
@@ -909,7 +916,90 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(parsed.readback.archivedCount).toBe(1);
   });
 
-  test("refuses when shipped-terminal proof fails on PROOF_BUNDLE_ID_MISMATCH", async () => {
+  test("converges shipped-terminal authority when describe throws not-found (proof valid)", async () => {
+    // rq-shippedWorkflowTermination01 AC7 + blocker remediation: an
+    // idempotent completed/not-found describe still routes through
+    // convergeTerminalAuthority when shipped-terminal proof is complete,
+    // rather than returning refresh-only success.
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+    mocks.describe.mockRejectedValue(notFoundError());
+
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id !== change.id) return { success: true, data: null };
+        const text = await readFile(
+          join(changesDir, change.id, "change.json"),
+          "utf-8",
+        );
+        return { success: true, data: JSON.parse(text) as Change };
+      },
+    );
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async (query: unknown) => {
+        const fresh = JSON.parse(
+          await readFile(join(changesDir, change.id, "change.json"), "utf-8"),
+        ) as Change;
+        return (query as { status?: string } | null)?.status === "archived"
+          ? { changes: [fresh] }
+          : { changes: [] };
+      },
+    );
+
+    const result = await tool().execute(
+      {
+        changeId: change.id,
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.workflowTerminated).toBe(true);
+    expect(parsed.alreadyTerminated).toBe(true);
+    expect(parsed.converged).toBe(true);
+    expect(parsed.eligibilityClass).toBe("shipped_terminal");
+    expect(parsed.shippedTerminalProof.ok).toBe(true);
+    expect(parsed.readback.showStatus).toBe("archived");
+    expect(parsed.readback.showLifecycleState).toBe("archived");
+    expect(parsed.readback.archivedCount).toBe(1);
+    expect(mocks.terminate).not.toHaveBeenCalled();
+  });
+
+  test("refuses describe-throws-not-found when shipped-terminal proof fails (disk-backed, IDEMPOTENT_BUT_PROOF_MISSING)", async () => {
+    // Blocker remediation: describe-throws-not-found without poison evidence
+    // AND without a valid shipped-terminal proof refuses via the disk-backed
+    // path as well. Verifies the contract from a realistic disk scenario
+    // (half-shipped state: gates done but no bundle).
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    // No bundle → PROOF_NO_BUNDLE.
+    const store = createDiskBackedStore(change);
+    mocks.describe.mockRejectedValue(notFoundError());
+
+    const result = await tool().execute(
+      {
+        changeId: change.id,
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toMatch(/IDEMPOTENT_BUT_PROOF_MISSING/);
+    expect(parsed.eligibilityClass).toBe("none");
+    expect(parsed.shippedTerminalProof.refusalCode).toBe("PROOF_NO_BUNDLE");
+    expect(parsed.alreadyTerminated).toBeUndefined();
+    expect(parsed.converged).toBeUndefined();
+    expect(mocks.terminate).not.toHaveBeenCalled();
+    expect(store.changes.refresh).not.toHaveBeenCalled();
+  });
     const diskChange = shippedTerminalChange();
     await writeChangeToDisk(diskChange);
 
