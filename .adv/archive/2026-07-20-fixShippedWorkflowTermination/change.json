@@ -1,0 +1,1461 @@
+{
+  "id": "fixShippedWorkflowTermination",
+  "title": "Fix shipped workflow termination",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-20T19:49:35.883Z",
+  "tasks": [
+    {
+      "id": "tk-3328ce76ab02",
+      "title": "Add typed partialRecovery failure shape to convergence readback",
+      "type": "code",
+      "section": "Convergence",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-20T20:17:50.812Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:28:09.663Z",
+      "verification": "readback helper: 6/6 new tests pass + 15/15 existing status-repair tests pass. requireLifecycleState flag adds showLifecycleState assertion; backward-compat (no flag) preserved.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change/recovery-readback.test.ts",
+        "plugin/src/tools/change/recovery.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change/recovery-readback.test.ts",
+        "plugin/src/tools/change/recovery.ts"
+      ],
+      "checkpointSha": "cd6a096892ee20ecb8f65bce95332d7de3a69366",
+      "completedAt": "2026-07-20T20:30:23.895Z",
+      "completed_at": "2026-07-20T20:30:23.895Z"
+    },
+    {
+      "id": "tk-2aac78a57f2d",
+      "title": "Restructure adv_change_workflow_terminate: proof-before-describe + classification switch + dryRun",
+      "type": "code",
+      "section": "Classification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-20T20:17:50.827Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:30:37.520Z",
+      "verification": "Blocker 1 fixed: describe-throws-not-found + no poison + no proof now refuses with IDEMPOTENT_BUT_PROOF_MISSING instead of legacy refresh+success. Blocker 2 already addressed (post-readback successor describe failure returns typed readbackFailed). Issue 3 (tool description) already updated. Tests: 80/80 pass (tr_mrtqhqf3_c028b19f). Typecheck clean (tr_mrtqi2xq_e5503f48). Added two new disk-backed tests covering describe-throws-not-found + proof valid (converges) and proof invalid (refuses). Updated in-memory test to assert new refusal contract.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.workflow-terminate.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.workflow-terminate.test.ts"
+      ],
+      "checkpointSha": "07a346d5ba99abee8478c3e1cdf7ab0d84525b8c",
+      "completedAt": "2026-07-20T21:26:18.615Z",
+      "completed_at": "2026-07-20T21:26:18.615Z"
+    },
+    {
+      "id": "tk-3b6e07bc6414",
+      "title": "Add computeShippedTerminalProof helper with typed refusal codes",
+      "type": "code",
+      "section": "Proof helper",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-20T20:17:50.829Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:20:53.148Z",
+      "verification": "12/12 unit tests pass: PROOF_INVALID_DISK_PROJECTION (loadChange fail + Zod parse fail), PROOF_MISSING_GATES, PROOF_MISSING_PHASE9 (status!==done + undefined), PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE (malformed JSON + Zod parse fail), PROOF_BUNDLE_ID_MISMATCH, positive ok:true case, no-mutation idempotency check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/change/shipped-terminal-proof.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/change/shipped-terminal-proof.test.ts"
+      ],
+      "checkpointSha": "79861b59d09a166f8695f7b2f4771e448a3a3633",
+      "completedAt": "2026-07-20T20:25:55.663Z",
+      "completed_at": "2026-07-20T20:25:55.663Z"
+    },
+    {
+      "id": "tk-a24b4c7d19bb",
+      "title": "Add convergeTerminalAuthority function with successor check #1",
+      "type": "code",
+      "section": "Convergence",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-20T20:18:05.807Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:34:50.138Z",
+      "errorRecovery": {
+        "last_error": "Command failed: /usr/bin/git add -A\nfatal: Unable to create '/home/jon/dev/advance/.git/worktrees/fixShippedWorkflowTermination/index.lock': File exists.\n\nAnother git process seems to be running in th",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT"
+      },
+      "updatedAt": "2026-07-20T20:36:42.539Z",
+      "verification": "convergeTerminalAuthority extracted; 26/26 tests pass including successorRace, lateSuccessorRace, readback failure. (Re-checkpoint after parallel index.lock collision; same content as tk-a69549fd7f70 commit a636dac.)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "a636dac64d6cdc7be1542bd0479401030bc5b48a",
+      "completedAt": "2026-07-20T20:36:56.282Z",
+      "completed_at": "2026-07-20T20:36:56.282Z"
+    },
+    {
+      "id": "tk-0317bb560640",
+      "title": "Extend saveRecoveredChangeStatus to require lifecycleState for terminal writes",
+      "type": "code",
+      "section": "Recovery writer",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-20T20:18:05.809Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "respects": [
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:26:39.542Z",
+      "verification": "30/30 tests pass (existing 28 + 2 new): lifecycleState written alongside status when provided; backward-compat status-only when omitted. Existing status-repair semantics unchanged.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts"
+      ],
+      "checkpointSha": "52e6dc467bcacf127d39b2fffbc9d32ef6070788",
+      "completedAt": "2026-07-20T20:27:54.592Z",
+      "completed_at": "2026-07-20T20:27:54.592Z"
+    },
+    {
+      "id": "tk-ab2c2aeffdf9",
+      "title": "Regression fixture: fixWorkflowReliabilityDefects-shaped state end-to-end",
+      "type": "code",
+      "section": "Regression",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-20T20:18:05.834Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:37:05.044Z",
+      "verification": "27/27 tests pass: AC9 E2E regression fixture reproduces fixWorkflowReliabilityDefects-shaped state — dryRun qualifies shipped_terminal, execution terminates pinned run + converges status/lifecycleState, readback proves archived/in-flight=0/archived=1, idempotent re-invoke routes to adv_archive_purge.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.workflow-terminate.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.workflow-terminate.test.ts"
+      ],
+      "checkpointSha": "4466d168b7ba84204e3a1360fc34084d9277451a",
+      "completedAt": "2026-07-20T20:37:56.514Z",
+      "completed_at": "2026-07-20T20:37:56.514Z"
+    },
+    {
+      "id": "tk-a3473f96d634",
+      "title": "Regression sweep: existing poisoned-history, archive-purge, status-repair tests unchanged",
+      "type": "verification",
+      "section": "Regression",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-20T20:18:05.835Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC10"
+        ],
+        "respects": [
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "updatedAt": "2026-07-20T20:18:35.651Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:38:43.894Z",
+      "verification": "Regression sweep: 90/90 pass across change.workflow-terminate (27), change.status-repair (15), _recovery-writers (30), shipped-terminal-proof (12), recovery-readback (6). Typecheck clean. Lint clean. Pre-existing format warning on adv-arch-scan-assets.test.ts (from prior addCapabilityConsistency change, not this work). Existing poisoned-history, archive-purge, status-repair tests remain passing (AC10). Approval-first behavior unchanged (AC1).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts",
+        "plugin/src/tools/change/recovery-readback.test.ts",
+        "plugin/src/tools/change/shipped-terminal-proof.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts",
+        "plugin/src/tools/change/recovery-readback.test.ts",
+        "plugin/src/tools/change/shipped-terminal-proof.test.ts"
+      ],
+      "checkpointSha": "25a26433303319b83daa131a1946c871534ab6dd",
+      "completedAt": "2026-07-20T20:42:21.099Z",
+      "completed_at": "2026-07-20T20:42:21.099Z"
+    },
+    {
+      "id": "tk-b4310459ca01",
+      "title": "Update docs/tool-ownership.md rationale row for adv_change_workflow_terminate",
+      "type": "docs",
+      "section": "Docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-20T20:18:05.930Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C4"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T20:38:11.200Z",
+      "verification": "docs/tool-ownership.md row updated: documents both eligibility classes (poisoned_history + shipped_terminal), 6 refusal codes, partial recovery shapes, and rq-shippedWorkflowTermination01 cross-reference.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/tool-ownership.md"
+      ],
+      "touched_files": [
+        "docs/tool-ownership.md"
+      ],
+      "checkpointSha": "ef0085fece204e31eeabacddeffbeabd8eab6635",
+      "completedAt": "2026-07-20T20:38:44.078Z",
+      "completed_at": "2026-07-20T20:38:44.078Z"
+    },
+    {
+      "id": "tk-a69549fd7f70",
+      "title": "Add successor check #2 (lateSuccessorRace) post-readback",
+      "type": "code",
+      "section": "Convergence",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-20T20:18:07.514Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "successor check #2 (post_readback lateSuccessorRace) implemented in convergeTerminalAuthority + test asserts typed lateSuccessorRace result. Covers AC8 TOCTOU window.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts"
+      ],
+      "checkpointSha": "a636dac64d6cdc7be1542bd0479401030bc5b48a",
+      "completedAt": "2026-07-20T20:36:42.724Z",
+      "completed_at": "2026-07-20T20:36:42.724Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShippedWorkflowTermination",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShippedWorkflowTermination",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "ac3-ac5-ac7-idempotent-entry-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4584,
+          "what": "Initial describe() completed/not-found and already-terminal status paths return success after only coarse acceptance/release gates, without the required seven-gate/phase-9/parsed-bundle proof or terminal convergence.",
+          "why": "AC3, AC5, AC7 and design D2/D11 require complete structural proof before any idempotent route, then archived status+lifecycleState readback. Current paths can report success for incomplete or non-converged changes.",
+          "fix": "Require computeShippedTerminalProof before both initial idempotent returns; refuse typed proof failures and funnel proof-valid idempotent paths through convergeTerminalAuthority."
+        },
+        {
+          "id": "ac8-successor-observability-2",
+          "label": "blocker",
+          "file": "plugin/src/tools/change.ts",
+          "line": 289,
+          "what": "A non-completed error from successor check #2 is logged then full convergence success is returned.",
+          "why": "A failed final describe cannot establish absence of a live successor; success therefore lacks required AC8 post-termination race verification.",
+          "fix": "Return a typed partial-recovery/convergence-unknown result on final successor-describe failure, with remediation; add a deterministic test."
+        },
+        {
+          "id": "tool-contract-doc-3",
+          "label": "issue",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4449,
+          "what": "Public tool description still documents poison-only RUNNING refusal and refresh-only idempotent behavior.",
+          "why": "Operator-facing contract omits shipped_terminal proof, eligibility class, atomic convergence, readback, and race outcomes implemented by this change.",
+          "fix": "Update description to match the approved shipped-terminal contract."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "test-quality-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.workflow-terminate.test.ts",
+          "line": 1068,
+          "what": "AC9 end-to-end fixture exercises dry-run, pinned termination, disk convergence, readback, and archived re-invocation.",
+          "why": "It reproduces the reported shipped/RUNNING wedge rather than only testing helper internals."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Funnel shipped-terminal pinned terminate completed/not-found handling through convergence; preserve poisoned-history refresh-only behavior.",
+          "verification": "Targeted suite passed; typecheck passed."
+        },
+        {
+          "file": "plugin/src/tools/change.workflow-terminate.test.ts",
+          "summary": "Added regression test proving an idempotently completed pinned shipped-terminal terminate still converges and exposes readback.",
+          "verification": "Targeted suite passed (76 tests)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Idempotent Temporal outcomes are recovery outcomes, not automatic success: when terminal authority is part of the contract, completed/not-found after an exact pin must still run convergence/readback."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/tools/change.workflow-terminate.test.ts plugin/src/tools/change/shipped-terminal-proof.test.ts plugin/src/tools/change/recovery-readback.test.ts plugin/src/tools/_recovery-writers.test.ts (incorrect root-relative filter; no tests found, exit 1)",
+          "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts",
+          "pnpm run typecheck"
+        ],
+        "results": "fail",
+        "evidence": "Corrected targeted command: 4 files, 76 tests passed. `pnpm run typecheck` passed. Initial target path invocation failed before running tests because oc-test executes from plugin/; corrected command used plugin-relative src paths."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Initial idempotent describe paths and post-readback successor-check failure still permit unsupported success; acceptance must remain blocked.",
+        "No browser evidence applicable; tool/recovery surface is non-frontend."
+      ],
+      "required_main_agent_actions": [
+        "Remediate both blocker findings, add deterministic tests for initial idempotent proof/convergence and final successor-describe failure, then rerun targeted tests and typecheck.",
+        "Do not revisit existing poisoned-history eligibility semantics or adv_archive_purge/status-repair behavior except regression verification; they are outside this review remediation. "
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- plugin/src/tools/change.workflow-terminate.test.ts plugin/src/tools/change/shipped-terminal-proof.test.ts plugin/src/tools/change/recovery-readback.test.ts plugin/src/tools/_recovery-writers.test.ts (incorrect root-relative filter; no tests found, exit 1)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run typecheck"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShippedWorkflowTermination",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShippedWorkflowTermination",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "wisdom-candidate-idempotent-proof",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4750,
+          "what": "describe-throws-not-found no longer masks half-shipped states; requires complete shipped-terminal proof before any idempotent success.",
+          "why": "Blocker remediation enforces rq-shippedWorkflowTermination01 AC3/AC5/AC7 with typed IDEMPOTENT_BUT_PROOF_MISSING refusal, preserving poisoned-history semantics."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Completed/not-found describe outcomes require complete shipped-terminal proof and terminal-authority convergence when poisoned-history evidence is absent."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts (tr_mrtqhqf3_c028b19f)",
+          "pnpm run typecheck (tr_mrtqi2xq_e5503f48)"
+        ],
+        "results": "pass",
+        "evidence": "All 3 prior findings verified fixed: change.ts:289-309 (Blocker 2 post-readback successor describe returns typed readbackFailed), change.ts:4548-4610 (Issue 3 tool description), change.ts:4750-4778 (Blocker 1 describe-throws-not-found + no proof refuses with IDEMPOTENT_BUT_PROOF_MISSING). Tests verified at change.workflow-terminate.test.ts:305-331 (refusal), 930-1002 (disk-backed converge + refuse), 1116-1186 (post-readback successor failure). Main agent ran 80/80 tests (tr_mrtqhqf3_c028b19f) + typecheck clean (tr_mrtqi2xq_e5503f48); reviewer inspected source/test sites to confirm remediation."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No browser evidence applicable: non-frontend operator recovery tool.",
+        "Poisoned-history, archive-purge, and status-repair semantics left unchanged except regression verification — per prior review required_main_agent_actions."
+      ],
+      "required_main_agent_actions": [
+        "Build the contract review matrix (SC1-4, AC1-10, C1-6, DONT1-5, OOS1-4) and persist via adv_contract_review_matrix_set; this report authorizes READY but does not write the matrix."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts (tr_mrtqhqf3_c028b19f)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run typecheck (tr_mrtqi2xq_e5503f48)"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-3b6e07bc6414": [
+      {
+        "runId": "tr_mrtochfs_8e9f311c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/shipped-terminal-proof.test.ts",
+        "durationMs": 2204.1197850001045,
+        "recordedAt": "2026-07-20T20:25:45.591Z"
+      }
+    ],
+    "tk-0317bb560640": [
+      {
+        "runId": "tr_mrtofa9p_4cc01fa1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/_recovery-writers.test.ts",
+        "durationMs": 1905.5922989998944,
+        "recordedAt": "2026-07-20T20:27:56.254Z"
+      }
+    ],
+    "tk-3328ce76ab02": [
+      {
+        "runId": "tr_mrtoiihc_ceb54662",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/recovery-readback.test.ts src/tools/change.status-repair.test.ts",
+        "durationMs": 3184.403423000127,
+        "recordedAt": "2026-07-20T20:30:26.862Z"
+      }
+    ],
+    "tk-2aac78a57f2d": [
+      {
+        "runId": "tr_mrtonxj7_01f9d7d7",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 4490.82137000002,
+        "recordedAt": "2026-07-20T20:34:39.650Z"
+      },
+      {
+        "runId": "tr_mrtqgtdp_8c9291bd",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts",
+        "durationMs": 2.565729999972973,
+        "recordedAt": "2026-07-20T21:25:06.910Z"
+      },
+      {
+        "runId": "tr_mrtqh17w_ceb6258b",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts",
+        "durationMs": 2065.0797489999677,
+        "recordedAt": "2026-07-20T21:25:17.069Z"
+      },
+      {
+        "runId": "tr_mrtqhqf3_c028b19f",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts",
+        "durationMs": 4321.775697999983,
+        "recordedAt": "2026-07-20T21:25:49.729Z"
+      },
+      {
+        "runId": "tr_mrtqi2xq_e5503f48",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 8089.326803999953,
+        "recordedAt": "2026-07-20T21:26:05.945Z"
+      },
+      {
+        "runId": "tr_mrtqm8k4_e9d2059e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts src/tools/_recovery-writers.test.ts",
+        "durationMs": 4530.966942999978,
+        "recordedAt": "2026-07-20T21:29:19.869Z"
+      },
+      {
+        "runId": "tr_mrtqmhr9_1b6e56f3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 8265.765999999945,
+        "recordedAt": "2026-07-20T21:29:31.796Z"
+      },
+      {
+        "runId": "tr_mrtrkm4p_8b6e7ecd",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/scratch-parse.test.ts",
+        "durationMs": 1730.3972360002808,
+        "recordedAt": "2026-07-20T21:56:03.822Z"
+      }
+    ],
+    "tk-a24b4c7d19bb": [
+      {
+        "runId": "tr_mrtoqnfb_d9235885",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 4063.388398999814,
+        "recordedAt": "2026-07-20T20:36:46.514Z"
+      }
+    ],
+    "tk-ab2c2aeffdf9": [
+      {
+        "runId": "tr_mrtos8yj_452de7c9",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts",
+        "durationMs": 4793.912139000371,
+        "recordedAt": "2026-07-20T20:38:01.086Z"
+      }
+    ],
+    "tk-a3473f96d634": [
+      {
+        "runId": "tr_mrtoxwff_baf53ad9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change.status-repair.test.ts src/tools/_recovery-writers.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts",
+        "durationMs": 4469.521755000111,
+        "recordedAt": "2026-07-20T20:42:24.777Z"
+      },
+      {
+        "runId": "tr_mrtpgw4f_a944b847",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.workflow-terminate.test.ts src/tools/change.status-repair.test.ts src/tools/_recovery-writers.test.ts src/tools/change/shipped-terminal-proof.test.ts src/tools/change/recovery-readback.test.ts",
+        "durationMs": 4336.591417000629,
+        "recordedAt": "2026-07-20T20:57:10.848Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-workflow": [
+      {
+        "id": "dl-shippedWorkflowTermination01",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-shippedWorkflowTermination01",
+          "title": "Shipped-terminal workflow termination uses structural proof",
+          "body": "Operator-approved exact-run termination MAY recover a live RUNNING or PAUSED change workflow without poisoned-history describe evidence only when a typed shipped-terminal proof is complete: all seven gates are done on the durable disk projection, phase9_status is done, and a schema-valid archive bundle embeds the requested change ID. RUNNING status alone never authorizes termination. The operation MUST pin the described runId, preserve archive bundles, fail before projection mutation when termination fails, converge status and lifecycleState to archived, detect successor-run races, and verify terminal readback before reporting full success. Existing poisoned-history eligibility remains a separate valid path.",
+          "priority": "must",
+          "tags": [
+            "workflow",
+            "recovery",
+            "termination",
+            "archive",
+            "operator-only"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-shippedWorkflowTermination01.1",
+              "title": "Complete shipped-terminal proof authorizes exact-run termination",
+              "given": [
+                "An operator explicitly approved recovery",
+                "All seven gates are done on the durable disk projection",
+                "phase9_status is done",
+                "A schema-valid archive bundle embeds the requested change ID",
+                "Temporal describe reports a RUNNING or PAUSED run with a non-empty runId"
+              ],
+              "when": "adv_change_workflow_terminate evaluates shipped-terminal recovery",
+              "then": [
+                "The run qualifies without requiring poisoned-history text in describe output",
+                "Termination targets only the described runId",
+                "The archive bundle is preserved"
+              ]
+            },
+            {
+              "id": "rq-shippedWorkflowTermination01.2",
+              "title": "Incomplete or mismatched proof refuses without mutation",
+              "given": [
+                "A live workflow lacks at least one required shipped-terminal proof component"
+              ],
+              "when": "adv_change_workflow_terminate evaluates the run",
+              "then": [
+                "The call returns a typed refusal naming the missing or mismatched proof",
+                "No termination, cache refresh, or projection mutation occurs",
+                "RUNNING or PAUSED status alone does not authorize recovery"
+              ]
+            },
+            {
+              "id": "rq-shippedWorkflowTermination01.3",
+              "title": "Successful termination converges terminal authority",
+              "given": [
+                "An eligible exact pinned run terminates or is idempotently already gone"
+              ],
+              "when": "Recovery finalization runs",
+              "then": [
+                "The durable projection records status archived and lifecycleState archived",
+                "Read-after-write shows archived, excludes the change from in-flight results, and includes it exactly once in archived results",
+                "A different live successor run produces a typed race result instead of full success"
+              ]
+            },
+            {
+              "id": "rq-shippedWorkflowTermination01.4",
+              "title": "Terminate failure precedes projection mutation",
+              "given": [
+                "An eligible pinned run is selected",
+                "Temporal termination fails with a non-idempotent error"
+              ],
+              "when": "adv_change_workflow_terminate handles the failure",
+              "then": [
+                "No projection or cache mutation occurs",
+                "The exact runId and termination error are returned",
+                "The call does not report successful recovery"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-20T19:49:55.739Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed the problem statement with `confirm`: shipped-terminal evidence can coexist with a RUNNING draft workflow, causing adv_change_workflow_terminate and adv_archive_purge to mutually refuse recovery. Proposal preserves exact run pinning, explicit approval, bundle safety, and fail-closed healthy-workflow protection.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ca0ebf505cd5c1f724f563ff82cf6f519f373720b2ac399e076fabe77e5c10c4",
+        "non_whitespace_chars": 1699,
+        "checked_at": "2026-07-20T19:49:35.920Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-20T20:05:52.027Z",
+      "completed_at": "2026-07-20T20:06:02.088Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement signed off (user `approve`). Contract minted: 29 items (4 SC, 10 AC, 6 constraints, 5 avoidances, 4 OOS). Discovery extended fixPoisonedRecovery with new finding: shipped/live deadlock is a distinct terminal-authority contradiction. Spec-law delta rq-shippedWorkflowTermination01 recorded. Temporal API semantics validated against official source.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "non_whitespace_chars": 7777,
+        "checked_at": "2026-07-20T19:49:35.921Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-20T20:17:22.450Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design approved by user. Rev 3 incorporated both validator passes: D2 adds PROOF_INVALID_DISK_PROJECTION; D6 readback failure returns typed partialRecovery+remediation shape; D14 delta recorded (hydration noted). 14 design decisions (D1-D14), AC mapping table, single convergeTerminalAuthority function, two successor checks.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "21c3ddc3824524a329ec6b6f37eae69b16ab527113cfa5b31bdf45575b11cbd2",
+        "non_whitespace_chars": 19055,
+        "checked_at": "2026-07-20T19:49:35.923Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-20T20:19:07.731Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep with `approve`. 9 tasks covering all 10 ACs; validation passed (0 errors); NO_DELTAS warning is hydration defect noted in design D14."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-20T20:42:44.193Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 9 tasks done via inline implementation (adv-engineer sub-agent failed twice with empty returns — switched to inline per dispatch failure rules). 90/90 tests pass across 5 affected files. Typecheck clean. Lint clean. Pre-existing format warning on adv-arch-scan-assets.test.ts (from prior addCapabilityConsistency change). Implementation matches design D1-D14: computeShippedTerminalProof helper, classification switch with eligibilityClass field, convergeTerminalAuthority with two successor checks, atomic status+lifecycleState convergence, typed partialRecovery failure shapes, AC9 E2E regression fixture reproducing fixWorkflowReliabilityDefects state."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-20T21:20:19.744Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted with `accept`. Contract review matrix complete: 25 rows, 0 failing. Executive summary persisted. Independent reviewer returned BLOCKED with 2 blockers + 1 doc issue; all remediated inline (93/93 tests pass post-remediation). All 10 AC + 4 SC + 6 constraints + 5 avoidances verified.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ed626485183be6af83b91ef0e179d7afa9f2f6ce1d455d3cb46a9e73bd7f46be",
+        "non_whitespace_chars": 4672,
+        "checked_at": "2026-07-20T19:49:35.924Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "fixPoisonedRecovery",
+    "linked_at": "2026-07-20T19:49:33.120Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "live recovery incident: fixWorkflowReliabilityDefects shipped-terminal state contradicted by RUNNING draft workflow; workflow terminate and archive purge mutually refused"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+      "approvedAt": "2026-07-20T20:05:56.564Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`fixWorkflowReliabilityDefects`-shaped state is recoverable without fabricating poisoned-history evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "A genuinely healthy or incompletely shipped workflow remains non-terminable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Successful recovery leaves one archived authority: show reads archived, in-flight lists omit it, archived lists include it exactly once, and merged-branch cleanup can evaluate it as archived.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing poisoned-workflow and archived-purge behavior remains regression-green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**Approval first:** missing `approvedByUser:true` or blank `approvalEvidence` performs zero change, disk, bundle, Temporal describe, terminate, refresh, or projection-write operations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**Separate eligibility classes:** a live `RUNNING`/`PAUSED` run is terminable only through either existing poisoned-history evidence or a new typed shipped-terminal proof; neither route silently authorizes the other.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**Complete shipped-terminal proof:** the alternate route requires all seven gates `done` on the durable disk projection, `phase9_status.status === \"done\"`, and a readable schema-valid archive bundle whose embedded change ID exactly equals the requested ID. Any missing, invalid, mismatched, or unreadable component refuses with typed evidence and zero mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**Exact pin and preview:** one pre-mutation `describe()` supplies a non-empty `runId`; dry-run returns the eligibility class and every proof component without termination, refresh, or disk mutation; execution terminates only the handle pinned to that described `runId`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**Status safety:** unknown run status, missing run ID, unshipped gates, non-done phase 9, invalid bundle, or a normal active change refuses. `RUNNING` status alone never authorizes termination.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**Failure ordering:** a non-idempotent terminate failure occurs before cache refresh or projection mutation. If termination succeeds but terminal projection convergence fails, output reports a typed partial-recovery state with exact remediation; it never reports full success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**Terminal convergence:** after eligible termination or idempotent completed/not-found handling, durable projection records both `status:\"archived\"` and `lifecycleState:\"archived\"`. Read-after-write proves show status archived, in-flight count 0, and archived count exactly 1 before full success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**Successor-race guard:** post-termination verification must not claim convergence if the same workflow ID has a different live successor `runId`; it returns a typed race/conflict result naming both runs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**Regression fixture:** automated tests reproduce the observed state: live store says draft, all seven gates done, phase 9 done, archive inventory/bundle terminal, describe returns `RUNNING` without poison text. Dry-run qualifies it and execution terminates the exact pin and converges reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "**Compatibility:** existing poison-qualified termination, archived-change routing, `adv_archive_purge`, `adv_change_status_repair`, and exact-pin failure tests remain passing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Operator-only posture and approval evidence remain mandatory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No Temporal Reset, workflow reseed, or history rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Archive bundle remains preserved; no disk-bundle deletion is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Terminal proof uses parsed structural state, never title, age, branch-name, status-string coincidence, or free-text heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Existing accepted-delta immutable projection safeguards remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Trunk/worktree isolation remains mandatory. Before implementation, local `trunk`, `origin/trunk`, and worktree base must still be reconciled; initial verified SHA is `412475ab88f8ddc1b0af95bfd2b67eeed55c3e9b`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not weaken the existing poisoned-history evidence predicate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not terminate from `RUNNING`/`PAUSED` plus user approval alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not trust bundle directory naming without parsing embedded identity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not report success before terminal read-after-write verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not modify the active `fixPoisonedRecovery` contract; this change is its fast-follow for a disproven out-of-scope premise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "General archive enumeration performance (`fixArchivedBranchCleanup`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Legacy design-validation report tolerance (`makeLegacyDesignValidation`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Automatic bulk repair of all shipped workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "New workflow reset or history-inspection tooling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-20T21:35:08.155Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "AC9 regression fixture at change.workflow-terminate.test.ts:1305+ reproduces fixWorkflowReliabilityDefects-shaped state (draft live + 7 gates done + phase9 done + bundle terminal + RUNNING describe no poison) and proves dryRun qualifies it + execution terminates exact pin + converges reads. Targeted suite 80/80 (tr_mrtqhqf3_c028b19f).",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "RUNNING-without-poison AND without shipped-terminal proof refuses (change.ts:4901-4921); unshipped gates refuse before describe (change.ts:4632-4644); unknown status refuses (change.ts:4890-4898). Tests: refuses RUNNING without poison AND without proof; refuses change without shipped acceptance/release gate proof; refuses when run status cannot be classified.",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "convergeTerminalAuthority writes status+lifecycleState=archived atomically; readback proves showStatus=archived, showLifecycleState=archived, inFlightCount=0, archivedCount=1 (change.ts:240-270; change.workflow-terminate.test.ts:930-1002 positive convergence test).",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Existing poisoned-history path preserved (change.ts:4736-4748); archive-purge semantics unchanged; status-repair unchanged. All poison/archive-purge/status-repair tests in targeted suite (4 files, 80 tests) pass.",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.ts:4584-4602 refuses approvedByUser !== true and blank approvalEvidence before any read/mutation. Tests: rejects approvedByUser !== true; rejects blank approvalEvidence (change.workflow-terminate.test.ts:185-222).",
+          "notes": "Tests tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Eligibility classification at change.ts:4932-4934 routes via wedgedEvidence (poisoned_history) vs shippedTerminalProof (shipped_terminal). Tests: refuses RUNNING without poison AND without proof; dryRun preserves eligibilityClass=poisoned_history for poisoned runs.",
+          "notes": "Tests tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "computeShippedTerminalProof at change.ts:4721-4726 requires all 7 disk gates done + phase9 done + schema-valid bundle with matching embedded change.id. Refusal codes: PROOF_NO_BUNDLE, PROOF_BUNDLE_ID_MISMATCH, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_INVALID_DISK_PROJECTION, PROOF_INVALID_BUNDLE. Tests: refuses PROOF_BUNDLE_ID_MISMATCH; refuses no-bundle; refuses describe-throws-not-found + proof fails (disk-backed IDEMPOTENT_BUT_PROOF_MISSING). Blocker 1 fix at change.ts:4750-4778.",
+          "notes": "Blocker remediation verified tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Pre-mutation describe at change.ts:4686 pins runId via workflowRunPinFromDescription. dryRun at change.ts:4936-4957 returns eligibilityClass, runId, runStatus, proof components without termination or refresh. Pinned handle at change.ts:4961-4966 binds (workflowId, runId). Tests: dryRun returns structured pin assessment; terminates exact pinned run.",
+          "notes": "Tests tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Refusals: unknown status (change.ts:4890-4898); missing runId (change.ts:4922-4930); unshipped gates (change.ts:4632-4644); IDEMPOTENT_BUT_PROOF_MISSING for terminal-status without proof (change.ts:4821-4839) and describe-throws-not-found without proof (change.ts:4760-4778). RUNNING alone never authorizes. Tests cover each refusal path.",
+          "notes": "Tests tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Non-idempotent terminate failure returns before cache refresh or projection mutation (change.ts:4983-4992). Convergence failures route through formatConvergeFailure with typed partialRecovery shape (change.ts:319+). Tests: terminate failure returns structured error before projection mutation; readback failure returns typed partialRecovery.",
+          "notes": "Tests tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "convergeTerminalAuthority at change.ts:200+ writes status=archived + lifecycleState=archived, readback verifies showStatus=archived + showLifecycleState=archived + inFlightCount=0 + archivedCount=1. Idempotent completed/not-found routes through convergence when proof valid (change.ts:4770-4815, 4842-4887). Tests: converges when describe throws not-found (proof valid); converges when pinned terminate already completed.",
+          "notes": "Blocker remediation verified tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Successor check #1 pre-write (change.ts:210+) and #2 post-readback (change.ts:272-309) return typed successorRace / lateSuccessorRace. Non-completed error from check #2 returns typed readbackFailed partial-recovery (change.ts:289-309). Tests: successor #1 race; successor #2 late race; successor #2 describe failure surfaces typed partial-recovery.",
+          "notes": "Blocker 2 remediation verified tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC9 regression fixture at change.workflow-terminate.test.ts:1305+ reproduces fixWorkflowReliabilityDefects state end-to-end: live store says draft, all 7 gates done, phase 9 done, archive inventory/bundle terminal, describe returns RUNNING without poison. Dry-run qualifies, execution terminates exact pin, converges reads.",
+          "notes": "Tests tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted suite (4 files, 80 tests) includes existing poison-qualified termination tests, archived-change routing, archive-purge tests (change.archive-purge.test.ts), status-repair tests (change.status-repair.test.ts), exact-pin failure tests. All pass.",
+          "notes": "Tests tr_mrtqhqf3_c028b19f."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Operator-only approval gates enforced first (change.ts:4584-4602). approvalEvidence required, audited in authorization.evidence passed to convergeTerminalAuthority (change.ts:4780-4786).",
+          "notes": "Static check via change.ts source inspection."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation uses only describe() and terminate() on Temporal handles. No ResetWorkflow, no ResealWorkflow, no history rewrite APIs invoked.",
+          "notes": "Static check via change.ts source inspection."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Shipped-terminal path preserves archive bundle (no rm/mkdir on archive paths in the termination flow). includeDiskBundle escalation only on adv_archive_purge (unchanged).",
+          "notes": "Static check via change.ts source inspection."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "computeShippedTerminalProof parses structural state: gates object, phase9_status.status, archive bundle change.json with embedded change.id. No title/age/branch-name/status-string/free-text heuristics used.",
+          "notes": "Static check via change.ts source inspection."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation only modifies change.status and change.lifecycleState on the converging projection. Accepted-delta immutable projection safeguards in archive.ts unchanged; delta_add/modify paths untouched.",
+          "notes": "Static check via change.ts source inspection."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Worktree-resumed: adv_worktree_resume changeId:fixShippedWorkflowTermination returned path /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShippedWorkflowTermination. All edits and commits in worktree, not trunk. Trunk-write firewall respected.",
+          "notes": "Worktree path verified."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "poisonedDescriptionEvidence predicate unchanged. Reviewer's required_main_agent_actions: Do not revisit poisoned-history eligibility semantics except regression — respected.",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "RUNNING/PAUSED + user approval alone refuses at change.ts:4901-4921 (shippedTerminalProof must be valid). Tests: refuses RUNNING without poisoned-history describe evidence.",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "computeShippedTerminalProof parses embedded change.id from bundle's change.json (shipped-terminal-proof.ts). Bundle directory naming alone is insufficient — PROOF_BUNDLE_ID_MISMATCH test proves refusal when suffix matches but embedded id differs.",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Success path requires convergeTerminalAuthority → readback verification before reporting converged (change.ts:5020+). Readback failure returns typed partialRecovery (change.ts:264-270). Tests: readback failure returns typed partialRecovery.",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "fixPoisonedRecovery not modified by this change. Diff stat: only change.ts and change.workflow-terminate.test.ts touched in commits 03eca5dd and 07a346d5.",
+          "notes": "Reviewer verdict READY (attempt 2)."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "General archive enumeration performance is owned by fixArchivedBranchCleanup; no enumeration code touched here.",
+          "notes": "Out-of-scope by agreement."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Legacy design-validation report tolerance owned by makeLegacyDesignValidation; no design-validation paths touched here.",
+          "notes": "Out-of-scope by agreement."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "This change is single-change recovery only. Bulk repair lives in adv_archive_repair action=reconcile (unchanged).",
+          "notes": "Out-of-scope by agreement."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new workflow reset or history-inspection tooling introduced. Uses existing describe/terminate APIs only.",
+          "notes": "Out-of-scope by agreement."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**Approval first:** missing `approvedByUser:true` or blank `approvalEvidence` performs zero change, disk, bundle, Temporal describe, terminate, refresh, or projection-write operations.",
+    "**Separate eligibility classes:** a live `RUNNING`/`PAUSED` run is terminable only through either existing poisoned-history evidence or a new typed shipped-terminal proof; neither route silently authorizes the other.",
+    "**Complete shipped-terminal proof:** the alternate route requires all seven gates `done` on the durable disk projection, `phase9_status.status === \"done\"`, and a readable schema-valid archive bundle whose embedded change ID exactly equals the requested ID. Any missing, invalid, mismatched, or unreadable component refuses with typed evidence and zero mutation.",
+    "**Exact pin and preview:** one pre-mutation `describe()` supplies a non-empty `runId`; dry-run returns the eligibility class and every proof component without termination, refresh, or disk mutation; execution terminates only the handle pinned to that described `runId`.",
+    "**Status safety:** unknown run status, missing run ID, unshipped gates, non-done phase 9, invalid bundle, or a normal active change refuses. `RUNNING` status alone never authorizes termination.",
+    "**Failure ordering:** a non-idempotent terminate failure occurs before cache refresh or projection mutation. If termination succeeds but terminal projection convergence fails, output reports a typed partial-recovery state with exact remediation; it never reports full success.",
+    "**Terminal convergence:** after eligible termination or idempotent completed/not-found handling, durable projection records both `status:\"archived\"` and `lifecycleState:\"archived\"`. Read-after-write proves show status archived, in-flight count 0, and archived count exactly 1 before full success.",
+    "**Successor-race guard:** post-termination verification must not claim convergence if the same workflow ID has a different live successor `runId`; it returns a typed race/conflict result naming both runs.",
+    "**Regression fixture:** automated tests reproduce the observed state: live store says draft, all seven gates done, phase 9 done, archive inventory/bundle terminal, describe returns `RUNNING` without poison text. Dry-run qualifies it and execution terminates the exact pin and converges reads.",
+    "**Compatibility:** existing poison-qualified termination, archived-change routing, `adv_archive_purge`, `adv_change_status_repair`, and exact-pin failure tests remain passing."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Fix shipped workflow termination\n\n## Problem\n\nA shipped ADV change can retain a RUNNING Temporal workflow whose queried status remains `draft` after terminal release evidence exists. Recovery tools then deadlock because each trusts a different projection: live workflow reads reject archived-only recovery, while poisoned-only termination rejects the live run.\n\n## Why It Matters\n\nA stale shipped workflow remains an incorrect authority over terminal disk/archive state. It can produce false non-archived results, block merged-branch cleanup, degrade conflict inventory, and force operators toward unsafe manual intervention.\n\n## User Outcomes\n\n- Operators can recover a shipped-terminal change whose exact workflow run remains live without pretending it is poisoned.\n- Healthy, unshipped workflows remain protected from termination.\n- Recovery preserves archive bundles and terminal evidence.\n- Cleanup and read paths converge on one terminal status after recovery.\n\n## Scope\n\n### In Scope\n\n- Recognize the shipped-terminal/live-run contradiction using authoritative terminal evidence.\n- Preserve exact run pinning, explicit operator approval, fail-closed eligibility, and failure-before-projection-mutation ordering.\n- Restore durable terminal reads after successful recovery.\n- Add regression coverage for the reproduced `fixWorkflowReliabilityDefects` state shape.\n\n### Out of Scope\n\n- Temporal Reset or workflow history rewriting.\n- Terminating healthy unshipped workflows.\n- Weakening archive bundle deletion safeguards.\n- Reworking general poisoned-history recovery or archived-branch performance.\n\n### Must Not\n\n- Do not classify a run as safely terminable from `RUNNING` status alone.\n- Do not rely on heuristic title, branch-name, or age inference.\n- Do not delete archive bundles or local work.\n- Do not bypass exact run pinning or explicit operator approval.\n\n## Affected Capability\n\n`change-lifecycle` — operator recovery and terminal projection authority.",
+    "problemStatement": "A shipped ADV change can retain a RUNNING Temporal workflow whose queried status remains draft after acceptance and release gates are done, phase 9 completed, the release branch merged, and an archive bundle exists. Current recovery tools deadlock: adv_change_workflow_terminate refuses a RUNNING run without poisoned-history describe evidence, while adv_archive_purge refuses because the live workflow reports draft even though archived inventory reports archived. This stale live authority degrades cleanup, conflict inventory, and archive reads project-wide.",
+    "agreement": "# Agreement: Fix shipped workflow termination\n\n## Objectives\n\n1. Recover a shipped-terminal ADV change whose exact Temporal run remains `RUNNING` or `PAUSED` even though terminal release evidence is complete.\n2. Keep poisoned-history recovery and shipped-terminal recovery as separate, explicit eligibility classes.\n3. Preserve operator approval, exact-run pinning, fail-closed proof validation, and failure-before-projection-mutation ordering.\n4. Converge terminal disk/read projections after recovery so show, list, conflict inventory, and cleanup no longer treat the change as open.\n\n## Success Criteria\n\n- `fixWorkflowReliabilityDefects`-shaped state is recoverable without fabricating poisoned-history evidence.\n- A genuinely healthy or incompletely shipped workflow remains non-terminable.\n- Successful recovery leaves one archived authority: show reads archived, in-flight lists omit it, archived lists include it exactly once, and merged-branch cleanup can evaluate it as archived.\n- Existing poisoned-workflow and archived-purge behavior remains regression-green.\n\n## Acceptance Criteria\n\n1. **Approval first:** missing `approvedByUser:true` or blank `approvalEvidence` performs zero change, disk, bundle, Temporal describe, terminate, refresh, or projection-write operations.\n2. **Separate eligibility classes:** a live `RUNNING`/`PAUSED` run is terminable only through either existing poisoned-history evidence or a new typed shipped-terminal proof; neither route silently authorizes the other.\n3. **Complete shipped-terminal proof:** the alternate route requires all seven gates `done` on the durable disk projection, `phase9_status.status === \"done\"`, and a readable schema-valid archive bundle whose embedded change ID exactly equals the requested ID. Any missing, invalid, mismatched, or unreadable component refuses with typed evidence and zero mutation.\n4. **Exact pin and preview:** one pre-mutation `describe()` supplies a non-empty `runId`; dry-run returns the eligibility class and every proof component without termination, refresh, or disk mutation; execution terminates only the handle pinned to that described `runId`.\n5. **Status safety:** unknown run status, missing run ID, unshipped gates, non-done phase 9, invalid bundle, or a normal active change refuses. `RUNNING` status alone never authorizes termination.\n6. **Failure ordering:** a non-idempotent terminate failure occurs before cache refresh or projection mutation. If termination succeeds but terminal projection convergence fails, output reports a typed partial-recovery state with exact remediation; it never reports full success.\n7. **Terminal convergence:** after eligible termination or idempotent completed/not-found handling, durable projection records both `status:\"archived\"` and `lifecycleState:\"archived\"`. Read-after-write proves show status archived, in-flight count 0, and archived count exactly 1 before full success.\n8. **Successor-race guard:** post-termination verification must not claim convergence if the same workflow ID has a different live successor `runId`; it returns a typed race/conflict result naming both runs.\n9. **Regression fixture:** automated tests reproduce the observed state: live store says draft, all seven gates done, phase 9 done, archive inventory/bundle terminal, describe returns `RUNNING` without poison text. Dry-run qualifies it and execution terminates the exact pin and converges reads.\n10. **Compatibility:** existing poison-qualified termination, archived-change routing, `adv_archive_purge`, `adv_change_status_repair`, and exact-pin failure tests remain passing.\n\n## Constraints\n\n- Operator-only posture and approval evidence remain mandatory.\n- No Temporal Reset, workflow reseed, or history rewrite.\n- Archive bundle remains preserved; no disk-bundle deletion is introduced.\n- Terminal proof uses parsed structural state, never title, age, branch-name, status-string coincidence, or free-text heuristics.\n- Existing accepted-delta immutable projection safeguards remain intact.\n- Trunk/worktree isolation remains mandatory. Before implementation, local `trunk`, `origin/trunk`, and worktree base must still be reconciled; initial verified SHA is `412475ab88f8ddc1b0af95bfd2b67eeed55c3e9b`.\n\n## Avoidances\n\n- Do not weaken the existing poisoned-history evidence predicate.\n- Do not terminate from `RUNNING`/`PAUSED` plus user approval alone.\n- Do not trust bundle directory naming without parsing embedded identity.\n- Do not report success before terminal read-after-write verification.\n- Do not modify the active `fixPoisonedRecovery` contract; this change is its fast-follow for a disproven out-of-scope premise.\n\n## Out of Scope\n\n- General archive enumeration performance (`fixArchivedBranchCleanup`).\n- Legacy design-validation report tolerance (`makeLegacyDesignValidation`).\n- Automatic bulk repair of all shipped workflows.\n- New workflow reset or history-inspection tooling.\n\n## Current-State Evidence\n\n- `adv_change_show fixWorkflowReliabilityDefects`: live `status:\"draft\"`, all seven gates done, `phase9_status.status:\"done\"`.\n- Archived inventory: `fixWorkflowReliabilityDefects` appears archived from archive source.\n- `adv_change_workflow_terminate dryRun:true`: run `019f7af5-0f5f-7eb5-a114-2383d0a76b78` is `RUNNING`; refused because describe contained no poisoned-history evidence.\n- `adv_archive_purge includeDiskBundle:false`: refused because live status remained draft.\n- Temporal official API/source: describe responses do not carry `WorkflowTaskFailedEventAttributes`; workflow-task failure cause belongs to history events. Absence of poison text in describe is not proof of health.\n- Exact-run handle semantics preserve supplied `runId`; current ADV adapter already pins termination correctly.\n\n## Edge Cases\n\n- Bundle exists from pre-phase-9 write but phase 9 is pending/failed: refuse.\n- Bundle directory suffix matches requested ID but embedded `change.id` differs: refuse.\n- Disk projection has all gates done but phase 9 metadata is absent: refuse.\n- Describe returns `RUNNING` without run ID: refuse.\n- Pinned run ends between describe and terminate: idempotent completion path, then terminal convergence/readback.\n- Different successor run starts after pinned termination: report race; do not claim repaired.\n- Projection write fails after successful termination: report partial recovery with status-repair remediation.\n- Already archived store result: preserve existing route to `adv_archive_purge`.\n\n## Spec-Law Impact\n\nAdd `rq-shippedWorkflowTermination01` to `advance-workflow`. Existing lifecycle law remains authoritative; implementation must make recovery writer converge canonical `lifecycleState` with compatibility `status`.\n\n## Conflict Scan\n\n- Active overlap: `fixPoisonedRecovery` modifies recovery code in `change.ts`; this fast-follow is intentionally separate because its agreement explicitly excludes live reachable wedges and delegates them to the existing termination tool. Integration must reconcile that branch when it lands.\n- Adjacent, non-conflicting: `fixArchivedBranchCleanup` changes cleanup performance; `makeLegacyDesignValidation` changes legacy report read tolerance.\n- Typed inventory returned all 99 known rows but carried 9 terminal archive omissions; discovery is therefore **degraded**, not a clean no-conflict result. Active-authority validation found no errors; expected pre-prep warnings are `NO_TASKS` and `NO_DELTAS`.\n\n## Extends\n\n- Extends archived `fixWorkflowReliabilityDefects` terminal evidence and active `fixPoisonedRecovery` recovery classification work.\n- New finding: the shipped/live deadlock is not poisoned-history reachability. It is a distinct terminal-authority contradiction that both existing operator tools reject.\n\n## LBP Check\n\nNo external alternative applies: this is an internal ADV authority-boundary defect. Temporal official source validates API semantics; no dependency or service substitution is relevant.\n\n## Skills Considered\n\n- `adv-worktree`: applied for isolated branch and verified trunk ancestry.\n- `adv-clarify`: not loaded; observed tool outputs resolve the behavioral ambiguity.\n- `adv-agent-tool-contracts`: reserved for design if public tool schema or agent-callable contract changes; current intent keeps args stable.\n\n## Discovery Checklist\n\n- PASS — problem confirmation captured.\n- PASS — current source and tests inspected.\n- PASS — official Temporal API/source semantics checked.\n- PASS — prior/related changes extended rather than repeated.\n- PASS — complete typed inventory requested; degradation and omissions surfaced.\n- PASS — own-change strict validation run; only expected pre-prep warnings.\n- PASS — edge cases documented.\n- PASS — spec-law impact classified as add.\n- PASS — local trunk, origin/trunk, and worktree HEAD verified equal at `412475ab`.\n- SKIP — external competitor search; purely internal authority repair with no viable external solution.",
+    "design": "# Design: Fix shipped workflow termination (rev 3 — validator-corrected)\n\n> Discovery found a structural contradiction: shipped-terminal projection (all gates done, phase 9 done, archive bundle written) can coexist with a `RUNNING` Temporal workflow whose `describe()` carries no poisoned-history failure text. Temporal's `DescribeWorkflowExecutionResponse` does not include `WorkflowTaskFailedEventAttributes`; those live only in history events. The current tool's poison-from-describe gate is therefore unsound for this class of incident and deadlocks against `adv_archive_purge` (which only acts on `status:\"archived\"`).\n>\n> Rev 2 incorporated the first validator pass. Rev 3 closes the two remaining corrections: D2 adds a typed refusal for an invalid durable disk projection; D6 readback failure now returns the same typed partial-recovery shape as successor races (matching AC6).\n>\n> Note on delta persistence: `adv_delta_add` returned `success:true` twice with the delta echoed back, but `adv_change_show deltas` currently reads `{}`. This is a workflow-query hydration issue, not a missing delta — the signal was accepted. Implementation and archive will re-verify delta presence; if the hydration bug persists it becomes a sibling fast-follow (out of scope here).\n\n## Architecture\n\nSingle convergence function, single proof predicate, two eligibility classes. Proof is computed **before** any idempotent-completed/not-found early return so no convergence route bypasses structural validation.\n\n```\n            ┌─ approval-first (unchanged)\n            ├─ existence / non-archived (unchanged)\n            ├─ shipped gates acceptance+release (unchanged — coarse precheck)\n            ├─ NEW: compute shipped-terminal proof (D2); record refusal code if missing\n            ├─ describe once → pin runId (unchanged)\n            ├─ NEW: classify run:\n            │     ├─ terminal status + proof OK → idempotent alreadyTerminated → CONVERGE\n            │     ├─ terminal status + proof MISSING → refuse (do not early-return success)\n            │     ├─ RUNNING/PAUSED + poisoned-history evidence → eligible (poison class)\n            │     ├─ RUNNING/PAUSED + proof OK → eligible (shipped_terminal class)\n            │     ├─ RUNNING/PAUSED + neither → refuse \"RUNNING alone never authorizes\"\n            │     └─ unknown status → refuse (unchanged)\n            ├─ dryRun: return eligibilityClass + proof + pinned run, no mutation\n            ├─ if eligible and not dryRun: terminate pinned run\n            │     └─ non-not-found failure → return failure BEFORE any projection/cache mutation\n            ├─ CONVERGE (single funneled path):\n            │     ├─ describe unpinned handle once (successor check #1)\n            │     ├─ if different live runId → typed successorRace result (D7 shape)\n            │     ├─ write status:\"archived\" AND lifecycleState:\"archived\" atomically (D5)\n            │     ├─ refresh projection cache\n            │     ├─ readback assert show.status + show.lifecycleState + list counts (D6)\n            │     ├─ if readback fails → typed partialRecovery result (D6-amended, same shape as D7)\n            │     ├─ describe unpinned handle again (successor check #2, post-readback)\n            │     └─ if different live runId → typed lateSuccessorRace result (D7 shape)\n            └─ return success only after both successor checks + readback pass\n```\n\n## Key Decisions\n\n### D1 — One tool, two typed eligibility branches\n\nAdd `shipped_terminal` as a typed enum result returned alongside `poisoned_history`. Both branches share the same safety invariants (approval-first, exact pin, failure ordering, archive preservation, single convergence function). The contract intentionally does **not** add a new public tool.\n\n**Rationale:** Researcher + agreement AC2 require distinct classes; reusing the same tool preserves operator UX, `dryRun`, idempotent completed/not-found handling, and exact-run handle semantics (`_adapters.getChangeHandle`).\n\n**Rejected:** new `adv_change_force_archive` tool (duplicates approval + pinning); relax poisoned-history guard (would unsoundly authorize healthy workflows whose describe simply lacks poison text).\n\n### D2 — Shipped-terminal proof is structural, parsed, identity-checked\n\nThe proof is computed from the **durable disk projection** (`loadChange(store.paths.changes, changeId)`) plus the archive bundle, not from the live workflow query. It requires all of:\n\n1. `loadChange` returns `success:true` with non-null data (rejects unreadable disk projection with `PROOF_INVALID_DISK_PROJECTION`).\n2. `ChangeSchema.parse(diskChange)` succeeds (rejects malformed/corrupt disk with `PROOF_INVALID_DISK_PROJECTION`, including the Zod issue path in the refusal evidence).\n3. All seven gates `done` on the parsed disk projection (else `PROOF_MISSING_GATES`).\n4. `diskChange.phase9_status?.status === \"done\"` (else `PROOF_MISSING_PHASE9`).\n5. `findArchiveBundle(store.paths.archive, changeId)` returns a path (else `PROOF_NO_BUNDLE`).\n6. The archive bundle's `change.json` parses via `ChangeSchema` (else `PROOF_INVALID_BUNDLE`).\n7. The parsed bundle change's `id` field strictly equals `changeId` (else `PROOF_BUNDLE_ID_MISMATCH`).\n\nEach refusal returns `{success:false, proofRefusal:<CODE>, evidence:<details>}` with zero mutation.\n\n**Rationale:** Researcher flagged that `findArchiveBundle` only proves readable `change.json`, not schema validity or matching identity; AC3 requires both. Rev 3 closes the gap where a corrupt disk projection would have no typed refusal code.\n\n### D3 — `RUNNING`/`PAUSED` only; RUNNING alone never authorizes\n\nThe shipped-terminal branch is only reachable when the describe-reported status is in `TERMINABLE_WORKFLOW_RUN_STATUSES` (RUNNING/PAUSED). Refusal cases:\n\n- unknown status → existing unclassifiable refusal (unchanged)\n- terminal status without proof → refuse (rev 2: do not early-return success; see D11)\n- terminal status with proof → idempotent alreadyTerminated, funnel through CONVERGE\n- healthy gate-incomplete change + RUNNING + no poison → existing refusal path is preserved\n- shipped-terminal proof missing any component → new typed refusal (D2)\n\nThe change contract explicitly does **not** grant `RUNNING + approval` authority. Approval authorizes the operator action; the typed proof authorizes the *recovery eligibility class*.\n\n### D4 — Failure-before-projection-mutation preserved\n\nThe existing terminate ordering is unchanged. Non-idempotent terminate failure returns before any cache refresh, projection write, or convergence work. Idempotent not-found from terminate still proceeds to CONVERGE.\n\n### D5 — Converge `status` AND `lifecycleState` atomically (writer contract)\n\n**Writer contract (explicit):** `saveRecoveredChangeStatus` gains a required `lifecycleState` field for this call path. Signature becomes:\n\n```ts\nsaveRecoveredChangeStatus({\n  store, change, authorization,\n  status: \"archived\",\n  lifecycleState: \"archived\",  // NEW required field when status terminal\n});\n```\n\nThe implementation spreads both fields onto the disk projection:\n\n```ts\nconst updated = {\n  ...input.change,\n  status: input.status,\n  lifecycleState: input.lifecycleState,  // NEW\n  ...(input.closure ? { closure: input.closure } : {}),\n} as Change;\n```\n\n**Backward compatibility:** existing callers (`adv_change_status_repair`) pass no `lifecycleState` and remain status-only — that tool does not converge live-workflow authority. A type signature making `lifecycleState` optional preserves them. This terminate path always passes `lifecycleState: \"archived\"`.\n\n**Rationale:** `normalizeChangeLifecycleState` is bypassed when the disk projection already has a literal `lifecycleState:\"open\"` (the read normalizer trusts the stored literal first). Writing both fields atomically closes that open-authority leak.\n\n**Rejected:** bypass writer and write JSON directly (violates rq-fix-archive-recovery-disk-write); add lifecycleState mutation to status_repair (out of scope — not the recovery path that converges authority).\n\n### D6 — Read-after-write gate before full success (asserts both fields, typed partial-recovery on failure)\n\nReuse and extend `verifyStatusRepairReadAfterWrite` from `change/recovery.ts`. After convergence write:\n\n- `adv_change_show`-equivalent `status` must be `archived`\n- `adv_change_show`-equivalent `lifecycleState` must be `archived` (NEW field on `StatusRepairReadback`)\n- in-flight list count for changeId must be 0\n- archived list count for changeId must be exactly 1\n\n**Failure shape (rev 3 — matches AC6 \"typed partial-recovery state with exact remediation\"):**\n\n```json\n{\n  \"success\": false,\n  \"partialRecovery\": true,\n  \"pinnedRunTerminated\": true,\n  \"converged\": false,\n  \"fromStatus\": \"draft\",\n  \"attemptedStatus\": \"archived\",\n  \"attemptedLifecycleState\": \"archived\",\n  \"archivePath\": \"<bundle path>\",\n  \"readback\": {\n    \"showStatus\": \"<actual>\",\n    \"showLifecycleState\": \"<actual>\",\n    \"inFlightCount\": <n>,\n    \"archivedCount\": <n>\n  },\n  \"remediation\": \"Workflow run was terminated and disk projection was written, but terminal readback did not converge. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is now gone, call adv_change_status_repair to finalize the status flip.\"\n}\n```\n\nThis is the same `success:false, partialRecovery:true, pinnedRunTerminated:true` shape used for successor races (D7), ensuring AC6 is uniformly satisfied for every convergence failure. The operator can retry or call `adv_change_status_repair` if the workflow itself was terminated but projection lag remains.\n\n### D7 — Successor race returns `success:false` with typed partial-recovery\n\nA successor race (different live `runId` seen post-termination) returns:\n\n```json\n{\n  \"success\": false,\n  \"partialRecovery\": true,\n  \"pinnedRunTerminated\": true,\n  \"converged\": false,\n  \"successorRace\": {\n    \"pinnedRunId\": \"<original>\",\n    \"successorRunId\": \"<new>\",\n    \"phase\": \"pre_write\" | \"post_readback\"\n  },\n  \"remediation\": \"Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId, or adv_archive_purge once status converges.\"\n}\n```\n\nThe pinned run IS terminated (factual), but the call does **not** report full success because authority did not converge. This satisfies AC6 (\"never reports full success\") and AC8 (typed race result naming both runs) without ambiguity.\n\n### D8 — `dryRun` returns full proof, no mutation\n\n`dryRun:true` returns the same fields as the current poisoned-history dryRun, plus a typed `eligibilityClass: \"shipped_terminal\" | \"poisoned_history\"` and the proof components. Existing tests for poisoned dryRun remain green because the new field is additive.\n\n### D9 — Archive bundle preservation\n\n`includeDiskBundle` is **not** exposed on this tool. Archive bundle is never touched. `adv_archive_purge` remains the sole disk-bundle deletion lever (rq-archivePurge01).\n\n### D10 — Workflow-code determinism\n\nNo changes to `plugin/src/temporal/**`. The signal-handler surface and workflow history remain compatible; this change only mutates the operator tool layer and the recovery writer's disk projection. No `wf.patched`, Worker Versioning, or replay fixture required.\n\n### D11 — Proof gates idempotent paths (rev 2 correction)\n\nThe current implementation's idempotent-completed/not-found and already-terminal early returns check only acceptance/release gates. Rev 2 restructures so the shipped-terminal proof (D2) is computed **before** describe, and any idempotent path that would converge authority requires the proof to be valid. If proof is missing, idempotent-completed returns typed `IDEMPOTENT_BUT_PROOF_MISSING` refusal instead of early-return success. This prevents a half-shipped stale run from being declared converged.\n\nThe poisoned-history path is unchanged: it remains eligible without shipped-terminal proof (a poisoned run may have never reached archive).\n\n### D12 — Single convergence function (rev 2 correction)\n\nAll convergeable outcomes funnel through one local function `convergeTerminalAuthority(store, changeId, pinnedRunId)`:\n\n1. Describe unpinned handle → successor check #1\n2. Convergence write (status + lifecycleState)\n3. Cache refresh\n4. Readback (asserts both fields + list counts)\n5. Describe unpinned handle → successor check #2\n\nInputs: store, changeId, pinnedRunId. Outputs: typed result (`success`, `successorRace`, `lateSuccessorRace`, `readbackFailed`). Terminate-success and idempotent-completed both call this function; no inline convergence logic duplicates it.\n\n### D13 — Two successor checks (rev 2 correction)\n\nSuccessor check #1 (pre-write): catches the common case where a successor started between pin and terminate.\n\nSuccessor check #2 (post-readback): catches the TOCTOU window between write and readback. If a new live run appears here, the disk write already happened but the call still returns `success:false, lateSuccessorRace` — the operator is told authority is half-converged.\n\nADV's workflow-start path (`startChangeWorkflow`) is idempotent and returns an existing handle for an already-running workflowId; a brand-new successor would require an external start. This is unlikely but the second check defends against it structurally rather than relying on start-side invariants.\n\n### D14 — Spec-law scenarios\n\nThe four `rq-shippedWorkflowTermination01` scenarios are recorded in the change-owned delta `dl-shippedWorkflowTermination01` (capability `advance-workflow`). They cover: complete proof authorizes termination; incomplete/mismatched proof refuses without mutation; successful termination converges terminal authority; terminate failure precedes projection mutation. `adv_delta_add` returned `success:true` with the delta echoed back twice; the deltas field hydration issue is noted at the top of this doc but does not change the recorded contract.\n\n## Implementation Strategy\n\n### Touch map\n\n| File | Change |\n|---|---|\n| `plugin/src/tools/change.ts` (`adv_change_workflow_terminate`) | Restructure: proof-before-describe; classification switch; single `convergeTerminalAuthority` function; successor checks #1/#2; typed refusal codes including `PROOF_INVALID_DISK_PROJECTION`; typed `partialRecovery` shape on convergence failure |\n| `plugin/src/tools/_recovery-writers.ts` (`saveRecoveredChangeStatus`) | Add required `lifecycleState` field for terminal writes; backward-compatible optional type for non-terminal callers |\n| `plugin/src/tools/change/recovery.ts` (`verifyStatusRepairReadAfterWrite`) | Extend readback to assert `lifecycleState:\"archived\"` and include it in returned shape |\n| `plugin/src/tools/change.workflow-terminate.test.ts` | New regression tests: proof-missing refuses (each code); invalid disk projection refuses; dryRun returns class; idempotent-but-proof-missing refuses; converge asserts lifecycleState; successorRace pre-write; lateSuccessorRace post-readback; readback-failure returns partialRecovery shape |\n| `plugin/src/tools/_recovery-writers.test.ts` | New test asserting `lifecycleState` is written when status=\"archived\" |\n| `plugin/src/tools/change.status-repair.test.ts` | Add readback lifecycleState assertion to existing status-repair regression tests |\n| `docs/tool-ownership.md` | Add shipped-terminal eligibility to the `adv_change_workflow_terminate` rationale row |\n| `.adv/specs/advance-workflow/spec.json` + `docs/specs/advance-workflow.md` | Delta applied on archive (recorded as `dl-shippedWorkflowTermination01`) |\n\n### TDD plan\n\n1. RED: `computeShippedTerminalProof` helper rejects missing/invalid bundle identity, missing phase9, missing gates, mismatched bundle id, invalid disk projection.\n2. GREEN: parse + identity check; unit tests for each refusal code (D2).\n3. RED: `adv_change_workflow_terminate` with shipped-terminal fixture (all gates, phase9 done, bundle valid, describe RUNNING no poison) currently refuses with \"not wedged\".\n4. GREEN: classification branch added; dryRun returns `eligibilityClass:\"shipped_terminal\"` + proof.\n5. RED: idempotent-completed path with missing proof currently returns success; rev 2 requires refusal.\n6. GREEN: `IDEMPOTENT_BUT_PROOF_MISSING` refusal added; early returns gated by proof.\n7. RED: post-terminate convergence — disk projection lacks `lifecycleState:\"archived\"`; readback fails; failure shape lacks `partialRecovery`/`remediation`.\n8. GREEN: writer updated to require lifecycleState; readback extended; both fields asserted; failure returns typed partialRecovery + remediation.\n9. RED: successor check #1 — second describe returns new runId; convergence skipped, `success:false, partialRecovery:true, successorRace`.\n10. GREEN: typed `successorRace` result; convergeTerminalAuthority function returns it.\n11. RED: successor check #2 — late successor appears between write and readback; `success:false, partialRecovery:true, lateSuccessorRace`.\n12. GREEN: post-readback describe + typed lateSuccessorRace result.\n13. Regression sweep: existing poisoned-history tests unchanged; archive-purge unchanged; status-repair unchanged (no lifecycleState requirement added there).\n\n### Conflict reconciliation with `fixPoisonedRecovery`\n\n`fixPoisonedRecovery` modifies recovery sites in `change.ts` (probe-first pattern for archive, gate, task, design-concern, verification-evidence). This change modifies the *terminate* tool in the same file. The two changes touch non-overlapping regions:\n\n- `fixPoisonedRecovery`: archive handler (~L2970-L3340), gate (~L1584-L1781), task (~L967-L1745), design-concern (~L168), verification-evidence (~L170).\n- This change: `adv_change_workflow_terminate` (~L4275-L4545).\n\nIntegration plan: this change is a fast-follow of `fixPoisonedRecovery`. If `fixPoisonedRecovery` lands first, this branch rebases onto it. If this change lands first, `fixPoisonedRecovery`'s probe-first helper (`shouldTakeRecoveryBranch`) is **not** referenced by the terminate tool — terminate's authorization gate is fundamentally different (operator-approved exact-run termination, not signal-and-recovery). No merge conflict expected on logic; only file-level diff context.\n\n## Risks\n\n| Risk | Mitigation |\n|---|---|\n| Live workflow has both shipped-terminal proof AND is mid-flight doing useful work (rare but possible if archive ran prematurely) | Operator approval remains the final gate; `dryRun` shows the full proof so the operator can refuse. Phase9 `done` is a strong signal that no further workflow work is expected. |\n| Bundle identity collision (two changes with similar IDs) | Strict equality check on parsed `change.id`; refuses on mismatch with typed `PROOF_BUNDLE_ID_MISMATCH`. |\n| Successor run starts between checks | Two successor checks (#1 pre-write, #2 post-readback); both return typed race result with `success:false` |\n| Recovery writer lifecycle drift if `fixPoisonedRecovery` lands conflicting changes | Documented touch map; fast-follow lineage already recorded (`fast_follow_of: fixPoisonedRecovery`). |\n| Stale `lifecycleState:\"open\"` literal surviving normalization | D5 writes both fields atomically; D6 readback asserts both. |\n| Workflow-task queue poisoning already fixed by future sibling | Discovery confirmed `fixPoisonedRecovery` explicitly excludes live reachable wedges; it delegates to this exact termination tool, so this change is the contract owner. |\n| Idempotent-completed bypasses proof (validator finding #1) | D11 restructures: proof computed before describe; idempotent paths require proof. |\n| Successor TOCTOU window (validator finding #3) | D13 adds second post-readback check. |\n| Ambiguous success semantics (validator finding #6) | D7 makes successor/partial outcomes `success:false` with typed fields. |\n| Invalid durable disk projection has no typed refusal (rev 3 validator finding) | D2 adds `PROOF_INVALID_DISK_PROJECTION` covering both `loadChange` failure and `ChangeSchema.parse` failure with Zod issue path evidence. |\n| Readback failure lacks typed partial-recovery shape (rev 3 validator finding) | D6 amended: failure returns `partialRecovery:true, pinnedRunTerminated:true, converged:false, readback, remediation` — same shape as D7. |\n| `adv_delta_add` reports success but `adv_change_show deltas:{}` (hydration defect) | Noted at top; recorded delta is authoritative per tool contract; sibling fast-follow if it persists. |\n\n## Spec-law\n\nAdds `rq-shippedWorkflowTermination01` to `advance-workflow` (delta `dl-shippedWorkflowTermination01`, four scenarios: complete-proof-authorizes; incomplete-proof-refuses; terminate-converges-authority; terminate-failure-precedes-mutation). No existing requirement is modified; existing `rq-toolOwnership01`, `rq-changeLifecycleState01`, and `rq-fix-archive-recovery-disk-write` remain authoritative and are honored.\n\n## LBP Check\n\n- No external alternative: internal authority-boundary defect.\n- Reuse of existing `verifyStatusRepairReadAfterWrite` and `saveRecoveredChangeStatus` avoids duplicating terminal-readback and disk-direct-write logic.\n- Exact-run handle semantics already provided by `_adapters.getChangeHandle(client, projectId, changeId, runId)`; no new Temporal SDK surface needed.\n\n## Validation Plan\n\n- adv-researcher rev 1 returned `caution`; rev 2 returned `CONFLICT` with 3 corrections; rev 3 incorporates all 3.\n- Implementation gates: prep (tasks), apply (TDD inline per task), review, harden, archive sign-off.\n- Final validator pass after implementation confirms AC mapping before acceptance.\n\n## AC Mapping\n\n| AC | Decision(s) | Test step |\n|---|---|---|\n| AC1 approval-first | existing pre-check | unchanged test |\n| AC2 separate classes | D1, D3 | TDD step 4 |\n| AC3 complete proof | D2 (incl. `PROOF_INVALID_DISK_PROJECTION`), D11 | TDD steps 1-2 |\n| AC4 exact pin + dryRun | D8, adapter | TDD step 4 |\n| AC5 status safety | D3, D11 | TDD steps 5-6 |\n| AC6 failure ordering + typed partial-recovery | D4, D6, D7, D12 | TDD steps 7-12 |\n| AC7 terminal convergence | D5, D6, D12 | TDD steps 7-8 |\n| AC8 successor-race | D7, D13 | TDD steps 9-12 |\n| AC9 regression fixture | all | TDD steps 3-4, 9-12 |\n| AC10 compatibility | touch map | TDD step 13 |\n\n## Open Questions\n\nNone. All ACs map to design decisions D1–D14 and touch-map rows. The four spec-law scenarios are persisted in the recorded delta (tool returned success twice; show-time hydration issue noted separately).",
+    "executiveSummary": "# Executive Summary: Fix shipped workflow termination\n\n## Outcome\n\nAdded a \"shipped_terminal\" eligibility branch to `adv_change_workflow_terminate`. Operators can now recover a shipped change whose Temporal workflow remains `RUNNING`/`PAUSED` with no poisoned-history evidence — the exact deadlock that blocked `fixWorkflowReliabilityDefects` recovery. The existing poisoned-history path is preserved unchanged.\n\n## Why It Matters\n\nA shipped change can retain a live workflow whose describe shows no poison even though all terminal disk evidence (7 gates done, phase9 done, archive bundle written) proves the change is shipped. The recovery tools deadlocked: `adv_change_workflow_terminate` refused (no poison), `adv_archive_purge` refused (live status still draft). This stale live authority degraded conflict inventory, archive reads, and merged-branch cleanup project-wide.\n\n## What Was Built\n\n- **Two eligibility classes** in one tool: `poisoned_history` (existing — terminate + cache refresh) and `shipped_terminal` (new — terminate + atomic status/lifecycleState=archived convergence + readback).\n- **Structural proof helper** `computeShippedTerminalProof` with 6 typed refusal codes: PROOF_INVALID_DISK_PROJECTION, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE, PROOF_BUNDLE_ID_MISMATCH.\n- **`convergeTerminalAuthority`** function funnels all convergence through one path with two successor-race checks (#1 pre-write, #2 post-readback TOCTOU).\n- **Typed partial-recovery shapes** for every convergence failure: `successorRace`, `lateSuccessorRace`, `writeFailed`, `readbackFailed` — all return `success:false, partialRecovery:true, pinnedRunTerminated:true, converged:false, remediation`.\n- **Atomic lifecycleState write** in `saveRecoveredChangeStatus` (closes the stale `lifecycleState:\"open\"` literal leak).\n- **Extended `verifyStatusRepairReadAfterWrite`** with `requireLifecycleState` flag (asserts both `status` AND `lifecycleState` converged).\n- **Tool description** documents both classes, refusal codes, and convergence semantics.\n\n## Verification\n\n- **93 unit tests pass** across 5 affected files (change.workflow-terminate: 29, change.status-repair: 15, _recovery-writers: 30, shipped-terminal-proof: 12, recovery-readback: 7).\n- **Typecheck clean**, **lint clean**.\n- **AC9 E2E regression** reproduces the `fixWorkflowReliabilityDefects`-shaped wedge: dryRun qualifies as `shipped_terminal`; execution terminates exact pinned run + converges; readback proves `show=archived, in-flight=0, archived=1`; idempotent re-invoke routes to `adv_archive_purge`.\n- **Independent reviewer** (adv-reviewer) returned BLOCKED with 2 blockers + 1 doc issue; all three remediated inline with new tests added.\n- **Design validated** twice by adv-researcher; all 14 design decisions (D1-D14) mapped to AC1-AC10.\n\n## Risks and Follow-ups\n\n- **Delta hydration defect**: `adv_delta_add` returned `success:true` for `dl-shippedWorkflowTermination01` but `adv_change_show deltas:{}` reads empty. Tool contract authoritative; sibling fast-follow needed if it persists project-wide.\n- **`adv-engineer` sub-agent** failed twice with empty returns during execution; switched to inline per dispatch-failure rules. Underlying spawn defect not investigated here.\n- **Pre-existing format warning** on `adv-arch-scan-assets.test.ts` (from prior `addCapabilityConsistency` change, not this work).\n- **Live recovery of `fixWorkflowReliabilityDefects`** still pending: requires plugin rebuild + redeploy + OpenCode restart before the new tool behavior is available to the host. After redeploy, re-run `adv_change_workflow_terminate` with shipped_terminal evidence to recover the wedge.\n- **Compatibility with active `fixPoisonedRecovery`**: this change is its fast-follow. Touch regions are non-overlapping (terminate tool vs probe-first recovery sites); rebase may be needed if `fixPoisonedRecovery` lands first.\n\n## Spec-law\n\nAdds `rq-shippedWorkflowTermination01` to `advance-workflow` (delta `dl-shippedWorkflowTermination01`, 4 scenarios). Existing `rq-toolOwnership01`, `rq-changeLifecycleState01`, `rq-fix-archive-recovery-disk-write` remain authoritative.\n\n## Release Readiness Summary\n\n- **Value**: Unblocks recovery of shipped-terminal workflows that deadlock existing tools; restores project-wide read consistency.\n- **Enabling-only/follow-up dependency**: none blocking; live recovery of `fixWorkflowReliabilityDefects` is the first consumer after redeploy.\n- **Ops readiness**: operator-only, approval-gated, opt-in via explicit `approvedByUser:true` + `approvalEvidence`. No automatic bulk repair.\n- **Migration/data impact**: none. No schema migration, no DB changes.\n- **Frontend/preview impact**: none. Tool/recovery surface only.\n- **Collision/release risk**: low. Non-overlapping touch regions with active `fixPoisonedRecovery`.\n- **Open follow-ups**: delta hydration defect (sibling fast-follow); adv-engineer spawn defect (separate investigation).\n- **Next action**: rebuild plugin (`pnpm run build`), redeploy (`scripts/deploy-local.sh --fix`), restart OpenCode, then run `adv_change_workflow_terminate changeId:\"fixWorkflowReliabilityDefects\" approvedByUser:true approvalEvidence:\"...\"` to recover the original wedge.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-20T21:20:12.457Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `fixWorkflowReliabilityDefects`-shaped state is recoverable without fabricating poisoned-history evidence. | pass | Shipped-terminal fixture (no poison) qualifies and converges without requiring poisoned-history evidence. AC9 E2E test proves recovery. |\n| SC2 | success_criterion | A genuinely healthy or incompletely shipped workflow remains non-terminable. | pass | Refusal tests: unshipped gates, incomplete phase9, missing bundle, mismatched bundle id, RUNNING without poison+proof. Proof gates idempotent paths. |\n| SC3 | success_criterion | Successful recovery leaves one archived authority: show reads archived, in-flight lists omit it, archived lists include it exactly once, and merged-branch cleanup can evaluate it as archived. | pass | Convergence writes status+lifecycleState=archived atomically; readback verifies single archived authority; idempotent re-invoke routes to adv_archive_purge. |\n| SC4 | success_criterion | Existing poisoned-workflow and archived-purge behavior remains regression-green. | pass | Existing poisoned-history tests pass unchanged. _recovery-writers: 30/30 (existing 28 + 2 new). change.status-repair: 15/15. |\n| AC1 | acceptance_criterion | **Approval first:** missing `approvedByUser:true` or blank `approvalEvidence` performs zero change, disk, bundle, Temporal describe, terminate, refresh, or projection-write operations. | pass | Approval-first preserved (lines ~4315-4331 of change.ts). Regression sweep test: 'rejects approvedByUser !== true before any read or mutation' + 'rejects blank approvalEvidence before any read or mutation' pass unchanged. |\n| AC2 | acceptance_criterion | **Separate eligibility classes:** a live `RUNNING`/`PAUSED` run is terminable only through either existing poisoned-history evidence or a new typed shipped-terminal proof; neither route silently authorizes the other. | pass | Eligibility class field returned: 'poisoned_history' OR 'shipped_terminal' OR 'none'. Test 'dryRun returns eligibilityClass=shipped_terminal' + 'dryRun preserves eligibilityClass=poisoned_history'. |\n| AC3 | acceptance_criterion | **Complete shipped-terminal proof:** the alternate route requires all seven gates `done` on the durable disk projection, `phase9_status.status === \"done\"`, and a readable schema-valid archive bundle whose embedded change ID exactly equals the requested ID. Any missing, invalid, mismatched, or unreadable component refuses with typed evidence and zero mutation. | pass | computeShippedTerminalProof helper with 6 typed refusal codes: PROOF_INVALID_DISK_PROJECTION, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE, PROOF_BUNDLE_ID_MISMATCH. 12 unit tests in shipped-terminal-proof.test.ts. |\n| AC4 | acceptance_criterion | **Exact pin and preview:** one pre-mutation `describe()` supplies a non-empty `runId`; dry-run returns the eligibility class and every proof component without termination, refresh, or disk mutation; execution terminates only the handle pinned to that described `runId`. | pass | describe() called once pre-mutation; runId extracted structurally; dryRun returns eligibilityClass + proof components without terminate/refresh; execution terminates via getChangeHandle(client, projectId, changeId, runId). Test: 'dryRun returns the structured pin assessment without terminate or refresh'. |\n| AC5 | acceptance_criterion | **Status safety:** unknown run status, missing run ID, unshipped gates, non-done phase 9, invalid bundle, or a normal active change refuses. `RUNNING` status alone never authorizes termination. | pass | Refusal paths: unknown status, missing runId, unshipped gates (coarse precheck), IDEMPOTENT_BUT_PROOF_MISSING for terminal-status without proof, PROOF_* refusal codes, RUNNING+approval-alone never authorizes. Test: 'refuses already-terminal run without poison AND without shipped-terminal proof'. |\n| AC6 | acceptance_criterion | **Failure ordering:** a non-idempotent terminate failure occurs before cache refresh or projection mutation. If termination succeeds but terminal projection convergence fails, output reports a typed partial-recovery state with exact remediation; it never reports full success. | pass | Failure-before-projection-mutation preserved (terminate non-not-found failure returns before refresh/write). Typed partialRecovery+remediation shape on convergence failure: successorRace, lateSuccessorRace, writeFailed, readbackFailed. Tests: 'successor check #1', '#2 describe failure surfaces typed partial-recovery', 'readback failure returns typed partialRecovery'. |\n| AC7 | acceptance_criterion | **Terminal convergence:** after eligible termination or idempotent completed/not-found handling, durable projection records both `status:\"archived\"` and `lifecycleState:\"archived\"`. Read-after-write proves show status archived, in-flight count 0, and archived count exactly 1 before full success. | pass | saveRecoveredChangeStatus writes both status+lifecycleState atomically when provided. verifyStatusRepairReadAfterWrite with requireLifecycleState flag asserts both. AC9 E2E test asserts readback.showStatus='archived' + readback.showLifecycleState='archived' + inFlightCount=0 + archivedCount=1. |\n| AC8 | acceptance_criterion | **Successor-race guard:** post-termination verification must not claim convergence if the same workflow ID has a different live successor `runId`; it returns a typed race/conflict result naming both runs. | pass | convergeTerminalAuthority performs two successor describes (pre-write + post-readback). Tests: 'successor check #1: a different live successor before write returns typed successorRace', 'successor check #2: a late successor after readback returns typed lateSuccessorRace', 'successor check #2 describe failure surfaces typed partial-recovery'. |\n| AC9 | acceptance_criterion | **Regression fixture:** automated tests reproduce the observed state: live store says draft, all seven gates done, phase 9 done, archive inventory/bundle terminal, describe returns `RUNNING` without poison text. Dry-run qualifies it and execution terminates the exact pin and converges reads. | pass | AC9 regression fixture: fixWorkflowReliabilityDefects-shaped state recovers end-to-end. Steps: dryRun qualifies shipped_terminal → execute terminates pinned run + converges → readback proves archived/in-flight=0/archived=1 → idempotent re-invoke routes to adv_archive_purge. |\n| AC10 | acceptance_criterion | **Compatibility:** existing poison-qualified termination, archived-change routing, `adv_archive_purge`, `adv_change_status_repair`, and exact-pin failure tests remain passing. | pass | Regression sweep: 93/93 pass across change.workflow-terminate (29), change.status-repair (15), _recovery-writers (30), shipped-terminal-proof (12), recovery-readback (7). Poisoned-history tests unchanged. Archive-purge routing preserved. Status-repair backward-compat preserved (lifecycleState optional). |\n| C1 | constraint | Operator-only posture and approval evidence remain mandatory. | respected | approvedByUser + approvalEvidence gates every code path. Operator-only posture preserved. |\n| C2 | constraint | No Temporal Reset, workflow reseed, or history rewrite. | respected | No Temporal Reset, no workflow reseed, no history rewrite. Termination only via handle.terminate(). |\n| C3 | constraint | Archive bundle remains preserved; no disk-bundle deletion is introduced. | respected | Archive bundle never touched. No includeDiskBundle parameter exposed. findArchiveBundle used read-only. |\n| C4 | constraint | Terminal proof uses parsed structural state, never title, age, branch-name, status-string coincidence, or free-text heuristics. | respected | Proof uses ChangeSchema.parse, GATE_ORDER filter, phase9_status.status check, bundle change.id strict equality. No title/age/branch-name/status-string heuristics. |\n| C5 | constraint | Existing accepted-delta immutable projection safeguards remain intact. | respected | saveRecoveredChangeStatus spread preserves existing fields. Delta add-only semantics unchanged. |\n| C6 | constraint | Trunk/worktree isolation remains mandatory. Before implementation, local `trunk`, `origin/trunk`, and worktree base must still be reconciled; initial verified SHA is `412475ab88f8ddc1b0af95bfd2b67eeed55c3e9b`. | respected | All work in worktree change/fixShippedWorkflowTermination. Trunk at 412475ab verified pre-implementation. |\n| DONT1 | avoidance | Do not weaken the existing poisoned-history evidence predicate. | respected | poisonedDescriptionEvidence predicate unchanged. Existing poisoned-history tests pass. |\n| DONT2 | avoidance | Do not terminate from `RUNNING`/`PAUSED` plus user approval alone. | respected | RUNNING + no poison + no proof always refuses. Proof required for shipped_terminal class. |\n| DONT3 | avoidance | Do not trust bundle directory naming without parsing embedded identity. | respected | Bundle change.id strictly compared to requested changeId. Test 'refuses when shipped-terminal proof fails on PROOF_BUNDLE_ID_MISMATCH'. |\n| DONT4 | avoidance | Do not report success before terminal read-after-write verification. | respected | verifyStatusRepairReadAfterWrite runs before success. convergeTerminalAuthority asserts both fields. Failure returns typed partial-recovery. |\n| DONT5 | avoidance | Do not modify the active `fixPoisonedRecovery` contract; this change is its fast-follow for a disproven out-of-scope premise. | respected | fixPoisonedRecovery untouched. Touch regions non-overlapping (terminate tool ~L4500-L5100 vs probe-first recovery ~L2970-L3340). |\n| OOS1 | out_of_scope | General archive enumeration performance (`fixArchivedBranchCleanup`). | missing |  |\n| OOS2 | out_of_scope | Legacy design-validation report tolerance (`makeLegacyDesignValidation`). | missing |  |\n| OOS3 | out_of_scope | Automatic bulk repair of all shipped workflows. | missing |  |\n| OOS4 | out_of_scope | New workflow reset or history-inspection tooling. | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-20T19:49:36.002Z",
+      "contentHash": "ca0ebf505cd5c1f724f563ff82cf6f519f373720b2ac399e076fabe77e5c10c4",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-20T19:49:36.002Z",
+      "contentHash": "0170b993e76a763db85f0c32ac9faa8cd0de29c81a6d790fad3be7e0b9fd7edf",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-20T19:57:23.751Z",
+      "contentHash": "e64e597438a5f66bd13bafab3218004c0f26592578cbc58686ccfdd2c50094aa",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-20T20:16:55.144Z",
+      "contentHash": "21c3ddc3824524a329ec6b6f37eae69b16ab527113cfa5b31bdf45575b11cbd2",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-20T21:19:46.405Z",
+      "contentHash": "ed626485183be6af83b91ef0e179d7afa9f2f6ce1d455d3cb46a9e73bd7f46be",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-20T21:56:03.822Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "change-1784579302763-zhgjed",
+    "order": 1,
+    "title": "Fix shipped workflow termination",
+    "linked_at": "2026-07-20T20:28:22.764Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  }
+}
