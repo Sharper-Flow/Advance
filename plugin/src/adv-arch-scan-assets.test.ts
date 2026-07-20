@@ -9,10 +9,7 @@ const SPEC_PATH = join(REPO_ROOT, ".adv/specs/arch-scan/spec.json");
 const DOC_PATH = join(REPO_ROOT, "docs/specs/arch-scan.md");
 const ADV_INSTRUCTIONS_PATH = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
 const REGISTRY_PATH = join(REPO_ROOT, "bin/lib/arch-scan/registry.ts");
-const FIXTURES_DIR = join(
-  REPO_ROOT,
-  "bin/lib/arch-scan/__tests__/fixtures",
-);
+const FIXTURES_DIR = join(REPO_ROOT, "bin/lib/arch-scan/__tests__/fixtures");
 
 /**
  * Extract the 5 capability-consistency relationship IDs from the typed
