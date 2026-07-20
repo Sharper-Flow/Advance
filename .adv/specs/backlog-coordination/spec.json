@@ -3,25 +3,29 @@
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
   "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. Bug priority labels act as the source of truth for issue ordering; the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
-  "version": "1.5.0",
-  "updated_at": "2026-07-15T00:00:00.000Z",
+  "version": "1.5.1",
+  "updated_at": "2026-07-20T22:15:50.874Z",
   "requirements": [
     {
       "id": "rq-backlogCoord01",
-      "title": "Cross-session claim visibility via AdvBacklogIssueNumber search attribute",
-      "body": "When a change workflow is created with origin.kind === 'roadmap' and origin.issue_number set, the workflow's AdvBacklogIssueNumber search attribute is populated from state.origin.issue_number. Peer agent sessions can detect existing claims by querying Temporal Visibility filtered on AdvAffectedProjects + AdvBacklogIssueNumber + AdvLifecycleState = \"open\" + ExecutionStatus = \"Running\". The change workflow itself IS the durable claim: lifecycleState open = claim held; lifecycleState archived|closed = claim released. AdvChangeStatus is compatibility/read-model metadata and MUST NOT be the open-claim authority. This mirrors the in-repo precedent set by AdvWorktreeBranches / AdvWorktreePaths (see plugin/src/temporal/search-attributes.ts).",
+      "title": "Cross-session issue claim visibility via AdvBacklogIssueNumber",
+      "body": "When a change workflow is created with state.origin.issue_number set, regardless of readable origin-kind label, the workflow's AdvBacklogIssueNumber search attribute is populated from that issue number. Peer sessions detect existing claims through Temporal Visibility filtered on AdvAffectedProjects + AdvBacklogIssueNumber + AdvLifecycleState = \"open\" + ExecutionStatus = \"Running\". The change workflow remains the durable claim; roadmap rendering is not part of this contract.",
       "priority": "must",
-      "tags": ["coordination", "search-attributes", "claims"],
+      "tags": [
+        "coordination",
+        "search-attributes",
+        "claims"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord01.1",
           "title": "Search attribute populated when origin.issue_number set",
           "given": [
-            "A change workflow created with seedState.origin = { kind: 'roadmap', issue_number: 42 }"
+            "A change workflow created with seedState.origin = { kind: 'triage', issue_number: 42 }"
           ],
           "when": "buildChangeSearchAttributes runs on the workflow state",
           "then": [
-            "The result includes AdvBacklogIssueNumber: ['42'] (string value, single-element array per Temporal Keyword convention)"
+            "The result includes AdvBacklogIssueNumber: ['42']"
           ]
         },
         {
@@ -31,60 +35,69 @@
             "A change workflow with state.origin undefined OR state.origin.issue_number undefined"
           ],
           "when": "buildChangeSearchAttributes runs",
-          "then": ["The result does NOT include an AdvBacklogIssueNumber key"]
+          "then": [
+            "The result does NOT include an AdvBacklogIssueNumber key"
+          ]
         },
         {
           "id": "rq-backlogCoord01.3",
           "title": "Peer session sees claim via Visibility query",
           "given": [
-            "Session A creates a change with origin.issue_number = 51 in project pid-abc",
-            "Search attribute propagation has completed (\u2264 ~5s on SQLite dev server)"
+            "Session A creates an issue-linked change with origin.issue_number = 51 in project pid-abc",
+            "Search attribute propagation has completed"
           ],
-          "when": "Session B queries Temporal Visibility with 'AdvAffectedProjects = \"pid-abc\" AND AdvBacklogIssueNumber = \"51\" AND AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"'",
-          "then": ["The response includes session A's change workflow ID"]
+          "when": "Session B queries open running workflows for AdvBacklogIssueNumber = \"51\"",
+          "then": [
+            "The response includes session A's change workflow ID"
+          ]
         }
       ]
     },
     {
       "id": "rq-backlogCoord02",
-      "title": "Atomic claim check at change-create time",
-      "body": "adv_change_create with origin.kind === 'roadmap' and origin.issue_number set performs a Temporal Visibility query before workflow start. If any existing running open-lifecycle change workflow in the same project has the same AdvBacklogIssueNumber, the tool returns a typed CLAIM_CONFLICT error including the existing change ID. The agent surfaces the conflict to the user (resume existing change, override, or cancel). The change workflow itself becomes the durable claim record on successful create.",
+      "title": "Atomic issue claim check at change-create time",
+      "body": "adv_change_create with a positive origin.issue_number performs a Temporal Visibility query before workflow start, independent of the readable origin-kind label. If an existing running open-lifecycle change in the same project holds the same AdvBacklogIssueNumber, the tool returns typed CLAIM_CONFLICT evidence. Successful issue-linked creation makes the change workflow the durable claim record.",
       "priority": "must",
-      "tags": ["coordination", "claims", "atomicity"],
+      "tags": [
+        "coordination",
+        "claims",
+        "atomicity"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord02.1",
           "title": "CLAIM_CONFLICT returned when active change exists for same issue",
           "given": [
-            "A change workflow exists with lifecycleState 'open' and origin.issue_number = 51 in project pid-abc"
+            "An open running change workflow holds origin.issue_number = 51 in project pid-abc"
           ],
-          "when": "adv_change_create is called with origin_kind: 'roadmap', origin_issue_number: 51 in pid-abc",
+          "when": "adv_change_create is called with origin_kind: 'triage', origin_issue_number: 51",
           "then": [
-            "The tool returns an error response with code 'CLAIM_CONFLICT'",
-            "The response includes the existing change ID and open lifecycle state",
-            "No new change workflow is started"
+            "The tool returns code CLAIM_CONFLICT with existing change evidence",
+            "No new workflow starts"
           ]
         },
         {
           "id": "rq-backlogCoord02.2",
           "title": "Claim succeeds when no existing change holds the issue",
           "given": [
-            "No active change workflow exists with origin.issue_number = 99 in project pid-abc"
+            "No active workflow holds origin.issue_number = 99"
           ],
-          "when": "adv_change_create is called with origin_kind: 'roadmap', origin_issue_number: 99",
+          "when": "adv_change_create is called with origin_kind: 'triage', origin_issue_number: 99",
           "then": [
-            "The change workflow is created normally",
-            "The new change holds the claim (status draft, AdvBacklogIssueNumber = '99')"
+            "The workflow is created",
+            "AdvBacklogIssueNumber is '99'"
           ]
         },
         {
           "id": "rq-backlogCoord02.3",
-          "title": "Claim check skipped when origin.kind !== 'roadmap'",
-          "given": ["An existing active change holds origin.issue_number = 51"],
-          "when": "adv_change_create is called with origin_kind: 'discovery' (no issue_number)",
+          "title": "Claim check skipped when issue number absent",
+          "given": [
+            "A create request has no origin.issue_number"
+          ],
+          "when": "adv_change_create validates the request",
           "then": [
-            "No Visibility query is fired",
-            "The new change is created independently"
+            "No issue-claim Visibility query fires",
+            "Creation proceeds independently"
           ]
         }
       ]
@@ -92,34 +105,38 @@
     {
       "id": "rq-backlogCoord03",
       "title": "Post-create double-check window for race tolerance",
-      "body": "Temporal Visibility is eventually consistent (up to 10s on SQLite dev servers per service.ts:94-101 documentation). Two simultaneous adv_change_create calls may both pass the pre-create check. After workflow start, adv_change_create re-runs the same Visibility query within a 5-second window (configurable). If more than one workflow shares the same AdvBacklogIssueNumber in the project, the tool returns a CLAIM_RACE_DETECTED advisory on the success response (the new change is NOT rolled back; the agent surfaces both change IDs to the user for resolution).",
+      "body": "Temporal Visibility is eventually consistent. Two simultaneous issue-linked adv_change_create calls may both pass the pre-create check. After workflow start, any create with a positive origin.issue_number re-runs the same Visibility query within the configured window, independent of origin kind. More than one workflow sharing the issue produces CLAIM_RACE_DETECTED advisory evidence; the new change is not rolled back.",
       "priority": "must",
-      "tags": ["coordination", "claims", "eventual-consistency"],
+      "tags": [
+        "coordination",
+        "claims",
+        "eventual-consistency"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord03.1",
-          "title": "Race detected when concurrent creates land within window",
+          "title": "Race detected when concurrent issue-linked creates land",
           "given": [
-            "Two adv_change_create calls fire concurrently with origin.issue_number = 7 in the same project",
-            "Both pre-create Visibility queries return empty"
+            "Two triage-origin creates run concurrently with origin.issue_number = 7",
+            "Both pre-create checks return empty"
           ],
-          "when": "Each call completes its 5s post-create double-check",
+          "when": "Each completes its post-create double-check",
           "then": [
-            "Each response includes a CLAIM_RACE_DETECTED warning with both change IDs",
-            "Both changes remain alive (caller decides resolution)"
+            "Each response includes CLAIM_RACE_DETECTED with both IDs",
+            "Both changes remain alive"
           ]
         },
         {
           "id": "rq-backlogCoord03.2",
-          "title": "No race warning on solo create",
+          "title": "No race warning on solo issue-linked create",
           "given": [
-            "A single adv_change_create call with origin.issue_number = 8",
-            "No other concurrent call for the same issue"
+            "One create has origin.issue_number = 8",
+            "No concurrent create shares the issue"
           ],
-          "when": "The post-create double-check runs",
+          "when": "The post-create check runs",
           "then": [
-            "The Visibility query returns exactly one workflow (the new one)",
-            "The response does NOT include CLAIM_RACE_DETECTED"
+            "Exactly one workflow is returned",
+            "No CLAIM_RACE_DETECTED warning appears"
           ]
         }
       ]
@@ -127,9 +144,13 @@
     {
       "id": "rq-backlogCoord04",
       "title": "Single-call WIP visibility aggregator",
-      "body": "adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) running open-lifecycle changes from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only \u2014 does not mutate state.",
+      "body": "adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) running open-lifecycle changes from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only — does not mutate state.",
       "priority": "must",
-      "tags": ["coordination", "wip", "aggregation"],
+      "tags": [
+        "coordination",
+        "wip",
+        "aggregation"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord04.1",
@@ -166,7 +187,12 @@
       "title": "WIP visibility exposes poisoned workflow metadata without hiding healthy state",
       "body": "adv_wip_state MUST preserve healthy active-change, worktree, and peer-session results when one worktree-owning change workflow cannot be queried. Per-workflow poison or query failures from the worktree source MUST be surfaced as human-readable warnings and as structured poisoned_workflows metadata optimized for automation and agent triage. The metadata MUST include source, changeId, workflowId, recoveryReason, evidenceSummary, and message when poison evidence is available. The tool remains read-only and MUST NOT perform destructive recovery.",
       "priority": "must",
-      "tags": ["coordination", "wip", "poisoned-history", "automation"],
+      "tags": [
+        "coordination",
+        "wip",
+        "poisoned-history",
+        "automation"
+      ],
       "scenarios": [
         {
           "id": "rq-wipPoisonIsolation01.1",
@@ -198,153 +224,167 @@
     },
     {
       "id": "rq-backlogCoord05",
-      "title": "Active-change cross-reference uses O(1) Visibility query",
-      "body": "When the agent renders a backlog with active-change annotations (adv_roadmap, the sole backlog reader), it MUST use queryActiveChangesByIssueNumbers \u2014 a single Temporal Visibility query with an IN clause covering all snapshot issue numbers \u2014 and MUST NOT call store.changes.get() per change. This replaced the legacy O(n*m) buildActiveChangeIndex pattern formerly in plugin/src/tools/roadmap.ts. Inputs > 100 issue numbers are batched at 100 per call to stay under Temporal query-string length limits. When Temporal Visibility is unreachable, the reader MUST return the requested roadmap data with a typed annotations_unavailable source-health state and MUST NOT fall back to per-change reads.",
+      "title": "Portfolio-balance cross-reference uses bounded Visibility lookup",
+      "body": "/adv-triage portfolio-balance reporting MUST correlate open GitHub issue numbers with active changes through queryActiveChangesByIssueNumbers or an equivalent bounded Temporal Visibility lookup. It MUST NOT perform per-change state reads to annotate the issue pool. The retired adv_roadmap tool and its file/live reader modes MUST remain absent.",
       "priority": "must",
-      "tags": ["coordination", "performance", "visibility"],
+      "tags": [
+        "coordination",
+        "performance",
+        "visibility"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord05.1",
-          "title": "Single Visibility call for snapshots \u2264 100 issues",
+          "title": "One bounded lookup covers the displayed issue pool",
           "given": [
-            "A snapshot with 50 features and 10 bugs (60 issue numbers total)"
+            "/adv-triage gathered up to 100 open issue numbers"
           ],
-          "when": "adv_roadmap computes the active-change annotation",
+          "when": "It builds change-to-issue portfolio annotations",
           "then": [
-            "queryActiveChangesByIssueNumbers is called exactly once",
-            "store.changes.get() is NOT called from the annotation path"
+            "A single bounded Visibility lookup covers the pool",
+            "No per-change getState loop is used"
           ]
         },
         {
           "id": "rq-backlogCoord05.2",
-          "title": "Batched Visibility calls for snapshots > 100 issues",
-          "given": ["A snapshot with 250 issue numbers"],
-          "when": "queryActiveChangesByIssueNumbers is called",
+          "title": "Large issue pools remain bounded",
+          "given": [
+            "More than 100 open issue numbers"
+          ],
+          "when": "The lookup runs",
           "then": [
-            "The helper makes exactly 3 Visibility calls (250 / 100 = ceil 3)",
-            "Results are merged into a single Map<number, ClaimVisibilityResult>"
+            "Inputs are chunked at a bounded size",
+            "Results merge into one issue-number map"
           ]
         },
         {
           "id": "rq-backlogCoord05.3",
-          "title": "Visibility outage yields typed annotations_unavailable, never per-change fallback",
+          "title": "Visibility outage is explicit",
           "given": [
-            "A readable backlog snapshot",
-            "Temporal Visibility is unreachable (no service, no project id, or query failure)"
+            "GitHub issue data is available",
+            "Temporal Visibility is unavailable"
           ],
-          "when": "adv_roadmap computes the active-change annotation",
+          "when": "Portfolio balance renders",
           "then": [
-            "The response includes typed annotation_status = annotations_unavailable",
-            "Roadmap items, counts, and freshness are still returned",
-            "store.changes.get() is NOT called from the annotation path",
-            "active_changes_indexed is null rather than an empty count"
+            "Change annotation is marked unavailable",
+            "Issue data remains visible",
+            "No per-change fallback is attempted",
+            "adv_roadmap remains absent"
           ]
         }
       ]
     },
     {
       "id": "rq-backlogCoord07",
-      "title": "Snapshot annotation freshness TTL contract",
-      "body": "Cached projection .adv/roadmap-snapshot.json carries optional TTL metadata: last_refreshed (ISO 8601), ttl_ms (default 300000 = 5 min), and next_refresh_after (computed). Consumers MUST treat absence of last_refreshed as 'stale, refresh now'. Default annotation TTL is 5 minutes \u2014 distinct from FILE_SNAPSHOT_STALE_AFTER_MS (2h) which covers WSJF-content staleness. The shorter window keeps active-change annotations fresh across multiple agent sessions while staying well under the 5000 req/hr gh CLI rate limit budget.",
+      "title": "Roadmap snapshot projection is retired",
+      "body": "ROADMAP.md and .adv/roadmap-snapshot.json are retired projections. /adv-triage MUST NOT generate, refresh, echo, commit, or push either artifact. Portfolio-balance reads use current typed ADV state plus current GitHub issue/project data; no snapshot TTL contract remains.",
       "priority": "must",
-      "tags": ["coordination", "freshness", "ttl"],
+      "tags": [
+        "coordination",
+        "freshness",
+        "ttl"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord07.1",
-          "title": "Snapshot inside TTL window is fresh",
+          "title": "Triage does not write roadmap artifacts",
           "given": [
-            "A snapshot with last_refreshed = now - 2 minutes and ttl_ms = 300000"
+            "/adv-triage completes successfully"
           ],
-          "when": "assessAnnotationFreshness is called",
-          "then": ["needs_refresh is false", "age_ms is approximately 120000"]
+          "when": "Its output and filesystem effects are inspected",
+          "then": [
+            "ROADMAP.md is not generated or modified",
+            ".adv/roadmap-snapshot.json is not generated or modified",
+            "No roadmap commit/push prompt appears"
+          ]
         },
         {
           "id": "rq-backlogCoord07.2",
-          "title": "Snapshot past TTL is stale",
+          "title": "Portfolio balance uses current typed sources",
           "given": [
-            "A snapshot with last_refreshed = now - 6 minutes and ttl_ms = 300000"
+            "Active changes, Epics, and open GitHub issues exist"
           ],
-          "when": "assessAnnotationFreshness is called",
-          "then": ["needs_refresh is true"]
-        },
-        {
-          "id": "rq-backlogCoord07.3",
-          "title": "Snapshot without last_refreshed is treated as stale (backward-compat)",
-          "given": ["A legacy snapshot with no last_refreshed field"],
-          "when": "assessAnnotationFreshness is called",
-          "then": ["needs_refresh is true", "age_ms is null"]
-        },
-        {
-          "id": "rq-backlogCoord07.4",
-          "title": "Default ttl_ms applies when missing",
-          "given": ["A snapshot with last_refreshed set but ttl_ms absent"],
-          "when": "assessAnnotationFreshness is called",
-          "then": ["The default 300000ms (DEFAULT_ANNOTATION_TTL_MS) is used"]
+          "when": "/adv-triage builds its balance report",
+          "then": [
+            "Typed ADV reads supply change and Epic state",
+            "Current GitHub reads supply issue state",
+            "No roadmap snapshot freshness metadata is consulted"
+          ]
         }
       ]
     },
     {
       "id": "rq-backlogCoord08",
-      "title": "Change Origin Linkage Matrix and Seed State",
-      "body": "adv_change_create MUST validate origin linkage metadata before workflow start and seed valid origin metadata into the authoritative change workflow state. origin_issue_number is accepted only when origin_kind is 'roadmap' or 'triage'; 'roadmap' requires origin_issue_number. origin_source_artifact is accepted only when origin_kind is 'triage' or 'discovery' and MUST be non-blank when provided. 'roadmap' rejects origin_source_artifact. 'discovery' rejects origin_issue_number. 'adhoc' and omitted origin_kind reject both origin_issue_number and origin_source_artifact. Valid origin metadata MUST appear in workflow reads and must drive relevant search attributes, including AdvBacklogIssueNumber when an issue number is present. Implementations MUST NOT rely on a late disk-only origin patch after workflow start.",
+      "title": "Change Origin Linkage Matrix, Legacy Roadmap Read Compatibility, and Seed State",
+      "body": "adv_change_create and adv_change_repair_origin MUST validate origin linkage before workflow mutation. The roadmap origin kind is readable legacy provenance only and MUST be rejected for new create or repair writes with a typed retirement error pointing to triage. Triage accepts optional positive origin_issue_number and optional non-blank source artifact; discovery accepts source artifact but rejects issue number; adhoc and omitted kind reject linkage fields. Valid issue metadata seeds workflow state and AdvBacklogIssueNumber before workflow start.",
       "priority": "must",
-      "tags": ["coordination", "origin", "claims", "search-attributes"],
+      "tags": [
+        "coordination",
+        "origin",
+        "claims",
+        "search-attributes"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord08.1",
-          "title": "Roadmap origin requires issue and rejects source artifact",
-          "given": ["adv_change_create is called with origin_kind: 'roadmap'"],
-          "when": "The create invocation is validated",
+          "title": "Roadmap origin is readable legacy only",
+          "given": [
+            "Archived or legacy state contains origin.kind = 'roadmap'",
+            "A new create or repair request sets origin_kind = 'roadmap'"
+          ],
+          "when": "The state is read or the mutation is validated",
           "then": [
-            "The invocation fails if origin_issue_number is absent",
-            "The invocation fails if origin_source_artifact is provided",
-            "A valid roadmap create seeds state.origin.issue_number before workflow start"
+            "Legacy state remains readable",
+            "The new mutation fails with ORIGIN_KIND_ROADMAP_RETIRED",
+            "The response points to origin_kind 'triage' for issue-linked changes"
           ]
         },
         {
           "id": "rq-backlogCoord08.2",
           "title": "Triage origin accepts optional issue and source artifact",
-          "given": ["adv_change_create is called with origin_kind: 'triage'"],
-          "when": "origin_issue_number or non-blank origin_source_artifact is provided",
+          "given": [
+            "A create or repair request uses origin_kind 'triage'"
+          ],
+          "when": "Positive origin_issue_number or non-blank origin_source_artifact is provided",
           "then": [
             "The linkage fields are accepted",
-            "The accepted linkage values are present in workflow state reads"
+            "Accepted values seed workflow state"
           ]
         },
         {
           "id": "rq-backlogCoord08.3",
-          "title": "Discovery origin rejects issue and accepts non-blank source artifact",
+          "title": "Discovery rejects issue and accepts source artifact",
           "given": [
-            "adv_change_create is called with origin_kind: 'discovery'"
+            "origin_kind is 'discovery'"
           ],
-          "when": "origin_issue_number or origin_source_artifact is provided",
+          "when": "Linkage fields are validated",
           "then": [
-            "The invocation fails if origin_issue_number is provided",
-            "A non-blank origin_source_artifact is accepted and appears in workflow state reads"
+            "origin_issue_number is rejected",
+            "A non-blank source artifact is accepted"
           ]
         },
         {
           "id": "rq-backlogCoord08.4",
           "title": "Adhoc and omitted origin reject linkage fields",
           "given": [
-            "adv_change_create is called with origin_kind: 'adhoc' or with origin_kind omitted"
+            "origin_kind is 'adhoc' or omitted"
           ],
-          "when": "origin_issue_number or origin_source_artifact is provided",
+          "when": "Linkage fields are provided",
           "then": [
-            "The invocation fails before workflow start",
-            "The response names the disallowed linkage field"
+            "Validation fails before workflow start",
+            "The disallowed field is named"
           ]
         },
         {
           "id": "rq-backlogCoord08.5",
           "title": "Seeded issue metadata drives search attributes",
           "given": [
-            "A change workflow is created with valid origin.issue_number"
+            "A valid triage origin includes origin.issue_number"
           ],
-          "when": "buildChangeSearchAttributes runs on workflow state",
+          "when": "buildChangeSearchAttributes runs",
           "then": [
-            "AdvBacklogIssueNumber is populated from workflow state.origin.issue_number",
-            "The value is not sourced from a late disk-only patch"
+            "AdvBacklogIssueNumber is populated from workflow state",
+            "No late disk patch supplies the value"
           ]
         }
       ]
@@ -354,7 +394,13 @@
       "title": "Triage source cleanup before issue creation and bug priority assignment",
       "body": "/adv-triage MUST run source cleanup validation after structural match/gap analysis and before new issue creation or bug priority assignment. Cleanup validation covers represented and unrepresented ADV changes, GitHub issues/project items, and local sources gathered by /adv-triage. Each non-relevant cleanup candidate MUST include source, stable ref, classification, evidence, proposed action, and approval group. Heuristics such as title similarity or agent inference are advisory only and MUST NOT close, complete, cancel, remove, suppress, merge-note, deprioritize, or otherwise mutate items without structural evidence and explicit approval batched by source/reason. Legacy agenda duplicate/superseded/should-merge candidates approved for cleanup MUST complete with a note referencing the survivor/source. Bug priority assignment MUST NOT run until cleanup validation has completed for the candidate pool. User questions during bug priority assignment gather context only and MUST NOT ask the user to confirm or choose a priority; the agent assigns priority autonomously within a bounded question budget.",
       "priority": "must",
-      "tags": ["triage", "cleanup", "backlog", "human-authority", "p33"],
+      "tags": [
+        "triage",
+        "cleanup",
+        "backlog",
+        "human-authority",
+        "p33"
+      ],
       "scenarios": [
         {
           "id": "rq-backlogCoord09.1",

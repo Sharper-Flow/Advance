@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.31.0
-> **Updated:** 2026-07-19
+> **Version:** 1.32.0
+> **Updated:** 2026-07-20
 
 ## Purpose
 
@@ -5624,5 +5624,51 @@ Contract coverage MUST be projected by one cancellation-aware authority. Only im
 - The response returns remaining uncovered success/acceptance IDs
 - Prep uses the same projection
 - No semantic drift exists between write guidance and planning readiness
+
+---
+
+### Issue and portfolio coordination stays orthogonal to seven gates
+
+**ID:** `rq-AwB1gN3w01` | **Priority:** **[MUST]**
+
+This requirement supersedes legacy rq-aw-backlog01. Issue claim search attributes and portfolio-balance reads remain side effects/read models around normal change workflow signals. The seven gate semantics are unaffected. Gate transitions upsert AdvBacklogIssueNumber whenever state.origin.issue_number is set; no gate logic depends on issue linkage, portfolio ranking, retired roadmap snapshots, or removed roadmap surfaces.
+
+**Tags:** `backlog-coordination`, `gates`, `portfolio-balance`
+
+#### Scenarios
+
+**Gate transitions preserve issue claim attributes** (`rq-AwB1gN3w01.1`)
+
+**Given:**
+- A triage-origin change has state.origin.issue_number = 42
+
+**When:** Any gate completes
+
+**Then:**
+- buildChangeSearchAttributes upserts AdvBacklogIssueNumber = ['42']
+- AdvCurrentGate reflects gate progress
+- Gate semantics remain unchanged
+
+**Changes without issue linkage omit claim attribute** (`rq-AwB1gN3w01.2`)
+
+**Given:**
+- state.origin.issue_number is absent
+
+**When:** Any gate completes
+
+**Then:**
+- AdvBacklogIssueNumber is absent
+- Other gate attributes populate normally
+
+**Retired roadmap projections do not affect gates** (`rq-AwB1gN3w01.3`)
+
+**Given:**
+- ROADMAP.md, .adv/roadmap-snapshot.json, and adv_roadmap are absent
+
+**When:** A change advances through gates
+
+**Then:**
+- All seven gates operate normally
+- No snapshot or roadmap reader is consulted
 
 ---
