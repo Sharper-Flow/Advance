@@ -33,8 +33,10 @@ import type {
   AbsenceProof,
   CapabilityEvidence,
   CapabilityFinding,
+  CapabilitySeverity,
 } from "./schema";
 import type { CapabilityRelationship } from "./registry";
+import { scanDebtMarkers } from "./helpers/debt-marker";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -65,6 +67,39 @@ export interface EvaluationResult {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_REGEX_TIMEOUT_MS = 5000;
+
+/**
+ * Window (lines on each side of a trigger hit) used by the debt-marker
+ * helper when scanning escalate-mode rules for nearby TODO/FIXME/HACK/XXX
+ * comments. Mirrors the helper's own default but pinned here so the
+ * evaluator's contract does not silently drift if the helper default
+ * changes.
+ */
+const DEBT_MARKER_WINDOW_LINES = 20;
+
+/**
+ * Severity escalation order — ascending severity. The escalate-mode branch
+ * boosts a finding's severity by one step along this ordering, capped at
+ * `"blocker"`. (P33: deterministic, table-driven escalation.)
+ */
+const SEVERITY_ESCALATION_ORDER: readonly CapabilitySeverity[] = [
+  "nit",
+  "minor",
+  "major",
+  "blocker",
+];
+
+/**
+ * Boost a severity by one level along {@link SEVERITY_ESCALATION_ORDER},
+ * capped at `"blocker"`. Unknown severities pass through unchanged.
+ */
+function escalateSeverity(s: CapabilitySeverity): CapabilitySeverity {
+  const idx = SEVERITY_ESCALATION_ORDER.indexOf(s);
+  if (idx === -1) return s;
+  return SEVERITY_ESCALATION_ORDER[
+    Math.min(idx + 1, SEVERITY_ESCALATION_ORDER.length - 1)
+  ];
+}
 
 /**
  * Directory names pruned from every glob traversal. Kept conservative: only
@@ -424,8 +459,9 @@ function buildAbsenceProof(
 function buildEvidence(
   triggerPath: string,
   hit: RegexHit,
+  exceptionEvidence?: CapabilityEvidence,
 ): CapabilityEvidence[] {
-  return [
+  const evidence: CapabilityEvidence[] = [
     {
       role: "trigger",
       file: triggerPath,
@@ -439,6 +475,31 @@ function buildEvidence(
       line: null,
     },
   ];
+  if (exceptionEvidence !== undefined) {
+    evidence.push(exceptionEvidence);
+  }
+  return evidence;
+}
+
+/**
+ * Find the chronologically closest debt marker (by absolute line distance)
+ * to `aroundLine`. Ties broken by source order (earliest marker wins).
+ * Returns `null` when the input array is empty.
+ */
+function pickClosestDebtMarker<
+  T extends { readonly line: number },
+>(markers: readonly T[], aroundLine: number): T | null {
+  if (markers.length === 0) return null;
+  let best = markers[0];
+  let bestDelta = Math.abs(best.line - aroundLine);
+  for (let i = 1; i < markers.length; i++) {
+    const delta = Math.abs(markers[i].line - aroundLine);
+    if (delta < bestDelta) {
+      best = markers[i];
+      bestDelta = delta;
+    }
+  }
+  return best;
 }
 
 // ---------------------------------------------------------------------------
@@ -457,10 +518,19 @@ function buildEvidence(
  *   3. Search acceptable counterparts across their declared globs. If any
  *      matches, the rule is satisfied — return no findings and
  *      `coverage_entry.state = "applied"`.
- *   4. Search exception signals across their declared globs. If any
- *      matches, all trigger hits are suppressed (generic-engine semantics).
+ *   4. Search exception signals across their declared globs. The matched
+ *      signal's effect is selected by `relationship.exception_semantics`:
+ *        - `"suppress"` (default): every trigger hit is suppressed.
+ *        - `"escalate"`: trigger hits still fire; severity is boosted one
+ *          level (capped at `"blocker"`) when the signal is present, and
+ *          the signal is attached as `exception` evidence. Escalate mode
+ *          additionally uses the `scanDebtMarkers` helper to detect
+ *          nearby TODO/FIXME/HACK/XXX comments (within ~20 lines of each
+ *          trigger hit) as a secondary exception source.
  *   5. Walk trigger files. For each trigger-pattern hit, emit a finding
- *      with structured evidence (trigger + searched_scope) and absence_proof.
+ *      with structured evidence (trigger + searched_scope; plus `exception`
+ *      evidence under escalate semantics when a signal matched) and
+ *      absence_proof.
  *
  * If any per-pattern regex budget is exceeded during trigger scanning, the
  * coverage entry is returned as `degraded` with whatever partial findings
@@ -473,6 +543,7 @@ export async function evaluateRelationship(
   const timeoutMs = options.regexTimeoutMs ?? DEFAULT_REGEX_TIMEOUT_MS;
   const id = relationship.id;
   const parseFailures: string[] = [];
+  const escalate = relationship.exception_semantics === "escalate";
 
   // Step 1 — Phase 3 intent gate.
   if (
@@ -530,8 +601,12 @@ export async function evaluateRelationship(
     };
   }
 
-  // Step 4 — repo-wide exception-signal check (generic semantics: suppress).
-  const exceptionMatch = await findException(
+  // Step 4 — repo-wide exception-signal check.
+  //   - Suppress mode: a non-null match silences every trigger hit.
+  //   - Escalate mode: a non-null match is the primary exception evidence
+  //     source (the debt-marker helper is the secondary, per-trigger-file
+  //     source consulted in Step 5).
+  const declaredExceptionMatch = await findException(
     relationship,
     options.repoRoot,
     timeoutMs,
@@ -542,6 +617,7 @@ export async function evaluateRelationship(
   const findings: CapabilityFinding[] = [];
   let triggerMatchCount = 0;
   let suppressedCount = 0;
+  let escalatedCount = 0;
   let timedOut = false;
 
   for (const relPath of triggerFiles) {
@@ -559,19 +635,70 @@ export async function evaluateRelationship(
 
     for (const hit of hits) {
       triggerMatchCount++;
-      if (exceptionMatch !== null) {
-        suppressedCount++;
+
+      // --- Suppress mode (default): mirror pre-existing behavior. ---
+      if (!escalate) {
+        if (declaredExceptionMatch !== null) {
+          suppressedCount++;
+          continue;
+        }
+        const evidence = buildEvidence(relPath, hit);
+        findings.push({
+          id: `${id}#${triggerMatchCount}`,
+          relationship_id: id,
+          category: "capability-consistency",
+          severity: relationship.severity_hint,
+          confidence: relationship.confidence,
+          detection_method: "regex",
+          description: relationship.trigger.description,
+          evidence,
+          absence_proof: buildAbsenceProof(relationship, parseFailures),
+          recommendation: `Add an acceptable counterpart: ${relationship.acceptable_counterparts
+            .map((c) => c.description)
+            .join("; ")}`,
+          source: "arch-scan",
+        });
         continue;
       }
-      const evidence = buildEvidence(relPath, hit);
+
+      // --- Escalate mode: rule always fires; severity may boost. ---
+      // Primary exception source: registry-declared signals (already
+      // resolved repo-wide). Secondary source: per-trigger-file debt
+      // markers within DEBT_MARKER_WINDOW_LINES of the trigger hit.
+      let exceptionEvidence: CapabilityEvidence | undefined;
+      if (declaredExceptionMatch !== null) {
+        exceptionEvidence = declaredExceptionMatch.evidence;
+      } else {
+        const debt = scanDebtMarkers(text, hit.line, {
+          windowLines: DEBT_MARKER_WINDOW_LINES,
+        });
+        const closest = pickClosestDebtMarker(debt.markers, hit.line);
+        if (closest !== null) {
+          exceptionEvidence = {
+            role: "exception",
+            file: relPath,
+            line: closest.line,
+            matchedSignal: closest.match,
+          };
+        }
+      }
+
+      const escalated = exceptionEvidence !== undefined;
+      if (escalated) escalatedCount++;
+      const severity = escalated
+        ? escalateSeverity(relationship.severity_hint)
+        : relationship.severity_hint;
+      const evidence = buildEvidence(relPath, hit, exceptionEvidence);
       findings.push({
         id: `${id}#${triggerMatchCount}`,
         relationship_id: id,
         category: "capability-consistency",
-        severity: relationship.severity_hint,
+        severity,
         confidence: relationship.confidence,
         detection_method: "regex",
-        description: relationship.trigger.description,
+        description: escalated
+          ? `${relationship.trigger.description} (severity escalated: nearby deferred-enforcement marker)`
+          : relationship.trigger.description,
         evidence,
         absence_proof: buildAbsenceProof(relationship, parseFailures),
         recommendation: `Add an acceptable counterpart: ${relationship.acceptable_counterparts
@@ -590,12 +717,14 @@ export async function evaluateRelationship(
       coverage_entry: {
         id,
         state: "degraded",
-        reason: `regex execution exceeded timeout (partial results; ${findings.length} finding(s), ${suppressedCount} suppressed)`,
+        reason: escalate
+          ? `regex execution exceeded timeout (partial results; ${findings.length} finding(s), ${escalatedCount} escalated)`
+          : `regex execution exceeded timeout (partial results; ${findings.length} finding(s), ${suppressedCount} suppressed)`,
       },
     };
   }
 
-  if (exceptionMatch !== null && triggerMatchCount > 0) {
+  if (!escalate && declaredExceptionMatch !== null && triggerMatchCount > 0) {
     return {
       findings,
       coverage_entry: {
@@ -614,7 +743,9 @@ export async function evaluateRelationship(
       reason:
         triggerMatchCount === 0
           ? "trigger pattern did not match any trigger file"
-          : `emitted ${findings.length} finding(s)`,
+          : escalate && escalatedCount > 0
+            ? `emitted ${findings.length} finding(s); ${escalatedCount} escalated`
+            : `emitted ${findings.length} finding(s)`,
     },
   };
 }

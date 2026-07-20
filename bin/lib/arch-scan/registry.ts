@@ -23,9 +23,12 @@
  *   - one or more `acceptable_counterparts` (signals that the claim was
  *     honored at runtime)
  *   - optional `exception_signals` (signals that suppress OR escalate the
- *     finding — semantics chosen by the evaluator, not the schema)
+ *     finding, selected per-entry via `exception_semantics`)
  *   - optional entry-level `intent_required` (declarations that soften the
  *     finding from "blocker" to "documented intent")
+ *   - optional `exception_semantics` ("suppress" | "escalate", default
+ *     "suppress") — selects how the evaluator treats a matched
+ *     exception_signal
  *
  * `detection_phase` routes the entry to the deterministic (1) or heuristic
  * (3) pipeline phase.
@@ -62,6 +65,23 @@ export interface CapabilityRelationship {
   readonly intent_required?: readonly string[];
   readonly severity_hint: "blocker" | "major" | "minor" | "nit";
   readonly confidence: "high" | "medium" | "low";
+  /**
+   * How the evaluator interprets a matched exception_signal.
+   *
+   *   - `"suppress"` (default when omitted): the rule does NOT fire when
+   *     any exception_signal matches. Backward-compatible behavior.
+   *   - `"escalate"`: the rule FIRES even when an exception_signal
+   *     matches; severity is boosted by one level (nit → minor → major →
+   *     blocker, capped at blocker) and the matched signal is attached as
+   *     `exception` evidence. Escalate-mode rules additionally use the
+   *     `scanDebtMarkers` helper to detect nearby TODO/FIXME/HACK/XXX
+   *     comments within a 20-line window of each trigger hit; any such
+   *     marker counts as an exception signal and produces evidence.
+   *
+   * Leaving the field unset is identical to `"suppress"`, so existing
+   * registry entries do not need to declare it.
+   */
+  readonly exception_semantics?: "suppress" | "escalate";
 }
 
 /**
@@ -188,7 +208,7 @@ export const CAPABILITY_RELATIONSHIPS: readonly CapabilityRelationship[] = [
     // The evaluator interprets the presence of these signals as
     // "deferred enforcement with expired deadline" — semantically the
     // inverse of a suppressive exception. Schema records the signals;
-    // semantics live in the evaluator.
+    // semantics live in the evaluator via `exception_semantics: "escalate"`.
     exception_signals: [
       {
         description: "Nearby TODO/FIXME referencing enforcement.",
@@ -205,6 +225,12 @@ export const CAPABILITY_RELATIONSHIPS: readonly CapabilityRelationship[] = [
     // deterministic regex match does not imply a deterministic conclusion.
     severity_hint: "major",
     confidence: "medium",
+    // Rule 3 contract: when an exception_signal OR a nearby debt marker
+    // (TODO/FIXME/HACK/XXX within 20 lines, detected via scanDebtMarkers)
+    // is present, the rule FIRES and severity is boosted by one level
+    // (major → blocker). Default semantics ("suppress") would silence the
+    // rule — the opposite of what deferred-enforcement detection requires.
+    exception_semantics: "escalate",
   },
   {
     id: "manifest-reference-vs-runtime-registration",
