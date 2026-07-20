@@ -123,8 +123,8 @@ export async function queryClaimsByIssueNumber(
 
 /**
  * Bulk lookup: which issue numbers have active changes? Returns a Map keyed
- * by issue number for O(1) annotation by callers (e.g., `adv_roadmap`
- * active-change cross-reference replacing `buildActiveChangeIndex`).
+ * by issue number for O(1) annotation by callers (e.g. portfolio-balance
+ * rendering in `/adv-triage`, replacing `buildActiveChangeIndex`).
  *
  * Implementation detail: chunks input into batches of 100 to stay under
  * Temporal Visibility query-string limits while minimizing round trips.

@@ -72,7 +72,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Add spec delta${suffix(args, "changeId", "capability")}`),
   adv_delta_modify: (args) =>
     write(`Modify spec delta${suffix(args, "changeId", "capability")}`),
-  adv_roadmap: (args) => read(`Show roadmap${suffix(args, "kind")}`),
   adv_backlog_add: (args) => write(`Add backlog item${suffix(args, "title")}`),
   adv_backlog_list: () => read("List backlog"),
   adv_backlog_show: (args) => read(`Show backlog item${suffix(args, "id")}`),

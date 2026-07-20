@@ -467,7 +467,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-triage": {
     name: "adv-triage",
     description:
-      "Triage backlog sources, reconcile into GH issues, apply bug priority labels, regenerate ROADMAP.md",
+      "Triage backlog sources, reconcile into GH issues, apply bug priority labels, coalesce overlapped changes with issues, emit portfolio-balance report",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],

@@ -1306,7 +1306,7 @@ export const changeTools = {
         .describe("Display title for the Epic entry."),
       origin_kind: ChangeOriginKindSchema.optional().describe(
         "Origin provenance kind. " +
-          "'roadmap' = promoted from a GitHub Project / ROADMAP.md item (origin_issue_number required). " +
+          "'roadmap' = READABLE LEGACY ONLY — retired for new writes by reshapeTriagePortfolioBalance; archived changes still carry this kind. Use 'triage' for new issue-linked changes. " +
           "'discovery' = surfaced mid-session (bug found, drive-by improvement). " +
           "'triage' = promoted by /adv-triage from wisdom/notes (origin_source_artifact recommended). " +
           "'adhoc' = explicit, no upstream artifact. " +

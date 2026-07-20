@@ -798,8 +798,11 @@ export type ChangeContract = z.infer<typeof ChangeContractSchema>;
  * Origin provenance — captures the trigger context for a change.
  *
  * `kind` semantics (see ADV_INSTRUCTIONS.md § Change Origin Linkage Strategy):
- *   - `roadmap`   — promoted from a GitHub Project / ROADMAP.md item
- *                   (`issue_number` required)
+ *   - `roadmap`   — READABLE LEGACY ONLY. Historically promoted from a
+ *                   GitHub Project item; new writes rejected by
+ *                   `adv_change_create` / `adv_change_repair_origin`
+ *                   (retired by `reshapeTriagePortfolioBalance`).
+ *                   Archived changes still carry this kind for read compat.
  *   - `discovery` — surfaced mid-session (bug found, drive-by improvement);
  *                   may carry source_artifact, never issue_number
  *   - `triage`    — promoted by `/adv-triage` from a non-GH source artifact
