@@ -1,0 +1,31 @@
+{
+  "archived_at": "2026-07-20T22:10:37.841Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "49d7db0fdee8767e474f505407d7ae1fbda21513d0ffbf5e2cfdb1902931e61c",
+  "change_id": "fixShippedWorkflowTermination",
+  "completed_tasks": 9,
+  "created_at": "2026-07-20T19:49:35.883Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784579302763-zhgjed",
+    "epic_id": "hardenTemporalReliability",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-20T20:28:22.764Z",
+    "order": 1,
+    "source": "link_existing",
+    "title": "Fix shipped workflow termination"
+  },
+  "fast_follow_of": {
+    "linked_at": "2026-07-20T19:49:33.120Z",
+    "parent_change_id": "fixPoisonedRecovery"
+  },
+  "last_activity_at": "2026-07-20T21:26:18.615Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "b27b7580b9098c9b24365a611eaf4462a085bfc3659de495fc4eae7887349f88",
+  "task_count": 9,
+  "title": "Fix shipped workflow termination",
+  "version": "1"
+}

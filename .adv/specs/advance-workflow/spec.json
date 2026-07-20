@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.31.0",
-  "updated_at": "2026-07-19T15:18:28.366Z",
+  "version": "1.32.0",
+  "updated_at": "2026-07-20T22:10:37.841Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -6257,6 +6257,78 @@
             "The response returns remaining uncovered success/acceptance IDs",
             "Prep uses the same projection",
             "No semantic drift exists between write guidance and planning readiness"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-shippedWorkflowTermination01",
+      "title": "Shipped-terminal workflow termination uses structural proof",
+      "body": "Operator-approved exact-run termination MAY recover a live RUNNING or PAUSED change workflow without poisoned-history describe evidence only when a typed shipped-terminal proof is complete: all seven gates are done on the durable disk projection, phase9_status is done, and a schema-valid archive bundle embeds the requested change ID. RUNNING status alone never authorizes termination. The operation MUST pin the described runId, preserve archive bundles, fail before projection mutation when termination fails, converge status and lifecycleState to archived, detect successor-run races, and verify terminal readback before reporting full success. Existing poisoned-history eligibility remains a separate valid path.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "recovery",
+        "termination",
+        "archive",
+        "operator-only"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-shippedWorkflowTermination01.1",
+          "title": "Complete shipped-terminal proof authorizes exact-run termination",
+          "given": [
+            "An operator explicitly approved recovery",
+            "All seven gates are done on the durable disk projection",
+            "phase9_status is done",
+            "A schema-valid archive bundle embeds the requested change ID",
+            "Temporal describe reports a RUNNING or PAUSED run with a non-empty runId"
+          ],
+          "when": "adv_change_workflow_terminate evaluates shipped-terminal recovery",
+          "then": [
+            "The run qualifies without requiring poisoned-history text in describe output",
+            "Termination targets only the described runId",
+            "The archive bundle is preserved"
+          ]
+        },
+        {
+          "id": "rq-shippedWorkflowTermination01.2",
+          "title": "Incomplete or mismatched proof refuses without mutation",
+          "given": [
+            "A live workflow lacks at least one required shipped-terminal proof component"
+          ],
+          "when": "adv_change_workflow_terminate evaluates the run",
+          "then": [
+            "The call returns a typed refusal naming the missing or mismatched proof",
+            "No termination, cache refresh, or projection mutation occurs",
+            "RUNNING or PAUSED status alone does not authorize recovery"
+          ]
+        },
+        {
+          "id": "rq-shippedWorkflowTermination01.3",
+          "title": "Successful termination converges terminal authority",
+          "given": [
+            "An eligible exact pinned run terminates or is idempotently already gone"
+          ],
+          "when": "Recovery finalization runs",
+          "then": [
+            "The durable projection records status archived and lifecycleState archived",
+            "Read-after-write shows archived, excludes the change from in-flight results, and includes it exactly once in archived results",
+            "A different live successor run produces a typed race result instead of full success"
+          ]
+        },
+        {
+          "id": "rq-shippedWorkflowTermination01.4",
+          "title": "Terminate failure precedes projection mutation",
+          "given": [
+            "An eligible pinned run is selected",
+            "Temporal termination fails with a non-idempotent error"
+          ],
+          "when": "adv_change_workflow_terminate handles the failure",
+          "then": [
+            "No projection or cache mutation occurs",
+            "The exact runId and termination error are returned",
+            "The call does not report successful recovery"
           ]
         }
       ]
