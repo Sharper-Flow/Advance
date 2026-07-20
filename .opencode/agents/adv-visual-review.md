@@ -8,6 +8,10 @@ tools:
   read: true
   glob: true
   grep: true
+  # CodeMode entry point — exposes lgrep as tools.lgrep.<name> inside the
+  # confined interpreter. Required because OPENCODE_EXPERIMENTAL_CODE_MODE=true
+  # moves MCP tools out of top-level.
+  execute: true
   lgrep_search_semantic: true
   lgrep_search_symbols: true
   lgrep_get_symbol: true
