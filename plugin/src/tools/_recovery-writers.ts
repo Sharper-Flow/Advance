@@ -184,18 +184,33 @@ export async function saveRecoveredArtifactMetadata(input: {
  * `archiveChangeSignal` on the workflow — which is exactly what we are
  * recovering from. Write the disk projection directly via `saveChange`
  * without refreshing stale workflow state back over the disk repair.
+ *
+ * rq-shippedWorkflowTermination01 D5: when the recovery path converges
+ * terminal authority (e.g. adv_change_workflow_terminate after a pinned
+ * run is terminated), the caller MUST also pass `lifecycleState` so the
+ * disk projection carries an authoritative terminal lifecycle value.
+ * Without this, a stale literal `lifecycleState:"open"` on disk would
+ * survive `status:"archived"` writes because `normalizeChangeLifecycleState`
+ * trusts the stored literal before deriving from status. Existing status-only
+ * callers (adv_change_status_repair) continue to omit `lifecycleState` and
+ * remain compatible; their recovery does not converge live-workflow
+ * authority.
  */
 export async function saveRecoveredChangeStatus(input: {
   store: Store;
   change: Change;
   authorization: RecoveryWriteAuthorization;
   status: Change["status"];
+  lifecycleState?: Change["lifecycleState"];
   closure?: Change["closure"];
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
   const updated = {
     ...input.change,
     status: input.status,
+    ...(input.lifecycleState
+      ? { lifecycleState: input.lifecycleState }
+      : {}),
     ...(input.closure ? { closure: input.closure } : {}),
   } as Change;
   await saveChange(input.store.paths.changes, updated);

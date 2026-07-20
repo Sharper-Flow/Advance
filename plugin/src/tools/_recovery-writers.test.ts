@@ -319,6 +319,70 @@ describe("saveRecoveredChangeStatus", () => {
       } as any),
     ).rejects.toThrow(/recovery authorization/);
   });
+
+  // rq-shippedWorkflowTermination01 D5: lifecycleState is written alongside
+  // status when provided so a stale literal lifecycleState:"open" on disk
+  // does not survive a terminal status write. The read normalizer
+  // (normalizeChangeLifecycleState) trusts the stored literal first, so the
+  // writer MUST update both fields atomically for terminal recovery paths.
+  it("writes lifecycleState alongside status when provided (terminal recovery)", async () => {
+    const { store } = createMockStore();
+    // Stale open literal that would survive a status-only write.
+    const change = { ...baseChange(), lifecycleState: "open" } as Change;
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const updated = await saveRecoveredChangeStatus({
+      store,
+      change,
+      authorization: {
+        reason: "shipped_terminal_workflow_termination",
+        evidence:
+          "adv_change_workflow_terminate exact-run terminate succeeded; operator approved",
+      },
+      status: "archived",
+      lifecycleState: "archived",
+    });
+
+    expect(updated.status).toBe("archived");
+    expect(updated.lifecycleState).toBe("archived");
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({
+        status: "archived",
+        lifecycleState: "archived",
+      }),
+    );
+  });
+
+  it("remains status-only when lifecycleState is omitted (backward compatible)", async () => {
+    const { store } = createMockStore();
+    const change = { ...baseChange(), lifecycleState: "open" } as Change;
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    // adv_change_status_repair continues to call without lifecycleState.
+    const updated = await saveRecoveredChangeStatus({
+      store,
+      change,
+      authorization: {
+        reason: "operator_status_repair",
+        evidence: "WorkflowNotFoundError + operator approved",
+      },
+      status: "archived",
+    });
+
+    expect(updated.status).toBe("archived");
+    // The caller did not request lifecycleState; the writer does not force it.
+    // (Existing status-repair flow remains non-converging for live workflows,
+    // which is intentional per design D5.)
+    expect(updated.lifecycleState).toBe("open");
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({
+        status: "archived",
+        lifecycleState: "open",
+      }),
+    );
+  });
 });
 
 describe("saveRecoveredDesignConcernDisposition", () => {
