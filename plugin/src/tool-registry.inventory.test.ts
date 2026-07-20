@@ -70,6 +70,7 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
 const CONTRACTED_PUBLIC_REMOVALS = [
   "adv_backlog_state",
   "adv_project_wisdom_list",
+  "adv_roadmap",
 ] as const;
 
 /**
@@ -288,7 +289,8 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // addLightweightChangeProfile then added the lightweight profile evaluate
     // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
     // catalog and describe tools (83 = 80 - 2 + 5); restoreDesignerFollowUp
-    // adds the typed modify writer (84 = 80 - 2 + 6).
+    // adds the typed modify writer (84 = 80 - 2 + 6); this change retires
+    // adv_roadmap (83 = 80 - 3 + 6).
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) - landedRemovals + landedAdditions,
     );
