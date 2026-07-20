@@ -67,9 +67,12 @@ describe("removed tool tombstones", () => {
     },
   );
 
-  test.each(REMOVED_PUBLIC_TOOLS)("%s is absent from ADV_TOOL_NAMES", (name) => {
-    expect(ADV_TOOL_NAMES).not.toContain(name);
-  });
+  test.each(REMOVED_PUBLIC_TOOLS)(
+    "%s is absent from ADV_TOOL_NAMES",
+    (name) => {
+      expect(ADV_TOOL_NAMES).not.toContain(name);
+    },
+  );
 
   test.each(REMOVED_PUBLIC_TOOLS)(
     "%s is absent from the warrant-visible tool surface",

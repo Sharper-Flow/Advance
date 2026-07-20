@@ -24,13 +24,24 @@ const changes = [
 ];
 
 const issues = [
-  { number: 42, title: "Fix auth refresh race", body: "Refresh requests race." },
-  { number: 77, title: "Add billing data export", body: "Export billing rows as CSV." },
+  {
+    number: 42,
+    title: "Fix auth refresh race",
+    body: "Refresh requests race.",
+  },
+  {
+    number: 77,
+    title: "Add billing data export",
+    body: "Export billing rows as CSV.",
+  },
 ];
 
 describe("classifyCoalescePairs", () => {
   test("prefers structural stable-reference evidence", () => {
-    const pairs = classifyCoalescePairs({ activeChanges: changes, openIssues: issues });
+    const pairs = classifyCoalescePairs({
+      activeChanges: changes,
+      openIssues: issues,
+    });
     expect(pairs).toContainEqual(
       expect.objectContaining({
         changeId: "fixAuthRace",
@@ -41,7 +52,10 @@ describe("classifyCoalescePairs", () => {
   });
 
   test("recognizes exact distinctive body excerpts structurally", () => {
-    const pairs = classifyCoalescePairs({ activeChanges: changes, openIssues: issues });
+    const pairs = classifyCoalescePairs({
+      activeChanges: changes,
+      openIssues: issues,
+    });
     expect(pairs).toContainEqual(
       expect.objectContaining({
         changeId: "addBillingExport",
@@ -53,7 +67,9 @@ describe("classifyCoalescePairs", () => {
 
   test("uses title similarity only as heuristic evidence", () => {
     const pairs = classifyCoalescePairs({
-      activeChanges: [{ ...changes[1], proposalBody: "", problemStatement: "" }],
+      activeChanges: [
+        { ...changes[1], proposalBody: "", problemStatement: "" },
+      ],
       openIssues: [{ number: 88, title: "Billing data export", body: "" }],
     });
     expect(pairs).toEqual([

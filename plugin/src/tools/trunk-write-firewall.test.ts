@@ -447,10 +447,7 @@ describe("target-relative trunk evaluation (mocked git)", () => {
     },
   );
 
-  it.each([
-    "docs/CHANGELOG.md",
-    "sub/.adv/github-project.json",
-  ])(
+  it.each(["docs/CHANGELOG.md", "sub/.adv/github-project.json"])(
     "does NOT exempt nested artifact paths in a foreign repo: %s",
     async (relPath) => {
       await expect(

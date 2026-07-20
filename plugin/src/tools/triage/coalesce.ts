@@ -52,7 +52,10 @@ function normalizeExcerpt(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-function exactDistinctiveExcerpt(changeText: string, issueBody: string): boolean {
+function exactDistinctiveExcerpt(
+  changeText: string,
+  issueBody: string,
+): boolean {
   const body = normalizeExcerpt(issueBody);
   const change = normalizeExcerpt(changeText);
   return body.length >= 20 && change.includes(body);
@@ -128,9 +131,7 @@ export function parseCoalesceApproval(
     return { kind: "stop" };
   }
 
-  const selective = /^(link|skip)\s+(\d+(?:\s*,\s*\d+)*)$/.exec(
-    normalized,
-  );
+  const selective = /^(link|skip)\s+(\d+(?:\s*,\s*\d+)*)$/.exec(normalized);
   if (!selective) return { kind: "unparsed", raw: input };
 
   const indices = [...new Set(selective[2].split(",").map(Number))].sort(

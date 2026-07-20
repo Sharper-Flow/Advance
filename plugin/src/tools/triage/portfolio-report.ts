@@ -65,7 +65,9 @@ function overflowLine(total: number): string[] {
 }
 
 function epicLine(epic?: EpicContext | null): string {
-  return epic ? `\n  Epic ${epic.id} — ${epic.title} — order ${epic.order}` : "";
+  return epic
+    ? `\n  Epic ${epic.id} — ${epic.title} — order ${epic.order}`
+    : "";
 }
 
 export function renderPortfolioBalance(input: PortfolioBalanceInput): string {
@@ -74,8 +76,7 @@ export function renderPortfolioBalance(input: PortfolioBalanceInput): string {
       priorityWeight(right.linkedIssue?.priority) -
       priorityWeight(left.linkedIssue?.priority);
     if (priority !== 0) return priority;
-    const gate =
-      (GATE_WEIGHT[right.gate] ?? 0) - (GATE_WEIGHT[left.gate] ?? 0);
+    const gate = (GATE_WEIGHT[right.gate] ?? 0) - (GATE_WEIGHT[left.gate] ?? 0);
     if (gate !== 0) return gate;
     return Date.parse(right.lastActivity) - Date.parse(left.lastActivity);
   });
@@ -88,8 +89,12 @@ export function renderPortfolioBalance(input: PortfolioBalanceInput): string {
   });
 
   const cleanupRows = [
-    ...input.cleanupNeeded.readyToArchive.map((id) => `ready-to-archive: ${id}`),
-    ...input.cleanupNeeded.stuckAtProposal.map((id) => `stuck-at-proposal: ${id}`),
+    ...input.cleanupNeeded.readyToArchive.map(
+      (id) => `ready-to-archive: ${id}`,
+    ),
+    ...input.cleanupNeeded.stuckAtProposal.map(
+      (id) => `stuck-at-proposal: ${id}`,
+    ),
     ...input.cleanupNeeded.abandonedMidFlight.map(
       (id) => `abandoned-mid-flight: ${id}`,
     ),
@@ -102,14 +107,17 @@ export function renderPortfolioBalance(input: PortfolioBalanceInput): string {
   ];
 
   const issues = [...input.openIssuesWorthSolving].sort((left, right) => {
-    const priority = priorityWeight(right.priority) - priorityWeight(left.priority);
+    const priority =
+      priorityWeight(right.priority) - priorityWeight(left.priority);
     if (priority !== 0) return priority;
     return Date.parse(right.createdAt) - Date.parse(left.createdAt);
   });
-  const issueLines = issues.slice(0, CAP).map(
-    (issue) =>
-      `- #${issue.number} — ${issue.title} — priority:${issue.priority}${epicLine(issue.epic)}\n  → /adv-proposal #${issue.number}`,
-  );
+  const issueLines = issues
+    .slice(0, CAP)
+    .map(
+      (issue) =>
+        `- #${issue.number} — ${issue.title} — priority:${issue.priority}${epicLine(issue.epic)}\n  → /adv-proposal #${issue.number}`,
+    );
 
   return [
     "## /adv-triage portfolio balance",
@@ -119,11 +127,9 @@ export function renderPortfolioBalance(input: PortfolioBalanceInput): string {
     ...overflowLine(important.length),
     "",
     "### Cleanup needed",
-    ...(
-      cleanupRows.length > 0
-        ? cleanupRows.slice(0, CAP).map((row) => `- ${row}`)
-        : ["None"]
-    ),
+    ...(cleanupRows.length > 0
+      ? cleanupRows.slice(0, CAP).map((row) => `- ${row}`)
+      : ["None"]),
     ...overflowLine(cleanupRows.length),
     "→ /adv-cleanup",
     "",
