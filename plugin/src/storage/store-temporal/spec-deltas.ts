@@ -1,6 +1,9 @@
+import { isDeepStrictEqual } from "node:util";
 import type { Store } from "../store-types";
 import type { DeltaAdd, DeltaModify } from "../../types";
 import {
+  DeltaAddSchema,
+  DeltaModifySchema,
   SpecDeltaAddedSignalPayloadSchema,
   SpecDeltaModifiedSignalPayloadSchema,
 } from "../../types";
@@ -15,6 +18,44 @@ import {
   type StoreDeps,
 } from "./shared";
 import { fireSignalWithMutationGuard } from "./gates";
+
+function assertPersistedAdd(
+  observed: unknown,
+  expected: DeltaAdd,
+  context: string,
+): DeltaAdd {
+  const parsed = DeltaAddSchema.safeParse(observed);
+  if (!parsed.success) {
+    throw new Error(
+      `${context}: authoritative add readback was malformed: ${parsed.error.message}`,
+    );
+  }
+  if (!isDeepStrictEqual(parsed.data, expected)) {
+    throw new Error(
+      `${context}: authoritative add readback payload mismatch for delta ${expected.id}`,
+    );
+  }
+  return parsed.data;
+}
+
+function assertPersistedModify(
+  observed: unknown,
+  expected: DeltaModify,
+  context: string,
+): DeltaModify {
+  const parsed = DeltaModifySchema.safeParse(observed);
+  if (!parsed.success) {
+    throw new Error(
+      `${context}: authoritative modify readback was malformed: ${parsed.error.message}`,
+    );
+  }
+  if (!isDeepStrictEqual(parsed.data, expected)) {
+    throw new Error(
+      `${context}: authoritative modify readback payload mismatch for delta ${expected.id}`,
+    );
+  }
+  return parsed.data;
+}
 
 /**
  * Temporal store operation for the append-only spec-delta writer
@@ -76,10 +117,15 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
             : `Spec delta add for change ${changeId} completed without appending delta ${delta.id} under capability ${capability}`,
         );
       }
+      const persisted = assertPersistedAdd(
+        appended,
+        delta,
+        `specDeltas.add(${changeId})`,
+      );
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
       persistStateToDisk(changeId, state);
-      return appended as DeltaAdd;
+      return persisted;
     },
     modify: async (changeId, capability, delta: DeltaModify, options) => {
       invalidateChange(changeId);
@@ -116,10 +162,15 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
             : `Spec delta modify for change ${changeId} completed without appending delta ${delta.id} under capability ${capability}`,
         );
       }
+      const persisted = assertPersistedModify(
+        appended,
+        delta,
+        `specDeltas.modify(${changeId})`,
+      );
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
       persistStateToDisk(changeId, state);
-      return appended as DeltaModify;
+      return persisted;
     },
   };
 }
