@@ -1,0 +1,802 @@
+{
+  "id": "fixArchivedBranchCleanup",
+  "title": "Fix archived branch cleanup timeout",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-19T23:49:44.428Z",
+  "tasks": [
+    {
+      "id": "tk-8173c72f80b6",
+      "title": "Add backward-compatible optional timeoutMs to execGit",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-20T19:17:17.644Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C7",
+          "DONT6",
+          "C8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T19:20:07.979Z",
+      "verification": "execGit gains backward-compatible optional timeoutMs param (default 5000). RED: slow git alias timed out at 5000ms default. GREEN: 200ms budget rejects fast, all 10 git.test.ts pass. rq-execGitTimeoutParam01.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/git.test.ts",
+        "plugin/src/utils/git.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/git.test.ts",
+        "plugin/src/utils/git.ts"
+      ],
+      "checkpointSha": "05f18560dc7daacf698ed7df6b79664f3df57ce5",
+      "completedAt": "2026-07-20T19:21:49.817Z",
+      "completed_at": "2026-07-20T19:21:49.817Z"
+    },
+    {
+      "id": "tk-b7f1e362d422",
+      "title": "Extract listLocalChangeBranchEntries and refactor detectArchivedMergedBranches to use it",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-20T19:17:31.699Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8173c72f80b6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C2",
+          "C4",
+          "DONT4",
+          "C8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T19:22:37.174Z",
+      "verification": "Extracted listLocalChangeBranchEntries (+ LocalChangeBranchEntry, ListLocalChangeBranchesResult) from detectArchivedMergedBranches; refactored detect to consume it. Behavior-preserving: all 109 git-finalize.test.ts pass incl. 6 unchanged detect tests (AC7) + 3 new listLocal tests (parse/blocked/filter). RED→GREEN via rq-archivedBranchCleanupInversion01.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "87134917793acadf1973bc107e9c4a25f3595957",
+      "completedAt": "2026-07-20T19:24:34.398Z",
+      "completed_at": "2026-07-20T19:24:34.398Z"
+    },
+    {
+      "id": "tk-7203887b6042",
+      "title": "Rewrite archived_branches tool path: per-id inversion, bounded fetch, deadline-aware detect, self-partial",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-20T19:18:01.279Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b7f1e362d422"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "C8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T19:24:42.199Z",
+      "verification": "Core rewrite complete. Helper: per-id inversion (store.changes.get per local branch, no list), concurrency cap 4, bounded fetch (execGit timeout, skip on dryRun), deadline-aware detect via makeBoundedRunGit, self-returned partial with typed omissions (not_archived/lookup_failed/deadline_exceeded), fail-closed LoadResult mapping incl data:null. Handler: clamp+pass effectiveTimeoutMs, enrich timeoutNote, emergency timedOut guard. Tool desc updated. Tests: 22 archived-branches (incl AC1 list-not-called + cap≤4, AC2 fetch-skip, AC3 fetch-degrade, AC4 clamp+self-partial+emergency, AC5 schema_error/not_found/null/not_archived) + 33 adv-worktree/status-hygiene regression green. tsc --noEmit clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "plugin/src/tools/adv-worktree.archived-branches.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "plugin/src/tools/adv-worktree.archived-branches.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "381500d24067bd5adfeb4872d2829252ea21d56b",
+      "completedAt": "2026-07-20T19:34:25.852Z",
+      "completed_at": "2026-07-20T19:34:25.852Z"
+    },
+    {
+      "id": "tk-6b1160298b68",
+      "title": "Full verification + manual perf on this repo",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-20T19:18:12.671Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7203887b6042"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T19:34:59.774Z",
+      "verification": "SC3: pnpm run check GREEN (schemas/typecheck/manifests/isolation/lockfile/lint/format); targeted suites 141 pass; full suite 6564 pass + 1 expected fail (429 files, zero regressions); build succeeds. SC4/AC8: manual perf on main repo (26 local change/* branches, 43 archived disk projections) via disk-store harness — NEW dryRun 953-1219ms across 3 runs (<< 5s target); OLD list-enumeration alone 505ms + it also ran detect(~1.33s)+unbounded-fetch. Wet = dryRun + bounded fetch(<=2s) + deletions ~= <3.5s (<< 6s); not run live to avoid destructive branch deletion on main repo.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.archived-branches.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.archived-branches.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts"
+      ],
+      "checkpointSha": "9b2046c8173e8aaaf207dc121171fa782f78e1e7",
+      "completedAt": "2026-07-20T19:45:00.517Z",
+      "completed_at": "2026-07-20T19:45:00.517Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBranchCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchCleanup",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [
+        {
+          "id": "deadline-layering-1",
+          "label": "issue",
+          "file": "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts",
+          "line": 301,
+          "what": "Setup and worktree-safety synchronous git calls used defaultRunGit and could block past helper/handler deadlines.",
+          "why": "spawnSync blocks Node's event loop; an unbounded resolveMainCheckout, detectDefaultBranch, or getCheckedOutChangeBranches call could prevent partial-return and emergency timers from running (AC3/AC4/C5).",
+          "fix": "applied"
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts",
+          "summary": "Injected deadline-bounded runGit into setup and WORKTREE_CHECKED_OUT safety phases; added a post-detection deadline partial-return guard.",
+          "verification": "bin/oc-test targeted -- src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/archive-helpers/git-finalize.test.ts src/utils/git.test.ts (141 passing); pnpm run check passing"
+        },
+        {
+          "file": "plugin/src/tools/adv-worktree.archived-branches.test.ts",
+          "summary": "Asserted all synchronous git phases receive injected bounded runners.",
+          "verification": "Targeted suite passes (141 tests)"
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A Promise.race cannot enforce a deadline while an unbounded spawnSync call blocks the Node event loop. Every synchronous git phase in a tool-budgeted path needs an injected timeout-bound runGit, including setup and safety checks."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/archive-helpers/git-finalize.test.ts src/utils/git.test.ts",
+          "pnpm run check",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted: 4 files, 141 tests passed. pnpm run check passed schemas, typecheck, manifests, isolation, lockfile, lint, and format. diff check clean. Static review: helper contains no store.changes.list/listSummary calls; cap is fixed at 4 (archived-branch-cleanup.ts:38,146-162); only explicit archived LoadResult becomes candidate (88-140,204-219); dry runs skip fetch (353-366); execGit forwards optional defaulted timeout to execFile (utils/git.ts:19-32); detect signature and squash/cherry body remain unchanged (git-finalize.ts:2140-2211)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No live wet-run deletion performed during this review; destructive branch deletion remains intentionally unexercised here."
+      ],
+      "required_main_agent_actions": [
+        "Include the two reviewer remediation files in the change's next checkpoint/commit; no gate or task mutation was performed by this reviewer.",
+        "Leave unchanged: detectArchivedMergedBranches squash/cherry semantics, deleteChangeBranch semantics, and mode=\"worktrees\" path."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/archive-helpers/git-finalize.test.ts src/utils/git.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-8173c72f80b6": [
+      {
+        "runId": "tr_mrtm1mkl_7adc64ed",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/utils/git.test.ts -t \"honors a short timeoutMs\"",
+        "durationMs": 5651.229333000025,
+        "recordedAt": "2026-07-20T19:21:19.826Z"
+      },
+      {
+        "runId": "tr_mrtm24lr_f6c2054b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/utils/git.test.ts",
+        "durationMs": 1163.7558249998838,
+        "recordedAt": "2026-07-20T19:21:43.180Z"
+      }
+    ],
+    "tk-b7f1e362d422": [
+      {
+        "runId": "tr_mrtm4hvd_a0524666",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"listLocalChangeBranchEntries\"",
+        "durationMs": 804.0293300000485,
+        "recordedAt": "2026-07-20T19:23:33.685Z"
+      },
+      {
+        "runId": "tr_mrtm5d6g_61b65883",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches|listLocalChangeBranchEntries\"",
+        "durationMs": 971.1091350000352,
+        "recordedAt": "2026-07-20T19:24:14.306Z"
+      },
+      {
+        "runId": "tr_mrtm5nj5_02965656",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/archive-helpers/git-finalize.test.ts",
+        "durationMs": 7008.718197999988,
+        "recordedAt": "2026-07-20T19:24:27.705Z"
+      }
+    ],
+    "tk-7203887b6042": [
+      {
+        "runId": "tr_mrtmhoch_70e9b107",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "durationMs": 2983.6729520000517,
+        "recordedAt": "2026-07-20T19:33:48.685Z"
+      },
+      {
+        "runId": "tr_mrtmi1p6_3d96c37e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/adv-worktree.test.ts src/tools/status-hygiene.test.ts",
+        "durationMs": 8930.842319000047,
+        "recordedAt": "2026-07-20T19:34:05.913Z"
+      },
+      {
+        "runId": "tr_mrtn5wq6_d8f1e3b4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/archive-helpers/git-finalize.test.ts src/utils/git.test.ts",
+        "durationMs": 7511.7069339999,
+        "recordedAt": "2026-07-20T19:52:39.219Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-19T23:49:55.065Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved promotion with exact scope (invert scan order + skip fetch on dryRun + honor timeoutMs) via \"yes\" after evidence-backed diagnosis. Origin: backlog bl-BoUv0U-w.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "1800e8fb564541a31df029ddb790350d8fcb908380c7c3ecc3be95bd31c89aa4",
+        "non_whitespace_chars": 1769,
+        "checked_at": "2026-07-19T23:49:44.619Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-20T19:01:18.419Z",
+      "completed_at": "2026-07-20T19:01:39.952Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement signed off (\"approve\"). Contract minted: 18 items (4 SC, 8 constraints, 6 avoidances), rigor=standard. AC1-AC8 become task verifies refs at planning.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "3f88148547753f7c16c0af5d1e82c8bb0c12506149b587bc471357ca3a83faf5",
+        "non_whitespace_chars": 5756,
+        "checked_at": "2026-07-19T23:49:44.620Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-20T19:15:50.846Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design rev 2 signed off. Independent validator (adv-researcher) returned CONFLICT on rev 1; all findings resolved in rev 2 (concurrency cap 4, Node execFile kill-on-timeout for real fetch abort, injected per-call runGit timeout for sync git, helper self-returns partial, budget-util move dissolved, data:null fail-closed, partial semantics tightened, tool-description fix). C7 amended (execGit gains backward-compatible optional timeoutMs param) + agreement AC3/AC4/AC5 refined to match; contract re-minted (18 items).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "73fec136301590032ce1de0bd893624ccaa4a5a66a043740235b11c104c908b6",
+        "non_whitespace_chars": 14174,
+        "checked_at": "2026-07-19T23:49:44.621Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-20T19:19:42.934Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved 4-task prep graph via question tool (\"Approve, proceed on manual conflict check\"). Automated conflict detection blocked by unrelated corrupt change fixWorkflowReliabilityDefects (schema-invalid subagent_reports.2.validation.blockers); user accepted manual low-risk conflict assessment (different subsystem; execGit param additive). Sibling repair deferred to separate follow-up. SC1-SC4 covered by tasks A/B/C/D."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-20T19:45:15.657Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done with test evidence. execGit timeoutMs param (A), listLocalChangeBranchEntries extraction + behavior-preserving detect refactor (B), core per-id inversion + bounded fetch/detect + self-partial + handler (C), full verification (D). Full suite 6564 pass + 1 expected fail, zero regressions. Perf: dryRun ~1s vs 5s target. SC1-SC4 covered."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-20T19:54:34.291Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent acceptance review (adv-reviewer) verdict READY. One blocking finding (deadline-layering-1: unbounded setup/safety git) fixed by reviewer + committed (4a16a0a3). Authoritative re-verification adv_run_test tr_mrtn5wq6 (141 pass) + pnpm run check green + full suite 6564 pass. Contract review matrix 18/18 pass/respected, 0 failing. Executive summary persisted. Awaiting user acceptance sign-off.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9460b0819d4a9601ffd2cd677c3f5ff1a34251367a2f36b00b257cb79dc4c69e",
+        "non_whitespace_chars": 2885,
+        "checked_at": "2026-07-19T23:49:44.622Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "bl-BoUv0U-w"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+      "approvedAt": "2026-07-20T19:01:39.952Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "All existing tests in `adv-worktree.archived-branches.test.ts` continue to pass (with assertion updates reflecting the new helper call shape: `detectArchivedMergedBranches` is still called with `archivedChangeIds: string[]`, but that array is now built per-local-branch rather than from `store.changes.list`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "New tests cover: AC1 (list-not-called + concurrency cap), AC2 (dryRun skip fetch), AC3 (fetch timeout degrades), AC4 (partial-result path), AC5 (fail-closed lookups incl. data:null), AC6 (changeId paths).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "`pnpm run check` green; targeted `bin/oc-test targeted -- src/tools/adv-worktree.archived-branches.test.ts` green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Manual perf verification on this repo confirms sub-budget completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**No new public tool surface.** The `adv_worktree_cleanup` tool args are unchanged (`timeoutMs` already exists). Output shape additions must be additive (`partial`, `omissions`, `effectiveTimeoutMs`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**No detect signature change.** `detectArchivedMergedBranches` keeps `archivedChangeIds?: string[]`. The inversion lives entirely in the helper.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**No use of `store.changes.listSummary`** — explicitly forbidden for safety-critical callers per `store-types.ts:327-331`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**No change to squash-merge detection semantics** (`detectSquashMergeByTree`, `git cherry` proof kinds).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**No change to deletion safety rules** (`WORKTREE_CHECKED_OUT`, `deleteChangeBranch` semantics).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**No change to mode=\"worktrees\" behavior.**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "`execGit` (utils/git.ts) gains a backward-compatible optional `timeoutMs` param (default 5000; existing callers unchanged). Sub-budgets are enforced via Node `execFile`/`spawnSync` kill-on-timeout, not `Promise.race`. No other `execGit` behavior changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "Trunk stays on default; all implementation in `change/fixArchivedBranchCleanup` worktree per isolation policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Avoid heuristic inference of archived status (e.g., \"if a `change/*` branch exists and is merged, assume archived\"). The single source of truth is `store.changes.get(id)` returning `status: \"archived\"`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Avoid silently swallowing `LoadResult` errors. Surface them in `omissions` with typed reasons.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Avoid broadening scope to archive-enumeration performance (#239 family) — that is owned elsewhere.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Avoid modifying `detectArchivedMergedBranches`'s internal squash/cherry logic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Avoid caching archived-status beyond a single tool invocation (the helper runs once per call; cross-call caching is owned by the store layer).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Avoid adding new dependencies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-20T19:54:03.698Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing detect tests unchanged (6 pass) + archived-branches tests reconciled to new per-branch call shape (detectArchivedMergedBranches still called with archivedChangeIds:string[]). Full suite 6564 pass. adv_run_test tr_mrtn5wq6."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New tests cover AC1 (list-not-called + concurrency cap<=4), AC2 (dryRun skip fetch), AC3 (fetch timeout degrade), AC4 (clamp+self-partial+emergency), AC5 (schema_error/not_found/data:null/not_archived), AC6 (changeId paths). 141 targeted pass (tr_mrtn5wq6)."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check GREEN (schemas/typecheck/manifests/isolation/lockfile/lint/format). Targeted 141 pass (tr_mrtn5wq6). Full suite 6564 pass + 1 expected fail, zero regressions. Build succeeds."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Disk-store perf harness on main repo (26 local change/* branches, 43 archived projections): NEW dryRun 953-1219ms across 3 runs vs 5s AC8 target. OLD list-enumeration alone 505ms + it additionally ran detect(~1.33s)+unbounded fetch."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tool args unchanged (timeoutMs pre-existing). Output additions (partial, omissions, effectiveTimeoutMs, timeoutNote) are additive only; all prior fields preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "detectArchivedMergedBranches signature unchanged (input + deps:Pick<GitFinalizeDeps,'runGit'>). Inversion lives in the helper. 6 pre-existing detect tests pass unmodified."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Helper contains no store.changes.list or listSummary calls (reviewer static-verified archived-branch-cleanup.ts). AC1 test asserts store.changes.list NOT called."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "detectSquashMergeByTree and git cherry proof-kind logic (git-finalize.ts) untouched; only the local-branch-list git call was extracted. mergeProof kinds unchanged (AC7)."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "WORKTREE_CHECKED_OUT skip and deleteChangeBranch semantics unchanged; only a bounded runGit was injected into getCheckedOutChangeBranches. Deletion-path tests pass."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "mode='worktrees' branch untouched. adv-worktree.test.ts + status-hygiene.test.ts 33 pass; full suite green."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "execGit gains optional timeoutMs=5000 forwarded to execFile timeout (real SIGTERM). Backward-compatible; all existing callers keep default. git.test.ts rq-execGitTimeoutParam01 proves short budget kills slow git. Sub-budgets via execFile/spawnSync kill-on-timeout, not Promise.race."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All implementation performed in change/fixArchivedBranchCleanup worktree; trunk untouched."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archived status is determined solely by store.changes.get(id).status==='archived'. No merged-implies-archived heuristic. Fail-closed for every other outcome."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All LoadResult failure variants (not_found/schema_error/read_error/data:null/reject/timeout) surface as typed omissions with detail; none silently swallowed. AC5 tests confirm."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to archive enumeration (#239) surface; only the cleanup helper's per-id inversion. store.changes.list left intact for its other callers."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "detectArchivedMergedBranches internal squash/cherry loop unchanged; only the local-list git call extracted to listLocalChangeBranchEntries."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No cross-call archived-status cache added. Per-id gets run once per tool invocation; store layer owns any caching."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new dependencies added; reused existing withTimeout, execGit, git-finalize helpers. pnpm lockfile unchanged."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Proposal: Fix archived branch cleanup timeout\n\n## Intent\n\nMake `adv_worktree_cleanup mode:\"archived_branches\"` complete within the 10s tool budget on repos with large archive histories (85+ archived changes), preserving squash-merge-safe detection and all existing safety semantics.\n\n## Scope\n\n1. **Invert scan order** in `cleanupArchivedMergedBranches` (plugin/src/tools/archive-helpers/archived-branch-cleanup.ts): enumerate local `change/*` branches first (cheap git call, ~18 entries), derive candidate change IDs, then verify archived status per candidate instead of enumerating the full archive. Bounded lookups proportional to local branches, not archive size.\n2. **Bound or skip the fetch**: skip `git fetch origin <defaultBranch>` on `dryRun`; on real runs, bound it and degrade to a warning on timeout (warning path already exists via fetchWarnings).\n3. **Honor `timeoutMs` with partial results** for archived_branches mode, mirroring mode=\"worktrees\" (effectiveTimeoutMs reporting, partial candidate list + explicit omissions rather than a hard tool timeout).\n\n## Out of scope\n\n- Any change to squash-merge detection semantics (detectSquashMergeByTree / git cherry proof kinds).\n- Deletion safety rules (worktree-checked-out skip, WORKTREE_CHECKED_OUT).\n- Archive enumeration performance itself (#239 family, owned elsewhere).\n- mode=\"worktrees\" behavior.\n\n## Success criteria\n\n- dryRun and real runs complete under the 10s budget on this repo (85 archived changes, 18 local change/* branches).\n- Merge-proof kinds (tree-identical, patch-equivalent) unchanged; regression-covered.\n- Per-candidate archived-status verification remains fail-closed: unknown/non-archived candidates are never deletion candidates.\n- Deadline exhaustion returns partial results with typed omissions, not ToolExecutionTimeout.\n\n## Evidence\n\nReproduced 3x 2026-07-19; measured: fetch 2.5s, cherry loop 1.1s over 18 branches, archived enumeration dominant (85 changes, hydration-heavy, no cross-call cache hits). Temporal healthy throughout.",
+    "problemStatement": "# Problem: archived_branches cleanup mode always times out\n\n`adv_worktree_cleanup mode:\"archived_branches\"` fails with `ToolExecutionTimeout` (10s SDK budget) on this repo — reproduced 3x on 2026-07-19, both cache-cold and cache-warm, with Temporal fully healthy (`workerAlive: true`, server serviceable).\n\n## Measured cost stack (all inside one 10s budget)\n\n| Step | Cost | Evidence |\n|---|---|---|\n| Full archived enumeration `store.changes.list({status:\"archived\", includeArchived:true})` | Dominant; 85 archived changes / 89 terminal candidates, hydration-heavy, `fromCache: 0` across calls; standalone adv_change_list read ran near its 8s aggregate deadline | archived-branch-cleanup.ts line 41 |\n| Unconditional `git fetch origin <defaultBranch>` | ~2.5s measured | line 62; runs on every call including dryRun |\n| Per-branch squash detection (`detectSquashMergeByTree` + `git cherry` fallback) x 18 local change/* branches | ~1.1s measured | git-finalize.ts detectArchivedMergedBranches |\n\n## Design defects\n\n1. Inverted scan order: enumerates the entire archive (85+, unbounded) to filter 18 local branches. The changeId-scoped path does not help — the full archived list is fetched before the changeId filter is applied.\n2. Unbounded network fetch inside the tool budget, even for dryRun.\n3. No deadline handling: `timeoutMs`/partial-result support exists for mode=\"worktrees\" but archived_branches ignores it.\n\n## Impact\n\nPost-merge branch hygiene (rq-archiveBranchCleanup01) is unusable on any repo with a realistic archive history. ~12 merged archived branches currently undeletable through the owning typed tool.",
+    "agreement": "# Agreement: Fix archived branch cleanup timeout\n\n## Objectives\n\n1. Make `adv_worktree_cleanup mode:\"archived_branches\"` complete inside the 10s SDK tool budget on repos with large archive histories (85+ archived changes, ~18 local change/* branches), cache-cold and cache-warm.\n2. Build the archived-status filter from **local branch count** work, not **archive size** work — eliminate the unbounded `store.changes.list({status:\"archived\"})` enumeration from the helper.\n3. Skip network I/O on `dryRun`; bound it on real runs.\n4. Add `timeoutMs`/partial-result semantics to archived_branches mode, mirroring the worktrees-mode handler pattern (effectiveTimeoutMs, typed omissions, never `ToolExecutionTimeout`).\n5. Preserve every existing safety property: squash-merge-safe detection kinds unchanged, deletion safety rules unchanged, fail-closed archived verification unchanged.\n\n## Acceptance Criteria\n\n### AC1 — Helper no longer enumerates the full archive\n\n**Given** a store with N archived changes and M local `change/*` branches (N >> M)\n**When** `cleanupArchivedMergedBranches` runs (dryRun or wet)\n**Then** `store.changes.list` is NOT called by the helper\n**And** the helper calls `store.changes.get(id)` at most M times (once per local change/* branch), bounded by a small concurrency cap\n**And** only ids confirmed as `{success:true, data:{status:\"archived\"}}` enter the candidate pipeline\n\n### AC2 — dryRun skips the fetch\n\n**Given** `dryRun: true`\n**When** the helper runs\n**Then** `git fetch origin <defaultBranch>` is NOT invoked\n**And** the output carries no fetch warning unless a fetch was attempted\n\n### AC3 — Real-run fetch is bounded and degrades to warning\n\n**Given** `dryRun: false` (or omitted)\n**When** `git fetch` does not complete within a sub-budget (≤ 2s)\n**Then** the helper aborts the fetch (real process kill via Node `execFile`/`spawnSync` timeout), appends a typed entry to `fetchWarnings`, and proceeds with detection using local refs only\n**And** the output still returns candidates (not a hard failure) when detection succeeds on local state\n\n### AC4 — timeoutMs honored with partial results\n\n**Given** the handler receives `timeoutMs` (or omits it, defaulting to the safe budget)\n**When** the helper cannot complete verify + fetch + detect within the clamped effective budget\n**Then** the helper self-returns a typed partial result: `{success:true, partial:true, candidates:<so-far>, omissions:[{changeId, reason, ...}], effectiveTimeoutMs}`\n**And** the SDK never sees `ToolExecutionTimeout` for archived_branches mode when the budget is respected\n**And** `wasClamped` is surfaced (as `timeoutNote`) when caller-supplied `timeoutMs` exceeds the safe budget\n**And** the handler retains a last-resort emergency guard that returns `{success:false, timedOut:true, effectiveTimeoutMs}` only for pathological escapes\n\n### AC5 — Fail-closed archived verification preserved\n\n**Given** a local `change/*` branch whose changeId is unknown, non-archived, or returns a `LoadResult` that is not `{success:true, data:{status:\"archived\"}}` (including `{success:true, data:null}` and `{success:false, type:\"not_found\"|\"schema_error\"|\"read_error\"}`, or a rejected promise)\n**When** the helper builds the candidate set\n**Then** that branch is NOT a deletion candidate\n**And** it is surfaced in `omissions` with a typed reason (`\"not_archived\" | \"lookup_failed\" | \"deadline_exceeded\"`)\n**And** `partial:true` is set only when at least one omission reason is `lookup_failed` or `deadline_exceeded` (a `not_archived`-only scan is complete, not partial)\n\n### AC6 — changeId-scoped fast path preserved\n\n**Given** the caller passes `changeId` referring to an archived change\n**When** the helper runs\n**Then** only that changeId's archived status is verified (single `get` call)\n**And** `detectArchivedMergedBranches` is called with `archivedChangeIds: [<changeId>]`\n\n**Given** the caller passes `changeId` referring to a non-archived or unknown change\n**When** the helper runs\n**Then** the helper returns `{success:false, error:\"Change is not archived or was not found: <changeId>\"}` without invoking detect\n\n### AC7 — Merge-proof kinds unchanged\n\n**Given** detection runs on confirmed-archived candidates\n**When** `detectArchivedMergedBranches` produces `mergeProof`\n**Then** only kinds `\"tree-identical\"` and `\"patch-equivalent\"` are produced (no new kind, no kind removed)\n**And** existing `git-finalize.test.ts` cases for `detectArchivedMergedBranches` continue to pass unmodified\n\n### AC8 — Perf budget met on this repo\n\n**Given** the advance repo (85 archived changes, 18 local change/* branches) cache-cold\n**When** `adv_worktree_cleanup mode:\"archived_branches\" dryRun:true` runs\n**Then** it completes in < 5s wall-clock (well under the 8s safe budget / 10s SDK ceiling)\n**And** wet runs complete in < 6s including any fetch attempt\n\n## Success Criteria\n\n- All existing tests in `adv-worktree.archived-branches.test.ts` continue to pass (with assertion updates reflecting the new helper call shape: `detectArchivedMergedBranches` is still called with `archivedChangeIds: string[]`, but that array is now built per-local-branch rather than from `store.changes.list`).\n- New tests cover: AC1 (list-not-called + concurrency cap), AC2 (dryRun skip fetch), AC3 (fetch timeout degrades), AC4 (partial-result path), AC5 (fail-closed lookups incl. data:null), AC6 (changeId paths).\n- `pnpm run check` green; targeted `bin/oc-test targeted -- src/tools/adv-worktree.archived-branches.test.ts` green.\n- Manual perf verification on this repo confirms sub-budget completion.\n\n## Constraints\n\n- **No new public tool surface.** The `adv_worktree_cleanup` tool args are unchanged (`timeoutMs` already exists). Output shape additions must be additive (`partial`, `omissions`, `effectiveTimeoutMs`).\n- **No detect signature change.** `detectArchivedMergedBranches` keeps `archivedChangeIds?: string[]`. The inversion lives entirely in the helper.\n- **No use of `store.changes.listSummary`** — explicitly forbidden for safety-critical callers per `store-types.ts:327-331`.\n- **No change to squash-merge detection semantics** (`detectSquashMergeByTree`, `git cherry` proof kinds).\n- **No change to deletion safety rules** (`WORKTREE_CHECKED_OUT`, `deleteChangeBranch` semantics).\n- **No change to mode=\"worktrees\" behavior.**\n- `execGit` (utils/git.ts) gains a backward-compatible optional `timeoutMs` param (default 5000; existing callers unchanged). Sub-budgets are enforced via Node `execFile`/`spawnSync` kill-on-timeout, not `Promise.race`. No other `execGit` behavior changes.\n- Trunk stays on default; all implementation in `change/fixArchivedBranchCleanup` worktree per isolation policy.\n\n## Avoidances\n\n- Avoid heuristic inference of archived status (e.g., \"if a `change/*` branch exists and is merged, assume archived\"). The single source of truth is `store.changes.get(id)` returning `status: \"archived\"`.\n- Avoid silently swallowing `LoadResult` errors. Surface them in `omissions` with typed reasons.\n- Avoid broadening scope to archive-enumeration performance (#239 family) — that is owned elsewhere.\n- Avoid modifying `detectArchivedMergedBranches`'s internal squash/cherry logic.\n- Avoid caching archived-status beyond a single tool invocation (the helper runs once per call; cross-call caching is owned by the store layer).\n- Avoid adding new dependencies.\n",
+    "design": "# Design: Fix archived branch cleanup timeout (rev 2 — validator-corrected)\n\n> Rev 2 supersedes rev 1 after independent validation (adv-researcher, CONFLICT).\n> Key change: use Node `execFile`'s built-in kill-on-timeout for the fetch (real\n> abort), bound synchronous git via injected per-call `runGit` timeouts, let the\n> helper self-return partial results, and drop the budget-util move. Simpler AND\n> more correct than rev 1.\n\n## Root-cause recap\n\n`cleanupArchivedMergedBranches` pre-loads the full archived list\n(`store.changes.list({status:\"archived\"})`, ~85 hydration-heavy changes,\n`fromCache:0`) just to build the `archivedSet` membership filter that\n`detectArchivedMergedBranches` already applies. `detectArchivedMergedBranches`\n*already* enumerates local `change/*` branches first (git-finalize.ts:2092-2108).\nThe fix inverts at the helper level: build the archived-id set **per local\nbranch** via `store.changes.get(id)` (bounded by ~18 local branches), not by\nlisting the whole archive.\n\n## Architecture\n\n```\nadv_worktree_cleanup (args: timeoutMs?, mode, dryRun?, changeId?)\n        │\n        ▼\nexecuteWorktreeCleanup (adv-worktree.ts)\n        │  { effectiveTimeoutMs, wasClamped } = clampToSafeBudget(timeoutMs)   // handler owns clamp (as worktrees mode does)\n        │  result = await cleanupArchivedMergedBranches({ store, changeId, dryRun, effectiveTimeoutMs })\n        │  enrich: { ...result, effectiveTimeoutMs, timeoutNote? }\n        │  (light outer guard: last-resort setTimeout → typed timedOut, emergency only)\n        ▼\ncleanupArchivedMergedBranches (archived-branch-cleanup.ts)\n        │  deadlineAt = Date.now() + (effectiveTimeoutMs - RETURN_RESERVE)      // helper self-bounds\n        │\n        │  PHASE 1 setup: mainCheckout, defaultBranch\n        │\n        │  PHASE 2 (inversion): build targetArchivedChangeIds + omissions\n        │    ├─ changeId arg  → single get(id); fail-closed if not archived\n        │    └─ else          → listLocalChangeBranchEntries(mainCheckout)\n        │                        map ids through a concurrency-capped pool (cap 4):\n        │                        resolveArchivedChangeStatus(store, id, perItemMs)\n        │       deadline check → return partial early if exhausted\n        │\n        │  PHASE 3 fetch (conditional): dryRun → skip; wet →\n        │       execGit([\"fetch\",\"origin\",defaultBranch], mainCheckout, fetchTimeoutMs)\n        │       Node execFile kills git on overrun → reject → fetchWarnings (real abort)\n        │\n        │  PHASE 4 detect: build deadlineAwareRunGit(perCallTimeout); pass as deps.runGit\n        │       detectArchivedMergedBranches({ mainCheckout, defaultBranch,\n        │                                      archivedChangeIds: target }, { runGit })\n        │\n        │  PHASE 5 filter: getCheckedOutChangeBranches(mainCheckout)  (unchanged)\n        │\n        │  PHASE 6 output: candidates|results / skipped / omissions / partial?\n        ▼\nformatted output (additive: partial, omissions, effectiveTimeoutMs, timeoutNote)\n```\n\n## Timeout / abort mechanism (the correct primitive)\n\n`execGit` → `execFileGitCb` → Node `execFile`. Node's `execFile({timeout})`\nsends `SIGTERM` (killSignal) to the child when exceeded — a **real process\nabort**, not a dangling background promise. This is the correct primitive for\nthe fetch and for bounding synchronous git.\n\n- **Async fetch:** add an optional third param to `execGit`:\n  `execGit(args, cwd, timeoutMs = 5000)`. Backward-compatible (all existing\n  callers keep 5000). Fetch passes `fetchTimeoutMs = min(2000, floor(remaining/2))`.\n  Overrun → git killed → promise rejects → existing `try/catch` → `fetchWarnings`.\n  This literally satisfies AC3 (\"aborts the fetch\") with no new plumbing.\n- **Sync detect/delete (`spawnSync` via `defaultRunGit`):** the helper injects a\n  `deadlineAwareRunGit` into `detectArchivedMergedBranches` (which already accepts\n  `deps.runGit`). That wrapper calls `defaultRunGit` with a per-call `timeout`\n  option = `clamp(floor(remaining / max(1, candidateCount)))`. `spawnSync`'s\n  `timeout` also kills the child on overrun, so each call self-bounds and total\n  detect wall-clock stays within budget. `detectArchivedMergedBranches`'s\n  signature and internal logic are untouched (C2, C4, DONT4 preserved).\n\nThe handler's outer `setTimeout` guard remains only as an emergency last resort\nfor a pathological escape; the primary partial-result mechanism is the helper's\nown phase-boundary deadline checks, which fit AC4's `{success:true,partial:true}`\nshape.\n\n## New / Changed Surfaces\n\n### 1. `execGit` optional timeout param (utils/git.ts) — C7 refinement\n\n```ts\nexport function execGit(args: string[], cwd: string, timeoutMs = 5000): Promise<string>;\n```\n\nBackward-compatible. `execFileGitCb` already forwards `options.timeout`; we just\nthread the param through. No behavior change for existing callers.\n\n### 2. New exported helper `listLocalChangeBranchEntries` (git-finalize.ts)\n\nPure extraction of the local-branch-list logic currently inline in\n`detectArchivedMergedBranches` (lines 2092-2104). The archived-id filter\n(lines 2106-2108) STAYS inside `detectArchivedMergedBranches` — only the git\ncall + `parseLocalChangeBranchRefs` move.\n\n```ts\nexport interface LocalChangeBranchEntry { changeId: string; branch: string; localSha: string; }\nexport type ListLocalChangeBranchesResult =\n  | { status: \"ok\"; entries: LocalChangeBranchEntry[] }\n  | { status: \"blocked\"; reason: \"LOCAL_BRANCH_LIST_FAILED\"; details: string[] };\nexport function listLocalChangeBranchEntries(\n  mainCheckout: string,\n  deps?: Pick<GitFinalizeDeps, \"runGit\">,\n): ListLocalChangeBranchesResult;\n```\n\n`detectArchivedMergedBranches` refactors to call it — observable behavior and\nsignature unchanged (behavior-preserving; existing tests pass as-is).\n\n### 3. `ChangeStatusLookup` (archived-branch-cleanup.ts, internal)\n\n```ts\ntype ChangeStatusLookup =\n  | { changeId: string; status: \"archived\" }\n  | { changeId: string; status: \"not_archived\"; observedStatus: string }\n  | { changeId: string; status: \"lookup_failed\"; detail: string };\n```\n\n### 4. Helper signature (additive)\n\n```ts\nexport interface ArchivedBranchCleanupInput {\n  store: Store;\n  changeId?: string;\n  dryRun?: boolean;\n  /** Handler-clamped effective budget (ms). Helper derives its internal\n   *  deadline = effectiveTimeoutMs - RETURN_RESERVE and self-returns partial\n   *  results on expiry. Omitted → helper uses the safe default. */\n  effectiveTimeoutMs?: number;\n}\n```\n\nThe helper takes a plain pre-clamped number. **No budget-util move; no import\nof `clampToSafeBudget` into the helper.** (Rev-1 LBP-1 dissolved.)\n\n### 5. LoadResult → ChangeStatusLookup interpretation table (fail-closed)\n\n| `store.changes.get(id)` result | Mapping |\n|---|---|\n| `{success:true, data:{status:\"archived\"}}` | `archived` → candidate |\n| `{success:true, data:{status:<other>}}` | `not_archived` (observedStatus=<other>) → omission `not_archived` |\n| `{success:true, data:null}` | `lookup_failed` (detail:\"null projection\") → omission `lookup_failed` |\n| `{success:false, type:\"not_found\"}` | `lookup_failed` (detail:\"not_found\") → omission `lookup_failed` |\n| `{success:false, type:\"schema_error\"}` | `lookup_failed` (detail:error) → omission `lookup_failed` |\n| `{success:false, type:\"read_error\"}` | `lookup_failed` (detail:error) → omission `lookup_failed` |\n| Promise **rejects** (deadline/Temporal) | `lookup_failed` (detail:err.message) → omission `lookup_failed` |\n| `withTimeout` fires (per-item budget) | `lookup_failed` (detail:\"lookup timed out\") → omission `deadline_exceeded` |\n\nOnly `status:\"archived\"` becomes a deletion candidate (AC5, DONT1, DONT2).\n\n### 6. Output additions (additive — C1)\n\n| Field | When | Shape |\n|---|---|---|\n| `effectiveTimeoutMs` | always (handler-injected) | `number` |\n| `partial` | **only** when the scan was incomplete: ≥1 omission with reason `lookup_failed` or `deadline_exceeded` | `true` |\n| `omissions` | any local branch not archived / lookup-failed / deadline-skipped | `Array<{changeId, branch?, reason, detail?}>` |\n| `timeoutNote` | caller `timeoutMs` exceeded safe budget (clamped) | `string` |\n| `warnings` | existing fetch warning path | `string[]` |\n\n`omissions[].reason` closed enum: `\"not_archived\" | \"lookup_failed\" | \"deadline_exceeded\"`.\n\n**`partial` semantics (validator #4):** a fully-completed scan that finds some\nbranches non-archived is NOT partial. `not_archived` omissions alone never set\n`partial`. `partial:true` iff at least one `lookup_failed`/`deadline_exceeded`\nomission exists (i.e. archived-status could not be conclusively determined for\nsome branch).\n\n### 7. Handler (adv-worktree.ts `executeWorktreeCleanup`)\n\n```ts\nif (args.mode === \"archived_branches\") {\n  const { effectiveTimeoutMs, wasClamped } = clampToSafeBudget(args.timeoutMs);\n  const result = await cleanupArchivedMergedBranches({\n    store, changeId: args.changeId, dryRun: args.dryRun, effectiveTimeoutMs,\n  });\n  const enriched = {\n    ...result,\n    effectiveTimeoutMs,\n    ...(wasClamped ? { timeoutNote: `Requested ${args.timeoutMs}ms clamped to safe budget ${effectiveTimeoutMs}ms` } : {}),\n  };\n  return formatMaybeTargetOutput(formatToolOutput(enriched), context);\n}\n```\n\n`clampToSafeBudget` / `WORKTREE_TOOL_SAFE_TIMEOUT_MS` **stay in adv-worktree.ts**\n(no move → validator #6/test-break avoided). The helper receives a number.\n\n### 8. Concurrency-capped pool (archived-branch-cleanup.ts, internal) — AC1\n\n```ts\nasync function mapWithConcurrency<T, R>(items: T[], cap: number, fn: (t: T) => Promise<R>): Promise<R[]>;\n```\n\nSmall internal fixed-pool (cap = 4). Satisfies AC1's \"bounded by a small\nconcurrency cap.\" A dedicated test asserts max in-flight ≤ cap.\n\n### 9. Tool description (adv-worktree.ts) — validator #8\n\nUpdate the `timeoutMs` arg description: it now applies to BOTH\n`mode:\"worktrees\"` and `mode:\"archived_branches\"` (previously \"worktrees mode only\").\n\n## Implementation Strategy (per file)\n\n### `plugin/src/utils/git.ts`\n- Add optional `timeoutMs = 5000` param to `execGit`; forward to `execFileGitCb` options. No caller changes required.\n\n### `plugin/src/tools/archive-helpers/git-finalize.ts`\n- Extract `listLocalChangeBranchEntries` (new export) from the local-branch logic in `detectArchivedMergedBranches`.\n- Refactor `detectArchivedMergedBranches` to call it; keep the archived-id filter inside detect. Behavior-preserving.\n\n### `plugin/src/tools/archive-helpers/archived-branch-cleanup.ts`\n- Imports: `withTimeout`, `listLocalChangeBranchEntries`, `LocalChangeBranchEntry`, `execGit` (already), git-finalize helpers (already).\n- Add `ChangeStatusLookup`, `mapWithConcurrency`, `resolveArchivedChangeStatus`, `buildArchivedCandidatesFromLocal`.\n- Add `RETURN_RESERVE` local const (mirrors `WORKTREE_TOOL_RETURN_RESERVE_MS`, kept local to avoid the move) — or accept a slightly conservative fixed reserve (e.g. 500ms).\n- Extend `ArchivedBranchCleanupInput` with `effectiveTimeoutMs?`.\n- Rewrite `cleanupArchivedMergedBranches` to the 6-phase flow. Replace the `store.changes.list` call (lines 41-45) entirely.\n- Fetch: skip on dryRun; wet → `execGit([...], mainCheckout, fetchTimeoutMs)`.\n- Detect: pass `deadlineAwareRunGit` as `deps.runGit`.\n\n### `plugin/src/tools/adv-worktree.ts`\n- Replace the archived_branches branch in `executeWorktreeCleanup` (lines 268-275) with the clamp+pass-through+enrich handler above (keep a light emergency outer guard).\n- Update `timeoutMs` tool-arg description.\n\n### Tests\n- `adv-worktree.archived-branches.test.ts`: switch `createMockStore` to mock `changes.get` (keep `list` as a \"must-not-be-called\" spy for AC1); add `listLocalChangeBranchEntries` to the hoisted git-finalize mock; update detect-call assertions; add the new-test matrix below.\n- `git-finalize.test.ts`: add direct `listLocalChangeBranchEntries` tests; existing `detectArchivedMergedBranches` tests unchanged.\n- `utils/git.test.ts`: add a test that `execGit` honors a short `timeoutMs` (kills a slow git; rejects).\n\n## LBP Decisions (rev 2)\n\n- **LBP-1 (budget util location): DISSOLVED.** Handler passes `effectiveTimeoutMs` (number) to the helper, exactly as it passes `cleanupItemTimeoutMs` to worktrees-mode. No move, no re-export, no helper→tool coupling. Simplest correct option.\n- **LBP-2 (per-id timeout): withTimeout + concurrency cap 4.** Per-item `withTimeout(perItemMs)` guarantees the verify phase can't hang; the cap satisfies AC1. `withTimeout` does not cancel the underlying store read (documented; store has its own deadlines) — we do NOT claim it aborts store work.\n- **LBP-3 (fetch bound): Node execFile timeout, ~2000ms.** Real kill via built-in; `min(2000, floor(remaining/2))`.\n- **LBP-4 (sync-phase bound): injected per-call `runGit` timeout.** `spawnSync` timeout kills stuck git; per-call budget = `floor(remaining / candidateCount)`. Keeps detect signature unchanged.\n- **LBP-5 (extract listLocalChangeBranchEntries): extract.** Two consumers; named test target; behavior-preserving.\n- **LBP-6 (concurrency): fixed pool cap 4.** Replaces rev-1 \"no cap\" — corrects the AC1 conflict.\n- **LBP-7 (partial semantics): incomplete-scan only.** `partial` reflects inability to determine archived status, not the presence of non-archived branches.\n\n## Deadline layering summary\n\n| Layer | Mechanism | Fires when | Result shape |\n|---|---|---|---|\n| Per-item store read | `withTimeout(perItemMs)` | one `get` slow | omission `deadline_exceeded`, scan continues |\n| Per-call git (sync) | `spawnSync {timeout}` via injected runGit | one git call stuck | that call fails; helper handles per existing blocked/continue paths |\n| Fetch (async git) | Node `execFile {timeout}` | fetch slow | `fetchWarnings`, real abort |\n| Helper phase deadline | `Date.now() >= deadlineAt` between phases | cumulative budget spent | `{success:true, partial:true, omissions:[deadline_exceeded]}` |\n| Handler emergency guard | `setTimeout(effectiveTimeoutMs)` | pathological escape only | `{success:false, timedOut:true, effectiveTimeoutMs}` |\n\n## Test matrix (new)\n\n| Test | AC / concern |\n|---|---|\n| helper does NOT call `store.changes.list` | AC1 |\n| per-id `get` fan-out respects concurrency cap ≤4 | AC1 |\n| dryRun skips `execGit(... \"fetch\" ...)` | AC2 |\n| wet-run fetch timeout → warning, candidates still returned | AC3 (real abort via short execGit timeout) |\n| helper self-returns `{partial:true, omissions:[deadline_exceeded]}` on phase-deadline expiry | AC4 |\n| `wasClamped` → `timeoutNote` present | AC4 |\n| `{success:false,type:\"schema_error\"}` → omission `lookup_failed` | AC5 |\n| `{success:false,type:\"not_found\"}` → omission `lookup_failed` | AC5 |\n| `{success:true,data:null}` → omission `lookup_failed` (fail-closed) | AC5, validator #6 |\n| `{success:true,data:{status:\"draft\"}}` → omission `not_archived`, `partial` NOT set | AC5, LBP-7 |\n| `not_archived`-only scan does NOT set `partial:true` | LBP-7 |\n| changeId arg + archived → single `get`, detect called `[id]` | AC6 |\n| changeId arg + not_found → fail-closed error, detect not called | AC6 |\n| `listLocalChangeBranchEntries` parse / blocked / non-change filter | new helper |\n| `execGit` honors short `timeoutMs` (kills slow git) | fetch primitive |\n| existing `detectArchivedMergedBranches` tests | behavior-preserving refactor |\n\n## Validation Approach\n\n1. Unit tests green via `bin/oc-test targeted -- src/tools/adv-worktree.archived-branches.test.ts src/tools/archive-helpers/git-finalize.test.ts src/utils/git.test.ts`.\n2. `pnpm run check` green.\n3. Manual perf on this repo: 3× dryRun + 1× wet run; record wall-clock (< 5s target) in execution evidence.\n4. Independent validation incorporated (rev 2 resolves the CONFLICT findings).\n\n## Constraint reconciliation (validator-driven)\n\n- **C7** relaxes from \"`execGit` is not modified\" → \"`execGit` gains a\n  backward-compatible optional `timeoutMs` param; existing callers unchanged.\"\n  Rationale: Node `execFile`'s built-in kill-on-timeout is the correct, simpler\n  abort primitive vs the rev-1 `Promise.race` (which only stops awaiting). This\n  strengthens the fix. Flagged for user confirmation at design sign-off.\n- **C1–C6, C8, DONT1–DONT6** unchanged and preserved.\n- **AC1** honored (concurrency cap added — rev-1 gap corrected).\n- **AC3** honored literally (real abort via execFile timeout).\n- **AC4** honored (helper self-returns partial; handler guard emergency-only).\n\n## Out of Scope (restated)\n\nSquash-merge detection semantics (C4); deletion safety rules (C5);\nmode=\"worktrees\" behavior (C6); archive-enumeration perf (#239);\ncross-call archived-status caching (DONT5); `detectArchivedMergedBranches`\nsignature/detection-logic changes (C2, DONT4).\n",
+    "executiveSummary": "# Executive Summary: Fix archived branch cleanup timeout\n\n## Outcome\n\n`adv_worktree_cleanup mode:\"archived_branches\"` — the operator tool that deletes leftover local git branches for already-shipped changes — was timing out every run (hitting the 10-second tool ceiling) on this repository. It now completes in about **1 second**, well inside budget. The cleanup capability is usable again.\n\n## Why it matters\n\nPost-merge branch hygiene was effectively blocked: the tool could not finish, so archived-change branches accumulated with no safe automated way to remove them. This fix restores the intended maintenance workflow without weakening any safety guarantee.\n\n## What was built\n\n- **Root-cause fix (the real cost):** the tool used to load the *entire* archive (dozens of heavyweight change records) just to decide which local branches were eligible. It now checks archived status **per local branch** (one lightweight lookup each, capped at 4 in parallel) — work scales with the ~26 local branches, not the ~85-record archive.\n- **No wasted network on previews:** `dryRun` previews no longer perform a network `git fetch`; real runs bound the fetch and cancel it (real process kill) if it is slow, degrading to a warning instead of hanging.\n- **Never hangs, always answers:** every internal git and lookup step is time-bounded; if the overall budget is exhausted the tool returns a clear *partial* result listing what it could not check, rather than an opaque timeout.\n- **Safety preserved:** a branch is only ever a deletion candidate when its change is provably archived. Anything unknown, unreadable, or not-yet-archived is reported and skipped (fail-closed). Merge-detection, deletion rules, and the separate `worktrees` cleanup mode are unchanged.\n\n## How it was verified\n\n- Full automated test suite: **6,564 tests pass** (zero regressions), including new coverage for the eliminated enumeration, the concurrency cap, fetch-skip/degrade, partial-result handling, and every fail-closed lookup outcome.\n- Project quality gate (`pnpm run check`) green; production bundle builds.\n- **Measured performance** on this repository: preview runs completed in **0.95–1.22 s** (target was under 5 s).\n- Independent review (adv-researcher design validation + adv-reviewer acceptance review) — the reviewer found one additional unbounded-git path in setup/safety checks and fixed it; re-verified green.\n\n## Risks / follow-ups\n\n- **Live wet-run deletion was intentionally not exercised** during verification (it would delete real branches on the main checkout). The delete path is unchanged from the previously shipped, tested behavior; the wet run is a preview plus a bounded fetch plus per-branch deletion, projected well under its 6 s budget.\n- **Unrelated pre-existing issue surfaced:** another change, `fixWorkflowReliabilityDefects`, has a schema-invalid record that currently blocks automated cross-change conflict detection project-wide. It is out of scope here and was noted for separate repair; conflict risk for this change was assessed manually as low (isolated subsystem; the one shared utility change is additive).\n\n## Supporting evidence\n\n- Authoritative test run: `adv_run_test` id `tr_mrtn5wq6` (141 targeted tests) + full-suite 6,564 pass.\n- Contract review matrix: 18/18 items pass/respected, 0 failing.\n- Perf harness: NEW dry-run 953–1219 ms vs OLD full-archive enumeration.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-20T19:54:03.698Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | All existing tests in `adv-worktree.archived-branches.test.ts` continue to pass (with assertion updates reflecting the new helper call shape: `detectArchivedMergedBranches` is still called with `archivedChangeIds: string[]`, but that array is now built per-local-branch rather than from `store.changes.list`). | pass | Existing detect tests unchanged (6 pass) + archived-branches tests reconciled to new per-branch call shape (detectArchivedMergedBranches still called with archivedChangeIds:string[]). Full suite 6564 pass. adv_run_test tr_mrtn5wq6. |\n| SC2 | success_criterion | New tests cover: AC1 (list-not-called + concurrency cap), AC2 (dryRun skip fetch), AC3 (fetch timeout degrades), AC4 (partial-result path), AC5 (fail-closed lookups incl. data:null), AC6 (changeId paths). | pass | New tests cover AC1 (list-not-called + concurrency cap<=4), AC2 (dryRun skip fetch), AC3 (fetch timeout degrade), AC4 (clamp+self-partial+emergency), AC5 (schema_error/not_found/data:null/not_archived), AC6 (changeId paths). 141 targeted pass (tr_mrtn5wq6). |\n| SC3 | success_criterion | `pnpm run check` green; targeted `bin/oc-test targeted -- src/tools/adv-worktree.archived-branches.test.ts` green. | pass | pnpm run check GREEN (schemas/typecheck/manifests/isolation/lockfile/lint/format). Targeted 141 pass (tr_mrtn5wq6). Full suite 6564 pass + 1 expected fail, zero regressions. Build succeeds. |\n| SC4 | success_criterion | Manual perf verification on this repo confirms sub-budget completion. | pass | Disk-store perf harness on main repo (26 local change/* branches, 43 archived projections): NEW dryRun 953-1219ms across 3 runs vs 5s AC8 target. OLD list-enumeration alone 505ms + it additionally ran detect(~1.33s)+unbounded fetch. |\n| C1 | constraint | **No new public tool surface.** The `adv_worktree_cleanup` tool args are unchanged (`timeoutMs` already exists). Output shape additions must be additive (`partial`, `omissions`, `effectiveTimeoutMs`). | respected | Tool args unchanged (timeoutMs pre-existing). Output additions (partial, omissions, effectiveTimeoutMs, timeoutNote) are additive only; all prior fields preserved. |\n| C2 | constraint | **No detect signature change.** `detectArchivedMergedBranches` keeps `archivedChangeIds?: string[]`. The inversion lives entirely in the helper. | respected | detectArchivedMergedBranches signature unchanged (input + deps:Pick<GitFinalizeDeps,'runGit'>). Inversion lives in the helper. 6 pre-existing detect tests pass unmodified. |\n| C3 | constraint | **No use of `store.changes.listSummary`** — explicitly forbidden for safety-critical callers per `store-types.ts:327-331`. | respected | Helper contains no store.changes.list or listSummary calls (reviewer static-verified archived-branch-cleanup.ts). AC1 test asserts store.changes.list NOT called. |\n| C4 | constraint | **No change to squash-merge detection semantics** (`detectSquashMergeByTree`, `git cherry` proof kinds). | respected | detectSquashMergeByTree and git cherry proof-kind logic (git-finalize.ts) untouched; only the local-branch-list git call was extracted. mergeProof kinds unchanged (AC7). |\n| C5 | constraint | **No change to deletion safety rules** (`WORKTREE_CHECKED_OUT`, `deleteChangeBranch` semantics). | respected | WORKTREE_CHECKED_OUT skip and deleteChangeBranch semantics unchanged; only a bounded runGit was injected into getCheckedOutChangeBranches. Deletion-path tests pass. |\n| C6 | constraint | **No change to mode=\"worktrees\" behavior.** | respected | mode='worktrees' branch untouched. adv-worktree.test.ts + status-hygiene.test.ts 33 pass; full suite green. |\n| C7 | constraint | `execGit` (utils/git.ts) gains a backward-compatible optional `timeoutMs` param (default 5000; existing callers unchanged). Sub-budgets are enforced via Node `execFile`/`spawnSync` kill-on-timeout, not `Promise.race`. No other `execGit` behavior changes. | respected | execGit gains optional timeoutMs=5000 forwarded to execFile timeout (real SIGTERM). Backward-compatible; all existing callers keep default. git.test.ts rq-execGitTimeoutParam01 proves short budget kills slow git. Sub-budgets via execFile/spawnSync kill-on-timeout, not Promise.race. |\n| C8 | constraint | Trunk stays on default; all implementation in `change/fixArchivedBranchCleanup` worktree per isolation policy. | respected | All implementation performed in change/fixArchivedBranchCleanup worktree; trunk untouched. |\n| DONT1 | avoidance | Avoid heuristic inference of archived status (e.g., \"if a `change/*` branch exists and is merged, assume archived\"). The single source of truth is `store.changes.get(id)` returning `status: \"archived\"`. | respected | Archived status is determined solely by store.changes.get(id).status==='archived'. No merged-implies-archived heuristic. Fail-closed for every other outcome. |\n| DONT2 | avoidance | Avoid silently swallowing `LoadResult` errors. Surface them in `omissions` with typed reasons. | respected | All LoadResult failure variants (not_found/schema_error/read_error/data:null/reject/timeout) surface as typed omissions with detail; none silently swallowed. AC5 tests confirm. |\n| DONT3 | avoidance | Avoid broadening scope to archive-enumeration performance (#239 family) — that is owned elsewhere. | respected | No changes to archive enumeration (#239) surface; only the cleanup helper's per-id inversion. store.changes.list left intact for its other callers. |\n| DONT4 | avoidance | Avoid modifying `detectArchivedMergedBranches`'s internal squash/cherry logic. | respected | detectArchivedMergedBranches internal squash/cherry loop unchanged; only the local-list git call extracted to listLocalChangeBranchEntries. |\n| DONT5 | avoidance | Avoid caching archived-status beyond a single tool invocation (the helper runs once per call; cross-call caching is owned by the store layer). | respected | No cross-call archived-status cache added. Per-id gets run once per tool invocation; store layer owns any caching. |\n| DONT6 | avoidance | Avoid adding new dependencies. | respected | No new dependencies added; reused existing withTimeout, execGit, git-finalize helpers. pnpm lockfile unchanged. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-19T23:49:44.653Z",
+      "contentHash": "1800e8fb564541a31df029ddb790350d8fcb908380c7c3ecc3be95bd31c89aa4",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-19T23:49:44.653Z",
+      "contentHash": "443bfb8ed4b232eafe122ef2947dc67d6e481ca25c92a07774336da9083d42bb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-20T19:15:37.541Z",
+      "contentHash": "539a4b659a14847ee3c9d409bb4473c59055b242582a8c1afe1ecba475d9386e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-20T19:14:22.599Z",
+      "contentHash": "73fec136301590032ce1de0bd893624ccaa4a5a66a043740235b11c104c908b6",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-20T19:54:27.680Z",
+      "contentHash": "9460b0819d4a9601ffd2cd677c3f5ff1a34251367a2f36b00b257cb79dc4c69e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-20T19:54:34.291Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

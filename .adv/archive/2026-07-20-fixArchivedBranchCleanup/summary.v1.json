@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-20T20:05:55.899Z",
+  "capabilities": [],
+  "change_hash": "085a9cf22623f5c1adaa59ad801d9a55d4df91b7c55f977168eb68a92a059d86",
+  "change_id": "fixArchivedBranchCleanup",
+  "completed_tasks": 4,
+  "created_at": "2026-07-19T23:49:44.428Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-20T19:54:34.291Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "e69c08c0834a06368f9d64f542bf35b85e2fa84d75d8555d9ae1c7b7ac3eb463",
+  "task_count": 4,
+  "title": "Fix archived branch cleanup timeout",
+  "version": "1"
+}
