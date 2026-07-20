@@ -132,6 +132,174 @@ const TERMINABLE_WORKFLOW_RUN_STATUSES: ReadonlySet<string> = new Set([
   "PAUSED",
 ]);
 
+// =============================================================================
+// rq-shippedWorkflowTermination01 — terminal-authority convergence helper.
+//
+// Single funneled path used by adv_change_workflow_terminate after an eligible
+// run is terminated (or determined idempotently gone). Writes status AND
+// lifecycleState atomically, refreshes the projection cache, asserts both
+// fields via read-back, and detects a successor run (TOCTOU window) both
+// before the write and after the readback.
+// =============================================================================
+
+type ConvergeTerminalAuthorityResult =
+  | {
+      kind: "converged";
+      readback: Awaited<ReturnType<typeof verifyStatusRepairReadAfterWrite>>["readback"];
+    }
+  | {
+      kind: "successorRace";
+      successorRunId: string;
+      phase: "pre_write";
+    }
+  | {
+      kind: "lateSuccessorRace";
+      successorRunId: string;
+      phase: "post_readback";
+    }
+  | {
+      kind: "writeFailed";
+      error: string;
+    }
+  | {
+      kind: "readbackFailed";
+      error: string;
+      readback: Awaited<ReturnType<typeof verifyStatusRepairReadAfterWrite>>["readback"];
+    };
+
+/**
+ * Converge terminal authority after an eligible pinned run is terminated.
+ * Returns a typed result; the caller is responsible for shaping the tool
+ * output (success only when kind === "converged").
+ *
+ * The `describeUnpinned` callback must invoke `handle.describe()` on an
+ * UNPINNED handle (no runId) so Temporal returns the most-recent execution.
+ * That lets us detect a different live successor run that may have started
+ * after pinning.
+ */
+async function convergeTerminalAuthority(input: {
+  store: Store;
+  changeId: string;
+  pinnedRunId: string;
+  authorization: { reason: string; evidence: string };
+  describeUnpinned: () => Promise<unknown>;
+}): Promise<ConvergeTerminalAuthorityResult> {
+  // Successor check #1 (pre-write): a successor may have started between
+  // the pinned describe and the terminate landing.
+  try {
+    const postTerminateDesc = await input.describeUnpinned();
+    const pin = workflowRunPinFromDescription(postTerminateDesc);
+    if (
+      pin.runId &&
+      pin.runId !== input.pinnedRunId &&
+      pin.statusName &&
+      TERMINABLE_WORKFLOW_RUN_STATUSES.has(pin.statusName)
+    ) {
+      return {
+        kind: "successorRace",
+        successorRunId: pin.runId,
+        phase: "pre_write",
+      };
+    }
+  } catch (error) {
+    // not-found/completed is acceptable — the pinned run is gone and no
+    // successor exists. Any other error falls through to convergence.
+    const { isWorkflowCompletedError } = await import(
+      "../temporal/recovery-classification"
+    );
+    if (!isWorkflowCompletedError(error)) {
+      // Surface as writeFailed with describe error so the operator sees it.
+      return {
+        kind: "writeFailed",
+        error: `pre-write successor describe failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+
+  // Load the current change to spread onto the disk projection.
+  const currentResult = await input.store.changes.get(input.changeId);
+  if (!currentResult.success || !currentResult.data) {
+    return {
+      kind: "writeFailed",
+      error: "could not load change for convergence write",
+    };
+  }
+  const change = currentResult.data;
+
+  // Write status AND lifecycleState atomically (D5).
+  try {
+    const { saveRecoveredChangeStatus } = await import("./_recovery-writers");
+    await saveRecoveredChangeStatus({
+      store: input.store,
+      change,
+      authorization: input.authorization,
+      status: "archived",
+      lifecycleState: "archived",
+    });
+  } catch (error) {
+    return {
+      kind: "writeFailed",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  // Refresh projection cache so subsequent reads fall through to disk.
+  try {
+    await input.store.changes.refresh(input.changeId);
+  } catch (error) {
+    logger.debug(
+      `Post-convergence cache refresh failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  // Read-after-write verification (D6).
+  const readback = await verifyStatusRepairReadAfterWrite({
+    store: input.store,
+    changeId: input.changeId,
+    requireLifecycleState: true,
+  });
+  if (!readback.ok) {
+    return {
+      kind: "readbackFailed",
+      error: readback.error,
+      readback: readback.readback,
+    };
+  }
+
+  // Successor check #2 (post-readback): catches a successor that started
+  // between the write and the readback (TOCTOU window).
+  try {
+    const finalDesc = await input.describeUnpinned();
+    const finalPin = workflowRunPinFromDescription(finalDesc);
+    if (
+      finalPin.runId &&
+      finalPin.runId !== input.pinnedRunId &&
+      finalPin.statusName &&
+      TERMINABLE_WORKFLOW_RUN_STATUSES.has(finalPin.statusName)
+    ) {
+      return {
+        kind: "lateSuccessorRace",
+        successorRunId: finalPin.runId,
+        phase: "post_readback",
+      };
+    }
+  } catch (error) {
+    // Not-found here is fine — means no successor. Other errors are
+    // surfaced but do not retroactively fail convergence (the write +
+    // readback already succeeded).
+    const { isWorkflowCompletedError } = await import(
+      "../temporal/recovery-classification"
+    );
+    if (!isWorkflowCompletedError(error)) {
+      logger.debug(
+        `Post-readback successor describe failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  return { kind: "converged", readback: readback.readback };
+}
+
 /**
  * Structural narrowing of a `describe()` result into the exact run pin
  * (runId + status name). Accepts both the SDK status object shape
@@ -4572,22 +4740,59 @@ export const changeTools = {
       // behavior (a poisoned run may have never reached archive; convergence
       // is out of scope for that eligibility class).
       if (eligibilityClass === "shipped_terminal") {
-        const { saveRecoveredChangeStatus } =
-          await import("./_recovery-writers");
         const fromStatus = change.status;
-        try {
-          await saveRecoveredChangeStatus({
-            store,
-            change,
-            authorization: {
-              reason: "shipped_terminal_workflow_termination",
-              evidence,
-            },
-            status: "archived",
-            lifecycleState: "archived",
+        const converge = await convergeTerminalAuthority({
+          store,
+          changeId,
+          pinnedRunId: runId,
+          authorization: {
+            reason: "shipped_terminal_workflow_termination",
+            evidence,
+          },
+          describeUnpinned: () => handle.describe(),
+        });
+
+        if (converge.kind === "converged") {
+          return formatToolOutput({
+            success: true,
+            changeId,
+            workflowTerminated: true,
+            converged: true,
+            runId,
+            runStatus: statusName,
+            eligibilityClass,
+            fromStatus,
+            toStatus: "archived",
+            shippedTerminalProof: shippedTerminalProof?.ok
+              ? { ok: true, bundlePath: shippedTerminalProof.bundlePath }
+              : undefined,
+            shippedProof: { acceptance: "done", release: "done" },
+            readback: converge.readback,
+            message: `Terminated pinned run ${runId} of shipped change ${changeId}; converged terminal authority (status+lifecycleState=archived).`,
           });
-        } catch (error) {
-          await refreshProjectionCache();
+        }
+
+        if (converge.kind === "successorRace") {
+          return formatToolOutput({
+            success: false,
+            partialRecovery: true,
+            pinnedRunTerminated: true,
+            converged: false,
+            changeId,
+            runId,
+            eligibilityClass,
+            fromStatus,
+            successorRace: {
+              pinnedRunId: runId,
+              successorRunId: converge.successorRunId,
+              phase: converge.phase,
+            },
+            remediation:
+              "A different live successor run appeared before convergence write. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId, or adv_archive_purge once status converges.",
+          });
+        }
+
+        if (converge.kind === "lateSuccessorRace") {
           return formatToolOutput({
             success: false,
             partialRecovery: true,
@@ -4599,55 +4804,50 @@ export const changeTools = {
             fromStatus,
             attemptedStatus: "archived",
             attemptedLifecycleState: "archived",
-            error: `Convergence write failed: ${error instanceof Error ? error.message : String(error)}`,
+            lateSuccessorRace: {
+              pinnedRunId: runId,
+              successorRunId: converge.successorRunId,
+              phase: converge.phase,
+            },
+            remediation:
+              "Late successor appeared after convergence write. Disk projection is archived but a new live run exists. Re-elevate operator approval and re-run adv_change_workflow_terminate against the successor runId.",
+          });
+        }
+
+        if (converge.kind === "writeFailed") {
+          return formatToolOutput({
+            success: false,
+            partialRecovery: true,
+            pinnedRunTerminated: true,
+            converged: false,
+            changeId,
+            runId,
+            eligibilityClass,
+            fromStatus,
+            attemptedStatus: "archived",
+            attemptedLifecycleState: "archived",
+            error: `Convergence write failed: ${converge.error}`,
             remediation:
               "Pinned run was terminated but the disk projection write failed. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
           });
         }
 
-        await refreshProjectionCache();
-
-        // Readback: assert both status AND lifecycleState converged.
-        const readback = await verifyStatusRepairReadAfterWrite({
-          store,
-          changeId,
-          requireLifecycleState: true,
-        });
-        if (!readback.ok) {
-          return formatToolOutput({
-            success: false,
-            partialRecovery: true,
-            pinnedRunTerminated: true,
-            converged: false,
-            changeId,
-            runId,
-            eligibilityClass,
-            fromStatus,
-            attemptedStatus: "archived",
-            attemptedLifecycleState: "archived",
-            error: `Terminal readback failed: ${readback.error}`,
-            readback: readback.readback,
-            remediation:
-              "Workflow run was terminated and disk projection was written, but terminal readback did not converge. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
-          });
-        }
-
+        // readbackFailed
         return formatToolOutput({
-          success: true,
+          success: false,
+          partialRecovery: true,
+          pinnedRunTerminated: true,
+          converged: false,
           changeId,
-          workflowTerminated: true,
-          converged: true,
           runId,
-          runStatus: statusName,
           eligibilityClass,
           fromStatus,
-          toStatus: "archived",
-          shippedTerminalProof: shippedTerminalProof?.ok
-            ? { ok: true, bundlePath: shippedTerminalProof.bundlePath }
-            : undefined,
-          shippedProof: { acceptance: "done", release: "done" },
-          readback: readback.readback,
-          message: `Terminated pinned run ${runId} of shipped change ${changeId}; converged terminal authority (status+lifecycleState=archived).`,
+          attemptedStatus: "archived",
+          attemptedLifecycleState: "archived",
+          error: `Terminal readback failed: ${converge.error}`,
+          readback: converge.readback,
+          remediation:
+            "Workflow run was terminated and disk projection was written, but terminal readback did not converge. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, call adv_change_status_repair to finalize the status flip.",
         });
       }
 

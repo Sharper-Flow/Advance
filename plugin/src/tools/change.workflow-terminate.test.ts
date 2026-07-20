@@ -883,4 +883,179 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(parsed.wedgedEvidence).toBeTruthy();
     expect(parsed.runId).toBe("run-poison-1");
   });
+
+  test("successor check #1: a different live successor before write returns typed successorRace", async () => {
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+
+    // First describe (during classification) returns the pinned RUNNING run.
+    // Subsequent describes (post-terminate, in convergeTerminalAuthority)
+    // return a DIFFERENT live runId — successor race.
+    let describeCallCount = 0;
+    mocks.describe.mockImplementation(async () => {
+      describeCallCount++;
+      if (describeCallCount === 1) {
+        return shippedTerminalRunningDescription("run-original");
+      }
+      // Post-terminate describe returns a different live successor.
+      return shippedTerminalRunningDescription("run-successor");
+    });
+
+    // store.changes.get returns the live change (still draft) — the convergence
+    // write will mutate disk; we don't need readback to succeed for this test.
+    (store.changes.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: change,
+    });
+    (store.changes.list as ReturnType<typeof vi.fn>).mockResolvedValue({
+      changes: [],
+    });
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.partialRecovery).toBe(true);
+    expect(parsed.pinnedRunTerminated).toBe(true);
+    expect(parsed.converged).toBe(false);
+    expect(parsed.successorRace).toBeDefined();
+    expect(parsed.successorRace.pinnedRunId).toBe("run-original");
+    expect(parsed.successorRace.successorRunId).toBe("run-successor");
+    expect(parsed.successorRace.phase).toBe("pre_write");
+    expect(parsed.remediation).toBeTruthy();
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  test("successor check #2: a late successor after readback returns typed lateSuccessorRace", async () => {
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+
+    let describeCallCount = 0;
+    mocks.describe.mockImplementation(async () => {
+      describeCallCount++;
+      if (describeCallCount === 1) {
+        // Pinned describe.
+        return shippedTerminalRunningDescription("run-original");
+      }
+      if (describeCallCount === 2) {
+        // Pre-write successor check: no successor yet.
+        return {
+          workflowId: "adv-change-test-project-id-fixWorkflowReliabilityDefects",
+          runId: "run-original",
+          status: { code: 3, name: "TERMINATED" },
+        };
+      }
+      // Post-readback describe (#2): a NEW successor has appeared.
+      return shippedTerminalRunningDescription("run-late-successor");
+    });
+
+    // Make store.changes.get return the freshly-written archived change so
+    // the convergence write completes successfully.
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id !== change.id) return { success: true, data: null };
+        // First read is the live (pre-write) state; subsequent reads return
+        // the on-disk archived projection that was just written.
+        try {
+          const text = await readFile(
+            join(changesDir, change.id, "change.json"),
+            "utf-8",
+          );
+          return { success: true, data: JSON.parse(text) as Change };
+        } catch {
+          return { success: true, data: change };
+        }
+      },
+    );
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async (query: unknown) => {
+        const q = query as { status?: string } | null;
+        try {
+          const text = await readFile(
+            join(changesDir, change.id, "change.json"),
+            "utf-8",
+          );
+          const fresh = JSON.parse(text) as Change;
+          if (q && q.status === "archived") {
+            return { changes: [fresh] };
+          }
+          return { changes: [] };
+        } catch {
+          return { changes: [] };
+        }
+      },
+    );
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.partialRecovery).toBe(true);
+    expect(parsed.pinnedRunTerminated).toBe(true);
+    expect(parsed.converged).toBe(false);
+    expect(parsed.lateSuccessorRace).toBeDefined();
+    expect(parsed.lateSuccessorRace.pinnedRunId).toBe("run-original");
+    expect(parsed.lateSuccessorRace.successorRunId).toBe("run-late-successor");
+    expect(parsed.lateSuccessorRace.phase).toBe("post_readback");
+    expect(parsed.remediation).toBeTruthy();
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  test("readback failure returns typed partialRecovery with attempted fields and remediation", async () => {
+    const change = shippedTerminalChange();
+    await writeChangeToDisk(change);
+    await writeBundle(change);
+    const store = createDiskBackedStore(change);
+
+    // make readback fail: store.changes.get after write returns a change with
+    // status:"draft" (simulating that the disk write didn't take or that a
+    // stale workflow re-asserted itself over disk).
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id !== change.id) return { success: true, data: null };
+        // Return a draft-state change to force readback failure.
+        return { success: true, data: { ...change, status: "draft", lifecycleState: "open" } };
+      },
+    );
+    (store.changes.list as ReturnType<typeof vi.fn>).mockResolvedValue({
+      changes: [],
+    });
+
+    const result = await tool().execute(
+      {
+        changeId: "fixWorkflowReliabilityDefects",
+        approvedByUser: true,
+        approvalEvidence: "operator approved shipped-terminal recovery",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.partialRecovery).toBe(true);
+    expect(parsed.pinnedRunTerminated).toBe(true);
+    expect(parsed.converged).toBe(false);
+    expect(parsed.attemptedStatus).toBe("archived");
+    expect(parsed.attemptedLifecycleState).toBe("archived");
+    expect(parsed.readback).toBeDefined();
+    expect(parsed.remediation).toMatch(/adv_change_status_repair/);
+  });
 });
