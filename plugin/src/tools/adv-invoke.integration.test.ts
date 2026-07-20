@@ -174,6 +174,25 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
     }
   });
 
+  test("AC2: unknown target args are rejected instead of silently stripped", async () => {
+    const store = await createLegacyStore(tempDir);
+    await store.init();
+    try {
+      const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
+        string,
+        unknown
+      >;
+      const result = await invokeFacade(map, {
+        name: "adv_change_list",
+        args: { limit: 5, unexpected: true },
+      });
+      const parsed = parseToolOutput(result) as { code?: string };
+      expect(parsed.code).toBe("SCHEMA_VALIDATION_FAILED");
+    } finally {
+      store.close();
+    }
+  });
+
   test("AC3: recursion set rejected before lookup through the wrapped layer", async () => {
     const store = await createLegacyStore(tempDir);
     await store.init();

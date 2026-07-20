@@ -68,6 +68,23 @@ describe("adv_tool_invoke", () => {
     expect(mockTool.execute).not.toHaveBeenCalled();
   });
 
+  test("AC2: extra target args are rejected instead of silently stripped", async () => {
+    const mockTool = createMockDefinition("should-not-run");
+    const lookup = vi.fn().mockReturnValue({
+      definition: wrapDefinition(mockTool),
+      rawArgs: { id: z.string() },
+    } as ToolLookupResult);
+
+    const result = await advInvokeTools.adv_tool_invoke.execute(
+      { name: "adv_mock_tool", args: { id: "123", unexpected: true } },
+      lookup,
+      ctx,
+    );
+
+    expect(JSON.parse(result).code).toBe("SCHEMA_VALIDATION_FAILED");
+    expect(mockTool.execute).not.toHaveBeenCalled();
+  });
+
   test("AC3: recursive names are rejected before lookup", async () => {
     const lookup = vi.fn().mockReturnValue({
       definition: wrapDefinition(createMockDefinition("should-not-run")),

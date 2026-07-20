@@ -280,7 +280,7 @@ restart, verify the live surface:
 
 ### Rollback (AC7)
 
-The visibility profile is reversibleible without code changes. To
+The visibility profile is reversible without code changes. To
 restore direct ADV visibility for a normal agent:
 
 1. In `~/.config/opencode/opencode.jsonc`, remove the three

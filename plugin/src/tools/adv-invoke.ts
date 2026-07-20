@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ToolDefinition } from "@opencode-ai/plugin";
 import { formatToolOutput } from "../utils/tool-output";
-import { recordAdvToolCall } from "../utils/metrics";
+import { recordFacadedAdvToolTarget } from "../utils/metrics";
 
 /**
  * Result of resolving a target tool through the facade's lookup function.
@@ -118,7 +118,11 @@ export const advInvokeTools = {
       // Uses the original (unwrapped) Zod schema from `PublicToolEntry.args`
       // so validation matches the wrapped tool's own first-pass validation
       // step exactly.
-      const parseResult = z.object(rawArgs).safeParse(args.args);
+      // `z.object()` strips unknown keys by default. The facade boundary must
+      // reject them instead: otherwise strict-mode providers can send an
+      // argument that never reaches the canonical wrapped execute and AC2's
+      // typed unknown-argument rejection is bypassed.
+      const parseResult = z.object(rawArgs).strict().safeParse(args.args);
       if (!parseResult.success) {
         return formatToolOutput({
           error: `Schema validation failed for ${args.name}`,
@@ -137,14 +141,11 @@ export const advInvokeTools = {
         ctx as unknown as Parameters<ToolDefinition["execute"]>[1],
       );
 
-      // Audit mirror: increment the per-tool counter for the TARGET tool.
-      // The outer `tool.execute.after` hook already increments
-      // `adv_tool_invoke` for the facade call itself, so this call adds a
-      // target-tool tally that mirrors what a direct call would have
-      // recorded. Note: facaded calls therefore appear under both
-      // `adv_tool_invoke` AND the target tool in `adv_tool_call_count_by_name`;
-      // see the consumer-warning in the engineer report for the implications.
-      recordAdvToolCall(args.name);
+      // Audit mirror: add the target-tool breakdown without incrementing the
+      // global call count. The outer `tool.execute.after` hook already records
+      // this one facade invocation; counting it again here would inflate
+      // `adv_tool_calls` for every facaded operation.
+      recordFacadedAdvToolTarget(args.name);
 
       // Normalise the dispatch result into a string. Every registered ADV
       // tool is wrapped through `safeExecute` which returns `Promise<string>`,
