@@ -476,6 +476,19 @@ function defaultRunGit(
   };
 }
 
+/**
+ * Build a `runGit` bound to a per-call timeout, suitable for injection as
+ * `deps.runGit` into detection helpers whose synchronous `spawnSync` git
+ * calls must be budget-bounded (a stuck call would otherwise block for the
+ * full DEFAULT_GIT_TIMEOUT_MS and escape a tool budget). Each call kills the
+ * git process on overrun and surfaces status 124 (rq-archivedBranchCleanupInversion01).
+ */
+export function makeBoundedRunGit(
+  timeoutMs: number,
+): NonNullable<GitFinalizeDeps["runGit"]> {
+  return (cwd, args) => defaultRunGit(cwd, args, timeoutMs);
+}
+
 function defaultRunGh(
   cwd: string,
   args: string[],
