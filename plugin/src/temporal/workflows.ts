@@ -131,6 +131,8 @@ interface ChangeProjectionActivities {
     archivedAt: string;
     approvalEvidence: string;
     approvedBy: string;
+    mode?: "legacy_mutate" | "verify_summary";
+    projectionProof?: import("../types").ArchiveProjectionProofReceipt;
   }): Promise<
     | { ok: true; changeId: string; projects: unknown[] }
     | { ok: false; error: string; phase: string }
@@ -409,6 +411,14 @@ const conformanceOverriddenSignal = wf.defineSignal<
 const archiveRequestedSignal = wf.defineSignal<
   [import("../types").ArchiveRequestedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+
+// Old branch: archiveChangeActivity applied spec deltas and wrote the durable
+// summary. New branch: archive/tool reconciliation owns the sole spec mutation;
+// the activity requires a verified projection receipt and writes summary only.
+// Non-deprecation rationale: retain until all histories that may have scheduled
+// the legacy archive activity are terminal and removed from replay coverage.
+export const ARCHIVE_PROJECTION_RECONCILER_PATCH =
+  "archive-projection-reconciler-v1";
 const phase9StatusUpdatedSignal = wf.defineSignal<
   [import("../types").Phase9StatusUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);
@@ -851,10 +861,23 @@ export async function changeWorkflow(
   ): Promise<boolean> => {
     if (!input.archiveProjects || input.archiveProjects.length === 0)
       return true;
+    const useProjectionReceipt = wf.patched(
+      ARCHIVE_PROJECTION_RECONCILER_PATCH,
+    );
+    if (useProjectionReceipt && !payload.projectionProof) {
+      wf.log.warn("archive-activity-proof-missing", {
+        changeId: state.changeId,
+      });
+      return false;
+    }
     const result = await archiveChangeActivity({
       state: snapshotState(),
       projects: input.archiveProjects,
       status: "archived",
+      mode: useProjectionReceipt ? "verify_summary" : "legacy_mutate",
+      ...(payload.projectionProof
+        ? { projectionProof: payload.projectionProof }
+        : {}),
       archivedAt: payload.requestedAt,
       approvalEvidence: payload.approvalEvidence,
       approvedBy: payload.requestedBy,

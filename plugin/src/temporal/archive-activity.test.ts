@@ -134,6 +134,63 @@ describe("archive durable trinity utilities", () => {
 });
 
 describe("archiveChangeActivity", () => {
+  it("new receipt mode writes summary without applying spec deltas", async () => {
+    const dir = await createTempDir();
+    try {
+      await initGitRepo(dir);
+      const result = await archiveChangeActivity({
+        state: makeState(),
+        projects: [{ projectPath: dir }],
+        status: "archived",
+        mode: "verify_summary",
+        projectionProof: {
+          schema_version: 1,
+          change_id: "archive-change",
+          manifest_sha256: "a".repeat(64),
+          released_commit_sha: "abc1234",
+          status: "verified",
+          verified_at: "2026-05-05T01:00:00.000Z",
+        },
+        archivedAt: "2026-05-05T01:00:00.000Z",
+        approvalEvidence: "ship it",
+        approvedBy: "tester",
+      });
+
+      expect(result.ok).toBe(true);
+      await expect(stat(join(dir, ".adv", "specs"))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      await expect(
+        stat(join(dir, ".adv", "archive", "archive-change.md")),
+      ).resolves.toBeTruthy();
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  });
+
+  it("new receipt mode rejects missing projection proof before writing", async () => {
+    const dir = await createTempDir();
+    try {
+      await initGitRepo(dir);
+      const result = await archiveChangeActivity({
+        state: makeState(),
+        projects: [{ projectPath: dir }],
+        status: "archived",
+        mode: "verify_summary",
+        archivedAt: "2026-05-05T01:00:00.000Z",
+        approvalEvidence: "ship it",
+        approvedBy: "tester",
+      });
+
+      expect(result).toMatchObject({ ok: false, phase: "preflight" });
+      await expect(
+        stat(join(dir, ".adv", "archive", "archive-change.md")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  });
+
   it("writes durable trinity and commits it", async () => {
     const dir = await createTempDir();
     try {

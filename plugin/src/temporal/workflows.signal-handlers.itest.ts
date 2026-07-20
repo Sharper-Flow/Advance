@@ -1952,4 +1952,25 @@ describe("changeWorkflow signal handlers", () => {
     expect(markerIdx).toBeGreaterThan(-1);
     expect(markerIdx).toBeLessThan(readinessIdx);
   });
+
+  it("versions archive activity from legacy mutation to proof-backed summary", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+    const activityStart = source.indexOf("const runArchiveActivity");
+    const activityEnd = source.indexOf(
+      "const runCancelArchiveActivity",
+      activityStart,
+    );
+    const activity = source.slice(activityStart, activityEnd);
+
+    expect(source).toContain('"archive-projection-reconciler-v1"');
+    expect(activity).toMatch(
+      /wf\.patched\(\s*ARCHIVE_PROJECTION_RECONCILER_PATCH\s*,?\s*\)/,
+    );
+    expect(activity.indexOf("wf.patched(")).toBeLessThan(
+      activity.indexOf("archiveChangeActivity({"),
+    );
+    expect(activity).toContain('"legacy_mutate"');
+    expect(activity).toContain('"verify_summary"');
+    expect(activity).toContain("!payload.projectionProof");
+  });
 });
