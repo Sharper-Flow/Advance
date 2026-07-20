@@ -1839,6 +1839,30 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
+  test("PROBE: design-validation handler rejects string blockers (will be replaced by tk-4)", async () => {
+    const baseChange = change();
+    const store = storeFor(baseChange);
+    const report = researcherReport({
+      scope: { kind: "change", scope_key: "researcher:design-validation" },
+      validation: {
+        status: "fail",
+        blockers: ["bare string blocker"],
+        notes: "Probe.",
+      },
+    });
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+    expect(output.error).toBe(
+      "new design-validation blockers require typed contract IDs, in-scope remediation, and source evidence",
+    );
+    expect(output.code).toBe("INVALID_REPORT");
+    expect(output.details.stringBlockerIndices).toEqual([0]);
+  });
+
   test("design-validation handler accepts typed blockers whose contract IDs are all approved", async () => {
     // rq-fixWorkflowReliabilityDefects/AC13: when every typed blocker cites
     // approved contract IDs, the design-validation report flows through to

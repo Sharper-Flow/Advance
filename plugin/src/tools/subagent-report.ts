@@ -758,6 +758,29 @@ async function executeSubmit(
       "researcher:design-validation",
     )
   ) {
+    // Relocated from ResearcherSubagentReportSchema.superRefine check-3.
+    // Must run BEFORE the AC13 flatMap below: bare strings are silently
+    // mapped to [] by the AC13 guard, so without this check a new
+    // bare-string blocker would slip through to normal signaling and
+    // persist — violating AC3. See design C7 in makeLegacyDesignValidation.
+    const stringBlockerIndices: number[] = [];
+    parsedReport.report.validation.blockers.forEach((blocker, index) => {
+      if (typeof blocker === "string") {
+        stringBlockerIndices.push(index);
+      }
+    });
+    if (stringBlockerIndices.length > 0) {
+      return appendProjectContext(
+        formatToolOutput({
+          error:
+            "new design-validation blockers require typed contract IDs, in-scope remediation, and source evidence",
+          code: "INVALID_REPORT",
+          details: { stringBlockerIndices },
+        }),
+        projectContext,
+      );
+    }
+
     const approvedIds = new Set(
       (change.contract?.items ?? []).map((item) => item.id),
     );
