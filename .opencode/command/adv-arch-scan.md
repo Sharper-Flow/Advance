@@ -41,6 +41,7 @@ Run stack-specific tools when stack is in the Stack Packs matrix before research
 |------------|-----------|--------------|---------------|--------|
 | TypeScript/Node | `package.json` + `tsconfig.json` | `dependency-cruiser` | `madge` | Circular deps, layer violations, orphans |
 | ADV stack pack | TypeScript/Bun/OpenCode plugin/Temporal/spec-command-skill assets | existing structural enforcers | dependency graph tools | workflow bundle boundary, command/manifest symmetry, spec/asset anchors, command/skill methodology surfaces |
+| Capability Consistency | `package.json` + IaC files (`*.bicep`, `*.tf`) + source files | `bun run bin/arch-scan.ts` (typed adapter) | (none — typed pipeline is primary) | Config↔code↔deps inconsistencies: plumbed-but-unused env vars, present-but-inactive artifacts, deferred migrations, scaffold without tests |
 | Python | `pyproject.toml` / `setup.py` | `pydeps` | `import-deps` | Import cycles, module depth |
 | Go | `go.mod` | `go vet` | `gocyclo` | Shadowing, complexity, unused code |
 | Rust | `Cargo.toml` | `cargo-deps` | `cargo-modules` | Dependency graph, unused crates |
@@ -48,6 +49,16 @@ Run stack-specific tools when stack is in the Stack Packs matrix before research
 If tools are absent → graceful fallback with `detectionMethod: degraded` and a note. If a relevant stack has no pack → list it in missing-pack coverage before Phase 2. Skip to Phase 2.
 
 If `--phase 1` only → skip to Report.
+
+### Capability-Consistency Pack Invocation (Phase 1)
+
+When the capability-consistency pack applies (project has `package.json` AND IaC files AND/OR manifest references), invoke the typed adapter to surface cross-artifact inconsistencies:
+
+```bash
+bun run bin/arch-scan.ts --format json <repoRoot>
+```
+
+The typed pipeline is the primary detector for capability-consistency findings; the markdown layer (this command + SKILL.md) is advisory only and cites the typed pipeline as the structural owner per P33. Findings are evidence-backed with file:line cross-references per P34: each CapabilityFinding carries structured `trigger` evidence (file:line:matchedSignal), `absence_proof` (searchedRoots, includedGlobs, parseFailures), `detection_method` (`regex` or `ast`), and `confidence` (`high`, `medium`, or `low`).
 
 ### Structural Correctness Boundary Checks (P33)
 
@@ -87,6 +98,17 @@ Run Phase 3 when the user requests `--phase 3`, or during the default all-phases
 - Mark all findings with `detectionMethod: heuristic` and `confidence: low`
 
 Timeout or heuristic failure → keep deterministic/research findings, record the detector as degraded coverage, and continue to Phase 4: Report Generation.
+
+### Capability Sub-Phase (Phase 3 Heuristics)
+
+The capability-consistency pack runs Phase 3 rules (manifest-reference-vs-runtime-registration, scaffold-vs-test-green-path) in an **explicit sub-phase**, NOT subject to the default Phase 3 skip-on-no-prior-findings behavior above. Other Phase 3 categories (layer violations, circular deps, structural-correctness candidates) remain governed by the default Phase 3 trigger semantics — only the two capability Phase 3 rules run in this distinct sub-phase.
+
+Each Phase 3 capability rule declares an `intent_required` list (declaration strings searched repo-wide). The rule fires only when at least one declaration matches:
+
+- **intent gate closed** (no declaration matches) → rule is skipped, `coverage_entry.state: "skipped"` with reason mentioning "intent". False-positive protection for projects that intentionally omit a capability.
+- **intent gate open** (≥1 declaration matches) → rule produces a low-severity finding (intent declared but capability not honored at runtime).
+
+This sub-phase runs whenever the capability-consistency pack applies, regardless of whether Phase 1/2 produced findings. The default Phase 3 confidence `low` and `detectionMethod: heuristic` markers still apply to sub-phase findings unless corroborated by source evidence.
 
 ---
 ## Phase 4: Report Generation

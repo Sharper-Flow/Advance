@@ -31,6 +31,7 @@ import { join } from "path";
 
 import type {
   AbsenceProof,
+  CapabilityDetectionMethod,
   CapabilityEvidence,
   CapabilityFinding,
   CapabilitySeverity,
@@ -544,6 +545,15 @@ export async function evaluateRelationship(
   const id = relationship.id;
   const parseFailures: string[] = [];
   const escalate = relationship.exception_semantics === "escalate";
+  // Detection method is derived from the relationship's declared phase so
+  // the finding contract matches the AC / severity rubric in
+  // skills/adv-arch-detection/SKILL.md: Phase 1 deterministic rules emit
+  // "regex"; Phase 3 heuristic rules emit "heuristic". (Phases 2/4 — AST
+  // and tool-backed — are reserved by the schema union but not yet wired
+  // to this engine; the fallback stays "regex" for any future phase
+  // number rather than throwing.)
+  const detectionMethod: CapabilityDetectionMethod =
+    relationship.detection_phase === 3 ? "heuristic" : "regex";
 
   // Step 1 — Phase 3 intent gate.
   if (
@@ -649,7 +659,7 @@ export async function evaluateRelationship(
           category: "capability-consistency",
           severity: relationship.severity_hint,
           confidence: relationship.confidence,
-          detection_method: "regex",
+          detection_method: detectionMethod,
           description: relationship.trigger.description,
           evidence,
           absence_proof: buildAbsenceProof(relationship, parseFailures),
@@ -695,7 +705,7 @@ export async function evaluateRelationship(
         category: "capability-consistency",
         severity,
         confidence: relationship.confidence,
-        detection_method: "regex",
+        detection_method: detectionMethod,
         description: escalated
           ? `${relationship.trigger.description} (severity escalated: nearby deferred-enforcement marker)`
           : relationship.trigger.description,

@@ -18,12 +18,12 @@
  *     gate stays CLOSED and the rule MUST NOT fire (AC MUST #8 —
  *     false-positive protection).
  *
- * Engine-reality note (P07): the generic evaluator in `evaluator.ts`
- * hardcodes `detection_method: "regex"` for every finding it emits. The
- * heuristic character of this rule lives in `detection_phase: 3` plus
- * entry-level `intent_required`, NOT in the `detection_method` field.
- * These tests therefore assert `"regex"` to match actual engine output;
- * a follow-up may surface `"heuristic"` for Phase 3 entries.
+ * Detection method: the evaluator derives `detection_method` from
+ * `relationship.detection_phase`. Phase 3 heuristic rules emit
+ * `"heuristic"`; Phase 1 deterministic rules emit `"regex"`. This rule
+ * is registered at Phase 3, so its findings carry
+ * `detection_method: "heuristic"` per the AC and the severity rubric in
+ * `skills/adv-arch-detection/SKILL.md`.
  *
  * Read-only constraint: this test does not modify registry.ts, schema.ts,
  * evaluator.ts, scan.ts, or report.ts.
@@ -116,8 +116,9 @@ describe("rule: manifest-reference-vs-runtime-registration", () => {
     expect(finding.category).toBe("capability-consistency");
     expect(finding.severity).toBe("minor");
     expect(finding.confidence).toBe("low");
-    // See file-header note: evaluator hardcodes "regex" for all findings.
-    expect(finding.detection_method).toBe("regex");
+    // Phase 3 heuristic rule → detection_method "heuristic" (AC + SKILL.md
+    // severity rubric). See file-header note.
+    expect(finding.detection_method).toBe("heuristic");
 
     // P34: file:line trigger evidence on the manifest reference.
     const triggerEv = finding.evidence.find((e) => e.role === "trigger");

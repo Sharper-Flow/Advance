@@ -157,6 +157,8 @@ describe("evaluateRelationship", () => {
 
     expect(result.findings).toHaveLength(1);
     expect(result.coverage_entry.state).toBe("applied");
+    // Phase 3 → "heuristic" (detection_method derived from detection_phase).
+    expect(result.findings[0].detection_method).toBe("heuristic");
   });
 
   test("skips with a documented reason when no trigger files are in scope", async () => {

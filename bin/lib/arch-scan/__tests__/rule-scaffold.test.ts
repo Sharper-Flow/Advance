@@ -19,13 +19,12 @@
  * directory presence alone is insufficient to trigger the rule — the
  * declared-capability gate is the deciding factor.
  *
- * Engine invariant: `detection_method` is hardcoded to `"regex"` in
- * `evaluator.ts` for every emitted finding, regardless of detection_phase.
- * The task AC text mentions `"heuristic"` but that value is never produced
- * by the current engine without modifying foundation files (forbidden by
- * the read-only constraint). These tests assert the actual emitted value
- * (`"regex"`) and surface the AC/engine drift via `decisions` in the
- * ENGINEER_REPORT so the orchestrator can reconcile the AC separately.
+ * Detection method: the evaluator derives `detection_method` from
+ * `relationship.detection_phase`. Phase 3 heuristic rules emit
+ * `"heuristic"`; Phase 1 deterministic rules emit `"regex"`. This rule
+ * is registered at Phase 3, so its findings carry
+ * `detection_method: "heuristic"` per the AC and the severity rubric in
+ * `skills/adv-arch-detection/SKILL.md`.
  *
  * Read-only constraint: this test does not modify registry.ts, schema.ts,
  * evaluator.ts, scan.ts, or report.ts.
@@ -97,9 +96,9 @@ describe("rule: scaffold-vs-test-green-path", () => {
     expect(finding.category).toBe("capability-consistency");
     expect(finding.severity).toBe("minor");
     expect(finding.confidence).toBe("low");
-    // Engine invariant: the typed pipeline always emits "regex" regardless
-    // of phase. See file header for AC-vs-engine drift note.
-    expect(finding.detection_method).toBe("regex");
+    // Phase 3 heuristic rule → detection_method "heuristic" (AC + SKILL.md
+    // severity rubric). See file-header note.
+    expect(finding.detection_method).toBe("heuristic");
 
     // P34: every finding has file:line evidence. The trigger evidence
     // points at the scaffold dir's build.gradle, whose content contains
