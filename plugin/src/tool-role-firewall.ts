@@ -3,11 +3,12 @@
  *
  * Enforces the fail-closed, session-derived rule from Decision 3: a tool in
  * the blockable set (complement of the sub-agent union allowlist) is allowed
- * only from the main session. Sub-agent sessions and role-unresolved sessions
- * are blocked with a typed, stable error.
+ * only from the root orchestrator session. Sub-agent sessions and
+ * role-unresolved sessions are blocked with a typed, stable error.
  *
- * Role is derived ONLY from input.sessionID vs the captured mainSessionId.
- * No caller-supplied argument can elevate a sub-agent session (AC7).
+ * Role is derived ONLY from SDK session ancestry. A root session has no
+ * parentID and is the orchestrator; descendants are sub-agent sessions. No
+ * caller-supplied argument can elevate a sub-agent session (AC7).
  */
 
 import { ADV_TOOL_NAMES } from "./tool-registry";
@@ -15,6 +16,8 @@ import {
   blockableFromSubAgentSession,
   subAgentUnionAllowlist,
 } from "./tool-role-policy";
+import { resolveRootSessionId } from "./utils/session-principal";
+export { resolveRootSessionId } from "./utils/session-principal";
 
 export const ROLE_FIREWALL_BLOCK_CODE = "ROLE_FIREWALL_BLOCK" as const;
 
@@ -109,12 +112,32 @@ export interface RoleFirewallCheckInput {
   _blockableSet?: Set<string>;
 }
 
+export async function roleFirewallCheckWithSessionAncestry(input: {
+  toolName: string;
+  callerSessionID?: string;
+  client?: import("./utils/session-principal").SessionAncestryClient;
+  cache?: Map<string, string>;
+}): Promise<void> {
+  if (!input.toolName.startsWith("adv_")) return;
+
+  const blockable = resolveBlockableSet().blockable;
+  if (!blockable.has(input.toolName)) return;
+
+  const mainSessionId = await resolveRootSessionId(input);
+  roleFirewallCheck({
+    toolName: input.toolName,
+    callerSessionID: input.callerSessionID,
+    mainSessionId,
+    _blockableSet: blockable,
+  });
+}
+
 /**
  * Fail-closed predicate for the tool.execute.before hook.
  *
- * - No-op for non-adv_* tools, union-floor tools, and confirmed main-session calls.
- * - Throws RoleFirewallError for blockable tools when the caller is not the main
- *   session or when the main session cannot be resolved.
+ * - No-op for non-adv_* tools, union-floor tools, and confirmed root-session calls.
+ * - Throws RoleFirewallError for blockable tools when the caller is not the root
+ *   session or when the root session cannot be resolved.
  */
 export function roleFirewallCheck(input: RoleFirewallCheckInput): void {
   const { toolName, callerSessionID, mainSessionId } = input;
@@ -129,7 +152,7 @@ export function roleFirewallCheck(input: RoleFirewallCheckInput): void {
   if (mainSessionId == null) {
     throw new RoleFirewallError(
       toolName,
-      `Tool ${toolName} is blocked because the main session has not been resolved.`,
+      `Tool ${toolName} is blocked because the root session has not been resolved.`,
       "unresolved_role",
     );
   }
@@ -144,7 +167,7 @@ export function roleFirewallCheck(input: RoleFirewallCheckInput): void {
 
   throw new RoleFirewallError(
     toolName,
-    `Tool ${toolName} is blocked from sub-agent sessions; it is reserved for the main/orchestrator session.`,
+    `Tool ${toolName} is blocked from sub-agent sessions; it is reserved for the SDK-derived orchestrator root session.`,
     "sub_agent",
   );
 }

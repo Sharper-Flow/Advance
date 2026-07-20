@@ -59,7 +59,13 @@ interface MockPluginInput {
 const TEST_SERVER_URL = new URL("http://localhost:3000");
 
 const createMockPluginInput = (directory: string): MockPluginInput => ({
-  client: {},
+  client: {
+    session: {
+      get: async ({ path }: { path: { id: string } }) => ({
+        data: { id: path.id, parentID: null },
+      }),
+    },
+  },
   project: {
     id: "test-project",
     worktree: directory,

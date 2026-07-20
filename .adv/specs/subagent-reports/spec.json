@@ -936,6 +936,91 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-subagentReports24",
+      "title": "Design-Validation Blockers Are Typed, In-Scope, and Contract-Tied",
+      "body": "For adv-researcher reports whose scope.scope_key starts with researcher:design-validation, validation.blockers MUST be a list of typed objects, never free-form strings. Each blocker MUST carry finding (non-empty string), source (typed SubagentSourceReference with label, locator, summary), contract_ids (non-empty list of strings referencing items on the change's approved contract), scope equal to the literal in_scope (out-of-scope alternatives are rejected), and in_scope_remediation (non-empty string). Out-of-scope alternatives belong only in architecture_judgement.alternatives_considered and may never appear in validation.blockers. validation.status fail is advisory-only: it surfaces architecture_judgement.risk and the in-scope remediation, but it MUST NOT auto-block or complete an ADV gate. Other gate blockers (contract compromise, security/release blocker, user-discovered CONFLICT) retain independent authority. The canonical preflight in tool-arg-preflight MUST cap nested report issues at MAX_ZOD_PREFLIGHT_ISSUES bounded rows of field-path plus message, and the plugin-side preflight (adv_subagent_report_submit) MUST short-circuit malformed input before any signal, error_recovery, or workflow mutation persists. Handler-side defense-in-depth rejects malformed blocker authority (unknown contract_ids, scope ≠ in_scope, missing fields) with INVALID_REPORT and MUST NOT mutate workflow state for purely malformed input. Legacy persisted researcher reports remain readable through adv_change_show include.subagentReports, with normalizePersistedSubagentReportState filling legacy architecture_judgement defaults.",
+      "priority": "must",
+      "tags": [
+        "subagents",
+        "researcher",
+        "design-validation",
+        "blockers",
+        "validator_scope",
+        "advisory_only",
+        "contract",
+        "preflight",
+        "no_mutation",
+        "backwards_compat"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports24.1",
+          "title": "design-validation blocker entries must be typed objects",
+          "given": [
+            "A new adv-researcher report is submitted with scope.scope_key starting with researcher:design-validation"
+          ],
+          "when": "adv_subagent_report_submit validates the report",
+          "then": [
+            "validation.blockers entries that are bare strings are rejected as INVALID_REPORT with a typed-contract-IDs-required message",
+            "validation.blockers entries that lack finding, source, contract_ids, scope, or in_scope_remediation are rejected",
+            "validation.blockers entries with scope other than in_scope (e.g. out_of_scope, global) are rejected"
+          ]
+        },
+        {
+          "id": "rq-subagentReports24.2",
+          "title": "design-validation blocker contract_ids must reference the change's approved contract",
+          "given": [
+            "A new adv-researcher report is submitted with researcher:design-validation scope and a typed blocker whose contract_ids includes any string not present in change.contract.items[].id"
+          ],
+          "when": "The handler-side preflight cross-checks blocker contract_ids against change.contract.items",
+          "then": [
+            "The handler rejects the report with INVALID_REPORT and details.unknownContractIds listing exactly the unknown ids",
+            "No fireSignalAndRefresh call is made",
+            "No workflow state (task error_recovery, change state) is mutated"
+          ]
+        },
+        {
+          "id": "rq-subagentReports24.3",
+          "title": "validation.status fail remains advisory-only and never auto-blocks gates",
+          "given": [
+            "An adv-researcher report carries validation.status fail and architecture_judgement.applicability applicable with in-scope blockers"
+          ],
+          "when": "The orchestrator (or command) processes the report",
+          "then": [
+            "Validator surfaces architecture_judgement.risk and the in-scope remediation in design notes",
+            "The design gate is not auto-blocked; the command proceeds to /adv-prep unless an independent blocker applies (contract compromise, security/release blocker, user-discovered CONFLICT)",
+            "User-visible legacy label ANTI-PATTERN remains advisory-only"
+          ]
+        },
+        {
+          "id": "rq-subagentReports24.4",
+          "title": "malformed nested report input is bounded by the canonical preflight",
+          "given": [
+            "adv_subagent_report_submit receives a malformed nested report arg (wrong types, missing nested keys, missing field paths)"
+          ],
+          "when": "The plugin-side preflight validates the report against ScopedSubagentReportSchema",
+          "then": [
+            "The response emits at most MAX_ZOD_PREFLIGHT_ISSUES (10) bounded rows of field-path + message",
+            "The handler is never called; no signal, no error_recovery, and no workflow mutation persists",
+            "transportArgs submitted to OpenCode tool() may be intentionally broader than canonical args (same top-level keys) so the host can admit the report object before plugin preflight enforces strict validation"
+          ]
+        },
+        {
+          "id": "rq-subagentReports24.5",
+          "title": "out-of-scope alternatives belong to alternatives_considered only",
+          "given": [
+            "An adv-researcher design-validation report includes a recommendation that is out of the change's approved contract scope"
+          ],
+          "when": "The orchestrator routes the report",
+          "then": [
+            "Out-of-scope alternatives appear in architecture_judgement.alternatives_considered",
+            "They MUST NOT appear in validation.blockers",
+            "Promoting an out-of-scope alternative to blocker authority is structurally rejected at ingestion"
+          ]
+        }
+      ]
     }
   ]
 }

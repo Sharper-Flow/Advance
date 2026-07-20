@@ -26,6 +26,13 @@ import {
   changeStateQuery,
   crossProjectCoordinationUpdatedSignal,
 } from "../../temporal/messages";
+import { getMutationReceiptQuery } from "../../temporal/messages";
+import type { MutationReceipt } from "../../temporal/contracts";
+import {
+  MutationApplicationUnconfirmedError,
+  waitForQueryPredicate,
+} from "../../utils/query-predicate";
+import { randomUUID } from "node:crypto";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import {
   hasArchiveBundle,
@@ -166,6 +173,7 @@ async function fireContentSignalsSequentially(
   handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
   changeId: string,
   artifacts: ArtifactPayload,
+  confirmReadinessReceipts = false,
 ): Promise<void> {
   const updatedAt = new Date().toISOString();
   // Suppress unused-parameter lint when `handle` is unused due to routing
@@ -177,10 +185,29 @@ async function fireContentSignalsSequentially(
     const content = artifacts[kind];
     if (content === undefined) continue;
     // Content signal — populates state.documents[kind]. SC4-guarded.
+    const requiresReceipt =
+      confirmReadinessReceipts &&
+      (kind === "executiveSummary" || kind === "acceptance");
+    const mutationReceiptId = requiresReceipt
+      ? `mrec_${randomUUID()}`
+      : undefined;
     await fireGuardedSignal(input, changeId, signal, {
       text: content,
       updatedAt,
+      ...(mutationReceiptId ? { mutationReceiptId } : {}),
     });
+    if (mutationReceiptId) {
+      const receipt = await waitForQueryPredicate(
+        () =>
+          handle.query(getMutationReceiptQuery, mutationReceiptId) as Promise<
+            MutationReceipt | undefined
+          >,
+        (candidate) => candidate?.id === mutationReceiptId,
+      );
+      if (!receipt) {
+        throw new MutationApplicationUnconfirmedError(mutationReceiptId);
+      }
+    }
 
     // Metadata signal — populates state.artifacts[kind] with contentHash.
     // Fires AFTER the content signal so the hash reflects the just-written
@@ -880,6 +907,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           handle,
           changeId,
           artifacts,
+          true,
         );
       });
 

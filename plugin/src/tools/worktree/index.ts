@@ -41,6 +41,7 @@ import type {
   OpencodeClient,
   OpencodeEvent as Event,
 } from "../../utils/opencode-types";
+import { resolveRootSessionId } from "../../utils/session-principal";
 
 /** Logger interface for structured logging */
 interface Logger {
@@ -122,9 +123,6 @@ const DB_MAX_RETRIES = 3;
 
 /** Delay between retry attempts in milliseconds */
 const DB_RETRY_DELAY_MS = 100;
-
-/** Maximum depth to traverse session parent chain */
-const MAX_SESSION_CHAIN_DEPTH = 10;
 
 type WorktreeSignalResult = { ok: true } | { ok: false; warning: string };
 
@@ -3229,16 +3227,17 @@ export const WorktreePlugin: Plugin = async (ctx) => {
               toolCtx.sessionID,
               projectId,
               async (sid) => {
-                // Walk up parentID chain to find root session
-                let currentId = sid;
-                for (let depth = 0; depth < MAX_SESSION_CHAIN_DEPTH; depth++) {
-                  const session = await client.session.get({
-                    path: { id: currentId },
-                  });
-                  if (!session.data?.parentID) return currentId;
-                  currentId = session.data.parentID;
+                const root = await resolveRootSessionId({
+                  callerSessionID: sid,
+                  client,
+                });
+                if (!root) {
+                  throw new WorktreeError(
+                    "Failed to resolve root session ID from ancestry",
+                    "forkWithContext",
+                  );
                 }
-                return currentId;
+                return root;
               },
             );
 

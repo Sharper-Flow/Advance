@@ -73,11 +73,48 @@ const ChangeScopedBaseSubagentReportSchema = BaseSubagentReportSchema.extend({
 
 export const SubagentVerificationEntrySchema = z
   .object({
+    run_id: z.string().min(1).optional(),
+    // rq-subagentReports25: typed test-run binding. Canonical name
+    // preferred over the additive `run_id` alias. When present, the
+    // entry's identity is (test_run_id, exit_code); the `command` label is
+    // descriptive only and cosmetic differences (extra args, reordered
+    // flags, prefix vars, absolute paths) MUST NOT break identity match.
+    // Absence of both `run_id` and `test_run_id` normalizes the entry to
+    // the explicit legacy variant and binds by exact command only. No
+    // fuzzy normalization, no timestamp cutover. Authored reports should
+    // set `test_run_id` whenever `adv_run_test` recorded a run for the
+    // same task; legacy reports without either field remain readable.
+    test_run_id: z.string().min(1).optional(),
     command: z.string().min(1),
     exit_code: z.number().int(),
     summary: z.string().min(1),
   })
   .strict();
+
+export const EvidenceBindingVersionSchema = z.enum([
+  "typed-v1",
+  "legacy-command-v0",
+]);
+
+function requireTypedRunIds(
+  report: {
+    evidence_binding_version?: z.infer<typeof EvidenceBindingVersionSchema>;
+    verification: Array<{ run_id?: string; test_run_id?: string }>;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (report.evidence_binding_version !== "typed-v1") return;
+  report.verification.forEach((entry, index) => {
+    if (!entry.run_id && !entry.test_run_id) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["verification", index, "run_id"],
+        message:
+          "typed-v1 verification requires a durable test run ID (run_id or test_run_id)",
+      });
+    }
+  });
+}
 
 const ImplementationProvenanceSchema = z.discriminatedUnion("kind", [
   z
@@ -231,6 +268,7 @@ export const EngineerSubagentReportSchema =
   TaskScopedBaseSubagentReportSchema.extend({
     agent: z.literal("adv-engineer"),
     status: z.enum(["complete", "error"]),
+    evidence_binding_version: EvidenceBindingVersionSchema.optional(),
     files_touched: z.array(z.string().min(1)),
     verification: z.array(SubagentVerificationEntrySchema).min(1),
     decisions: z.array(SubagentDecisionSchema),
@@ -248,7 +286,9 @@ export const EngineerSubagentReportSchema =
       .strict(),
     apply_context: SubagentApplyContextSchema.optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-  }).strict();
+  })
+    .strict()
+    .superRefine(requireTypedRunIds);
 
 export const DesignerDesignDimensionSchema = z.enum(["pass", "concern", "n/a"]);
 
@@ -299,6 +339,7 @@ export const DesignerSubagentReportSchema =
   TaskScopedBaseSubagentReportSchema.extend({
     agent: z.literal("adv-designer"),
     status: z.enum(["complete", "error"]),
+    evidence_binding_version: EvidenceBindingVersionSchema.optional(),
     files_touched: z.array(z.string().min(1)),
     verification: z.array(SubagentVerificationEntrySchema).min(1),
     decisions: z.array(SubagentDecisionSchema),
@@ -320,7 +361,9 @@ export const DesignerSubagentReportSchema =
     apply_context: SubagentApplyContextSchema.optional(),
     required_follow_ups: z.array(RequiredFollowUpSchema).optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-  }).strict();
+  })
+    .strict()
+    .superRefine(requireTypedRunIds);
 
 export const ReviewerFindingSchema = z
   .object({
@@ -397,10 +440,22 @@ export const SubagentSourceReferenceSchema = z
   })
   .strict();
 
+export const ResearcherValidationBlockerSchema = z
+  .object({
+    finding: z.string().min(1),
+    contract_ids: z.array(z.string().min(1)).min(1),
+    scope: z.literal("in_scope"),
+    in_scope_remediation: z.string().min(1),
+    source: SubagentSourceReferenceSchema,
+  })
+  .strict();
+
 export const ResearcherValidationSchema = z
   .object({
     status: z.enum(["pass", "caution", "fail", "unknown"]),
-    blockers: z.array(z.string().min(1)),
+    blockers: z.array(
+      z.union([z.string().min(1), ResearcherValidationBlockerSchema]),
+    ),
     notes: z.string().min(1),
   })
   .strict();
@@ -475,6 +530,19 @@ export const ResearcherSubagentReportSchema =
           code: "custom",
           path: ["validation", "blockers"],
           message: "fail validation requires at least one blocker",
+        });
+      }
+
+      if (report.scope.scope_key.startsWith("researcher:design-validation")) {
+        report.validation.blockers.forEach((blocker, index) => {
+          if (typeof blocker === "string") {
+            ctx.addIssue({
+              code: "custom",
+              path: ["validation", "blockers", index],
+              message:
+                "new design-validation blockers require typed contract IDs, in-scope remediation, and source evidence",
+            });
+          }
         });
       }
 

@@ -29,6 +29,12 @@ type ExpectedFieldPolicy = {
 
 const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
+    toolName: "adv_task_update",
+    field: "proof_target",
+    policy: "blank",
+    action: "omit",
+  },
+  {
     toolName: "adv_change_create",
     field: "target_path",
     policy: "blank",
@@ -2107,6 +2113,37 @@ describe("tool arg preflight", () => {
 
     expect(result.ok).toBe(false);
     expect(result.invalid[0]?.field).toBe("include.readyTasksLimit");
+  });
+
+  test("projects bounded nested union diagnostics instead of an opaque union error", () => {
+    const branch = (name: string) =>
+      z.object({
+        agent: z.literal(name),
+        payload: z.object({ required: z.string().min(1) }),
+      });
+    const result = validateToolArgsBeforeExecute(
+      "adv_subagent_report_submit",
+      {
+        report: z.union([
+          branch("adv-engineer"),
+          branch("adv-reviewer"),
+          branch("adv-researcher"),
+          branch("adv-tron"),
+          branch("adv-scanner-bundle"),
+          branch("adv-verification-triage-bundle"),
+        ]),
+      },
+      { report: { agent: "unknown", payload: {} } },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.invalid.length).toBeLessThanOrEqual(10);
+    expect(result.invalid.some((issue) => issue.field === "report.agent")).toBe(
+      true,
+    );
+    expect(
+      result.invalid.some((issue) => issue.field === "report.payload.required"),
+    ).toBe(true);
   });
 
   test("formats zero-arg required field failures without timeout language", () => {

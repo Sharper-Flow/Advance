@@ -1931,4 +1931,25 @@ describe("changeWorkflow signal handlers", () => {
     // disk-inspect branch in the gate-completion if/else chain.
     expect(stateBackedIdx).toBeLessThan(legacyIdx);
   });
+
+  it("consumes the acceptance proof marker once before readiness early returns", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+    const handlerStart = source.indexOf("const completeGateWithReadiness");
+    const handlerEnd = source.indexOf(
+      "wf.setHandler(gateCompletedSignal",
+      handlerStart,
+    );
+    const handler = source.slice(handlerStart, handlerEnd);
+    const markerCalls = handler.match(
+      /wf\.patched\(STATE_BACKED_ACCEPTANCE_PROOF_PATCH\)/g,
+    );
+    const markerIdx = handler.indexOf(
+      "wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)",
+    );
+    const readinessIdx = handler.indexOf("evaluateGateReadiness(");
+
+    expect(markerCalls).toHaveLength(1);
+    expect(markerIdx).toBeGreaterThan(-1);
+    expect(markerIdx).toBeLessThan(readinessIdx);
+  });
 });

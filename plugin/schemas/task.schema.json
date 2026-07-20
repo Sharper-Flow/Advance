@@ -310,6 +310,26 @@
         },
         "review_conclusion": {
           "type": "string"
+        },
+        "review_evidence_ref": {
+          "additionalProperties": false,
+          "properties": {
+            "report_key": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "report_key"
+          ],
+          "type": "object"
+        },
+        "stage": {
+          "enum": [
+            "stage-v1",
+            "stage-v2"
+          ],
+          "type": "string"
         }
       },
       "required": [
@@ -678,6 +698,13 @@
                 },
                 "type": "array"
               },
+              "evidence_binding_version": {
+                "enum": [
+                  "typed-v1",
+                  "legacy-command-v0"
+                ],
+                "type": "string"
+              },
               "files_touched": {
                 "items": {
                   "minLength": 1,
@@ -831,7 +858,15 @@
                       "minimum": -9007199254740991,
                       "type": "integer"
                     },
+                    "run_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
                     "summary": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "test_run_id": {
                       "minLength": 1,
                       "type": "string"
                     }
@@ -1518,6 +1553,13 @@
                 ],
                 "type": "object"
               },
+              "evidence_binding_version": {
+                "enum": [
+                  "typed-v1",
+                  "legacy-command-v0"
+                ],
+                "type": "string"
+              },
               "files_touched": {
                 "items": {
                   "minLength": 1,
@@ -1701,7 +1743,15 @@
                       "minimum": -9007199254740991,
                       "type": "integer"
                     },
+                    "run_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
                     "summary": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "test_run_id": {
                       "minLength": 1,
                       "type": "string"
                     }

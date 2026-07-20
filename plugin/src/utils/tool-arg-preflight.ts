@@ -36,6 +36,37 @@ type CrossFieldValidator = (
   args: Record<string, unknown>,
 ) => ToolArgPreflightIssue[];
 
+const MAX_ZOD_PREFLIGHT_ISSUES = 10;
+
+function projectZodIssues(
+  issue: unknown,
+  field: string,
+): ToolArgPreflightIssue[] {
+  if (!issue || typeof issue !== "object") return [];
+  const row = issue as {
+    code?: unknown;
+    path?: unknown;
+    message?: unknown;
+    errors?: unknown;
+  };
+  if (row.code === "invalid_union" && Array.isArray(row.errors)) {
+    return row.errors.flatMap((branch) =>
+      Array.isArray(branch)
+        ? branch.flatMap((nested) => projectZodIssues(nested, field))
+        : [],
+    );
+  }
+  const path = Array.isArray(row.path)
+    ? [field, ...row.path.map(String)].join(".")
+    : field;
+  return [
+    {
+      field: path,
+      message: typeof row.message === "string" ? row.message : "Invalid input",
+    },
+  ];
+}
+
 // rq-toolArgBlankArtifactLinkage01 (revised): all artifact fields accepted
 // by create/update tools. After T2 (softenStrictModeOptionals), per-field
 // FIELD_POLICIES entries with blank: "omit" normalize blank values to
@@ -161,6 +192,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
   },
   adv_task_update: {
+    proof_target: { blank: "omit" },
     target_path: { blank: "omit" },
     // Contextually-validated: handler checks only when target_path present or
     // recoveryMode=poisoned_history (rq-toolPlaceholderPolicy01.6).
@@ -850,8 +882,8 @@ export function preflightToolArgs(
     const parsed = schema.safeParse(policyResult.normalizedArgs[field]);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
-        const path = [field, ...issue.path].join(".");
-        invalid.push({ field: path, message: issue.message });
+        invalid.push(...projectZodIssues(issue, field));
+        if (invalid.length >= MAX_ZOD_PREFLIGHT_ISSUES) break;
       }
     }
   }
@@ -860,10 +892,16 @@ export function preflightToolArgs(
     ...(CROSS_FIELD_VALIDATORS[toolName]?.(policyResult.normalizedArgs) ?? []),
   );
 
+  const dedupedInvalid = Array.from(
+    new Map(
+      invalid.map((issue) => [`${issue.field}\u0000${issue.message}`, issue]),
+    ).values(),
+  ).slice(0, MAX_ZOD_PREFLIGHT_ISSUES);
+
   return {
-    ok: missing.length === 0 && invalid.length === 0,
+    ok: missing.length === 0 && dedupedInvalid.length === 0,
     missing,
-    invalid,
+    invalid: dedupedInvalid,
     normalizedArgs: policyResult.normalizedArgs,
   };
 }

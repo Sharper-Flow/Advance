@@ -175,6 +175,32 @@ function makeResearcherReport(changeId: string) {
   };
 }
 
+function makeReviewerReport(changeId: string, taskId: string, attempt = 1) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: changeId,
+    task_id: taskId,
+    scope: { kind: "task" as const, task_id: taskId },
+    attempt,
+    agent: "adv-reviewer" as const,
+    workdir_used: "/tmp/worktree",
+    phase: "review" as const,
+    verdict: "READY" as const,
+    blocking_findings: [],
+    nonblocking_findings: [],
+    changes_made: [],
+    wisdom_candidates: [],
+    verification: {
+      tests_run: [],
+      results: "n/a" as const,
+      evidence: "review",
+    },
+    scope_drift: null,
+    risks: [],
+    required_main_agent_actions: [],
+  };
+}
+
 describe("change-state pure mutation helpers", () => {
   it("normalizes legacy open statuses to open lifecycle state", () => {
     expect(normalizeChangeLifecycleState("draft")).toBe("open");
@@ -2064,6 +2090,88 @@ describe("change-state pure mutation helpers", () => {
   });
 });
 
+describe("reviewer-owned evidence reference", () => {
+  function stateWithReviewTask(policy: string, plan?: any) {
+    const state = createChangeWorkflowState({
+      changeId: "reviewer-evidence-test",
+      title: "Reviewer evidence test",
+      createdAt: "2026-07-17T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-review",
+        title: "Review task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-07-17T00:00:01.000Z",
+        evidence_policy: policy,
+        evidence_plan: plan,
+      },
+      addedAt: "2026-07-17T00:00:01.000Z",
+    });
+    return state;
+  }
+
+  it("writes review_evidence_ref when a reviewer report is persisted for a non-test behavior-critical task", () => {
+    const state = stateWithReviewTask("review", {
+      policy: "review",
+      proof_target: "Structured review conclusion",
+      rationale: "Peer review is sufficient.",
+      provenance: "new",
+      stage: "stage-v2",
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-review",
+      report: makeReviewerReport("reviewer-evidence-test", "tk-review"),
+      submittedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.evidence_plan?.review_evidence_ref).toEqual({
+      report_key: "reviewer-evidence-test|tk-review|adv-reviewer|1",
+    });
+  });
+
+  it("does not write review_evidence_ref for test-route tasks", () => {
+    const state = stateWithReviewTask("test", {
+      policy: "test",
+      proof_target: "Automated tests",
+      provenance: "new",
+      stage: "stage-v2",
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-review",
+      report: makeReviewerReport("reviewer-evidence-test", "tk-review"),
+      submittedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.evidence_plan?.review_evidence_ref).toBeUndefined();
+  });
+
+  it("does not write review_evidence_ref for non-behavior-critical tasks", () => {
+    const state = stateWithReviewTask("review", {
+      policy: "review",
+      proof_target: "Structured review conclusion",
+      provenance: "new",
+      stage: "stage-v2",
+    });
+    state.tasks[0].type = "docs";
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-review",
+      report: makeReviewerReport("reviewer-evidence-test", "tk-review"),
+      submittedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.evidence_plan?.review_evidence_ref).toBeUndefined();
+  });
+});
+
 describe("applyTaskCompletedToState evidence plan validation (AC1/AC2/AC3)", () => {
   function baseCodeTask(overrides: any = {}) {
     return {
@@ -2135,7 +2243,54 @@ describe("applyTaskCompletedToState evidence plan validation (AC1/AC2/AC3)", () 
     expect(state.tasks[0]?.status).not.toBe("done");
   });
 
-  it("allows completion when code task has non-test route with review conclusion", () => {
+  it("allows completion when code task has non-test route with review evidence ref", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "review",
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review conclusion",
+          rationale: "Peer review is sufficient.",
+          review_evidence_ref: {
+            report_key: "test-change|tk-code|adv-reviewer|1",
+          },
+          provenance: "new",
+        },
+      }),
+    );
+    // Seed the matching reviewer report so the ref resolves.
+    state.subagent_reports = [
+      {
+        schema_version: "1.0",
+        change_id: "test-change",
+        task_id: "tk-code",
+        attempt: 1,
+        workdir_used: "/tmp/test",
+        agent: "adv-reviewer",
+        scope: { kind: "task", task_id: "tk-code" },
+        phase: "review",
+        verdict: "READY",
+        blocking_findings: [],
+        nonblocking_findings: [],
+        changes_made: [],
+        wisdom_candidates: [],
+        verification: { tests_run: [], results: "n/a", evidence: "review" },
+        scope_drift: null,
+        risks: [],
+        required_main_agent_actions: [],
+      },
+    ] as any;
+    applyTaskCompletedToState(state, {
+      taskId: "tk-code",
+      verification: "verified",
+      summary: "done",
+      filesTouched: [],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("allows completion for legacy code task with review conclusion", () => {
     const state = makeStateWithTask(
       baseCodeTask({
         evidence_policy: "review",
@@ -2144,7 +2299,7 @@ describe("applyTaskCompletedToState evidence plan validation (AC1/AC2/AC3)", () 
           proof_target: "Structured review conclusion",
           rationale: "Peer review is sufficient.",
           review_conclusion: "reviewer-verdict-abc",
-          provenance: "new",
+          provenance: "legacy",
         },
       }),
     );

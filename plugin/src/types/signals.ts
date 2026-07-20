@@ -59,6 +59,7 @@ const DocumentUpdateBaseSchema = z.object({
   text: z.string(),
   updatedBy: z.string().optional(),
   updatedAt: IsoTimestampSchema,
+  mutationReceiptId: z.string().min(1).optional(),
 });
 
 export const ProposalUpdatedSignalPayloadSchema = DocumentUpdateBaseSchema;
@@ -121,6 +122,7 @@ export type ContractAmendedSignalPayload = z.infer<
 export const ContractReviewMatrixSetSignalPayloadSchema = z.object({
   reviewMatrix: ContractReviewMatrixSchema,
   updatedAt: IsoTimestampSchema,
+  mutationReceiptId: z.string().min(1).optional(),
 });
 export type ContractReviewMatrixSetSignalPayload = z.infer<
   typeof ContractReviewMatrixSetSignalPayloadSchema
@@ -229,7 +231,9 @@ export type SubagentReportSubmittedSignalPayload = z.infer<
 // gate-readiness evaluator can clear an otherwise-blocking concern. The payload
 // is the disposition record itself.
 export const DesignConcernDispositionedSignalPayloadSchema =
-  DesignConcernDispositionSchema;
+  DesignConcernDispositionSchema.extend({
+    mutationReceiptId: z.string().min(1).optional(),
+  });
 export type DesignConcernDispositionedSignalPayload = z.infer<
   typeof DesignConcernDispositionedSignalPayloadSchema
 >;
@@ -239,7 +243,9 @@ export type DesignConcernDispositionedSignalPayload = z.infer<
 // VERIFICATION_EVIDENCE_MISSING blocker. The payload is the disposition record
 // itself (latest-wins per (taskId, concernKey)).
 export const VerificationEvidenceDispositionedSignalPayloadSchema =
-  VerificationEvidenceDispositionSchema;
+  VerificationEvidenceDispositionSchema.extend({
+    mutationReceiptId: z.string().min(1).optional(),
+  });
 export type VerificationEvidenceDispositionedSignalPayload = z.infer<
   typeof VerificationEvidenceDispositionedSignalPayloadSchema
 >;
@@ -299,6 +305,7 @@ export const GateCompletedSignalPayloadSchema = z.object({
   artifactEvidence: GateArtifactEvidenceSchema.optional(),
   completedBy: z.string(),
   completedAt: IsoTimestampSchema,
+  mutationReceiptId: z.string().min(1).optional(),
   /**
    * Advisory criteria evaluated at gate completion time.
    * Optional for replay-safety — histories predating this field replay

@@ -19,7 +19,19 @@ import {
   runTemporalQuery,
 } from "../storage/store-temporal/shared";
 import type { Store } from "../storage/store";
-import { getGateStatusQuery } from "../temporal/messages";
+import {
+  getGateStatusQuery,
+  getMutationReceiptQuery,
+} from "../temporal/messages";
+import type { MutationReceipt } from "../temporal/contracts";
+import {
+  MutationApplicationUnconfirmedError,
+  waitForQueryPredicate,
+} from "../utils/query-predicate";
+export {
+  MutationApplicationUnconfirmedError,
+  waitForQueryPredicate,
+} from "../utils/query-predicate";
 import type { GateCompletion, GateId } from "../types";
 import {
   classifyMutationOutcome,
@@ -34,8 +46,22 @@ import {
 export const GATE_COMPLETION_POLL_ATTEMPTS = 60;
 export const GATE_COMPLETION_POLL_DELAY_MS = 500;
 
-const gatePollDelay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+export async function waitForAppliedReceipt(
+  handle: WorkflowHandleLike,
+  receiptId: string,
+  opts: { attempts?: number; delayMs?: number } = {},
+): Promise<MutationReceipt | undefined> {
+  return waitForQueryPredicate(
+    () =>
+      querySignal<MutationReceipt | undefined>(
+        handle,
+        getMutationReceiptQuery,
+        receiptId,
+      ),
+    (receipt) => receipt?.id === receiptId,
+    opts,
+  );
+}
 
 /**
  * Poll a change workflow until a gate reaches a terminal status (done/stuck)
@@ -48,21 +74,11 @@ export async function waitForGateCompletion(
   gateId: GateId,
   opts: { attempts?: number; delayMs?: number } = {},
 ): Promise<GateCompletion | undefined> {
-  const attempts = opts.attempts ?? GATE_COMPLETION_POLL_ATTEMPTS;
-  const delayMs = opts.delayMs ?? GATE_COMPLETION_POLL_DELAY_MS;
-  let latest: GateCompletion | undefined;
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    latest = await querySignal<GateCompletion>(
-      handle,
-      getGateStatusQuery,
-      gateId,
-    );
-    if (latest?.status === "done" || latest?.status === "stuck") {
-      return latest;
-    }
-    await gatePollDelay(delayMs);
-  }
-  return latest;
+  return waitForQueryPredicate(
+    () => querySignal<GateCompletion>(handle, getGateStatusQuery, gateId),
+    (gate) => gate?.status === "done" || gate?.status === "stuck",
+    opts,
+  );
 }
 
 type SignalTarget = WorkflowHandleLike | TemporalStoreBackendInput;
@@ -274,10 +290,15 @@ export async function fireSignalAndRefresh<Args extends unknown[]>(
   signal: unknown,
   ...args: Args
 ): Promise<void> {
-  if (isWorkflowHandleLike(target)) {
-    await fireSignal(target, signal, ...args);
-  } else {
-    await fireSignal(target, changeId, signal, ...args);
+  const handle = await resolveChangeHandle(target, changeId);
+  await fireSignal(handle, signal, ...args);
+  const receiptId =
+    args[0] && typeof args[0] === "object"
+      ? (args[0] as { mutationReceiptId?: unknown }).mutationReceiptId
+      : undefined;
+  if (typeof receiptId === "string" && receiptId) {
+    const receipt = await waitForAppliedReceipt(handle, receiptId);
+    if (!receipt) throw new MutationApplicationUnconfirmedError(receiptId);
   }
   await store.changes.refresh(changeId);
 }

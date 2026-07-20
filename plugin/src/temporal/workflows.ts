@@ -87,6 +87,7 @@ import {
   archiveChangeInChangeState,
   closeChangeInChangeState,
   createChangeWorkflowState,
+  findMutationReceipt,
   getTaskFromChangeState,
   getReadyTasksFromChangeState,
   listTasksFromChangeState,
@@ -233,6 +234,10 @@ const getWorktreesQuery = wf.defineQuery<
 const getConformanceStateQuery = wf.defineQuery<
   ChangeWorkflowState["conformance"]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
+const getMutationReceiptQuery = wf.defineQuery<
+  import("./contracts").MutationReceipt | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
 const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [
@@ -747,6 +752,9 @@ export async function changeWorkflow(
   );
   wf.setHandler(getWorktreesQuery, () => ({ ...(state.worktrees ?? {}) }));
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
+  wf.setHandler(getMutationReceiptQuery, (receiptId) =>
+    findMutationReceipt(state, receiptId),
+  );
   wf.setHandler(
     changeTasksQuery,
     (
@@ -1044,6 +1052,19 @@ export async function changeWorkflow(
   const completeGateWithReadiness = async (
     payload: import("../types").GateCompletedSignalPayload,
   ): Promise<void> => {
+    // Replay invariant: every acceptance attempt consumes this marker exactly
+    // once before readiness/artifact branches can return. Histories that
+    // already recorded the marker must see the same command sequence even
+    // when current state now satisfies an earlier branch.
+    const acceptanceReadinessFenceActive =
+      payload.gateId === "acceptance" &&
+      wf.patched(ACCEPTANCE_READINESS_FENCE_PATCH);
+    const stateBackedAcceptanceProofActive =
+      payload.gateId === "acceptance" &&
+      wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH);
+    const capturedAcceptanceReadinessRevision = acceptanceReadinessFenceActive
+      ? (state.acceptanceReadinessRevision ?? 0)
+      : undefined;
     const readiness = evaluateGateReadiness(state, payload.gateId, {
       compatibilityReason: payload.compatibilityReason,
       enforceDiscoveryContract:
@@ -1056,12 +1077,6 @@ export async function changeWorkflow(
       return;
     }
 
-    const acceptanceReadinessFenceActive =
-      payload.gateId === "acceptance" &&
-      wf.patched(ACCEPTANCE_READINESS_FENCE_PATCH);
-    const capturedAcceptanceReadinessRevision = acceptanceReadinessFenceActive
-      ? (state.acceptanceReadinessRevision ?? 0)
-      : undefined;
     let artifactEvidence = readiness.evidence;
     const artifactKind = ARTIFACT_BACKED_GATES[payload.gateId];
     if (artifactKind && !artifactEvidence) {
@@ -1082,7 +1097,7 @@ export async function changeWorkflow(
         artifactEvidence = stateArtifactReadiness.evidence;
       } else if (
         artifactKind === "acceptance" &&
-        wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)
+        stateBackedAcceptanceProofActive
       ) {
         // State-backed acceptance (completeStateBackedGate AC1/AC2/AC7).
         // Proof comes from workflow state, NOT disk inspection. The L1

@@ -124,8 +124,10 @@ describe("worker bundle roll monitor", () => {
     const first = monitor.checkNow();
     const second = monitor.checkNow();
 
-    // Let both calls run into the latch.
-    await new Promise((r) => setTimeout(r, 20));
+    // Wait for the first call to enter the restart latch. A fixed sleep races
+    // filesystem setup under full-suite pressure and may fire before
+    // `restartChild` assigns `releaseRoll`.
+    await vi.waitFor(() => expect(restartChild).toHaveBeenCalledTimes(1));
     releaseRoll();
 
     const [firstResult, secondResult] = await Promise.all([first, second]);

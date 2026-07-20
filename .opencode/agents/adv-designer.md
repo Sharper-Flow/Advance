@@ -275,7 +275,7 @@ Artifact content comes from packet inline content or `adv_change_show include: {
 | All tasks for a change | `adv_task_list` |
 | List all active changes | `adv_change_list` |
 
-If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead.
+Failed direct read: **do not retry another path**; call `adv_change_show`.
 
 ## DESIGNER_REPORT Payload
 
@@ -290,9 +290,11 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "agent": "adv-designer",
   "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "status": "complete | error",
+  "evidence_binding_version": "typed-v1",
   "files_touched": ["{relative/path/to/file}"],
   "verification": [
     {
+      "test_run_id": "{same-task adv_run_test runId}",
       "command": "{command run}",
       "exit_code": 0,
       "summary": "{pass/fail + what was checked}"

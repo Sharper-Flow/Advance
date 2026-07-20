@@ -21,7 +21,11 @@ import {
   type Task,
   type TaskEvidencePlan,
 } from "../types";
-import { resolveTaskEvidence } from "../validator/task-classifier";
+import {
+  resolveTaskEvidence,
+  validateTaskEvidenceForStage,
+} from "../validator/task-classifier";
+import { projectContractCoverage } from "../validator/contract";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import {
@@ -113,6 +117,43 @@ const RecoveryEvidenceSchema = z
 // =============================================================================
 // Helpers
 // =============================================================================
+
+/**
+ * JSON-safe serialization of a `ContractCoverageProjection`. The projection's
+ * `coveredIds` field is a Set (fast lookup inside the validator) and is not
+ * part of the public payload — callers only need the actionable fields
+ * (uncovered AC IDs, per-task entries, and cancellation metadata).
+ */
+function serializeContractCoverage(
+  projection: ReturnType<typeof projectContractCoverage>,
+): Record<string, unknown> {
+  return {
+    uncoveredAcceptanceCriteria: projection.uncoveredAcceptanceCriteria,
+    taskCoverage: projection.taskCoverage,
+    cancelledTaskIds: projection.cancelledTaskIds,
+    cancelledTaskCount: projection.cancelledTaskCount,
+  };
+}
+
+/**
+ * Build a synthetic change for contract-coverage projection that reflects
+ * the caller-supplied contract_refs update. The projection is computed
+ * after the change would be applied so callers see coverage as it would
+ * land, not the stale pre-update snapshot.
+ */
+function applyContractRefsToChangeProjection(
+  change: Change,
+  taskId: string,
+  contractRefs: TaskContractRefs | undefined,
+): Change {
+  if (!contractRefs) return change;
+  return {
+    ...change,
+    tasks: change.tasks.map((task) =>
+      task.id === taskId ? { ...task, contract_refs: contractRefs } : task,
+    ),
+  };
+}
 
 function makeTaskId(): string {
   return `tk-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
@@ -567,8 +608,24 @@ export const taskTools = {
         "Structured retry history for doom-loop tracking, including attempts[]",
       ),
       contract_refs: TaskContractRefsSchema.optional().describe(
-        "Structured links from this task to approved change-contract items. Use implements/verifies/respects arrays, or not_applicable_reason for code tasks that intentionally have no contract obligation.",
+        "Structured links from this task to approved change-contract items. Only implements/verifies cover success or acceptance criteria; respects traces constraints/avoidances and never covers acceptance criteria.",
       ),
+      evidence_policy: ContractEvidencePolicySchema.optional().describe(
+        "Pre-planning evidence-plan repair: select the evidence policy. May change only while planning is pending.",
+      ),
+      proof_target: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe("Pre-planning evidence-plan repair: non-empty proof target."),
+      evidence_rationale: z
+        .string()
+        .trim()
+        .optional()
+        .describe(
+          "Pre-planning evidence-plan repair: bounded rationale for a behavior-critical non-test route. Reviewer evidence is reviewer-owned.",
+        ),
       restartImplementationCycle: z
         .boolean()
         .optional()
@@ -610,6 +667,9 @@ export const taskTools = {
         confirmationEvidence?: string;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
+        evidence_policy?: import("../types").ContractEvidencePolicy;
+        evidence_rationale?: string;
+        proof_target?: string;
       },
       store: Store,
     ) => {
@@ -617,6 +677,10 @@ export const taskTools = {
       if (recoveryError) {
         return formatToolOutput({ error: recoveryError });
       }
+      const evidenceRepairRequested =
+        args.evidence_policy !== undefined ||
+        args.evidence_rationale !== undefined ||
+        args.proof_target !== undefined;
       const runUpdate = async (
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
@@ -717,6 +781,107 @@ export const taskTools = {
           Boolean(args.contract_refs) &&
           args.status === "done" &&
           currentStatus === "done";
+
+        // Pre-planning evidence-plan repair: only allowed before the planning
+        // gate is complete. After planning closes, reviewer-owned evidence is
+        // the only valid authority for non-test behavior-critical routes, so
+        // pre-planning repair would undermine the contract.
+        let evidencePlanRepair: TaskEvidencePlan | undefined;
+        if (evidenceRepairRequested) {
+          if (args.status !== "pending") {
+            return formatToolOutput({
+              error:
+                "Evidence plan repair requires status:'pending' so plan authority cannot change while work is active or complete.",
+              code: "EVIDENCE_PLAN_REPAIR_REQUIRES_PENDING",
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+          const gatesForRepair = await activeStore.gates.get(changeId);
+          if (gatesForRepair && gatesForRepair.planning.status === "done") {
+            return formatToolOutput({
+              error: `Cannot repair evidence plan after planning gate is complete. Submit an adv-reviewer report to provide reviewer-owned evidence, or use adv_change_reenter to reopen the planning gate for scope expansion.`,
+              code: "EVIDENCE_PLAN_REPAIR_AFTER_PLANNING",
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+          const existingTask =
+            currentTask ??
+            changeForGuard?.tasks.find((task) => task.id === args.taskId);
+          if (!existingTask) {
+            return formatToolOutput({
+              error: `Task not found in change ${changeId}: ${args.taskId}`,
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+          const existingResolution = resolveTaskEvidence(existingTask);
+          const mergedPolicy =
+            args.evidence_policy ?? existingResolution.policy ?? "test";
+          const candidate: Task = {
+            ...existingTask,
+            ...(args.evidence_policy !== undefined
+              ? { evidence_policy: args.evidence_policy }
+              : {}),
+            evidence_plan: {
+              policy: mergedPolicy,
+              proof_target:
+                args.proof_target ?? existingResolution.proof_target ?? "",
+              ...(args.evidence_rationale !== undefined
+                ? { rationale: args.evidence_rationale }
+                : {}),
+              ...(existingTask.evidence_plan?.review_conclusion
+                ? {
+                    review_conclusion:
+                      existingTask.evidence_plan.review_conclusion,
+                  }
+                : {}),
+              ...(existingTask.evidence_plan?.review_evidence_ref
+                ? {
+                    review_evidence_ref:
+                      existingTask.evidence_plan.review_evidence_ref,
+                  }
+                : {}),
+              provenance: "new",
+              stage: "stage-v2",
+            },
+          };
+          const repairedResolution = resolveTaskEvidence(candidate);
+          const repairValidation = validateTaskEvidenceForStage(
+            candidate,
+            "prep",
+          );
+          if (!repairValidation.valid) {
+            return formatToolOutput({
+              error: `Invalid evidence plan repair: ${repairValidation.errors.join("; ")}`,
+              code: "EVIDENCE_PLAN_REPAIR_INVALID",
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+          evidencePlanRepair = {
+            policy: repairedResolution.policy!,
+            proof_target: repairedResolution.proof_target!,
+            ...(args.evidence_rationale !== undefined
+              ? { rationale: args.evidence_rationale }
+              : {}),
+            ...(existingTask.evidence_plan?.review_conclusion
+              ? {
+                  review_conclusion:
+                    existingTask.evidence_plan.review_conclusion,
+                }
+              : {}),
+            ...(existingTask.evidence_plan?.review_evidence_ref
+              ? {
+                  review_evidence_ref:
+                    existingTask.evidence_plan.review_evidence_ref,
+                }
+              : {}),
+            provenance: "new",
+            stage: "stage-v2",
+          };
+        }
 
         if (
           args.status === "done" &&
@@ -822,6 +987,10 @@ export const taskTools = {
                   ...(args.contract_refs && {
                     contract_refs: args.contract_refs,
                   }),
+                  ...(evidencePlanRepair && {
+                    evidence_policy: evidencePlanRepair.policy,
+                    evidence_plan: evidencePlanRepair,
+                  }),
                 },
                 updatedAt: now,
               },
@@ -857,6 +1026,10 @@ export const taskTools = {
                   }),
                   ...(args.contract_refs && {
                     contract_refs: args.contract_refs,
+                  }),
+                  ...(evidencePlanRepair && {
+                    evidence_policy: evidencePlanRepair.policy,
+                    evidence_plan: evidencePlanRepair,
                   }),
                 };
                 if (args.status === "in_progress") {
@@ -908,6 +1081,21 @@ export const taskTools = {
               }
             : {}),
         };
+        // Surface cancellation-aware implements/verifies coverage for both
+        // repair and routine updates; tests and downstream prompts can rely
+        // on this shape being present whenever a successful task update is
+        // returned. Project against the post-update change so caller-supplied
+        // contract_refs are reflected in the projection.
+        if (changeForGuard) {
+          const projectionChange = applyContractRefsToChangeProjection(
+            changeForGuard,
+            args.taskId,
+            args.contract_refs,
+          );
+          output.contractCoverage = serializeContractCoverage(
+            projectContractCoverage(projectionChange),
+          );
+        }
         if (task?.error_recovery) {
           output.formatted_doom_loop = formatDoomLoopDiagnostics(
             task.error_recovery,
@@ -971,7 +1159,7 @@ export const taskTools = {
         .trim()
         .optional()
         .describe(
-          "Bounded rationale for a non-test evidence route on behavior-critical work. Required with review_conclusion for new code or verification tasks that do not use the test route.",
+          "Bounded rationale for a non-test evidence route on behavior-critical work. Required at prep; reviewer-owned evidence is required later at completion.",
         ),
       review_conclusion: z
         .string()
@@ -979,14 +1167,14 @@ export const taskTools = {
         .min(1)
         .optional()
         .describe(
-          "Linked structured review conclusion for a non-test evidence route on behavior-critical work. Required with evidence_rationale for new code or verification tasks that do not use the test route.",
+          "Legacy compatibility input. New stage-v2 tasks do not accept caller prose as reviewer authority; persisted task-scoped reviewer reports supply completion evidence.",
         ),
       metadata: z
         .record(z.string(), z.string())
         .optional()
         .describe("Optional task metadata (e.g., { tdd_intent: 'inline' })"),
       contract_refs: TaskContractRefsSchema.optional().describe(
-        "Structured links from this task to approved change-contract items. Add implements/verifies/respects refs during prep for standard/strict contracts, or not_applicable_reason when appropriate.",
+        "Structured links from this task to approved change-contract items. Only implements/verifies cover success or acceptance criteria; respects traces constraints/avoidances and never covers acceptance criteria.",
       ),
       blockedBy: z
         .array(z.string())
@@ -1036,7 +1224,6 @@ export const taskTools = {
           type,
           evidence_policy,
           evidence_rationale,
-          review_conclusion,
           metadata,
           contract_refs,
           blockedBy,
@@ -1182,12 +1369,15 @@ export const taskTools = {
           policy: evidenceResolution.policy!,
           proof_target: evidenceResolution.proof_target!,
           ...(evidence_rationale ? { rationale: evidence_rationale } : {}),
-          ...(review_conclusion ? { review_conclusion } : {}),
           provenance: "new",
+          stage: "stage-v2",
         };
         task.evidence_plan = evidencePlan;
 
-        const validatedEvidenceResolution = resolveTaskEvidence(task);
+        const validatedEvidenceResolution = validateTaskEvidenceForStage(
+          task,
+          "prep",
+        );
         if (!validatedEvidenceResolution.valid) {
           return formatToolOutput({
             error: `Invalid evidence plan: ${validatedEvidenceResolution.errors.join("; ")}`,
@@ -1234,6 +1424,16 @@ export const taskTools = {
         return formatToolOutput({
           taskId: task.id,
           task,
+          ...(changeForGuard
+            ? {
+                contractCoverage: serializeContractCoverage(
+                  projectContractCoverage({
+                    ...changeForGuard,
+                    tasks: [...changeForGuard.tasks, task],
+                  }),
+                ),
+              }
+            : {}),
           ...(projectContext ? { _projectContext: projectContext } : {}),
           ...(snapshot ? { _contextSnapshot: snapshot } : {}),
           ...(recoveredViaPoisoned

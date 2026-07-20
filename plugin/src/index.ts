@@ -75,7 +75,10 @@ import {
 import { existsSync } from "fs";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveGitSessionContext } from "./utils/git-session";
-import { roleFirewallCheck } from "./tool-role-firewall";
+import {
+  resolveRootSessionId,
+  roleFirewallCheckWithSessionAncestry,
+} from "./tool-role-firewall";
 import {
   evaluateTodoWriteGuard,
   extractTodoTaskIds,
@@ -607,11 +610,13 @@ const advancePluginImpl: Plugin = async (input) => {
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
-    roleFirewallCheck({
+    const callerSessionID =
+      typeof input.sessionID === "string" ? input.sessionID : undefined;
+    await roleFirewallCheckWithSessionAncestry({
       toolName,
-      callerSessionID:
-        typeof input.sessionID === "string" ? input.sessionID : undefined,
-      mainSessionId,
+      callerSessionID,
+      client,
+      cache: sessionRootCache,
     });
 
     if (toolName === "morph_edit") {
@@ -693,8 +698,13 @@ const advancePluginImpl: Plugin = async (input) => {
       // so session-based discrimination is the deterministic signal.
       const callerSessionId =
         typeof input.sessionID === "string" ? input.sessionID : undefined;
+      const rootSessionId = await resolveRootSessionId({
+        callerSessionID: callerSessionId,
+        client,
+        cache: sessionRootCache,
+      });
       debugLog(
-        `Sub-agent spawned: count=${state.activeSubAgents + 1} callerSession=${callerSessionId ?? "unknown"} mainSession=${mainSessionId ?? "null"}`,
+        `Sub-agent spawned: count=${state.activeSubAgents + 1} callerSession=${callerSessionId ?? "unknown"} rootSession=${rootSessionId ?? "unresolved"}`,
       );
       setFlags({
         activeSubAgents: state.activeSubAgents + 1,
@@ -711,8 +721,13 @@ const advancePluginImpl: Plugin = async (input) => {
     if (toolName.toLowerCase() === "todowrite") {
       const callerSessionId =
         typeof input.sessionID === "string" ? input.sessionID : undefined;
+      const rootSessionId = await resolveRootSessionId({
+        callerSessionID: callerSessionId,
+        client,
+        cache: sessionRootCache,
+      });
       const isMainSession = Boolean(
-        mainSessionId && callerSessionId === mainSessionId,
+        rootSessionId && callerSessionId === rootSessionId,
       );
       const changeId = state.activeChange.id;
       const todos = normalizeTodoWriteItems(args);
@@ -946,7 +961,7 @@ const advancePluginImpl: Plugin = async (input) => {
 
   const handleSessionDeletedEvent = async () => {
     await drainTerminalPendingDeletes("session.deleted");
-    mainSessionId = null;
+    sessionRootCache.clear();
     cleanupTerminal();
     removeProcessListeners();
     try {
@@ -956,9 +971,9 @@ const advancePluginImpl: Plugin = async (input) => {
     }
   };
 
-  // Main session ID — used to distinguish orchestrator calls from sub-agent
-  // calls for session-scoped status/todo handling.
-  let mainSessionId: string | null = null;
+  // Session ancestry is immutable for a session ID, so cache root resolution
+  // within this plugin lifetime. Deletion clears the cache defensively.
+  const sessionRootCache = new Map<string, string>();
 
   // Register process-level shutdown handlers (tolerates init failure).
   const { removeProcessListeners } = registerShutdownHandlers(store);
@@ -1121,12 +1136,6 @@ const advancePluginImpl: Plugin = async (input) => {
       output,
     ): Promise<void> => {
       try {
-        // Capture main session ID on first transform call.
-        if (!mainSessionId && input.sessionID) {
-          mainSessionId = input.sessionID;
-          debugLog(`Captured mainSessionId: ${mainSessionId}`);
-        }
-
         // Reread the bounded deployed manifest every transform so a
         // manifest replacement is surfaced on the next turn (AC7).
         const pluginBundleFreshness = await getPluginBundleFreshness(

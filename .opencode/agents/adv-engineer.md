@@ -230,9 +230,11 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "agent": "adv-engineer",
   "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "status": "complete | error",
+  "evidence_binding_version": "typed-v1",
   "files_touched": ["{relative/path/to/file}"],
   "verification": [
     {
+      "test_run_id": "{same-task adv_run_test runId}",
       "command": "{command run}",
       "exit_code": 0,
       "summary": "{pass/fail + what was checked}"

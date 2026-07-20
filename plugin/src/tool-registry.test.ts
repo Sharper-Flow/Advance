@@ -291,6 +291,44 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     });
   });
 
+  test("uses transport args for host admission while canonical args own preflight", async () => {
+    let called = false;
+    const execute = async () => {
+      called = true;
+      return JSON.stringify({ ok: true });
+    };
+    (execute as { __advToolName?: string }).__advToolName =
+      "adv_subagent_report_submit";
+    const canonical = {
+      report: z.object({ schema_version: z.literal("1.0") }).strict(),
+    };
+    const transport = { report: z.record(z.string(), z.unknown()) };
+    const registered = registerTool("test", canonical, execute, transport);
+
+    expect(registered.args.report.safeParse({ wrong: true }).success).toBe(
+      true,
+    );
+    const result = await registered.execute(
+      { report: { wrong: true } },
+      {} as any,
+    );
+    const output = JSON.parse((result as { output: string }).output);
+    expect(called).toBe(false);
+    expect(output.code).toBe("INVALID_TOOL_ARGS");
+    expect(output.invalid[0].field).toContain("report.schema_version");
+  });
+
+  test("rejects transport args whose top-level keys drift from canonical args", () => {
+    expect(() =>
+      registerTool(
+        "test",
+        { report: z.object({}) },
+        async () => JSON.stringify({ ok: true }),
+        { payload: z.record(z.string(), z.unknown()) },
+      ),
+    ).toThrow(/transport args.*top-level keys/i);
+  });
+
   test.each([
     {
       toolName: "adv_snapshot_health",

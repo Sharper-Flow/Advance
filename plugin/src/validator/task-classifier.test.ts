@@ -21,6 +21,7 @@ import {
   getTaskTddCompliance,
   requiresTddEvidence,
   resolveTaskEvidence,
+  validateTaskEvidenceForStage,
 } from "./task-classifier";
 
 const evidence = {
@@ -418,5 +419,150 @@ describe("resolveTaskEvidence", () => {
     expect(result.policy).toBe("test");
     expect(result.proof_target).toBe("Custom proof target");
     expect(result.compatibility).toBe("new");
+  });
+});
+
+describe("validateTaskEvidenceForStage", () => {
+  function baseTask(overrides: any = {}) {
+    return {
+      id: "tk-1",
+      title: "Implement feature",
+      type: "code" as const,
+      status: "pending" as const,
+      priority: 0,
+      created_at: "2026-07-17T00:00:00.000Z",
+      ...overrides,
+    };
+  }
+
+  test("prep stage accepts valid test-route plan", () => {
+    const result = validateTaskEvidenceForStage(
+      baseTask({
+        evidence_plan: {
+          policy: "test",
+          proof_target: "Automated tests",
+          provenance: "new",
+          stage: "stage-v2",
+        },
+      }),
+      "prep",
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  test("completion stage requires review_evidence_ref for stage-v2 non-test route", () => {
+    const result = validateTaskEvidenceForStage(
+      baseTask({
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review",
+          rationale: "Rationale",
+          provenance: "new",
+          stage: "stage-v2",
+        },
+      }),
+      "completion",
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes("review_evidence_ref"))).toBe(
+      true,
+    );
+  });
+
+  test("completion stage accepts legacy non-test route with review_conclusion", () => {
+    const result = validateTaskEvidenceForStage(
+      baseTask({
+        evidence_plan: {
+          policy: "review",
+          proof_target: "Structured review",
+          rationale: "Rationale",
+          review_conclusion: "Ready",
+          provenance: "legacy",
+        },
+      }),
+      "completion",
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  test("completion stage accepts stage-v2 non-test route with matching reviewer report", () => {
+    const task = baseTask({
+      id: "tk-1",
+      evidence_plan: {
+        policy: "review",
+        proof_target: "Structured review",
+        rationale: "Rationale",
+        review_evidence_ref: { report_key: "c|tk-1|adv-reviewer|1" },
+        provenance: "new",
+        stage: "stage-v2",
+      },
+    });
+    const report = {
+      schema_version: "1.0" as const,
+      change_id: "c",
+      task_id: "tk-1",
+      scope: { kind: "task" as const, task_id: "tk-1" },
+      attempt: 1,
+      agent: "adv-reviewer" as const,
+      workdir_used: "/tmp",
+      phase: "review" as const,
+      verdict: "READY" as const,
+      blocking_findings: [],
+      nonblocking_findings: [],
+      changes_made: [],
+      wisdom_candidates: [],
+      verification: {
+        tests_run: [],
+        results: "n/a" as const,
+        evidence: "review",
+      },
+      scope_drift: null,
+      risks: [],
+      required_main_agent_actions: [],
+    };
+    const result = validateTaskEvidenceForStage(task, "completion", [report]);
+    expect(result.valid).toBe(true);
+  });
+
+  test("completion stage rejects review_evidence_ref that does not resolve to same-task report", () => {
+    const task = baseTask({
+      id: "tk-1",
+      evidence_plan: {
+        policy: "review",
+        proof_target: "Structured review",
+        rationale: "Rationale",
+        review_evidence_ref: { report_key: "c|tk-2|adv-reviewer|1" },
+        provenance: "new",
+        stage: "stage-v2",
+      },
+    });
+    const report = {
+      schema_version: "1.0" as const,
+      change_id: "c",
+      task_id: "tk-2",
+      scope: { kind: "task" as const, task_id: "tk-2" },
+      attempt: 1,
+      agent: "adv-reviewer" as const,
+      workdir_used: "/tmp",
+      phase: "review" as const,
+      verdict: "READY" as const,
+      blocking_findings: [],
+      nonblocking_findings: [],
+      changes_made: [],
+      wisdom_candidates: [],
+      verification: {
+        tests_run: [],
+        results: "n/a" as const,
+        evidence: "review",
+      },
+      scope_drift: null,
+      risks: [],
+      required_main_agent_actions: [],
+    };
+    const result = validateTaskEvidenceForStage(task, "completion", [report]);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes("does not resolve"))).toBe(
+      true,
+    );
   });
 });

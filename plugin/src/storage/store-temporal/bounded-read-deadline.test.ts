@@ -715,14 +715,10 @@ describe("bounded one-pass change-list resolution", () => {
       },
     };
 
-    // Make the disk fallback read hang indefinitely. Calls come from:
-    //   1. loadDiskTerminalProjection inside getTemporalChange (fast)
-    //   2. getGuardedChangeHandle inside getTemporalChange (fast)
-    //   3. reseedChangeFromDisk inside getTemporalChange (fast)
-    //   4. loadCandidate fallback chain after fast Temporal failure (hang)
-    // Without the deadline wrapper the fallback read never resolves and the
-    // test times out (RED); with the wrapper the aggregate deadline rejects
-    // it and the candidate becomes a typed omission (GREEN).
+    // Make the first disk fallback read hang indefinitely. The exact number of
+    // preparatory reads is intentionally not authority: optimized paths may
+    // reach the bounded fallback on their first read. The observable contract
+    // is one admitted hanging read, deadline termination, and typed omission.
     const diskGetCalls = new Map<string, number>();
     let resolveFallbackStarted: (() => void) | undefined;
     const fallbackStarted = new Promise<void>((resolve) => {

@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-6zjbQt",
+      "type": "gotcha",
+      "content": "vitest `shouldAdvanceTime: true` couples the fake clock to real wall-clock time, so `Date.now() - start` AND any executor-internal `clock.now() - startTime` measurement can exceed an explicit `advanceTimersByTime` budget under full-suite load. Use plain `vi.useFakeTimers()` for deadline-contract tests and assert via the executor's captured `meta.elapsed_ms` / outcome `elapsed_ms` rather than wall-clock reads.",
+      "source_task": "tk-afbc111de8e8",
+      "recorded_at": "2026-07-20T01:23:32.144Z"
+    }
+  ],
+  "count": 1
+}

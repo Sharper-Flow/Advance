@@ -42,6 +42,13 @@ vi.mock("../tool-registry", async () => {
 });
 
 const createMockPluginInput = (directory: string) => ({
+  client: {
+    session: {
+      get: async ({ path }: { path: { id: string } }) => ({
+        data: { id: path.id, parentID: null },
+      }),
+    },
+  },
   project: {
     id: "test-project",
     worktree: directory,

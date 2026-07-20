@@ -65,6 +65,24 @@ export function isWarnFirstEvidencePolicy(
 }
 
 // =============================================================================
+// Reviewer-owned evidence reference
+// =============================================================================
+
+/**
+ * Typed reference to a persisted task-scoped reviewer report. Written only by
+ * the adv-reviewer report consumer; it is the completion-stage authority for
+ * non-test behavior-critical tasks. Legacy review_conclusion text remains
+ * readable but is not authority for stage-v2 plans.
+ */
+export const ReviewEvidenceRefSchema = z
+  .object({
+    report_key: z.string().trim().min(1),
+  })
+  .strict();
+
+export type ReviewEvidenceRef = z.infer<typeof ReviewEvidenceRefSchema>;
+
+// =============================================================================
 // Task Evidence Plan
 // =============================================================================
 
@@ -87,6 +105,9 @@ export type TaskEvidenceCompatibility = z.infer<
   typeof TaskEvidenceCompatibilitySchema
 >;
 
+export const TaskEvidenceStageSchema = z.enum(["stage-v1", "stage-v2"]);
+export type TaskEvidenceStage = z.infer<typeof TaskEvidenceStageSchema>;
+
 /**
  * Normalized evidence plan for a task. One policy, one proof target, and
  * explicit compatibility provenance. Non-test routes for logic-bearing work
@@ -97,7 +118,9 @@ export const TaskEvidencePlanSchema = z.object({
   proof_target: z.string().trim().min(1),
   rationale: z.string().trim().optional(),
   review_conclusion: z.string().trim().optional(),
+  review_evidence_ref: ReviewEvidenceRefSchema.optional(),
   provenance: TaskEvidenceCompatibilitySchema,
+  stage: TaskEvidenceStageSchema.optional(),
 });
 
 export type TaskEvidencePlan = z.infer<typeof TaskEvidencePlanSchema>;
@@ -112,7 +135,9 @@ export const TaskEvidenceResolutionSchema = z.object({
   proof_target: z.string().trim().min(1).optional(),
   rationale: z.string().trim().optional(),
   review_conclusion: z.string().trim().optional(),
+  review_evidence_ref: ReviewEvidenceRefSchema.optional(),
   compatibility: TaskEvidenceCompatibilitySchema.optional(),
+  stage: TaskEvidenceStageSchema.optional(),
   errors: z.array(z.string()).default([]),
 });
 

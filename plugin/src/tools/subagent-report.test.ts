@@ -6,8 +6,10 @@ import { SubagentConsumerWarningSchema } from "../types";
 import type {
   ChangeScopedReviewerSubagentReport,
   Change,
+  DesignerSubagentReport,
   EngineerSubagentReport,
   ResearcherSubagentReport,
+  ReviewerSubagentReport,
   ScannerBundleSubagentReport,
   VerificationTriageBundleSubagentReport,
 } from "../types";
@@ -388,6 +390,12 @@ function designerReport(
     >;
     neighbors?: { what: string; why: string }[];
     notes?: string;
+    verification?: {
+      command: string;
+      exit_code: number;
+      summary: string;
+      run_id?: string;
+    }[];
   } = {},
 ) {
   const taskId = overrides.taskId ?? "tk-1";
@@ -401,7 +409,9 @@ function designerReport(
     status: "complete" as const,
     workdir_used: "/repo",
     files_touched: ["src/components/Button.tsx"],
-    verification: [{ command: "pnpm test", exit_code: 0, summary: "passed" }],
+    verification: overrides.verification ?? [
+      { command: "pnpm test", exit_code: 0, summary: "passed" },
+    ],
     decisions: [],
     blockers: [],
     scope_drift: null,
@@ -641,6 +651,88 @@ describe("subagentReportTools", () => {
     );
   });
 
+  test("typed-v1 binds by same-task run identity despite cosmetic command differences", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_typed_green",
+              command: "TMPDIR=/cache pnpm test -- src/a.test.ts",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          verification: [
+            {
+              run_id: "tr_typed_green",
+              command: "pnpm test -- src/a.test.ts",
+              exit_code: 0,
+              summary: "passed",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    expect(signalPayload.report.consumer_warnings ?? []).toEqual([]);
+  });
+
+  test("typed-v1 rejects absent same-task run identity even when command matches", async () => {
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_other",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          verification: [
+            {
+              run_id: "tr_missing",
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+  });
+
   test("durable test_runs exit-code disagreement yields verification_mismatch", async () => {
     const store = storeFor(
       change({
@@ -670,6 +762,155 @@ describe("subagentReportTools", () => {
     expect(signalPayload.report.consumer_warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("test_run_id is the canonical typed-v1 reference and binds the consumer (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: `test_run_id` is the canonical field name per
+    // the design and binds the consumer to a same-task durable record by
+    // identity (`run_id`, `exit_code`) regardless of cosmetic command-label
+    // differences. `run_id` remains an additive alias; `test_run_id` takes
+    // precedence when both are present.
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_canonical_green",
+              command: "TMPDIR=/cache pnpm test --filter canonical",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          evidence_binding_version: "typed-v1",
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+              test_run_id: "tr_canonical_green",
+            },
+          ],
+        } as any),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("test_run_id with mismatched exit_code yields verification_mismatch (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: exit status is part of the typed identity. A
+    // mismatched exit_code between the report and the durable record
+    // surfaces `verification_mismatch` even if `test_run_id` matches.
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_canonical_red",
+              command: "pnpm test",
+              exitCode: 1,
+              classification: "failed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          evidence_binding_version: "typed-v1",
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+              test_run_id: "tr_canonical_red",
+            },
+          ],
+        } as any),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "verification_mismatch",
+          message: expect.stringMatching(/tr_canonical_red/),
+        }),
+      ]),
+    );
+  });
+
+  test("test_run_id without matching durable record yields verification_missing (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: a typed run reference that has no matching
+    // same-task durable record is a typed `verification_missing` warning.
+    // The entry's `command` label, `summary` prose, and aggregate
+    // free-text MUST NOT satisfy the gap.
+    const store = storeFor(change());
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          evidence_binding_version: "typed-v1",
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary:
+                "Aggregate prose claiming pnpm test passed; not authoritative.",
+              test_run_id: "tr_never_recorded_canonical",
+            },
+          ],
+        } as any),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "verification_missing",
+          message: expect.stringContaining("tr_never_recorded_canonical"),
+        }),
       ]),
     );
   });
@@ -743,6 +984,356 @@ describe("subagentReportTools", () => {
     );
 
     expect(store.changes.refresh).toHaveBeenCalledWith("change-1");
+  });
+
+  test("typed run_id binds engineer verification to durable test run despite cosmetic command-label differences (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: typed binding provenance. When an engineer
+    // verification entry carries a `run_id`, identity is established by
+    // (run_id, exit_code); the displayed command label is descriptive only.
+    // Cosmetic differences (extra args, reordered flags, trailing whitespace,
+    // absolute-path variants of the same binary) MUST NOT break the match.
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_typed_green",
+              command: "pnpm test --filter integration",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+              run_id: "tr_typed_green",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("typed run_id with mismatched exit_code yields verification_mismatch (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: exit status is part of the typed identity; a
+    // mismatched exit_code between report and durable record must surface
+    // verification_mismatch even if run_id matches.
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_typed_red",
+              command: "pnpm test",
+              exitCode: 1,
+              classification: "failed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+              run_id: "tr_typed_red",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "verification_mismatch",
+          message: expect.stringMatching(/tr_typed_red/),
+        }),
+      ]),
+    );
+  });
+
+  test("typed run_id without matching durable record yields verification_missing (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: missing typed evidence is a typed
+    // verification_missing warning; reviewer aggregate prose (the
+    // `evidence` summary string) MUST NOT satisfy the gap.
+    const store = storeFor(change());
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary:
+                "Aggregate prose claiming pnpm test passed; not authoritative.",
+              run_id: "tr_never_recorded",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "verification_missing",
+          message: expect.stringContaining("tr_never_recorded"),
+        }),
+      ]),
+    );
+  });
+
+  test("typed run_id binds designer verification to durable test run (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: same typed-binding semantics apply to
+    // adv-designer reports. Cosmetic command-label differences must not
+    // break a valid identity match.
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_designer_green",
+              command: "pnpm test --filter Button",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: designerReport({
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+              run_id: "tr_designer_green",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: DesignerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("legacy entry without run_id keeps exact-command binding (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: historical compatibility is explicit. A
+    // persisted historical report that lacks typed-binding provenance
+    // normalizes to the explicit legacy variant and retains exact-command
+    // binding. No fuzzy normalization, no timestamp cutover.
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_legacy_match",
+              command: "pnpm test",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("legacy entry without run_id with non-matching command still yields verification_missing (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: legacy variant uses exact-command binding; a
+    // command that does not appear in durable records surfaces
+    // verification_missing even if a similar run_id exists.
+    const store = storeFor(
+      change({
+        test_runs: {
+          "tk-1": [
+            {
+              runId: "tr_other_command",
+              command: "pnpm test --filter other",
+              exitCode: 0,
+              classification: "passed",
+              recordedAt: "2026-05-23T00:01:00.000Z",
+            },
+          ],
+        },
+      } as Partial<Change>),
+    );
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      {
+        report: engineerReport({
+          follow_ups: [],
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "passed",
+            },
+          ],
+        }),
+      },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+  });
+
+  test("reviewer aggregate prose remains non-authoritative (rq-subagentReports25)", async () => {
+    // rq-subagentReports25: reviewer aggregate text (`verification.evidence`
+    // and surrounding free-text prose) MUST NOT satisfy the verification
+    // gap. Reviewer `tests_run` commands remain descriptive only and bind
+    // only to durable/structured evidence keyed by exact command.
+    const store = storeFor(change());
+
+    const taskScopedReviewer: ReviewerSubagentReport = {
+      schema_version: "1.0",
+      change_id: "change-1",
+      task_id: "tk-1",
+      attempt: 1,
+      agent: "adv-reviewer",
+      scope: { kind: "task", task_id: "tk-1" },
+      workdir_used: "/repo",
+      phase: "review",
+      verdict: "READY",
+      blocking_findings: [],
+      nonblocking_findings: [],
+      changes_made: [],
+      wisdom_candidates: [],
+      verification: {
+        tests_run: ["pnpm test"],
+        results: "pass",
+        evidence:
+          "Aggregate prose claiming pnpm test passed; not authoritative.",
+      },
+      scope_drift: null,
+      risks: [],
+      required_main_agent_actions: [],
+    };
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: taskScopedReviewer },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: ReviewerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "verification_missing",
+          message: expect.stringContaining("pnpm test"),
+        }),
+      ]),
+    );
   });
 
   test("dryRun validates and previews without signal", async () => {
@@ -1042,7 +1633,7 @@ describe("subagentReportTools", () => {
     expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
   });
 
-  test("rejects malformed reports at the Zod boundary and records task error_recovery", async () => {
+  test("rejects malformed reports at the Zod boundary without mutating workflow state (AC4)", async () => {
     const store = storeFor(change());
 
     const output = parse(
@@ -1060,30 +1651,28 @@ describe("subagentReportTools", () => {
       ),
     );
 
+    // rq-fixWorkflowReliabilityDefects/AC4: malformed input returns bounded
+    // diagnostics only. error_recovery is itself a workflow mutation, so the
+    // handler-level defense-in-depth path MUST NOT silently record it for
+    // INVALID_REPORT. SUBMIT_SIGNAL_FAILED keeps its failureRecord path
+    // because that case happens after a successful parse.
     expect(output.error).toBe("Invalid sub-agent report payload");
     expect(output.code).toBe("INVALID_REPORT");
-    expect(output.failureRecord).toEqual({ recorded: true });
+    expect(output.failureRecord).toBeUndefined();
     expect(output.details).toEqual(expect.any(Array));
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
       mocks.workflowHandle,
       store,
       "change-1",
       taskUpdatedSignal,
-      expect.objectContaining({
-        taskId: "tk-1",
-        partial: {
-          error_recovery: expect.objectContaining({
-            last_error: "Invalid sub-agent report payload",
-            error_class: "SEMANTIC",
-            attempts: expect.arrayContaining([
-              expect.objectContaining({
-                diagnosis: "INVALID_REPORT",
-                strategy_label: "adv-engineer-report-submit-failure",
-              }),
-            ]),
-          }),
-        },
-      }),
+      expect.anything(),
+    );
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.anything(),
     );
   });
 
@@ -1135,11 +1724,205 @@ describe("subagentReportTools", () => {
 
     expect(output.error).toBe("Invalid sub-agent report payload");
     expect(output.code).toBe("INVALID_REPORT");
-    expect(output.failureRecord).toEqual({
-      recorded: false,
-      reason: "report identity unavailable",
-    });
+    // rq-fixWorkflowReliabilityDefects/AC4: malformed input never records task
+    // error_recovery, even via the handler-level defense-in-depth parseReport
+    // path. There is no failureRecord at all on the response.
+    expect(output.failureRecord).toBeUndefined();
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("plugin preflight caps nested report issues at 10 and signals no mutation", async () => {
+    // rq-fixWorkflowReliabilityDefects/AC4: when the canonical preflight
+    // catches nested report issues, the SDK-registered tool emits bounded
+    // invalid[] (≤10) rows and the handler is never called. No signal is
+    // fired; no task state is mutated.
+    const { registerTool } = await import("../tool-registry");
+
+    let handlerCalled = false;
+    const handler = async () => {
+      handlerCalled = true;
+      return JSON.stringify({ ok: true });
+    };
+    (handler as { __advToolName?: string }).__advToolName =
+      "adv_subagent_report_submit";
+
+    const canonical = subagentReportTools.adv_subagent_report_submit.args;
+    const registered = registerTool(
+      "test",
+      canonical,
+      handler,
+      // transportArgs is intentionally broader than canonical to admit
+      // nested malformed objects at the host boundary; canonical strict
+      // Zod is what catches them in preflight.
+      subagentReportTools.adv_subagent_report_submit.transportArgs ?? canonical,
+    );
+
+    const result = (await registered.execute(
+      {
+        report: {
+          schema_version: "1.0",
+          change_id: 12345,
+          attempt: "nope",
+          agent: "adv-researcher",
+          workdir_used: "x",
+          scope: { kind: "change", scope_key: "researcher:design-validation" },
+          topic: "",
+          sources: "not-an-array",
+          architecture_assessment: "",
+          validation: { status: "fail", blockers: "not-an-array", notes: "" },
+          architecture_judgement: { applicability: "applicable" },
+          recommendation: "",
+          follow_ups: "not-an-array",
+        },
+      },
+      {} as any,
+    )) as { output: string };
+
+    expect(handlerCalled).toBe(false);
+    const output = JSON.parse(result.output);
+    expect(output.code).toBe("INVALID_TOOL_ARGS");
+    expect(output.invalid.length).toBeLessThanOrEqual(10);
+    expect(output.invalid.length).toBeGreaterThan(0);
+    for (const issue of output.invalid) {
+      expect(typeof issue.field).toBe("string");
+      expect(issue.field).toContain("report");
+      expect(typeof issue.message).toBe("string");
+    }
+  });
+
+  test("design-validation handler rejects typed blockers with unknown contract IDs (AC13)", async () => {
+    // rq-fixWorkflowReliabilityDefects/AC13: every typed blocker must cite
+    // contract IDs that exist on the change's approved contract. The handler
+    // rejects unknown IDs without signaling, so out-of-scope validators
+    // cannot promote blocker authority via phantom IDs.
+    const baseChange = change();
+    baseChange.contract = {
+      items: [{ id: "AC4", summary: "Approved criteria summary." }],
+    };
+    const store = storeFor(baseChange);
+
+    const report = researcherReport({
+      scope: { kind: "change", scope_key: "researcher:design-validation" },
+      validation: {
+        status: "fail",
+        blockers: [
+          {
+            finding: "Missing typed blockers in validator scope.",
+            contract_ids: ["AC999", "AC4"],
+            scope: "in_scope",
+            in_scope_remediation:
+              "Require typed blockers with approved contract IDs.",
+            source: {
+              label: "plugin/src/types/subagent-reports.ts",
+              locator: "ResearcherSubagentReportSchema",
+              summary:
+                "Validation blockers lacked structural scope enforcement.",
+            },
+          },
+        ],
+        notes: "Out-of-scope alternative promoted; contract IDs unverified.",
+      },
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.error).toBe(
+      "Design-validator blocker cites unknown contract IDs",
+    );
+    expect(output.code).toBe("INVALID_REPORT");
+    expect(output.details.unknownContractIds).toEqual(["AC999"]);
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("design-validation handler accepts typed blockers whose contract IDs are all approved", async () => {
+    // rq-fixWorkflowReliabilityDefects/AC13: when every typed blocker cites
+    // approved contract IDs, the design-validation report flows through to
+    // signaling exactly like any other change-scoped researcher report.
+    const baseChange = change();
+    baseChange.contract = {
+      items: [
+        { id: "AC4", summary: "Approved criteria summary." },
+        { id: "AC13", summary: "Design validator scope summary." },
+      ],
+    };
+    const store = storeFor(baseChange);
+
+    const report = researcherReport({
+      scope: { kind: "change", scope_key: "researcher:design-validation" },
+      validation: {
+        status: "fail",
+        blockers: [
+          {
+            finding:
+              "Reported diagnostics are bounded by the canonical preflight.",
+            contract_ids: ["AC4", "AC13"],
+            scope: "in_scope",
+            in_scope_remediation:
+              "Keep MAX_ZOD_PREFLIGHT_ISSUES = 10 and dedupe by path/message.",
+            source: {
+              label: "plugin/src/utils/tool-arg-preflight.ts",
+              locator: "MAX_ZOD_PREFLIGHT_ISSUES",
+              summary: "Bounded diagnostics with field paths and messages.",
+            },
+          },
+        ],
+        notes: "Approved-contract validators proceed to signaling.",
+      },
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.objectContaining({
+        report: expect.objectContaining({
+          agent: "adv-researcher",
+          validation: expect.objectContaining({
+            status: "fail",
+            blockers: [
+              expect.objectContaining({
+                contract_ids: expect.arrayContaining(["AC4", "AC13"]),
+                scope: "in_scope",
+              }),
+            ],
+          }),
+        }),
+      }),
+    );
+  });
+
+  test("design-validation handler routes typed blockers through scoped change-id from ResearcherValidationBlockerSchema", () => {
+    // The handler check only fires for `researcher:design-validation*` scope
+    // keys. Other researcher scopes (e.g. `researcher:temporal-docs`) keep
+    // their string-only blocker contract; the union still allows them, but
+    // the typed path is enforced for design-validation alone.
+    const baseChange = change();
+    baseChange.contract = { items: [{ id: "AC4", summary: "ok" }] };
+    void baseChange;
+
+    const accepted = researcherReport({
+      scope: { kind: "change", scope_key: "researcher:temporal-docs" },
+      validation: {
+        status: "pass",
+        blockers: ["legacy string blocker"],
+        notes: "non-design scope keeps string blockers",
+      },
+    });
+    expect(accepted.validation.blockers).toEqual(["legacy string blocker"]);
   });
 
   test("consumer warnings emitted by tool consumers keep schema shape", async () => {

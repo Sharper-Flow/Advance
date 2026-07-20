@@ -407,7 +407,7 @@ function classifyChangeScopedReport(
         report,
         "unresolved_action",
         "validation.blockers",
-        blocker,
+        typeof blocker === "string" ? blocker : blocker.finding,
       );
     }
   }
