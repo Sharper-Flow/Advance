@@ -60,6 +60,7 @@ import {
   worktreeAutoManagedSignal,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import { getCurrentSessionId } from "../../utils/session-id";
 import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 import type { ProjectionRecoveryReason } from "../../temporal/recovery-classification";
@@ -629,6 +630,10 @@ export function createTemporalStoreBackend(
         initializedAt: change.created_at,
         projectionChangesDir: legacy.paths.changes,
         archiveProjects: [{ projectPath: legacy.paths.root }],
+        // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
+        // the orphan-rescue re-seed lands on the same session queue the
+        // current process is polling. Undefined falls back to project queue.
+        sessionId: getCurrentSessionId(),
         seedState: changeSeedStateFromChange(change),
       });
     } catch (err) {

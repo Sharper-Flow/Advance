@@ -44,6 +44,10 @@ import {
 import { getExternalRoot, getProjectId } from "./utils/project-id";
 import { generateSessionId } from "./utils/session-id";
 import {
+  getCurrentSessionId,
+  setCurrentSessionId,
+} from "./utils/session-id";
+import {
   registerPluginSession,
   unregisterLoadedBuildSession,
 } from "./migration/session-registry";
@@ -70,12 +74,10 @@ import {
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
 
-let currentSessionId: string | undefined;
-
-/** Return the session ID generated for this plugin-init lifecycle, if any. */
-export function getCurrentSessionId(): string | undefined {
-  return currentSessionId;
-}
+// Re-exported for historical callers that imported getCurrentSessionId from
+// plugin-init. The actual holder lives in utils/session-id.ts to avoid an
+// import cycle (storage layer needs to read it; plugin-init imports storage).
+export { getCurrentSessionId } from "./utils/session-id";
 
 function profilePluginInit(
   event: string,
@@ -198,8 +200,8 @@ export async function tryInitStore(
       productMode: productContext.mode,
     });
 
-    const sessionId = currentSessionId ?? generateSessionId();
-    currentSessionId = sessionId;
+    const sessionId = getCurrentSessionId() ?? generateSessionId();
+    setCurrentSessionId(sessionId);
 
     let temporalBundle: Awaited<ReturnType<typeof initStsl>> | undefined;
     profilePluginInit("backend_mode_detected", {

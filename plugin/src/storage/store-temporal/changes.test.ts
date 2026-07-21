@@ -18,6 +18,7 @@ import { ChangeSummaryMemo } from "../store-temporal-memo";
 
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
 const renderTerminalHistory = vi.hoisted(() => vi.fn());
+const getCurrentSessionIdMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../temporal/workflow-start", () => ({
   ensureChangeWorkflowStarted,
@@ -26,6 +27,12 @@ vi.mock("../../temporal/workflow-start", () => ({
 vi.mock("../../archive/terminal-history", () => ({
   renderTerminalHistory,
   TERMINAL_HISTORY_DEADLINE_BUDGET_MS: 20_000,
+}));
+
+vi.mock("../../utils/session-id", () => ({
+  getCurrentSessionId: getCurrentSessionIdMock,
+  generateSessionId: vi.fn(() => "sess_generated"),
+  setCurrentSessionId: vi.fn(),
 }));
 
 describe("isWorkflowCompletedError", () => {
@@ -156,6 +163,61 @@ describe("createChangeOps", () => {
         seedState: expect.objectContaining({ origin }),
       }),
     );
+  });
+
+  test("threads current sessionId into new change workflow input (rq-isolSessionTaskQueue01, KD-10)", async () => {
+    ensureChangeWorkflowStarted.mockResolvedValue(undefined);
+    getCurrentSessionIdMock.mockReturnValue("sess_test_routing_id");
+
+    const createdChange = {
+      id: "sessionRoutingTest",
+      title: "Session routing test",
+      status: "draft",
+      created_at: "2026-07-21T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: {},
+      reentry_history: [],
+    };
+
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        create: vi.fn().mockResolvedValue({ changeId: createdChange.id }),
+        get: vi.fn().mockResolvedValue({ success: true, data: createdChange }),
+        save: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-abc",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.create("Session routing test", {});
+
+    expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
+      workflowClient,
+      expect.objectContaining({
+        sessionId: "sess_test_routing_id",
+      }),
+    );
+
+    getCurrentSessionIdMock.mockReset();
   });
 
   test("seeds cross_project_origin into new change workflow at start", async () => {

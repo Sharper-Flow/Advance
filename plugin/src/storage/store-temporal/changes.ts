@@ -35,6 +35,7 @@ import {
 } from "../../utils/query-predicate";
 import { randomUUID } from "node:crypto";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import { getCurrentSessionId } from "../../utils/session-id";
 import {
   hasArchiveBundle,
   isSchemaError,
@@ -310,6 +311,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           initializedAt: created.data.created_at,
           projectionChangesDir: legacy.paths.changes,
           archiveProjects: [{ projectPath: legacy.paths.root }],
+          // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
+          // ensureChangeWorkflowStarted can route to advance-{projectId}-{sess}.
+          // Undefined falls back to project queue (legacy / pre-init / tests).
+          sessionId: getCurrentSessionId(),
           seedState: {
             status: created.data.status,
             tasks: created.data.tasks,
