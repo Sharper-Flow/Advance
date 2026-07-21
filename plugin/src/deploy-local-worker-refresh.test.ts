@@ -22,9 +22,7 @@ const FAKE_TEMPORAL_MANIFEST = JSON.stringify({
   generation: "fake",
   files: {
     "worker.js": createHash("sha256").update(FAKE_WORKER).digest("hex"),
-    "workflows.js": createHash("sha256")
-      .update(FAKE_WORKFLOWS)
-      .digest("hex"),
+    "workflows.js": createHash("sha256").update(FAKE_WORKFLOWS).digest("hex"),
   },
   built_at: "2026-01-01T00:00:00.000Z",
 });

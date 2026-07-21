@@ -23,9 +23,11 @@ describe("command-boundary replay determinism", () => {
         taskQueue,
       });
 
-      let history: Awaited<ReturnType<
-        Awaited<ReturnType<typeof env.client.workflow.start>>["fetchHistory"]
-      >>;
+      let history: Awaited<
+        ReturnType<
+          Awaited<ReturnType<typeof env.client.workflow.start>>["fetchHistory"]
+        >
+      >;
       await worker.runUntil(async () => {
         const handle = await env.client.workflow.start(
           "commandBoundaryReplayWorkflow",

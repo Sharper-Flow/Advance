@@ -23,8 +23,9 @@
 | Close/cancel/archive changes from Portfolio balance | Report bucket counts/IDs and point to `/adv-cleanup` |
 | Treat Epic order as blocking | Use order as advisory context only |
 | Suppress issue-only work because of heuristic overlap | Keep it visible until structurally linked or explicitly resolved |
-| Ask user to choose bug priority | Gather at most two context answers; agent assigns priority |
-| Post priority rationale as issue comment | Emit rationale trailer in chat only |
+| Ask users to confirm or choose a priority | Gather at most two context answers; agent assigns priority |
+| Ask users to assign priority to stale or already-addressed items | Resolve relevance before any bug priority assignment |
+| Post priority rationale as an issue comment | Emit `<issue#>: priority=<tier> :: <rationale>` in chat output only |
 | Generate or commit ROADMAP.md / `.adv/roadmap-snapshot.json` | Emit the three-section report in chat only |
 | Recommend removed `/adv-roadmap`, `adv roadmap`, or the retired portfolio reader MCP tool | Route portfolio requests to `/adv-triage` |
 

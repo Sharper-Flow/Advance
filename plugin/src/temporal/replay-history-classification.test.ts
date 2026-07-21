@@ -93,7 +93,10 @@ describe("sanitized history audit", () => {
       ],
     };
 
-    expect(auditSanitizedHistory(history)).toEqual({ safe: true, findings: [] });
+    expect(auditSanitizedHistory(history)).toEqual({
+      safe: true,
+      findings: [],
+    });
   });
 
   it("redacts sensitive values without replacing surrounding payload shape", () => {
@@ -119,9 +122,10 @@ describe("sanitized history audit", () => {
 
     const sanitized = sanitizeHistoryForFixture(history) as typeof history;
     const decoded = JSON.parse(
-      Buffer.from(sanitized.events[0].input.payloads[0].data, "base64").toString(
-        "utf8",
-      ),
+      Buffer.from(
+        sanitized.events[0].input.payloads[0].data,
+        "base64",
+      ).toString("utf8"),
     ) as Record<string, unknown>;
 
     expect(decoded).toEqual({
@@ -129,6 +133,9 @@ describe("sanitized history audit", () => {
       proposal: "[REDACTED]",
       status: "draft",
     });
-    expect(auditSanitizedHistory(sanitized)).toEqual({ safe: true, findings: [] });
+    expect(auditSanitizedHistory(sanitized)).toEqual({
+      safe: true,
+      findings: [],
+    });
   });
 });

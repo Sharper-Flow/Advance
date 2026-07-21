@@ -268,11 +268,7 @@ describe("deploy-local plugin manifest publication", () => {
       );
       writeFileSync(manifestPath, JSON.stringify(sourceManifest, null, 2));
       utimesSync(indexPath, INDEX_MTIME, INDEX_MTIME);
-      utimesSync(
-        join(distDir, "mcp-server.js"),
-        INDEX_MTIME,
-        INDEX_MTIME,
-      );
+      utimesSync(join(distDir, "mcp-server.js"), INDEX_MTIME, INDEX_MTIME);
       utimesSync(manifestPath, MANIFEST_MTIME, MANIFEST_MTIME);
       for (const f of [
         join(temporalDir, "worker.js"),
