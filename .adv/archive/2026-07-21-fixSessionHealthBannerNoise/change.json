@@ -1,0 +1,476 @@
+{
+  "id": "fixSessionHealthBannerNoise",
+  "title": "Fix session-health banner noise",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T22:56:35.629Z",
+  "tasks": [
+    {
+      "id": "tk-d04b1760fe25",
+      "title": "Make message-history session-health banner one-shot; keep session.error sticky; document session-hygiene rule.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T23:12:20.064Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T23:17:26.463Z",
+      "verification": "One-shot message-history session-health banner. Committed as 2df0ed82 (4 files: system-block.ts surfaced flag + healthSection gate + surfacedMessageHistoryHealth result; index.ts surfaced mutation; ADV_INSTRUCTIONS.md hygiene note; system-block.test.ts 5 tests). TDD red 5 failures (tr_mrv9ssf5) → green 60/60 (tr_mrv9tttd). pnpm run check green; 97/97 regression across system-block + system-block-ac.verification + integration.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "2df0ed826382d4e25f13ee2895d190be06d44ef6",
+      "completedAt": "2026-07-21T23:17:57.556Z",
+      "completed_at": "2026-07-21T23:17:57.556Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-d04b1760fe25": [
+      {
+        "runId": "tr_mrv9ssf5_fdffbc70",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/utils/system-block.test.ts",
+        "durationMs": 2883.615294000134,
+        "recordedAt": "2026-07-21T23:14:04.430Z"
+      },
+      {
+        "runId": "tr_mrv9tttd_a67ba65b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/utils/system-block.test.ts",
+        "durationMs": 1426.6765780001879,
+        "recordedAt": "2026-07-21T23:14:52.881Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:11:30.130Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ce042213b01efac938e10907f08dda390fe0ad2e74e53afe967956b4d15ab530",
+        "non_whitespace_chars": 2684,
+        "checked_at": "2026-07-21T22:56:35.663Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:11:38.179Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "non_whitespace_chars": 1958,
+        "checked_at": "2026-07-21T22:56:35.664Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:12:05.093Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "48ccbc7fc4abffc5fc8dcdba2805acfef5081c9f28e43fd174cecbe348fe642e",
+        "non_whitespace_chars": 3338,
+        "checked_at": "2026-07-21T22:56:35.665Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:12:24.227Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:18:34.273Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-21T23:20:41.726Z",
+      "completed_at": "2026-07-21T23:23:00.602Z",
+      "completed_by": "user",
+      "approval_evidence": "User authorized via 'execute fixSessionHealthBannerNoise'. 14-row contract matrix 0 failing, TDD red→green, 97/97 regression, pnpm run check green.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "818cf8a6e7d8ae2bc98155721d6743a6ce2d1db75cf3584e836a9d02f447c118",
+        "non_whitespace_chars": 2485,
+        "checked_at": "2026-07-21T22:56:35.668Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:23:55.758Z",
+      "completed_by": "user",
+      "approval_evidence": "PR #282 admin-merged to trunk (commit a10f2bc1). Trunk pulled + verified. Small behavioral fix: banner one-shot + hygiene doc. 97/97 tests, pnpm run check green."
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "bl-0EookwvJ"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+      "approvedAt": "2026-07-21T23:11:34.449Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A message-history session-health banner emits at most once per distinct compaction event, not on every subsequent turn.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "`session.error` session-health banners remain sticky (emit every turn until the error state clears).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Session-hygiene guidance (\"start a fresh session per major change\") is documented in an agent-visible location.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "After a `message-history` health issue is recorded and the banner is surfaced once, a subsequent system-block assembly with the same (already-surfaced) issue does NOT re-emit the banner.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A newly-recorded `message-history` issue (fresh compaction event) re-emits the banner exactly once.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "A `session.error` health issue emits the banner on every assembly until `lastSessionHealthIssue` is cleared (sticky behavior unchanged).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`SessionHealthIssue` gains an optional `surfaced` flag; the field is additive and existing callers/tests are unaffected when it is absent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` is green and existing `system-block.test.ts` session-health tests pass (updated where the one-shot behavior changes expectations).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "The warning MUST surface at least once prominently — the fix suppresses repeats, never the first emission.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Reuse the existing assembler result-flag pattern (mirror `consumedWisdomPrompt`): the pure formatter reports emission; the `index.ts` hook owns the state mutation that marks the issue surfaced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "`surfaced` is in-memory volatile state only — no new persistence layer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do NOT make `session.error` banners one-shot — they are safety-critical and stay sticky.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do NOT remove the banner entirely.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do NOT change the compaction thresholds (`MAX_PROMPT_DIFF_CHARS` / `MAX_PROMPT_TOOL_OUTPUT_CHARS`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "The cross-session state-bleed fix (separate change `fixConcurrentSessionStateBleed`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing what gets compacted or the excerpt size.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T23:21:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "healthSection suppresses message-history banner once surfaced; AC1 tests assert no re-emit. Green 60/60 tr_mrv9tttd."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "session.error bypasses the surfaced gate; AC3 asserts sticky emit even when surfaced=true."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "ADV_INSTRUCTIONS.md Resume Freshness Advisory — added 'one session per major change' note. Commit 2df0ed82."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "system-block.test.ts AC1 pass (already-surfaced does not re-emit; suppressed but others emit)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "system-block.test.ts AC2 fresh message-history emits + flags surfacedMessageHistoryHealth."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "system-block.test.ts AC3 session.error sticky pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC4 absent-flag=unsurfaced passes; 97/97 existing tests unaffected."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "pnpm run check green; 97/97 regression."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "First emission always fires; AC2 asserts surface-once before suppression."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Mirrors consumedWisdomPrompt: pure formatter reports; hook mutates."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "surfaced is in-memory; no new persistence."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "session.error stays sticky; AC3 confirms."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Banner still emits once per event; not removed."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Compaction thresholds untouched."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "After a `message-history` health issue is recorded and the banner is surfaced once, a subsequent system-block assembly with the same (already-surfaced) issue does NOT re-emit the banner.",
+    "A newly-recorded `message-history` issue (fresh compaction event) re-emits the banner exactly once.",
+    "A `session.error` health issue emits the banner on every assembly until `lastSessionHealthIssue` is cleared (sticky behavior unchanged).",
+    "`SessionHealthIssue` gains an optional `surfaced` flag; the field is additive and existing callers/tests are unaffected when it is absent.",
+    "`pnpm run check` is green and existing `system-block.test.ts` session-health tests pass (updated where the one-shot behavior changes expectations)."
+  ],
+  "documents": {
+    "proposal": "# Proposal — Fix session-health banner noise\n\n## Problem (confirmed 2026-07-21)\n\nThe `[ADV:SESSION_HEALTH]` banner **re-emits on every turn once triggered** and is never cleared within a session.\n\nMechanism:\n- `plugin/src/index.ts:1325` (`experimental.chat.messages.transform`) runs `compactPromptMessages` every turn; tool outputs and diff patches over 24,000 chars (`MAX_PROMPT_DIFF_CHARS` / `MAX_PROMPT_TOOL_OUTPUT_CHARS`, index.ts:96-97) are truncated to a 4K excerpt via `compactLargeText`.\n- Any compaction sets `state.lastSessionHealthIssue` (index.ts:1334).\n- `healthSection` in `plugin/src/utils/system-block.ts:191` emits the banner whenever `lastSessionHealthIssue` is set.\n- **No code ever clears `lastSessionHealthIssue`** (grep confirms zero `lastSessionHealthIssue = null` assignments except the initial `null`). So once a big session compacts anything, the banner repeats every turn until the plugin instance is recreated (fresh session).\n\nObserved: a session running 3 archives back-to-back hit 33 compacted diffs; the banner then repeated on every subsequent turn advising \"session may be unsafe.\"\n\n## Why it matters\n\n- Repeated identical banner is noise that crowds the system block and desensitizes readers to a genuine safety warning.\n- The warning is legitimate (truncated history), but a persistent every-turn repeat dilutes it rather than reinforcing it.\n\n## Proposal\n\nTwo-part fix:\n\n1. **Make the banner one-shot-per-issue (or bounded).** After the banner is surfaced, mark the issue as surfaced so it does not repeat every turn. Re-surface only when a *new* health issue is detected (new compaction event or session.error), not on every turn for the same standing issue. Preserve at least one prominent emission so the warning is never silently dropped.\n   - Add a `surfaced?: boolean` (or `surfacedAt`) to `SessionHealthIssue`, set after `healthSection` emits, and gate re-emission on it.\n   - `session.error` kind (index.ts:1066) may warrant different persistence than `message-history` compaction — evaluate keeping error banners sticky while making compaction banners one-shot.\n\n2. **Document the session-hygiene rule.** Add \"start a fresh OpenCode session per major change\" guidance to the resume-freshness advisory / ADV_INSTRUCTIONS so the behavioral root cause (long multi-archive sessions) is addressed, not just the symptom.\n\n## Alternatives considered\n\n- **Lower the compaction thresholds**: doesn't help — the banner-repeat is the noise, not the compaction itself.\n- **Remove the banner entirely**: rejected — the warning is genuinely useful; the fix is to make it one-shot, not to delete it.\n\n## Scope notes\n\n- Touches `plugin/src/index.ts` (health-issue lifecycle), `plugin/src/utils/system-block.ts` (`healthSection`), `plugin/src/types` (`SessionHealthIssue` shape), and existing `system-block.test.ts` health-banner tests.\n- Design decision required: exact one-shot vs bounded-N-emissions vs sticky-for-errors. Default recommendation: compaction banners one-shot, session.error banners sticky until BLOCKED clears.\n\n## Origin\n\nPromoted from backlog `bl-0EookwvJ`.",
+    "agreement": "# Agreement — fixSessionHealthBannerNoise\n\n## Objective\n\nMake the `[ADV:SESSION_HEALTH]` message-history banner one-shot-per-event instead of re-emitting every turn, while keeping `session.error` banners sticky. Document the session-hygiene rule that prevents the underlying accumulation.\n\n## Success Criteria\n\n- SC1: A message-history session-health banner emits at most once per distinct compaction event, not on every subsequent turn.\n- SC2: `session.error` session-health banners remain sticky (emit every turn until the error state clears).\n- SC3: Session-hygiene guidance (\"start a fresh session per major change\") is documented in an agent-visible location.\n\n## Acceptance Criteria\n\n- AC1: After a `message-history` health issue is recorded and the banner is surfaced once, a subsequent system-block assembly with the same (already-surfaced) issue does NOT re-emit the banner.\n- AC2: A newly-recorded `message-history` issue (fresh compaction event) re-emits the banner exactly once.\n- AC3: A `session.error` health issue emits the banner on every assembly until `lastSessionHealthIssue` is cleared (sticky behavior unchanged).\n- AC4: `SessionHealthIssue` gains an optional `surfaced` flag; the field is additive and existing callers/tests are unaffected when it is absent.\n- AC5: `pnpm run check` is green and existing `system-block.test.ts` session-health tests pass (updated where the one-shot behavior changes expectations).\n\n## Constraints\n\n- C1: The warning MUST surface at least once prominently — the fix suppresses repeats, never the first emission.\n- C2: Reuse the existing assembler result-flag pattern (mirror `consumedWisdomPrompt`): the pure formatter reports emission; the `index.ts` hook owns the state mutation that marks the issue surfaced.\n- C3: `surfaced` is in-memory volatile state only — no new persistence layer.\n\n## Avoidances\n\n- DONT1: Do NOT make `session.error` banners one-shot — they are safety-critical and stay sticky.\n- DONT2: Do NOT remove the banner entirely.\n- DONT3: Do NOT change the compaction thresholds (`MAX_PROMPT_DIFF_CHARS` / `MAX_PROMPT_TOOL_OUTPUT_CHARS`).\n\n## Out of Scope\n\n- OOS1: The cross-session state-bleed fix (separate change `fixConcurrentSessionStateBleed`).\n- OOS2: Changing what gets compacted or the excerpt size.",
+    "design": "# Design — fixSessionHealthBannerNoise\n\n## Root cause (confirmed)\n\n`compactPromptMessages` (index.ts:180) truncates oversized tool outputs / diff patches **in place** — it replaces `message.info` patch text and `part.output` with a 4K excerpt. Consequence: on the turn where compaction first happens, `compactedDiffs > 0` and the messages-transform hook sets `state.lastSessionHealthIssue` (index.ts:1334). On subsequent turns the already-truncated text is < 24K, so `compactedDiffs == 0` and **no new issue is created** — but `healthSection` (system-block.ts:191) re-emits the banner every turn because nothing ever clears `lastSessionHealthIssue`. That is the every-turn noise.\n\n## Implementation strategy\n\n### 1. Add `surfaced` to the issue shape\n\n- `plugin/src/utils/system-block.ts:42` — add optional `surfaced?: boolean` to the `SessionHealthIssue` interface (the module-local mirror).\n- `plugin/src/index.ts` — the two issue-construction sites (session.error at ~1068, message-history at ~1334) leave `surfaced` unset (defaults to falsy) so a freshly-recorded issue always emits once.\n\n### 2. Gate emission in `healthSection`\n\n```ts\nfunction healthSection(input: AssembleSystemBlockInput): string | null {\n  const issue = input.state.lastSessionHealthIssue;\n  if (!issue) return null;\n  // session.error stays sticky (safety-critical). message-history is\n  // one-shot: suppress re-emission once it has been surfaced.\n  if (issue.kind === \"message-history\" && issue.surfaced) return null;\n  return formatSessionHealthBanner(issue, input.state.activeChange.id);\n}\n```\n\n### 3. Report emission from the assembler, mark surfaced in the hook\n\nFollow the existing `consumedWisdomPrompt` pattern (system-block.ts:30-31 \"caller owns clearing per-turn volatile state\"):\n\n- The assembler `applyAdvSystemBlock` result gains `surfacedMessageHistoryHealth: boolean` — true when it emitted a `message-history` health banner this assembly.\n- In the `experimental.chat.system.transform` hook (index.ts:1298, right after the `result` is obtained), add:\n\n```ts\nif (\n  result.surfacedMessageHistoryHealth &&\n  state.lastSessionHealthIssue?.kind === \"message-history\"\n) {\n  state.lastSessionHealthIssue.surfaced = true;\n}\n```\n\nThis emits the banner on the first assembly (surfaced still falsy), then marks it so the next assembly suppresses it. A new compaction event replaces `lastSessionHealthIssue` with a fresh (unsurfaced) issue → re-emits once.\n\n### 4. Documentation (SC3)\n\nAdd a concise \"one OpenCode session per major change\" hygiene note to the Resume Freshness Advisory section (ADV_INSTRUCTIONS.md) — the accumulation root cause is chaining multiple archives in a single long session.\n\n## LBP decisions\n\n- **Why one-shot for message-history but sticky for session.error**: a compaction warning is informational and stable — repeating it every turn is noise once seen. A `session.error` sets BLOCKED status and is safety-critical; it must persist until the error clears (DONT1).\n- **Why assembler-reports + hook-mutates instead of mutating in the formatter**: `healthSection` is a pure formatter by contract (system-block.ts:30-31). State mutation belongs in the hook, mirroring `consumedWisdomPrompt`.\n- **Why `surfaced` and not clearing the issue outright**: clearing would lose the issue for diagnostics (`resolveStatus` reads `lastSessionHealthIssue?.kind === \"session.error\"` for BLOCKED). A flag suppresses the banner without erasing the record.\n\n## Risk\n\n- Low. Additive optional field; pure formatter gate; one hook mutation. Backward-compatible when `surfaced` absent (AC4).\n- Test surface: `system-block.test.ts` health-banner tests need a case for surfaced-suppression (AC1), fresh-issue re-emit (AC2), and session.error sticky (AC3).\n\n## No spec-law change\n\nBehavioral UX refinement to an existing banner; no capability spec scenario is added or modified.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe `[ADV:SESSION_HEALTH]` warning that history was truncated now appears **once per compaction event** instead of repeating on every turn. Critical `session.error` warnings still persist. The approver is deciding whether to ship this banner-noise fix.\n\n## Why It Matters\n\nIn a long session that chained three archives, the banner fired 33 diffs' worth of compaction once, then repeated on every subsequent turn — crowding the system context and desensitizing the reader to a genuine safety warning. The fix keeps the warning prominent (first emission) while removing the every-turn repeat, and documents the behavioral root cause (one session per major change).\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. **One-shot message-history banner** — `SessionHealthIssue` gains an optional `surfaced` flag; `healthSection` suppresses the `message-history` banner once surfaced. `session.error` banners ignore the flag and stay sticky (they drive BLOCKED status).\n2. **Assembler reports, hook mutates** — `applyAdvSystemBlock` returns `surfacedMessageHistoryHealth`; the `index.ts` system-transform hook sets `surfaced = true` after emission (mirrors the existing `consumedWisdomPrompt` pattern; keeps the formatter pure).\n3. **Session-hygiene doc** — ADV_INSTRUCTIONS.md Resume Freshness Advisory now advises one OpenCode session per major change.\n\n## What Was Verified\n\n- Verdict: APPROVED, 0 findings. TDD red (5 failures, tr_mrv9ssf5) → green (60/60, tr_mrv9tttd).\n- Tests: 97/97 pass across `system-block.test.ts`, `system-block-ac.verification.test.ts`, `integration.test.ts`. `pnpm run check` green.\n- Preview URL: not_applicable — internal system-block behavior, no UI.\n- Contract matrix: 16 rows (3 SC + 5 AC + 3 C + 3 DONT + 2 OOS), 0 failing.\n\n## Remaining Concerns\n\nNone. Behavioral UX refinement; `session.error` stickiness and the diagnostic record (`lastSessionHealthIssue` for BLOCKED status) are preserved.\n\n## Supporting Evidence\n\n- Task tk-d04b1760fe25 (done, checkpoint 2df0ed82).\n- Commit 2df0ed82 — 4 files (system-block.ts, index.ts, ADV_INSTRUCTIONS.md, system-block.test.ts).\n- Contract review matrix: 16 rows, 0 failing.\n\n## Consequence Context\n\n1. Delivered value: removes every-turn banner noise while preserving the one-shot warning and session.error stickiness.\n2. Enabling-only/follow-up dependency: none.\n3. Ops readiness: ready — standard plugin rebuild; no migrations/config.\n4. Migration/data impact: n/a — additive optional in-memory field.\n5. Frontend/preview impact: not_applicable.\n6. Collision/release risk: low — touches system-block.ts + index.ts (different region from the hot replaceRecoveryToolSprawl peer). No public API change.\n7. Open follow-ups: none. Sibling `fixConcurrentSessionStateBleed` (state bleed) staged separately.\n8. Next action: acceptance approval proceeds inline to push + merge + archive.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T23:21:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A message-history session-health banner emits at most once per distinct compaction event, not on every subsequent turn. | pass | healthSection suppresses message-history banner once surfaced; AC1 tests assert no re-emit. Green 60/60 tr_mrv9tttd. |\n| SC2 | success_criterion | `session.error` session-health banners remain sticky (emit every turn until the error state clears). | pass | session.error bypasses the surfaced gate; AC3 asserts sticky emit even when surfaced=true. |\n| SC3 | success_criterion | Session-hygiene guidance (\"start a fresh session per major change\") is documented in an agent-visible location. | pass | ADV_INSTRUCTIONS.md Resume Freshness Advisory — added 'one session per major change' note. Commit 2df0ed82. |\n| AC1 | acceptance_criterion | After a `message-history` health issue is recorded and the banner is surfaced once, a subsequent system-block assembly with the same (already-surfaced) issue does NOT re-emit the banner. | pass | system-block.test.ts AC1 pass (already-surfaced does not re-emit; suppressed but others emit). |\n| AC2 | acceptance_criterion | A newly-recorded `message-history` issue (fresh compaction event) re-emits the banner exactly once. | pass | system-block.test.ts AC2 fresh message-history emits + flags surfacedMessageHistoryHealth. |\n| AC3 | acceptance_criterion | A `session.error` health issue emits the banner on every assembly until `lastSessionHealthIssue` is cleared (sticky behavior unchanged). | pass | system-block.test.ts AC3 session.error sticky pass. |\n| AC4 | acceptance_criterion | `SessionHealthIssue` gains an optional `surfaced` flag; the field is additive and existing callers/tests are unaffected when it is absent. | pass | AC4 absent-flag=unsurfaced passes; 97/97 existing tests unaffected. |\n| AC5 | acceptance_criterion | `pnpm run check` is green and existing `system-block.test.ts` session-health tests pass (updated where the one-shot behavior changes expectations). | pass | pnpm run check green; 97/97 regression. |\n| C1 | constraint | The warning MUST surface at least once prominently — the fix suppresses repeats, never the first emission. | respected | First emission always fires; AC2 asserts surface-once before suppression. |\n| C2 | constraint | Reuse the existing assembler result-flag pattern (mirror `consumedWisdomPrompt`): the pure formatter reports emission; the `index.ts` hook owns the state mutation that marks the issue surfaced. | respected | Mirrors consumedWisdomPrompt: pure formatter reports; hook mutates. |\n| C3 | constraint | `surfaced` is in-memory volatile state only — no new persistence layer. | respected | surfaced is in-memory; no new persistence. |\n| DONT1 | avoidance | Do NOT make `session.error` banners one-shot — they are safety-critical and stay sticky. | respected | session.error stays sticky; AC3 confirms. |\n| DONT2 | avoidance | Do NOT remove the banner entirely. | respected | Banner still emits once per event; not removed. |\n| DONT3 | avoidance | Do NOT change the compaction thresholds (`MAX_PROMPT_DIFF_CHARS` / `MAX_PROMPT_TOOL_OUTPUT_CHARS`). | respected | Compaction thresholds untouched. |\n| OOS1 | out_of_scope | The cross-session state-bleed fix (separate change `fixConcurrentSessionStateBleed`). | missing |  |\n| OOS2 | out_of_scope | Changing what gets compacted or the excerpt size. | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T22:56:35.718Z",
+      "contentHash": "ce042213b01efac938e10907f08dda390fe0ad2e74e53afe967956b4d15ab530",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T23:11:21.271Z",
+      "contentHash": "35a8f438a5d45329cd6ac995ef3c7c7f610d79391508bd0799324b71daf3e8c1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T23:12:01.502Z",
+      "contentHash": "48ccbc7fc4abffc5fc8dcdba2805acfef5081c9f28e43fd174cecbe348fe642e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T23:19:17.901Z",
+      "contentHash": "818cf8a6e7d8ae2bc98155721d6743a6ce2d1db75cf3584e836a9d02f447c118",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T23:23:55.758Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
