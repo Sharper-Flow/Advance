@@ -268,6 +268,15 @@ function buildIdentitySection(
     change_id: input.change_id,
     title: input.title,
     anchors,
+    // Self-documenting hint: anchor NAMES are surfaced here, but the VALUES
+    // must be set by the orchestrator in the Task/spawn prompt before
+    // delegating to a typed worker. The briefing packet cannot fill identity
+    // values (workdir, attempt number, scope key) — only the orchestrator
+    // knows them. Without this field, readers have misinterpreted the
+    // anchor-names array as informational-only and skipped the required
+    // packet header, causing typed-worker packet-defect failures.
+    required_from: "orchestrator_packet_header",
+    note: "Anchor values must be set by the orchestrator in the Task/spawn prompt before delegating to a typed worker. The briefing packet surfaces required anchor NAMES only; it cannot fill identity values.",
     origin: input.origin ?? null,
   });
 }
