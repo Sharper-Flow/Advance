@@ -1394,7 +1394,7 @@ New changes start directly in the 7-gate model.
 | `/adv-refactor [id]`      | Refresh a stale proposal — single change-id, or omit to batch-refresh the oldest 30% of active changes                             |
 | `/adv-cleanup`            | Triage stale, abandoned, duplicate, and ready-to-archive active changes                                                            |
 | `/adv-coordinate`         | Audit project changes, Epic alignment, sequencing, and membership health                                                           |
-| `/adv-improve`            | Improvement analysis and research on existing specs, implementation, or external landscape; persists a reusable research pack under `docs/*-prep.md` (consumed by `/adv-discover`) |
+| `/adv-improve`            | Analyze improvements across existing specs, implementation, and external landscape; persists a reusable research pack under `docs/*-prep.md` (consumed by `/adv-discover`) |
 | `/adv-tron [target]`      | Investigate codebase structure and suggest agenda candidates                                                                       |
 
 Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For deeper analysis, agents can load the prioritizer skill via `skill("prioritizer")` which provides structured criteria question templates and decision map guidance.

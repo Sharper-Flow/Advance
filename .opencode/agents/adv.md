@@ -199,41 +199,10 @@ If the user's intent is ambiguous or no change-id is provided, check `adv_change
 > **Defect-origin routing footnote (rq-defectOriginRca01):** When the user's intent describes unintended behavior, route through `/adv-problem` to produce Root Cause Analysis (RCA) evidence before any proposal-creation path. Defect triggers: "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X". Non-defect triggers (proceed normally to `/adv-proposal` or `/adv-task`): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X". Rule of thumb: user describes unintended behavior → defect; user describes desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3). Defect-origin `/adv-proposal` and `/adv-task` invocations MUST carry a `## Root Cause Analysis` section in the persisted proposal.md artifact. `/adv-task` fast-track does NOT bypass RCA for defects.
 
 ## Step 2: Load State
-Before every gate transition: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume at the first incomplete gate. During discovery, make at most one advisory `episode_recall` when available. Pass the active project namespace and `top_k: 5`; shared global results remain advisory. If unavailable, continue with native ADV context and record the limitation. Never use recalled content to complete gates, override specs/contracts, or replace task evidence. Do not call Episode write/delete tools.
+Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume first incomplete. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
 
-### Step 2.5: Resume Freshness Advisory (informational)
-
-When `lastActivityAgeMinutes > 60` (visible on `adv_change_list` output and in `_contextSnapshot` when emitted), the agent surfaces a bounded **Resume Freshness advisory** before proceeding to Step 3 Gate Machine.
-
-The advisory carries stable, machine-classifiable finding codes (no LLM-classified labels):
-
-| Code | Meaning |
-|---|---|
-| `resume:sibling_overlap` | Active sibling change touches same capability/paths |
-| `resume:archived_duplicate` | Archive shipped since `lastActivityAt` overlaps scope |
-| `resume:codebase_drift` | Commits to task-referenced files since `lastActivityAt` |
-| `resume:freshness_limited` | Could not reach a conclusion (missing/stale evidence or budget exceeded) |
-
-Each finding carries a label from `/adv-coordinate`'s inherited taxonomy: `repo_backed_fact` (HIGH confidence), `adv_backed_fact` (HIGH confidence), `judgment_call` (MEDIUM confidence), or `freshness_limited` (no conclusion).
-
-**Behavioral contract:**
-
-- **Informational with proceed-default.** Agent surfaces findings, recommends an action, and proceeds unless the user objects. Advisory does NOT block gate transitions.
-- **No state mutation.** Advisory is read-only — no close, supersede, task/gate mutations fired by the advisory itself.
-- **Current-project scope only.** Cross-project fan-out remains `/adv-coordinate` ownership.
-- **No dismissal memory.** Findings re-raise on every stale resume; ADV does not persist user dismissals.
-- **Fresh changes (`lastActivityAgeMinutes ≤ 60`) skip the advisory entirely** — zero noise for in-flight work.
-
-**Single HIGH-confidence `resume:archived_duplicate` action (Q4 decision):**
-
-When the advisory finds exactly one HIGH-confidence (`repo_backed_fact` label) `resume:archived_duplicate`, the agent surfaces a **one-command close+supersede suggestion**:
-
-- A copy-pasteable `adv_change_close changeId: <archived_dup_id> reason: "superseded" supersededBy: <current_id> approvedByUser: true approvalEvidence: "..."` snippet.
-- Explicit text: **"Run the command above to close. ADV does not auto-execute close."**
-- User must run the command explicitly with their own approval evidence. ADV does not auto-fire the close.
-
-**Wording guard:** always use "one-command accept (copy-paste and run)" language. NEVER use "one-click" or imply button-click auto-execution. The close requires explicit user invocation via `adv_change_close` with `approvedByUser: true` + non-empty `approvalEvidence`.
-
+### Step 2.5: Resume Freshness Advisory
+Resumes >60m: apply `ADV_INSTRUCTIONS.md § Resume Freshness Advisory`; read-only/current-project/proceed-default; fresh skip. One archived duplicate: one-command accept (copy-paste and run), user evidence; never auto-close.
 
 ## Step 3: Gate Machine
 Drive gates sequentially. Each gate has an owning workflow contract; execute it inline, verify, then advance.
@@ -342,7 +311,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
 | `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + persisted ENGINEER_REPORT via `adv_subagent_report_submit` |
-| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation; acceptance reviews use `review` | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom diagnosis; packet includes WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT | Classification + primary-ADV next actions |
 | `adv-verifier`   | Need verify-only bursts, local command classification, or structured verification triage | Strict Verification Triage Result JSON for orchestrator persistence |
@@ -421,28 +390,8 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 
 ## ADV State Access Policy
 
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes change/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance files and any path matching:
+**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool: change/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance artifacts under `~/.local/share/opencode/plugins/advance/**` (including legacy agenda), or locked sibling conformance dirs (`advance-conformance-{pid}/`). Path guards also block glob/grep/lgrep on locked sibling paths.
 
-- `~/.local/share/opencode/plugins/advance/**/change.json`
-- `~/.local/share/opencode/plugins/advance/**/proposal.md`
-- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/conformance.json`
-
-**Additionally**, sibling-repo conformance mode: NEVER read locked conformance dir (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
-
-**ALWAYS** use the ADV MCP tools instead:
-
-| You want                       | Use this tool         |
-| ------------------------------ | --------------------- |
-| Change details + tasks         | `adv_change_show`     |
-| Lightweight change context     | `adv_change_show`     |
-| A specific task + its changeId | `adv_task_show`       |
-| Tasks ready to work            | `adv_task_ready`      |
-| All tasks for a change         | `adv_task_list`       |
-| List all active changes        | `adv_change_list`     |
-| Validate a change              | `adv_change_validate` |
-| Wisdom / learnings             | `adv_wisdom_list`     |
-| Conformance state              | `adv_conformance action: "status"` |
+**ALWAYS** use ADV tools: change details/context → `adv_change_show`; task → `adv_task_show`; ready/all tasks → `adv_task_ready`/`adv_task_list`; active changes → `adv_change_list`; validation → `adv_change_validate`; wisdom → `adv_wisdom_list`; conformance → `adv_conformance action: "status"`.
 
 If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead. Artifact content comes from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet inline content, not `artifacts.*.path` unless explicitly `readable:true`.

@@ -1,6 +1,6 @@
 ---
 name: adv-improve
-description: Improvement analysis and research on existing specs, implementation, or external landscape
+description: Analyze improvements across existing specs, implementation, and external landscape
 ---
 
 # ADV Improve — Analyze Improvement Opportunities
