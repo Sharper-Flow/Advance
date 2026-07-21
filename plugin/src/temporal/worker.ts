@@ -3,6 +3,7 @@ import { existsSync } from "fs";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
+import { getAdvWorkerTuningOptions } from "./worker-tuning";
 
 function resolveWorkflowsPath(): string {
   const jsPath = fileURLToPath(new URL("./workflows.js", import.meta.url));
@@ -44,6 +45,7 @@ export async function runTemporalWorker(
       workflowsPath: options.workflowsPath ?? resolveWorkflowsPath(),
       activities,
       shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+      ...getAdvWorkerTuningOptions(),
     });
 
     await worker.run();
@@ -208,6 +210,7 @@ export async function runMultiQueueTemporalWorker(
           workflowsPath,
           activities,
           shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+          ...getAdvWorkerTuningOptions(),
         }),
       ),
     );
@@ -238,6 +241,7 @@ export async function runMultiQueueTemporalWorker(
             workflowsPath,
             activities,
             shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+            ...getAdvWorkerTuningOptions(),
           });
           workerRegistry.set(queue, newWorker);
           // Fire-and-forget .run so the IPC handler returns promptly.

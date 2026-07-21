@@ -23,6 +23,7 @@ import {
   TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
 } from "./worker";
 import { RESTART_HARD_KILL_DEADLINE_MS } from "./worker-multi";
+import { getAdvWorkerTuningOptions } from "./worker-tuning";
 
 describe("temporal worker helpers", () => {
   beforeEach(() => {
@@ -588,5 +589,25 @@ describe("temporal worker helpers", () => {
         vi.useRealTimers();
       }
     });
+  });
+
+  it("runTemporalWorker passes ADV worker tuning options to Worker.create", async () => {
+    await runTemporalWorker({
+      taskQueue: "advance-tuning",
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      workflowsPath: "/tmp/workflows.js",
+    });
+
+    expect(workerMocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowTaskPollerBehavior: { type: "simple-maximum", maximum: 1 },
+        activityTaskPollerBehavior: { type: "simple-maximum", maximum: 1 },
+        maxConcurrentWorkflowTaskExecutions: 4,
+        maxConcurrentActivityTaskExecutions: 4,
+        maxConcurrentLocalActivityExecutions: 4,
+        maxActivitiesPerSecond: 10,
+      }),
+    );
   });
 });
