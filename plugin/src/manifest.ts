@@ -418,7 +418,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-improve": {
     name: "adv-improve",
     description:
-      "Suggest targeted improvements to existing specs or implementation",
+      "Improvement analysis and research on existing specs, implementation, or external landscape",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
