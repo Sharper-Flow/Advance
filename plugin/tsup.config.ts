@@ -13,4 +13,9 @@ export default defineConfig({
   dts: true,
   clean: true,
   external: ["@opencode-ai/plugin"],
+  // Bundle @modelcontextprotocol/sdk into dist/mcp-server.js so the deployed
+  // artifact is self-contained (no node_modules needed at runtime path).
+  // tsup externalizes all dependencies by default; this overrides for the SDK
+  // which mcp-server.js imports via subpath exports.
+  noExternal: ["@modelcontextprotocol/sdk"],
 });
