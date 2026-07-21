@@ -28,6 +28,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { WorkflowHandle } from "@temporalio/client";
 
@@ -202,6 +203,13 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
           address: env.address ?? "127.0.0.1:7233",
           namespace,
           queues: [taskQueue],
+          workflowsPath: fileURLToPath(
+            new URL("../workflows.ts", import.meta.url),
+          ),
+          artifactPolicy: {
+            mode: "development_source",
+            rationale: "Temporal integration test",
+          },
           connection: env.nativeConnection,
         });
 

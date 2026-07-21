@@ -295,6 +295,10 @@ export async function tryInitStore(
             address: runtime.address,
             namespace: runtime.namespace,
             queues: workerQueues,
+            artifactPolicy: {
+              mode: "production_verified",
+              bundleDir: dirname(resolveWorkerScriptPath()),
+            },
             onWorkerExhausted,
           });
           worker = spawnedWorker;
@@ -722,6 +726,10 @@ export async function restartCurrentProjectTemporalWorker(
         address: runtime.address,
         namespace: runtime.namespace,
         queues: restartWorkerQueues,
+        artifactPolicy: {
+          mode: "production_verified",
+          bundleDir: dirname(resolveWorkerScriptPath()),
+        },
         onWorkerExhausted,
       })
     : await createOutOfProcessWorker({
