@@ -215,7 +215,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/plugin-bundle-manifest.json dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
+	for output_rel in dist/index.js dist/mcp-server.js dist/plugin-bundle-manifest.json dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
@@ -278,12 +278,13 @@ check_rsync() {
 
 PLUGIN_BUNDLE_MANIFEST_BASENAME="plugin-bundle-manifest.json"
 
-# Validate that the copied plugin bundle index matches the SHA-256 recorded in
-# the manifest. Requires jq and sha256sum (or shasum on macOS). Returns non-zero
-# on mismatch, missing manifest, or missing tools.
+# Validate that the copied plugin bundle artifacts match the SHA-256s recorded
+# in the manifest. Requires jq and sha256sum (or shasum on macOS). Returns
+# non-zero on mismatch, missing manifest, or missing tools. Older manifests
+# that lack files.mcp-server are still validated for files.index.
 validate_plugin_bundle_manifest() {
 	local manifest_path="$1"
-	local index_path="$2"
+	local dist_dir="$2"
 
 	if [ ! -f "$manifest_path" ]; then
 		echo "    ✗  plugin bundle manifest missing: $manifest_path"
@@ -296,28 +297,46 @@ validate_plugin_bundle_manifest() {
 		return 1
 	fi
 
+	__validate_file_hash() {
+		local file_path="$1" expected_hash="$2" label="$3"
+		local actual_hash
+		if command -v sha256sum &>/dev/null; then
+			actual_hash="$(sha256sum "$file_path" | awk '{print $1}')"
+		elif command -v shasum &>/dev/null; then
+			actual_hash="$(shasum -a 256 "$file_path" | awk '{print $1}')"
+		else
+			echo "    ✗  sha256sum or shasum required to validate plugin bundle"
+			return 1
+		fi
+		if [ "$expected_hash" != "$actual_hash" ]; then
+			echo "    ✗  plugin bundle $label hash mismatch"
+			echo "       manifest: $expected_hash"
+			echo "       actual:   $actual_hash"
+			return 1
+		fi
+		return 0
+	}
+
 	local expected_hash
 	expected_hash="$(jq -r '.files.index // empty' "$manifest_path" 2>/dev/null)"
 	if [ -z "$expected_hash" ] || ! [[ "$expected_hash" =~ ^[0-9a-f]{64}$ ]]; then
 		echo "    ✗  plugin bundle manifest has no valid files.index hash: $manifest_path"
 		return 1
 	fi
-
-	local actual_hash
-	if command -v sha256sum &>/dev/null; then
-		actual_hash="$(sha256sum "$index_path" | awk '{print $1}')"
-	elif command -v shasum &>/dev/null; then
-		actual_hash="$(shasum -a 256 "$index_path" | awk '{print $1}')"
-	else
-		echo "    ✗  sha256sum or shasum required to validate plugin bundle"
+	if ! __validate_file_hash "$dist_dir/index.js" "$expected_hash" "index"; then
 		return 1
 	fi
 
-	if [ "$expected_hash" != "$actual_hash" ]; then
-		echo "    ✗  plugin bundle index hash mismatch"
-		echo "       manifest: $expected_hash"
-		echo "       actual:   $actual_hash"
-		return 1
+	local expected_mcp_hash
+	expected_mcp_hash="$(jq -r '.files["mcp-server"] // empty' "$manifest_path" 2>/dev/null)"
+	if [ -n "$expected_mcp_hash" ]; then
+		if ! [[ "$expected_mcp_hash" =~ ^[0-9a-f]{64}$ ]]; then
+			echo "    ✗  plugin bundle manifest has no valid files.mcp-server hash: $manifest_path"
+			return 1
+		fi
+		if ! __validate_file_hash "$dist_dir/mcp-server.js" "$expected_mcp_hash" "mcp-server"; then
+			return 1
+		fi
 	fi
 
 	return 0

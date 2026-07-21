@@ -7,6 +7,10 @@
  */
 
 import type { Store } from "../../storage/store-types.js";
+import {
+  wrapTier4Tool,
+  type DegradationOptions,
+} from "../degradation.js";
 
 export type ToolClassification =
   | "pure"
@@ -66,51 +70,65 @@ export async function executeTier4Tool(
   cwd: string,
   toolName: string,
   args: Record<string, unknown>,
+  options?: DegradationOptions,
 ): Promise<string> {
-  const { createToolMap } = await import("../../tool-registry.js");
-  const { createDiskStore } = await import("../../storage/store-disk.js");
+  const classifications =
+    TOOL_CLASSIFICATIONS[toolName as Tier4ToolName] ??
+    (["pure"] as ToolClassification[]);
 
-  const store = (await createDiskStore(cwd)) as Store;
-  try {
-    const tools = createToolMap(store, cwd) as Record<
-      string,
-      { execute?: (args: Record<string, unknown>, ctx?: unknown) => unknown }
-    >;
-    const hostName = `adv_${toolName}`;
-    const toolDef = tools[hostName];
-    if (!toolDef) {
+  const run = async (): Promise<string> => {
+    const { createToolMap } = await import("../../tool-registry.js");
+    const { createDiskStore } = await import("../../storage/store-disk.js");
+
+    const store = (await createDiskStore(cwd)) as Store;
+    try {
+      const tools = createToolMap(store, cwd) as Record<
+        string,
+        { execute?: (args: Record<string, unknown>, ctx?: unknown) => unknown }
+      >;
+      const hostName = `adv_${toolName}`;
+      const toolDef = tools[hostName];
+      if (!toolDef) {
+        return JSON.stringify({
+          error: "TOOL_NOT_FOUND",
+          tool: toolName,
+          hostName,
+        });
+      }
+
+      const execute = toolDef.execute as (
+        args: Record<string, unknown>,
+        ctx?: unknown,
+      ) => Promise<unknown>;
+      const result = await execute(args);
+
+      if (typeof result === "string") {
+        return result;
+      }
+      if (
+        result &&
+        typeof result === "object" &&
+        "output" in result &&
+        typeof (result as { output?: unknown }).output === "string"
+      ) {
+        return (result as { output: string }).output;
+      }
+      return JSON.stringify(result);
+    } catch (err) {
       return JSON.stringify({
-        error: "TOOL_NOT_FOUND",
+        error: "TOOL_EXECUTION_ERROR",
         tool: toolName,
-        hostName,
+        message: err instanceof Error ? err.message : String(err),
       });
+    } finally {
+      store.close();
     }
+  };
 
-    const execute = toolDef.execute as (
-      args: Record<string, unknown>,
-      ctx?: unknown,
-    ) => Promise<unknown>;
-    const result = await execute(args);
-
-    if (typeof result === "string") {
-      return result;
-    }
-    if (
-      result &&
-      typeof result === "object" &&
-      "output" in result &&
-      typeof (result as { output?: unknown }).output === "string"
-    ) {
-      return (result as { output: string }).output;
-    }
-    return JSON.stringify(result);
-  } catch (err) {
-    return JSON.stringify({
-      error: "TOOL_EXECUTION_ERROR",
-      tool: toolName,
-      message: err instanceof Error ? err.message : String(err),
-    });
-  } finally {
-    store.close();
-  }
+  return wrapTier4Tool(
+    toolName as Tier4ToolName,
+    classifications,
+    run,
+    options,
+  )(args);
 }
