@@ -42,6 +42,7 @@ import {
   createLogger,
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
+import { generateSessionId } from "./utils/session-id";
 import {
   registerPluginSession,
   unregisterLoadedBuildSession,
@@ -68,6 +69,13 @@ import {
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
+
+let currentSessionId: string | undefined;
+
+/** Return the session ID generated for this plugin-init lifecycle, if any. */
+export function getCurrentSessionId(): string | undefined {
+  return currentSessionId;
+}
 
 function profilePluginInit(
   event: string,
@@ -190,6 +198,9 @@ export async function tryInitStore(
       productMode: productContext.mode,
     });
 
+    const sessionId = currentSessionId ?? generateSessionId();
+    currentSessionId = sessionId;
+
     let temporalBundle: Awaited<ReturnType<typeof initStsl>> | undefined;
     profilePluginInit("backend_mode_detected", {
       backend_mode: "temporal",
@@ -203,6 +214,7 @@ export async function tryInitStore(
         projectId,
         migrationRoot: resolveMigrationRoot(),
         identity: resolveOwnBuildIdentity(),
+        sessionId,
       });
       const runtimeStartedAt = performance.now();
       const runtime = await ensureTemporalRuntime(projectId);
