@@ -22,7 +22,8 @@ export type StatusRecommendationSource =
   | "session_debt"
   | "health"
   | "branch_hygiene"
-  | "release_readiness";
+  | "release_readiness"
+  | "resume_freshness";
 
 export interface StatusRecommendationItem {
   kind: StatusRecommendationKind;

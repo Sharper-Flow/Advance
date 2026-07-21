@@ -246,15 +246,17 @@ export async function enrichRecentChangeStatus(
           (Date.now() - new Date(lastActivityAt).getTime()) / 60000,
         );
         if (lastActivityAgeMinutes > RESUME_FRESHNESS_TRIGGER_MINUTES) {
-          const result = await resolveResumeFreshness(store, changeId, {
-            lastActivityAgeMinutes,
-            lastActivityAt,
-          });
-          resumeFreshnessInput = {
-            findings: result.findings,
-            skipped: result.skipped,
-          };
-        }
+        const result = await resolveResumeFreshness(store, changeId, {
+          lastActivityAgeMinutes,
+          lastActivityAt,
+        });
+        resumeFreshnessInput = {
+          findings: result.findings,
+          skipped: result.skipped,
+        };
+        // Surface close+supersede suggestion when single HIGH-conf archived dup
+        appendResumeFreshnessRecommendation(status, changeId, resumeFreshnessInput);
+      }
       }
     } catch {
       // Degrade gracefully — no Freshness line on resolver failure.
@@ -415,8 +417,69 @@ export function appendRecencyRecommendation(
   }
 }
 
+/**
+ * T8: Append a one-command close+supersede recommendation when the resolver
+ * found EXACTLY ONE HIGH-confidence (label `repo_backed_fact`) archived
+ * duplicate. Implements AC11 + D8 (clarified wording: "one-command accept,
+ * copy-paste and run"; NEVER "one-click" or implying button-click).
+ *
+ * Read-only — never calls adv_change_close. The user must run the snippet
+ * themselves with their own approval evidence.
+ *
+ * Emits nothing when: zero HIGH-confidence findings, multiple HIGH-confidence
+ * findings (ambiguous), or when resumeFreshness is skipped.
+ */
+export function appendResumeFreshnessRecommendation(
+  recommendations: RecommendationTarget,
+  changeId: string,
+  resumeFreshness: {
+    findings: Array<{
+      code: string;
+      label: string;
+      summary: string;
+      evidenceChangeIds?: string[];
+    }>;
+    skipped: boolean;
+  },
+): void {
+  if (resumeFreshness.skipped) return;
+
+  const highConfidenceArchivedDups = resumeFreshness.findings.filter(
+    (f) =>
+      f.code === "resume:archived_duplicate" &&
+      f.label === "repo_backed_fact",
+  );
+
+  // AC11: only fire on EXACTLY ONE HIGH-confidence finding (avoid noise when
+  // ambiguous). Zero or multiple → no recommendation.
+  if (highConfidenceArchivedDups.length !== 1) return;
+
+  const finding = highConfidenceArchivedDups[0];
+  const archivedDupId = finding.evidenceChangeIds?.[0];
+  if (!archivedDupId) return;
+
+  const snippet = `adv_change_close changeId: ${archivedDupId} reason: "superseded" supersededBy: ${changeId} approvedByUser: true approvalEvidence: "resume:archived_duplicate HIGH-confidence overlap detected"`;
+
+  // D8 wording guard: NEVER use "one-click" or imply button-click auto-execution.
+  // Always: "one-command accept (copy-paste and run)" + explicit
+  // "ADV does not auto-execute close."
+  const message = `🔍 Possible duplicate: archived \`${archivedDupId}\` may have already shipped this scope. To close it as superseded (ADV does not auto-execute close), copy and run:\n\n  ${snippet}`;
+
+  pushStatusRecommendation(recommendations, {
+    kind: "next_gate",
+    priority: "high",
+    changeId,
+    title: `Possible duplicate: ${archivedDupId}`,
+    detail: finding.summary,
+    action: "review overlap; one-command accept (copy-paste and run)",
+    source: "resume_freshness",
+    message,
+  });
+}
+
 export const _test = {
   appendRecencyRecommendation,
+  appendResumeFreshnessRecommendation,
 };
 export async function filterRecentChangesForProductScope(
   recentChanges: ChangeRecency[],
@@ -708,6 +771,15 @@ export async function buildCandidateEnrichmentPatch(
         : fallbackNextGate;
 
     const localStatus: StatusRecommendationCarrier = { recommendations: [] };
+
+    // Surface close+supersede suggestion for single HIGH-conf archived dup
+    if (candidateResumeFreshness) {
+      appendResumeFreshnessRecommendation(
+        localStatus,
+        changeId,
+        candidateResumeFreshness,
+      );
+    }
 
     if (directive && nextGate) {
       if (signal?.aborted || Date.now() >= cutoffAt) {
