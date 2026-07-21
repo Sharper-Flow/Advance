@@ -489,6 +489,12 @@ async function fireTaskCompletedFromCheckpoint(
     // checkpoint retries do not re-dismiss already-dismissed drafts. Draft
     // dismissal is best-effort: signal failure does not roll back the
     // completion or block the checkpoint.
+    //
+    // TOCTOU (correctness-6): concurrent from_draft_id promotion between
+    // readback and this dismiss signal can be clobbered by the
+    // Object.assign in applyTaskUpdatedToState replacing the entire
+    // wisdom_drafts field with our snapshot. Single-agent session model
+    // makes this theoretical; CAS-style fix deferred to fast-follow.
     let draftsPendingReview = 0;
     let draftsAutoDismissed = 0;
     try {

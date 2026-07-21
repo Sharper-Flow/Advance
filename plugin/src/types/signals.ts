@@ -23,6 +23,7 @@ import {
   GateReadinessBlockerSchema,
 } from "./gates";
 import { WisdomEntrySchema } from "./wisdom";
+import { WisdomDraftSchema } from "./tasks";
 import {
   CapabilityKeySchema,
   DeltaAddSchema,
@@ -256,6 +257,14 @@ export const TaskBlockedSignalPayloadSchema = z.object({
   reason: z.string(),
   attempts: z.array(AttemptSchema).default([]),
   blockedAt: IsoTimestampSchema,
+  /**
+   * Optional wisdom_drafts snapshot to apply atomically with the blocked
+   * transition. rq-wisdomAutoSurfacing01.3: a SEMANTIC error_recovery
+   * accompanying a blocked-status update still creates a WisdomDraft so
+   * the learning moment is captured even when the task is re-blocked.
+   * Absent on legacy payloads; workflow handler treats undefined as no-op.
+   */
+  wisdom_drafts: z.array(WisdomDraftSchema).optional(),
 });
 export type TaskBlockedSignalPayload = z.infer<
   typeof TaskBlockedSignalPayloadSchema

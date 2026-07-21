@@ -481,8 +481,14 @@ export const taskTools = {
               const ftsResults = await activeStore.wisdom.search(queryStr, {
                 changeId,
               });
+              // Coerce missing recorded_at to '' so entries without
+              // timestamps sort last (oldest) instead of throwing TypeError.
+              // Prevents a data-quality bug from being silently masked as an
+              // FTS failure by the surrounding try/catch.
               const sorted = [...ftsResults]
-                .sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))
+                .sort((a, b) =>
+                  (b.recorded_at || "").localeCompare(a.recorded_at || ""),
+                )
                 .slice(0, 5);
               output._relevantWisdom = sorted;
             } catch {
@@ -1060,6 +1066,20 @@ export const taskTools = {
                 },
               );
             } else if (args.status === "blocked") {
+              // rq-wisdomAutoSurfacing01.3 / correctness-4: a SEMANTIC
+              // error_recovery accompanying a blocked-status update still
+              // creates a WisdomDraft. Computed against currentTask so the
+              // dedup check (one suggested draft per task) sees the
+              // pre-update task state. The blocked-signal payload carries
+              // the new wisdom_drafts array atomically with the blocked
+              // transition.
+              const blockedDraft = args.error_recovery
+                ? maybeCreateWisdomDraftFromErrorRecovery(
+                    currentTask,
+                    args.error_recovery,
+                    now,
+                  )
+                : null;
               await fireSignalAndRefresh(
                 handle,
                 activeStore,
@@ -1070,6 +1090,12 @@ export const taskTools = {
                   reason: args.notes ?? "Task blocked",
                   attempts: args.error_recovery?.attempts ?? [],
                   blockedAt: now,
+                  ...(blockedDraft && {
+                    wisdom_drafts: appendDraft(
+                      currentTask?.wisdom_drafts,
+                      blockedDraft,
+                    ),
+                  }),
                 },
               );
             } else if (args.status === "done" && !shouldPatchExistingDoneTask) {

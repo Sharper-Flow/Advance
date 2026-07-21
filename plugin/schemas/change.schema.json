@@ -8654,6 +8654,7 @@
                   "type": "string"
                 },
                 "suggested_content": {
+                  "maxLength": 2000,
                   "type": "string"
                 },
                 "suggested_type": {

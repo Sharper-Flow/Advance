@@ -185,8 +185,10 @@ export const WisdomDraftSchema = z.object({
   /**
    * Terse "{diagnosis} → {fix}" template populated from the first SEMANTIC
    * attempt. Multiple SEMANTIC attempts are concatenated with "; ".
+   * Capped at 2000 chars (matches WisdomEntrySchema.content) to bound
+   * Temporal signal payload size.
    */
-  suggested_content: z.string(),
+  suggested_content: z.string().max(2000),
   /** attempt_number refs from error_recovery.attempts[] that triggered this draft */
   source_attempts: z.array(z.number().int().min(1)).optional(),
   /** Current lifecycle status (suggested → promoted | dismissed) */

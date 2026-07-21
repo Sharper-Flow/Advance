@@ -244,6 +244,13 @@ export const wisdomTools = {
         // rq-wisdomAutoSurfacing01 / DDC5: atomic draft promotion — only
         // after the wisdom add succeeded. Fire taskUpdatedSignal with the
         // new wisdom_drafts array (Object.assign replaces the field).
+        //
+        // TOCTOU (correctness-5): concurrent from_draft_id calls can both
+        // pass validation against the same draft snapshot and both fire
+        // wisdomAddedSignal, then the second taskUpdatedSignal's
+        // Object.assign in applyTaskUpdatedToState overwrites the first
+        // promotion. Single-agent session model makes this theoretical;
+        // CAS-style fix deferred to fast-follow child change.
         if (from_draft_id && draftTask) {
           const nextDrafts = promoteDraft(
             draftTask.wisdom_drafts,
@@ -269,6 +276,20 @@ export const wisdomTools = {
               // already durable; draft may be re-promoted or auto-dismissed
               // at checkpoint.
             }
+          } else if (nextDrafts && !handle) {
+            // Temporal unavailable (tdd-gap-wisdom-temporal-fallback):
+            // wisdom add succeeded via disk fallback above, but draft
+            // promotion requires a Temporal signal that we cannot fire.
+            // Surface the inconsistency to the caller so the agent knows
+            // the draft is still in the "suggested" state despite the
+            // wisdom entry being durable. The draft will be auto-dismissed
+            // at checkpoint or can be re-promoted when Temporal returns.
+            return formatToolOutput({
+              success: true,
+              entry,
+              _warning:
+                "Draft promotion skipped: Temporal unavailable. Wisdom entry is durable but draft remains in 'suggested' state.",
+            });
           }
         }
 

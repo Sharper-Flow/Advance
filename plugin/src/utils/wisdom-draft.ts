@@ -60,7 +60,13 @@ export function maybeCreateWisdomDraftFromErrorRecovery(
   return {
     id: generateWisdomDraftId(),
     suggested_type: "failure",
-    suggested_content: suggestedContent,
+    // Cap at 2000 chars (matches WisdomEntrySchema.content limit and
+    // WisdomDraftSchema.suggested_content schema) to bound Temporal signal
+    // payload size when many SEMANTIC attempts are joined.
+    suggested_content:
+      suggestedContent.length > 2000
+        ? `${suggestedContent.slice(0, 1997)}...`
+        : suggestedContent,
     source_attempts: attempts.map((a) => a.attempt_number),
     status: "suggested",
     created_at: now,
@@ -144,8 +150,10 @@ export function dismissAllSuggestedDrafts(
  * Transition a draft to the promoted terminal state, recording the new
  * wisdom ID. Used by adv_wisdom_add from_draft_id.
  *
- * Returns null if the draft is not found or not in the suggested state
- * (caller surfaces DRAFT_NOT_FOUND / DRAFT_ALREADY_PROMOTED / DRAFT_DISMISSED).
+ * Returns null only when the draft is not found; returns the array
+ * unchanged when the draft is in a non-suggested terminal state (caller
+ * detects via pre-validation with findDraft and surfaces the appropriate
+ * DRAFT_ALREADY_PROMOTED / DRAFT_DISMISSED error).
  */
 export function promoteDraft(
   drafts: WisdomDraft[] | undefined,

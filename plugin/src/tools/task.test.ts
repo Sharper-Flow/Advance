@@ -395,6 +395,8 @@ describe("task tools — signal/query adapters", () => {
     // -------------------------------------------------------------------------
 
     test("D1+D2: returns _relevantWisdom and _episodeRecallHint when contract_refs.implements is non-empty", async () => {
+      // Recency-sort wins over FTS ranking: FTS fixture returns older-first
+      // [ws-old, ws-new]; output must be newer-first [ws-new, ws-old] per AC1.
       const store = createMockStore({
         tasks: {
           show: vi.fn(async (taskId: string) => ({
@@ -804,6 +806,98 @@ describe("task tools — signal/query adapters", () => {
         taskId: "tk-abc",
         reason: "Blocked reason",
       });
+    });
+
+    test("blocked with SEMANTIC error_recovery creates WisdomDraft (rq-wisdomAutoSurfacing01.3 / correctness-4)", async () => {
+      // Without this fix, blocked-status bypassed draft creation; SEMANTIC
+      // learning moments on blocked tasks were lost. Verify the
+      // taskBlockedSignal now carries wisdom_drafts atomically.
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-blocked",
+        status: "pending",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-blocked",
+          status: "blocked",
+          notes: "Hit a wall",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "TypeError",
+                diagnosis: "missing null check",
+                fix_tried: "added guard",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-blocked",
+        reason: "Hit a wall",
+        wisdom_drafts: [
+          expect.objectContaining({
+            suggested_type: "failure",
+            suggested_content: "missing null check → added guard",
+            status: "suggested",
+          }),
+        ],
+      });
+    });
+
+    test("blocked without SEMANTIC error_recovery omits wisdom_drafts (DDC6 backward-compat)", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-blocked2",
+        status: "pending",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-blocked2",
+          status: "blocked",
+          notes: "External dep missing",
+          error_recovery: {
+            last_error: "ServiceUnavailable",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "TRANSIENT",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "503",
+                diagnosis: "service down",
+                fix_tried: "retry",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      // No wisdom_drafts field — TRANSIENT does not trigger draft creation
+      expect(signalCall[4].wisdom_drafts).toBeUndefined();
     });
 
     test("routes other partials to taskUpdatedSignal", async () => {
