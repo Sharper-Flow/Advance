@@ -154,3 +154,10 @@ export async function startServer(
 
   await mcp.server.connect(transport);
 }
+
+// Auto-start when run as a direct entry point (dist/mcp-server.js).
+// When imported as a module (e.g. in tests), startServer must be called explicitly.
+startServer().catch((err) => {
+  console.error("[adv-mcp-server] Fatal startup error:", err);
+  process.exit(1);
+});
