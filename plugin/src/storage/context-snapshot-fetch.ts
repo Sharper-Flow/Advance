@@ -81,3 +81,29 @@ export async function fetchChangeContextTicker(
     gates: latestGates,
   });
 }
+
+/**
+ * Conditionally attach a context ticker to a tool output when the caller
+ * passes `include.snapshot: true`. No-op otherwise (default-OFF per
+ * rq-ctxticker2 inversion).
+ *
+ * Best-effort: swallows fetch errors uniformly across all 5 ticker sites
+ * (previously only `wisdom.ts` swallowed). Per DDC4 — never fail the tool
+ * due to ticker emission failure.
+ */
+export async function maybeAttachChangeTicker(
+  output: Record<string, unknown>,
+  include: { snapshot?: boolean } | undefined,
+  store: Store,
+  changeId: string,
+): Promise<void> {
+  if (!include?.snapshot) return;
+  try {
+    const snapshot = await fetchChangeContextTicker(store, changeId);
+    if (snapshot) {
+      output._contextSnapshot = snapshot;
+    }
+  } catch {
+    // Best-effort: never fail the tool due to ticker emission failure.
+  }
+}
