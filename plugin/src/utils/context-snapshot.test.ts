@@ -800,4 +800,43 @@ describe("formatContextSnapshot resumeFreshness", () => {
     expect(out).toContain("Freshness:");
     expect(out).toContain("Wisdom:");
   });
+
+  it("4 optionals + Epic line: Wisdom sheds before Freshness", () => {
+    // Validates D6 4-optional Epic branch — Freshness retained as last-shed.
+    const out = formatContextSnapshot(
+      baseInput({
+        userOutcomeCount: 4,
+        wisdomCount: 3,
+        wisdomByType: { pattern: 2, gotcha: 1 },
+        currentTask: { id: "tk-abc", title: "Do thing" },
+        directive: {
+          action: { kind: "gate_complete", gateId: "discovery" },
+          reason: "next",
+        } as never,
+        epicMembership: {
+          epic_id: "addFooEpic",
+          entry_id: "entry-1",
+          order: 0,
+          title: "Add Foo",
+          linked_at: "2026-07-21T00:00:00.000Z",
+        },
+        resumeFreshness: {
+          findings: [
+            { code: "resume:codebase_drift", label: "x", summary: "a" },
+          ],
+          skipped: false,
+        },
+      }) as ContextSnapshotInput,
+    );
+    // Hard 10-line cap preserved
+    const lines = out.split("\n");
+    const contentLines = lines.filter(
+      (l) => l.startsWith("║") && !l.startsWith("╔") && !l.startsWith("╚"),
+    );
+    expect(contentLines.length).toBeLessThanOrEqual(8);
+    // Freshness retained as last-shed per D6 Epic branch
+    expect(out).toContain("Freshness:");
+    expect(out).toContain("Epic:"); // Epic line retained
+    expect(out).not.toContain("Wisdom:"); // Wisdom shed to preserve Freshness
+  });
 });
