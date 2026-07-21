@@ -157,4 +157,75 @@ describe("slop-scan detector dispatch", () => {
       recoveredReport.failure?.failedDetectors.map((detector) => detector.id) ?? [],
     ).not.toContain("ast-grep");
   });
+
+  test("routes pnpm exec to auto-detected nested package when requestedPath is repo root", async () => {
+    // repoRoot has plugin/package.json + plugin/src/a.ts (from beforeEach); no root package.json.
+    // Default-`.` invocation must descend into plugin/ to find the package root.
+    const { runner, calls } = makeFakeRunner();
+    const report = await runSlopScan({ repoRoot, requestedPath: ".", runner });
+
+    const packageRoot = join(repoRoot, "plugin");
+    const byId = Object.fromEntries(calls.map((call) => [call.detectorId, call]));
+
+    expect(byId["eslint"].cwd).toBe(packageRoot);
+    expect(byId["knip"].cwd).toBe(packageRoot);
+    expect(byId["ast-grep"].cwd).toBe(packageRoot);
+    expect(byId["jscpd"].cwd).toBe(packageRoot);
+    // All detectors succeeded via the fake runner; no SLOP_SCAN_DEGRADED.
+    expect(report.failure).toBeUndefined();
+  });
+
+  test("fails with actionable error when multiple nested package.json roots exist", async () => {
+    // Separate repo with two nested packages so the resolver cannot pick deterministically.
+    const multiRepo = await mkdtemp(join(tmpdir(), "slop-scan-multi-"));
+    try {
+      await mkdir(join(multiRepo, "plugin", "src"), { recursive: true });
+      await writeFile(
+        join(multiRepo, "plugin", "package.json"),
+        JSON.stringify({ name: "plugin-pkg", type: "module" }),
+      );
+      await writeFile(
+        join(multiRepo, "plugin", "src", "a.ts"),
+        "export const a = 1;\n",
+      );
+      await mkdir(join(multiRepo, "other-pkg", "src"), { recursive: true });
+      await writeFile(
+        join(multiRepo, "other-pkg", "package.json"),
+        JSON.stringify({ name: "other-pkg", type: "module" }),
+      );
+      await writeFile(
+        join(multiRepo, "other-pkg", "src", "b.ts"),
+        "export const b = 2;\n",
+      );
+
+      const { runner } = makeFakeRunner();
+      const report = await runSlopScan({ repoRoot: multiRepo, requestedPath: ".", runner });
+
+      // Required coverage degrades with an actionable ambiguity message.
+      expect(report.failure?.code).toBe("SLOP_SCAN_DEGRADED");
+      expect(report.failure?.message ?? "").toContain("plugin");
+      expect(report.failure?.message ?? "").toContain("other-pkg");
+      // Each applicable required detector is marked failed with the ambiguity reason.
+      const requiredDetectors = report.coverage.detectors.filter((d) => d.important);
+      expect(requiredDetectors.length).toBeGreaterThan(0);
+      for (const detector of requiredDetectors) {
+        expect(detector.state).toBe("failed");
+      }
+    } finally {
+      await rm(multiRepo, { recursive: true, force: true });
+    }
+  });
+
+  test("preserves walk-up behavior when requestedPath is inside a package subdirectory", async () => {
+    // Sanity check: walk-up still wins over descent. A path inside plugin/ must resolve to plugin/,
+    // not be re-routed through the descent path.
+    const { runner, calls } = makeFakeRunner();
+    await runSlopScan({ repoRoot, requestedPath: "plugin/src/a.ts", runner });
+
+    const packageRoot = join(repoRoot, "plugin");
+    const byId = Object.fromEntries(calls.map((call) => [call.detectorId, call]));
+
+    expect(byId["eslint"].cwd).toBe(packageRoot);
+    expect(byId["knip"].cwd).toBe(packageRoot);
+  });
 });
