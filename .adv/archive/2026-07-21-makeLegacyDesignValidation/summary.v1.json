@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T21:04:48.563Z",
+  "capabilities": [],
+  "change_hash": "b1cb86f14ebbb8172cc2da215cf6565a637dd82768d500980c907fa408b098fd",
+  "change_id": "makeLegacyDesignValidation",
+  "completed_tasks": 6,
+  "created_at": "2026-07-20T17:34:16.026Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-20T19:34:19.873Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "d9544835129a85eabe2f4e5d3f0f0a2a0a56af5a8e9979bef69648afe6fb5e77",
+  "task_count": 6,
+  "title": "Make legacy design-validation blockers read-tolerant",
+  "version": "1"
+}
