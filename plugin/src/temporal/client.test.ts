@@ -3,6 +3,7 @@ import {
   buildChangeWorkflowId,
   buildEpicWorkflowId,
   buildProjectTaskQueue,
+  buildSessionTaskQueue,
   getTemporalAddress,
   getTemporalNamespace,
 } from "./client";
@@ -10,6 +11,17 @@ import {
 describe("temporal client helpers", () => {
   it("builds project-scoped task queue names", () => {
     expect(buildProjectTaskQueue("abc123")).toBe("advance-abc123");
+  });
+
+  it("builds session-scoped task queue names", () => {
+    expect(buildSessionTaskQueue("abc123", "sess_AbCdEfGh")).toBe(
+      "advance-abc123-sess_AbCdEfGh",
+    );
+    const longProjectId = "a".repeat(40);
+    const longSessionId = "sess_12345678";
+    expect(
+      buildSessionTaskQueue(longProjectId, longSessionId).length,
+    ).toBeLessThanOrEqual(64);
   });
 
   it("builds stable workflow IDs", () => {
