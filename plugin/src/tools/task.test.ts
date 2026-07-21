@@ -232,7 +232,12 @@ function createMockStore(
       reclassifyTdd: vi.fn(),
       ...overrides.tasks,
     } as Store["tasks"],
-    wisdom: {} as Store["wisdom"],
+    wisdom: {
+      search: vi.fn(async () => []),
+      list: vi.fn(async () => []),
+      listAll: vi.fn(async () => []),
+      add: vi.fn(),
+    } as unknown as Store["wisdom"],
     gates: {
       get: vi.fn(async () => overrides.gates ?? defaultGates),
       complete: vi.fn(),
@@ -383,6 +388,178 @@ describe("task tools — signal/query adapters", () => {
       await expect(
         taskTools.adv_task_show.execute({ taskId: "tk-schema-broken" }, store),
       ).rejects.toThrow(/Schema validation failed/);
+    });
+
+    // -------------------------------------------------------------------------
+    // rq-wisdomAutoSurfacing01 — D1+D2 enrichment
+    // -------------------------------------------------------------------------
+
+    test("D1+D2: returns _relevantWisdom and _episodeRecallHint when contract_refs.implements is non-empty", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Enriched Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1", "AC2"] },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-1",
+        title: "Enriched Task",
+        status: "pending",
+        contract_refs: { implements: ["AC1", "AC2"] },
+      });
+      (store.wisdom.search as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: "ws-old",
+          type: "pattern",
+          content: "older entry",
+          recorded_at: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          id: "ws-new",
+          type: "failure",
+          content: "newer entry",
+          recorded_at: "2026-07-01T00:00:00.000Z",
+        },
+      ]);
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-1" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // D1: top 5 by recency — newer entry first
+      expect(parsed._relevantWisdom).toHaveLength(2);
+      expect(parsed._relevantWisdom[0].id).toBe("ws-new");
+      expect(parsed._relevantWisdom[1].id).toBe("ws-old");
+      // D2: capabilities-gated hint emitted; plugin does not call MCP
+      expect(parsed._episodeRecallHint).toEqual({
+        namespace: expect.any(String),
+        query: "AC1 AC2",
+        top_k: 3,
+      });
+      // FTS query routed the implements[] joined with spaces
+      expect(store.wisdom.search).toHaveBeenCalledWith("AC1 AC2", {
+        changeId: "test-change",
+      });
+    });
+
+    test("D1+D2: caps _relevantWisdom to top 5 by recorded_at DESC", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "T",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1"] },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-cap",
+        contract_refs: { implements: ["AC1"] },
+      });
+      // 7 entries — expect 5 newest in DESC order
+      (store.wisdom.search as ReturnType<typeof vi.fn>).mockResolvedValue(
+        Array.from({ length: 7 }, (_, i) => ({
+          id: `ws-${i}`,
+          type: "pattern",
+          content: `entry-${i}`,
+          recorded_at: `2026-01-0${i + 1}T00:00:00.000Z`,
+        })),
+      );
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-cap" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toHaveLength(5);
+      // Newest first (recorded_at DESC)
+      expect(parsed._relevantWisdom[0].id).toBe("ws-6");
+      expect(parsed._relevantWisdom[4].id).toBe("ws-2");
+    });
+
+    test("D1: returns [] _relevantWisdom when contract_refs.implements is empty", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-noimp",
+        contract_refs: { implements: [] },
+      });
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-noimp" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toEqual([]);
+      expect(parsed._episodeRecallHint).toBeUndefined();
+      expect(store.wisdom.search).not.toHaveBeenCalled();
+    });
+
+    test("D1: returns [] _relevantWisdom when contract_refs is undefined", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({ id: "tk-bare" });
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-bare" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toEqual([]);
+      expect(parsed._episodeRecallHint).toBeUndefined();
+    });
+
+    test("D1: falls back to [] when wisdom.search throws (advisory-only)", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "T",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1"] },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-throw",
+        contract_refs: { implements: ["AC1"] },
+      });
+      (store.wisdom.search as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("FTS index missing"),
+      );
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-throw" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toEqual([]);
+      // Hint still emitted — it does not depend on FTS
+      expect(parsed._episodeRecallHint).toEqual({
+        namespace: expect.any(String),
+        query: "AC1",
+        top_k: 3,
+      });
     });
   });
 

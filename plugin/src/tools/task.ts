@@ -466,6 +466,38 @@ export const taskTools = {
               task.error_recovery,
             );
           }
+          // rq-wisdomAutoSurfacing01 / D1+D2: advisory-only enrichment.
+          // Trigger: task.contract_refs.implements is non-empty.
+          // D1: FTS-filtered wisdom (via wisdom.search) sorted by recorded_at
+          //     DESC, top 5. Falls back to [] on FTS failure.
+          // D2: Emit episode recall hint — plugin emits hint only, agent
+          //     runtime executes the actual MCP call (DONT2: no plugin↔MCP).
+          // AC10: Enrichment is advisory-only — never used to complete gates,
+          // override specs/contracts, or replace task evidence.
+          const implementsRefs = task.contract_refs?.implements ?? [];
+          if (implementsRefs.length > 0) {
+            const queryStr = implementsRefs.join(" ");
+            try {
+              const ftsResults = await activeStore.wisdom.search(queryStr, {
+                changeId,
+              });
+              const sorted = [...ftsResults]
+                .sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))
+                .slice(0, 5);
+              output._relevantWisdom = sorted;
+            } catch {
+              // D1 fallback: empty list on FTS failure (advisory-only).
+              output._relevantWisdom = [];
+            }
+            const projectId = await getProjectId(activeStore.paths.root);
+            output._episodeRecallHint = {
+              namespace: projectId ?? activeStore.paths.root,
+              query: queryStr,
+              top_k: 3,
+            };
+          } else {
+            output._relevantWisdom = [];
+          }
           return formatToolOutput(output);
         },
       );
