@@ -403,7 +403,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-status`    | Show fast ADV status table                                                                           |
 | `/adv-roadmap`   | Show fast ADV roadmap table                                                                          |
 | `/adv-idea`      | Explore rough ideas before drafting a proposal                                                       |
-| `/adv-problem`   | Triage issues before fixing or drafting a proposal                                                   |
+| `/adv-problem`   | Triage defects and unintended behavior before fixing or drafting a proposal                          |
 | `/adv-epic`      | Gather Epic goals before typed creation                                                             |
 | `/adv-backlog`   | Capture future work before it becomes an Epic or change                                              |
 | `/adv-proposal`  | Extract problem statement, user outcomes, and constraints without creating tasks                     |

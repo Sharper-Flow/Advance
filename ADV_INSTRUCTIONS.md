@@ -120,7 +120,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | Command                     | Purpose                                                                          |
 | --------------------------- | -------------------------------------------------------------------------------- |
 | `/adv-idea`                 | Explore rough ideas before drafting a proposal                                   |
-| `/adv-problem`              | Triage issues before fixing or drafting a proposal                               |
+| `/adv-problem`              | Triage defects and unintended behavior before fixing or drafting a proposal        |
 | `/adv-status`               | Show fast ADV status table                                                       |
 | `/adv-roadmap`              | Show fast ADV roadmap table                                                      |
 | `/adv-epic`                 | Gather Epic goals before typed creation                                          |
