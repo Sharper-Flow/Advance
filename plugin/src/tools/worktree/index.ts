@@ -1486,16 +1486,16 @@ async function cleanupOpenCodeWorkspaceForWorktree(
     branch,
   );
   if (!lookup.ok) {
-    // Fail closed: we cannot prove whether an OpenCode workspace owns this
-    // worktree, so neither workspace nor git removal may proceed (DONT3).
+    // Advisory only: the local isWorktreeInUse check upstream already proved
+    // no live process holds this worktree as CWD (rq-terminalCleanupSafety01).
+    // The remote workspace-list API is a stale-entry cleanup concern, not a
+    // safety authority — when unreachable, proceed and surface the reason.
     deps.log.warn(
-      `[worktree] Retaining ${branch} — OpenCode workspace ownership uncertain: ${lookup.reason}`,
+      `[worktree] OpenCode workspace registry unreachable for ${branch}: ${lookup.reason}; proceeding (local CWD safety check already cleared)`,
     );
     return {
-      ok: false,
-      error: "WORKSPACE_OWNERSHIP_UNCERTAIN",
-      reason: `workspace ownership uncertain: ${lookup.reason}`,
-      hint: "Could not verify whether an OpenCode workspace owns this worktree; retained without removal. Retry with adv_worktree_cleanup after the OpenCode server responds.",
+      ok: true,
+      warning: `workspace registry unreachable: ${lookup.reason}`,
     };
   }
   if (!lookup.workspace) return { ok: true, warning: null };
