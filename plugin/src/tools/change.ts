@@ -626,7 +626,11 @@ import {
   HistoricalConflictDispositionSchema,
   type HistoricalConflictDisposition,
 } from "../archive";
-import { formatToolOutput, paginate, resolveOutputMode } from "../utils/tool-output";
+import {
+  formatToolOutput,
+  paginate,
+  resolveOutputMode,
+} from "../utils/tool-output";
 import { withTimeout, TimeoutError } from "../utils/with-timeout";
 import {
   buildTodoProjection,
@@ -1070,7 +1074,9 @@ export const changeTools = {
       outputMode: z
         .enum(["compact", "pretty"])
         .optional()
-        .describe("Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call."),
+        .describe(
+          "Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call.",
+        ),
     },
     execute: async (
       {
@@ -1433,7 +1439,9 @@ export const changeTools = {
               output._acceptance = artifactContent.acceptance;
           }
         }
-        return formatToolOutput(output, { pretty: resolveOutputMode(outputMode) });
+        return formatToolOutput(output, {
+          pretty: resolveOutputMode(outputMode),
+        });
       };
 
       if (target_path && requestedKinds.length > 0) {
@@ -1601,7 +1609,7 @@ export const changeTools = {
           "GitHub issue number for kind=roadmap (required) or kind=triage (optional). " +
             "Rejected for discovery, adhoc, and omitted origin_kind.",
         ),
-        origin_source_artifact: z
+      origin_source_artifact: z
         .string()
         .optional()
         .describe(

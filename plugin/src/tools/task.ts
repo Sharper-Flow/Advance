@@ -26,10 +26,12 @@ import {
   validateTaskEvidenceForStage,
 } from "../validator/task-classifier";
 import { projectContractCoverage } from "../validator/contract";
-import { formatToolOutput, paginate, resolveOutputMode } from "../utils/tool-output";
 import {
-  maybeAttachChangeTicker,
-} from "../storage/context-snapshot-fetch";
+  formatToolOutput,
+  paginate,
+  resolveOutputMode,
+} from "../utils/tool-output";
+import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
 import {
   buildTodoProjection,
   formatTaskReadyOutput,
@@ -509,7 +511,9 @@ export const taskTools = {
       outputMode: z
         .enum(["compact", "pretty"])
         .optional()
-        .describe("Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call."),
+        .describe(
+          "Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call.",
+        ),
     },
     execute: async (
       args: {
@@ -523,7 +527,15 @@ export const taskTools = {
       },
       store: Store,
     ) => {
-      const { changeId, status, filter, limit, offset, target_path, outputMode } = args;
+      const {
+        changeId,
+        status,
+        filter,
+        limit,
+        offset,
+        target_path,
+        outputMode,
+      } = args;
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
@@ -570,7 +582,15 @@ export const taskTools = {
       ...includeSnapshotSchema.shape,
     },
     execute: async (
-      { changeId, target_path, include }: { changeId: string; target_path?: string; include?: { snapshot?: boolean } },
+      {
+        changeId,
+        target_path,
+        include,
+      }: {
+        changeId: string;
+        target_path?: string;
+        include?: { snapshot?: boolean };
+      },
       store: Store,
     ) => {
       return withOptionalTargetPathStore(

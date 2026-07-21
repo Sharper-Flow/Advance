@@ -12,10 +12,13 @@ describe("includeSnapshotSchema", () => {
 
   it("include is an object with optional snapshot boolean", () => {
     const includeShape = (
-      includeSnapshotSchema.shape.include as z.ZodOptional<z.ZodObject<z.ZodRawShape>>
+      includeSnapshotSchema.shape.include as z.ZodOptional<
+        z.ZodObject<z.ZodRawShape>
+      >
     ).unwrap();
     expect(includeShape.shape).toHaveProperty("snapshot");
-    const snapshotField = includeShape.shape.snapshot as z.ZodOptional<z.ZodBoolean>;
+    const snapshotField = includeShape.shape
+      .snapshot as z.ZodOptional<z.ZodBoolean>;
     expect(snapshotField.unwrap()).toBeInstanceOf(z.ZodBoolean);
   });
 
@@ -35,21 +38,29 @@ describe("includeSnapshotSchema", () => {
   });
 
   it("parses include.snapshot=false", () => {
-    const result = includeSnapshotSchema.parse({ include: { snapshot: false } });
+    const result = includeSnapshotSchema.parse({
+      include: { snapshot: false },
+    });
     expect(result.include?.snapshot).toBe(false);
   });
 
   it("parses include.snapshot=undefined", () => {
-    const result = includeSnapshotSchema.parse({ include: { snapshot: undefined } });
+    const result = includeSnapshotSchema.parse({
+      include: { snapshot: undefined },
+    });
     expect(result.include?.snapshot).toBeUndefined();
   });
 
   it("describes the snapshot field with the canonical wording", () => {
     const includeShape = (
-      includeSnapshotSchema.shape.include as z.ZodOptional<z.ZodObject<z.ZodRawShape>>
+      includeSnapshotSchema.shape.include as z.ZodOptional<
+        z.ZodObject<z.ZodRawShape>
+      >
     ).unwrap();
-    const snapshotField = includeShape.shape.snapshot as z.ZodOptional<z.ZodBoolean>;
-    const description = snapshotField.description ?? snapshotField.unwrap().description;
+    const snapshotField = includeShape.shape
+      .snapshot as z.ZodOptional<z.ZodBoolean>;
+    const description =
+      snapshotField.description ?? snapshotField.unwrap().description;
     expect(description).toContain("_contextSnapshot");
   });
 
@@ -60,7 +71,8 @@ describe("includeSnapshotSchema", () => {
     });
     expect(combined.parse({ changeId: "test" }).changeId).toBe("test");
     expect(
-      combined.parse({ changeId: "test", include: { snapshot: true } }).include?.snapshot,
+      combined.parse({ changeId: "test", include: { snapshot: true } }).include
+        ?.snapshot,
     ).toBe(true);
   });
 });

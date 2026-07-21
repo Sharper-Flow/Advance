@@ -243,7 +243,9 @@ export const statusTools = {
       outputMode: z
         .enum(["compact", "pretty"])
         .optional()
-        .describe("Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call."),
+        .describe(
+          "Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call.",
+        ),
     },
     execute: async (
       {
@@ -1036,7 +1038,9 @@ export const statusTools = {
           };
 
           const output = applyStatusView(fullOutput, view);
-          return formatToolOutput(output, { pretty: resolveOutputMode(outputMode) });
+          return formatToolOutput(output, {
+            pretty: resolveOutputMode(outputMode),
+          });
         },
       );
     },
