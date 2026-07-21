@@ -660,6 +660,7 @@ import {
   appendTargetProjectContextOutput,
   EPIC_OWNER_ROUTING_ERROR_CODES,
 } from "./target-project";
+import { includeSnapshotSchema } from "./shared-args";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { getService } from "../temporal/service";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
@@ -1594,7 +1595,7 @@ export const changeTools = {
           "GitHub issue number for kind=roadmap (required) or kind=triage (optional). " +
             "Rejected for discovery, adhoc, and omitted origin_kind.",
         ),
-      origin_source_artifact: z
+        origin_source_artifact: z
         .string()
         .optional()
         .describe(
@@ -1602,6 +1603,7 @@ export const changeTools = {
             "Examples: wisdom-id, task-id, or note-line ref. " +
             "Parse-only legacy: agenda-id ('ag-...') values remain readable for historical records.",
         ),
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       {
@@ -1629,6 +1631,7 @@ export const changeTools = {
         origin_kind,
         origin_issue_number,
         origin_source_artifact,
+        include,
       }: {
         summary: string;
         capability?: string;
@@ -1654,6 +1657,7 @@ export const changeTools = {
         origin_kind?: ChangeOrigin["kind"];
         origin_issue_number?: number;
         origin_source_artifact?: string;
+        include?: { snapshot?: boolean };
       },
       store: Store,
       _maybeOverridePath?: string,
@@ -1893,13 +1897,15 @@ export const changeTools = {
             `deriveWorkflowDirective failed in change-create for ${result.changeId}; snapshot omits Next line`,
           );
         }
-        output._contextSnapshot = buildChangeContextSnapshot({
-          change: createdChangeResult.data,
-          proposalText,
-          gates: createdGates,
-          workdir: store.paths.root,
-          directive: createdDirective,
-        });
+        if (include?.snapshot) {
+          output._contextSnapshot = buildChangeContextSnapshot({
+            change: createdChangeResult.data,
+            proposalText,
+            gates: createdGates,
+            workdir: store.paths.root,
+            directive: createdDirective,
+          });
+        }
       }
       // rq-backlogCoord03 — Post-create double-check for race tolerance.
       // Temporal Visibility is eventually consistent; concurrent creates may
@@ -5498,6 +5504,7 @@ export const changeTools = {
         .describe(
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       {
@@ -5510,6 +5517,7 @@ export const changeTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        include,
       }: {
         changeId: string;
         fromGate: GateId;
@@ -5521,6 +5529,7 @@ export const changeTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
@@ -5603,6 +5612,7 @@ export const changeTools = {
             activeStore,
             changeId,
             fromGate,
+            include?.snapshot ?? false,
           );
           return projectContext
             ? appendTargetProjectContextOutput(output, projectContext)

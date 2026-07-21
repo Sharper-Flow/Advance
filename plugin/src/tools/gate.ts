@@ -39,6 +39,7 @@ import {
   withOptionalTargetPathStore,
   withTargetPathStore,
 } from "./target-project";
+import { includeSnapshotSchema } from "./shared-args";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import {
@@ -957,6 +958,7 @@ async function completeGateAndBuildResponse({
   completedBy,
   boundaryWarning,
   extraPayload = {},
+  includeSnapshot = false,
 }: {
   store: Store;
   change: Change;
@@ -967,6 +969,7 @@ async function completeGateAndBuildResponse({
   completedBy: string;
   boundaryWarning?: string;
   extraPayload?: Record<string, unknown>;
+  includeSnapshot?: boolean;
 }): Promise<string> {
   // rq-cacheRefresh01: cache invalidation now happens at the call sites
   // via fireSignalAndRefresh (which fires the signal AND refreshes the
@@ -1018,13 +1021,17 @@ async function completeGateAndBuildResponse({
     status: "done",
     completed_at: completedAt,
     completed_by: completedBy,
-    _contextSnapshot: buildChangeContextSnapshot({
-      change,
-      proposalText,
-      gates: completedGates,
-      workdir: store.paths.root,
-      directive,
-    }),
+    ...(includeSnapshot
+      ? {
+          _contextSnapshot: buildChangeContextSnapshot({
+            change,
+            proposalText,
+            gates: completedGates,
+            workdir: store.paths.root,
+            directive,
+          }),
+        }
+      : {}),
     ...(boundaryWarning ? { boundaryWarning } : {}),
     ...extraPayload,
   });
@@ -1040,6 +1047,7 @@ async function handlePlanningGateCompletion({
   notes,
   completedBy,
   boundaryWarning,
+  includeSnapshot = false,
 }: {
   store: Store;
   change: Change;
@@ -1050,6 +1058,7 @@ async function handlePlanningGateCompletion({
   notes?: string;
   completedBy: string;
   boundaryWarning?: string;
+  includeSnapshot?: boolean;
 }): Promise<string> {
   if (!userApproved) {
     return formatToolOutput({
@@ -1193,6 +1202,7 @@ async function handlePlanningGateCompletion({
     notes,
     completedBy,
     boundaryWarning,
+    includeSnapshot,
     extraPayload: {
       ...warningsPayload,
       ...clarifyPayload,
@@ -1479,6 +1489,7 @@ export const gateTools = {
         ),
       target_confirmed: z.literal(true).optional(),
       confirmationEvidence: z.string().optional(),
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       {
@@ -1495,6 +1506,7 @@ export const gateTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        include,
       }: {
         changeId: string;
         gateId: GateId;
@@ -1509,6 +1521,7 @@ export const gateTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
@@ -1727,6 +1740,7 @@ export const gateTools = {
             notes,
             completedBy,
             boundaryWarning,
+            includeSnapshot: include?.snapshot ?? false,
           });
         }
 
@@ -1887,6 +1901,7 @@ export const gateTools = {
           notes,
           completedBy,
           boundaryWarning,
+          includeSnapshot: include?.snapshot ?? false,
           extraPayload: {
             ...profilePayload,
             ...(projectContext ? { _projectContext: projectContext } : {}),
