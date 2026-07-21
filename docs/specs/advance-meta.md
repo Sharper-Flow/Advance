@@ -2544,7 +2544,7 @@ Optional audit and recovery fields that are only required in specific contextual
 
 **ID:** `rq-activeChangePointer01` | **Priority:** **[MUST]**
 
-The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) a recovery MCP tool (adv_change_forget) to clear phantom pointers, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.
+The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) a recovery MCP tool (adv_change_forget) to clear phantom pointers, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. Cross-project tool calls are treated as active-work repoints only for tools in the activeChangeRepointTools allow-list when the target change.json exists; read/diagnostic cross-project calls do not mutate the caller's pointer, while terminal-clear hooks clear the pointer whenever the terminal changeId matches regardless of project ownership. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.
 
 **Tags:** `pointer`, `session`, `phantom`, `recovery`, `lifecycle`, `handleToolExecuteBefore`
 
@@ -2630,18 +2630,19 @@ The session active-change pointer (state.activeChange.id in plugin/src/index.ts 
 - No isChangeReachable check is performed
 - The forget tool's intentional clear is not defeated by the gate
 
-**Cross-project tool calls do not touch caller's pointer** (`rq-activeChangePointer01.7`)
+**Cross-project active-work calls repoint caller's pointer; read/diagnostic calls do not; terminal-clear fires regardless of project** (`rq-activeChangePointer01.7`)
 
 **Given:**
-- A session in project A with state.activeChange.id set to changeId X (project A scope)
+- A session in project A with state.activeChange.id set (or null)
 - An ADV tool is called with target_path pointing to project B and args.changeId referencing a changeId in project B
 
-**When:** handleToolExecuteBefore processes the cross-project tool call
+**When:** (Active-work case) The tool is in activeChangeRepointTools AND the changeId is reachable in project B (target project's change.json exists on disk); (Read/diagnostic case) The tool is NOT in activeChangeRepointTools; (Terminal-clear case) adv_change_close, adv_change_archive, or adv_change_forget succeeds for a changeId matching the caller's current pointer (regardless of project ownership)
 
 **Then:**
-- The caller's state.activeChange.id remains X (NOT mutated)
-- No reachability check is performed against the caller's project for the target-project changeId
-- The terminal-clear hooks likewise do not clear the caller's pointer for target-project close/archive operations
+- (Active-work case) state.activeChange.id is set to the target-project changeId; setActiveChange is called with the target changeId and any epicId resolved from the target project's change.json (best-effort)
+- (Read/diagnostic case) state.activeChange.id is NOT mutated; no setActiveChange call
+- (Terminal-clear case) state.activeChange.id is set to null; setActiveChange(null) is called; the clear fires whenever the terminal changeId matches the caller's pointer, regardless of which project owns the change
+- The reachability check for cross-project uses disk-only tier (existence of target's change.json); Visibility and workflow-state tiers are skipped for cross-project because they would require opening a Temporal client to the target project
 
 ---
 

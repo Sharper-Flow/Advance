@@ -73,7 +73,9 @@ import {
   getPluginBundleFreshness,
 } from "./plugin-bundle-manifest";
 import { existsSync } from "fs";
+import { readFile } from "node:fs/promises";
 import { execGit, getDefaultBranch } from "./utils/git";
+import { resolveTargetProject } from "./tools/target-project";
 import { resolveGitSessionContext } from "./utils/git-session";
 import {
   resolveRootSessionId,
@@ -656,16 +658,83 @@ const advancePluginImpl: Plugin = async (input) => {
     }
 
     if (shouldRepointActiveChange(toolName, args)) {
-      // Skip cross-project calls (C5) — target_path changeId refers to
-      // a different project; don't touch caller's pointer
-      if (args.target_path) {
-        debugLog(
-          `handleToolExecuteBefore: skipping re-point for cross-project call (target_path set)`,
-        );
-      } else if (args.changeId === state.activeChange.id) {
-        // Already pointing here; no-op
+      if (args.changeId === state.activeChange.id) {
+        // Already pointing here; no-op (covers same-project AND cross-project
+        // repeat calls — if the caller's pointer already matches, no work).
+      } else if (args.target_path) {
+        // rq-activeChangePointer01.7: cross-project active-work repoint.
+        // For tools in activeChangeRepointTools, repoint the caller's pointer
+        // to the target-project changeId, gated by target-project disk
+        // reachability. Read/diagnostic tools are filtered out by
+        // shouldRepointActiveChange above (they never reach this branch).
+        // KD3b: also resolve target epic_membership.epic_id for title format.
+        try {
+          const targetCtx = await resolveTargetProject({
+            currentProjectPath: directory,
+            target_path: String(args.target_path),
+          });
+          const targetChangesDir = join(targetCtx.externalRoot, "changes");
+          // Cross-project uses disk-only check (KD3) — Visibility and
+          // workflow-state tiers would require opening a Temporal client to
+          // the target project; out of scope. The disk check is sufficient
+          // signal that the change exists in the target project.
+          const targetDeps: ReachabilityDeps = {
+            visibilityLister: async () => false,
+            diskChecker: async (_dir: string, cid: string) => {
+              try {
+                return existsSync(join(targetChangesDir, cid, "change.json"));
+              } catch {
+                return false;
+              }
+            },
+            workflowStateGetter: async () => false,
+          };
+          const reachable = await isChangeReachable(
+            targetCtx.projectId,
+            String(args.changeId),
+            targetDeps,
+            targetChangesDir,
+          );
+          if (reachable) {
+            // KD3b: read target change.json for epic_membership.epic_id
+            // Best-effort per DDC5; failures fall back to bare changeId title.
+            let epicId: string | undefined;
+            try {
+              const raw = await readFile(
+                join(targetChangesDir, String(args.changeId), "change.json"),
+                "utf8",
+              );
+              const parsed = JSON.parse(raw) as {
+                epic_membership?: { epic_id?: string };
+              };
+              epicId = parsed.epic_membership?.epic_id;
+            } catch (err) {
+              debugLog(
+                `handleToolExecuteBefore: cross-project change.json parse failed for ${args.changeId}: ${err}`,
+              );
+            }
+            state.activeChange.id = String(args.changeId);
+            setActiveChange(
+              state.activeChange.id,
+              epicId ? { epicId } : undefined,
+            );
+            debugLog(
+              `handleToolExecuteBefore: cross-project re-pointed to ${args.changeId} (target project ${targetCtx.projectId}${epicId ? `, epic ${epicId}` : ""})`,
+            );
+          } else {
+            debugLog(
+              `handleToolExecuteBefore: cross-project changeId ${args.changeId} not reachable in target ${targetCtx.projectId}; preserving pointer ${state.activeChange.id}`,
+            );
+          }
+        } catch (err) {
+          // AC7: target-project resolution or reachability failure must NOT
+          // block the tool call itself; only the repoint is skipped.
+          debugLog(
+            `handleToolExecuteBefore: cross-project repoint failed for ${args.changeId}: ${err}. Preserving pointer.`,
+          );
+        }
       } else {
-        // Reachability gate (AC4/AC5) — check before re-pointing
+        // Same-project reachability gate (AC4/AC5) — check before re-pointing
         try {
           const reachable = await isChangeReachable(
             resolvedProjectId ?? "",
@@ -933,6 +1002,41 @@ const advancePluginImpl: Plugin = async (input) => {
     if (!completedTask) return;
     state.lastCompletedTask = completedTask;
   };
+
+  // Cwd-detect: seed active-change pointer from process.cwd() if it matches
+  // the canonical ADV worktree pattern. rq-fixZellijPaneTitles/AC1, AC2.
+  // Best-effort: failures are logged and ignored, never blocking init.
+  async function cwdDetectAndRepoint(): Promise<void> {
+    if (!resolvedProjectId || !store || !reachabilityDeps) return;
+    try {
+      const worktreeBase = getWorktreeBase(resolvedProjectId);
+      const cwd = process.cwd();
+      const prefix = worktreeBase + "/change/";
+      if (!cwd.startsWith(prefix)) return;
+      const rest = cwd.slice(prefix.length);
+      const changeId = rest.split("/")[0];
+      if (!changeId) return;
+      const reachable = await isChangeReachable(
+        resolvedProjectId,
+        changeId,
+        reachabilityDeps,
+        store.paths.changes,
+      );
+      if (reachable) {
+        state.activeChange.id = changeId;
+        const ctx = await resolveChangeContext(changeId);
+        setActiveChange(changeId, ctx);
+        debugLog(`cwdDetect: seeded pointer to ${changeId} from cwd ${cwd}`);
+      } else {
+        debugLog(
+          `cwdDetect: changeId ${changeId} not reachable; leaving pointer null`,
+        );
+      }
+    } catch (err) {
+      debugLog(`cwdDetect: failed: ${(err as Error).message}`);
+    }
+  }
+  await cwdDetectAndRepoint();
 
   const handleSessionStatusEvent = (event: { properties: unknown }) => {
     const props = event.properties as { status?: { type?: string } };
