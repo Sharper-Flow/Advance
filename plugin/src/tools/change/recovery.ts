@@ -441,11 +441,20 @@ export async function closeLinkedIssue(options: {
     worktreePath,
   } = options;
   const issueNumber = change.origin?.issue_number;
-  // reshapeTriagePortfolioBalance: close-eligibility reframed around
-  // issue linkage rather than origin kind enumeration. Any origin kind
-  // carrying an issue_number > 0 is close-eligible (legacy 'roadmap'
-  // origins still close on archive; current 'triage' origins likewise).
-  if (!issueNumber || issueNumber <= 0) {
+  const originKind = change.origin?.kind;
+  // Close-eligibility requires BOTH an issue link AND an issue-driven origin
+  // kind. `roadmap` (legacy) and `triage` origins are issue-driven and
+  // auto-close on archive. `discovery` and `adhoc` origins are not
+  // issue-driven — an `issue_number` on those is an incidental reference,
+  // not a fix-target link, so auto-closing would surprise the operator.
+  // See `change.test.ts > ineligible origin: discovery/adhoc origin`.
+  const ISSUE_DRIVEN_ORIGIN_KINDS = new Set(["roadmap", "triage"]);
+  if (
+    !issueNumber ||
+    issueNumber <= 0 ||
+    !originKind ||
+    !ISSUE_DRIVEN_ORIGIN_KINDS.has(originKind)
+  ) {
     return { issue_closed: [] };
   }
   if (noCloseIssue) {
