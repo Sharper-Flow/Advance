@@ -72,6 +72,9 @@ function createMockStore(): Store {
       // because the Temporal path is what we care about for this test.
       add: vi.fn(async () => undefined),
     },
+    tasks: {
+      show: vi.fn(async () => null),
+    },
     changes: {
       refresh: vi.fn(async () => undefined),
     },
@@ -244,5 +247,201 @@ describe("adv_wisdom_list — product-linked filtering", () => {
     expect(productWide.wisdom.map((entry: { id: string }) => entry.id)).toEqual(
       ["ws-web", "ws-backend", "ws-legacy", "pw-backend"],
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rq-wisdomAutoSurfacing01 — from_draft_id promotion (AC6 / DDC5)
+// ---------------------------------------------------------------------------
+
+describe("adv_wisdom_add — from_draft_id promotion (AC6 / DDC5)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("rejects from_draft_id without sourceTask", async () => {
+    const store = createMockStore();
+    const result = await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "chg-1",
+        type: "failure",
+        content: "x",
+        from_draft_id: "dr-aaaaaaaa",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toMatch(/from_draft_id requires sourceTask/);
+    expect(parsed.code).toBe("FROM_DRAFT_ID_REQUIRES_SOURCE_TASK");
+  });
+
+  test("rejects when draft is not found on task (DRAFT_NOT_FOUND)", async () => {
+    const store = createMockStore();
+    (store.tasks.show as ReturnType<typeof vi.fn>).mockResolvedValue({
+      task: {
+        id: "tk-1",
+        title: "T",
+        status: "in_progress",
+        wisdom_drafts: [],
+      },
+      changeId: "chg-1",
+    });
+
+    const result = await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "chg-1",
+        type: "failure",
+        content: "x",
+        sourceTask: "tk-1",
+        from_draft_id: "dr-missing",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.code).toBe("DRAFT_NOT_FOUND");
+    expect(parsed.error).toMatch(/dr-missing/);
+  });
+
+  test("rejects when draft is already promoted (DRAFT_ALREADY_PROMOTED)", async () => {
+    const store = createMockStore();
+    (store.tasks.show as ReturnType<typeof vi.fn>).mockResolvedValue({
+      task: {
+        id: "tk-1",
+        title: "T",
+        status: "in_progress",
+        wisdom_drafts: [
+          {
+            id: "dr-promoted1",
+            suggested_type: "failure",
+            suggested_content: "old",
+            source_attempts: [1],
+            status: "promoted",
+            created_at: "2026-07-21T17:00:00.000Z",
+            promoted_wisdom_id: "ws-old",
+          },
+        ],
+      },
+      changeId: "chg-1",
+    });
+
+    const result = await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "chg-1",
+        type: "failure",
+        content: "x",
+        sourceTask: "tk-1",
+        from_draft_id: "dr-promoted1",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.code).toBe("DRAFT_ALREADY_PROMOTED");
+  });
+
+  test("rejects when draft is dismissed (DRAFT_DISMISSED)", async () => {
+    const store = createMockStore();
+    (store.tasks.show as ReturnType<typeof vi.fn>).mockResolvedValue({
+      task: {
+        id: "tk-1",
+        title: "T",
+        status: "in_progress",
+        wisdom_drafts: [
+          {
+            id: "dr-dismissed1",
+            suggested_type: "failure",
+            suggested_content: "old",
+            source_attempts: [1],
+            status: "dismissed",
+            created_at: "2026-07-21T17:00:00.000Z",
+            dismissed_at: "2026-07-21T17:30:00.000Z",
+            dismiss_reason: "auto_checkpoint",
+          },
+        ],
+      },
+      changeId: "chg-1",
+    });
+
+    const result = await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "chg-1",
+        type: "failure",
+        content: "x",
+        sourceTask: "tk-1",
+        from_draft_id: "dr-dismissed1",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.code).toBe("DRAFT_DISMISSED");
+  });
+
+  test("promotes suggested draft atomically: adds wisdom, then fires taskUpdatedSignal with promoted draft", async () => {
+    const store = createMockStore();
+    (store.tasks.show as ReturnType<typeof vi.fn>).mockResolvedValue({
+      task: {
+        id: "tk-1",
+        title: "T",
+        status: "in_progress",
+        wisdom_drafts: [
+          {
+            id: "dr-suggested1",
+            suggested_type: "failure",
+            suggested_content: "draft content",
+            source_attempts: [1],
+            status: "suggested",
+            created_at: "2026-07-21T17:00:00.000Z",
+          },
+        ],
+      },
+      changeId: "chg-1",
+    });
+
+    const result = await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "chg-1",
+        type: "failure",
+        content: "explicit override",
+        sourceTask: "tk-1",
+        from_draft_id: "dr-suggested1",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.entry.id).toMatch(/^ws-/);
+    expect(parsed.entry.content).toBe("explicit override");
+
+    // Two signals: wisdomAddedSignal + taskUpdatedSignal (draft promotion)
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
+    // Second call: taskUpdatedSignal marking draft as promoted
+    const promotionCall = mocks.fireSignalAndRefresh.mock.calls[1];
+    expect(promotionCall[3]).toMatchObject({ name: expect.any(String) });
+    expect(promotionCall[4]).toMatchObject({
+      taskId: "tk-1",
+      partial: {
+        wisdom_drafts: [
+          expect.objectContaining({
+            id: "dr-suggested1",
+            status: "promoted",
+            promoted_wisdom_id: parsed.entry.id,
+          }),
+        ],
+      },
+    });
+  });
+
+  test("without from_draft_id: behavior unchanged (backward-compat)", async () => {
+    const store = createMockStore();
+    await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "chg-1",
+        type: "pattern",
+        content: "no draft",
+      },
+      store,
+    );
+    // Only one signal: wisdomAddedSignal (no draft promotion)
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(store.tasks.show).not.toHaveBeenCalled();
   });
 });
