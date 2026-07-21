@@ -93,14 +93,48 @@ describe("adv mcp server", () => {
     await closeClient(client, clientTransport, serverTransport);
   });
 
-  it("tools/list returns exactly adv_handshake and project_context", async () => {
+  it("tools/list returns exactly the 14 expected Tier-4 tools", async () => {
     const { client, clientTransport, serverTransport } =
       await connectToServer();
 
     const tools = await client.listTools();
     expect(tools.tools.map((t) => t.name).sort()).toEqual(
-      ["adv_handshake", "project_context"].sort(),
+      [
+        "adv_handshake",
+        "project_context",
+        "status",
+        "spec",
+        "wisdom_list",
+        "reflection_list",
+        "backlog_list",
+        "backlog_show",
+        "epic_list",
+        "epic_show",
+        "wip_state",
+        "worktree_triage",
+        "tool_catalog",
+        "tool_describe",
+      ].sort(),
     );
+
+    await closeClient(client, clientTransport, serverTransport);
+  });
+
+  it("tools/list does not expose removed tools", async () => {
+    const { client, clientTransport, serverTransport } =
+      await connectToServer();
+
+    const tools = await client.listTools();
+    const names = new Set(tools.tools.map((t) => t.name));
+    for (const removed of [
+      "reflect",
+      "project_metadata",
+      "conformance",
+      "session_list",
+      "session_show",
+    ]) {
+      expect(names).not.toContain(removed);
+    }
 
     await closeClient(client, clientTransport, serverTransport);
   });
@@ -223,6 +257,22 @@ describe("adv mcp server", () => {
       code: "MUTATION_SHAPED_ARGUMENT",
       arg: "target_path",
     });
+
+    await closeClient(client, clientTransport, serverTransport);
+  });
+
+  it("tool_describe delegates to the plugin handler", async () => {
+    const { client, clientTransport, serverTransport } =
+      await connectToServer();
+
+    const result = await client.callTool({
+      name: "tool_describe",
+      arguments: { name: "adv_project_context" },
+    });
+    const text = extractText(result);
+    const parsed = JSON.parse(text);
+    expect(parsed.name).toBe("adv_project_context");
+    expect(parsed.description).toBeDefined();
 
     await closeClient(client, clientTransport, serverTransport);
   });

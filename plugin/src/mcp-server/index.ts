@@ -18,7 +18,9 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { getProjectId } from "../utils/project-id.js";
 import { handleHandshake } from "./handshake.js";
+import { HANDSHAKE_TIER4_TOOLS } from "./handshake.js";
 import { handleProjectContext } from "./tools/project_context.js";
+import { executeTier4Tool, TIER4_TOOL_DESCRIPTIONS } from "./tools/index.js";
 import { formatArgRejection, rejectMutationShapedArgs } from "./security.js";
 
 export interface StartServerOptions {
@@ -113,6 +115,35 @@ export async function startServer(
       };
     },
   );
+
+  for (const toolName of HANDSHAKE_TIER4_TOOLS) {
+    if (toolName === "project_context") continue;
+    mcp.registerTool(
+      toolName,
+      {
+        description: TIER4_TOOL_DESCRIPTIONS[toolName],
+        inputSchema: anyArgsSchema,
+      },
+      async (args) => {
+        const check = rejectMutationShapedArgs(args);
+        if (check.rejected) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: formatArgRejection(check.arg),
+              },
+            ],
+          };
+        }
+
+        const text = await executeTier4Tool(cwd, toolName, args);
+        return {
+          content: [{ type: "text" as const, text }],
+        };
+      },
+    );
+  }
 
   const transport =
     options.transport ??
