@@ -1,0 +1,739 @@
+{
+  "id": "makeWorkspaceCleanupRemoteFail",
+  "title": "Make workspace cleanup remote-fail advisory",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T00:34:21.201Z",
+  "tasks": [
+    {
+      "id": "tk-c4ed7637ef03",
+      "title": "Update existing tests and add regression coverage in `plugin/src/tools/worktree/index-delete.test.ts` for the new advisory-warning behavior.",
+      "type": "code",
+      "section": "Tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T00:34:55.649Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Test-only task; tests ARE the deliverable.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T00:36:13.613Z",
+      "verification": "Tests task: updated 2 existing tests (lines 456, 491) to assert advisory-warning behavior; added 1 new regression test. RED tr_mrtxcaag_60d1f144 (3 fail). GREEN covers same files via tr_mrtxcuxd_5eb23a55 (113 pass) and tr_mrtxeg8b_c323a60d (239 pass broader).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "6bbb0bbc48f479cefdfb977d6c6d103dd03a2c06",
+      "completedAt": "2026-07-21T00:39:37.703Z",
+      "completed_at": "2026-07-21T00:39:37.703Z",
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "DONT1",
+          "DONT3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC7"
+        ]
+      },
+      "updatedAt": "2026-07-21T00:40:00.530Z"
+    },
+    {
+      "id": "tk-f44f3d2543fe",
+      "title": "Amend spec `rq-terminalCleanupSafety01` to document the authority split: local CWD scan is the safety authority; remote workspace-list API is advisory.",
+      "type": "docs",
+      "section": "Spec",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T00:34:56.285Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec amendment; verification via schema validation and spec-show readback.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T00:38:07.192Z",
+      "verification": "Spec task: extended body of rq-terminalCleanupSafety01 with authority-split clarification; added scenario rq-terminalCleanupSafety01.3 in both .adv/specs/worktree-lifecycle/spec.json and docs/specs/worktree-lifecycle.md. schemas:check passed (tr_mrtxdsi7_779fd1c0). JSON structure validated via jq.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6bbb0bbc48f479cefdfb977d6c6d103dd03a2c06",
+      "completedAt": "2026-07-21T00:39:48.746Z",
+      "completed_at": "2026-07-21T00:39:48.746Z",
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "updatedAt": "2026-07-21T00:40:00.546Z"
+    },
+    {
+      "id": "tk-4aa6068e8954",
+      "title": "Modify `cleanupOpenCodeWorkspaceForWorktree` in `plugin/src/tools/worktree/index.ts` (lines 1488-1500) so a remote workspace-list lookup failure (`{ok: false, reason}` from `findWorkspaceByDirectoryChecked`) becomes advisory rather than blocking.",
+      "type": "code",
+      "section": "Source",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-21T00:35:08.235Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Behavioral change to control flow. Tests are the correct evidence route.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T00:37:42.342Z",
+      "verification": "Reviewer remediation: preflight comment refresh (index.ts ~1462, ~2336) + log-warn assertions on 2 existing tests (index-delete.test.ts ~482, ~541) for AC7 observability. Targeted suite tr_mrtxk1j6_058d8953: 59 pass / 0 fail.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "504ecbfd347c1d3f8f12517bdfc044d11a0a07b3",
+      "completedAt": "2026-07-21T00:43:55.587Z",
+      "completed_at": "2026-07-21T00:43:55.587Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "updatedAt": "2026-07-21T00:40:00.545Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "makeWorkspaceCleanupRemoteFail",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeWorkspaceCleanupRemoteFail",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "summary": "Corrected stale preflight comments so they match advisory remote lookup behavior while preserving the found-workspace deletion blocker.",
+          "verification": "Reviewed control flow and ran targeted worktree deletion tests."
+        },
+        {
+          "file": "plugin/src/tools/worktree/index-delete.test.ts",
+          "summary": "Added direct warning-log assertions for HTTP 503 and thrown remote registry failures; regression now proves AC7 observability as well as advisory deletion.",
+          "verification": "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts — 59 passed, 0 failed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When changing a failure from blocking to advisory, update nearby control-flow comments and test the side effect required for observability (the log), not only the returned warning."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Exit 0: 1 test file, 59 tests passed. git diff --check passed. Reviewed trunk...HEAD: exactly the four scoped files. Prior supplied evidence also records 239/0 targeted workspace tests and schemas:check pass."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-c4ed7637ef03": [
+      {
+        "runId": "tr_mrtxcaag_60d1f144",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts",
+        "durationMs": 11544.579758000094,
+        "recordedAt": "2026-07-21T00:37:32.855Z"
+      }
+    ],
+    "tk-4aa6068e8954": [
+      {
+        "runId": "tr_mrtxcuxd_5eb23a55",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts src/tools/worktree/in-use.test.ts src/utils/workspace-warp.test.ts",
+        "durationMs": 11227.418198000174,
+        "recordedAt": "2026-07-21T00:37:59.609Z"
+      },
+      {
+        "runId": "tr_mrtxeg8b_c323a60d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/ src/utils/workspace-warp.test.ts",
+        "durationMs": 10954.616633999627,
+        "recordedAt": "2026-07-21T00:39:13.905Z"
+      },
+      {
+        "runId": "tr_mrtxk1j6_058d8953",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts",
+        "durationMs": 10104.186086999718,
+        "recordedAt": "2026-07-21T00:43:34.751Z"
+      }
+    ],
+    "tk-f44f3d2543fe": [
+      {
+        "runId": "tr_mrtxdsi7_779fd1c0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run schemas:check 2>&1 | tail -25",
+        "durationMs": 1132.5031929998659,
+        "recordedAt": "2026-07-21T00:38:43.124Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:34:33.590Z",
+      "completed_by": "agent",
+      "approval_evidence": "Bug fix; root-cause + fix approach captured in proposal. Affected files: plugin/src/tools/worktree/index.ts (5-line change), tests, spec amendment. Clarify warnings are noise (scope is explicit; \"auth\" referenced only as example remote failure mode).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "363ffa321eab6b497798fd467f8272b4ebda0f6ce79eb10376e70a3a4a2515ff",
+        "non_whitespace_chars": 2264,
+        "checked_at": "2026-07-21T00:34:21.233Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:34:53.840Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted (21 items). Root cause analysis complete: cleanupOpenCodeWorkspaceForWorktree fails closed on remote API failure even when local /proc/*/cwd scan upstream has cleared safety. Local isWorktreeInUse already exists and runs first. Fix is advisory remote + local-authority.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "non_whitespace_chars": 3150,
+        "checked_at": "2026-07-21T00:34:21.234Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:35:06.633Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact written: 5-line change to !lookup.ok branch in cleanupOpenCodeWorkspaceForWorktree; preserves WORKSPACE_CLEANUP_FAILED for workspace-found-but-delete-fails case; spec rq-terminalCleanupSafety01.3 amendment; test updates. LBP decisions documented. No validator required (no user-value/product tradeoff, no CONFLICT, no contract compromise).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "540f55353dd32970ec133f8084c40fdd0a9e3e5431ad7ea8638bf0b1a963e7c2",
+        "non_whitespace_chars": 5302,
+        "checked_at": "2026-07-21T00:34:21.235Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:35:29.236Z",
+      "completed_by": "user:jonerikson",
+      "approval_evidence": "User approved task graph via inline \"approve\" at planning checkpoint. 3 tasks: source (5-line fix), tests (update + regression), spec amendment."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:40:25.364Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done; single checkpoint 6bbb0bbc captures atomic green state. TDD: red tr_mrtxcaag_60d1f144 → green tr_mrtxcuxd_5eb23a55 + tr_mrtxeg8b_c323a60d (239 pass broader). Spec amendment validates (tr_mrtxdsi7_779fd1c0). Sub-agent delegation failed (empty return — same quota issue); executed inline per provider fallback."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:44:45.045Z",
+      "completed_by": "user:jonerikson",
+      "approval_evidence": "User approved via inline \"approve\" at acceptance checkpoint. Contract matrix 17/17 required rows passing/respected. Independent reviewer READY with scoped remediation applied. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "1853c38e96de107ef6209dfba651c16dc94a5b7f4a15b0a04d16583e4d425d56",
+        "non_whitespace_chars": 2696,
+        "checked_at": "2026-07-21T00:34:21.236Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+      "approvedAt": "2026-07-21T00:34:33.761Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: null}` (no peer workspace owns the dir), deletion proceeds. Existing behavior preserved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: <handle>}` (a peer workspace owns the dir), the existing `deleteAdvWorkspace` call runs and may block deletion on its own failure. Existing behavior preserved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — When `findWorkspaceByDirectoryChecked` returns `{ok: false, reason}` (remote unreachable / 5xx / malformed response), `cleanupOpenCodeWorkspaceForWorktree` returns `{ok: true, warning: <message>}` instead of `{ok: false, error: \"WORKSPACE_OWNERSHIP_UNCERTAIN\"}`. Deletion proceeds. The warning includes the failure reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — The local `isWorktreeInUse(worktreePath)` check (Linux `/proc/*/cwd`) upstream in `advWorktreeDelete` remains the primary safety gate. No change to its behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — `WORKSPACE_OWNERSHIP_UNCERTAIN` error code is NOT removed from the union type (backward compat for callers and tests) but is no longer produced by the remote-failure path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6** — Spec `rq-terminalCleanupSafety01` is amended (or a new scenario `rq-terminalCleanupSafety01.3` is added) documenting that local CWD scan is the safety authority and the remote workspace-list API is advisory for stale-entry cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** — A regression test asserts: remote-fail + local-clean → deletion proceeds and a warning is logged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No change to `isWorktreeInUse` behavior or its Linux-only graceful-degradation contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No removal of the remote workspace-list call entirely — it still runs when reachable to clean up stale registry entries (preserves the happy path).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No change to the `OpenCodeWorkspaceCleanupResult` type shape — `WORKSPACE_OWNERSHIP_UNCERTAIN` and `WORKSPACE_CLEANUP_FAILED` remain valid union members.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No new tool flag, env var, or opt-in toggle. The fix is the new default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "No change to the `WORKSPACE_CLEANUP_FAILED` path (when remote succeeds and finds a workspace, but workspace deletion fails — still blocks).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently swallow remote failures — the warning must surface the reason for observability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not bypass `deleteAdvWorkspace` when the remote lookup succeeds and returns a workspace handle — that path still owns stale-entry cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add retry logic, backoff, or queuing — out of scope; the local check already provides the safety answer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not change `findWorkspaceByDirectoryChecked`'s contract — callers (including tests) depend on the `{ok: false, reason}` shape for remote failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not touch `warpFlagEnabled` — the fix applies whether or not Warp mode is enabled; when Warp is disabled, the lookup short-circuits to `{ok: true, workspace: null}` already.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "macOS `lsof +D` fallback for `isWorktreeInUse` (current Linux-only graceful degradation remains).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Bulk cleanup of stale workspace registry entries left by past unreachable-during-delete events.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Telemetry/metrics on remote-fail frequency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Changes to `adv_worktree_cleanup` reaper timing or pending-delete lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T00:44:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-4aa6068e8954 preserves the {ok:true, workspace:null} early return at index.ts:1501; covered by existing test 'preserves walk-up behavior' in index-delete.test.ts and full suite tr_mrtxeg8b_c323a60d (239 pass)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-4aa6068e8954 preserves the {ok:true, workspace:<handle>} -> deleteAdvWorkspace path; WORKSPACE_CLEANUP_FAILED still returned on workspace-delete failure. Existing test at index-delete.test.ts:440 (workspace cleanup failed) still passes in tr_mrtxeg8b_c323a60d."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-4aa6068e8954 changed !lookup.ok branch (index.ts ~1488) to return {ok:true, warning}; tk-c4ed7637ef03 tests 'proceeds with a warning when workspace ownership is uncertain (list request fails)' and 'proceeds with a warning when the workspace list lookup throws' assert the new behavior. Targeted tr_mrtxk1j6_058d8953: 59 pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "isWorktreeInUse (in-use.ts) and its upstream check at index.ts:2237 are unchanged. in-use.test.ts passes in tr_mrtxcuxd_5eb23a55 (113 pass)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "OpenCodeWorkspaceCleanupResult union at index.ts:1467 retains both WORKSPACE_OWNERSHIP_UNCERTAIN and WORKSPACE_CLEANUP_FAILED members. Code is unreachable from !lookup.ok path but type-compatibility preserved."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "tk-f44f3d2543fe amended rq-terminalCleanupSafety01 body in both .adv/specs/worktree-lifecycle/spec.json and docs/specs/worktree-lifecycle.md; added scenario rq-terminalCleanupSafety01.3. schemas:check passed (tr_mrtxdsi7_779fd1c0); jq confirms scenario present and JSON valid."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-c4ed7637ef03 added explicit regression test 'remote workspace registry unreachable is advisory and surfaces reason in warning'. Reviewer remediation added log.warn assertions to two existing tests proving the warning is logged. tr_mrtxk1j6_058d8953: 59 pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No change to isWorktreeInUse or in-use.ts."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Remote workspace-list call still runs via findWorkspaceByDirectoryChecked; reachable case preserves stale-entry cleanup."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "OpenCodeWorkspaceCleanupResult shape unchanged; both error codes remain valid union members."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new flag/env/toggle introduced. Fix is unconditional new default."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "WORKSPACE_CLEANUP_FAILED path unchanged in source."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Warning includes the upstream reason string; not swallowed."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "deleteAdvWorkspace still called when lookup succeeds with workspace handle."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No retry/backoff/queue logic added."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "findWorkspaceByDirectoryChecked signature and result shape unchanged."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "warpFlagEnabled short-circuit at workspace-warp.ts:299 unchanged."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: null}` (no peer workspace owns the dir), deletion proceeds. Existing behavior preserved.",
+    "**AC2** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: <handle>}` (a peer workspace owns the dir), the existing `deleteAdvWorkspace` call runs and may block deletion on its own failure. Existing behavior preserved.",
+    "**AC3** — When `findWorkspaceByDirectoryChecked` returns `{ok: false, reason}` (remote unreachable / 5xx / malformed response), `cleanupOpenCodeWorkspaceForWorktree` returns `{ok: true, warning: <message>}` instead of `{ok: false, error: \"WORKSPACE_OWNERSHIP_UNCERTAIN\"}`. Deletion proceeds. The warning includes the failure reason.",
+    "**AC4** — The local `isWorktreeInUse(worktreePath)` check (Linux `/proc/*/cwd`) upstream in `advWorktreeDelete` remains the primary safety gate. No change to its behavior.",
+    "**AC5** — `WORKSPACE_OWNERSHIP_UNCERTAIN` error code is NOT removed from the union type (backward compat for callers and tests) but is no longer produced by the remote-failure path.",
+    "**AC6** — Spec `rq-terminalCleanupSafety01` is amended (or a new scenario `rq-terminalCleanupSafety01.3` is added) documenting that local CWD scan is the safety authority and the remote workspace-list API is advisory for stale-entry cleanup.",
+    "**AC7** — A regression test asserts: remote-fail + local-clean → deletion proceeds and a warning is logged."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\nPost-archive worktree cleanup wedges with `WORKSPACE_OWNERSHIP_UNCERTAIN` every time the OpenCode workspace-list API is unreachable. Observed reproducer: `adv_worktree_cleanup` and `adv_worktree_delete` for `change/fixSlopScanResolverTimeouts` failed with `workspace list request failed: Unable to connect. Is the computer able to access the url?`, requiring a manual `git worktree remove` to clear. The merge was on `origin/trunk`, the worktree was clean, and no process held it as CWD — but the remote API call blocked a fully local operation.\n\n## Root cause\n\n`plugin/src/tools/worktree/index.ts:1476 cleanupOpenCodeWorkspaceForWorktree` calls `findWorkspaceByDirectoryChecked` (remote `fetchWith` to OpenCode workspace API). On any failure (network, auth, 5xx, malformed response) it returns `{ok: false, reason}`. The caller fails closed: `WORKSPACE_OWNERSHIP_UNCERTAIN` blocks deletion entirely.\n\nBut the actual safety invariant (per spec `rq-terminalCleanupSafety01`) is \"no live process CWD\" — which is already verified upstream by the **local** `isWorktreeInUse(worktreePath)` check (`plugin/src/tools/worktree/in-use.ts`) via Linux `/proc/*/cwd` scan. The remote API answers a different question (\"is there an OpenCode workspace registry entry pointing here?\") — a stale-registry-cleanup concern, not a safety concern. Treating it as a safety gate is a structural defect (P35 architecture-over-hacks): local decision gated on remote dependency.\n\n## Fix\n\nMake the remote workspace-list call **advisory**:\n- Remote success + workspace found → still call `deleteAdvWorkspace`; on failure block with `WORKSPACE_CLEANUP_FAILED` (preserves stale-entry cleanup).\n- Remote success + no workspace → proceed (unchanged).\n- Remote failure → log warning with reason, proceed (new). Local CWD check already proved safety upstream.\n\nNo new flag, no opt-in. The fix is the new default. ~5-line change to `cleanupOpenCodeWorkspaceForWorktree`'s `!lookup.ok` branch.\n\n## Out of scope\n\n- macOS `lsof +D` fallback for `isWorktreeInUse` (current Linux-only graceful degradation remains).\n- Bulk reconciliation of stranded workspace registry entries from past unreachable-during-delete events.\n- Per-detector or per-call retry/backoff.\n- Changes to `warpFlagEnabled` short-circuit behavior.\n- New env vars or feature flags.\n\n## Verification\n\n- `bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts src/utils/workspace-warp.test.ts`\n- Reproducer: post-archive cleanup of a real merged worktree while the OpenCode workspace API is unreachable → succeeds without manual `git worktree remove`.",
+    "agreement": "# Agreement: Make workspace cleanup remote-fail advisory\n\n## Objectives\n\n1. Post-archive worktree cleanup succeeds when local evidence proves no process holds the worktree as CWD, even when the OpenCode workspace-list API is unreachable.\n2. The actual safety invariant — \"no live process CWD\" — remains the authority; the remote workspace registry is treated as advisory for stale-entry cleanup.\n3. Clear behavior under each remote outcome: success-with-workspace, success-without-workspace, and failure.\n\n## Acceptance criteria\n\n- **AC1** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: null}` (no peer workspace owns the dir), deletion proceeds. Existing behavior preserved.\n- **AC2** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: <handle>}` (a peer workspace owns the dir), the existing `deleteAdvWorkspace` call runs and may block deletion on its own failure. Existing behavior preserved.\n- **AC3** — When `findWorkspaceByDirectoryChecked` returns `{ok: false, reason}` (remote unreachable / 5xx / malformed response), `cleanupOpenCodeWorkspaceForWorktree` returns `{ok: true, warning: <message>}` instead of `{ok: false, error: \"WORKSPACE_OWNERSHIP_UNCERTAIN\"}`. Deletion proceeds. The warning includes the failure reason.\n- **AC4** — The local `isWorktreeInUse(worktreePath)` check (Linux `/proc/*/cwd`) upstream in `advWorktreeDelete` remains the primary safety gate. No change to its behavior.\n- **AC5** — `WORKSPACE_OWNERSHIP_UNCERTAIN` error code is NOT removed from the union type (backward compat for callers and tests) but is no longer produced by the remote-failure path.\n- **AC6** — Spec `rq-terminalCleanupSafety01` is amended (or a new scenario `rq-terminalCleanupSafety01.3` is added) documenting that local CWD scan is the safety authority and the remote workspace-list API is advisory for stale-entry cleanup.\n- **AC7** — A regression test asserts: remote-fail + local-clean → deletion proceeds and a warning is logged.\n\n## Constraints\n\n- No change to `isWorktreeInUse` behavior or its Linux-only graceful-degradation contract.\n- No removal of the remote workspace-list call entirely — it still runs when reachable to clean up stale registry entries (preserves the happy path).\n- No change to the `OpenCodeWorkspaceCleanupResult` type shape — `WORKSPACE_OWNERSHIP_UNCERTAIN` and `WORKSPACE_CLEANUP_FAILED` remain valid union members.\n- No new tool flag, env var, or opt-in toggle. The fix is the new default.\n- No change to the `WORKSPACE_CLEANUP_FAILED` path (when remote succeeds and finds a workspace, but workspace deletion fails — still blocks).\n\n## Avoidances\n\n- Do not silently swallow remote failures — the warning must surface the reason for observability.\n- Do not bypass `deleteAdvWorkspace` when the remote lookup succeeds and returns a workspace handle — that path still owns stale-entry cleanup.\n- Do not add retry logic, backoff, or queuing — out of scope; the local check already provides the safety answer.\n- Do not change `findWorkspaceByDirectoryChecked`'s contract — callers (including tests) depend on the `{ok: false, reason}` shape for remote failures.\n- Do not touch `warpFlagEnabled` — the fix applies whether or not Warp mode is enabled; when Warp is disabled, the lookup short-circuits to `{ok: true, workspace: null}` already.\n\n## Out of scope\n\n- macOS `lsof +D` fallback for `isWorktreeInUse` (current Linux-only graceful degradation remains).\n- Bulk cleanup of stale workspace registry entries left by past unreachable-during-delete events.\n- Telemetry/metrics on remote-fail frequency.\n- Changes to `adv_worktree_cleanup` reaper timing or pending-delete lifecycle.\n",
+    "design": "# Design: Make workspace cleanup remote-fail advisory\n\n## Architecture\n\nNo architecture change. One localized edit to `cleanupOpenCodeWorkspaceForWorktree` in `plugin/src/tools/worktree/index.ts`. The local `isWorktreeInUse` safety check (Linux `/proc/*/cwd`) already runs upstream in `advWorktreeDelete` and remains the sole safety authority. The remote workspace-list lookup becomes advisory: when unreachable, log a warning and proceed (local evidence has already cleared).\n\n## Component changes\n\n### 1. `plugin/src/tools/worktree/index.ts` — `cleanupOpenCodeWorkspaceForWorktree` (lines 1476–1522)\n\nCurrent failure path (lines 1488–1500):\n\n```ts\nif (!lookup.ok) {\n  // Fail closed: we cannot prove whether an OpenCode workspace owns this\n  // worktree, so neither workspace nor git removal may proceed (DONT3).\n  deps.log.warn(\n    `[worktree] Retaining ${branch} — OpenCode workspace ownership uncertain: ${lookup.reason}`,\n  );\n  return {\n    ok: false,\n    error: \"WORKSPACE_OWNERSHIP_UNCERTAIN\",\n    reason: `workspace ownership uncertain: ${lookup.reason}`,\n    hint: \"Could not verify whether an OpenCode workspace owns this worktree; retained without removal. Retry with adv_worktree_cleanup after the OpenCode server responds.\",\n  };\n}\n```\n\nFixed:\n\n```ts\nif (!lookup.ok) {\n  // Advisory only: the local isWorktreeInUse check upstream already proved\n  // no live process holds this worktree as CWD (rq-terminalCleanupSafety01).\n  // The remote workspace-list API is a stale-entry cleanup concern, not a\n  // safety authority — when unreachable, proceed and surface the reason.\n  deps.log.warn(\n    `[worktree] OpenCode workspace registry unreachable for ${branch}: ${lookup.reason}; proceeding (local CWD safety check already cleared)`,\n  );\n  return {\n    ok: true,\n    warning: `workspace registry unreachable: ${lookup.reason}`,\n  };\n}\n```\n\nUnchanged:\n- `{ok: true, workspace: null}` path (lines 1501) — proceed silently.\n- `{ok: true, workspace: <handle>}` path (lines 1503–1521) — call `deleteAdvWorkspace`; on failure return `WORKSPACE_CLEANUP_FAILED`. This is a real safety concern: a workspace registry entry exists and could not be cleaned up; keep blocking to avoid strand.\n\n### 2. `plugin/src/tools/worktree/index-delete.test.ts` — new test\n\nAdd a test alongside the existing `WORKSPACE_OWNERSHIP_UNCERTAIN` tests (around lines 471, 506, 1348) that asserts the new behavior: when `findWorkspaceByDirectoryChecked` returns `{ok: false}`, `cleanupOpenCodeWorkspaceForWorktree` returns `{ok: true, warning: ...}` and the outer delete proceeds.\n\nThe existing tests that asserted `WORKSPACE_OWNERSHIP_UNCERTAIN` from the remote-fail path must be updated to assert the new advisory-warning behavior. Tests asserting `WORKSPACE_CLEANUP_FAILED` (workspace found but delete failed) remain unchanged.\n\n### 3. `.adv/specs/worktree-lifecycle/spec.json` + `docs/specs/worktree-lifecycle.md` — spec amendment\n\nAdd scenario `rq-terminalCleanupSafety01.3`:\n\n> **Remote workspace registry is advisory**\n> Given: `advWorktreeDelete` has already verified via local `/proc/*/cwd` scan that no live process holds the worktree as CWD\n> When: The remote OpenCode workspace-list API is unreachable (network failure, 5xx, malformed response)\n> Then: Deletion proceeds; a warning is logged with the remote failure reason; the worktree is not retained\n\nAlso amend `rq-terminalCleanupSafety01` body to clarify the authority split:\n\n> The local CWD scan (`isWorktreeInUse`) is the sole safety authority for \"no live process holds this worktree.\" The remote workspace-list API is advisory: it cleans up stale OpenCode workspace registry entries when reachable, but its failure does not block deletion when local evidence is clean.\n\n## LBP decisions\n\n| Decision | Rationale |\n|---|---|\n| Local check is safety authority | The spec's actual invariant is \"no live process CWD.\" `/proc/*/cwd` answers that directly. The remote API answers a different question (\"is there a registry entry pointing here?\") that is not a safety concern. |\n| Remote failure → proceed + warn | The remote unreachable case has zero safety impact (local already cleared). Stranded workspace registry entries are a cleanup concern, not a safety concern; they can be reconciled later. |\n| Remote success + workspace found → still blocks | A workspace registry entry exists; deleting the worktree would strand it. `deleteAdvWorkspace` runs first; its failure is a real blocker. |\n| No opt-in flag | The fix is correct behavior, not a feature toggle. The current \"fail closed on remote unreachable\" is a structural defect (P35), not a defensible default. |\n| Keep error code in union | Backward compat for callers and tests. The code becomes unreachable from this path but may still be produced elsewhere in future. |\n| Spec amendment | The current spec body could be read to mandate the broken behavior. Explicit clarification prevents regression. |\n\n## Implementation strategy\n\n1. Edit `cleanupOpenCodeWorkspaceForWorktree` (5-line change to the `!lookup.ok` branch).\n2. Update existing tests that asserted `WORKSPACE_OWNERSHIP_UNCERTAIN` from the remote-failure path.\n3. Add one explicit regression test for the new behavior.\n4. Amend spec `rq-terminalCleanupSafety01` with scenario `.3` and body clarification.\n5. Run targeted suite: `bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts src/utils/workspace-warp.test.ts`.\n6. Run spec-validation if any spec schema check exists.\n\n## Risks\n\n- **Stranded workspace registry entries:** if the remote is persistently unreachable, workspace entries pointing at deleted worktrees will accumulate. This is a registry hygiene issue, not a correctness issue. Future follow-up could add a reconciliation sweep.\n- **Subtle change in failure semantics:** existing callers that branched on `WORKSPACE_OWNERSHIP_UNCERTAIN` will no longer see it from this path. Audit of all call sites (cleanup reaper, terminal cleanup, `adv_worktree_delete` direct callers) confirms none depend on this specific code for safety — they all delegate to the local CWD check upstream.\n- **Test churn:** existing tests asserting the old behavior need updates. This is intentional and surfaces the behavior change explicitly.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nWorktree cleanup no longer blocks when the remote OpenCode workspace-list API is unreachable. The local `/proc/*/cwd` scan (`isWorktreeInUse`) upstream in `advWorktreeDelete` is now the documented sole safety authority for the \"no live process CWD\" invariant. The remote workspace-list lookup is advisory: when reachable, it still cleans up stale OpenCode workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.\n\n## Value\n\nBefore this change, every post-archive `adv_worktree_cleanup` and `adv_worktree_delete` could wedge with `WORKSPACE_OWNERSHIP_UNCERTAIN: workspace list request failed: Unable to connect` whenever the OpenCode workspace API was unreachable — even when the worktree was fully merged, the tree was clean, and no process held it as CWD. The only recovery was a manual `git worktree remove` bypassing ADV entirely. The structural defect (P35 architecture-over-hacks) — a local deletion decision gated on a remote dependency — is removed.\n\n## What Changed\n\n- `plugin/src/tools/worktree/index.ts`: `cleanupOpenCodeWorkspaceForWorktree`'s `!lookup.ok` branch returns `{ok: true, warning}` instead of `{ok: false, error: WORKSPACE_OWNERSHIP_UNCERTAIN}`. Two nearby preflight comments refreshed to match the new advisory semantics.\n- `plugin/src/tools/worktree/index-delete.test.ts`: two existing tests updated to assert advisory-warning behavior; one new explicit regression test; two new `log.warn` assertions prove the warning is observable.\n- `.adv/specs/worktree-lifecycle/spec.json`: `rq-terminalCleanupSafety01` body extended with authority-split clarification; new scenario `rq-terminalCleanupSafety01.3` documents the advisory failure mode.\n- `docs/specs/worktree-lifecycle.md`: mirrored spec amendment.\n\n## Verification\n\n- Targeted worktree suite (16 files, 239 tests): pass / 0 fail (`tr_mrtxeg8b_c323a60d`).\n- TDD red → green: red `tr_mrtxcaag_60d1f144` (3 fail) → green `tr_mrtxcuxd_5eb23a55` (113 pass).\n- Reviewer remediation re-verify: `tr_mrtxk1j6_058d8953` (59 pass).\n- `pnpm run schemas:check` passed (`tr_mrtxdsi7_779fd1c0`).\n- Spec jq validation: `rq-terminalCleanupSafety01.3` present, body extended, JSON valid.\n- Independent acceptance review: READY, 0 blocking findings, scoped remediation applied (preflight comments + log-warn assertions).\n- Contract matrix: 17/17 required rows passing/respected; 0 failures.\n\n## Remaining Behavior\n\n`WORKSPACE_CLEANUP_FAILED` is still a real blocker — when the remote lookup succeeds and returns a workspace handle but `deleteAdvWorkspace` fails, deletion is retained. This preserves stale-registry-entry cleanup authority. The `WORKSPACE_OWNERSHIP_UNCERTAIN` error code remains in the type union for backward compatibility but is no longer produced by the remote-failure path.\n\n## Risks and Follow-ups\n\nNo release blocker. Potential follow-up: a reconciliation sweep for stranded workspace registry entries left by past unreachable-during-delete events (registry hygiene only, not a correctness issue). Out of scope for this change.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T00:44:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: null}` (no peer workspace owns the dir), deletion proceeds. Existing behavior preserved. | pass | tk-4aa6068e8954 preserves the {ok:true, workspace:null} early return at index.ts:1501; covered by existing test 'preserves walk-up behavior' in index-delete.test.ts and full suite tr_mrtxeg8b_c323a60d (239 pass). |\n| AC2 | acceptance_criterion | **AC2** — When `findWorkspaceByDirectoryChecked` returns `{ok: true, workspace: <handle>}` (a peer workspace owns the dir), the existing `deleteAdvWorkspace` call runs and may block deletion on its own failure. Existing behavior preserved. | pass | tk-4aa6068e8954 preserves the {ok:true, workspace:<handle>} -> deleteAdvWorkspace path; WORKSPACE_CLEANUP_FAILED still returned on workspace-delete failure. Existing test at index-delete.test.ts:440 (workspace cleanup failed) still passes in tr_mrtxeg8b_c323a60d. |\n| AC3 | acceptance_criterion | **AC3** — When `findWorkspaceByDirectoryChecked` returns `{ok: false, reason}` (remote unreachable / 5xx / malformed response), `cleanupOpenCodeWorkspaceForWorktree` returns `{ok: true, warning: <message>}` instead of `{ok: false, error: \"WORKSPACE_OWNERSHIP_UNCERTAIN\"}`. Deletion proceeds. The warning includes the failure reason. | pass | tk-4aa6068e8954 changed !lookup.ok branch (index.ts ~1488) to return {ok:true, warning}; tk-c4ed7637ef03 tests 'proceeds with a warning when workspace ownership is uncertain (list request fails)' and 'proceeds with a warning when the workspace list lookup throws' assert the new behavior. Targeted tr_mrtxk1j6_058d8953: 59 pass. |\n| AC4 | acceptance_criterion | **AC4** — The local `isWorktreeInUse(worktreePath)` check (Linux `/proc/*/cwd`) upstream in `advWorktreeDelete` remains the primary safety gate. No change to its behavior. | pass | isWorktreeInUse (in-use.ts) and its upstream check at index.ts:2237 are unchanged. in-use.test.ts passes in tr_mrtxcuxd_5eb23a55 (113 pass). |\n| AC5 | acceptance_criterion | **AC5** — `WORKSPACE_OWNERSHIP_UNCERTAIN` error code is NOT removed from the union type (backward compat for callers and tests) but is no longer produced by the remote-failure path. | pass | OpenCodeWorkspaceCleanupResult union at index.ts:1467 retains both WORKSPACE_OWNERSHIP_UNCERTAIN and WORKSPACE_CLEANUP_FAILED members. Code is unreachable from !lookup.ok path but type-compatibility preserved. |\n| AC6 | acceptance_criterion | **AC6** — Spec `rq-terminalCleanupSafety01` is amended (or a new scenario `rq-terminalCleanupSafety01.3` is added) documenting that local CWD scan is the safety authority and the remote workspace-list API is advisory for stale-entry cleanup. | pass | tk-f44f3d2543fe amended rq-terminalCleanupSafety01 body in both .adv/specs/worktree-lifecycle/spec.json and docs/specs/worktree-lifecycle.md; added scenario rq-terminalCleanupSafety01.3. schemas:check passed (tr_mrtxdsi7_779fd1c0); jq confirms scenario present and JSON valid. |\n| AC7 | acceptance_criterion | **AC7** — A regression test asserts: remote-fail + local-clean → deletion proceeds and a warning is logged. | pass | tk-c4ed7637ef03 added explicit regression test 'remote workspace registry unreachable is advisory and surfaces reason in warning'. Reviewer remediation added log.warn assertions to two existing tests proving the warning is logged. tr_mrtxk1j6_058d8953: 59 pass. |\n| C1 | constraint | No change to `isWorktreeInUse` behavior or its Linux-only graceful-degradation contract. | respected | No change to isWorktreeInUse or in-use.ts. |\n| C2 | constraint | No removal of the remote workspace-list call entirely — it still runs when reachable to clean up stale registry entries (preserves the happy path). | respected | Remote workspace-list call still runs via findWorkspaceByDirectoryChecked; reachable case preserves stale-entry cleanup. |\n| C3 | constraint | No change to the `OpenCodeWorkspaceCleanupResult` type shape — `WORKSPACE_OWNERSHIP_UNCERTAIN` and `WORKSPACE_CLEANUP_FAILED` remain valid union members. | respected | OpenCodeWorkspaceCleanupResult shape unchanged; both error codes remain valid union members. |\n| C4 | constraint | No new tool flag, env var, or opt-in toggle. The fix is the new default. | respected | No new flag/env/toggle introduced. Fix is unconditional new default. |\n| C5 | constraint | No change to the `WORKSPACE_CLEANUP_FAILED` path (when remote succeeds and finds a workspace, but workspace deletion fails — still blocks). | respected | WORKSPACE_CLEANUP_FAILED path unchanged in source. |\n| DONT1 | avoidance | Do not silently swallow remote failures — the warning must surface the reason for observability. | respected | Warning includes the upstream reason string; not swallowed. |\n| DONT2 | avoidance | Do not bypass `deleteAdvWorkspace` when the remote lookup succeeds and returns a workspace handle — that path still owns stale-entry cleanup. | respected | deleteAdvWorkspace still called when lookup succeeds with workspace handle. |\n| DONT3 | avoidance | Do not add retry logic, backoff, or queuing — out of scope; the local check already provides the safety answer. | respected | No retry/backoff/queue logic added. |\n| DONT4 | avoidance | Do not change `findWorkspaceByDirectoryChecked`'s contract — callers (including tests) depend on the `{ok: false, reason}` shape for remote failures. | respected | findWorkspaceByDirectoryChecked signature and result shape unchanged. |\n| DONT5 | avoidance | Do not touch `warpFlagEnabled` — the fix applies whether or not Warp mode is enabled; when Warp is disabled, the lookup short-circuits to `{ok: true, workspace: null}` already. | respected | warpFlagEnabled short-circuit at workspace-warp.ts:299 unchanged. |\n| OOS1 | out_of_scope | macOS `lsof +D` fallback for `isWorktreeInUse` (current Linux-only graceful degradation remains). | missing |  |\n| OOS2 | out_of_scope | Bulk cleanup of stale workspace registry entries left by past unreachable-during-delete events. | missing |  |\n| OOS3 | out_of_scope | Telemetry/metrics on remote-fail frequency. | missing |  |\n| OOS4 | out_of_scope | Changes to `adv_worktree_cleanup` reaper timing or pending-delete lifecycle. | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T00:34:21.262Z",
+      "contentHash": "363ffa321eab6b497798fd467f8272b4ebda0f6ce79eb10376e70a3a4a2515ff",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T00:34:21.262Z",
+      "contentHash": "3a8c102a93a0c803ea270d3ed8a6965d61f1356cdb9471fa236405c7cd2d22bc",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T00:34:21.262Z",
+      "contentHash": "540f55353dd32970ec133f8084c40fdd0a9e3e5431ad7ea8638bf0b1a963e7c2",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T00:44:10.074Z",
+      "contentHash": "1853c38e96de107ef6209dfba651c16dc94a5b7f4a15b0a04d16583e4d425d56",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T00:44:45.045Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-21T00:41:11.391Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-21T00:41:11.391Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
