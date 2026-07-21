@@ -69,9 +69,17 @@ export async function executeTier4Tool(
   args: Record<string, unknown>,
   options?: DegradationOptions,
 ): Promise<string> {
-  const classifications =
-    TOOL_CLASSIFICATIONS[toolName as Tier4ToolName] ??
-    (["pure"] as ToolClassification[]);
+  const classifications = TOOL_CLASSIFICATIONS[toolName as Tier4ToolName];
+  if (!classifications) {
+    // Harden fix (review suggestion #4): fail loud on unknown tool name.
+    // Silent fallback to ["pure"] would let typos in HANDSHAKE_TIER4_TOOLS
+    // dispatch through the wrong degradation path.
+    return JSON.stringify({
+      error: "UNKNOWN_TIER4_TOOL",
+      tool: toolName,
+      hint: "Add the tool to TOOL_CLASSIFICATIONS in plugin/src/mcp-server/tools/index.ts",
+    });
+  }
 
   const run = async (): Promise<string> => {
     const { createToolMap } = await import("../../tool-registry.js");
