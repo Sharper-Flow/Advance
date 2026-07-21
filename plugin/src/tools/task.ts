@@ -88,6 +88,7 @@ import {
   saveRecoveredTaskAdd,
   saveRecoveredTaskMutation,
 } from "./_recovery-writers";
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 
 /**
  * rq-extend-poisoned-recovery: validate that callers using
@@ -1035,6 +1036,42 @@ export const taskTools = {
             mutate: mutateRecoveredTask,
           });
           recoveredViaPoisoned = true;
+        } else {
+          // D4 internal classification (rq-internalMonotonicRecovery01):
+          // when the operator has NOT supplied recoveryMode/evidence, probe
+          // describe() to detect poisoned/completed workflows automatically.
+          // Removes the evidence-copy ceremony from routine callers (AC5/SC3);
+          // destructive/competing-authority cases still refuse with a typed
+          // operator-required result (AC6). The operator-supplied path above
+          // remains as back-compat until tk-0528be678596 retires the surface.
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
+          });
+          if (internalDecision.kind === "recover_via_disk") {
+            await logRecoveryProbeDiagnostics(handle, changeId);
+            const changeResult = await activeStore.changes.get(changeId);
+            if (!changeResult.success || !changeResult.data) {
+              throw new Error(
+                `Cannot recover task ${args.taskId}: change ${changeId} not found`,
+              );
+            }
+            await saveRecoveredTaskMutation({
+              store: activeStore,
+              change: changeResult.data,
+              taskId: args.taskId,
+              mutate: mutateRecoveredTask,
+            });
+            recoveredViaPoisoned = true;
+          } else if (internalDecision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely mutate task ${args.taskId}: ${internalDecision.detail}`,
+              code: "TASK_MUTATION_OPERATOR_REQUIRED",
+              cause: internalDecision.cause,
+              hint: "Re-run after recovering workflow reachability, or supply explicit recoveryMode/recoveryEvidence if verifying a known-poisoned workflow.",
+              changeId,
+              taskId: args.taskId,
+            });
+          }
         }
 
         if (!recoveredViaPoisoned) {
