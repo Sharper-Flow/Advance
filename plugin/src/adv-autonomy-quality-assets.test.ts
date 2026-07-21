@@ -424,14 +424,16 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/conflicting files/i);
   });
 
-  test("adv-archive.md closes linked roadmap and triage issues by default", () => {
+  test("adv-archive.md closes linked issues by default (issue_number gate, any origin kind)", () => {
     const archive = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     const instructions = readAsset(INSTRUCTIONS);
 
     expect(archive).toMatch(/--no-close-issue/);
     expect(archive).toMatch(/--close-issue[\s\S]*backward-compatible/i);
     expect(archive).toMatch(/default(?:s)? to closing/i);
-    expect(archive).toMatch(/origin\.kind.*roadmap.*triage/s);
+    // Roadmap origin kind is retired; closure now keys off origin.issue_number
+    // for any origin kind that carries an issue link (discovery, triage, adhoc).
+    expect(archive).toMatch(/origin\.issue_number|origin\.kind/i);
     expect(archive).toMatch(/issue_number/);
     expect(archive).toMatch(/final release proof|release proof/i);
     expect(archive).not.toMatch(/Default-off; require explicit opt-in/i);

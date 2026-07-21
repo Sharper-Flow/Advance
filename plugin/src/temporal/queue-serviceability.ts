@@ -20,6 +20,8 @@ export type ServerPollerProbeStatus =
 export interface ServerPollerProbe {
   status: ServerPollerProbeStatus;
   lastAccessMs: number | null;
+  pollerCount?: number;
+  lastPollerAt?: string | null;
   error?: string;
 }
 
@@ -157,6 +159,8 @@ export async function probeTaskQueuePollers(
     return {
       status: "unavailable",
       lastAccessMs: null,
+      pollerCount: 0,
+      lastPollerAt: null,
       error: "WorkflowService.describeTaskQueue unavailable",
     };
   }
@@ -168,7 +172,13 @@ export async function probeTaskQueuePollers(
       taskQueueType: TASK_QUEUE_TYPE_WORKFLOW,
     });
     const pollers = extractPollers(response);
-    if (pollers.length === 0) return { status: "none", lastAccessMs: null };
+    if (pollers.length === 0)
+      return {
+        status: "none",
+        lastAccessMs: null,
+        pollerCount: 0,
+        lastPollerAt: null,
+      };
 
     const nowMs = input.nowMs?.() ?? Date.now();
     const ages = pollers
@@ -180,6 +190,8 @@ export async function probeTaskQueuePollers(
       return {
         status: "unavailable",
         lastAccessMs: null,
+        pollerCount: 0,
+        lastPollerAt: null,
         error: "Task queue pollers had no parseable lastAccessTime",
       };
     }
@@ -189,11 +201,15 @@ export async function probeTaskQueuePollers(
     return {
       status: lastAccessMs <= freshPollerMs ? "fresh" : "stale",
       lastAccessMs,
+      pollerCount: pollers.length,
+      lastPollerAt: new Date(nowMs - lastAccessMs).toISOString(),
     };
   } catch (err) {
     return {
       status: "unavailable",
       lastAccessMs: null,
+      pollerCount: 0,
+      lastPollerAt: null,
       error: err instanceof Error ? err.message : String(err),
     };
   }

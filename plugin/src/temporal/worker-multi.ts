@@ -150,6 +150,12 @@ export interface MultiWorkerInput {
   queues: readonly string[];
   workerScript: string;
   projectId: string;
+  /**
+   * Optional session ID (KD-6). Emitted as ADV_TEMPORAL_SESSION_ID env var
+   * to the child for diagnostics. The session queue itself must be present
+   * in `queues` (parent-computed via buildSessionTaskQueue).
+   */
+  sessionId?: string;
   nodeEnv?: NodeJS.ProcessEnv;
   onWorkerExhausted?: () => void | Promise<void>;
 }
@@ -349,6 +355,7 @@ export async function createMultiWorker(
       address: input.address,
       namespace: input.namespace,
       projectId: input.projectId,
+      sessionId: input.sessionId,
     });
 
     // Override the single-queue env with multi-queue config

@@ -6,6 +6,7 @@ import { createDefaultGates, type Change, type ChangeRecency } from "../types";
 import type { WorkflowDirective } from "../utils/workflow-directive";
 import {
   applyCandidateEnrichmentPatches,
+  appendResumeFreshnessRecommendation,
   buildCandidateEnrichmentPatch,
   buildNextGateRecommendationFromDirective,
   enrichRecentChangeStatus,
@@ -723,5 +724,113 @@ describe("enrichRecentChangeStatus summary/hygiene compatibility regression", ()
       entry_id: "entry-1",
     });
     expect(status.recommendations.length).toBeGreaterThan(0);
+  });
+});
+
+describe("appendResumeFreshnessRecommendation", () => {
+  function buildTarget() {
+    const target: StatusRecommendationCarrier = { recommendations: [] };
+    return {
+      target,
+      items: () => target.recommendation_items ?? [],
+    };
+  }
+
+  it("emits recommendation for single HIGH-confidence archived_duplicate", () => {
+    const { target, items } = buildTarget();
+    appendResumeFreshnessRecommendation(target, "currentId", {
+      findings: [
+        {
+          code: "resume:archived_duplicate",
+          label: "repo_backed_fact",
+          summary: "shares 2 caps + 4 paths",
+          evidenceChangeIds: ["archivedDup"],
+        },
+      ],
+      skipped: false,
+    });
+
+    const recs = items();
+    expect(recs).toHaveLength(1);
+    expect(recs[0].source).toBe("resume_freshness");
+    expect(recs[0].priority).toBe("high");
+    expect(recs[0].message).toContain("ADV does not auto-execute");
+    expect(recs[0].message).toContain("adv_change_close");
+    expect(recs[0].message).toContain("supersededBy: currentId");
+    expect(recs[0].message).toContain("archivedDup");
+  });
+
+  it("emits NO recommendation for multiple HIGH-confidence findings (ambiguous)", () => {
+    const { target, items } = buildTarget();
+    appendResumeFreshnessRecommendation(target, "currentId", {
+      findings: [
+        {
+          code: "resume:archived_duplicate",
+          label: "repo_backed_fact",
+          summary: "x",
+          evidenceChangeIds: ["dup1"],
+        },
+        {
+          code: "resume:archived_duplicate",
+          label: "repo_backed_fact",
+          summary: "y",
+          evidenceChangeIds: ["dup2"],
+        },
+      ],
+      skipped: false,
+    });
+
+    expect(items()).toEqual([]);
+  });
+
+  it("emits NO recommendation for zero HIGH-confidence findings", () => {
+    const { target, items } = buildTarget();
+    appendResumeFreshnessRecommendation(target, "currentId", {
+      findings: [
+        {
+          code: "resume:archived_duplicate",
+          label: "judgment_call",
+          summary: "x",
+          evidenceChangeIds: ["dup1"],
+        },
+      ],
+      skipped: false,
+    });
+
+    expect(items()).toEqual([]);
+  });
+
+  it("emits NO recommendation when skipped=true", () => {
+    const { target, items } = buildTarget();
+    appendResumeFreshnessRecommendation(target, "currentId", {
+      findings: [],
+      skipped: true,
+    });
+
+    expect(items()).toEqual([]);
+  });
+
+  it("wording guard: NEVER uses 'one-click' or 'button-click'", () => {
+    const { target, items } = buildTarget();
+    appendResumeFreshnessRecommendation(target, "currentId", {
+      findings: [
+        {
+          code: "resume:archived_duplicate",
+          label: "repo_backed_fact",
+          summary: "x",
+          evidenceChangeIds: ["dup1"],
+        },
+      ],
+      skipped: false,
+    });
+
+    const recs = items();
+    expect(recs).toHaveLength(1);
+    const msg = recs[0].message ?? "";
+    const action = recs[0].action ?? "";
+    expect(msg).not.toMatch(/one-click/i);
+    expect(msg).not.toMatch(/button-click/i);
+    expect(action).not.toMatch(/one-click/i);
+    expect(action).not.toMatch(/button-click/i);
   });
 });

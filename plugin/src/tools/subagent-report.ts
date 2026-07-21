@@ -1007,7 +1007,7 @@ export const subagentReportTools = {
       "Submit a typed, Zod-validated sub-agent report and persist it on the owning ADV change/task scope.",
     args: {
       report: ScopedSubagentReportSchema.describe(
-        "Typed sub-agent report payload. v1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, orchestrator-submitted adv-scanner-bundle reports, and orchestrator-submitted adv-verification-triage-bundle reports.",
+        "Typed sub-agent report payload. v1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, orchestrator-submitted adv-scanner-bundle reports, and orchestrator-submitted adv-verification-triage-bundle reports. For canonical REVIEWER_REPORT shapes (READY + CONFLICT), see .opencode/agents/adv-reviewer.md § REVIEWER_REPORT Payload — discrimination is by `agent` field; each variant has distinct required fields (e.g., adv-reviewer requires scope, verification, scope_drift, required_main_agent_actions).",
       ),
       dryRun: z
         .boolean()

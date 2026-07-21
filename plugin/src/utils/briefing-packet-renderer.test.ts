@@ -89,21 +89,36 @@ describe("renderBriefingPacket", () => {
       change_id: string;
       title: string;
       anchors: string[];
+      required_from: string;
+      note: string;
     };
     expect(content.anchors).toEqual(
       getSubagentReportPacketAnchors("adv-engineer"),
     );
+    // Self-documenting hint: anchor values must come from the orchestrator's
+    // spawn prompt — the briefing packet only carries anchor NAMES. Without
+    // this field, readers can misinterpret the names as informational-only
+    // and skip populating the required packet header.
+    expect(content.required_from).toBe("orchestrator_packet_header");
+    expect(content.note).toEqual(expect.any(String));
+    expect(content.note.length).toBeGreaterThan(0);
   });
 
   it("uses archive anchors for the archive lane", () => {
     const packet = render({ ...baseInput, lane: "archive" });
     const identity = packet.sections.find((s) => s.kind === "identity_anchors");
-    const content = identity?.content as { anchors: string[] };
+    const content = identity?.content as {
+      anchors: string[];
+      required_from: string;
+    };
     expect(content.anchors).toEqual([
       "CHANGE",
       "STATUS",
       "TERMINAL_GATE_SUMMARY",
     ]);
+    // Archive lane also carries the required_from hint (the renderer applies
+    // it uniformly so any reader knows where the values must come from).
+    expect(content.required_from).toBe("orchestrator_packet_header");
   });
 
   it("selects lane-specific sections for engineer lane", () => {

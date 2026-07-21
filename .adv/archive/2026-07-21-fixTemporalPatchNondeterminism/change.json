@@ -1,0 +1,2772 @@
+{
+  "id": "fixTemporalPatchNondeterminism",
+  "title": "Fix Temporal patch nondeterminism",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-20T20:41:34.858Z",
+  "tasks": [
+    {
+      "id": "tk-08c8652ba945",
+      "title": "Build typed history classification and sanitization pipeline",
+      "type": "code",
+      "section": "History evidence",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T17:48:36.378Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:51:12.186Z",
+      "verification": "RED captured missing module; GREEN 5 tests passed; pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts"
+      ],
+      "checkpointSha": "fcb624e222ca446e0a7b39cfd53dc7fb2fe17ed4",
+      "completedAt": "2026-07-21T17:57:09.598Z",
+      "completed_at": "2026-07-21T17:57:09.598Z"
+    },
+    {
+      "id": "tk-cfcdf9a91953",
+      "title": "Capture and classify all six affected Temporal histories",
+      "type": "research",
+      "section": "History evidence",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T17:48:50.344Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-08c8652ba945"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT1",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "source_audit",
+      "evidence_plan": {
+        "policy": "source_audit",
+        "proof_target": "Source audit or inspection",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:57:33.848Z",
+      "verification": "Exported six production histories from local Temporal; deterministic sanitizer/audit emitted 18 fixture artifacts; classification tests 6/6 passed; replay corpus 12/12 passed with reproduced/immutable expectations. Raw histories remain only under /tmp/opencode.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/scripts/finalize-poisoned-replay-histories.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.metadata.json",
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts"
+      ],
+      "touched_files": [
+        "plugin/scripts/finalize-poisoned-replay-histories.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.metadata.json",
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts"
+      ],
+      "checkpointSha": "9b56404be72899a32a99790a7ca3e1832f23ba66",
+      "completedAt": "2026-07-21T18:06:19.902Z",
+      "completed_at": "2026-07-21T18:06:19.902Z"
+    },
+    {
+      "id": "tk-728444920e47",
+      "title": "Remediate classified replay divergences",
+      "type": "code",
+      "section": "Deterministic remediation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-21T17:49:01.768Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cfcdf9a91953"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3"
+        ],
+        "verifies": [
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T18:06:42.669Z",
+      "verification": "RED raw production replay reproduced TMPRL1100 search-attribute/activity ordering for three histories. Evidence showed no safe recorded marker distinguishing stale unversioned ordering, so no speculative workflows.ts mutation was made; three classified immutable for recovery, two immutable because safe sanitization changes branch-driving state, one self-healed. GREEN replay/classification suite passed 19/19 with six terminal classifications.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/scripts/finalize-poisoned-replay-histories.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.metadata.json"
+      ],
+      "touched_files": [
+        "plugin/scripts/finalize-poisoned-replay-histories.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.metadata.json"
+      ],
+      "checkpointSha": "16bb1e9022980ecb581be8301f3b9d8f1e85b344",
+      "completedAt": "2026-07-21T18:11:54.804Z",
+      "completed_at": "2026-07-21T18:11:54.804Z"
+    },
+    {
+      "id": "tk-e9077befa06a",
+      "title": "Add real command-boundary replay drift regression",
+      "type": "code",
+      "section": "Determinism regression",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T17:49:30.452Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-08c8652ba945"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4"
+        ],
+        "verifies": [
+          "SC4"
+        ],
+        "respects": [
+          "C2",
+          "C6",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:57:42.064Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalPatchNondeterminism",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+          "task_id": "tk-e9077befa06a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-e9077befa06a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+            "plugin/src/temporal/__tests__/command-boundary-replay.recording-workflow.ts",
+            "plugin/src/temporal/__tests__/command-boundary-replay.drift-workflow.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mruzk58t_8afa78be",
+              "command": "pnpm --dir plugin exec vitest run --project temporal src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+              "exit_code": 0,
+              "summary": "GREEN: dedicated Temporal integration test records a live activity-then-timer history and confirms replay rejects timer-then-activity code."
+            },
+            {
+              "test_run_id": "tr_mruzkjeh_ab5829a6",
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "VERIFY: TypeScript typecheck passes."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used a dedicated recording/replay workflow pair with identical exported workflow names.",
+              "why": "A live history is recorded against activity-then-timer code, then replayed against timer-then-activity code; this isolates a real command-boundary ordering divergence without production workflow or captured-history changes."
+            },
+            {
+              "what": "Used an activity and timer rather than patch markers.",
+              "why": "The regression directly asserts Temporal nondeterminism from command order drift, as required by SC4."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Existing replay coverage exercises committed histories and patch markers; this new test is the dedicated live-history command-boundary drift regression. No adjacent same-pattern test-only gaps were found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Recorded RED evidence tr_mruzjui9_83418ac1: replay resolved while both fixtures preserved activity-then-timer order. GREEN evidence tr_mruzk58t_8afa78be: replay fails after only the dedicated replay fixture moves timer before activity. No production workflow, manifest, deployment, or captured-history classification files changed.",
+            "suggested_next_action": "Checkpoint task and review the three test-only files; proceed to next task."
+          }
+        }
+      ],
+      "verification": "RED tr_mruzjui9_83418ac1 proved identical order replayed; GREEN tr_mruzk58t_8afa78be proved activity/timer exchange rejects as nondeterministic; typecheck tr_mruzkjeh_ab5829a6 passed. Test-only dedicated workflows; no production workflow change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay.drift-workflow.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay.recording-workflow.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay.drift-workflow.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay.recording-workflow.ts"
+      ],
+      "checkpointSha": "5baecd8bee586bf8ed1d08421865e50188b1672e",
+      "completedAt": "2026-07-21T18:28:51.908Z",
+      "completed_at": "2026-07-21T18:28:51.908Z"
+    },
+    {
+      "id": "tk-2dbb8952ea67",
+      "title": "Enforce explicit worker artifact policy before every production create",
+      "type": "code",
+      "section": "Worker artifact integrity",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-21T17:49:41.831Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5"
+        ],
+        "verifies": [
+          "SC5"
+        ],
+        "respects": [
+          "C3",
+          "C5",
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:51:20.777Z",
+      "verification": "RED verifier tests failed before implementation. GREEN manifest tests 10/10; worker/manifest/plugin-init targeted tests 44/44; typecheck passed; build:worker produced manifest generation d84842313c66…; touched-file Prettier check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/__tests__/e2e-tool-calls.itest.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/__tests__/archive-phase9-splitbrain.itest.ts",
+        "plugin/src/temporal/in-process-worker.ts",
+        "plugin/src/temporal/worker-bundle-manifest.test.ts",
+        "plugin/src/temporal/worker-bundle-manifest.ts",
+        "plugin/src/temporal/worker.test.ts",
+        "plugin/src/temporal/worker.ts"
+      ],
+      "touched_files": [
+        "plugin/src/__tests__/e2e-tool-calls.itest.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/__tests__/archive-phase9-splitbrain.itest.ts",
+        "plugin/src/temporal/in-process-worker.ts",
+        "plugin/src/temporal/worker-bundle-manifest.test.ts",
+        "plugin/src/temporal/worker-bundle-manifest.ts",
+        "plugin/src/temporal/worker.test.ts",
+        "plugin/src/temporal/worker.ts"
+      ],
+      "checkpointSha": "4b3897aac4b85057b74bc73358f1586639ca43fe",
+      "completedAt": "2026-07-21T18:21:42.685Z",
+      "completed_at": "2026-07-21T18:21:42.685Z"
+    },
+    {
+      "id": "tk-86086a4015dc",
+      "title": "Publish and verify temporal bundle manifest last",
+      "type": "code",
+      "section": "Worker artifact integrity",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-21T17:49:52.193Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2dbb8952ea67"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5"
+        ],
+        "verifies": [
+          "SC5"
+        ],
+        "respects": [
+          "C3",
+          "C5",
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T18:29:00.407Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalPatchNondeterminism",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+          "task_id": "tk-86086a4015dc",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-86086a4015dc"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "scripts/deploy-local.sh",
+            "plugin/src/deploy-local-plugin-manifest.test.ts",
+            "plugin/src/deploy-local-worker-refresh.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mruzz9m5_ee275df6",
+              "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+              "exit_code": 0,
+              "summary": "3 manifest-publication tests pass, including new Temporal manifest publish-last regression."
+            },
+            {
+              "test_run_id": "tr_mrv00g4x_b8a42dfe",
+              "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+              "exit_code": 0,
+              "summary": "8 deployed-worker refresh regression tests pass after valid temporal-manifest fixture update."
+            },
+            {
+              "test_run_id": "tr_mrv00r5k_79d3c518",
+              "command": "bash -n scripts/deploy-local.sh",
+              "exit_code": 0,
+              "summary": "Shell syntax validation passes."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Excluded both plugin and Temporal manifests from payload rsync, then published the Temporal manifest atomically after destination worker/workflow hash validation.",
+              "why": "The Temporal manifest becomes the final worker-bundle publication marker and no refresh occurs on missing, malformed, or mismatched bundles."
+            },
+            {
+              "what": "Updated adjacent deployment fixtures to include valid hash-bearing Temporal manifests and required MCP output.",
+              "why": "Deploy freshness and worker-refresh tests must reach their publication/refresh assertions under the stricter manifest contract."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated direct deploy worker-refresh fixture so its fake bundle follows the same Temporal manifest checksum contract.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Temporal bundle manifests are required, excluded from rsync, destination-validated against worker.js/workflows.js hashes, atomically published last, then worker refresh runs. RED evidence recorded as tr_mruzrk77_431b9e22 (timed out before assertion due the prior test invocation); GREEN and verification evidence pass.",
+            "suggested_next_action": "Review diff and proceed with task checkpoint/orchestration."
+          }
+        }
+      ],
+      "verification": "RED tr_mruzrk77_431b9e22 captured pre-change failure/timeout. GREEN manifest publication tests tr_mruzz9m5_ee275df6 passed 3/3; worker refresh tests tr_mrv00g4x_b8a42dfe passed 8/8; bash syntax tr_mrv00r5k_79d3c518 passed. Diff reviewed: temporal manifest excluded, payload hashes validated, manifest atomically published before refresh.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "6721b0d4a71b356824ae4131df3f55c124ae44d1",
+      "completedAt": "2026-07-21T18:41:21.585Z",
+      "completed_at": "2026-07-21T18:41:21.585Z"
+    },
+    {
+      "id": "tk-2474a075ca33",
+      "title": "Verify full determinism corpus and persist recovery handoff",
+      "type": "verification",
+      "section": "Final verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-21T17:50:11.849Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-728444920e47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e9077befa06a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-86086a4015dc"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC6"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T18:41:29.255Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTemporalPatchNondeterminism",
+          "attempt": 5,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+          "task_id": "tk-2474a075ca33",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2474a075ca33"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/plugin-init.session-registration.test.ts",
+            ".opencode/agents/adv.md"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mrv252xf_f35231d7",
+              "command": "bin/oc-test targeted -- src/plugin-init.session-registration.test.ts src/subagent-reports-spec-assets.test.ts src/deploy-local.test.ts src/tool-name-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Passed: 4 test files, 111 tests. Covers session registration IDs, artifact-access prompt contract, prompt compression ceiling, and effective-prompt byte budget."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Aligned both session-registration assertions with NanoID's canonical URL-safe alphabet.",
+              "why": "The generator uses nanoid(8), whose valid alphabet includes underscore and hyphen; broadening only the assertions preserves secure opaque generation."
+            },
+            {
+              "what": "Restored literal change.json to the ADV state-access policy while contracting nearby wording.",
+              "why": "The agent contract must name the forbidden artifact explicitly; removing 'including' keeps the compressed prompt no larger."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Searched plugin test corpus for the obsolete sess_[A-Za-z0-9]{8} assertion pattern; none remain. Existing generator tests already validate the canonical [A-Za-z0-9_-]{8} alphabet.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Two session registration assertions now match the canonical NanoID URL-safe alphabet. adv.md again explicitly forbids direct change.json access without increasing compressed prompt bytes. Targeted corpus is green.",
+            "suggested_next_action": "Review the two-file diff and proceed to remaining task work."
+          }
+        }
+      ],
+      "verification": "Acceptance review remediation: typed exact recovery Epic target required on all immutable histories; all six committed histories re-sanitized and audited in replay CI with nested sensitive-payload tests. Targeted 21/21 and full suite 453/453 files, 6778 passed, 1 expected failure, 12 todo, zero unexpected failures.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/scripts/finalize-poisoned-replay-histories.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.history.json",
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts"
+      ],
+      "touched_files": [
+        "plugin/scripts/finalize-poisoned-replay-histories.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixArchiveDeltaReconciliation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixScopeRepoFixture.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.classification.json",
+        "plugin/src/temporal/__tests__/replay/histories/refineTestEvidencePolicy.poisoned-production.history.json",
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts"
+      ],
+      "checkpointSha": "a5c3fcf7b3cbc52d6d69242ae15df5918fd3beeb",
+      "completedAt": "2026-07-21T20:02:41.286Z",
+      "completed_at": "2026-07-21T20:02:41.286Z"
+    },
+    {
+      "id": "tk-c97480a502f8",
+      "title": "Align ADV triage command and skill assets with bounded-autonomous priority contract",
+      "type": "docs",
+      "section": "Expanded baseline remediation",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-21T19:09:11.757Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC6"
+        ],
+        "respects": [
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T19:11:16.766Z",
+      "verification": "Triage asset contracts: 13/13 targeted tests pass. Checkpoint also includes previously verified final-corpus compatibility edits already present in shared change worktree; their targeted corpus was 66/66 and smoke 87/87 before expansion.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-triage.md",
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts",
+        "plugin/src/migration/replay-verification.ts",
+        "plugin/src/overlay-sync-assets.test.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts",
+        "plugin/src/temporal/source-mode-path.test.ts",
+        "skills/adv-triage/ANTI-PATTERNS.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/SKILL.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-triage.md",
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts",
+        "plugin/src/migration/replay-verification.ts",
+        "plugin/src/overlay-sync-assets.test.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "plugin/src/temporal/replay-history-classification.test.ts",
+        "plugin/src/temporal/replay-history-classification.ts",
+        "plugin/src/temporal/source-mode-path.test.ts",
+        "skills/adv-triage/ANTI-PATTERNS.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/SKILL.md"
+      ],
+      "checkpointSha": "f7a072a7b9d902eb6e9c5ddf6f4f9ee0d80aa027",
+      "completedAt": "2026-07-21T19:18:09.350Z",
+      "completed_at": "2026-07-21T19:18:09.350Z"
+    },
+    {
+      "id": "tk-2b0b78b242ee",
+      "title": "Restore canonical ADV prompt and command-manifest contracts",
+      "type": "docs",
+      "section": "Expanded baseline remediation",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-07-21T19:10:02.244Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC6"
+        ],
+        "respects": [
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T19:11:16.787Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T19:23:11.890Z",
+      "verification": "127/127 targeted deploy-local, manifest, and tool-name asset tests pass. Commit 1b12d010b86ef82b796be7769c90ae9384d018b1 already contains the task edits; clean-tree retry records completion metadata after the first invocation's post-commit environmental failure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "1b12d010b86ef82b796be7769c90ae9384d018b1",
+      "completedAt": "2026-07-21T19:23:56.809Z",
+      "completed_at": "2026-07-21T19:23:56.809Z"
+    },
+    {
+      "id": "tk-2661bb012efc",
+      "title": "Restore external citations for uncovered requirements",
+      "type": "docs",
+      "section": "Expanded baseline remediation",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-07-21T19:10:23.385Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC6"
+        ],
+        "respects": [
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T19:11:16.788Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T19:27:08.804Z",
+      "verification": "Spec citation invariant passes 2/2. Commit 0b1178f09491d2ec4e51989ad637f52b153e1ade already contains the task edits; clean-tree retry records completion metadata after the first invocation's post-commit environmental failure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "0b1178f09491d2ec4e51989ad637f52b153e1ade",
+      "completedAt": "2026-07-21T19:27:42.184Z",
+      "completed_at": "2026-07-21T19:27:42.184Z"
+    },
+    {
+      "id": "tk-648c14529038",
+      "title": "Stabilize poller-footprint verification under full-suite load",
+      "type": "code",
+      "section": "Expanded baseline remediation",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-07-21T19:10:37.158Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC6"
+        ],
+        "respects": [
+          "C4",
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T19:27:59.942Z",
+      "verification": "RED/GREEN structural timeout test recorded. Poller-footprint integration passes 1/1 in 4.85s with explicit bounded 15s timeout; three-worker concurrency, cap assertions, and shutdown checks unchanged.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/poller-footprint.itest.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/__tests__/poller-footprint.itest.ts"
+      ],
+      "checkpointSha": "d39d2ad6542a35508c014e20e7eb7529dd69e660",
+      "completedAt": "2026-07-21T19:28:55.363Z",
+      "completed_at": "2026-07-21T19:28:55.363Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Independent design validation of Temporal patch lifecycle, replay detection, search-attribute ordering, and worker bundle freshness",
+      "sources": [
+        {
+          "label": "Temporal TypeScript Workflow Versioning docs",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/versioning",
+          "summary": "Official patch lifecycle requires patched(), then deprecatePatch() only after pre-patch executions are gone, then removal."
+        },
+        {
+          "label": "Temporal TypeScript patch implementation",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/internals.ts#L1191-L1212",
+          "summary": "Replay lookahead populates known patches; an absent newly inserted patch returns false and emits no marker command."
+        },
+        {
+          "label": "Temporal Core patch state machine",
+          "locator": "https://github.com/temporalio/sdk-core/blob/master/crates/sdk-core/src/worker/workflow/machines/patch_state_machine.rs",
+          "summary": "State table covers present, absent, and deprecated markers during execution and replay."
+        },
+        {
+          "label": "Temporal Core patch-marker handling",
+          "locator": "https://github.com/temporalio/sdk-core/blob/master/crates/sdk-core/src/worker/workflow/machines/workflow_machines.rs#L1737-L1794",
+          "summary": "Core skips an absent patch command and deprecated marker events, but errors when a nondeprecated marker lacks a corresponding patch command."
+        },
+        {
+          "label": "Temporal Worker replay implementation",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/worker/src/worker.ts#L605-L698",
+          "summary": "runReplayHistory throws DeterminismViolationError for incompatible histories and ReplayError for other replay failures."
+        },
+        {
+          "label": "Temporal Core Upsert state machine",
+          "locator": "https://github.com/temporalio/sdk-core/blob/master/crates/sdk-core/src/worker/workflow/machines/upsert_search_attributes_state_machine.rs#L118-L168",
+          "summary": "After scheduling an upsert, only UpsertWorkflowSearchAttributes is accepted; ActivityTaskScheduled indicates command/event order divergence."
+        },
+        {
+          "label": "Temporal production workflow bundle guidance",
+          "locator": "https://typescript.temporal.io/api/interfaces/worker.CompiledWorkerOptions#workflowBundle",
+          "summary": "Official API recommends prebuilt workflowBundle for production; workflowsPath compilation occurs during Worker.create."
+        },
+        {
+          "label": "Local patch call sites",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/workflows.ts#L1076-L1110",
+          "summary": "Acceptance patch calls precede discovery and artifact patch calls."
+        },
+        {
+          "label": "Local replay harness",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/__tests__/replay-determinism.test.ts#L169-L207",
+          "summary": "Harness awaits Worker.runReplayHistory for six fixtures but lacks a forward-shift negative control."
+        },
+        {
+          "label": "Existing worker manifest",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/worker-bundle-manifest.ts#L25-L161",
+          "summary": "Repository already emits dist/temporal/bundle-manifest.json hashing worker.js and workflows.js; read path validates shape but does not rehash files."
+        },
+        {
+          "label": "Existing worker build",
+          "locator": "file:///home/jon/dev/advance/plugin/package.json#L18-L20",
+          "summary": "build:worker already invokes write-worker-bundle-manifest.ts after tsup."
+        },
+        {
+          "label": "Worker startup paths",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/worker.ts#L32-L50",
+          "summary": "Single-queue path calls Worker.create then Worker.run without manifest hash verification."
+        },
+        {
+          "label": "Multi-queue startup paths",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/worker.ts#L185-L315",
+          "summary": "Multi-queue bootstrap and dynamic registration contain additional Worker.create calls."
+        },
+        {
+          "label": "In-process startup path",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/in-process-worker.ts#L91-L193",
+          "summary": "In-process queue registration calls Worker.create then worker.run."
+        },
+        {
+          "label": "Deploy publication path",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L1374-L1415",
+          "summary": "Only plugin manifest receives payload validation and publish-last handling; worker manifest remains inside general rsync payload."
+        }
+      ],
+      "architecture_assessment": "NEEDS_REVISION. Design correctly chooses real-history replay and fail-closed startup validation, but incorrectly treats patched() as occupying a fixed absolute command index. Core lookahead omits/skips patch calls absent from history, so inserting patched(\"B\") above patched(\"A\") does not alone invalidate history containing only A. Path B also overstates deprecatePatch: it is safe only after pre-patch histories are gone, while v2 is a separate subsequent versioning operation. Manifest design duplicates an existing dist/temporal/bundle-manifest.json primitive; needed work is cryptographic file verification and atomic deploy/startup enforcement across every Worker.create path.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "Absolute patch-index premise is false: patched(\"B\") inserted above recorded patched(\"A\") is a supported lenient case when B is absent from history, so the proposed marker-only forward-drift fixture does not prove TMPRL1100.",
+            "contract_ids": [
+              "SC2",
+              "SC4",
+              "C2"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Rewrite mechanism and test. Add a positive control proving absent B above A replays; make the negative control move A across an Activity, timer, or upsert command, or make A unreachable on the replayed path.",
+            "source": {
+              "label": "Temporal Core patch-marker handling",
+              "locator": "https://github.com/temporalio/sdk-core/blob/master/crates/sdk-core/src/worker/workflow/machines/workflow_machines.rs#L1737-L1794",
+              "summary": "Core skips nonmatching patch commands and fails only when a nondeprecated history marker has no corresponding patch command."
+            }
+          },
+          {
+            "finding": "Path B incorrectly presents deprecatePatch(oldId)+patched(v2) as a generic marker-relocation migration. deprecatePatch is safe only after no live pre-patch histories/workers remain; v2 is a distinct later patch.",
+            "contract_ids": [
+              "C2",
+              "DONT2"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Split lifecycle into explicit phases. Prove every live target history contains oldId before replacing patched(oldId) with deprecatePatch(oldId); add patched(v2) only for a distinct subsequent command-changing branch with its own old/new replay fixtures.",
+            "source": {
+              "label": "Temporal TypeScript versioning lifecycle",
+              "locator": "https://docs.temporal.io/develop/typescript/workflows/versioning",
+              "summary": "Official lifecycle requires pre-patch executions to leave before deprecating the patch."
+            }
+          },
+          {
+            "finding": "Subsystem 3 proposes a new worker manifest despite an existing bundle-manifest.json build primitive, while missing the actual gaps: file rehash verification, deploy validation/publish-last, and enforcement across all Worker.create paths.",
+            "contract_ids": [
+              "SC3",
+              "C4"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Extend existing bundle-manifest.json with a verifier that rehashes both files; validate source and copied payload; exclude manifest from rsync and publish last; centralize verification before every Worker.create path.",
+            "source": {
+              "label": "Existing worker manifest primitive",
+              "locator": "file:///home/jon/dev/advance/plugin/src/temporal/worker-bundle-manifest.ts#L25-L161",
+              "summary": "Existing manifest already identifies worker.js and workflows.js but read path trusts recorded hashes."
+            }
+          }
+        ],
+        "notes": "Three load-bearing design errors require revision before planning. Root-cause commits were not reinvestigated."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Real-history fixtures maximize fidelity but sanitization must preserve replay-decodable payload structure.",
+          "Centralized pre-Worker.create verification reduces missed paths but adds one shared factory seam.",
+          "Fail-closed serve-path verification should coexist with best-effort roll diagnostics rather than making all manifest readers fatal."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep absolute patch-index model",
+            "disposition": "rejected",
+            "rationale": "Core lookahead and SkipCommand behavior contradict it."
+          },
+          {
+            "option": "Restore original patched call positions",
+            "disposition": "deferred",
+            "rationale": "Valid only if all old and newer live histories replay under one placement."
+          },
+          {
+            "option": "Replace patched(oldId) with deprecatePatch(oldId)",
+            "disposition": "deferred",
+            "rationale": "Safe only after proving no live pre-patch history remains."
+          },
+          {
+            "option": "Add patched(v2) for every repair",
+            "disposition": "rejected",
+            "rationale": "Adds lifecycle complexity and does not repair histories lacking oldId."
+          },
+          {
+            "option": "Create worker-bundle-manifest.json beside bundle-manifest.json",
+            "disposition": "rejected",
+            "rationale": "Creates competing identities and publication paths."
+          },
+          {
+            "option": "Verify existing manifest before Worker.run",
+            "disposition": "rejected",
+            "rationale": "Worker.create already loads/compiles workflow code."
+          },
+          {
+            "option": "Verify existing manifest through a shared pre-Worker.create factory",
+            "disposition": "preferred",
+            "rationale": "Provides one structural fail-closed seam across startup and dynamic registration."
+          }
+        ],
+        "recommendation": "Revise design: correct patch leniency and command-crossing tests; gate deprecatePatch on captured-history evidence; extend existing worker manifest and verify it before every Worker.create."
+      },
+      "recommendation": "Return design for revision. Preserve real-history capture, add positive patch-leniency and negative command-crossing fixtures, and reuse the existing worker manifest with fail-closed pre-Worker.create verification.",
+      "follow_ups": [
+        "Packet omitted explicit TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION headings; analysis followed the user's five validation points and stated boundaries.",
+        "I do not know whether each live poisoned history contains oldId until capture and inspection; per-marker deprecatePatch safety remains undecided.",
+        "Verify semantics against the exact pnpm-locked @temporalio version during implementation; current official docs/source establish canonical behavior."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — Temporal patch nondeterminism",
+      "sources": [
+        {
+          "label": "Temporal TypeScript versioning documentation",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/versioning",
+          "summary": "Documents patched → deprecatePatch → remove lifecycle and safety window for open executions."
+        },
+        {
+          "label": "Temporal Worker-process documentation",
+          "locator": "https://docs.temporal.io/develop/typescript/workers/run-worker-process",
+          "summary": "Documents runtime workflowsPath for development and prebuilt workflowBundle for production."
+        },
+        {
+          "label": "Temporal TypeScript production sample",
+          "locator": "https://github.com/temporalio/samples-typescript/tree/main/production",
+          "summary": "Official sample builds workflow code ahead of time and selects workflowBundle in production."
+        },
+        {
+          "label": "Local worker manifest implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/worker-bundle-manifest.ts#L12-L18",
+          "summary": "Manifest hashes worker.js and workflows.js and writes itself atomically last, but reader only validates manifest shape."
+        },
+        {
+          "label": "Local replay fixture harness",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/__tests__/replay-determinism.test.ts#L36-L205",
+          "summary": "Existing fixture registry validates metadata and marker presence then calls Worker.runReplayHistory."
+        }
+      ],
+      "architecture_assessment": "Scout candidates, in payoff/risk order: (1) shared production-only pre-Worker.create artifact rehash verifier across all worker creation paths (SC3/SC4/C4/DONT5; low risk; design around); (2) add six sanitized histories to existing replay fixture registry (SC1/SC5/C5/DONT4; low risk; adopt); (3) one command-boundary forward-drift regression rather than patch-order-only oracle (SC2/SC4/C2; low risk; adopt); (4) deploy temporal bundle files then publish and destination-verify manifest last (SC3/C4/DONT5; low risk; design around); (5) explicit decision on prebuilt production workflowBundle (SC3/SC4/C4; medium risk; surface).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No design blocker found. Caution: prebuilt workflowBundle is documented production practice but changes build/deploy shape, so cannot silently substitute the contracted worker-manifest primitive."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Shared verification reduces omission risk but must cover every worker creation path, including dynamic registration.",
+          "Prebuilt workflowBundle gives stronger production artifact identity but changes build/deployment shape and requires exact worker-package version matching.",
+          "Fixture schema validation increases confidence but cannot prove arbitrary historical payloads contain no sensitive content without a defined sanitization process."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "One verifier per Worker.create call",
+            "disposition": "rejected",
+            "rationale": "Local worker.ts has three production creation paths; duplicated checks are easy to omit during later additions."
+          },
+          {
+            "option": "Keep workflowsPath and validate only sidecar manifest",
+            "disposition": "deferred",
+            "rationale": "Meets narrow primitive but validates build inputs rather than an SDK-consumed prebuilt workflow artifact."
+          },
+          {
+            "option": "Adopt Worker Versioning instead of patch lifecycle",
+            "disposition": "rejected",
+            "rationale": "Broadens architecture and does not remove approved compatibility requirements for already-open histories."
+          }
+        ],
+        "recommendation": "Adopt shared verifier, existing replay registry, command-boundary test, and deploy publication alignment. Surface prebuilt workflowBundle as explicit design decision."
+      },
+      "recommendation": "Proceed with four low-risk contract-tied leverage candidates. Keep patch lifecycle unchanged. Do not auto-adopt prebuilt workflowBundle: surface its production-artifact benefit versus build/deploy and version-coupling cost.",
+      "follow_ups": [
+        "The scout packet did not expose conflict-scan prior-consideration data; candidate status 'new' in final output means no contrary evidence was supplied, not archive proof."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Temporal patch nondeterminism",
+      "sources": [
+        {
+          "label": "Temporal TypeScript Workflow Versioning",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/versioning",
+          "summary": "Documents patching lifecycle, replay marker behavior, deprecatePatch timing, and Replay Testing."
+        },
+        {
+          "label": "Temporal safe Workflow deployments",
+          "locator": "https://docs.temporal.io/develop/safe-deployments",
+          "summary": "Recommends replaying existing event histories against current Workflow code before deployment."
+        },
+        {
+          "label": "Temporal Workflow definition",
+          "locator": "https://docs.temporal.io/workflow-definition",
+          "summary": "Lists Activities, timers, patch calls, and Workflow Search Attribute upserts among deterministic Workflow command-affecting operations."
+        },
+        {
+          "label": "Temporal TypeScript SDK patched/deprecatePatch source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "Defines patched replay branching and deprecatePatch coexistence/removal constraints."
+        },
+        {
+          "label": "Advance worker manifest implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/worker-bundle-manifest.ts",
+          "summary": "Existing canonical manifest hashes worker.js and workflows.js, computes generation, and writes manifest atomically last."
+        },
+        {
+          "label": "Advance worker creation implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/worker.ts",
+          "summary": "Production child Worker.create paths currently resolve workflows.js with a file-existence fallback to workflows.ts; single, multi-queue, and dynamic registration routes exist."
+        },
+        {
+          "label": "Advance in-process worker implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/in-process-worker.ts",
+          "summary": "Contains additional Worker.create route used by queue registration and test injection."
+        },
+        {
+          "label": "Advance replay determinism harness",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "summary": "Existing registry invokes Worker.runReplayHistory against committed fixtures."
+        },
+        {
+          "label": "Advance deployment script",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/scripts/deploy-local.sh",
+          "summary": "Plugin manifest is currently excluded from bulk rsync, copied after hash validation, then atomically renamed last; temporal manifest is not yet given equivalent deployment treatment."
+        }
+      ],
+      "architecture_assessment": "Caution. Design matches canonical Temporal approach: derive compatibility work from real replay histories, use patched/deprecatePatch only as versioned branches, and pin fixes with replay tests. It reuses existing local replay and manifest primitives rather than introducing a second subsystem. One design ambiguity remains: repository resolvers select workflows.ts solely when workflows.js is absent, so no existing explicit development/production boundary establishes when manifest enforcement may be bypassed. The verifier design must name a non-spoofable production discriminator and reject arbitrary workflowsPath overrides in production. Spec-law implication: extend existing replay-determinism and Worker.create drift guards, preserving no deletion/recreation, unchanged changeWorkflow signature, one manifest format, and real-history coverage.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract-breaking architectural conflict found. KD5 says development fallback is under an existing development-mode boundary, but current worker and in-process resolvers fall back by file existence alone. Before planning, define the exact production discriminator, permitted verified path(s), override policy, and tests for every production Worker.create route. Retaining workflowsPath is acceptable in this scope, with residual risk: Worker.create bundles its input at creation time; hash verification proves source-input identity, not compiled in-memory bundle identity."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "medium",
+        "risk": "medium",
+        "tradeoffs": [
+          "Captured production histories give strong compatibility proof but require payload-preserving sanitization and fixture review.",
+          "A shared verifier reduces drift but must cover single-queue, multi-queue, dynamic registration, and in-process creation routes.",
+          "Retaining workflowsPath minimizes scope but verifies input bytes rather than SDK-compiled workflow-bundle identity; prebuilt workflowBundle would strengthen identity but expands build/startup contract."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Speculative patch-marker reordering",
+            "disposition": "rejected",
+            "rationale": "Temporal patching protects versioned branch selection; real command-producing operations still require replay-compatible order."
+          },
+          {
+            "option": "Generic deprecatePatch marker relocation",
+            "disposition": "rejected",
+            "rationale": "Temporal documents deprecatePatch only after pre-patch workers and histories are no longer live."
+          },
+          {
+            "option": "New worker-manifest format",
+            "disposition": "rejected",
+            "rationale": "Existing manifest already hashes worker.js and workflows.js and is atomically published."
+          },
+          {
+            "option": "Immediate prebuilt workflowBundle migration",
+            "disposition": "deferred",
+            "rationale": "It can strengthen identity but changes build/startup contract beyond this agreement."
+          }
+        ],
+        "recommendation": "Proceed after adding explicit production discriminator, allowed verified workflowsPath policy, and fail-closed test coverage for every production Worker.create route."
+      },
+      "recommendation": "Proceed after adding one KD5 policy sentence and design-derived check: production is explicitly identified, accepts only canonical verified dist/temporal/workflows.js, rejects missing/mismatched manifest/artifacts as WORKER_BUNDLE_STALE before Worker.create, and permits workflows.ts only through an explicit development/test route. Extend static coverage to prove each production Worker.create route invokes the verifier first.",
+      "follow_ups": [
+        "Packet supplied all required identity and scope anchors. Episode recall capability was unavailable on active surface, so no advisory recall was performed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+      "task_id": "tk-e9077befa06a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-e9077befa06a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay.recording-workflow.ts",
+        "plugin/src/temporal/__tests__/command-boundary-replay.drift-workflow.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mruzk58t_8afa78be",
+          "command": "pnpm --dir plugin exec vitest run --project temporal src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+          "exit_code": 0,
+          "summary": "GREEN: dedicated Temporal integration test records a live activity-then-timer history and confirms replay rejects timer-then-activity code."
+        },
+        {
+          "test_run_id": "tr_mruzkjeh_ab5829a6",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "VERIFY: TypeScript typecheck passes."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used a dedicated recording/replay workflow pair with identical exported workflow names.",
+          "why": "A live history is recorded against activity-then-timer code, then replayed against timer-then-activity code; this isolates a real command-boundary ordering divergence without production workflow or captured-history changes."
+        },
+        {
+          "what": "Used an activity and timer rather than patch markers.",
+          "why": "The regression directly asserts Temporal nondeterminism from command order drift, as required by SC4."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Existing replay coverage exercises committed histories and patch markers; this new test is the dedicated live-history command-boundary drift regression. No adjacent same-pattern test-only gaps were found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Recorded RED evidence tr_mruzjui9_83418ac1: replay resolved while both fixtures preserved activity-then-timer order. GREEN evidence tr_mruzk58t_8afa78be: replay fails after only the dedicated replay fixture moves timer before activity. No production workflow, manifest, deployment, or captured-history classification files changed.",
+        "suggested_next_action": "Checkpoint task and review the three test-only files; proceed to next task."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+      "task_id": "tk-86086a4015dc",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-86086a4015dc"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "scripts/deploy-local.sh",
+        "plugin/src/deploy-local-plugin-manifest.test.ts",
+        "plugin/src/deploy-local-worker-refresh.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mruzz9m5_ee275df6",
+          "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+          "exit_code": 0,
+          "summary": "3 manifest-publication tests pass, including new Temporal manifest publish-last regression."
+        },
+        {
+          "test_run_id": "tr_mrv00g4x_b8a42dfe",
+          "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+          "exit_code": 0,
+          "summary": "8 deployed-worker refresh regression tests pass after valid temporal-manifest fixture update."
+        },
+        {
+          "test_run_id": "tr_mrv00r5k_79d3c518",
+          "command": "bash -n scripts/deploy-local.sh",
+          "exit_code": 0,
+          "summary": "Shell syntax validation passes."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Excluded both plugin and Temporal manifests from payload rsync, then published the Temporal manifest atomically after destination worker/workflow hash validation.",
+          "why": "The Temporal manifest becomes the final worker-bundle publication marker and no refresh occurs on missing, malformed, or mismatched bundles."
+        },
+        {
+          "what": "Updated adjacent deployment fixtures to include valid hash-bearing Temporal manifests and required MCP output.",
+          "why": "Deploy freshness and worker-refresh tests must reach their publication/refresh assertions under the stricter manifest contract."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated direct deploy worker-refresh fixture so its fake bundle follows the same Temporal manifest checksum contract.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Temporal bundle manifests are required, excluded from rsync, destination-validated against worker.js/workflows.js hashes, atomically published last, then worker refresh runs. RED evidence recorded as tr_mruzrk77_431b9e22 (timed out before assertion due the prior test invocation); GREEN and verification evidence pass.",
+        "suggested_next_action": "Review diff and proceed with task checkpoint/orchestration."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 5,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+      "task_id": "tk-2474a075ca33",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2474a075ca33"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/plugin-init.session-registration.test.ts",
+        ".opencode/agents/adv.md"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mrv252xf_f35231d7",
+          "command": "bin/oc-test targeted -- src/plugin-init.session-registration.test.ts src/subagent-reports-spec-assets.test.ts src/deploy-local.test.ts src/tool-name-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Passed: 4 test files, 111 tests. Covers session registration IDs, artifact-access prompt contract, prompt compression ceiling, and effective-prompt byte budget."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Aligned both session-registration assertions with NanoID's canonical URL-safe alphabet.",
+          "why": "The generator uses nanoid(8), whose valid alphabet includes underscore and hyphen; broadening only the assertions preserves secure opaque generation."
+        },
+        {
+          "what": "Restored literal change.json to the ADV state-access policy while contracting nearby wording.",
+          "why": "The agent contract must name the forbidden artifact explicitly; removing 'including' keeps the compressed prompt no larger."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Searched plugin test corpus for the obsolete sess_[A-Za-z0-9]{8} assertion pattern; none remain. Existing generator tests already validate the canonical [A-Za-z0-9_-]{8} alphabet.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Two session registration assertions now match the canonical NanoID URL-safe alphabet. adv.md again explicitly forbids direct change.json access without increasing compressed prompt bytes. Targeted corpus is green.",
+        "suggested_next_action": "Review the two-file diff and proceed to remaining task work."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "ac6-recovery-handoff-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/__tests__/replay/histories/fixHealthViewTimeouts.poisoned-production.classification.json",
+          "line": 11,
+          "what": "Immutable-history recovery evidence ends with a generic “hand off for typed recovery/retirement” statement; it names no target recovery Epic entry.",
+          "why": "AC6 requires every immutable classification to record exact replay evidence and its target recovery Epic entry. Five committed classifications are immutable, and the schema only requires free-form recoveryEvidence.",
+          "fix": "Add a typed, validated recovery-target field to immutable classifications; point every immutable fixture at an existing or explicitly created recovery Epic entry, then update corpus tests."
+        },
+        {
+          "id": "c4-corpus-sanitization-proof-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "line": 218,
+          "what": "Committed poisoned-production histories are replayed, but never passed through auditSanitizedHistory in CI.",
+          "why": "C4 and AC2 require durable confirmation that committed fixtures contain no proposal/agreement/task/evidence/secret payloads. The audit is only run by a one-off fixture-generation script (plugin/scripts/finalize-poisoned-replay-histories.ts:133-139), so later fixture edits can bypass sanitization review.",
+          "fix": "Add corpus-level audit assertions for every committed poisoned-production history; strengthen sanitizer/audit coverage for nested state-document and subagent-report payload shapes before relying on the check."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/worker-bundle-manifest.ts",
+          "line": 194,
+          "what": "Production artifact policy rehashes both declared artifacts and rejects missing, mismatched, or noncanonical workflow paths with WORKER_BUNDLE_STALE.",
+          "why": "Directly supports SC4/C5 fail-closed worker identity enforcement without adding a competing manifest."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+          "line": 15,
+          "what": "Regression exchanges an activity and timer, then asserts Temporal replay rejection.",
+          "why": "Meets SC3/DONT1 requirement for a real command boundary rather than patch-marker ordering."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Fixture-generation sanitization is not durable proof: replay corpus tests must re-audit committed captured histories so later fixture edits cannot reintroduce task/document/evidence payloads."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/temporal/replay-history-classification.test.ts plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "bin/oc-test targeted -- src/temporal/replay-history-classification.test.ts src/temporal/__tests__/replay-determinism.test.ts",
+          "git diff --check $(git merge-base HEAD trunk)..HEAD"
+        ],
+        "results": "pass",
+        "evidence": "First targeted invocation used repo-root-relative filters while oc-test runs package tests from plugin/, so it found no files (command construction error, not test failure). Corrected invocation passed 2 files / 19 tests in 14.30s. git diff --check produced no whitespace errors. Static review also confirmed no workflow source diff from trunk, Worker.create production entrypoints route through verifyWorkerArtifactPolicy, and deployment validates worker/workflows hashes before manifest-last publication."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Five immutable histories remain without contract-required typed target recovery Epic entries.",
+        "Committed real-history sanitation can regress without a CI corpus-level audit; current generator-only audit is insufficient durable evidence."
+      ],
+      "required_main_agent_actions": [
+        "Remediate AC6: create or identify the recovery Epic entry, add a typed validated recovery target for immutable classifications, populate all five immutable fixtures, and rerun replay corpus tests.",
+        "Remediate C4/AC2: enforce auditSanitizedHistory against every committed poisoned-production fixture in replay-determinism.test.ts; add nested document/task/subagent-report sanitization cases, regenerate or re-sanitize any failing fixtures, and rerun targeted plus full verification.",
+        "After remediation, request a new independent acceptance review. Leave worker manifest architecture, deployment publication ordering, command-boundary regression, and workflow signatures unchanged."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- plugin/src/temporal/replay-history-classification.test.ts plugin/src/temporal/__tests__/replay-determinism.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/replay-history-classification.test.ts src/temporal/__tests__/replay-determinism.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check $(git merge-base HEAD trunk)..HEAD"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "ac6-recovery-handoff-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/replay-history-classification.ts",
+          "line": 65,
+          "what": "Resolved: immutable histories now require the exact schema-validated recovery target, while self-healed rows reject it.",
+          "why": "Restores AC6's structural recovery handoff without changing workflow behavior."
+        },
+        {
+          "id": "c4-corpus-sanitization-proof-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "line": 258,
+          "what": "Resolved: every committed poisoned-production fixture is audited in replay CI before its replay assertion.",
+          "why": "Makes C4/AC2 sanitization proof durable and catches later fixture regressions."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/replay-history-classification.ts",
+          "summary": "Added exact typed recoveryTarget schema/constant; immutable classifications require it, non-immutable classifications reject it; extended sensitive-key detection to documents and subagent reports.",
+          "verification": "Targeted tests cover missing, malformed, and invalid self-healed recovery targets plus nested payload audit failure."
+        },
+        {
+          "file": "plugin/scripts/finalize-poisoned-replay-histories.ts",
+          "summary": "Updated fixture generator to emit the canonical recovery target only for immutable classifications.",
+          "verification": "pnpm run typecheck passed."
+        },
+        {
+          "file": "plugin/src/temporal/replay-history-classification.test.ts",
+          "summary": "Added recovery-target edge cases and nested document/task/evidence/subagent-report/secret audit coverage.",
+          "verification": "bin/oc-test targeted passed 21/21 tests."
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "summary": "Added auditSanitizedHistory assertion for every classified poisoned-production fixture before replay.",
+          "verification": "Replay corpus targeted test passed after re-sanitizing all six committed histories."
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/replay/histories/*.poisoned-production.classification.json",
+          "summary": "Populated the exact recovery target on all five immutable classifications.",
+          "verification": "Corpus classification validation passed in targeted replay suite."
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/replay/histories/*.poisoned-production.history.json",
+          "summary": "Re-sanitized all six committed captured histories under the strengthened nested-document/subagent-report policy.",
+          "verification": "Corpus audit and replay assertions passed for all six fixtures."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Captured-history fixture safety must be enforced by the replay corpus itself. Generator-only sanitization is not durable because later fixture edits bypass it."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/replay-history-classification.test.ts src/temporal/__tests__/replay-determinism.test.ts",
+          "pnpm run typecheck",
+          "pnpm exec prettier --check src/temporal/replay-history-classification.ts src/temporal/replay-history-classification.test.ts src/temporal/__tests__/replay-determinism.test.ts scripts/finalize-poisoned-replay-histories.ts src/temporal/__tests__/replay/histories/*.poisoned-production.classification.json src/temporal/__tests__/replay/histories/*.poisoned-production.history.json",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted replay/classification suite passed 2 files and 21 tests in 17.56s. TypeScript typecheck passed. Prettier check passed for all affected sources and fixture corpus; git diff --check passed. Re-sanitization used the strengthened existing sanitizer; subsequent corpus audit and replay verification passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/replay-history-classification.test.ts src/temporal/__tests__/replay-determinism.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm exec prettier --check src/temporal/replay-history-classification.ts src/temporal/replay-history-classification.test.ts src/temporal/__tests__/replay-determinism.test.ts scripts/finalize-poisoned-replay-histories.ts src/temporal/__tests__/replay/histories/*.poisoned-production.classification.json src/temporal/__tests__/replay/histories/*.poisoned-production.history.json"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "ac6-recovery-handoff-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/replay-history-classification.ts",
+          "line": 25,
+          "what": "Resolved: exact Epic recovery target is a literal Zod schema and immutable rows must include it; self-healed rows must omit it.",
+          "why": "Structural enforcement and corpus population satisfy SC2/AC6 without workflow-state mutation."
+        },
+        {
+          "id": "c4-corpus-sanitization-proof-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "line": 254,
+          "what": "Resolved: all six classified committed poisoned-production histories are parsed, audited, then replayed in CI.",
+          "why": "CI now fails on a sanitation regression before replay; focused tests cover nested document, task, evidence, subagent-report, and secret-bearing values."
+        },
+        {
+          "id": "acceptance-contract-17-items",
+          "label": "praise",
+          "file": "plugin/src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+          "line": 15,
+          "what": "All SC1-SC6, C1-C6, and DONT1-DONT5 contract items re-reviewed with no unresolved blocker or issue.",
+          "why": "Source evidence covers classified real histories, command-boundary drift proof, shared production verifier, manifest-last deployment, unchanged workflow signature, and no state/recovery execution."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "Read-only post-remediation review at HEAD a5c3fcf7b3cbc52d6d69242ae15df5918fd3beeb. Independently confirmed clean worktree; recoveryTarget literal schema and conditional enforcement (replay-history-classification.ts:25-79); five immutable corpus rows populated and one self-healed row omits target; corpus audit before replay (replay-determinism.test.ts:254-273); nested sanitation and schema edge tests (replay-history-classification.test.ts:41-204). User-provided verification evidence: targeted 21/21 and full suite 453/453 files, 6778 passed, 1 expected failure, 12 todo."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTemporalPatchNondeterminism",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTemporalPatchNondeterminism",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "READY. All 6 dimensions pass. 0 BLOCKER, 0 HIGH, 0 MEDIUM, 2 LOW (optional). Full suite green (453/453 files, 6778 tests). Fail-closed artifact policy verified. No secrets in fixtures. Deploy manifest-last atomic.",
+      "findings": [
+        {
+          "scanner": "test-coverage",
+          "severity": "info",
+          "summary": "Operator script finalize-poisoned-replay-histories.ts has no co-located test; matches existing convention for one-off scripts",
+          "evidence": [
+            {
+              "label": "convention",
+              "locator": "plugin/scripts/finalize-poisoned-replay-histories.ts:1",
+              "summary": "Matches existing plugin/scripts/*.ts convention (cutover-receipt.ts, gen-replay-fixture.ts also untested)"
+            }
+          ]
+        },
+        {
+          "scanner": "test-coverage",
+          "severity": "info",
+          "summary": "Fixture completeness structurally guarded; optional disk-existence assertion would add early check",
+          "evidence": [
+            {
+              "label": "structural guard",
+              "locator": "plugin/src/temporal/__tests__/replay-determinism.test.ts:138",
+              "summary": "assertCompletePoisonedHistoryClassifications enforces coverage; missing fixtures surface as parse/replay failure"
+            }
+          ]
+        }
+      ],
+      "follow_ups": []
+    }
+  ],
+  "test_runs": {
+    "tk-08c8652ba945": [
+      {
+        "runId": "tr_mruyeo9o_932f0c51",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/temporal/replay-history-classification.test.ts",
+        "durationMs": 120066.78375699976,
+        "recordedAt": "2026-07-21T17:55:10.133Z"
+      },
+      {
+        "runId": "tr_mruyewvx_1cd9f0c8",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/replay-history-classification.test.ts",
+        "durationMs": 1405.7190159996971,
+        "recordedAt": "2026-07-21T17:55:21.291Z"
+      },
+      {
+        "runId": "tr_mruyg3s7_49f9bb22",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/replay-history-classification.test.ts",
+        "durationMs": 1391.4586290000007,
+        "recordedAt": "2026-07-21T17:56:16.868Z"
+      },
+      {
+        "runId": "tr_mruygi98_cc33d196",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9958.473966000136,
+        "recordedAt": "2026-07-21T17:56:35.596Z"
+      }
+    ],
+    "tk-cfcdf9a91953": [
+      {
+        "runId": "tr_mruynqgx_1bbafedb",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 14971.86265700031,
+        "recordedAt": "2026-07-21T18:02:12.851Z"
+      },
+      {
+        "runId": "tr_mruypwny_99847da9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/replay-history-classification.test.ts",
+        "durationMs": 1536.0295579996891,
+        "recordedAt": "2026-07-21T18:03:54.195Z"
+      },
+      {
+        "runId": "tr_mruyqbqp_5ebd6723",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 21146.81244999962,
+        "recordedAt": "2026-07-21T18:04:13.773Z"
+      },
+      {
+        "runId": "tr_mruys9tl_684c225d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 19934.082574000116,
+        "recordedAt": "2026-07-21T18:05:44.586Z"
+      }
+    ],
+    "tk-728444920e47": [
+      {
+        "runId": "tr_mruyttlw_c3c4b6bf",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec tsx scripts/check-replay-history.ts '/tmp/opencode/addArchiveScaleRegression.raw-history.json' 'adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/addArchiveScaleRegression' 'addArchiveScaleRegression raw pre-fix'",
+        "durationMs": 3985.896836999804,
+        "recordedAt": "2026-07-21T18:06:56.846Z"
+      },
+      {
+        "runId": "tr_mruywq7x_084f0ccb",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec tsx scripts/check-replay-history.ts '/tmp/opencode/refineTestEvidencePolicy.raw-history.json' 'adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/refineTestEvidencePolicy' 'refineTestEvidencePolicy raw classification'",
+        "durationMs": 3692.143058999907,
+        "recordedAt": "2026-07-21T18:09:12.444Z"
+      },
+      {
+        "runId": "tr_mruywqdg_48b454bf",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec tsx scripts/check-replay-history.ts '/tmp/opencode/fixHealthViewTimeouts.raw-history.json' 'adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/fixHealthViewTimeouts' 'fixHealthViewTimeouts raw classification'",
+        "durationMs": 3931.6002259999514,
+        "recordedAt": "2026-07-21T18:09:12.642Z"
+      },
+      {
+        "runId": "tr_mruyzqrm_6856942d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts src/temporal/replay-history-classification.test.ts",
+        "durationMs": 18268.913174000103,
+        "recordedAt": "2026-07-21T18:11:33.092Z"
+      }
+    ],
+    "tk-2dbb8952ea67": [
+      {
+        "runId": "tr_mruz27g4_776a212f",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/worker-bundle-manifest.test.ts",
+        "durationMs": 1429.341715999879,
+        "recordedAt": "2026-07-21T18:13:28.068Z"
+      },
+      {
+        "runId": "tr_mruz31k6_e47eef22",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/worker-bundle-manifest.test.ts",
+        "durationMs": 1313.7406640001573,
+        "recordedAt": "2026-07-21T18:14:07.047Z"
+      },
+      {
+        "runId": "tr_mruz5fct_f816b4f9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9490.184661000036,
+        "recordedAt": "2026-07-21T18:15:58.274Z"
+      },
+      {
+        "runId": "tr_mruz5q7j_644178c8",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/worker-bundle-manifest.test.ts src/temporal/worker.test.ts src/temporal/in-process-worker.test.ts",
+        "durationMs": 3184.0679939999245,
+        "recordedAt": "2026-07-21T18:16:12.341Z"
+      },
+      {
+        "runId": "tr_mruz7m1j_d0177e86",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/worker-bundle-manifest.test.ts src/temporal/worker.test.ts",
+        "durationMs": 2143.9717459999956,
+        "recordedAt": "2026-07-21T18:17:40.233Z"
+      },
+      {
+        "runId": "tr_mruz8gi8_6e9bb929",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/worker-bundle-manifest.test.ts src/temporal/worker.test.ts",
+        "durationMs": 2222.113001999911,
+        "recordedAt": "2026-07-21T18:18:19.717Z"
+      },
+      {
+        "runId": "tr_mruzae8l_0e1ba1bc",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/worker-bundle-manifest.test.ts src/temporal/worker.test.ts src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts",
+        "durationMs": 3254.4815529999323,
+        "recordedAt": "2026-07-21T18:19:50.082Z"
+      },
+      {
+        "runId": "tr_mruzaso5_655a354d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build:worker",
+        "durationMs": 9399.382486999966,
+        "recordedAt": "2026-07-21T18:20:08.789Z"
+      },
+      {
+        "runId": "tr_mruzb3ba_79413be2",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/temporal/worker-bundle-manifest.ts src/temporal/worker-bundle-manifest.test.ts src/temporal/worker.ts src/temporal/worker.test.ts src/temporal/in-process-worker.ts src/plugin-init.ts src/__tests__/e2e-tool-calls.itest.ts src/temporal/__tests__/archive-phase9-splitbrain.itest.ts",
+        "durationMs": 1222.3451339998282,
+        "recordedAt": "2026-07-21T18:20:22.584Z"
+      },
+      {
+        "runId": "tr_mruzbxrv_dbdcb7cc",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec prettier --check src/temporal/worker-bundle-manifest.ts src/temporal/worker-bundle-manifest.test.ts src/temporal/worker.ts src/temporal/worker.test.ts src/temporal/in-process-worker.ts src/plugin-init.ts src/__tests__/e2e-tool-calls.itest.ts src/temporal/__tests__/archive-phase9-splitbrain.itest.ts",
+        "durationMs": 1164.496260999702,
+        "recordedAt": "2026-07-21T18:21:02.056Z"
+      }
+    ],
+    "tk-e9077befa06a": [
+      {
+        "runId": "tr_mruzjacb_d6b3cbcd",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm --dir plugin test -- src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "durationMs": 120065.29935500026,
+        "recordedAt": "2026-07-21T18:26:44.965Z"
+      },
+      {
+        "runId": "tr_mruzjui9_83418ac1",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec vitest run --project temporal src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "durationMs": 4732.619544000365,
+        "recordedAt": "2026-07-21T18:27:11.087Z"
+      },
+      {
+        "runId": "tr_mruzk58t_8afa78be",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run --project temporal src/temporal/__tests__/command-boundary-replay-drift.itest.ts",
+        "durationMs": 3939.4263399997726,
+        "recordedAt": "2026-07-21T18:27:24.992Z"
+      },
+      {
+        "runId": "tr_mruzkjeh_ab5829a6",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 11444.11804500036,
+        "recordedAt": "2026-07-21T18:27:43.346Z"
+      }
+    ],
+    "tk-86086a4015dc": [
+      {
+        "runId": "tr_mruzrk77_431b9e22",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm --dir plugin test -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 120060.82482200023,
+        "recordedAt": "2026-07-21T18:33:10.967Z"
+      },
+      {
+        "runId": "tr_mruzt709_d4978617",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bash -n scripts/deploy-local.sh",
+        "durationMs": 22.5536190001294,
+        "recordedAt": "2026-07-21T18:34:27.350Z"
+      },
+      {
+        "runId": "tr_mruztbp5_b0a1a91d",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 1131.7919600000605,
+        "assertionDensity": 2.0833333333333335,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-21T18:34:33.258Z"
+      },
+      {
+        "runId": "tr_mruzthi9_9efdd9d9",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 3400.9572939993814,
+        "recordedAt": "2026-07-21T18:34:40.821Z"
+      },
+      {
+        "runId": "tr_mruzu6sz_025d2569",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 3288.0330509999767,
+        "recordedAt": "2026-07-21T18:35:13.590Z"
+      },
+      {
+        "runId": "tr_mruzun5j_4e64bad0",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts --reporter=verbose",
+        "durationMs": 3523.4083160003647,
+        "recordedAt": "2026-07-21T18:35:34.754Z"
+      },
+      {
+        "runId": "tr_mruzvco5_bc425535",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 3305.3220999995247,
+        "recordedAt": "2026-07-21T18:36:07.833Z"
+      },
+      {
+        "runId": "tr_mruzw4nq_c862ad4e",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 3465.606370999478,
+        "recordedAt": "2026-07-21T18:36:44.119Z"
+      },
+      {
+        "runId": "tr_mruzwl5w_91d4c022",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 3275.2469979999587,
+        "recordedAt": "2026-07-21T18:37:05.482Z"
+      },
+      {
+        "runId": "tr_mruzy2be_f9a27342",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 7878.731204000302,
+        "recordedAt": "2026-07-21T18:38:14.371Z"
+      },
+      {
+        "runId": "tr_mruzz9m5_ee275df6",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/deploy-local-plugin-manifest.test.ts",
+        "durationMs": 7740.027752999216,
+        "recordedAt": "2026-07-21T18:39:10.492Z"
+      },
+      {
+        "runId": "tr_mrv00g4x_b8a42dfe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/deploy-local-worker-refresh.test.ts",
+        "durationMs": 20918.598247000016,
+        "recordedAt": "2026-07-21T18:40:05.598Z"
+      },
+      {
+        "runId": "tr_mrv00r5k_79d3c518",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bash -n scripts/deploy-local.sh",
+        "durationMs": 21.546283000148833,
+        "recordedAt": "2026-07-21T18:40:19.909Z"
+      }
+    ],
+    "tk-2474a075ca33": [
+      {
+        "runId": "tr_mrv0hxr4_2dd7d10f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/migration/replay-verification.test.ts src/temporal/source-mode-path.test.ts",
+        "durationMs": 17022.08015900012,
+        "recordedAt": "2026-07-21T18:53:41.577Z"
+      },
+      {
+        "runId": "tr_mrv0l0fk_c970a90e",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/overlay-sync-assets.test.ts",
+        "durationMs": 126580.09546399955,
+        "recordedAt": "2026-07-21T18:56:05.043Z"
+      },
+      {
+        "runId": "tr_mrv0ms0f_72649df4",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/overlay-sync-assets.test.ts -t 'plugin dist freshness guard|deploy run from a worktree'",
+        "durationMs": 5956.431258999743,
+        "recordedAt": "2026-07-21T18:57:27.416Z"
+      },
+      {
+        "runId": "tr_mrv0ntyw_ffee19dc",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/overlay-sync-assets.test.ts -t 'plugin dist freshness guard|deploy run from a worktree'",
+        "durationMs": 7099.769410000183,
+        "recordedAt": "2026-07-21T18:58:16.627Z"
+      },
+      {
+        "runId": "tr_mrv0q9u7_2e8ba67b",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/overlay-sync-assets.test.ts -t 'plugin dist freshness guard|deploy run from a worktree'",
+        "durationMs": 15275.03722100053,
+        "recordedAt": "2026-07-21T19:00:10.491Z"
+      },
+      {
+        "runId": "tr_mrv0sdby_7f1eccc9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/overlay-sync-assets.test.ts -t 'plugin dist freshness guard|deploy run from a worktree'",
+        "durationMs": 18977.451464000158,
+        "recordedAt": "2026-07-21T19:01:48.325Z"
+      },
+      {
+        "runId": "tr_mrv0st6n_c8b82d09",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project temporal src/temporal/__tests__/poller-footprint.itest.ts",
+        "durationMs": 6395.739621999674,
+        "recordedAt": "2026-07-21T19:02:08.877Z"
+      },
+      {
+        "runId": "tr_mrv1wgdr_a43b6704",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 231176.5969649991,
+        "recordedAt": "2026-07-21T19:32:59.317Z"
+      },
+      {
+        "runId": "tr_mrv252xf_f35231d7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/plugin-init.session-registration.test.ts src/subagent-reports-spec-assets.test.ts src/deploy-local.test.ts src/tool-name-assets.test.ts",
+        "durationMs": 4707.19878000021,
+        "recordedAt": "2026-07-21T19:39:41.035Z"
+      }
+    ],
+    "tk-c97480a502f8": [
+      {
+        "runId": "tr_mrv1biwv_a9f72527",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/adv-triage-phase4c-agent.test.ts src/adv-triage-relevance-assets.test.ts",
+        "durationMs": 120097.07747599948,
+        "recordedAt": "2026-07-21T19:16:42.048Z"
+      },
+      {
+        "runId": "tr_mrv1brny_e364d71a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/adv-triage-phase4c-agent.test.ts plugin/src/adv-triage-relevance-assets.test.ts",
+        "durationMs": 1271.0277930004522,
+        "assertionDensity": 2.0714285714285716,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-21T19:16:53.366Z"
+      },
+      {
+        "runId": "tr_mrv1c1k3_cdda200d",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/adv-triage-phase4c-agent.test.ts src/adv-triage-relevance-assets.test.ts",
+        "durationMs": 1836.7116629993543,
+        "recordedAt": "2026-07-21T19:17:06.221Z"
+      },
+      {
+        "runId": "tr_mrv1cme3_be938d05",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-triage-phase4c-agent.test.ts src/adv-triage-relevance-assets.test.ts",
+        "durationMs": 1577.7632389999926,
+        "recordedAt": "2026-07-21T19:17:33.196Z"
+      }
+    ],
+    "tk-2b0b78b242ee": [
+      {
+        "runId": "tr_mrv1glt8_096f4c7d",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local.test.ts src/manifest.test.ts src/tool-name-assets.test.ts",
+        "durationMs": 8866.997372999787,
+        "recordedAt": "2026-07-21T19:20:39.137Z"
+      },
+      {
+        "runId": "tr_mrv1hb6x_bb4d13cc",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts",
+        "durationMs": 7550.687288000248,
+        "recordedAt": "2026-07-21T19:21:12.013Z"
+      },
+      {
+        "runId": "tr_mrv1hxx2_7f24e1de",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts",
+        "durationMs": 5958.634627999738,
+        "recordedAt": "2026-07-21T19:21:41.419Z"
+      },
+      {
+        "runId": "tr_mrv1iheq_9f7709eb",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local.test.ts src/manifest.test.ts src/tool-name-assets.test.ts",
+        "durationMs": 5734.693143999204,
+        "recordedAt": "2026-07-21T19:22:06.671Z"
+      },
+      {
+        "runId": "tr_mrv1j0tq_89086404",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/deploy-local.test.ts src/manifest.test.ts src/tool-name-assets.test.ts",
+        "durationMs": 4902.507096000016,
+        "recordedAt": "2026-07-21T19:22:31.867Z"
+      }
+    ],
+    "tk-2661bb012efc": [
+      {
+        "runId": "tr_mrv1o0y0_529faae5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 1451.4590329993516,
+        "recordedAt": "2026-07-21T19:26:25.271Z"
+      }
+    ],
+    "tk-648c14529038": [
+      {
+        "runId": "tr_mrv1qdsq_bebcebf8",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "node -e 'const fs=require(\"fs\"); const s=fs.readFileSync(\"src/temporal/__tests__/poller-footprint.itest.ts\",\"utf8\"); if(!s.includes(\"}, 15_000);\")){console.error(\"RED: poller-footprint integration test lacks explicit 15s timeout\"); process.exit(1)}'",
+        "durationMs": 49.267880000174046,
+        "recordedAt": "2026-07-21T19:28:15.226Z"
+      },
+      {
+        "runId": "tr_mrv1qr5u_51a57fbc",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "node -e 'const fs=require(\"fs\"); const s=fs.readFileSync(\"src/temporal/__tests__/poller-footprint.itest.ts\",\"utf8\"); if(!s.includes(\"}, 15_000);\")){console.error(\"RED: poller-footprint integration test lacks explicit 15s timeout\"); process.exit(1)}'",
+        "durationMs": 42.75382800027728,
+        "recordedAt": "2026-07-21T19:28:32.685Z"
+      },
+      {
+        "runId": "tr_mrv1r1rw_7936b8ed",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/poller-footprint.itest.ts",
+        "durationMs": 6525.03096000012,
+        "recordedAt": "2026-07-21T19:28:46.303Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-MYsrmJ",
+      "type": "gotcha",
+      "content": "Temporal patched() ordering model: wf.patched(id) does NOT occupy an immutable command index. sdk-core can SKIP a patch command absent from history — inserting patched(\"B\") above existing patched(\"A\") does NOT by itself fail replay of a history containing only A. TMPRL1100 \"Non-deprecated patch marker ... no corresponding change command\" fires when (a) a recorded nondeprecated marker has no REACHABLE patch command on the current path, or (b) actual command-producing operations (Activity/timer/UpsertWorkflowSearchAttributes) shift incompatibly AROUND the marker. Patch-to-patch ordering alone is not nondeterminism. Forward-drift regression must cross a real Activity/timer/upsert boundary, not merely insert/reorder patch calls. Source: github.com/temporalio/sdk-core workflow_machines.rs#L1737-L1794, patch_state_machine.rs; adv-researcher validation 2026-07-20.",
+      "recorded_at": "2026-07-20T20:58:06.804Z"
+    },
+    {
+      "id": "ws-zLWUtK",
+      "type": "gotcha",
+      "content": "Temporal deprecatePatch lifecycle: the SDK-blessed sequence is patched(oldId) → deprecatePatch(oldId) [after pre-patch executions are gone] → remove. deprecatePatch(oldId)+patched(newId-v2) is NOT a generic \"relocate/change old branch\" recipe — v2 is for a SEPARATE incompatible change. Deprecating oldId before all live pre-oldId histories are gone is unsafe. During replay, deprecatePatch(oldId) emits the matching internal patch command for histories that recorded it, without appending a fresh event. Source: docs.temporal.io/develop/typescript/workflows/versioning; sdk-typescript internals.ts#L1198-L1212.",
+      "recorded_at": "2026-07-20T20:58:06.820Z"
+    },
+    {
+      "id": "ws-DIDSCA",
+      "type": "gotcha",
+      "content": "Advance worker-bundle manifest ALREADY EXISTS at dist/temporal/bundle-manifest.json (generated by pnpm run build:worker), with reader at plugin/src/temporal/worker-bundle-manifest.ts. The freshness gap is NOT a missing manifest — it's that (a) the reader doesn't rehash workflows.js + worker.js against the manifest, (b) worker startup doesn't verify the manifest before Worker.create (workflowsPath loads during create, not run — verification must happen BEFORE create), (c) deploy-local.sh publishes the plugin manifest last/atomically but lets the worker manifest travel in the general rsync payload without equivalent hash verification. Also: the manifest hashes workflowsPath INPUT, but Worker.create compiles that path — doesn't prove final in-memory bundle identity; production guidance prefers prebuilt workflowBundle. Dev fallback loads workflows.ts when workflows.js absent — manifest enforcement must distinguish production from dev.",
+      "recorded_at": "2026-07-20T20:58:06.835Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-20T20:45:25.191Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal (\"approve\"). Root cause class confirmed by investigation: patch-command ordering drift from commit 7e7c8662 inserting two wf.patched() calls at top of completeGateWithReadiness. Replay harness is synthetic/backward-only; worker-bundle-manifest absent. Discovery will pin exact commits + capture real histories.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "9a9ee1dbb00af468e236324f99c1fa7690ff40615e65c098aa3769e31cf41298",
+        "non_whitespace_chars": 3933,
+        "checked_at": "2026-07-20T20:41:34.901Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T17:37:37.049Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved revised evidence-led agreement after design/source validation corrected patch-order, deprecatePatch, and existing worker-manifest assumptions.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "non_whitespace_chars": 4235,
+        "checked_at": "2026-07-20T20:41:34.903Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T17:42:39.314Z",
+      "completed_by": "agent",
+      "approval_evidence": "Evidence-led design persisted. Mandatory leverage scout completed; four low-risk candidates adopted. Independent validator returned caution on production/dev artifact policy; design resolved it with required typed policy, fail-closed production override handling, and structural Worker.create coverage.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b64701d2e296b859bd9df4da5261fdd890151ca564935881c22eb989418e08f5",
+        "non_whitespace_chars": 8948,
+        "checked_at": "2026-07-20T20:41:34.904Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T19:11:00.654Z",
+      "completed_by": "user",
+      "approval_evidence": "Expanded task graph approved by user instruction \"fix all now\" after exact 12-failure inventory. Four remediation tasks cover triage assets, canonical prompt/manifest contracts, requirement citations, and poller-footprint timing; existing final verification remains the full-suite convergence task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T19:44:30.057Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 11 tasks checkpointed. Full verifier passed 453/453 files and 6776 tests with zero unexpected failures; determinism corpus, artifact policy, deployment, triage/prompt contracts, citations, and poller timing all green."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-21T20:06:11.765Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work after APPROVED review verdict, 17/17 contract rows, green full suite, and resolved blockers.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "002e524a4011cf33289da9d1d302a36379174824bb85f342b2e004ff4aecd8ad",
+        "non_whitespace_chars": 3499,
+        "checked_at": "2026-07-20T20:41:34.905Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Design/source validation disproved approved agreement assumptions: patch-marker reorder alone is not a valid nondeterminism mechanism, deprecatePatch is not a generic marker-relocation recipe, and the worker bundle manifest already exists. Agreement criteria must become evidence-led and reuse the existing manifest before design/planning can proceed.",
+      "scope_delta": "Reframe AC1/AC3 around exact command-producing divergence proven from captured histories; use patched/deprecatePatch only where Temporal lifecycle evidence requires it; make forward-drift regression cross a real Activity/timer/search-attribute command boundary; reuse dist/temporal/bundle-manifest.json with pre-Worker.create rehash enforcement and manifest-last deployment instead of creating a duplicate manifest.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-21T17:35:46.006Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "planning",
+      "reason": "User explicitly expanded scope after final full-suite verification exposed 12 baseline failures and directed: \"fix all now\".",
+      "scope_delta": "Repair six ADV triage asset-contract failures, four canonical ADV prompt/manifest drift failures, five missing spec citations reported by one invariant test, and the load-sensitive poller-footprint timeout; rerun smoke and full suite to green.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-21T19:08:48.152Z",
+      "gates_reset": [
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "epic:hardenTemporalReliability#shell-1784579327428-68pzwl"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+      "approvedAt": "2026-07-21T17:36:00.000Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Six real-history fixtures registered and sanitized.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Targeted replay suite passes every self-healed fixture and structurally validates every immutable classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "A command-boundary drift regression demonstrably fails against an incompatible worker variant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Every production `Worker.create` path is guarded by one shared manifest verifier.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Build and deployment checks verify temporal artifacts and manifest-last publication.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Full repository checks pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No workflow-state deletion or recreation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No `changeWorkflow` signature change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No duplicate worker-manifest format or competing freshness subsystem.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Captured fixtures contain no user-authored proposal, agreement, task, evidence, or secret payloads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Production startup fails closed; development fallback remains usable and explicit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Work runs in the ADV-managed change worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not infer root cause from patch-marker position alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not use `deprecatePatch` as a generic relocation mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not remove markers without retained-history evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not create synthetic-only proof while real affected histories remain untested.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not absorb disk-authoritative reads, archive durability, or workflow recovery into this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T20:04:28Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Six named production histories have schema-validated classification, metadata, and sanitized committed fixtures; replay classification suite passed 21/21."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Replay corpus validates terminal classifications, audits all six sanitized histories before replay, and passes 21/21 targeted tests."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command-boundary recording/drift workflow regression crosses Activity/timer order and verifies incompatible replay rejection; included in green full suite."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Shared WorkerArtifactPolicy verifier guards production Worker.create paths in worker, in-process worker, dynamic registration, and plugin initialization; structural tests pass."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Temporal artifact hashes are verified before manifest-last publication; deploy-local manifest and worker-refresh tests pass in full suite."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Independent verifier ran bin/oc-test full: 453/453 files passed, 6778 tests passed, 1 expected failure, 12 todo, zero unexpected failures."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer inspected branch diff: no workflow-state deletion, recreation, termination, or recovery mutation was introduced or executed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer inspected branch diff and typecheck: changeWorkflow entry signature is unchanged."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation extends canonical dist/temporal/bundle-manifest.json verification; no competing manifest format or freshness subsystem added."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "CI now calls auditSanitizedHistory for every committed production history; nested proposal/agreement/task/evidence/subagent-report and secret-bearing payload tests pass."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Typed production_verified mode fails closed on missing/mismatched artifacts; explicit development_source mode remains covered by tests."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All implementation, review, checkpoints, and verification ran in the ADV-managed change/fixTemporalPatchNondeterminism worktree."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Root cause and terminal outcomes derive from captured replay command evidence; patch-marker position alone was explicitly rejected."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No generic deprecatePatch relocation was added; review confirmed no speculative workflow marker mutation."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No retained workflow patch marker was removed."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All six affected real Temporal histories are committed, classified, sanitized, audited, and exercised; synthetic regression is supplemental only."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Change records typed recovery handoff only; it does not add disk-authoritative reads, archive durability behavior, or workflow recovery execution."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Proposal: Fix Temporal patch nondeterminism\n\n## Problem\n\nSix ADV change workflows have produced TMPRL1100 replay failures, making workflow-backed reads and lifecycle operations unreliable. Current replay tests pass synthetic legacy histories but do not replay the affected production histories, so they cannot prove the deployed workflow code remains compatible.\n\n## Confirmed evidence\n\n- The affected histories report patch-marker or command-state-machine divergence.\n- Patch-marker ordering alone is not sufficient proof of nondeterminism: Temporal can skip patch commands absent from a history. The exact failing command boundary must be established from each captured history.\n- `dist/temporal/bundle-manifest.json` already exists. The gap is runtime rehash/verification before `Worker.create`, production enforcement, and manifest-last deployment integrity—not manifest creation from scratch.\n- `deprecatePatch` is lifecycle management after compatibility is established, not a generic way to relocate a patch branch.\n\n## Direction\n\n1. Export and sanitize each affected real history.\n2. Reproduce and classify its exact replay divergence.\n3. Apply the smallest evidence-backed deterministic compatibility fix; use Temporal patch lifecycle APIs only where their documented semantics apply.\n4. Add replay regressions crossing real command-producing boundaries.\n5. Reuse the existing worker-bundle manifest and verify artifact hashes before worker creation and during deployment.\n6. Hand immutable histories to the recovery entry without deleting state.\n\n## Scope\n\nTemporal workflow determinism, replay fixtures, history classification, worker-bundle verification, deployment integrity, tests, and documentation. Recovery/retirement of immutable workflow state and disk-authoritative read architecture remain sibling Epic work.",
+    "problemStatement": "## Problem\n\nMultiple ADV change workflows are poisoned with Temporal replay nondeterminism (TMPRL1100), making them unqueryable and blocking reads/archive/cleanup project-wide.\n\nObserved 2026-07-20 via adv_wip_state — poisoned workflows and their evidence:\n- `fixArchiveDeltaReconciliation`, `fixScopeRepoFixture`, `makeLegacyDesignValidation`: \"[TMPRL1100] Nondeterminism error: Non-deprecated patch marker encountered for change `acceptance-readiness-revision-v1`, but there is no corresponding change command! | QueryNotRegisteredError\"\n- `fixHealthViewTimeouts`: same, for patch `state-backed-acceptance-proof-v1`\n- `refineTestEvidencePolicy`: \"[TMPRL1100] Nondeterminism error: UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 597, ActivityTaskScheduled) | QueryNotRegisteredError\"\n- `addArchiveScaleRegression`: query-wedged (RUNNING, historyLength 864)\n\n## Known facts\n\n- The patch markers ARE present in current source: `workflows.ts:1014` (`ACCEPTANCE_READINESS_FENCE_PATCH = \"acceptance-readiness-revision-v1\"`), `:1029` (`STATE_BACKED_ACCEPTANCE_PROOF_PATCH = \"state-backed-acceptance-proof-v1\"`), with `wf.patched(...)` calls at `:1085` and `:1088` and deprecatePatch guidance comments at `:994`/`:1026`. So this is NOT a naive \"patch removed before histories closed.\"\n- A replay-determinism regression harness exists (`src/temporal/__tests__/replay-determinism.test.ts` + recorded histories) but did not gate the deployed poisoning.\n- `plugin/src/temporal/workflows.ts` is the worker-bundle root; the worker loads from `dist/temporal/` and requires `pnpm run build:worker`. Deployed-bundle staleness vs source is a leading hypothesis.\n\n## Candidate root causes to disprove/confirm\n\n1. Deployed worker bundle (`dist/temporal/workflows.js`) is stale / diverged from source, so replay runs code lacking the current patched() call sites while histories recorded the markers.\n2. Patch-command ORDERING drift: a newer `patched()`/search-attribute upsert was inserted ahead of the recorded markers, shifting the deterministic command sequence (see the `UpsertWorkflowSearchAttributesMachine ... ActivityTaskScheduled` variant).\n3. Histories were poisoned by a prior bad build and remain permanently non-replayable even under correct current code (→ recovery, not code-fix).\n\n## Success (to be refined at agreement)\n\nExact trigger identified with evidence (which of 1/2/3, on which patch/event), a deterministic fix landed for any code-level cause, a replay regression that WOULD have caught it, and a clear handoff to the sibling \"recover the 6 poisoned workflows\" entry for any histories that cannot self-heal.",
+    "agreement": "# Agreement: Fix Temporal patch nondeterminism\n\n## Objectives\n\n1. Establish the exact replay divergence for each of the six affected workflows from its real Temporal history rather than presuming patch-marker order is the cause.\n2. Make the replay harness representative by adding sanitized production-history fixtures and command-boundary regressions.\n3. Restore deterministic compatibility using the smallest evidence-backed change and the documented Temporal patch lifecycle where applicable.\n4. Prevent stale or mismatched worker artifacts from reaching `Worker.create` by verifying the existing worker-bundle manifest and deployed artifacts.\n5. Produce a typed recovery handoff for histories that cannot replay safely.\n\n## Acceptance Criteria\n\n### AC1 — Exact divergence classified\n\nFor each of `fixArchiveDeltaReconciliation`, `fixHealthViewTimeouts`, `fixScopeRepoFixture`, `makeLegacyDesignValidation`, `refineTestEvidencePolicy`, and `addArchiveScaleRegression`, evidence records the failing history event, current workflow operation, relevant introducing commit when identifiable, and one typed cause: `patch_branch_unreachable`, `activity_order_mismatch`, `timer_order_mismatch`, `search_attribute_order_mismatch`, `bundle_identity_mismatch`, or `unknown_with_evidence`.\n\n### AC2 — Six real histories covered\n\nAt least six sanitized captured histories—one per affected workflow—are registered in the replay fixture corpus. Each fixture either reproduces the pre-fix failure and passes after remediation, or carries a typed `immutable_history` classification with a concrete replay error and recovery handoff. Sanitization review confirms proposal/agreement/task payload content is absent.\n\n### AC3 — Evidence-backed compatibility fix\n\nEvery workflow-code change maps to an AC1 classification and a replay fixture. `patched`, `deprecatePatch`, or marker removal is used only according to Temporal's documented lifecycle and demonstrated history compatibility. No recorded marker is removed while a retained open history may require it, and no workflow entry signature changes.\n\n### AC4 — Forward-drift regression\n\nA deterministic regression moves or inserts a real command-producing workflow operation—Activity, timer, or search-attribute upsert—across a recorded history boundary and proves replay fails before the guard/fix. Patch-call reordering alone is not accepted as the failure oracle. CI reports the divergent fixture and operation.\n\n### AC5 — Existing worker manifest enforced\n\n`dist/temporal/bundle-manifest.json` remains the canonical worker manifest. Production worker startup rehashes the declared worker/workflow artifacts and verifies the manifest before every `Worker.create` path. Missing or mismatched production artifacts fail closed with typed `WORKER_BUNDLE_STALE` evidence. Development source fallback remains explicit. Deployment verifies copied temporal artifacts and publishes their manifest last.\n\n### AC6 — Recovery handoff complete\n\nAll six workflows end classified as `self_healed` or `immutable_history`. Each immutable classification records exact replay evidence and the target recovery Epic entry. This change does not delete or recreate workflow state.\n\n## Success Criteria\n\n- Six real-history fixtures registered and sanitized.\n- Targeted replay suite passes every self-healed fixture and structurally validates every immutable classification.\n- A command-boundary drift regression demonstrably fails against an incompatible worker variant.\n- Every production `Worker.create` path is guarded by one shared manifest verifier.\n- Build and deployment checks verify temporal artifacts and manifest-last publication.\n- Full repository checks pass.\n\n## Constraints\n\n- No workflow-state deletion or recreation.\n- No `changeWorkflow` signature change.\n- No duplicate worker-manifest format or competing freshness subsystem.\n- Captured fixtures contain no user-authored proposal, agreement, task, evidence, or secret payloads.\n- Production startup fails closed; development fallback remains usable and explicit.\n- Work runs in the ADV-managed change worktree.\n\n## Avoidances\n\n- Do not infer root cause from patch-marker position alone.\n- Do not use `deprecatePatch` as a generic relocation mechanism.\n- Do not remove markers without retained-history evidence.\n- Do not create synthetic-only proof while real affected histories remain untested.\n- Do not absorb disk-authoritative reads, archive durability, or workflow recovery into this change.\n\n## Design Leverage Scout\n\nFive candidates considered. Auto-adopted/design-around: shared pre-`Worker.create` verifier, reuse of the replay fixture registry, command-boundary drift regression, and manifest-last temporal deployment. Production prebuilt `workflowBundle` remains an explicit design alternative requiring evidence against the installed SDK and is not silently adopted.",
+    "design": "# Design: Fix Temporal patch nondeterminism\n\n## Architecture Overview\n\nThe change uses one evidence pipeline with three enforcement layers:\n\n1. **Capture and classify:** export each affected Temporal history, sanitize payloads, reproduce replay, and record a typed divergence classification.\n2. **Remediate and regress:** select the smallest compatibility fix from the classification and pin it with the captured fixture plus a command-boundary drift test.\n3. **Verify artifact identity:** reuse the existing temporal bundle manifest, verify hashes before every production `Worker.create`, and publish temporal artifacts before their manifest.\n\nNo marker strategy is selected before replay evidence exists. Immutable histories are classified for the sibling recovery entry rather than deleted or recreated.\n\n## Key Decisions\n\n### KD1 — History evidence owns root cause\n\nEach affected history produces a typed record containing workflow ID/change ID, failing event, current operation, introducing commit when identifiable, classification, replay result, and sanitized fixture reference. Allowed causes are the agreement's closed enum. No prose heuristic can authorize a workflow-code mutation.\n\n### KD2 — Reuse the existing replay registry\n\nExtend the current fixture registry and `Worker.runReplayHistory` harness. Add a sanitized history plus metadata for each affected workflow. Metadata validation rejects missing classifications, unsanitized payload indicators, duplicate workflow coverage, and immutable classifications without concrete replay evidence.\n\nThe capture path writes into a temporary location first. A deterministic sanitizer traverses payload-bearing history attributes, replaces user-authored payload bytes with replay-safe typed placeholders where possible, and emits a review summary. Fixture promotion requires an automated secret/content scan and explicit source review evidence.\n\n### KD3 — Classification selects remediation\n\n- `patch_branch_unreachable`: restore reachable branch structure or apply documented `patched → deprecatePatch → remove` lifecycle only when replay evidence proves compatibility.\n- `activity_order_mismatch`, `timer_order_mismatch`, `search_attribute_order_mismatch`: restore deterministic operation order or add a compatible versioned branch around the real command boundary.\n- `bundle_identity_mismatch`: correct build/deploy/startup identity enforcement; do not change workflow logic without replay evidence.\n- `unknown_with_evidence`: no speculative mutation; classify immutable until a deterministic reproducer exists.\n\nEvery code change links to one classification and fixture. Patch-call reordering alone is never the failure oracle.\n\n### KD4 — Command-boundary regression\n\nCreate a minimal test workflow/history pair where an Activity, timer, or search-attribute upsert moves across a recorded boundary. The incompatible worker variant must fail replay; the compatible variant must pass. Error output identifies fixture and operation. The test uses the official replay API and no production-only feature flags in workflow code.\n\n### KD5 — Explicit artifact policy plus one shared pre-create verifier\n\nWorker creation receives a required internal artifact policy:\n\n```ts\ntype WorkerArtifactPolicy =\n  | { mode: \"production_verified\"; manifestPath: string }\n  | { mode: \"development_source\"; rationale: string }\n```\n\nProduction entry points explicitly pass `production_verified`; tests and source-development entry points explicitly pass `development_source`. Mode is never inferred from manifest existence, environment guesswork, or a missing `.js` file.\n\nUnder `production_verified`, one pure verifier:\n\n1. Resolves and schema-validates `dist/temporal/bundle-manifest.json`.\n2. Resolves the canonical workflow artifact declared by the manifest.\n3. Rejects a caller `workflowsPath` override unless it resolves to that declared artifact.\n4. Rehashes every declared worker/workflow artifact.\n5. Compares generation and hashes.\n6. Returns a typed verified identity or `WORKER_BUNDLE_STALE` failure.\n7. Runs before every production `Worker.create`, including single-queue, multi-queue, dynamically registered, and in-process production paths.\n\n`development_source` permits the existing `workflows.ts` fallback only with an explicit rationale and never emits verified production identity. The verifier never silently regenerates manifests.\n\n### KD6 — Manifest-last deployment\n\nMirror plugin-manifest publication semantics for temporal artifacts: exclude temporal manifest from bulk copy, copy artifacts, verify destination hashes, then copy manifest atomically last. A missing/malformed manifest or hash mismatch aborts deployment before worker restart.\n\n### KD7 — Keep current `workflowsPath` model in scope\n\nProduction prebuilt `workflowBundle` could strengthen identity between verified bytes and SDK-consumed code, but it changes the build/startup contract and is not required to close the current stale-artifact gap. This change verifies the exact manifest-declared `workflowsPath` input before `Worker.create`. A prebuilt-bundle migration remains a separately evaluated alternative, not an implicit expansion.\n\n## Interfaces and Data Shapes\n\n```ts\ntype ReplayDivergenceCause =\n  | \"patch_branch_unreachable\"\n  | \"activity_order_mismatch\"\n  | \"timer_order_mismatch\"\n  | \"search_attribute_order_mismatch\"\n  | \"bundle_identity_mismatch\"\n  | \"unknown_with_evidence\"\n\ntype PoisonedHistoryClassification = {\n  changeId: string\n  workflowId: string\n  fixture: string\n  failingEventId: number\n  observedError: string\n  currentOperation: string\n  introducingCommit?: string\n  cause: ReplayDivergenceCause\n  outcome: \"self_healed\" | \"immutable_history\"\n  recoveryEvidence?: string\n}\n\ntype WorkerBundleVerification =\n  | { status: \"verified\"; generation: string; artifactHashes: Record<string, string> }\n  | { status: \"stale\"; code: \"WORKER_BUNDLE_STALE\"; reason: string }\n```\n\nSchema validation, not free-form prose, owns fixture registration, artifact policy, and recovery handoff.\n\n## Implementation Strategy\n\n1. Add classification/sanitization schemas and capture support.\n2. Export, sanitize, and register all six histories.\n3. Record RED replay evidence and classifications before workflow edits.\n4. Implement classification-specific compatibility fixes one cause at a time, rerunning the complete captured corpus after each change.\n5. Add command-boundary forward-drift regression.\n6. Add explicit artifact policy and shared verifier; cover every production `Worker.create` route structurally.\n7. Add manifest-last deployment verification.\n8. Run targeted replay/worker/deploy tests, smoke checks, full checks, and build verification.\n9. Persist six terminal classifications for the recovery handoff.\n\n## Affected Components\n\n- Temporal replay fixtures, fixture metadata, and replay harness.\n- History capture/sanitization support.\n- Workflow code only where captured evidence requires compatibility changes.\n- Existing temporal worker-bundle manifest reader/writer.\n- Worker startup/registration paths.\n- Deployment verification and tests.\n- Determinism and deployment documentation.\n\n## Design-Derived Criteria\n\n1. Exactly six named affected workflows have fixture/classification coverage; duplicates or omissions fail validation.\n2. Fixture promotion fails if bounded scans detect proposal, agreement, task, evidence, common secret formats, or unredacted payload codec data.\n3. Every workflow-code diff carries at least one classification/fixture reference in test metadata.\n4. The forward-drift regression crosses at least one real command-producing operation and fails against the incompatible variant.\n5. Static coverage proves every production `Worker.create` route passes `production_verified` and invokes the shared verifier first.\n6. Tests prove `workflowsPath` overrides fail closed under production policy and explicit development fallback remains usable.\n7. Deployment publishes temporal manifest last and validates destination hashes before publication.\n8. Full captured corpus replays after every compatibility change.\n\n## Risks and Mitigations\n\n- **History export unavailable:** record exact Temporal reachability/retention evidence; do not synthesize a substitute and claim real coverage.\n- **Sanitization breaks replay:** preserve payload encoding/metadata shape, test sanitized replay before fixture promotion, and never commit raw histories.\n- **Compatibility fix helps one history but breaks another:** run all captured fixtures after each mutation; one shared corpus is the merge gate.\n- **Ambiguous production detection:** eliminated by required caller-supplied artifact policy; no ambient inference.\n- **Manifest verifies input but not SDK-compiled output:** retain current contract for this change; evaluate prebuilt `workflowBundle` separately with installed-SDK evidence.\n- **Overlap with later Hardening entries:** this change owns primitive verification and history evidence; sibling entries own state recovery, disk-authoritative reads, and broader release policy.\n\n## LBP Analysis\n\nThis design removes speculative patch manipulation and makes every remediation traceable to executable history evidence. It reuses existing replay and manifest infrastructure, centralizes startup enforcement, makes production/development policy explicit, and keeps recovery boundaries intact.\n\n## Design Leverage Scout\n\nFive candidates considered. Four adopted: shared pre-`Worker.create` verifier, existing replay-fixture registry reuse, command-boundary forward-drift regression, and temporal artifact verification with manifest-last publication. Production prebuilt `workflowBundle` remains a separately evaluated alternative.\n\n## Independent Validation\n\nValidator result: **caution**, medium risk. Temporal lifecycle and replay strategy were supported. Required correction: production/development detection and override policy must be explicit before planning. Resolved by KD5: required typed artifact policy, canonical manifest-declared `workflowsPath`, fail-closed production overrides, and structural coverage of every production `Worker.create` route.\n\n## ADR Assessment\n\nNo new cross-project protocol or externally difficult-to-reverse contract requires an ADR. Artifact policy is internal and schema-checked.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe change replaces speculative Temporal patch diagnosis with captured-history evidence, prevents unverified worker artifacts from reaching production worker creation, and records a typed recovery destination for every immutable affected history. Acceptance review is APPROVED; release hardening is READY.\n\n## Why It Matters\n\nFuture workflow changes now have executable replay evidence and command-boundary regression coverage. Production startup fails closed when worker/workflow artifacts do not match the canonical temporal manifest. Five histories that cannot safely replay are preserved and routed to the existing recovery Epic entry instead of being deleted or recreated.\n\n## Verdict\n\nAPPROVED — release READY\n\n## What Was Built\n\n1. A typed capture, sanitization, audit, classification, and recovery-target pipeline for six affected production histories.\n2. A replay corpus covering self-healed and immutable outcomes, plus a real Activity/timer command-boundary incompatibility regression.\n3. One shared production artifact-policy verifier before every `Worker.create` route, with explicit development fallback.\n4. Temporal artifact hash validation and manifest-last deployment publication.\n5. Baseline contract repairs found during full verification: triage assets, ADV prompt/manifest budgets, requirement citations, poller timeout, and session-ID alphabet assertions.\n\n## What Was Verified\n\n- Verdict: APPROVED after three reviewer attempts; two blockers were fixed and re-reviewed with zero unresolved blockers/issues.\n- Tests: targeted replay/classification 21/21; final `bin/oc-test full` passed 453/453 files and 6,778 tests, with 1 expected failure and 12 todo.\n- Preview URL: not_applicable — no frontend, browser-visible, or visual-output surface changed.\n- Contract matrix: all 17 required rows passed or were respected; 0 failed, violated, unknown, or missing rows.\n- Harden: 6-dimension scanner READY (0 BLOCKER, 0 HIGH, 0 MEDIUM, 2 LOW optional).\n\n## Remaining Concerns\n\n- Non-blocking operational follow-up: five immutable histories still require recovery or retirement through Epic `hardenTemporalReliability`, entry `shell-1784579334278-jib2o8`. This change records the typed handoff but intentionally performs no workflow-state recovery.\n\n## Supporting Evidence\n\n- Checkpoint HEAD: `a5c3fcf7b3cbc52d6d69242ae15df5918fd3beeb`.\n- Reviewer attempt 3: all SC1–SC6, C1–C6, and DONT1–DONT5 approved.\n- Full verifier: 453/453 files; 6,778 passed; zero unexpected failures.\n- Harden scanner bundle: READY across all 6 dimensions.\n- Contract review matrix: 17 rows, 0 failing.\n- Merge compatibility: clean dry-run against origin/trunk.\n\n## Consequence Context\n\n1. **Delivered value — ready:** replay evidence, fail-closed artifact identity, deterministic deployment checks, and baseline contract repairs are complete.\n2. **Enabling-only/follow-up dependency — non-blocking:** immutable-history recovery is intentionally delegated to Epic entry `shell-1784579334278-jib2o8`; current release is not blocked because AC6 requires a complete typed handoff, not recovery execution.\n3. **Ops readiness — ready:** deploy-local.sh temporal manifest-last publication verified; worker artifact policy fail-closed; no new env vars, migrations, or external services.\n4. **Migration/data impact — bounded:** six captured histories were sanitized and committed as replay fixtures; no live workflow state was deleted, recreated, or mutated.\n5. **Frontend/preview impact — n/a:** no visual surface changed.\n6. **Collision/release risk — low:** work isolated in ADV worktree; merge compatibility clean; full suite green; no open blockers or high findings.\n7. **Open follow-ups — non-blocking:** recover or retire five immutable workflows through the typed Epic target; optional test coverage for operator script.\n8. **Next action — archive:** release READY; proceed to `/adv-archive fixTemporalPatchNondeterminism` for final sign-off.\n\n## Release Readiness Summary\n\n- **Test coverage:** PASS — all new production source files have co-located tests; full suite 453/453 files, 6,778 tests.\n- **AI-slop:** PASS — no placeholders, type erosion, debug code, or dead imports in diff.\n- **Documentation hygiene:** PASS — prompt/manifest/command/skill descriptions aligned; no stale references or contradictions.\n- **Cleanup:** PASS — no temp files, debug prints, or orphaned tests.\n- **Production readiness:** PASS — fail-closed `WorkerBundleStaleError` on every mismatch mode; sanitization covers sensitive keys and secret patterns; no secrets in committed fixtures.\n- **Deployment readiness:** PASS — temporal manifest excluded from rsync, destination hashes re-verified, manifest published last via atomic rename; no new env vars or destructive migrations.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T20:04:28Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Six real-history fixtures registered and sanitized. | pass | Six named production histories have schema-validated classification, metadata, and sanitized committed fixtures; replay classification suite passed 21/21. |\n| SC2 | success_criterion | Targeted replay suite passes every self-healed fixture and structurally validates every immutable classification. | pass | Replay corpus validates terminal classifications, audits all six sanitized histories before replay, and passes 21/21 targeted tests. |\n| SC3 | success_criterion | A command-boundary drift regression demonstrably fails against an incompatible worker variant. | pass | Command-boundary recording/drift workflow regression crosses Activity/timer order and verifies incompatible replay rejection; included in green full suite. |\n| SC4 | success_criterion | Every production `Worker.create` path is guarded by one shared manifest verifier. | pass | Shared WorkerArtifactPolicy verifier guards production Worker.create paths in worker, in-process worker, dynamic registration, and plugin initialization; structural tests pass. |\n| SC5 | success_criterion | Build and deployment checks verify temporal artifacts and manifest-last publication. | pass | Temporal artifact hashes are verified before manifest-last publication; deploy-local manifest and worker-refresh tests pass in full suite. |\n| SC6 | success_criterion | Full repository checks pass. | pass | Independent verifier ran bin/oc-test full: 453/453 files passed, 6778 tests passed, 1 expected failure, 12 todo, zero unexpected failures. |\n| C1 | constraint | No workflow-state deletion or recreation. | respected | Reviewer inspected branch diff: no workflow-state deletion, recreation, termination, or recovery mutation was introduced or executed. |\n| C2 | constraint | No `changeWorkflow` signature change. | respected | Reviewer inspected branch diff and typecheck: changeWorkflow entry signature is unchanged. |\n| C3 | constraint | No duplicate worker-manifest format or competing freshness subsystem. | respected | Implementation extends canonical dist/temporal/bundle-manifest.json verification; no competing manifest format or freshness subsystem added. |\n| C4 | constraint | Captured fixtures contain no user-authored proposal, agreement, task, evidence, or secret payloads. | respected | CI now calls auditSanitizedHistory for every committed production history; nested proposal/agreement/task/evidence/subagent-report and secret-bearing payload tests pass. |\n| C5 | constraint | Production startup fails closed; development fallback remains usable and explicit. | respected | Typed production_verified mode fails closed on missing/mismatched artifacts; explicit development_source mode remains covered by tests. |\n| C6 | constraint | Work runs in the ADV-managed change worktree. | respected | All implementation, review, checkpoints, and verification ran in the ADV-managed change/fixTemporalPatchNondeterminism worktree. |\n| DONT1 | avoidance | Do not infer root cause from patch-marker position alone. | respected | Root cause and terminal outcomes derive from captured replay command evidence; patch-marker position alone was explicitly rejected. |\n| DONT2 | avoidance | Do not use `deprecatePatch` as a generic relocation mechanism. | respected | No generic deprecatePatch relocation was added; review confirmed no speculative workflow marker mutation. |\n| DONT3 | avoidance | Do not remove markers without retained-history evidence. | respected | No retained workflow patch marker was removed. |\n| DONT4 | avoidance | Do not create synthetic-only proof while real affected histories remain untested. | respected | All six affected real Temporal histories are committed, classified, sanitized, audited, and exercised; synthetic regression is supplemental only. |\n| DONT5 | avoidance | Do not absorb disk-authoritative reads, archive durability, or workflow recovery into this change. | respected | Change records typed recovery handoff only; it does not add disk-authoritative reads, archive durability behavior, or workflow recovery execution. |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-20T20:41:34.943Z",
+      "contentHash": "1dc057f84d976d1864ce9f6e004c30a9f1bae5048f42813ea3405d39ca7906a5",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-07-21T17:36:21.611Z",
+      "contentHash": "6eb1802061abbad768d0a1559ca7a5d645d003efe3f938291c5ec42bc6c859da",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T17:36:21.611Z",
+      "contentHash": "1be84e5009b9a23b5b03e9d06b93326718eade359ca0cd70c0f0b95ac8714c4e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T17:42:31.697Z",
+      "contentHash": "b64701d2e296b859bd9df4da5261fdd890151ca564935881c22eb989418e08f5",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T20:18:45.265Z",
+      "contentHash": "47266ec42dc3a60baaef924638817e9178ce30c93b16bce62e38ce01072fbc1a",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T20:18:45.265Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "shell-1784579327428-68pzwl",
+    "order": 4,
+    "title": "Fix Temporal patch nondeterminism",
+    "linked_at": "2026-07-21T17:17:44.776Z",
+    "source": "link_existing"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-21T17:15:12.784Z",
+      "resolved": true,
+      "resolved_at": "2026-07-21T17:38:56.301Z"
+    }
+  ]
+}

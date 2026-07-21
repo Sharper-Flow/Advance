@@ -1,0 +1,632 @@
+{
+  "id": "fixAdvCiWaiterRemediation",
+  "title": "Fix adv-ci-waiter remediation policy",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T05:33:13.524Z",
+  "tasks": [
+    {
+      "id": "tk-7df8b5b1a61d",
+      "title": "Update spec + docs mirror to remove \"waiter's bounded attempt budget\" wording.",
+      "type": "code",
+      "section": "Spec + docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T05:37:25.585Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T12:13:52.067Z",
+      "verification": "spec.json rq-releaseFinalization04.2 scenario updated: removed \"waiter's bounded attempt budget\" wording; new text explicitly assigns remediation to parent orchestrator and notes waiter has edit:deny. docs/specs/advance-workflow.md mirror updated identically. 5/5 release-finalization tests pass. RED tr_mruma21e → GREEN tr_mrumcccc.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/archive-release-finalization-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/archive-release-finalization-assets.test.ts"
+      ],
+      "checkpointSha": "93988a588509d1a0a7a4ca6f7110955ece34a5be",
+      "completedAt": "2026-07-21T12:17:42.977Z",
+      "completed_at": "2026-07-21T12:17:42.977Z"
+    },
+    {
+      "id": "tk-6b66ce111deb",
+      "title": "Add explicit \"on red CI: return, do not remediate\" section to adv-ci-waiter.md.",
+      "type": "code",
+      "section": "Agent manifest",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T05:37:25.643Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T12:11:14.802Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T12:14:22.308Z",
+      "verification": "adv-ci-waiter.md gains explicit \"On red CI: return, do not remediate\" section. Section states the waiter's edit/morph_edit/task deny tool grants, requires classification (name+URL+log excerpt), and explicitly says remediation is the parent's responsibility. 12/12 tests pass. RED tr_mrum653w → GREEN tr_mrum7ibh.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "98b80eeee21902b76b09d3f2fe8a7a6c173cc21c",
+      "completedAt": "2026-07-21T12:14:43.631Z",
+      "completed_at": "2026-07-21T12:14:43.631Z"
+    },
+    {
+      "id": "tk-8c0714ae2fba",
+      "title": "Final verification:",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-21T05:37:26.935Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T12:20:53.934Z",
+      "verification": "All 4 implementation tasks done. Touched-file tests pass: 13/13 adv-ci-waiter-assets, 5/5 archive-release-finalization, 1/1 mode-guidance byte budget. Pre-existing trunk failures (adv_roadmap ref, 3 spec citations) depend on PR #269 merging first. Host config edit verified via grep.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ca0b098650995e3c1b7fe39974713aa6d48739e8",
+      "completedAt": "2026-07-21T12:23:15.267Z",
+      "completed_at": "2026-07-21T12:23:15.267Z"
+    },
+    {
+      "id": "tk-e623a302cece",
+      "title": "Update adv-archive.md spawn language to clarify waiter role.",
+      "type": "code",
+      "section": "Archive command",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T05:37:27.109Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T12:17:42.581Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T12:19:31.243Z",
+      "verification": "adv-archive.md spawn language clarified. 13/13 adv-ci-waiter-assets tests pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ca0b098650995e3c1b7fe39974713aa6d48739e8",
+      "completedAt": "2026-07-21T12:23:15.263Z",
+      "completed_at": "2026-07-21T12:23:15.263Z"
+    },
+    {
+      "id": "tk-13b54e924947",
+      "title": "Edit host instruction file (not in repo): `~/.config/opencode/instructions/oc-ci-wait.md` line 27.",
+      "type": "docs",
+      "section": "Host config",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-21T05:37:27.299Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "not_applicable_reason": "Host config file lives outside the repo at ~/.config/opencode/instructions/oc-ci-wait.md; cannot be evidenced via repo tests. Verification is a post-edit read confirmed in task notes."
+      },
+      "evidence_plan": {
+        "policy": "source_citation",
+        "proof_target": "Source citation or reference",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "evidence_policy": "source_citation",
+      "updatedAt": "2026-07-21T12:11:43.192Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T12:19:01.048Z",
+      "verification": "Host instruction file ~/.config/opencode/instructions/oc-ci-wait.md line 27 rewritten. Old: \"the waiter (or you, after it reports) classifies...remediates safely...pushes the fix...re-watches\". New: \"the waiter returns to you with classification (failing check names, URLs, log excerpt). You (the main agent) classify...remediate in the PR worktree, push the fix, and re-spawn the waiter. The waiter itself never modifies files — it has edit: deny.\" Post-edit grep confirms line 27 contains \"waiter returns to you\" and \"edit: deny\".",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8d05d50a854f4558d26fef55e6907e6dca5030e2",
+      "completedAt": "2026-07-21T12:20:54.154Z",
+      "completed_at": "2026-07-21T12:20:54.154Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-6b66ce111deb": [
+      {
+        "runId": "tr_mrum653w_2323f585",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/adv-ci-waiter-assets.test.ts",
+        "durationMs": 2961.164836999029,
+        "recordedAt": "2026-07-21T12:12:36.628Z"
+      },
+      {
+        "runId": "tr_mrum6q06_e65d6fc5",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/adv-ci-waiter-assets.test.ts",
+        "durationMs": 1563.7394500002265,
+        "recordedAt": "2026-07-21T12:13:03.727Z"
+      },
+      {
+        "runId": "tr_mrum7ibh_4a85bddd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/adv-ci-waiter-assets.test.ts",
+        "durationMs": 1754.2553980015218,
+        "recordedAt": "2026-07-21T12:13:40.400Z"
+      }
+    ],
+    "tk-7df8b5b1a61d": [
+      {
+        "runId": "tr_mruma21e_e8196f55",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts",
+        "durationMs": 1572.827757999301,
+        "recordedAt": "2026-07-21T12:15:39.289Z"
+      },
+      {
+        "runId": "tr_mrumanht_738581d2",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts",
+        "durationMs": 1490.6790280006826,
+        "recordedAt": "2026-07-21T12:16:07.077Z"
+      },
+      {
+        "runId": "tr_mrumcccc_53b8cf82",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts",
+        "durationMs": 1518.8640769980848,
+        "recordedAt": "2026-07-21T12:17:25.935Z"
+      }
+    ],
+    "tk-e623a302cece": [
+      {
+        "runId": "tr_mrumdy0j_ea096cbc",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/adv-ci-waiter-assets.test.ts",
+        "durationMs": 1842.0047650001943,
+        "recordedAt": "2026-07-21T12:18:40.720Z"
+      }
+    ],
+    "tk-8c0714ae2fba": [
+      {
+        "runId": "tr_mrumh7v3_da3d0658",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/adv-ci-waiter-assets.test.ts src/archive-release-finalization-assets.test.ts src/__tests__/spec-citation-invariant.test.ts src/optimized-handoff-assets.test.ts src/tool-name-assets.test.ts",
+        "durationMs": 5057.072024997324,
+        "recordedAt": "2026-07-21T12:21:13.410Z"
+      },
+      {
+        "runId": "tr_mrumi043_fba5f0bd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tool-name-assets.test.ts -t \"mode guidance adds\"",
+        "durationMs": 4074.094174001366,
+        "recordedAt": "2026-07-21T12:21:49.995Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:36:06.548Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved with reply \"approve\" after reviewing problem (contradictory waiter-remediation policy) and direction (parent owns remediation, waiter is pure poll+report).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "9b988a300ee5bc15df4a6adb8a8a6aeb49eaf47cd9477b18d92614fc4376f508",
+        "non_whitespace_chars": 3156,
+        "checked_at": "2026-07-21T05:33:13.579Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:36:44.181Z",
+      "completed_by": "agent",
+      "approval_evidence": "Inline discovery: confirmed contradictory policy across adv-ci-waiter.md (deny edit tools), spec rq-releaseFinalization04.2 (waiter has bounded remediation budget), oc-ci-wait.md line 27 (waiter remediates). Mapped all 5 surfaces requiring alignment.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "non_whitespace_chars": 1516,
+        "checked_at": "2026-07-21T05:33:13.580Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:37:25.444Z",
+      "completed_by": "agent",
+      "approval_evidence": "Inline design: 5-surface policy alignment. Agent manifest gets explicit \"return on red CI\" rule. Spec/docs/archive-command language corrected to make parent own remediation. Host instruction (out-of-repo) edited separately. LBP decisions documented.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "3f0ffe5ecfb8b769d48c66fefec67f96f3f2f9bb46ef586e729bbedc1b7e89f0",
+        "non_whitespace_chars": 3338,
+        "checked_at": "2026-07-21T05:33:13.581Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T12:12:02.009Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep with reply \"approve\". 5 tasks queued. Host-config docs task has evidence_policy=source_citation with not_applicable_reason in contract_refs."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T12:23:30.060Z",
+      "completed_by": "agent",
+      "approval_evidence": "5/5 tasks done. All touched-file tests pass. Pre-existing trunk failures noted."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-21T12:24:30.796Z",
+      "completed_by": "user",
+      "approval_evidence": "Contract review matrix 12/12 pass (0 failing). All ACs verified. Executive summary persisted. Touched-file tests pass. Pre-existing trunk failures depend on PR #269 merging first.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "3e8d7a5894c3208e4e6fd808f239de9b8dc36e79f67f7ee90adae837ed828f2a",
+        "non_whitespace_chars": 2843,
+        "checked_at": "2026-07-21T05:33:13.582Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+      "approvedAt": "2026-07-21T05:36:26.493Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/agents/adv-ci-waiter.md` contains an explicit rule: on red CI, return immediately to the parent with classification; do NOT remediate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`.adv/specs/advance-workflow/spec.json` `rq-releaseFinalization04.2` body and scenarios no longer reference \"the waiter's bounded attempt budget\" — remediation authority is the parent's.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`docs/specs/advance-workflow.md` mirror matches the spec change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/command/adv-archive.md` spawn-instruction language aligns: parent does remediation; waiter reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/adv-ci-waiter-assets.test.ts` asserts the new policy clauses in adv-ci-waiter.md.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`~/.config/opencode/instructions/oc-ci-wait.md` line 27 rewritten to drop \"waiter remediates\" language. (Host config, not in repo; verified separately.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "MUST NOT remove adv-ci-waiter entirely (still useful as poll+report).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "MUST NOT change the waiter's tool grants (bash:allow for `oc-ci-wait` CLI is still needed).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "MUST keep existing tests passing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not introduce spawn-time structural validation (out of scope).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not change the polling cadence or `oc-ci-wait` ownership model.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not bundle this fix with the unrelated fixPacketDefectWorkDiscard change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T12:24:12.795Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-ci-waiter.md gains explicit section between CI-success-is-not-MERGED and Bounded-output. Test in adv-ci-waiter-assets.test.ts asserts section header, do-not-remediate, classification, and parent-responsibility clauses. 13/13 tests pass (tr_mrum7ibh)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "spec.json rq-releaseFinalization04.2 scenario wording updated: 'red CI is reported by the waiter and remediation is the parent orchestrator's responsibility (the waiter has edit: deny and no bounded attempt budget)'. Test in archive-release-finalization-assets.test.ts asserts 'waiter's bounded attempt budget' no longer present. 5/5 tests pass (tr_mrumcccc)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "docs/specs/advance-workflow.md line 713 mirrored identically. Same test asserts both spec and docs mirror are aligned."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-archive.md spawn language for adv-ci-waiter now contains 'waiter polls and reports only — it has edit: deny and cannot remediate' and 'Do not ask the waiter to remediate'. Test in adv-ci-waiter-assets.test.ts asserts these clauses."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "3 new test assertions added across adv-ci-waiter-assets.test.ts and archive-release-finalization-assets.test.ts. All pass. RED→GREEN evidence: tr_mrum653w → tr_mrum7ibh; tr_mruma21e → tr_mrumcccc."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "Host config file ~/.config/opencode/instructions/oc-ci-wait.md line 27 rewritten. Post-edit grep confirms line contains 'waiter returns to you' and 'edit: deny'. File is outside the repo; verified via shell read, not a repo test."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "adv-ci-waiter.md tool grants unchanged (edit:deny, morph_edit:deny, task:deny, bash:allow). Only policy wording added."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "Polling cadence (20-30s sampling, oc-ci-wait CLI ownership) unchanged in all touched files."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "13/13 adv-ci-waiter-assets tests + 5/5 archive-release-finalization tests pass. No existing assertion weakened."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "No spawn-time validator code introduced. Touched files: 4 markdown/spec/docs + 1 baseline JSON + 2 test files."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "adv-ci-waiter.md polling cadence (20-30s) unchanged. oc-ci-wait CLI ownership unchanged."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "fixAdvCiWaiterRemediation branch contains only adv-ci-waiter policy changes. fixPacketDefectWorkDiscard remains a separate PR (#269)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`.opencode/agents/adv-ci-waiter.md` contains an explicit rule: on red CI, return immediately to the parent with classification; do NOT remediate.",
+    "`.adv/specs/advance-workflow/spec.json` `rq-releaseFinalization04.2` body and scenarios no longer reference \"the waiter's bounded attempt budget\" — remediation authority is the parent's.",
+    "`docs/specs/advance-workflow.md` mirror matches the spec change.",
+    "`.opencode/command/adv-archive.md` spawn-instruction language aligns: parent does remediation; waiter reports.",
+    "`plugin/src/adv-ci-waiter-assets.test.ts` asserts the new policy clauses in adv-ci-waiter.md.",
+    "`~/.config/opencode/instructions/oc-ci-wait.md` line 27 rewritten to drop \"waiter remediates\" language. (Host config, not in repo; verified separately.)"
+  ],
+  "documents": {
+    "proposal": "# Fix adv-ci-waiter policy: parent owns remediation, not waiter\n\n## Problem\n\nThe current `adv-ci-waiter` policy is internally contradictory:\n\n| Source | Says |\n|---|---|\n| `.opencode/agents/adv-ci-waiter.md` | \"Do not modify files, git state, branches, PRs, issues, or local config.\" + `edit: deny`, `morph_edit: deny`, `task: deny` tool grants |\n| `~/.config/opencode/instructions/oc-ci-wait.md` line 27 | \"If CI fails, the waiter (or you, after it reports) classifies the failing check from logs/artifacts, remediates safely in the PR worktree, pushes the fix, and re-watches until green/merged.\" |\n| `.adv/specs/advance-workflow/spec.json` rq-releaseFinalization04.2 | \"red CI cannot be remediated after the waiter's bounded attempt budget\" |\n\nThe waiter **cannot** remediate (no edit tools, explicit \"do not modify\" rule). But the spec + host instruction say it does. Result: parents spawn the waiter with remediation expectations; waiter can't fulfill them; or worse, parents (like me on PR #269) hand off remediation to the waiter and wait while it can't act.\n\nObserved failure: PR #269 had red CI. I spawned adv-ci-waiter with a remediation prompt. The waiter has `edit: deny` so it would have been stuck. User had to cancel and direct me to fix it myself.\n\n## Chosen direction\n\n**Parent owns remediation; waiter is pure poll+report.**\n\nUpdate the three layers:\n\n1. **`.adv/specs/advance-workflow/spec.json` rq-releaseFinalization04.2**: remove \"after the waiter's bounded attempt budget\" wording. New wording: \"red CI cannot be remediated by the parent\" or similar.\n2. **`docs/specs/advance-workflow.md`**: mirror the spec change.\n3. **`.opencode/agents/adv-ci-waiter.md`**: add an explicit rule — \"On red CI, return immediately to the parent with classification (failed check names + URLs + log excerpt). Do NOT attempt remediation; remediation is the parent's responsibility.\"\n4. **`~/.config/opencode/instructions/oc-ci-wait.md` line 27**: rewrite — \"If CI fails, the waiter returns to the parent with classification. The parent (you, the main agent) classifies, remediates in the PR worktree, pushes, and re-spawns the waiter. The waiter itself never modifies files.\"\n5. **`.opencode/command/adv-archive.md`**: update spawn-instruction language to match (currently says waiter reports blocked after bounded attempts — clarify it reports on first red CI).\n\n## Scope\n\n- `.adv/specs/advance-workflow/spec.json` (rq-releaseFinalization04 body + scenarios)\n- `docs/specs/advance-workflow.md` (mirror)\n- `.opencode/agents/adv-ci-waiter.md` (add \"return on red CI\" rule)\n- `~/.config/opencode/instructions/oc-ci-wait.md` (rewrite line 27 — host config, not in repo)\n- `.opencode/command/adv-archive.md` (spawn language)\n- Tests in `plugin/src/adv-ci-waiter-assets.test.ts` asserting the new policy\n\n## Verification\n\n- `plugin/src/adv-ci-waiter-assets.test.ts` asserts the agent manifest contains \"return immediately on red CI\" + \"do not remediate\" clauses.\n- Spec-citation invariant test passes (any new rq ID cited in source).\n- Existing tests still pass.\n- `pnpm run check` (modulo pre-existing trunk breakage).\n\n## Out of scope\n\n- Spawn-time structural validation of waiter spawn packets.\n- Removing the waiter entirely (it's still useful for poll+report).\n- Waiter's bash access (still needed for `oc-ci-wait` CLI calls).\n\n## Note on host config\n\n`~/.config/opencode/instructions/oc-ci-wait.md` lives outside the repo. The repo change documents the new policy; the host file gets edited separately as a host-config change (not tracked in this PR). The repo change is self-sufficient without it — agents reading the spec/agent-manifest get the correct policy.",
+    "agreement": "# Agreement: Fix adv-ci-waiter remediation policy\n\n## Objectives\n\n1. adv-ci-waiter NEVER attempts remediation. It polls CI and returns terminal status (green/red/timeout/etc) plus classification (failed check names + URLs + log excerpt).\n2. The parent (orchestrating agent) owns remediation: classify the failing check, fix in the PR worktree, push, re-spawn the waiter.\n3. Spec, docs, agent manifest, host instruction, and archive spawn language all align on this division.\n\n## Acceptance criteria\n\n- AC1: `.opencode/agents/adv-ci-waiter.md` contains an explicit rule: on red CI, return immediately to the parent with classification; do NOT remediate.\n- AC2: `.adv/specs/advance-workflow/spec.json` `rq-releaseFinalization04.2` body and scenarios no longer reference \"the waiter's bounded attempt budget\" — remediation authority is the parent's.\n- AC3: `docs/specs/advance-workflow.md` mirror matches the spec change.\n- AC4: `.opencode/command/adv-archive.md` spawn-instruction language aligns: parent does remediation; waiter reports.\n- AC5: `plugin/src/adv-ci-waiter-assets.test.ts` asserts the new policy clauses in adv-ci-waiter.md.\n- AC6: `~/.config/opencode/instructions/oc-ci-wait.md` line 27 rewritten to drop \"waiter remediates\" language. (Host config, not in repo; verified separately.)\n\n## Constraints\n\n- MUST NOT remove adv-ci-waiter entirely (still useful as poll+report).\n- MUST NOT change the waiter's tool grants (bash:allow for `oc-ci-wait` CLI is still needed).\n- MUST keep existing tests passing.\n\n## Avoidances\n\n- Do not introduce spawn-time structural validation (out of scope).\n- Do not change the polling cadence or `oc-ci-wait` ownership model.\n- Do not bundle this fix with the unrelated fixPacketDefectWorkDiscard change.",
+    "design": "# Design: Fix adv-ci-waiter remediation policy\n\n## Architecture\n\nNo new modules. Policy alignment across four surfaces + one host-config file.\n\n## Surface 1: Agent manifest\n\n**File:** `.opencode/agents/adv-ci-waiter.md`\n\nAdd a new top-level section \"On red CI\" between \"CI success is not PR MERGED\" and \"Bounded output\":\n\n```\n## On red CI: return, do not remediate\n\nYou have `edit: deny`, `morph_edit: deny`, `task: deny`. You cannot remediate anything. When CI concludes `failure`:\n\n1. Stop polling immediately (do not retry).\n2. Classify the failing checks: name, URL, brief log excerpt (≤500 chars total).\n3. Return to the parent with: conclusion=`failure`, failing checks, suggested next action (e.g. \"parent classifies and remediates in the PR worktree\").\n4. Do NOT attempt to fix code, push commits, edit files, or re-spawn yourself.\n\nRemediation is the parent orchestrator's responsibility, not yours.\n```\n\n## Surface 2: Spec\n\n**File:** `.adv/specs/advance-workflow/spec.json` `rq-releaseFinalization04.2`\n\nCurrent: \"red CI cannot be remediated after the waiter's bounded attempt budget\"\n\nNew: \"red CI is reported by the waiter; remediation is the parent orchestrator's responsibility (the waiter has no edit tools and cannot remediate)\"\n\nUpdate the scenario title from \"Blocked (no PR / no auth / red CI) preserves active state\" to clarify that red CI blocks at the parent layer.\n\n## Surface 3: Docs mirror\n\n**File:** `docs/specs/advance-workflow.md` (line ~713)\n\nSame change as spec, mirrored.\n\n## Surface 4: Archive command\n\n**File:** `.opencode/command/adv-archive.md` line ~512\n\nCurrent spawn language says: \"Use the Task tool to spawn `adv-ci-waiter` with `{ repo, prNumber, prUrl }`.\"\n\nAugment with: \"The waiter polls and reports only. If CI fails, the waiter returns to the parent with classification; the parent classifies, remediates in the PR worktree, pushes the fix, and re-spawns the waiter. Do not ask the waiter to remediate — it has no edit tools.\"\n\n## Surface 5: Host instruction (not in repo)\n\n**File:** `~/.config/opencode/instructions/oc-ci-wait.md` line 27\n\nCurrent: \"If CI fails, the waiter (or you, after it reports) classifies the failing check from logs/artifacts, remediates safely in the PR worktree, pushes the fix, and re-watches until green/merged.\"\n\nNew: \"If CI fails, the waiter returns to you with classification (failing check names, URLs, log excerpt). You (the main agent) classify the failing check, remediate in the PR worktree, push the fix, and re-spawn the waiter. The waiter itself never modifies files — it has `edit: deny`.\"\n\n## Implementation strategy\n\n1. RED tests first: `plugin/src/adv-ci-waiter-assets.test.ts` asserts new policy clauses (\"return immediately\", \"do not remediate\", etc) in adv-ci-waiter.md.\n2. GREEN: edit the agent manifest, spec, docs mirror, archive command.\n3. Edit host instruction file directly (untracked host config).\n4. VERIFY: targeted vitest + spec-citation invariant + `pnpm run check` (touched files).\n\n## LBP decisions\n\n- **Don't change tool grants**: bash:allow is still needed for `oc-ci-wait` CLI. The policy fix is instruction-level, not capability-level.\n- **Don't bake remediation logic into the parent agent prompts** beyond what already exists. The parent already knows how to remediate (it's the orchestrating agent). The fix just clarifies the boundary.\n- **Spec wording stays descriptive, not prescriptive** about parent implementation.\n\n## Risks\n\n- Pre-existing PRs that were spawned with old \"waiter remediates\" expectations will still see that behavior until the new agent manifest is deployed. Document this in release notes.\n- Host config change is not version-controlled; users must apply it manually if they want the host instruction layer to match.\n\n## Out of scope\n\n- Spawn-time structural validator that rejects waiter spawn prompts containing remediation instructions.\n- Removing adv-ci-waiter entirely.\n- Changes to polling cadence.",
+    "executiveSummary": "# Executive Summary: Fix adv-ci-waiter remediation policy\n\n## Outcome\n\nadv-ci-waiter no longer pretends to remediate CI failures. The agent always had `edit: deny` / `morph_edit: deny` / `task: deny` tool grants, but the spec + host instruction implied it had a \"bounded remediation attempt budget.\" That contradiction caused parents (including me on PR #269) to hand off remediation to a worker that couldn't act.\n\nAfter this change, all five policy surfaces align: **waiter polls and reports; parent owns remediation.**\n\n## Why it matters\n\nPre-fix behavior: parent spawns waiter with remediation expectations; waiter has no edit tools; either the waiter spins trying, or the parent waits for a result that can't come. Observed instance: PR #269 had red CI; I spawned adv-ci-waiter with a remediation prompt; user had to cancel and direct me to fix it myself.\n\nPost-fix behavior: on red CI, the waiter stops polling immediately, classifies the failing checks (name + URL + log excerpt), returns to the parent with that classification. The parent reads it, inspects logs/artifacts, fixes in the PR worktree, pushes, and re-spawns the waiter for the next run.\n\n## What was delivered\n\n- **`.opencode/agents/adv-ci-waiter.md`** gains a dedicated \"On red CI: return, do not remediate\" section between \"CI success is not PR MERGED\" and \"Bounded output\". Section explicitly references the waiter's deny grants and assigns remediation to the parent orchestrator.\n- **`.adv/specs/advance-workflow/spec.json`** `rq-releaseFinalization04.2` scenario rewritten: removed \"waiter's bounded attempt budget\" wording; new text assigns remediation to parent and notes the waiter has `edit: deny`.\n- **`docs/specs/advance-workflow.md`** mirrored identically.\n- **`.opencode/command/adv-archive.md`** spawn language clarified: \"waiter polls and reports only... Do not ask the waiter to remediate.\"\n- **`~/.config/opencode/instructions/oc-ci-wait.md`** (host config, out-of-repo) line 27 rewritten: parent classifies and remediates; waiter has `edit: deny`.\n- 3 new test assertions across `adv-ci-waiter-assets.test.ts` + `archive-release-finalization-assets.test.ts`.\n\n## Verification\n\n- 13/13 adv-ci-waiter-assets tests pass.\n- 5/5 archive-release-finalization tests pass.\n- Mode-guidance byte budget test passes (after baseline bump for adv-ci-waiter.md +837 bytes).\n- Pre-existing trunk failures (ADV_INSTRUCTIONS.md adv_roadmap ref + 3 spec-citation-invariant rq IDs) remain red. These are addressed by the parallel unmerged PR #269 (fixPacketDefectWorkDiscard); they will resolve after that PR merges and this branch rebases.\n\n## Risks / follow-ups\n\n- **Existing in-flight PRs** spawned before this change deploy will still see old behavior until OpenCode host restarts with the new bundle.\n- **Host config edit** is not version-controlled; users running their own OpenCode install must apply the `oc-ci-wait.md` line 27 change manually if they want the host-instruction layer to match.\n- **Spawn-time structural validation** (rejecting waiter spawn prompts that contain remediation instructions) remains out of scope.\n\n## Release readiness\n\n- Safe to merge any time. No migration, no data impact, no frontend impact, no ops readiness requirements.\n- Branch will need rebase after PR #269 merges to clear pre-existing CI failures.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T12:24:12.795Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `.opencode/agents/adv-ci-waiter.md` contains an explicit rule: on red CI, return immediately to the parent with classification; do NOT remediate. | pass | adv-ci-waiter.md gains explicit section between CI-success-is-not-MERGED and Bounded-output. Test in adv-ci-waiter-assets.test.ts asserts section header, do-not-remediate, classification, and parent-responsibility clauses. 13/13 tests pass (tr_mrum7ibh). |\n| AC2 | acceptance_criterion | `.adv/specs/advance-workflow/spec.json` `rq-releaseFinalization04.2` body and scenarios no longer reference \"the waiter's bounded attempt budget\" — remediation authority is the parent's. | pass | spec.json rq-releaseFinalization04.2 scenario wording updated: 'red CI is reported by the waiter and remediation is the parent orchestrator's responsibility (the waiter has edit: deny and no bounded attempt budget)'. Test in archive-release-finalization-assets.test.ts asserts 'waiter's bounded attempt budget' no longer present. 5/5 tests pass (tr_mrumcccc). |\n| AC3 | acceptance_criterion | `docs/specs/advance-workflow.md` mirror matches the spec change. | pass | docs/specs/advance-workflow.md line 713 mirrored identically. Same test asserts both spec and docs mirror are aligned. |\n| AC4 | acceptance_criterion | `.opencode/command/adv-archive.md` spawn-instruction language aligns: parent does remediation; waiter reports. | pass | adv-archive.md spawn language for adv-ci-waiter now contains 'waiter polls and reports only — it has edit: deny and cannot remediate' and 'Do not ask the waiter to remediate'. Test in adv-ci-waiter-assets.test.ts asserts these clauses. |\n| AC5 | acceptance_criterion | `plugin/src/adv-ci-waiter-assets.test.ts` asserts the new policy clauses in adv-ci-waiter.md. | pass | 3 new test assertions added across adv-ci-waiter-assets.test.ts and archive-release-finalization-assets.test.ts. All pass. RED→GREEN evidence: tr_mrum653w → tr_mrum7ibh; tr_mruma21e → tr_mrumcccc. |\n| AC6 | acceptance_criterion | `~/.config/opencode/instructions/oc-ci-wait.md` line 27 rewritten to drop \"waiter remediates\" language. (Host config, not in repo; verified separately.) | pass | Host config file ~/.config/opencode/instructions/oc-ci-wait.md line 27 rewritten. Post-edit grep confirms line contains 'waiter returns to you' and 'edit: deny'. File is outside the repo; verified via shell read, not a repo test. |\n| C1 | constraint | MUST NOT remove adv-ci-waiter entirely (still useful as poll+report). | respected | adv-ci-waiter.md tool grants unchanged (edit:deny, morph_edit:deny, task:deny, bash:allow). Only policy wording added. |\n| C2 | constraint | MUST NOT change the waiter's tool grants (bash:allow for `oc-ci-wait` CLI is still needed). | respected | Polling cadence (20-30s sampling, oc-ci-wait CLI ownership) unchanged in all touched files. |\n| C3 | constraint | MUST keep existing tests passing. | respected | 13/13 adv-ci-waiter-assets tests + 5/5 archive-release-finalization tests pass. No existing assertion weakened. |\n| DONT1 | avoidance | Do not introduce spawn-time structural validation (out of scope). | respected | No spawn-time validator code introduced. Touched files: 4 markdown/spec/docs + 1 baseline JSON + 2 test files. |\n| DONT2 | avoidance | Do not change the polling cadence or `oc-ci-wait` ownership model. | respected | adv-ci-waiter.md polling cadence (20-30s) unchanged. oc-ci-wait CLI ownership unchanged. |\n| DONT3 | avoidance | Do not bundle this fix with the unrelated fixPacketDefectWorkDiscard change. | respected | fixAdvCiWaiterRemediation branch contains only adv-ci-waiter policy changes. fixPacketDefectWorkDiscard remains a separate PR (#269). |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T05:33:13.605Z",
+      "contentHash": "9b988a300ee5bc15df4a6adb8a8a6aeb49eaf47cd9477b18d92614fc4376f508",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T05:36:06.401Z",
+      "contentHash": "ed1a8a31d8895a3be7dfe202cc8ed579be6de845f082f76796beef2c2f8bdaac",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T05:36:06.401Z",
+      "contentHash": "3f0ffe5ecfb8b769d48c66fefec67f96f3f2f9bb46ef586e729bbedc1b7e89f0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T12:24:12.802Z",
+      "contentHash": "3e8d7a5894c3208e4e6fd808f239de9b8dc36e79f67f7ee90adae837ed828f2a",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T12:24:30.796Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

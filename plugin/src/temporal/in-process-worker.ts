@@ -3,6 +3,11 @@ import { fileURLToPath } from "node:url";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { recordWorkerRunFailure } from "./retry-wrapper";
+import { getAdvWorkerTuningOptions } from "./worker-tuning";
+import {
+  verifyWorkerArtifactPolicy,
+  type WorkerArtifactPolicy,
+} from "./worker-bundle-manifest";
 
 interface TemporalWorkerInstance {
   run(): Promise<void>;
@@ -65,6 +70,7 @@ interface CreateInProcessWorkerInput {
   namespace: string;
   queues: readonly string[];
   workflowsPath?: string;
+  artifactPolicy: WorkerArtifactPolicy;
   /** Optional override for activities (test injection). */
   activities?: Record<string, unknown>;
   /** Optional override for Worker.create (test injection). */
@@ -91,6 +97,10 @@ interface CreateInProcessWorkerInput {
 export async function createInProcessWorker(
   input: CreateInProcessWorkerInput,
 ): Promise<InProcessWorker> {
+  const verifiedBundle = await verifyWorkerArtifactPolicy({
+    policy: input.artifactPolicy,
+    workflowsPath: input.workflowsPath ?? resolveWorkflowsPath(),
+  });
   // When the caller injects a connection (e.g., TestWorkflowEnvironment owns
   // the shared native client), we must NOT close it on shutdown — the caller
   // controls that lifecycle. Closing a caller-owned connection here leaves
@@ -101,7 +111,7 @@ export async function createInProcessWorker(
     input.connection ??
     (await NativeConnection.connect({ address: input.address }));
 
-  const workflowsPath = input.workflowsPath ?? resolveWorkflowsPath();
+  const workflowsPath = verifiedBundle.workflowsPath;
   const effectiveActivities = input.activities ?? activities;
 
   const registered = new Map<string, TemporalWorkerInstance>();
@@ -153,6 +163,7 @@ export async function createInProcessWorker(
             taskQueue,
             workflowsPath,
             activities: effectiveActivities,
+            ...getAdvWorkerTuningOptions(),
           });
       // Re-check: shutdown may have been initiated while Worker.create was
       // in flight. If so, tear this worker down immediately and refuse to

@@ -31,7 +31,7 @@ GitHub Projects v2 owns issue/project membership. Temporal-backed ADV changes an
 3. **Match** — structural first: stable ref, exact body excerpt, then heuristic title candidate. Heuristics never suppress.
 4. **Source cleanup validation** — classify the whole source pool before issue creation or bug priority. Batch destructive/suppressive approvals by source/reason.
 5. **Confirm issue creation** — Tier B approval for cleanup-surviving unrepresented items. Create only approved issues; tag later promotion with `origin_kind:'triage'`.
-6. **Bug priority loop** — assign `priority:*` autonomously after bounded context gathering (max 2 questions); default medium + `context_insufficient` when unresolved.
+6. **Bug priority loop** — the agent assigns `priority:*` autonomously after bounded context gathering (max 2 questions per bug); default medium + `context_insufficient` when unresolved.
 7. **Coalesce** — exclude existing links, classify remaining issue↔change pairs as structural or heuristic, show bounded evidence, and link only displayed user-approved pairs with `adv_change_update_issues`.
 8. **Portfolio balance** — emit exactly Important to complete, Cleanup needed, and Open issues worth solving. Include Epic ID/title/order as advisory context.
 9. **Report** — include source counts, cleanup outcomes, created/prioritized issues, pair link outcomes, active Epics inspected, and three balance counts.
@@ -52,7 +52,7 @@ GitHub Projects v2 owns issue/project membership. Temporal-backed ADV changes an
 - Created GH issues retain source trailers.
 - Each coalesce candidate includes evidence tier, bounded evidence, stable refs, and optional Epic context.
 - Portfolio balance has exactly three sections, capped at 10 rows each with explicit overflow count.
-- Rationale trailer `<issue#>: priority=<tier> :: <rationale>` appears in chat only.
+- Rationale trailer `<issue#>: priority=<tier> :: <rationale>` appears in chat output only; never post it as an issue comment.
 - No ROADMAP.md, snapshot, echo, commit, or push output exists.
 
 ## Hard Stops

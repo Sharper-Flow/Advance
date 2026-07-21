@@ -15,13 +15,18 @@
  * integration test exercises the real runner.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import {
+  PoisonedHistoryClassificationSchema,
+  type PoisonedHistoryClassification,
+} from "../temporal/replay-history-classification";
 
 export interface ReplayFixtureRef {
   stem: string;
   metadataPath: string;
   historyPath: string;
+  classificationPath: string;
 }
 
 /** Discover `*.metadata.json`/`*.history.json` pairs, sorted for determinism. */
@@ -43,6 +48,7 @@ export function discoverReplayFixtures(
         stem,
         metadataPath: join(historiesDir, name),
         historyPath: join(historiesDir, `${stem}.history.json`),
+        classificationPath: join(historiesDir, `${stem}.classification.json`),
       };
     });
 }
@@ -53,6 +59,7 @@ export interface ReplayFixtureResult {
   events: number;
   ok: boolean;
   error?: string;
+  classificationOutcome?: PoisonedHistoryClassification["outcome"];
 }
 
 export interface ReplayVerificationReport {
@@ -176,13 +183,36 @@ export async function verifyCommittedReplayFixtures(input: {
         result.error = structuralError;
         continue;
       }
-      await runReplay({
-        workflowsPath: input.workflowsPath,
-        replayName: `${input.replayNamePrefix ?? "cutover-replay"}:${result.name}`,
-        history,
-        workflowId: metadata.workflowId as string,
-      });
-      result.ok = true;
+      const classification = existsSync(ref.classificationPath)
+        ? PoisonedHistoryClassificationSchema.parse(
+            JSON.parse(readFileSync(ref.classificationPath, "utf8")),
+          )
+        : undefined;
+      result.classificationOutcome = classification?.outcome;
+      if (classification?.outcome === "reproduced") {
+        result.error = "classification outcome remains nonterminal: reproduced";
+        continue;
+      }
+      try {
+        await runReplay({
+          workflowsPath: input.workflowsPath,
+          replayName: `${input.replayNamePrefix ?? "cutover-replay"}:${result.name}`,
+          history,
+          workflowId: metadata.workflowId as string,
+        });
+        if (classification?.outcome === "immutable_history") {
+          result.error =
+            "immutable_history classification unexpectedly replayed cleanly";
+          continue;
+        }
+        result.ok = true;
+      } catch (error) {
+        if (classification?.outcome === "immutable_history") {
+          result.ok = true;
+          continue;
+        }
+        throw error;
+      }
     } catch (error) {
       result.error = error instanceof Error ? error.message : String(error);
     }

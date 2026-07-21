@@ -46,7 +46,11 @@ export interface CommandDef {
   gate?: GateId;
   /** Whether the command requires a change ID argument */
   requiresChangeId: boolean;
-  /** Commands that should be completed before this one */
+  /**
+   * Command prerequisites — metadata describing expected prior commands.
+   * NOT runtime-enforced: no layer reads this array to block invocation.
+   * Advisory routing hints live in .opencode/agents/adv.md Step 1.
+   */
   prerequisites: string[];
   /** Commands to recommend after this one completes */
   successors: string[];
@@ -142,7 +146,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-problem": {
     name: "adv-problem",
-    description: "Triage issues before fixing or drafting a proposal",
+    description:
+      "Triage defects and unintended behavior before fixing or drafting a proposal",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: [],
@@ -414,7 +419,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-improve": {
     name: "adv-improve",
     description:
-      "Suggest targeted improvements to existing specs or implementation",
+      "Analyze improvements across existing specs, implementation, and external landscape",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],

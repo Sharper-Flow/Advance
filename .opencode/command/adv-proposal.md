@@ -34,6 +34,32 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
    - **Epic shell path** — if the user asks to promote a shell entry from an existing Epic, use `adv_epic_promote_shell epic_id: {epic_id} entry_id: {entry_id}` after Phase 2 change creation to replace the shell row with exactly one linked change row. The new change carries the shell's title and success hint as promotion provenance; set `origin.kind` as appropriate for the resulting change. Shell entries do not need full ADV proposal/discovery before promotion.
 3. `adv_change_list` → detect overlapping changes; reuse/reference an obvious existing match, ask only if overlap is still ambiguous
 4. Read any `./temp/brainstorm-*.md` notes if present
+5. **Defect-origin detection (rq-defectOriginRca01)** — classify the request origin before Phase 1:
+   - **Defect triggers** (route to `/adv-problem` first OR attach RCA inline): "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X"
+   - **Non-defect triggers** (proceed normally): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X"
+   - **Fallback rule:** unintended behavior → defect; desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3)
+   - **If origin = defect:** the proposal MUST carry a `## Root Cause Analysis` section in proposal.md before the proposal gate completes. RCA shape (reuses `/adv-problem` output):
+     ```md
+     ## Root Cause Analysis
+
+     **Defect origin:** {brief description of unintended behavior}
+
+     **Evidence gathered:**
+     - Tier 1 (local): {findings}
+     - Tier 2 (external): {findings or "not applicable"}
+
+     **Leading hypothesis:** {root cause}
+     **Ruled-out paths:** {alternatives considered and rejected}
+
+     **Spec-law impact:** {per /adv-problem Phase 5 assessment}
+
+     —
+
+     **Bypass rationale (if RCA produced inline rather than via /adv-problem):**
+     {one sentence explaining why /adv-problem was not used}
+     ```
+   - **If origin = non-defect:** proceed normally; RCA not required.
+   - Enforcement is advisory (matches rq-problemSpecLaw01 tier; no runtime hard-block).
 
 ### Product-linked preflight
 

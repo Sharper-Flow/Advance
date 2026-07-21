@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-07-21T13:25:02.654Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "ba9e79c805fee6b1abf8e65b3e0da6a94a60afd3a814b5485d2da34c4ee7d53d",
+  "change_id": "isolateAdvWorkerTaskQueues",
+  "completed_tasks": 17,
+  "created_at": "2026-07-21T02:21:58.368Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T12:30:45.217Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "b39de5c87ff29c4e59aa058b473703ac0d02e36547a87fc5bd58c3885f1a235b",
+  "task_count": 17,
+  "title": "Isolate ADV worker task queues",
+  "version": "1"
+}

@@ -362,7 +362,9 @@ describe("cross-change worktree visibility helpers (T22)", () => {
           },
         },
       })
-      .mockRejectedValueOnce(new Error("Failed to query Workflow"));
+      .mockRejectedValueOnce(
+        new Error("Failed to query Workflow: TMPRL1100 Nondeterminism error"),
+      );
     changeWorkflowDescribe.mockResolvedValueOnce({
       workflowExecutionInfo: {
         closeStatus: null,
@@ -403,6 +405,42 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     ]);
   });
 
+  it("does not classify as poisoned when error class is generic even if describe matches (C2)", async () => {
+    // C2 (fixPoisonedRecovery reviewer-block remediation): describe() must NOT
+    // authorize poison classification alone. A generic query error must NOT
+    // produce recoveryReason=poisoned_history even when describe() carries
+    // poisoned markers — error class is the sole authority.
+    workflowList.mockImplementationOnce(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/generic-error" };
+      })(),
+    );
+    changeWorkflowQuery.mockRejectedValueOnce(
+      new Error("Failed to query Workflow"),
+    );
+    changeWorkflowDescribe.mockResolvedValueOnce({
+      workflowExecutionInfo: {
+        closeStatus: null,
+        taskQueue: "advance-test-id",
+      },
+      lastFailure: {
+        message:
+          "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100] Nondeterminism error",
+      },
+    });
+
+    const result = await listWorktreesAcrossChanges(access);
+
+    expect(result.poisonedWorkflows).toEqual([]);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        changeId: "generic-error",
+        source: "worktree_workflow",
+      }),
+    ]);
+    expect(result.warnings[0]?.recoveryReason).toBeUndefined();
+  });
+
   it("keeps 250 healthy owners while surfacing one poisoned workflow", async () => {
     const healthyIds = Array.from(
       { length: 250 },
@@ -420,7 +458,9 @@ describe("cross-change worktree visibility helpers (T22)", () => {
       if (changeId === "poisoned-scale") {
         return {
           query: vi.fn(async () => {
-            throw new Error("Failed to query Workflow");
+            throw new Error(
+              "Failed to query Workflow: TMPRL1100 Nondeterminism error",
+            );
           }),
           describe: vi.fn(async () => ({
             workflowExecutionInfo: {

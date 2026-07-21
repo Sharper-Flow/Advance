@@ -4,8 +4,11 @@ import { loadProposalWithFallback } from "./json";
 import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
+  type ContextSnapshotResumeFreshness,
   type GateInfo,
 } from "../utils/context-snapshot";
+import { resolveResumeFreshness } from "./resume-freshness-resolver";
+import { RESUME_FRESHNESS_TRIGGER_MINUTES } from "./resume-freshness-resolver";
 import type { Change } from "../types";
 
 /**
@@ -49,12 +52,50 @@ export async function fetchChangeContextSnapshot(
   );
   const latestGates = gates ?? (await store.gates.get(changeId)) ?? undefined;
 
+  // Resume Freshness (D9b): only call resolver when lastActivityAgeMinutes > trigger band.
+  // Resolver itself is the second-line guard; this avoids the async call for fresh changes.
+  const resumeFreshness = await computeResumeFreshnessInput(store, change);
+
   return buildChangeContextSnapshot({
     change,
     proposalText,
     gates: latestGates,
     workdir: store.paths.root,
+    resumeFreshness,
   });
+}
+
+/**
+ * Compute the optional resumeFreshness field for the snapshot. Returns
+ * undefined when the change is fresh or the resolver fails unexpectedly.
+ * Never throws — snapshot must render even if freshness computation fails.
+ */
+async function computeResumeFreshnessInput(
+  store: Store,
+  change: Change,
+): Promise<ContextSnapshotResumeFreshness | undefined> {
+  try {
+    const lastActivityAt =
+      (change as unknown as { lastActivityAt?: string }).lastActivityAt ??
+      change.created_at;
+    const lastActivityAgeMinutes = Math.floor(
+      (Date.now() - new Date(lastActivityAt).getTime()) / 60000,
+    );
+    if (lastActivityAgeMinutes <= RESUME_FRESHNESS_TRIGGER_MINUTES) {
+      return undefined;
+    }
+    const result = await resolveResumeFreshness(store, change.id, {
+      lastActivityAgeMinutes,
+      lastActivityAt,
+    });
+    return {
+      findings: result.findings,
+      skipped: result.skipped,
+    };
+  } catch {
+    // Degrade gracefully — formatter renders without Freshness line.
+    return undefined;
+  }
 }
 
 /**

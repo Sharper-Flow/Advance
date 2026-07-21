@@ -1856,6 +1856,11 @@ describe("gate tools — signal-driven lifecycle", () => {
   describe("adv_gate_status", () => {
     test("falls back to disk gates with _recovery annotation on poisoned workflow", async () => {
       // rq-fix-gate-tools-recovery AC1.
+      //
+      // C2 (fixPoisonedRecovery reviewer-block remediation): describe() is no
+      // longer consulted as poison authority in this path — the queryError
+      // must carry poisoned-history markers (TMPRL1100 / Nondeterminism /
+      // No command scheduled for event) for poisonedFallback to flip.
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -1877,6 +1882,38 @@ describe("gate tools — signal-driven lifecycle", () => {
         } as Partial<import("../types").Change>,
       });
 
+      // C2: error CLASS authority — TMPRL1100 marker in error text.
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("Failed to query Workflow: TMPRL1100 Nondeterminism error"),
+      );
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.gates.planning.status).toBe("pending");
+      expect(parsed.gates.discovery.status).toBe("done");
+      expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
+      // C2: describe() is no longer consulted in this path.
+    });
+
+    test("propagates query errors when error class is not poisoned/completed (C2)", async () => {
+      // C2 (fixPoisonedRecovery reviewer-block remediation): a generic query
+      // error must propagate even if describe() would carry poisoned markers.
+      // describe() is not authoritative for the poisonedFallback decision.
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+
       mocks.querySignal.mockRejectedValueOnce(
         new Error("Failed to query Workflow"),
       );
@@ -1889,16 +1926,11 @@ describe("gate tools — signal-driven lifecycle", () => {
       }));
       mocks.handleMock.describe = describeMock;
 
-      const result = await gateTools.adv_gate_status.execute(
-        { changeId: "test-change" },
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.gates.planning.status).toBe("pending");
-      expect(parsed.gates.discovery.status).toBe("done");
-      expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
-      expect(describeMock).toHaveBeenCalled();
+      await expect(
+        gateTools.adv_gate_status.execute({ changeId: "test-change" }, store),
+      ).rejects.toThrow(/Failed to query Workflow/);
+      // describe() may still be called for advisory diagnostics elsewhere,
+      // but it MUST NOT authorize recovery. The thrown error proves it didn't.
 
       delete (mocks.handleMock as { describe?: unknown }).describe;
     });

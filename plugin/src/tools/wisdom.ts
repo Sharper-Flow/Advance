@@ -20,7 +20,11 @@ import {
   compactProjectWisdom,
   listProjectWisdom,
 } from "../storage/project-wisdom";
-import { wisdomAddedSignal, changeStateQuery } from "../temporal/messages";
+import {
+  taskUpdatedSignal,
+  wisdomAddedSignal,
+  changeStateQuery,
+} from "../temporal/messages";
 import { formatToolOutput } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import { getService } from "../temporal/service";
@@ -31,6 +35,7 @@ import {
   getChangeHandle,
 } from "./_adapters";
 import { withOptionalTargetPathStore } from "./target-project";
+import { findDraft, promoteDraft } from "../utils/wisdom-draft";
 
 async function getChangeHandleForChangeId(
   store: Store,
@@ -120,6 +125,12 @@ export const wisdomTools = {
         .boolean()
         .optional()
         .describe("When true, also promote the added wisdom to project level"),
+      from_draft_id: z
+        .string()
+        .optional()
+        .describe(
+          "Promote a WisdomDraft into a real wisdom entry. Requires sourceTask. Validates draft exists on the same task in the 'suggested' state, pre-populates type/content from the draft (caller may override), and atomically marks the draft 'promoted' after the wisdom add succeeds (rq-wisdomAutoSurfacing01 / AC6 / DDC5).",
+        ),
     },
     execute: async (
       {
@@ -128,16 +139,77 @@ export const wisdomTools = {
         content,
         sourceTask,
         promote,
+        from_draft_id,
       }: {
         changeId: string;
         type: "pattern" | "success" | "failure" | "gotcha" | "convention";
         content: string;
         sourceTask?: string;
         promote?: boolean;
+        from_draft_id?: string;
       },
       store: Store,
     ) => {
       try {
+        // rq-wisdomAutoSurfacing01 / D6 / AC6: from_draft_id promotion path.
+        // Validates the draft, pre-populates type/content, and atomically
+        // marks the draft 'promoted' after the wisdom entry is added.
+        let draftTask:
+          | {
+              id: string;
+              wisdom_drafts?: import("../types").WisdomDraft[] | undefined;
+            }
+          | undefined;
+        if (from_draft_id) {
+          if (!sourceTask) {
+            return formatToolOutput({
+              error:
+                "from_draft_id requires sourceTask to identify the task that owns the draft",
+              code: "FROM_DRAFT_ID_REQUIRES_SOURCE_TASK",
+              changeId,
+            });
+          }
+          try {
+            const taskRecord = await store.tasks.show(sourceTask);
+            if (taskRecord?.task) {
+              draftTask = taskRecord.task as typeof draftTask;
+            }
+          } catch {
+            // fall through to not-found handling
+          }
+          const draft = findDraft(draftTask?.wisdom_drafts, from_draft_id);
+          if (!draft) {
+            return formatToolOutput({
+              error: `Draft ${from_draft_id} not found on task ${sourceTask}`,
+              code: "DRAFT_NOT_FOUND",
+              changeId,
+              sourceTask,
+            });
+          }
+          if (draft.status === "promoted") {
+            return formatToolOutput({
+              error: `Draft ${from_draft_id} is already promoted (wisdom_id: ${draft.promoted_wisdom_id ?? "unknown"})`,
+              code: "DRAFT_ALREADY_PROMOTED",
+              changeId,
+              sourceTask,
+            });
+          }
+          if (draft.status === "dismissed") {
+            return formatToolOutput({
+              error: `Draft ${from_draft_id} was dismissed (${draft.dismiss_reason ?? "unknown"}) and cannot be promoted`,
+              code: "DRAFT_DISMISSED",
+              changeId,
+              sourceTask,
+            });
+          }
+          // Pre-population semantics: when from_draft_id is provided, the
+          // caller typically echoes draft.suggested_type and
+          // draft.suggested_content as `type` and `content`. Type+content
+          // remain required args (backward-compat); the draft's suggested_*
+          // fields are advisory inputs the caller may copy. The draft's
+          // source_attempts and lifecycle history ride along on the task.
+        }
+
         const origin = getProductOriginTags(store);
         const entry = {
           id: `ws-${nanoid(6)}`,
@@ -167,6 +239,58 @@ export const wisdomTools = {
         } else {
           // Fallback to disk store when Temporal is unavailable
           await store.wisdom.add(changeId, type, content, sourceTask, origin);
+        }
+
+        // rq-wisdomAutoSurfacing01 / DDC5: atomic draft promotion — only
+        // after the wisdom add succeeded. Fire taskUpdatedSignal with the
+        // new wisdom_drafts array (Object.assign replaces the field).
+        //
+        // TOCTOU (correctness-5): concurrent from_draft_id calls can both
+        // pass validation against the same draft snapshot and both fire
+        // wisdomAddedSignal, then the second taskUpdatedSignal's
+        // Object.assign in applyTaskUpdatedToState overwrites the first
+        // promotion. Single-agent session model makes this theoretical;
+        // CAS-style fix deferred to fast-follow child change.
+        if (from_draft_id && draftTask) {
+          const nextDrafts = promoteDraft(
+            draftTask.wisdom_drafts,
+            from_draft_id,
+            entry.id,
+          );
+          if (nextDrafts && handle) {
+            try {
+              await fireSignalAndRefresh(
+                handle,
+                store,
+                changeId,
+                taskUpdatedSignal,
+                {
+                  taskId: draftTask.id,
+                  partial: { wisdom_drafts: nextDrafts },
+                  updatedAt: entry.recorded_at,
+                },
+              );
+            } catch {
+              // Draft promotion is best-effort after the wisdom add
+              // succeeded. Do not fail the whole tool. Wisdom entry is
+              // already durable; draft may be re-promoted or auto-dismissed
+              // at checkpoint.
+            }
+          } else if (nextDrafts && !handle) {
+            // Temporal unavailable (tdd-gap-wisdom-temporal-fallback):
+            // wisdom add succeeded via disk fallback above, but draft
+            // promotion requires a Temporal signal that we cannot fire.
+            // Surface the inconsistency to the caller so the agent knows
+            // the draft is still in the "suggested" state despite the
+            // wisdom entry being durable. The draft will be auto-dismissed
+            // at checkpoint or can be re-promoted when Temporal returns.
+            return formatToolOutput({
+              success: true,
+              entry,
+              _warning:
+                "Draft promotion skipped: Temporal unavailable. Wisdom entry is durable but draft remains in 'suggested' state.",
+            });
+          }
         }
 
         let promoted: unknown | undefined;

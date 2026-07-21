@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T14:32:10.193Z",
+  "capabilities": [],
+  "change_hash": "f7d8c361611a0ba2bcc7f18a74fcca1bbb62138ef3d873afd070ef8fa78339e6",
+  "change_id": "sequenceTriageProposal",
+  "completed_tasks": 5,
+  "created_at": "2026-07-21T05:01:34.099Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T14:14:33.953Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "3f9885dcceefd42bdad40c3215cbbcc4be9893165a7e5dc778f484758b4eb56c",
+  "task_count": 6,
+  "title": "Sequence triage before proposal",
+  "version": "1"
+}

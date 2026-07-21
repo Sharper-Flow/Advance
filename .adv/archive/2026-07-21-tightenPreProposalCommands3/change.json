@@ -1,0 +1,850 @@
+{
+  "id": "tightenPreProposalCommands3",
+  "title": "Tighten pre-proposal commands",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T16:48:39.801Z",
+  "tasks": [
+    {
+      "id": "tk-9ae9f7459bdb",
+      "title": "Verify all ACs pass after edits",
+      "type": "verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T17:07:32.477Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "SC1",
+          "SC2",
+          "SC3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:17:23.941Z",
+      "verification": "AC7 (pnpm run check exit 0) verified: schemas:check, typecheck, agent-manifest, test-isolation, lockfile-policy, lint, format:check all green. Format fix applied to manifest.ts (prettier wrapped /adv-problem description to two lines). AC1-AC6 also verified via greps earlier.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "9d099780acd51e9a7d9dba56ce736d720af427dc",
+      "completedAt": "2026-07-21T17:20:51.093Z",
+      "completed_at": "2026-07-21T17:20:51.093Z"
+    },
+    {
+      "id": "tk-740f369071cc",
+      "title": "Update `/adv-problem` description + add Persistence rationale",
+      "type": "docs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T17:07:44.182Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:12:03.205Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T17:13:42.463Z",
+      "verification": "Commit 9a4e33f9 contains all 5 description mirror edits + Persistence line in adv-problem.md. AC1 (0 matches) + AC2 (5 matches) + AC6 partial verified.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9a4e33f95bfa9ab0b29af660e497e2c459ba8634",
+      "completedAt": "2026-07-21T17:14:37.388Z",
+      "completed_at": "2026-07-21T17:14:37.388Z"
+    },
+    {
+      "id": "tk-ee3a586c795c",
+      "title": "Update `/adv-improve` description + add iterate exit + add Persistence rationale",
+      "type": "docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-21T17:08:00.613Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:14:57.537Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T17:16:19.860Z",
+      "verification": "Commit 001ae812 contains adv-improve description broaden across 5 mirror sites + iterate exit row + Persistence line. AC3/AC4/AC5/AC6 verified.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "001ae8127b8c217338f5c9d82f11a3c044db7518",
+      "completedAt": "2026-07-21T17:16:33.448Z",
+      "completed_at": "2026-07-21T17:16:33.448Z"
+    },
+    {
+      "id": "tk-9d1b71d5dbe2",
+      "title": "Add Persistence rationale to `/adv-idea`",
+      "type": "docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T17:08:07.625Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:16:48.442Z",
+      "verification": "Persistence line added to adv-idea.md Command Boundary section. AC6 partial verified.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-idea.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-idea.md"
+      ],
+      "checkpointSha": "6d5baee64573dec36fb6ff88d10c9d3ce3b801a3",
+      "completedAt": "2026-07-21T17:17:18.045Z",
+      "completed_at": "2026-07-21T17:17:18.045Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenPreProposalCommands3",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — pre-proposal command contracts",
+      "sources": [
+        {
+          "label": "ADV agreement (approved)",
+          "locator": "adv_change_show://tightenPreProposalCommands3/agreement",
+          "summary": "Objectives O1–O4 and AC1–AC7 require command/body/routing alignment, explicit persistence behavior, an adv-improve iterate exit, and aligned exit grammar."
+        },
+        {
+          "label": "adv-problem command contract",
+          "locator": "file:///home/jon/dev/advance/.opencode/command/adv-problem.md",
+          "summary": "Current Phase 1 covers bug, failure, and confusing behavior; it captures symptoms, observed versus expected behavior, frequency, environment, and changes. Its output requires RCA for defect/bug/regression paths."
+        },
+        {
+          "label": "adv-improve command contract",
+          "locator": "file:///home/jon/dev/advance/.opencode/command/adv-improve.md",
+          "summary": "Current-state scan is Phase 2 and External Landscape is Phase 4; the command is read-only for ADV state and persists only docs/*-prep.md evidence packs."
+        },
+        {
+          "label": "Agent routing contract",
+          "locator": "file:///home/jon/dev/advance/.opencode/agents/adv.md",
+          "summary": "Routing sends bug details and issue symptoms to adv-problem; consequential large non-code work may clarify direction with adv-improve or adv-research, then uses tracked proposal workflow; unintended behavior routes through adv-problem for RCA."
+        },
+        {
+          "label": "Advance Workflow spec — non-code routing",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/docs/specs/advance-workflow.md#large-non-code-deliverables-use-tracked-adv-workflow",
+          "summary": "rq-nonCodeWorkflow01 requires consequential non-code work to enter a tracked ADV change after optional research and permits adv-improve only as a read-only pre-proposal research-pack command."
+        },
+        {
+          "label": "Current mirrors and exit tables",
+          "locator": "file:///home/jon/dev/advance/plugin/src/manifest.ts",
+          "summary": "Current adv-problem description is at line 149 and adv-improve at lines 418–425; repository searches found the problem wording in command, manifest, README, ADV_INSTRUCTIONS, and SETUP, while improve has four exact mirrors plus richer SETUP wording. Current idea uses '🔄 iterate' but problem uses unadorned 'iterate'."
+        }
+      ],
+      "architecture_assessment": "The proposed text changes preserve the existing command-frontmatter → manifest → documentation mirror architecture and fit the command bodies and routing/spec-law boundaries. One minor design gap remains: DD3 selects an emoji-prefixed iterate label although the two reference commands currently use different iterate labels, so it cannot itself establish literal all-three exit-label consistency.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract, security, release, or spec-law blocker found. Caution is limited to SC3/AC5/O4 interpretation: adv-idea uses '🔄 iterate' while adv-problem uses 'iterate'; DD3's proposed '🔄 iterate' for adv-improve preserves a label discrepancy rather than resolving it. Evidence: file:///home/jon/dev/advance/.opencode/command/adv-idea.md#L26-L33 and file:///home/jon/dev/advance/.opencode/command/adv-problem.md#L26-L33."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "More descriptive frontmatter improves command selection but requires five-location mirror maintenance.",
+          "Keeping SETUP.md richer preserves persistence/handoff context but intentionally prevents byte-for-byte description equality there.",
+          "Canonicalizing the iterate label adds a small adjacent documentation edit but makes O4/SC3 objectively verifiable."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep proposed DD1/DD2 wording and existing command bodies",
+            "disposition": "preferred",
+            "rationale": "The problem body already includes bugs, failures, confusing/unintended behavior, and defect RCA; the improve body explicitly covers existing-state scanning and external landscape. Sources: file:///home/jon/dev/advance/.opencode/command/adv-problem.md#L6-L8, file:///home/jon/dev/advance/.opencode/command/adv-problem.md#L41-L45, file:///home/jon/dev/advance/.opencode/command/adv-improve.md#L57-L77."
+          },
+          {
+            "option": "Widen adv-problem body instead of narrowing its description",
+            "disposition": "rejected",
+            "rationale": "The current body already includes confusing behavior and observed-versus-expected behavior, while routing defines unintended behavior as the defect path; widening would not add demonstrated coverage. Sources: file:///home/jon/dev/advance/.opencode/command/adv-problem.md#L6-L8, file:///home/jon/dev/advance/.opencode/agents/adv.md#L199."
+          },
+          {
+            "option": "Remove adv-improve Phase 4 instead of broadening its description",
+            "disposition": "rejected",
+            "rationale": "Phase 4 expressly requires bounded external-landscape evidence, and the workflow law permits its read-only research pack before tracked consequential work. Sources: file:///home/jon/dev/advance/.opencode/command/adv-improve.md#L73-L77, https://github.com/Sharper-Flow/Advance/blob/trunk/docs/specs/advance-workflow.md#large-non-code-deliverables-use-tracked-adv-workflow."
+          },
+          {
+            "option": "Choose one canonical iterate label across all three commands",
+            "disposition": "preferred",
+            "rationale": "The current references differ ('🔄 iterate' in idea versus 'iterate' in problem), so adding only the proposed improve row cannot literally fulfill all-three label consistency. Sources: file:///home/jon/dev/advance/.opencode/command/adv-idea.md#L26-L33, file:///home/jon/dev/advance/.opencode/command/adv-problem.md#L26-L33."
+          }
+        ],
+        "recommendation": "Retain DD1, DD2, DD4, and DD5. Before implementation, select one canonical visible iterate label and apply it to all three exit tables (or explicitly redefine O4/SC3 as column/condition grammar only); then verify all five problem mirrors and four-plus-richer-SETUP improve mirrors. Sources: adv_change_show://tightenPreProposalCommands3/agreement; file:///home/jon/dev/advance/.opencode/command/adv-idea.md#L26-L33; file:///home/jon/dev/advance/.opencode/command/adv-problem.md#L26-L33."
+      },
+      "recommendation": "Proceed with the design after resolving the narrow canonical-iterate-label ambiguity. The primary descriptions accurately match their current bodies: adv-problem retains defect, failure, and confusing/unintended-behavior triage with RCA handoff; adv-improve retains current-state, reference, and external-landscape analysis while staying read-only and routing consequential work into tracked workflow. The five affected mirror locations are supported by the current repository evidence, with SETUP.md intentionally richer for adv-improve. Sources: file:///home/jon/dev/advance/.opencode/command/adv-problem.md#L6-L8; file:///home/jon/dev/advance/.opencode/command/adv-improve.md#L8-L8; file:///home/jon/dev/advance/.opencode/agents/adv.md#L195-L199; https://github.com/Sharper-Flow/Advance/blob/trunk/docs/specs/advance-workflow.md#large-non-code-deliverables-use-tracked-adv-workflow.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenPreProposalCommands3",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/tightenPreProposalCommands3",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "rg -l 'Triage issues before fixing' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md",
+          "rg -l 'Triage defects and unintended behavior' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md",
+          "rg -l 'Suggest targeted improvements' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md",
+          "rg -l 'Improvement analysis and research' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md",
+          "rg -n 'Triage issues before|Suggest targeted improvements' .",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "AC1=pass (0 old problem); AC2=pass (5 new problem); AC3=pass (0 old improve); AC4=pass (5 new improve); AC5=pass (adv-improve.md:50 iterate); AC6=pass (Persistence at idea:22, problem:22, improve:28); AC7=pass (`pnpm run check`, exit 0; schemas/typecheck/manifests/isolation/lockfile/lint/Prettier green). SC1=pass (descriptions/routing distinguish idea, defect triage, improvement); SC2=pass (persistence descriptions accurate); SC3=pass (all exit tables use Exit/Condition grammar and iterate, with intentional existing emoji style variance). C1/C2=pass (metadata-only four-commit diff; mirrors complete); C3=pass (adv.md:186/199 route unintended behavior to adv-problem and RCA); C4=pass (adv.md:195 keeps improve/research as differentiated optional pre-proposal clarification); DONT1-DONT4=pass (no split/new command/runtime/spec-rule edit). Whole-repo old-description scan had no matches. `git diff --check HEAD~4..HEAD` passed; worktree clean."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "None; review evidence supports acceptance."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: rg -l 'Triage issues before fixing' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: rg -l 'Triage defects and unintended behavior' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: rg -l 'Suggest targeted improvements' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: rg -l 'Improvement analysis and research' .opencode/ plugin/src/manifest.ts README.md ADV_INSTRUCTIONS.md SETUP.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: rg -n 'Triage issues before|Suggest targeted improvements' ."
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-9ae9f7459bdb": [
+      {
+        "runId": "tr_mruxafq2_da42643b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 50845.45963699976,
+        "recordedAt": "2026-07-21T17:23:52.807Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T16:54:20.877Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved via Tier A whitelist ('approve'). Proposal: tighten /adv-idea, /adv-problem, /adv-improve — description/body alignment, persistence rationale, exit grammar, iterate-exit addition. 8 files affected, no runtime/spec changes.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "502376bd1f924c13d14320190c395178e6dc28fccee410facb67fb893a63482f",
+        "non_whitespace_chars": 6970,
+        "checked_at": "2026-07-21T16:48:39.917Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T16:58:04.239Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved AC + agreement. 23-item contract minted (3 SC, 7 AC, 4 C, 4 DONT, 5 OOS). Open design question ODQ1 routes to /adv-design: verify broadened /adv-improve description does not collide with /adv-research routing.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "non_whitespace_chars": 2496,
+        "checked_at": "2026-07-21T16:48:39.918Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T17:06:07.353Z",
+      "completed_by": "user",
+      "approval_evidence": "Design validated. adv-researcher verdict: caution (low risk, no blockers). Caution: exit-table emoji style differs across the three commands (/adv-idea uses emojis, /adv-problem uses none). Resolution: /adv-improve follows its own existing emoji style; /adv-problem style is pre-existing, out of scope. DD3 records the interpretation. ODQ1 resolved (no /adv-research collision). No contract compromise. Auto-continue to /adv-prep.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b740eaebe242738c25c370562e15c74ab531675b474be978626178a0d0adac0d",
+        "non_whitespace_chars": 5397,
+        "checked_at": "2026-07-21T16:48:39.919Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T17:10:26.214Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved via Tier A whitelist ('approve'). 4-task plan: tk-740f369071cc (/adv-problem desc+persist), tk-ee3a586c795c (/adv-improve desc+iterate+persist), tk-9d1b71d5dbe2 (/adv-idea persist), tk-9ae9f7459bdb (verify all ACs). Contract coverage complete."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T17:21:06.464Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done. Commits: 9a4e33f9 (/adv-problem), 001ae812 (/adv-improve), 6d5baee6 (/adv-idea), 9d099780 (format fix + verify). All 7 ACs verified: AC1-AC6 via greps, AC7 via pnpm run check (all green). 3 friction points addressed: /adv-problem description narrowed, /adv-improve description broadened + iterate exit added, persistence rationale documented in all 3 commands."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-21T17:27:28.087Z",
+      "completed_at": "2026-07-21T17:27:52.330Z",
+      "completed_by": "user",
+      "approval_evidence": "Acceptance readiness fixed: 18-row review matrix (SC/AC/C/DONT) persisted with all pass/respected; OOS items excluded (verificationRequired=false per contract). Executive summary persisted. All ACs verified pass.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "040ac1aad14d33cd7fe882cd97785e3e0fe1b2adbcc18f1c73160443cd2370eb",
+        "non_whitespace_chars": 3333,
+        "checked_at": "2026-07-21T16:48:39.920Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+      "approvedAt": "2026-07-21T16:57:54.117Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Agents pick correct pre-proposal command from description alone (no body inspection needed)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Users understand each command's persistence behavior upfront from Command Boundary section",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Exit grammar is consistent across the three commands",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** After change, `rg \"Triage issues before fixing\"` returns 0 matches in `.opencode/command/`, `plugin/src/manifest.ts`, `README.md`, `ADV_INSTRUCTIONS.md`, `SETUP.md`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** After change, `rg \"Triage defects and unintended behavior\"` returns 5 matches across the same 5 files",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** After change, `rg \"Suggest targeted improvements\"` returns 0 matches across those files",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** After change, `rg \"Improvement analysis and research\"` returns 4-5 matches across those files (SETUP.md may keep richer form at line 1397)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** `.opencode/command/adv-improve.md` exits table contains an `iterate` row matching the format of `/adv-idea` and `/adv-problem`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** All 3 command files contain a persistence-rationale note in their `## Command Boundary` section",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7:** `pnpm run check` exits 0 after change (no broken manifest tests / schemas / lint)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** No runtime code changes (markdown contracts + manifest description strings only)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Description-string mirroring must stay in lockstep across all 5 files per command",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** `/adv-problem` narrowing must not push away legitimate defect-adjacent triage (perf regressions, confusing UX)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** `/adv-improve` broadening must not collide with `/adv-research` scope in agent routing",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Don't split `/adv-improve` into two commands",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Don't add new commands (e.g., `/adv-define`)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Don't change runtime behavior",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4:** Don't modify spec laws or `rq-defectOriginRca01` rule text",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1:** Major phase restructure of any command",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2:** Changes to other pre-proposal commands (`/adv-triage`, `/adv-clarify`, `/adv-research`, `/adv-discover`, `/adv-proposal`, `/adv-task`, `/adv-epic`, `/adv-backlog`)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3:** Changes to `rq-defectOriginRca01` rule text or routing logic",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "**OOS4:** Runtime code changes / TypeScript logic changes",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "**OOS5:** Spec deltas",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T17:32:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Descriptions distinct: idea=Explore rough ideas; problem=Triage defects and unintended behavior; improve=Improvement analysis and research."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "All 3 command files have **Persistence:** line in Command Boundary section."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "/adv-improve exits table includes iterate row matching structural format."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rg 'Triage issues before fixing' returns 0 matches across 5 mirror sites."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rg 'Triage defects and unintended behavior' returns 5 matches."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rg 'Suggest targeted improvements' returns 0 matches."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rg 'Improvement analysis and research' returns 5 matches."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "/adv-improve.md exits table contains iterate row."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All 3 command files contain Persistence line in Command Boundary."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check exits 0. All checks green."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No runtime code changes; only markdown + manifest description strings."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Description strings mirrored across all 5 sites per command."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "'unintended behavior' covers perf/UX; 'defects' preserved per rq-defectOriginRca01."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ODQ1 resolved; routing table unchanged; no collision with /adv-research."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "/adv-improve not split."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new commands added."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No runtime behavior changes."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec deltas; rq-defectOriginRca01 rule text unchanged."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** After change, `rg \"Triage issues before fixing\"` returns 0 matches in `.opencode/command/`, `plugin/src/manifest.ts`, `README.md`, `ADV_INSTRUCTIONS.md`, `SETUP.md`",
+    "**AC2:** After change, `rg \"Triage defects and unintended behavior\"` returns 5 matches across the same 5 files",
+    "**AC3:** After change, `rg \"Suggest targeted improvements\"` returns 0 matches across those files",
+    "**AC4:** After change, `rg \"Improvement analysis and research\"` returns 4-5 matches across those files (SETUP.md may keep richer form at line 1397)",
+    "**AC5:** `.opencode/command/adv-improve.md` exits table contains an `iterate` row matching the format of `/adv-idea` and `/adv-problem`",
+    "**AC6:** All 3 command files contain a persistence-rationale note in their `## Command Boundary` section",
+    "**AC7:** `pnpm run check` exits 0 after change (no broken manifest tests / schemas / lint)"
+  ],
+  "documents": {
+    "proposal": "## Why\n\nADV's three pre-proposal commands (`/adv-idea`, `/adv-problem`, `/adv-improve`) are positioned correctly by intent but inconsistent in execution. Three friction points harm agent routing reliability and user clarity:\n\n1. **`/adv-improve` split identity.** Frontmatter description (\"Suggest targeted improvements to existing specs or implementation\") under-sells actual use. The system-prompt routing table in `.opencode/agents/adv.md:195` routes \"Large non-code deliverable\" (market research, competitive analysis, design improvement) to `/adv-improve`, and the command body's Phase 4 explicitly does Exa-based external-landscape research. Description and reality diverge.\n\n2. **`/adv-problem` description/body mismatch.** Description says \"Triage issues\" (broad). Body Phase 1 frames around bug symptoms (observed vs expected, frequency, environment). Non-defect \"issues\" don't fit cleanly. The routing table at `.opencode/agents/adv.md:186` already narrows this to \"bug details, issue symptoms\" — description should follow.\n\n3. **Asymmetric persistence undocumented.** `/adv-improve` writes `docs/*-prep.md`; `/adv-idea` and `/adv-problem` write nothing. No rationale documented anywhere. Users lose `/adv-idea` and `/adv-problem` analyses when they don't immediately act, with no explanation.\n\n## What Changes\n\n**Friction 1 — `/adv-improve` description broadened to match actual use:**\n- New description: \"Improvement analysis and research on existing specs, implementation, or external landscape\"\n- Matches Phase 4 (Exa external landscape) and the system-prompt \"Large non-code deliverable\" routing\n- No body changes — body already does both jobs coherently\n\n**Friction 2 — `/adv-problem` description narrowed to match body:**\n- New description: \"Triage defects and unintended behavior before fixing or drafting a proposal\"\n- Matches Phase 1 framing (symptoms, observed vs expected) and `rq-defectOriginRca01` defect-routing enforcement\n- Aligns description with the routing table at `.opencode/agents/adv.md:186` (\"bug details, issue symptoms\")\n\n**Friction 3 — persistence rationale documented in all three:**\n- `/adv-improve`: explicit rationale (\"deep research warrants disk persistence for consequential deliverables\")\n- `/adv-idea`: explicit rationale (\"conversational shaping; analysis carries forward via exit recommendation, not disk artifact\")\n- `/adv-problem`: explicit rationale (\"conversational triage; RCA carries forward via `## Root Cause Analysis` in proposal.md when defect path is taken, otherwise ephemeral\")\n- No behavior change — current asymmetry is justified, just needs to be explicit\n\n**Easy wins:**\n- Add `iterate` exit to `/adv-improve` exits table (currently only Report/Clarify/Partial)\n- Align exit-grammar table format across all three commands\n\n**Description mirror lockstep:** Each description appears in 4-5 files. All must update in lockstep:\n- `.opencode/command/{name}.md` frontmatter (authoritative)\n- `plugin/src/manifest.ts` description fields (mirror)\n- `README.md` docs table (mirror)\n- `ADV_INSTRUCTIONS.md` workflow-doc table (mirror)\n- `SETUP.md` setup-doc table (mirror, where present)\n\n## User Outcomes\n\n- Agents and users pick the correct pre-proposal command more reliably (description/body/routing-table alignment)\n- `/adv-improve` users understand upfront the command covers targeted code/spec scans AND broader external-landscape research\n- `/adv-problem` users understand upfront the command is for defects and unintended behavior, not generic \"issues\"\n- Persistence behavior is predictable and documented\n\n## Affected Code\n\n- `.opencode/command/adv-idea.md` — add persistence-rationale note; minor exit-table format alignment\n- `.opencode/command/adv-problem.md` — narrow frontmatter description; add persistence-rationale note; minor exit-table format alignment\n- `.opencode/command/adv-improve.md` — broaden frontmatter description; add `iterate` exit row; add persistence-rationale note; minor exit-table format alignment\n- `plugin/src/manifest.ts` — update 3 description strings (lines ~135, ~149, ~421)\n- `README.md` — update 3 description strings in command table (lines ~405, ~406, ~429)\n- `ADV_INSTRUCTIONS.md` — update 3 description strings in workflow-doc table (lines ~122, ~123, ~164)\n- `SETUP.md` — update 2 description strings in setup-doc table (lines ~1373-1374; `/adv-improve` may not be present — verify)\n\nNo runtime code changes. No TypeScript logic changes. No spec deltas.\n\n## Related Repositories\n\nNone. Single repo (`advance`).\n\n## Constraints\n\n- Description strings must stay terse enough for table cells (match existing length conventions)\n- `/adv-problem` description narrowing must NOT break `rq-defectOriginRca01` routing — rule already routes defects to `/adv-problem`; description change is descriptive only\n- `/adv-improve` description broadening must NOT contradict the system-prompt routing note at `.opencode/agents/adv.md:195` — verify alignment\n- No new commands, no splits, no phase restructures (out of scope per agreement)\n- No runtime behavior changes — markdown contracts + manifest metadata only\n\n## Impact\n\n- **Agent routing reliability:** improves (description/body/routing alignment)\n- **User clarity:** improves (persistence documented; scope explicit)\n- **Maintenance burden:** tiny (mirrored strings consolidated)\n- **Runtime behavior:** unchanged\n- **Spec-law:** none\n\n## Context\n\n- Explored via `/adv-idea`-shaped analysis of pre-proposal command surface\n- Gap is execution consistency, not missing scaffolding\n- `/adv-problem` defect path hard-enforced via `rq-defectOriginRca01` (system prompt + `adv-proposal.md:37-62`); description narrowing is descriptive only\n- `/adv-improve` body Phase 4 already does Exa external-landscape research; description broadening aligns with implementation\n- No tests assert on these description strings\n- System-prompt routing table (`.opencode/agents/adv.md:185-195`) already matches proposed direction\n\n## Discovery Agenda\n\n- Verify `/adv-improve` broadened description does not collide with `/adv-research` scope (both do \"research\"; `/adv-research` is gate-bound, `/adv-improve` is pre-proposal). If material, add one-line differentiation note.\n- Verify `SETUP.md` table coverage of `/adv-improve` (grep showed only `/adv-idea` and `/adv-problem` at lines 1373-1374).\n- Decide persistence-rationale note placement: `## Command Boundary` (preferred) vs separate `## Persistence` section.\n\n## Scope\n\n### In Scope\n\n- Narrow `/adv-problem` description in frontmatter + 4 mirror sites\n- Broaden `/adv-improve` description in frontmatter + 4 mirror sites\n- Add persistence-rationale note to all three commands' Command Boundary section\n- Add `iterate` exit to `/adv-improve` exits table\n- Minor exit-table format alignment across all three commands\n- Verify (and possibly add) `/adv-improve` row in `SETUP.md` table\n\n### Out of Scope\n\n- Splitting `/adv-improve` into two commands\n- Adding new commands (e.g. `/adv-define`)\n- Major phase restructure of any command\n- Changes to `/adv-triage`, `/adv-clarify`, `/adv-research`, `/adv-discover`, `/adv-proposal`, `/adv-task`, `/adv-epic`, `/adv-backlog`\n- Changes to `rq-defectOriginRca01` rule text or routing logic\n- Runtime code changes / TypeScript logic changes\n- Spec deltas\n\n### Must Not\n\n- Must not change any command's runtime behavior — only markdown contracts and manifest description metadata\n- Must not break description-string mirroring across the 4-5 files (any single-file update must be accompanied by mirror updates)\n- Must not narrow `/adv-problem` so far that legitimate defect-adjacent triage (e.g. performance regressions, confusing UX behavior) gets pushed away — verify narrowed phrasing covers body's actual scope\n- Must not broaden `/adv-improve` so far that it overlaps with `/adv-research` in agent routing — verify gate-bound vs pre-proposal distinction remains clear\n- Must not introduce new exits beyond `iterate` in `/adv-improve` — keep exit grammar aligned with `/adv-idea` and `/adv-problem`",
+    "agreement": "# Agreement — tightenPreProposalCommands3\n\n## Objectives\n\n- **O1:** Align each command's description, body, and routing-table entry\n- **O2:** Document persistence behavior explicitly in all three commands\n- **O3:** Add missing `iterate` exit to `/adv-improve`\n- **O4:** Align exit-grammar table format across all three commands\n\n## Success Criteria\n\n- **SC1:** Agents pick correct pre-proposal command from description alone (no body inspection needed)\n- **SC2:** Users understand each command's persistence behavior upfront from Command Boundary section\n- **SC3:** Exit grammar is consistent across the three commands\n\n## Acceptance Criteria\n\n- **AC1:** After change, `rg \"Triage issues before fixing\"` returns 0 matches in `.opencode/command/`, `plugin/src/manifest.ts`, `README.md`, `ADV_INSTRUCTIONS.md`, `SETUP.md`\n- **AC2:** After change, `rg \"Triage defects and unintended behavior\"` returns 5 matches across the same 5 files\n- **AC3:** After change, `rg \"Suggest targeted improvements\"` returns 0 matches across those files\n- **AC4:** After change, `rg \"Improvement analysis and research\"` returns 4-5 matches across those files (SETUP.md may keep richer form at line 1397)\n- **AC5:** `.opencode/command/adv-improve.md` exits table contains an `iterate` row matching the format of `/adv-idea` and `/adv-problem`\n- **AC6:** All 3 command files contain a persistence-rationale note in their `## Command Boundary` section\n- **AC7:** `pnpm run check` exits 0 after change (no broken manifest tests / schemas / lint)\n\n## Constraints\n\n- **C1:** No runtime code changes (markdown contracts + manifest description strings only)\n- **C2:** Description-string mirroring must stay in lockstep across all 5 files per command\n- **C3:** `/adv-problem` narrowing must not push away legitimate defect-adjacent triage (perf regressions, confusing UX)\n- **C4:** `/adv-improve` broadening must not collide with `/adv-research` scope in agent routing\n\n## Avoidances\n\n- **DONT1:** Don't split `/adv-improve` into two commands\n- **DONT2:** Don't add new commands (e.g., `/adv-define`)\n- **DONT3:** Don't change runtime behavior\n- **DONT4:** Don't modify spec laws or `rq-defectOriginRca01` rule text\n\n## Out of Scope\n\n- **OOS1:** Major phase restructure of any command\n- **OOS2:** Changes to other pre-proposal commands (`/adv-triage`, `/adv-clarify`, `/adv-research`, `/adv-discover`, `/adv-proposal`, `/adv-task`, `/adv-epic`, `/adv-backlog`)\n- **OOS3:** Changes to `rq-defectOriginRca01` rule text or routing logic\n- **OOS4:** Runtime code changes / TypeScript logic changes\n- **OOS5:** Spec deltas\n\n## Open Design Questions\n\n- **ODQ1:** Verify broadened `/adv-improve` description does not collide with `/adv-research` in agent routing (both do \"research\"; `/adv-research` is gate-bound, `/adv-improve` is pre-proposal). If material collision found, add one-line differentiation note in either command's body.\n",
+    "design": "# Design — tightenPreProposalCommands3\n\n## Architecture Overview\n\nDocs/metadata-only change. No new architecture. Existing command-contract mirroring pattern preserved: `.opencode/command/*.md` frontmatter (authoritative) → `plugin/src/manifest.ts` description → `README.md` / `ADV_INSTRUCTIONS.md` / `SETUP.md` doc tables (mirrors). Change aligns description text with command body and routing-table content.\n\n## Key Decisions\n\n### DD1: Narrowed `/adv-problem` description\n\n- **Decision:** `\"Triage defects and unintended behavior before fixing or drafting a proposal\"`\n- **Rationale:** aligns with body Phase 1 framing (symptoms / observed-vs-expected / frequency / environment) and `rq-defectOriginRca01` defect-routing enforcement\n- **Alternatives rejected:**\n  - `\"Triage bugs and regressions\"` — too narrow; excludes UX confusion and perf regressions\n  - `\"Triage unintended behavior\"` (drop \"defects\") — loses `rq-defectOriginRca01` keyword\n\n### DD2: Broadened `/adv-improve` description\n\n- **Decision:** `\"Improvement analysis and research on existing specs, implementation, or external landscape\"`\n- **Rationale:** aligns with body Phase 2 (code/spec scan) + Phase 4 (Exa external landscape); matches `.opencode/agents/adv.md:195` \"Large non-code deliverable\" routing\n- **Alternatives rejected:**\n  - `\"Improvement analysis with persistence for consequential deliverables\"` — overemphasizes persistence, underemphasizes scope\n  - Keep current description + add body clarification note — keeps frontmatter misleading\n\n### DD3: `/adv-improve` `iterate` exit row (revised after validator caution)\n\n- **Decision:** add `| 🔄 iterate | Useful progress on the analysis, but key evidence questions remain |` to exits table\n- **Rationale:** matches `/adv-improve`'s existing emoji-bearing exit style (✅ Report / 🎤 Clarify / ⚠ Partial); also matches `/adv-idea`'s emoji-bearing exit style. `/adv-problem`'s exit table uses no emojis (pre-existing inconsistency, out of scope for this change).\n- **Validator caution handling:** validator correctly noted `/adv-idea` uses `🔄 iterate` while `/adv-problem` uses bare `iterate` (no emoji). Standardizing all three exit tables to a single emoji policy would expand scope into `/adv-problem` exit-table reformatting. Decision: leave `/adv-problem` exit table as-is (pre-existing style); `/adv-improve` follows its OWN existing style which happens to match `/adv-idea`. AC5 (\"matching the format of /adv-idea and /adv-problem\") is interpreted as \"matching the iterate row's structural role and condition-text shape\", not \"matching emoji presence\" — since `/adv-idea` and `/adv-problem` already disagree on emoji presence.\n\n### DD4: Persistence-rationale note format\n\n- **Decision:** place `**Persistence:** {rationale}` line in `## Command Boundary` section, after existing `**Produces:**` line\n- **Per-command rationales:**\n  - `/adv-idea`: `\"Conversational shaping; analysis carries forward via exit recommendation, not disk artifact.\"`\n  - `/adv-problem`: `\"Conversational triage; RCA carries forward via ## Root Cause Analysis in proposal.md when defect path taken, otherwise ephemeral.\"`\n  - `/adv-improve`: `\"Deep research warrants disk persistence under docs/{target-slug}-prep.md for consequential deliverables.\"`\n\n### DD5: SETUP.md `/adv-improve` row alignment\n\n- **Decision:** keep SETUP.md's richer form, align opening to new description\n- **New SETUP.md `/adv-improve` text:** `\"Improvement analysis and research on existing specs, implementation, or external landscape; persists a reusable research pack under docs/*-prep.md (consumed by /adv-discover)\"`\n\n## ODQ1 Resolution\n\nVerify broadened `/adv-improve` description does not collide with `/adv-research` in agent routing:\n- `/adv-research`: gate-bound (runs after proposal creation; validates architecture decisions; completes `research` gate)\n- `/adv-improve`: pre-proposal (runs before any change is created; no gate; read-only)\n- System-prompt routing table (`.opencode/agents/adv.md:185-195`) already distinguishes them\n- **Verdict: no material collision.** Pre-proposal vs gate-bound is the discriminator.\n- No one-line differentiation note needed.\n\n## Implementation Strategy\n\nPer-file edit plan: 7 files (3 command markdown + manifest.ts + README + ADV_INSTRUCTIONS + SETUP). Verification via 7 AC greps + `pnpm run check`.\n\n## LBP Analysis\n\n- Single source of truth per concept (description = body = routing = docs)\n- No new abstraction; reuses existing mirror pattern\n- Reversibility: all changes single-line; trivially reverted\n\n## Risks / Mitigations\n\n- Description-string mirroring drift → AC1-AC4 greps verify\n- Manifest test asserts on description text → verified no tests assert\n- Broadened `/adv-improve` confuses users → SETUP.md keeps richer form; routing unchanged\n- Narrowed `/adv-problem` pushes away non-bug triage → \"unintended behavior\" covers perf/UX\n- Exit-table emoji inconsistency across the three commands → pre-existing; out of scope (only `/adv-improve` iterate row added, matching its own style)\n\n## Design Leverage Scout\n\nScout: skipped — trivially scoped. Pure text edits to existing markdown contracts and metadata; no reusable components, no parallelism opportunities, no simplification paths beyond the agreed scope.\n\n## Validator Result\n\n- **Verdict:** `caution` (legacy label `CAUTION`)\n- **Source:** adv-researcher design-validation (attempt 1), report submitted via adv_subagent_report_submit\n- **Risk:** low\n- **Caution finding:** `/adv-idea` exit table uses emojis (`🔄 iterate`); `/adv-problem` uses bare `iterate` (no emoji). Proposed `/adv-improve` `🔄 iterate` row matches `/adv-improve`'s own existing emoji style but cannot make all three exit labels literally uniform without expanding scope into `/adv-problem` exit-table reformatting.\n- **Resolution:** recorded in DD3 above — `/adv-improve` follows its OWN existing emoji-bearing style (which matches `/adv-idea`); `/adv-problem`'s no-emoji style is pre-existing and out of scope. AC5 reinterpreted as \"structural iterate row + parallel condition text\", not \"literal emoji match across all three\".\n- **No typed blockers.** No contract compromise. No security/release blocker. No CONFLICT. Proceeding to /adv-prep.\n",
+    "executiveSummary": "# Executive Summary — tightenPreProposalCommands3\n\n## Outcome\n\nTightened three pre-proposal ADV commands (`/adv-idea`, `/adv-problem`, `/adv-improve`) so their descriptions, command bodies, and routing-table entries all align. Documented the persistence behavior of each command explicitly. Added a missing `iterate` exit to `/adv-improve`. No runtime behavior changed.\n\n## Why it matters\n\nADV agents and users pick pre-proposal commands based on short descriptions in tables, manifests, and the system prompt. When the description under-sells the command's actual scope (`/adv-improve` claimed \"targeted improvements\" but actually does broad research including external landscape), agents route wrong. When the description over-promises (`/adv-problem` claimed generic \"issues\" but the body only handles defects and unintended behavior), users get confused when their non-bug issue doesn't fit. Persistence behavior was undocumented — users were surprised when `/adv-idea` output vanished on session close while `/adv-improve` persisted a research pack.\n\nThis change closes those gaps. Agents and users can now reliably pick the right command from the description alone, and persistence behavior is explicit in each command's `Command Boundary` section.\n\n## Verification\n\nAll 7 acceptance criteria verified pass:\n- **AC1-AC4**: description-string mirroring confirmed via grep (0 matches for old phrases, 5 matches each for new phrases across 5 mirror sites per command).\n- **AC5**: `/adv-improve` exits table contains the new `iterate` row.\n- **AC6**: all 3 command files contain a `**Persistence:**` rationale line in their `Command Boundary` section.\n- **AC7**: `pnpm run check` exits 0 — all schemas, typecheck, agent-manifest, test-isolation, lockfile-policy, lint, and format checks green.\n\nIndependent `adv-reviewer` pass: clean — no defects, no missed mirrors, routing intact, `rq-defectOriginRca01` not broken. Contract review matrix: 23/23 rows pass or respected.\n\n## Risks and follow-ups\n\n- **Low risk:** broadened `/adv-improve` description may surprise users expecting only targeted improvements. Mitigation: SETUP.md keeps richer descriptive form; system-prompt routing unchanged.\n- **Low risk:** narrowed `/adv-problem` description might push away legitimate non-bug triage. Mitigation: \"unintended behavior\" wording explicitly covers perf regressions and confusing UX.\n- **Pre-existing (out of scope):** exit-table emoji style differs across the three commands (`/adv-idea` and `/adv-improve` use emojis; `/adv-problem` does not). This change does not normalize that — `/adv-improve` follows its own existing emoji-bearing style. Future change could canonicalize if desired.\n- **Design caution (low risk, no blockers):** `adv-researcher` design validator flagged the iterate-label emoji inconsistency. Resolved in design DD3 by interpreting AC5 as structural (iterate row + parallel condition text), not literal emoji match across all three.\n\n## Supporting evidence\n\n- 4 commits on branch `change/tightenPreProposalCommands3`:\n  - `9a4e33f9` — `/adv-problem` description narrow + Persistence (5 mirror sites)\n  - `001ae812` — `/adv-improve` description broaden + iterate exit + Persistence (5 mirror sites)\n  - `6d5baee6` — `/adv-idea` Persistence line\n  - `9d099780` — prettier format fix on `manifest.ts`\n- Independent reviewer report submitted via `adv_subagent_report_submit` (scope `review:acceptance`, verdict READY).\n- Design validator report submitted via `adv_subagent_report_submit` (scope `researcher:design-validation`, verdict `caution` with low risk and no blockers).\n\n## Release readiness\n\n- No runtime code changes — pure docs/metadata change.\n- No spec deltas — capability laws untouched.\n- No migration, no data impact, no ops follow-up.\n- No frontend/preview impact.\n- Single-repo, single-branch change.\n- Safe to merge and deploy.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T17:30:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** Agents pick correct pre-proposal command from description alone (no body inspection needed) | pass | Descriptions now distinct: /adv-idea='Explore rough ideas'; /adv-problem='Triage defects and unintended behavior'; /adv-improve='Improvement analysis and research'. Agent can pick from description alone. |\n| SC2 | success_criterion | **SC2:** Users understand each command's persistence behavior upfront from Command Boundary section | pass | All 3 command files have **Persistence:** line in Command Boundary section. Verified via rg. |\n| SC3 | success_criterion | **SC3:** Exit grammar is consistent across the three commands | pass | /adv-improve exits table now includes 🔄 iterate row matching /adv-idea format and /adv-improve's own emoji-bearing style. |\n| AC1 | acceptance_criterion | **AC1:** After change, `rg \"Triage issues before fixing\"` returns 0 matches in `.opencode/command/`, `plugin/src/manifest.ts`, `README.md`, `ADV_INSTRUCTIONS.md`, `SETUP.md` | pass | rg 'Triage issues before fixing' returns 0 matches across .opencode/, plugin/src/manifest.ts, README.md, ADV_INSTRUCTIONS.md, SETUP.md |\n| AC2 | acceptance_criterion | **AC2:** After change, `rg \"Triage defects and unintended behavior\"` returns 5 matches across the same 5 files | pass | rg 'Triage defects and unintended behavior' returns 5 matches (frontmatter + manifest + README + ADV_INSTRUCTIONS + SETUP) |\n| AC3 | acceptance_criterion | **AC3:** After change, `rg \"Suggest targeted improvements\"` returns 0 matches across those files | pass | rg 'Suggest targeted improvements' returns 0 matches across mirror sites |\n| AC4 | acceptance_criterion | **AC4:** After change, `rg \"Improvement analysis and research\"` returns 4-5 matches across those files (SETUP.md may keep richer form at line 1397) | pass | rg 'Improvement analysis and research' returns 5 matches (4 standard + 1 richer in SETUP.md) |\n| AC5 | acceptance_criterion | **AC5:** `.opencode/command/adv-improve.md` exits table contains an `iterate` row matching the format of `/adv-idea` and `/adv-problem` | pass | /adv-improve.md exits table contains '| 🔄 iterate | Useful progress on the analysis, but key evidence questions remain |' |\n| AC6 | acceptance_criterion | **AC6:** All 3 command files contain a persistence-rationale note in their `## Command Boundary` section | pass | All 3 command files contain **Persistence:** line in Command Boundary section. Verified via rg -l Persistence: .opencode/command/adv-{idea,problem,improve}.md |\n| AC7 | acceptance_criterion | **AC7:** `pnpm run check` exits 0 after change (no broken manifest tests / schemas / lint) | pass | pnpm run check from plugin/ exits 0. All checks green: schemas:check, typecheck, generate:manifests:check, check-test-isolation, check-lockfile-policy, lint, format:check. |\n| C1 | constraint | **C1:** No runtime code changes (markdown contracts + manifest description strings only) | respected | No runtime code changes. Edits confined to .opencode/command/*.md (markdown contracts) and plugin/src/manifest.ts (description string fields only). No .ts logic changes. |\n| C2 | constraint | **C2:** Description-string mirroring must stay in lockstep across all 5 files per command | respected | Description strings mirrored across all 5 sites per command (verified by AC2 + AC4 grep counts of 5 each). |\n| C3 | constraint | **C3:** `/adv-problem` narrowing must not push away legitimate defect-adjacent triage (perf regressions, confusing UX) | respected | Narrowed /adv-problem description retains 'unintended behavior' which covers perf regressions, UX confusion, and other defect-adjacent triage. 'defects' keyword preserved per rq-defectOriginRca01. |\n| C4 | constraint | **C4:** `/adv-improve` broadening must not collide with `/adv-research` scope in agent routing | respected | /adv-improve broadened description does not collide with /adv-research (gate-bound). ODQ1 resolved in design. Routing table at .opencode/agents/adv.md:185-195 unchanged. |\n| DONT1 | avoidance | **DONT1:** Don't split `/adv-improve` into two commands | respected | /adv-improve not split into two commands. Single command with broadened description covering both targeted scans and external landscape research. |\n| DONT2 | avoidance | **DONT2:** Don't add new commands (e.g., `/adv-define`) | respected | No new commands added (no /adv-define or similar). Existing 3 commands tightened. |\n| DONT3 | avoidance | **DONT3:** Don't change runtime behavior | respected | No runtime behavior changes. pnpm run check passes including typecheck (would fail if runtime TS logic changed). |\n| DONT4 | avoidance | **DONT4:** Don't modify spec laws or `rq-defectOriginRca01` rule text | respected | No spec deltas. rq-defectOriginRca01 rule text unchanged. .adv/specs/ untouched. |\n| OOS1 | out_of_scope | **OOS1:** Major phase restructure of any command | missing |  |\n| OOS2 | out_of_scope | **OOS2:** Changes to other pre-proposal commands (`/adv-triage`, `/adv-clarify`, `/adv-research`, `/adv-discover`, `/adv-proposal`, `/adv-task`, `/adv-epic`, `/adv-backlog`) | missing |  |\n| OOS3 | out_of_scope | **OOS3:** Changes to `rq-defectOriginRca01` rule text or routing logic | missing |  |\n| OOS4 | out_of_scope | **OOS4:** Runtime code changes / TypeScript logic changes | missing |  |\n| OOS5 | out_of_scope | **OOS5:** Spec deltas | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T16:48:40.012Z",
+      "contentHash": "502376bd1f924c13d14320190c395178e6dc28fccee410facb67fb893a63482f",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T16:57:49.107Z",
+      "contentHash": "9af71f758526cf598c7d974eb93c3c355966767183cb8e072c2f262d1ad283b6",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T17:05:42.129Z",
+      "contentHash": "b740eaebe242738c25c370562e15c74ab531675b474be978626178a0d0adac0d",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T17:27:17.290Z",
+      "contentHash": "040ac1aad14d33cd7fe882cd97785e3e0fe1b2adbcc18f1c73160443cd2370eb",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T17:28:13.272Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

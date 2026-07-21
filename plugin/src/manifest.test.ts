@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   COMMAND_MANIFEST,
@@ -499,5 +499,21 @@ describe("Command Manifest", () => {
         expect(def!.phaseGoal).toBe(goal);
       }
     });
+  });
+});
+
+/**
+ * Source-level doc-comment contract (rq-defectOriginRca01 / KD4) — added by
+ * sequenceTriageProposal. Verifies that the `prerequisites: string[]` field
+ * declaration in manifest.ts carries a JSDoc-style comment clarifying the
+ * field is metadata-only, not runtime-enforced.
+ */
+describe("manifest.ts prerequisites field doc-comment (rq-defectOriginRca01)", () => {
+  const source = readFileSync(join(__dirname, "manifest.ts"), "utf8");
+
+  test("prerequisites field has doc-comment marking it metadata-only", () => {
+    // Semantic anchors per design DDC1.
+    expect(source).toMatch(/metadata/i);
+    expect(source).toMatch(/NOT runtime-enforced/i);
   });
 });

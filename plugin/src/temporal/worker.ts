@@ -3,6 +3,12 @@ import { existsSync } from "fs";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
+import { getAdvWorkerTuningOptions } from "./worker-tuning";
+import { setCurrentSessionId } from "../utils/session-id";
+import {
+  verifyWorkerArtifactPolicy,
+  type WorkerArtifactPolicy,
+} from "./worker-bundle-manifest";
 
 function resolveWorkflowsPath(): string {
   const jsPath = fileURLToPath(new URL("./workflows.js", import.meta.url));
@@ -27,11 +33,16 @@ export interface TemporalWorkerOptions {
   namespace?: string;
   taskQueue: string;
   workflowsPath?: string;
+  artifactPolicy: WorkerArtifactPolicy;
 }
 
 export async function runTemporalWorker(
   options: TemporalWorkerOptions,
 ): Promise<void> {
+  const verifiedBundle = await verifyWorkerArtifactPolicy({
+    policy: options.artifactPolicy,
+    workflowsPath: options.workflowsPath ?? resolveWorkflowsPath(),
+  });
   const connection = await NativeConnection.connect({
     address: options.address ?? getTemporalAddress(),
   });
@@ -41,9 +52,10 @@ export async function runTemporalWorker(
       connection,
       namespace: options.namespace ?? getTemporalNamespace(),
       taskQueue: options.taskQueue,
-      workflowsPath: options.workflowsPath ?? resolveWorkflowsPath(),
+      workflowsPath: verifiedBundle.workflowsPath,
       activities,
       shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+      ...getAdvWorkerTuningOptions(),
     });
 
     await worker.run();
@@ -185,6 +197,7 @@ export function createChildIPCHandler(
 export async function runMultiQueueTemporalWorker(
   taskQueues: string[],
   env: NodeJS.ProcessEnv = process.env,
+  artifactPolicy: WorkerArtifactPolicy,
 ): Promise<void> {
   if (taskQueues.length === 0) {
     throw new Error(
@@ -198,7 +211,11 @@ export async function runMultiQueueTemporalWorker(
 
   try {
     const namespace = getTemporalNamespace(env);
-    const workflowsPath = resolveWorkflowsPath();
+    const verifiedBundle = await verifyWorkerArtifactPolicy({
+      policy: artifactPolicy,
+      workflowsPath: resolveWorkflowsPath(),
+    });
+    const workflowsPath = verifiedBundle.workflowsPath;
     const workers = await Promise.all(
       taskQueues.map((taskQueue) =>
         Worker.create({
@@ -208,6 +225,7 @@ export async function runMultiQueueTemporalWorker(
           workflowsPath,
           activities,
           shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+          ...getAdvWorkerTuningOptions(),
         }),
       ),
     );
@@ -238,6 +256,7 @@ export async function runMultiQueueTemporalWorker(
             workflowsPath,
             activities,
             shutdownGraceTime: TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
+            ...getAdvWorkerTuningOptions(),
           });
           workerRegistry.set(queue, newWorker);
           // Fire-and-forget .run so the IPC handler returns promptly.
@@ -393,7 +412,19 @@ export function startParentLivenessWatchdog(
 
 export async function runTemporalWorkerFromEnv(
   env: NodeJS.ProcessEnv = process.env,
+  artifactPolicy: WorkerArtifactPolicy = {
+    mode: "production_verified",
+    bundleDir: fileURLToPath(new URL(".", import.meta.url)),
+  },
 ): Promise<void> {
+  // KD-6: worker child reads ADV_TEMPORAL_SESSION_ID and persists it via
+  // setCurrentSessionId so any in-process caller (or future child-side
+  // routing computation) can read this worker's own-session identity
+  // via getCurrentSessionId(). Emitted by buildTemporalWorkerProcessSpec.
+  if (env.ADV_TEMPORAL_SESSION_ID) {
+    setCurrentSessionId(env.ADV_TEMPORAL_SESSION_ID);
+  }
+
   // AC4: arm the parent-liveness watchdog before entering the (blocking)
   // worker.run() poll loop. Covers both the single-queue and multi-queue
   // paths below. If the plugin-host parent crashes, the clean-shutdown
@@ -415,7 +446,7 @@ export async function runTemporalWorkerFromEnv(
           "ADV_TEMPORAL_MULTI_QUEUE=1 but ADV_TEMPORAL_TASK_QUEUES is empty",
         );
       }
-      await runMultiQueueTemporalWorker(queues, env);
+      await runMultiQueueTemporalWorker(queues, env, artifactPolicy);
       return;
     }
 
@@ -428,6 +459,7 @@ export async function runTemporalWorkerFromEnv(
       address: getTemporalAddress(env),
       namespace: getTemporalNamespace(env),
       taskQueue,
+      artifactPolicy,
     });
   } finally {
     // A clean worker shutdown or an input error must not leave a timer behind

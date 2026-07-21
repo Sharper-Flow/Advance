@@ -69,7 +69,13 @@ describe("adv-task fast-track spec-law tracking contract", () => {
 
   test("agent owns typed worker packet identity defects internally", () => {
     expect(agent).toContain("Typed worker packet contract");
-    expect(agent).toContain("WORKING DIRECTORY, CHANGE, TASK, ATTEMPT");
+    // Contract lists all typed-worker lanes (engineer, designer, reviewer,
+    // researcher, tron, visual-review) and the required anchor template.
+    // TASK or SCOPE KEY covers lanes that use either anchor name.
+    expect(agent).toContain("WORKING DIRECTORY");
+    expect(agent).toContain("CHANGE");
+    expect(agent).toMatch(/TASK[^,]{0,20}SCOPE KEY|TASK, ATTEMPT/);
+    expect(agent).toContain("ATTEMPT");
     expect(agent).toContain("adv-reviewer");
     expect(agent).toContain("PHASE");
     expect(agent).toContain("orchestrator-owned");
@@ -114,5 +120,32 @@ describe("adv-task fast-track spec-law tracking contract", () => {
       "/adv-task creates no implementation tasks for the uncertain scope",
       "The change routes to /adv-proposal or deeper discovery before implementation planning resumes",
     ]);
+  });
+});
+
+/**
+ * Defect-origin RCA rejection (rq-defectOriginRca01) — added by sequenceTriageProposal.
+ *
+ * Verifies that /adv-task explicitly rejects defect-origin invocations that
+ * lack RCA evidence. The fast-track exemption applies to ceremony only; it
+ * does NOT bypass RCA for defects (per design KD3 + UD3).
+ */
+describe("adv-task defect-origin RCA rejection (rq-defectOriginRca01)", () => {
+  const command = readFileSync(COMMAND_PATH, "utf8");
+
+  test("command recognizes defect-origin classification", () => {
+    // Semantic anchor per design DDC1.
+    expect(command).toMatch(/defect[- ]origin/i);
+  });
+
+  test("command requires Root Cause Analysis for defect-origin invocations", () => {
+    expect(command).toMatch(/Root Cause Analysis|RCA/i);
+  });
+
+  test("command defers defect-origin without RCA to /adv-problem", () => {
+    expect(command).toMatch(/\/adv-problem/);
+    expect(command).toMatch(
+      /defect[- ]origin[^.]*\b(RCA|Root Cause Analysis)\b|fast-track does not bypass RCA/i,
+    );
   });
 });

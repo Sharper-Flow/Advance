@@ -220,8 +220,10 @@ export function buildChangeSearchAttributes(
   const createdAt = dateValue(state.createdAt);
   if (createdAt) attrs.AdvCreatedAt = [createdAt];
 
-  // rq-backlogCoord01: populate AdvBacklogIssueNumber from state.origin so
-  // peer agent sessions can detect claim collisions via Visibility queries
+  // rq-backlogCoord01 / rq-AwB1gN3w01: populate AdvBacklogIssueNumber from
+  // state.origin as an orthogonal visibility side effect; gate logic never
+  // depends on issue or portfolio coordination.
+  // Peer agent sessions detect claim collisions via Visibility queries
   // (`AdvAffectedProjects = pid AND AdvBacklogIssueNumber = N AND
   // AdvLifecycleState = "open" AND ExecutionStatus = "Running"`). Keyword
   // search attributes carry string values, so the issue number is stringified.

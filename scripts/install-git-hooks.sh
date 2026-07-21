@@ -12,6 +12,23 @@
 #   ./scripts/install-git-hooks.sh --uninstall # revert to default hooks dir
 set -euo pipefail
 
+# Refuse to run if not inside the ADV repo. Otherwise `git rev-parse
+# --show-toplevel` resolves to the cwd's enclosing repo and the script
+# silently operates on the wrong repo (e.g., toolbox, not advance) —
+# `--check` false-negatives from outside ADV root.
+# Use `cd && pwd` subshell canonicalization (POSIX-portable; `realpath`
+# may not exist on minimal systems; `dirname BASH_SOURCE` alone does not
+# resolve symlinks).
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+expected_repo_root="$(cd -- "$script_dir/.." && pwd)"
+current_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+current_root_canonical="$( [ -n "$current_root" ] && cd -- "$current_root" && pwd || echo "")"
+if [ "$current_root_canonical" != "$expected_repo_root" ]; then
+  echo "install-git-hooks: must run inside ADV repo ($expected_repo_root)" >&2
+  echo "currently in: ${current_root:-(not a git repo)}" >&2
+  exit 2
+fi
+
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 HOOKS_DIR="$REPO_ROOT/.githooks"
 

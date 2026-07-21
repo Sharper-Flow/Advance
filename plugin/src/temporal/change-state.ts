@@ -618,6 +618,7 @@ import {
   ARTIFACT_HARD_CAP,
   ARTIFACT_SOFT_CAP,
 } from "../types";
+import { WisdomDraftSchema } from "../types/tasks";
 
 const utf8 = new TextEncoder();
 function byteLength(content: string): number {
@@ -971,7 +972,33 @@ export function applyTaskUpdatedToState(
   payload: TaskUpdatedSignalPayload,
 ): ChangeWorkflowState {
   const task = getMutableTask(state, payload.taskId);
-  Object.assign(task, payload.partial);
+  // rq-releaseFinalization01 / security-4 (addWisdomAutoSurfacing):
+  // defense-in-depth — validate the wisdom_drafts partial at the workflow
+  // boundary before Object.assign merges it into task state. Malformed
+  // arrays are dropped (existing task.wisdom_drafts preserved); other
+  // fields in the same partial still apply.
+  //
+  // Design note: full TaskSchema.partial().safeParse was evaluated and
+  // rejected during addTestsTaskSignalValidation. TaskSchema uses
+  // .passthrough() for forward/backward compatibility (older workflow
+  // code may write fields newer code doesn't know about); full-safeParse
+  // would either preserve unknown keys (defeating the strip goal) or
+  // drop the entire partial on any single malformed field (rejecting
+  // valid partial updates). The field-specific pattern is the correct
+  // tradeoff: validate the nested substructure that's known to evolve
+  // (wisdom_drafts), leave scalar fields to the signal payload schema.
+  const partial = { ...payload.partial };
+  if (partial.wisdom_drafts !== undefined) {
+    const parsed = WisdomDraftSchema.array().safeParse(partial.wisdom_drafts);
+    if (parsed.success) {
+      partial.wisdom_drafts = parsed.data;
+    } else {
+      // Drop the malformed field; existing task.wisdom_drafts is preserved.
+      // A subsequent signal with valid shape can retry the mutation.
+      delete partial.wisdom_drafts;
+    }
+  }
+  Object.assign(task, partial);
   (task as Task & { updatedAt?: string }).updatedAt = payload.updatedAt;
   setLastSignalAt(state, payload.updatedAt);
   return state;
@@ -1530,6 +1557,16 @@ export function applyTaskBlockedToState(
   task.status = "blocked";
   task.blockReason = payload.reason;
   task.attempts = [...payload.attempts];
+  // rq-wisdomAutoSurfacing01.3: apply wisdom_drafts snapshot when present
+  // so a SEMANTIC error_recovery on a blocked-status update still records
+  // the draft. Legacy payloads omit the field → no-op (DDC6 backward-compat).
+  // security-4: validate at boundary; drop malformed silently.
+  if (payload.wisdom_drafts !== undefined) {
+    const parsed = WisdomDraftSchema.array().safeParse(payload.wisdom_drafts);
+    if (parsed.success) {
+      task.wisdom_drafts = parsed.data;
+    }
+  }
   setLastSignalAt(state, payload.blockedAt);
   return state;
 }

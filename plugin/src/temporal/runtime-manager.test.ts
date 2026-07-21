@@ -45,6 +45,31 @@ describe("temporal runtime manager helpers", () => {
     );
   });
 
+  it("emits ADV_TEMPORAL_SESSION_ID env var when sessionId is provided (rq-isolSessionTaskQueue01, KD-6)", () => {
+    const spec = buildTemporalWorkerProcessSpec({
+      workerScript: "/fake/worker.js",
+      taskQueue: "adv-change-proj1",
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      projectId: "proj1",
+      sessionId: "sess_TestRoute123",
+    });
+
+    expect(spec.env.ADV_TEMPORAL_SESSION_ID).toBe("sess_TestRoute123");
+  });
+
+  it("omits ADV_TEMPORAL_SESSION_ID env var when sessionId is absent (backward compat)", () => {
+    const spec = buildTemporalWorkerProcessSpec({
+      workerScript: "/fake/worker.js",
+      taskQueue: "adv-change-proj1",
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      projectId: "proj1",
+    });
+
+    expect(spec.env.ADV_TEMPORAL_SESSION_ID).toBeUndefined();
+  });
+
   it("derives a stable lock path for a project", () => {
     const lockPath = getTemporalRuntimeLockPath("proj123", {
       ADV_CACHE_DIR: "/tmp/advance-cache",

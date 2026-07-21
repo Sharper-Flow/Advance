@@ -13,8 +13,10 @@ import { getService, getStslStats, reinitStsl } from "../temporal/service";
 import { getTemporalHealth } from "../temporal/health-probe";
 import {
   buildProjectTaskQueue,
+  buildSessionTaskQueue,
   buildChangeWorkflowId,
 } from "../temporal/client";
+import { getCurrentSessionId } from "../utils/session-id";
 import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { CHANGE_WORKFLOW_COMPAT_QUERY_NAMES } from "../temporal/contracts";
@@ -634,6 +636,49 @@ export const temporalOpsTools = {
         }
       }
 
+      // KD-5 / rq-isolSessionTaskQueue04 / AC6: when a session ID is present,
+      // probe BOTH the session-scoped queue and the permanent project queue
+      // so operators can distinguish per-queue serviceability. Each entry
+      // carries a `queueType` label ("session" | "project").
+      let queues: Array<{
+        queue: string;
+        queueType: "session" | "project";
+        serviceable: boolean;
+      }> = [];
+      const sessionId = getCurrentSessionId();
+      if (bundle && projectId && sessionId) {
+        const sessionQueueName = buildSessionTaskQueue(projectId, sessionId);
+        const projectQueueName = buildProjectTaskQueue(projectId);
+        const probeTargets: Array<{
+          queue: string;
+          queueType: "session" | "project";
+        }> = [
+          { queue: sessionQueueName, queueType: "session" },
+          { queue: projectQueueName, queueType: "project" },
+        ];
+        const probed = await Promise.all(
+          probeTargets.map(async (target) => {
+            // probeTaskQueuePollers wraps describeTaskQueue in try/catch
+            // and returns {status:"unavailable", ...} on failure rather
+            // than throwing — no inner try/catch needed here. If the
+            // wrapper's contract changes to throw, reintroduce the catch.
+            const probe = await probeTaskQueuePollers({
+              connection: bundle.connection as unknown as Parameters<
+                typeof probeTaskQueuePollers
+              >[0]["connection"],
+              namespace: bundle.namespace,
+              taskQueue: target.queue,
+            });
+            return {
+              queue: target.queue,
+              queueType: target.queueType,
+              serviceable: probe.status === "fresh",
+            };
+          }),
+        );
+        queues = probed;
+      }
+
       const recommendedNextAction = !serverReachable
         ? "Temporal server is unreachable — check that the Temporal service is running"
         : !workerAlive && !serverServiceable
@@ -649,6 +694,7 @@ export const temporalOpsTools = {
         workerAlive,
         stslInitialized: bundle !== null,
         serverServiceable,
+        ...(queues.length > 0 ? { queues } : {}),
         ...(changeWorkflow ? { changeWorkflow } : {}),
         recommendedNextAction,
       });

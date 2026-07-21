@@ -18,6 +18,7 @@ const {
   mockEnsureProjectTemporalQueue,
   mockGetRegisteredTemporalWorkerQueues,
   mockResolveTargetProject,
+  mockGetCurrentSessionId,
 } = vi.hoisted(() => ({
   mockGetTemporalHealth: vi.fn(),
   mockGetService: vi.fn(),
@@ -28,10 +29,17 @@ const {
   mockEnsureProjectTemporalQueue: vi.fn(),
   mockGetRegisteredTemporalWorkerQueues: vi.fn(() => []),
   mockResolveTargetProject: vi.fn(),
+  mockGetCurrentSessionId: vi.fn(() => undefined),
 }));
 
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: mockGetTemporalHealth,
+}));
+
+vi.mock("../utils/session-id", () => ({
+  getCurrentSessionId: mockGetCurrentSessionId,
+  generateSessionId: vi.fn(() => "sess_generated"),
+  setCurrentSessionId: vi.fn(),
 }));
 
 vi.mock("../temporal/service", () => ({
@@ -201,6 +209,49 @@ describe("temporal ops probe cache", () => {
       serverServiceable: false,
       recommendedNextAction: "Temporal is healthy",
     });
+  });
+
+  test("diagnose surfaces per-queue serviceability with type labels when sessionId is present (rq-isolSessionTaskQueue04, AC6)", async () => {
+    mockGetTemporalHealth.mockResolvedValue(temporalHealth);
+    mockGetService.mockReturnValue({
+      client: {},
+      connection: { workflowService: { describeTaskQueue: vi.fn() } },
+      namespace: "default",
+    } as any);
+    mockProbeTaskQueuePollers.mockResolvedValue({
+      status: "fresh",
+      lastAccessMs: 1000,
+    });
+    mockGetCurrentSessionId.mockReturnValue("sess_diagnose_multi");
+
+    try {
+      const result = parseToolOutput(
+        await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
+      );
+
+      // AC6: per-queue output must distinguish session from project and
+      // label each by type.
+      expect(result.queues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            queue: "advance-proj123-sess_diagnose_multi",
+            queueType: "session",
+            serviceable: true,
+          }),
+          expect.objectContaining({
+            queue: "advance-proj123",
+            queueType: "project",
+            serviceable: true,
+          }),
+        ]),
+      );
+    } finally {
+      mockGetCurrentSessionId.mockReturnValue(undefined);
+      mockProbeTaskQueuePollers.mockReset();
+      mockGetService.mockReset();
+      mockGetTemporalHealth.mockReset();
+      _temporalOpsProbeCaches.clear();
+    }
   });
 
   test("diagnose exposes freshness metadata and reuses cached health", async () => {

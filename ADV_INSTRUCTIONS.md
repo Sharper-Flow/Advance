@@ -31,7 +31,7 @@ Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_compl
 | Phase           | Mode                         | Detail                                                                                                                                                                                |
 | --------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/adv-idea`     | Collaborative                | Fully collaborative; ideation loop before a proposal exists                                                                                                                           |
-| `/adv-problem`  | Collaborative                | Fully collaborative; issue triage before deciding fix path                                                                                                                            |
+| `/adv-problem`  | Collaborative                | Fully collaborative; issue triage before deciding fix path. Defect-origin work produces a Root Cause Analysis (RCA) that downstream `/adv-proposal` and `/adv-task` invocations MUST carry forward (rq-defectOriginRca01). RCA shape mirrors `/adv-problem` output; bypass rationale must be explicit if `/adv-problem` was not used.
 | `/adv-epic`     | Collaborative                | Fully collaborative; goal-first Epic creation with final confirmation before typed Epic mutation                                                                                       |
 | `/adv-backlog`  | Collaborative                | Capture future work before it becomes an Epic or change; typed-tool mutation after confirmation                                                                                        |
 | `/adv-coordinate` | Collaborative              | Fully collaborative; Epic coordination report with explicit approval before typed Epic mutation                                                                                        |
@@ -120,7 +120,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | Command                     | Purpose                                                                          |
 | --------------------------- | -------------------------------------------------------------------------------- |
 | `/adv-idea`                 | Explore rough ideas before drafting a proposal                                   |
-| `/adv-problem`              | Triage issues before fixing or drafting a proposal                               |
+| `/adv-problem`              | Triage defects and unintended behavior before fixing or drafting a proposal        |
 | `/adv-status`               | Show fast ADV status table                                                       |
 | `/adv-roadmap`              | Show fast ADV roadmap table                                                      |
 | `/adv-epic`                 | Gather Epic goals before typed creation                                          |
@@ -161,7 +161,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
 | `/adv-coordinate`           | Audit project changes, Epic alignment, sequencing, and membership health                             |
 | `/adv-triage`               | Triage sources, coalesce issue links, assign bug priority, and balance portfolio |
-| `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                                    |
+| `/adv-improve`              | Analyze improvements across existing specs, implementation, and external landscape                    |
 | `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up candidates             |
 | `/adv-optimizer [target]`   | Analyze code simplification opportunities and propose optimizer changes                              |
 
@@ -219,6 +219,31 @@ Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reente
 **Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`.
 
 ## Critical Protocols
+
+### Resume Freshness Advisory (Step 2.5)
+
+When the agent loads state for a resumed change at Step 2 and the change's `lastActivityAgeMinutes > 60`, surface a bounded Resume Freshness advisory before proceeding to Step 3 Gate Machine.
+
+**Stable finding codes** (no LLM-classified labels):
+
+- `resume:sibling_overlap` — active sibling change touches same capability/paths
+- `resume:archived_duplicate` — archive shipped since `lastActivityAt` overlaps scope
+- `resume:codebase_drift` — commits to task-referenced files since `lastActivityAt`
+- `resume:freshness_limited` — could not reach a conclusion (missing/stale evidence or budget exceeded)
+
+Each finding carries a label from `/adv-coordinate`'s inherited taxonomy: `repo_backed_fact` (HIGH), `adv_backed_fact` (HIGH), `judgment_call` (MEDIUM), or `freshness_limited` (no conclusion).
+
+**Contract:**
+
+- Informational with proceed-default — agent proceeds unless user objects; advisory does NOT block gate transitions.
+- Read-only — no ADV state mutation from the advisory itself.
+- Current-project scope only — cross-project fan-out remains `/adv-coordinate` ownership.
+- No dismissal memory — findings re-raise on every stale resume.
+- Fresh changes (`lastActivityAgeMinutes ≤ 60`) skip the advisory entirely.
+- Spec law: `rq-resumeFreshness01` under `advance-workflow`.
+
+**Single HIGH-confidence `resume:archived_duplicate` action:** surface a copy-pasteable `adv_change_close ... supersededBy: <current>` snippet. User must run explicitly with their own approval evidence. **ADV does not auto-execute close.** Wording: "one-command accept (copy-paste and run)" — never "one-click" or any phrasing implying button-click auto-execution.
+
 
 ### MCP Tool Name Contract
 
@@ -499,7 +524,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 | In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal + on-disk projection       | Session-coordinated, gate-validated, replay-safe. GH can't model.                                         |
 | Linkage                                                     | `change.origin` (in `change.json`)  | Linkage IS ADV state. Lives with rest of ADV state.                                                       |
 
-**Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, `adv_roadmap` cross-references active changes by `origin.issue_number`). Linked roadmap/triage archives close upstream issues by default per `rq-issueChangeLinkage02`. Remaining behavior automation (`/adv-proposal #N` body prefill, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
+**Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, cross-references active changes by `origin.issue_number`). Linked roadmap/triage archives close upstream issues by default per `rq-issueChangeLinkage02`. Remaining behavior automation (`/adv-proposal #N` body prefill, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
 
 **Anti-patterns:**
 
@@ -508,7 +533,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 | Auto-create GH issue from every `/adv-proposal` | Only when `origin.kind === 'roadmap'`; post-hoc promotion is `/adv-triage` job |
 | `linked_issues[]` as canonical link             | `change.origin.issue_number` — single, typed, queryable. Arrays advisory only. |
 | Move ranked backlog into Temporal               | Keep in GH Project. `.adv/roadmap-snapshot.json` = agent-readable mirror.      |
-| Ship behavior + schema together                 | Schema first, validate via `adv_roadmap` cross-refs, then automation.          |
+| Ship behavior + schema together                 | Schema first, validate via cross-refs, then automation.          |
 | Default new change to `origin.kind = 'roadmap'` | Default omitted or explicit. `roadmap` requires `issue_number`.                |
 
 **Agent picks `origin_kind` at create:**

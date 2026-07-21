@@ -14,7 +14,10 @@
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
-import { buildProjectTaskQueue } from "./temporal/client";
+import {
+  buildProjectTaskQueue,
+  buildSessionTaskQueue,
+} from "./temporal/client";
 import { initStsl, closeStsl, getService } from "./temporal/service";
 import {
   createInProcessWorker,
@@ -42,6 +45,8 @@ import {
   createLogger,
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
+import { generateSessionId } from "./utils/session-id";
+import { getCurrentSessionId, setCurrentSessionId } from "./utils/session-id";
 import {
   registerPluginSession,
   unregisterLoadedBuildSession,
@@ -68,6 +73,11 @@ import {
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
+
+// Re-exported for historical callers that imported getCurrentSessionId from
+// plugin-init. The actual holder lives in utils/session-id.ts to avoid an
+// import cycle (storage layer needs to read it; plugin-init imports storage).
+export { getCurrentSessionId } from "./utils/session-id";
 
 function profilePluginInit(
   event: string,
@@ -190,6 +200,9 @@ export async function tryInitStore(
       productMode: productContext.mode,
     });
 
+    const sessionId = getCurrentSessionId() ?? generateSessionId();
+    setCurrentSessionId(sessionId);
+
     let temporalBundle: Awaited<ReturnType<typeof initStsl>> | undefined;
     profilePluginInit("backend_mode_detected", {
       backend_mode: "temporal",
@@ -203,6 +216,7 @@ export async function tryInitStore(
         projectId,
         migrationRoot: resolveMigrationRoot(),
         identity: resolveOwnBuildIdentity(),
+        sessionId,
       });
       const runtimeStartedAt = performance.now();
       const runtime = await ensureTemporalRuntime(projectId);
@@ -221,6 +235,18 @@ export async function tryInitStore(
       // project queue. No peer lock / heartbeat coordination is needed here.
       const projectStateDir = productExternalRoot;
       const expectedQueue = buildProjectTaskQueue(projectId);
+      // KD-2 / rq-isolSessionTaskQueue01 / rq-isolSessionTaskQueue02: when
+      // sessionId is available,
+      // the worker polls BOTH its own-session queue (advance-{P}-{sess})
+      // and the permanent project queue (advance-{P}). The project queue
+      // is co-polled for epic workflows (UD2) and legacy change workflows
+      // still routing to it during migration (KD-4).
+      const sessionQueue = sessionId
+        ? buildSessionTaskQueue(projectId, sessionId)
+        : undefined;
+      const workerQueues = sessionQueue
+        ? [sessionQueue, expectedQueue]
+        : [expectedQueue];
       const projectConfig = await loadProjectConfig(effectiveDir).catch(
         () => null,
       );
@@ -269,7 +295,11 @@ export async function tryInitStore(
           spawnedWorker = await createInProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
-            queues: [expectedQueue],
+            queues: workerQueues,
+            artifactPolicy: {
+              mode: "production_verified",
+              bundleDir: dirname(resolveWorkerScriptPath()),
+            },
             onWorkerExhausted,
           });
           worker = spawnedWorker;
@@ -298,9 +328,10 @@ export async function tryInitStore(
           const outOfProcessWorker = await createOutOfProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
-            queues: [expectedQueue],
+            queues: workerQueues,
             workerScript: workerScriptPath,
             projectId,
+            sessionId,
             onWorkerExhausted,
           });
           spawnedWorker = outOfProcessWorker;
@@ -663,6 +694,17 @@ export async function restartCurrentProjectTemporalWorker(
     );
   }
   const expectedQueue = buildProjectTaskQueue(projectId);
+  // KD-2 / rq-isolSessionTaskQueue01: include session queue on restart too,
+  // reading the current session ID from the utils holder. If restart happens
+  // before plugin-init has set a session ID (recovery scenario), only the
+  // project queue is polled — the next plugin-init will spawn with both.
+  const restartSessionId = getCurrentSessionId();
+  const restartSessionQueue = restartSessionId
+    ? buildSessionTaskQueue(projectId, restartSessionId)
+    : undefined;
+  const restartWorkerQueues = restartSessionQueue
+    ? [restartSessionQueue, expectedQueue]
+    : [expectedQueue];
 
   if (options.approvedLockReclaim && !options.approvalEvidence?.trim()) {
     throw new Error(
@@ -684,15 +726,20 @@ export async function restartCurrentProjectTemporalWorker(
     ? await createInProcessWorker({
         address: runtime.address,
         namespace: runtime.namespace,
-        queues: [expectedQueue],
+        queues: restartWorkerQueues,
+        artifactPolicy: {
+          mode: "production_verified",
+          bundleDir: dirname(resolveWorkerScriptPath()),
+        },
         onWorkerExhausted,
       })
     : await createOutOfProcessWorker({
         address: runtime.address,
         namespace: runtime.namespace,
-        queues: [expectedQueue],
+        queues: restartWorkerQueues,
         workerScript: resolveWorkerScriptPath(),
         projectId,
+        sessionId: restartSessionId,
         onWorkerExhausted,
       });
   workerRef.current = worker;

@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.32.0
-> **Updated:** 2026-07-20
+> **Version:** 1.33.0
+> **Updated:** 2026-07-21
 
 ## Purpose
 
@@ -710,7 +710,7 @@ When the spawned “adv-ci-waiter” returns a non-terminal outcome (timeout, bl
 **Blocked (no PR / no auth / red CI) preserves active state** (`rq-releaseFinalization04.2`)
 
 **Given:**
-- The waiter reports blocked: no PR exists, GitHub auth is missing, or red CI cannot be remediated after the waiter’s bounded attempt budget
+- The waiter reports blocked: no PR exists, GitHub auth is missing, or red CI is reported by the waiter and remediation is the parent orchestrator's responsibility (the waiter has `edit: deny` and no bounded attempt budget)
 
 **When:** ADV concludes the auto-drive
 
@@ -5671,6 +5671,8 @@ This requirement supersedes legacy rq-aw-backlog01. Issue claim search attribute
 - All seven gates operate normally
 - No snapshot or roadmap reader is consulted
 
+---
+
 ### Shipped-terminal workflow termination uses structural proof
 
 **ID:** `rq-shippedWorkflowTermination01` | **Priority:** **[MUST]**
@@ -5733,5 +5735,185 @@ Operator-approved exact-run termination MAY recover a live RUNNING or PAUSED cha
 - No projection or cache mutation occurs
 - The exact runId and termination error are returned
 - The call does not report successful recovery
+
+---
+
+### Session-scoped task-queue routing for change workflows
+
+**ID:** `rq-isolSessionTaskQueue01` | **Priority:** **[MUST]**
+
+When multiple OpenCode sessions are active on the same ADV-enabled project, each session's change workflows MUST route to a per-session task queue (`advance-{projectId}-{sessionId}`) so that a peer session's wedged worker cannot block another session's workflow signal processing. Epic workflows remain on the project-scoped `advance-{projectId}` queue because epic entities are project-scoped, not session-scoped. Each session's worker registers its own session queue and the project queue (the latter for epic signal handling and migration of legacy in-flight change workflows).
+
+**Tags:** `worker`, `task-queue`, `session`, `isolation`, `multi-session`
+
+#### Scenarios
+
+**Change workflow routes to session queue** (`rq-isolSessionTaskQueue01.1`)
+
+**Given:**
+- Two ADV sessions S1, S2 are active on the same project P
+- Each session has generated its own sessionId via generateSessionId()
+
+**When:** S1 calls ensureChangeWorkflowStarted with sessionId sessA
+
+**Then:**
+- The workflow's task queue is `advance-{P}-{sessA}` (not `advance-{P}`)
+- S2's worker is NOT polling `advance-{P}-{sessA}` — only S1's worker polls it
+
+**Epic workflows stay on project queue** (`rq-isolSessionTaskQueue01.2`)
+
+**Given:**
+- Session S1 active on project P with sessionId sessA
+
+**When:** S1 calls ensureEpicWorkflowStarted
+
+**Then:**
+- The epic workflow's task queue is `advance-{P}` (project-scoped, not session-scoped)
+- Routing does not couple epic lifetime to session lifetime
+
+**Backward-compat without sessionId** (`rq-isolSessionTaskQueue01.3`)
+
+**Given:**
+- A caller invokes ensureChangeWorkflowStarted without sessionId (e.g. legacy tests, re-import paths)
+
+**When:** The workflow starts
+
+**Then:**
+- The task queue is `advance-{P}` (legacy project queue)
+- Existing single-session workflows continue working unchanged
+
+---
+
+### Diagnostics distinguish session vs project queue with owning-session identification
+
+**ID:** `rq-isolSessionTaskQueue04` | **Priority:** **[MUST]**
+
+ADV diagnostics (`adv_temporal_diagnose`, `adv_status view:health`, and the underlying `health-probe`) MUST distinguish session-queue serviceability from project-queue serviceability and identify the owning session for each session-queue. Under per-session routing, probing only the project queue would miss active session work and report false 'no fresh pollers' results. The health-probe accepts a list of `{queueName, queueType}` tuples and returns per-queue results; consumers render each queue with its type label and owning session.
+
+**Tags:** `diagnostics`, `health`, `task-queue`, `observability`, `multi-session`
+
+#### Scenarios
+
+**adv_temporal_diagnose shows per-queue serviceability with type labels** (`rq-isolSessionTaskQueue04.1`)
+
+**Given:**
+- Per-session task-queue routing is active
+- Session S1 owns queue `advance-{P}-{sessA}`
+- Project queue `advance-{P}` is also active
+
+**When:** adv_temporal_diagnose runs
+
+**Then:**
+- The output contains a `session` queue row for `advance-{P}-{sessA}`
+- The output contains a `project` queue row for `advance-{P}`
+- Each row shows serviceability indicator, poller count, last poller time
+- The session-queue row identifies S1 as the owning session
+
+**adv_status health view shows multi-queue** (`rq-isolSessionTaskQueue04.2`)
+
+**Given:**
+- Per-session routing is active
+
+**When:** adv_status view:health runs
+
+**Then:**
+- The health view shows the multi-queue breakdown
+- Legacy single-queue rendering is preserved for backward-compat
+
+**health-probe preserves backward-compat single-queue API** (`rq-isolSessionTaskQueue04.3`)
+
+**Given:**
+- A legacy caller invokes health-probe with a single projectId string
+
+**When:** Called with legacy signature
+
+**Then:**
+- The call wraps internally as `[{queueName: advance-{P}, queueType: 'project'}]`
+- Output shape remains compatible with existing readers
+
+---
+
+### Worker.create tuning caps via shared module
+
+**ID:** `rq-isolSessionTaskQueue03` | **Priority:** **[MUST]**
+
+Each Worker Entity spawned by ADV MUST apply explicit tuning caps bounding its polling and task-execution footprint. A shared `getAdvWorkerTuningOptions()` helper is the single source of truth; every `Worker.create` call site in `plugin/src/temporal/` spreads the result. Caps bound each session's per-queue footprint to 1 workflow poller + 1 activity poller + 4 workflow slots + 4 activity slots + maxActivitiesPerSecond=10. This ensures that adding per-session queues does not increase total per-project polling load; instead total load decreases ~70% versus uncapped defaults under typical multi-session load.
+
+**Tags:** `worker`, `tuning`, `pollers`, `slots`, `rate-limiting`, `multi-session`
+
+#### Scenarios
+
+**All Worker.create sites apply the shared tuning caps** (`rq-isolSessionTaskQueue03.1`)
+
+**Given:**
+- An ADV worker is spawned via any Worker.create call site in plugin/src/temporal/
+
+**When:** Worker.create is invoked
+
+**Then:**
+- Worker.create is called with `workflowTaskPollerBehavior: { type: 'simple-maximum', maximum: 1 }`
+- Worker.create is called with `activityTaskPollerBehavior: { type: 'simple-maximum', maximum: 1 }`
+- Worker.create is called with `maxConcurrentWorkflowTaskExecutions: 4`
+- Worker.create is called with `maxConcurrentActivityTaskExecutions: 4`
+- Worker.create is called with `maxConcurrentLocalActivityExecutions: 4`
+- Worker.create is called with `maxActivitiesPerSecond: 10`
+
+**Static-check drift guard prevents regression** (`rq-isolSessionTaskQueue03.2`)
+
+**Given:**
+- A static-check drift guard scans production Worker.create call sites
+
+**When:** The guard runs in CI / local tests
+
+**Then:**
+- The guard asserts every production Worker.create spreads getAdvWorkerTuningOptions
+- The guard fails if any site drifts (forgets the spread)
+
+**Caps are env-overridable for ops tuning** (`rq-isolSessionTaskQueue03.3`)
+
+**Given:**
+- ADV_WORKER_POLLER_CAP or ADV_WORKER_SLOT_CAP or ADV_WORKER_ACTIVITY_RATE env vars are set
+
+**When:** getAdvWorkerTuningOptions reads process.env
+
+**Then:**
+- The corresponding cap uses the env-overridden value
+- Malformed or negative values fall back to defaults
+
+---
+
+### Legacy queue co-existence for migration
+
+**ID:** `rq-isolSessionTaskQueue02` | **Priority:** **[MUST]**
+
+When per-session routing is enabled, in-flight workflows already started on the legacy `advance-{projectId}` queue MUST continue to receive signal processing. Each session's worker MUST co-poll the legacy `advance-{projectId}` queue (alongside its own session queue) so legacy workflows drain naturally as they complete/archive. The legacy queue remains permanent because epic workflows live there. No dynamic drain detection is required; migration is implicit through workflow archival.
+
+**Tags:** `worker`, `task-queue`, `migration`, `legacy`, `multi-session`
+
+#### Scenarios
+
+**Legacy workflow signals are processed** (`rq-isolSessionTaskQueue02.1`)
+
+**Given:**
+- An in-flight change workflow W exists on legacy `advance-{P}` queue at the moment routing changes
+- A new session S starts on project P with sessionId sessA
+
+**When:** Any session signals W
+
+**Then:**
+- At least one worker is polling `advance-{P}` so the signal is processed within bounded latency
+- S's worker is polling both `advance-{P}-{sessA}` AND `advance-{P}`
+
+**Project queue stays permanent for epics** (`rq-isolSessionTaskQueue02.2`)
+
+**Given:**
+- All legacy non-epic workflows have completed/archived
+- Active epic workflows remain on `advance-{P}`
+
+**When:** A new session starts
+
+**Then:**
+- The session's worker still polls `advance-{P}` (epics require it permanently)
+- No dynamic 'stop polling project queue' state exists
 
 ---

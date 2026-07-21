@@ -10,9 +10,9 @@
     {
       "id": "rq-ctxsnap1",
       "title": "Context Snapshot Content",
-      "body": "The Context Snapshot (full box) MUST display: change ID and title, user outcome count from proposal.md, gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning.",
+      "body": "The Context Snapshot (full box) MUST display: change ID and title, user outcome count from proposal.md, gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning. When a `resumeFreshness` value is present (per rq-resumeFreshness01 in advance-workflow), the snapshot renders an optional `Freshness:` line itemizing finding count and top code; the line participates in the staged budget-shed rule (Outcomes sheds first at ≥2 optionals, Current sheds at ≥3, blank spacer or Wisdom sheds at ≥4 so Freshness is always retained as the last-shed row).",
       "priority": "must",
-      "tags": ["chat-output-display", "snapshot"],
+      "tags": ["chat-output-display", "snapshot", "resume", "freshness"],
       "scenarios": [
         {
           "id": "rq-ctxsnap1.1",
@@ -32,6 +32,20 @@
           "given": ["A change with 20 tasks across 4 sections and all 7 gates"],
           "when": "A context snapshot is rendered",
           "then": ["The total output is 10 lines or fewer"]
+        },
+        {
+          "id": "rq-ctxsnap1.3",
+          "title": "Optional Freshness line participates in 10-line budget",
+          "given": [
+            "A stale change with directive + wisdom + current task + resumeFreshness (4 optional rows)"
+          ],
+          "when": "A context snapshot is rendered",
+          "then": [
+            "The Freshness line is present (retained as last-shed per D6 rule)",
+            "The total output is 10 lines or fewer",
+            "If no Epic line: blank spacer sheds",
+            "If Epic line present: Wisdom sheds before Freshness"
+          ]
         }
       ]
     },

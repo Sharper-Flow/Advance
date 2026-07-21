@@ -1,6 +1,6 @@
 ---
 name: adv-improve
-description: Suggest targeted improvements to existing specs or implementation
+description: Analyze improvements across existing specs, implementation, and external landscape
 ---
 
 # ADV Improve — Analyze Improvement Opportunities
@@ -25,6 +25,8 @@ Fallback: run phases in this file; cap findings; cite evidence; write only `docs
 
 **× MUST NOT:** create changes, tasks, gates, spec deltas, agenda items, or mutate ADV state. × MUST NOT write outside `docs/*-prep.md`.
 
+**Persistence:** Deep research warrants disk persistence under `docs/{target-slug}-prep.md` for consequential deliverables.
+
 **Gate:** none. Read-only for ADV state.
 
 ## Target Resolution
@@ -45,6 +47,7 @@ Resolve in order: file path → read; directory → outline; symbol → lgrep sy
 | ✅ Report | analysis emitted; research pack persisted |
 | 🎤 Clarify | target too ambiguous |
 | ⚠ Partial | external tool unavailable; report + pack annotate gaps |
+| 🔄 iterate | Useful progress on the analysis, but key evidence questions remain |
 
 ---
 
