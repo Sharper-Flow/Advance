@@ -24,9 +24,7 @@ const FAKE_TEMPORAL_MANIFEST = JSON.stringify({
   generation: "fake",
   files: {
     "worker.js": createHash("sha256").update(FAKE_WORKER).digest("hex"),
-    "workflows.js": createHash("sha256")
-      .update(FAKE_WORKFLOWS)
-      .digest("hex"),
+    "workflows.js": createHash("sha256").update(FAKE_WORKFLOWS).digest("hex"),
   },
   built_at: "2026-01-01T00:00:00.000Z",
 });
@@ -173,9 +171,7 @@ describe("overlay sync script support", () => {
           schema_version: 1,
           generation: "fresh",
           files: {
-            index: createHash("sha256")
-              .update("// fresh dist\n")
-              .digest("hex"),
+            index: createHash("sha256").update("// fresh dist\n").digest("hex"),
             "mcp-server": createHash("sha256")
               .update(FAKE_MCP_SERVER)
               .digest("hex"),
@@ -801,7 +797,9 @@ cp -a "$src/." "$dest/"
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
       });
-      expect(fixResult.status, `${fixResult.stdout}${fixResult.stderr}`).toBe(0);
+      expect(fixResult.status, `${fixResult.stdout}${fixResult.stderr}`).toBe(
+        0,
+      );
       const deployOutput = `${fixResult.stdout}${fixResult.stderr}`;
       const canonicalRootMatch = deployOutput.match(
         /ADV deploy-local \(fix\):\s+(.*?)\s+->/,
