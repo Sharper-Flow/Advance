@@ -121,4 +121,19 @@ describe("adv-ci-waiter assets", () => {
       /parent[^.\n]{0,40}(?:responsibility|orchestrator)/i,
     );
   });
+
+  test("adv-archive.md spawn language assigns remediation to parent, not waiter", () => {
+    // The archive command spawns adv-ci-waiter. Its spawn language must
+    // reflect the corrected policy: waiter reports; parent remediates.
+    const content = readFileSync(ARCHIVE_COMMAND, "utf8");
+
+    // Must state the waiter cannot remediate.
+    expect(content).toMatch(/cannot remediate/i);
+
+    // Must direct the parent (you) to remediate.
+    expect(content).toMatch(/parent[^.\n]{0,40}(?:remediat|classif)/i);
+
+    // Must NOT instruct anyone to "ask the waiter to remediate".
+    expect(content).toMatch(/do not ask the waiter to remediate/i);
+  });
 });
