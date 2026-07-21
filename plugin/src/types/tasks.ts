@@ -148,7 +148,11 @@ export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
  * - promoted:  terminal — promoted to a Wisdom entry via adv_wisdom_add
  * - dismissed: terminal — auto-dismissed at checkpoint OR explicitly by user
  */
-export const WisdomDraftStatusSchema = z.enum(["suggested", "promoted", "dismissed"]);
+export const WisdomDraftStatusSchema = z.enum([
+  "suggested",
+  "promoted",
+  "dismissed",
+]);
 
 /**
  * Reason a draft entered the dismissed terminal state.

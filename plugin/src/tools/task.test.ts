@@ -1281,6 +1281,191 @@ describe("task tools — signal/query adapters", () => {
       ]);
       expect(parsed.contractCoverage.cancelledTaskCount).toBe(1);
     });
+
+    // ---------------------------------------------------------------------------
+    // rq-wisdomAutoSurfacing01 — WisdomDraft auto-creation on SEMANTIC recovery
+    // ---------------------------------------------------------------------------
+
+    test("auto-creates a WisdomDraft when error_recovery is SEMANTIC with attempts", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "TypeError",
+                diagnosis: "missing await",
+                fix_tried: "add await",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      const partial = signalCall[4].partial;
+      expect(partial.error_recovery.error_class).toBe("SEMANTIC");
+      expect(partial.wisdom_drafts).toBeDefined();
+      expect(partial.wisdom_drafts).toHaveLength(1);
+      const draft = partial.wisdom_drafts[0];
+      expect(draft.id).toMatch(/^dr-[0-9a-f]{8}$/);
+      expect(draft.suggested_type).toBe("failure");
+      expect(draft.suggested_content).toBe("missing await → add await");
+      expect(draft.source_attempts).toEqual([1]);
+      expect(draft.status).toBe("suggested");
+    });
+
+    test("does NOT create a WisdomDraft when error_class is not SEMANTIC", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "Network timeout",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "TRANSIENT",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "timeout",
+                diagnosis: "slow net",
+                fix_tried: "retry",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
+    });
+
+    test("does NOT create a WisdomDraft when attempts[] is empty", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 0,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [],
+          },
+        },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
+    });
+
+    test("dedups: does not create a second suggested draft when one already exists", async () => {
+      const existingDraft = {
+        id: "dr-existing",
+        suggested_type: "failure",
+        suggested_content: "prior issue → prior fix",
+        source_attempts: [1],
+        status: "suggested",
+        created_at: "2026-07-21T16:00:00.000Z",
+      };
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Sample",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              wisdom_drafts: [existingDraft],
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+        wisdom_drafts: [existingDraft],
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 2,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 2,
+                error: "different error",
+                diagnosis: "new diag",
+                fix_tried: "new fix",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      // No wisdom_drafts in the partial — dedup kept the existing draft untouched.
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
+    });
+
+    test("no error_recovery → no wisdom_drafts in partial", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        { taskId: "tk-abc", status: "pending", notes: "regular update" },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
+    });
   });
 
   describe("adv_task_add", () => {

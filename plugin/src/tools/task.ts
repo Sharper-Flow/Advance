@@ -50,6 +50,10 @@ import {
 } from "./_adapters";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 import {
+  appendDraft,
+  maybeCreateWisdomDraftFromErrorRecovery,
+} from "../utils/wisdom-draft";
+import {
   taskAddedSignal,
   taskUpdatedSignal,
   taskAssignedSignal,
@@ -951,6 +955,20 @@ export const taskTools = {
               evidence_plan: evidencePlanRepair,
             }),
           };
+          // rq-wisdomAutoSurfacing01 / D4: when error_recovery carries a
+          // SEMANTIC class with non-empty attempts and the task has no
+          // existing suggested draft, auto-create one WisdomDraft and merge
+          // into the task's wisdom_drafts[] (task-scoped per AC7).
+          if (args.error_recovery) {
+            const newDraft = maybeCreateWisdomDraftFromErrorRecovery(
+              task,
+              args.error_recovery,
+              now,
+            );
+            if (newDraft) {
+              patch.wisdom_drafts = appendDraft(task.wisdom_drafts, newDraft);
+            }
+          }
           if (args.status === "in_progress") {
             patch.assignedTo = "agent";
             patch.started_at = task.started_at ?? now;
@@ -1053,6 +1071,17 @@ export const taskTools = {
                 },
               );
             } else {
+              // rq-wisdomAutoSurfacing01 / D4: auto-create a WisdomDraft when
+              // error_recovery signals a SEMANTIC failure with attempts.
+              // Computed against currentTask so the dedup check (one suggested
+              // draft per task) sees the pre-update task state.
+              const newDraft = args.error_recovery
+                ? maybeCreateWisdomDraftFromErrorRecovery(
+                    currentTask,
+                    args.error_recovery,
+                    now,
+                  )
+                : null;
               await fireSignalAndRefresh(
                 handle,
                 activeStore,
@@ -1075,6 +1104,12 @@ export const taskTools = {
                     ...(evidencePlanRepair && {
                       evidence_policy: evidencePlanRepair.policy,
                       evidence_plan: evidencePlanRepair,
+                    }),
+                    ...(newDraft && {
+                      wisdom_drafts: appendDraft(
+                        currentTask?.wisdom_drafts,
+                        newDraft,
+                      ),
                     }),
                   },
                   updatedAt: now,

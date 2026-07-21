@@ -1943,6 +1943,67 @@
     },
     "verification": {
       "type": "string"
+    },
+    "wisdom_drafts": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "dismiss_reason": {
+            "enum": [
+              "auto_checkpoint",
+              "user_dismissed"
+            ],
+            "type": "string"
+          },
+          "dismissed_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "promoted_wisdom_id": {
+            "type": "string"
+          },
+          "source_attempts": {
+            "items": {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "suggested",
+              "promoted",
+              "dismissed"
+            ],
+            "type": "string"
+          },
+          "suggested_content": {
+            "type": "string"
+          },
+          "suggested_type": {
+            "enum": [
+              "failure",
+              "gotcha"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "suggested_type",
+          "suggested_content",
+          "status",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "type": "array"
     }
   },
   "required": [

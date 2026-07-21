@@ -137,6 +137,11 @@ export {
   type TaskType,
   TaskContractRefsSchema,
   type TaskContractRefs,
+  WisdomDraftStatusSchema,
+  WisdomDraftDismissReasonSchema,
+  WisdomDraftSuggestedTypeSchema,
+  WisdomDraftSchema,
+  type WisdomDraft,
   TaskSchema,
   type Task,
 } from "./tasks";
