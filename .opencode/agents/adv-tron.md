@@ -249,5 +249,5 @@ Build this JSON object as the `report` argument to `adv_subagent_report_submit`.
 ```
 
 - Before final response, call `adv_subagent_report_submit` with `{ report: TRON_REPORT }`.
-- If any required packet anchor is missing, return a packet-defect failure in your final response. Do not infer identity fields heuristically.
+- If a required packet anchor (`WORKING DIRECTORY`, `CHANGE`, `SCOPE KEY`, `ATTEMPT`) is missing from the spawn prompt, do NOT call `adv_subagent_report_submit` (typed persisted reports require all identity anchors; never infer them heuristically). Complete the reconnaissance anyway — your findings are still valuable to the orchestrator; never discard completed work because of a packet defect. Return findings as your final response message, prefixed with a `## PACKET DEFECT` section listing the missing anchors so the orchestrator can correct the spawn pattern. Do not call `question` for packet identity values.
 - If TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION are missing, continue with existing prompt scope, include a warning in `follow_ups`, and do not infer identity anchors.

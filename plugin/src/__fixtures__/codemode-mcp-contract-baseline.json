@@ -53,7 +53,7 @@
       ]
     },
     "adv-researcher": {
-      "bytes": 11937,
+      "bytes": 12730,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -98,7 +98,7 @@
       "grants": ["lgrep_get_file_outline=true", "lgrep_search_text=true"]
     },
     "adv-tron": {
-      "bytes": 10295,
+      "bytes": 11057,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -130,7 +130,7 @@
       ]
     },
     "adv-visual-review": {
-      "bytes": 8102,
+      "bytes": 8865,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -148,7 +148,7 @@
       ]
     },
     "adv": {
-      "bytes": 27837,
+      "bytes": 28539,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",

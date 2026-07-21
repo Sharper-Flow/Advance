@@ -69,7 +69,13 @@ describe("adv-task fast-track spec-law tracking contract", () => {
 
   test("agent owns typed worker packet identity defects internally", () => {
     expect(agent).toContain("Typed worker packet contract");
-    expect(agent).toContain("WORKING DIRECTORY, CHANGE, TASK, ATTEMPT");
+    // Contract lists all typed-worker lanes (engineer, designer, reviewer,
+    // researcher, tron, visual-review) and the required anchor template.
+    // TASK or SCOPE KEY covers lanes that use either anchor name.
+    expect(agent).toContain("WORKING DIRECTORY");
+    expect(agent).toContain("CHANGE");
+    expect(agent).toMatch(/TASK[^,]{0,20}SCOPE KEY|TASK, ATTEMPT/);
+    expect(agent).toContain("ATTEMPT");
     expect(agent).toContain("adv-reviewer");
     expect(agent).toContain("PHASE");
     expect(agent).toContain("orchestrator-owned");
