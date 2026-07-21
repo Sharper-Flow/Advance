@@ -9,11 +9,25 @@ import {
   writeFileSync,
 } from "fs";
 import { spawn, spawnSync } from "child_process";
+import { createHash } from "crypto";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
+const FAKE_WORKER = "// fake worker\n";
+const FAKE_WORKFLOWS = "// fake workflows\n";
+const FAKE_TEMPORAL_MANIFEST = JSON.stringify({
+  schema_version: 1,
+  generation: "fake",
+  files: {
+    "worker.js": createHash("sha256").update(FAKE_WORKER).digest("hex"),
+    "workflows.js": createHash("sha256")
+      .update(FAKE_WORKFLOWS)
+      .digest("hex"),
+  },
+  built_at: "2026-01-01T00:00:00.000Z",
+});
 
 // Executable regression harness for the deployed Temporal worker refresh in
 // deploy-local.sh (change fixDeploymentSyncOrdering, rq-deployAssetContinuation01).
@@ -63,11 +77,11 @@ function writeFakeBuildTools(fakeBin: string, tempHome: string): void {
     `#!/usr/bin/env bash
 mkdir -p "$PWD/dist" "$PWD/dist/temporal"
 printf '// fake build\\n' > "$PWD/dist/index.js"
+printf '// fake mcp server\\n' > "$PWD/dist/mcp-server.js"
 printf '// fake worker\\n' > "$PWD/dist/temporal/worker.js"
 printf '// fake workflows\\n' > "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/index.js" "$PWD/dist/temporal/worker.js" "$PWD/dist/temporal/workflows.js"
-printf '{"schema_version":1,"generation":"fake","files":{"worker.js":"fake","workflows.js":"fake"},"built_at":"2026-01-01T00:00:00.000Z"}
-' > "$PWD/dist/temporal/bundle-manifest.json"
+printf '%s\\n' '${FAKE_TEMPORAL_MANIFEST}' > "$PWD/dist/temporal/bundle-manifest.json"
 printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
 `,
     { mode: 0o755 },

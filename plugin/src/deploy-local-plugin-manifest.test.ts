@@ -41,8 +41,15 @@ const FAKE_INDEX = "// fake build\n";
 const FAKE_INDEX_SHA256 = sha256(FAKE_INDEX);
 const FAKE_WORKER = "// fake worker\n";
 const FAKE_WORKFLOWS = "// fake workflows\n";
-const FAKE_WORKER_MANIFEST =
-  '{"schema_version":1,"generation":"fake","files":{"worker.js":"fake","workflows.js":"fake"},"built_at":"2026-01-01T00:00:00.000Z"}';
+const FAKE_WORKER_MANIFEST = JSON.stringify({
+  schema_version: 1,
+  generation: "fake",
+  files: {
+    "worker.js": sha256(FAKE_WORKER),
+    "workflows.js": sha256(FAKE_WORKFLOWS),
+  },
+  built_at: "2026-01-01T00:00:00.000Z",
+});
 
 const FRESH_MTIME = new Date("2030-01-01T00:00:00Z");
 const INDEX_MTIME = new Date("2020-01-01T00:00:00Z");
@@ -61,6 +68,7 @@ function writeFakePnpm(
     `#!/usr/bin/env bash
 mkdir -p "$PWD/dist" "$PWD/dist/temporal"
 printf '%s\\n' '// fake build' > "$PWD/dist/index.js"
+printf '%s\\n' '// fake mcp server' > "$PWD/dist/mcp-server.js"
 printf '%s\\n' '// fake worker' > "$PWD/dist/temporal/worker.js"
 printf '%s\\n' '// fake workflows' > "$PWD/dist/temporal/workflows.js"
 printf '%s\\n' '${FAKE_WORKER_MANIFEST}' > "$PWD/dist/temporal/bundle-manifest.json"
@@ -251,6 +259,7 @@ describe("deploy-local plugin manifest publication", () => {
       const manifestPath = join(distDir, "plugin-bundle-manifest.json");
       mkdirSync(temporalDir, { recursive: true });
       writeFileSync(indexPath, FAKE_INDEX);
+      writeFileSync(join(distDir, "mcp-server.js"), "// fake mcp server\n");
       writeFileSync(join(temporalDir, "worker.js"), FAKE_WORKER);
       writeFileSync(join(temporalDir, "workflows.js"), FAKE_WORKFLOWS);
       writeFileSync(
@@ -259,6 +268,11 @@ describe("deploy-local plugin manifest publication", () => {
       );
       writeFileSync(manifestPath, JSON.stringify(sourceManifest, null, 2));
       utimesSync(indexPath, INDEX_MTIME, INDEX_MTIME);
+      utimesSync(
+        join(distDir, "mcp-server.js"),
+        INDEX_MTIME,
+        INDEX_MTIME,
+      );
       utimesSync(manifestPath, MANIFEST_MTIME, MANIFEST_MTIME);
       for (const f of [
         join(temporalDir, "worker.js"),
@@ -341,6 +355,109 @@ describe("deploy-local plugin manifest publication", () => {
       const parsed = JSON.parse(readFileSync(deployedManifest, "utf8"));
       expect(parsed.generation).toBe(sourceManifest.generation);
       expect(parsed.files.index).toBe(FAKE_INDEX_SHA256);
+    } finally {
+      spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, CI: "true" },
+        encoding: "utf8",
+      });
+      rmSync(tempWorktreeRoot, { recursive: true, force: true });
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  test("publishes the validated Temporal bundle manifest after its worker payload", () => {
+    const { tempHome, tempWorktree, tempWorktreeRoot, fakeBin } =
+      setupWorktree();
+    const rsyncLog = join(tempHome, "rsync.log");
+    const runtimePlugin = join(tempHome, ".local/share/Advance/plugin");
+    const temporalManifest = {
+      schema_version: 1,
+      generation:
+        "1111111122222222333333334444444455555555666666667777777788888888",
+      files: {
+        "worker.js": sha256(FAKE_WORKER),
+        "workflows.js": sha256(FAKE_WORKFLOWS),
+      },
+      built_at: "2026-01-01T00:00:00.000Z",
+    };
+
+    try {
+      writeFakePnpm(fakeBin, {
+        generation:
+          "aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000011111111",
+        indexHash: FAKE_INDEX_SHA256,
+      });
+      writeFakeRsync(fakeBin, rsyncLog);
+
+      const addResult = spawnSync(
+        "git",
+        ["worktree", "add", "--detach", tempWorktree],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, CI: "true" },
+          encoding: "utf8",
+        },
+      );
+      expect(addResult.status).toBe(0);
+      writeFileSync(join(tempWorktree, "scripts", "deploy-local.sh"), content);
+
+      const distDir = join(tempWorktree, "plugin", "dist");
+      const temporalDir = join(distDir, "temporal");
+      mkdirSync(temporalDir, { recursive: true });
+      writeFileSync(join(distDir, "index.js"), FAKE_INDEX);
+      writeFileSync(join(distDir, "mcp-server.js"), "// fake mcp server\n");
+      writeFileSync(join(temporalDir, "worker.js"), FAKE_WORKER);
+      writeFileSync(join(temporalDir, "workflows.js"), FAKE_WORKFLOWS);
+      writeFileSync(
+        join(temporalDir, "bundle-manifest.json"),
+        JSON.stringify(temporalManifest, null, 2),
+      );
+      writeFileSync(
+        join(distDir, "plugin-bundle-manifest.json"),
+        JSON.stringify({
+          schema_version: 1,
+          generation:
+            "aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000011111111",
+          files: { index: FAKE_INDEX_SHA256 },
+          built_at: "2026-01-01T00:00:00.000Z",
+        }),
+      );
+      for (const file of [
+        join(distDir, "index.js"),
+        join(distDir, "mcp-server.js"),
+        join(distDir, "plugin-bundle-manifest.json"),
+        join(temporalDir, "worker.js"),
+        join(temporalDir, "workflows.js"),
+        join(temporalDir, "bundle-manifest.json"),
+      ]) {
+        utimesSync(file, FRESH_MTIME, FRESH_MTIME);
+      }
+
+      const { status, output } = deployInWorktree(tempWorktree, {
+        ...process.env,
+        HOME: tempHome,
+        CI: "true",
+        PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+      });
+
+      expect(status).toBe(0);
+      expect(output).toMatch(/published Temporal bundle manifest/i);
+      expect(readFileSync(rsyncLog, "utf8")).toContain(
+        "dist/temporal/bundle-manifest.json",
+      );
+      const deployedManifest = join(
+        runtimePlugin,
+        "dist",
+        "temporal",
+        "bundle-manifest.json",
+      );
+      expect(JSON.parse(readFileSync(deployedManifest, "utf8"))).toEqual(
+        temporalManifest,
+      );
+      expect(statSync(deployedManifest).mtime.getTime()).toBeGreaterThan(
+        INDEX_MTIME.getTime(),
+      );
     } finally {
       spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
         cwd: REPO_ROOT,
