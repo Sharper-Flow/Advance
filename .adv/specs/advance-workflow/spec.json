@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.33.0",
-  "updated_at": "2026-07-21T13:25:02.654Z",
+  "version": "1.34.0",
+  "updated_at": "2026-07-21T18:01:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -6731,6 +6731,198 @@
             "The snippet requires the user to run it explicitly with their own approval evidence",
             "The advisory itself does NOT auto-execute close",
             "The wording uses 'one-command accept (copy-paste and run)' — never 'one-click' or any phrasing implying button-click auto-execution"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-wisdomAutoSurfacing01",
+      "title": "Advisory Wisdom Auto-Surfacing and Draft Lifecycle",
+      "body": "ADV auto-surfaces relevant wisdom and creates typed WisdomDraft entries on SEMANTIC error_recovery attempts to lower the friction of capturing cross-task learnings. All enrichment is advisory-only: it MUST NOT be used to complete gates, override specs/contracts, or replace task evidence. WisdomDrafts follow a strict one-way lifecycle: suggested → promoted (via adv_wisdom_add from_draft_id) | dismissed (auto at adv_task_checkpoint with reason auto_checkpoint OR explicit user dismiss with reason user_dismissed). Drafts are task-scoped: cancelled tasks' drafts do not appear in change-level wisdom queries. The generic [ADV:RECORD_WISDOM] system-block nudge is retired; it is replaced by a draft-aware [ADV:WISDOM_DRAFTS] nudge that fires only when drafts are pending review. The plugin emits a capabilities-gated episode recall hint only — it never executes MCP calls directly (preserves plugin↔MCP isolation). Existing callers of affected tools MUST observe byte-identical behavior when new optional fields/features are absent (backward-compat invariant).",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "wisdom",
+        "advisory",
+        "task-show",
+        "task-update",
+        "task-checkpoint",
+        "wisdom-add",
+        "system-block"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-wisdomAutoSurfacing01.1",
+          "title": "_relevantWisdom is top 5 by recency when contract_refs.implements is non-empty",
+          "given": [
+            "adv_task_show is invoked on a task whose contract_refs.implements is non-empty"
+          ],
+          "when": "The tool computes _relevantWisdom",
+          "then": [
+            "FTS-filter candidate wisdom entries via the project's wisdom.search path using the joined implements[] IDs as the query",
+            "Sort filtered entries deterministically by recorded_at DESC",
+            "Return at most the top 5 entries",
+            "Return [] when FTS fails (advisory-only — never throw)",
+            "Return [] when contract_refs.implements is empty or undefined"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.2",
+          "title": "_episodeRecallHint is emitted capabilities-gated; plugin never calls MCP",
+          "given": [
+            "adv_task_show is invoked on a task whose contract_refs.implements is non-empty"
+          ],
+          "when": "The tool emits the hint",
+          "then": [
+            "The hint object carries { namespace, query, top_k: 3 }",
+            "namespace is the project id (or paths.root fallback)",
+            "query is the joined implements[] IDs",
+            "The plugin does NOT execute any MCP call to populate the hint",
+            "The hint is omitted entirely when contract_refs.implements is empty"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.3",
+          "title": "SEMANTIC error_recovery with attempts auto-creates exactly one WisdomDraft",
+          "given": [
+            "adv_task_update is invoked with error_recovery.error_class === 'SEMANTIC'",
+            "error_recovery.attempts[] is non-empty",
+            "The task does not already carry a draft in the 'suggested' state"
+          ],
+          "when": "The update is applied",
+          "then": [
+            "Exactly one WisdomDraft is appended to task.wisdom_drafts[]",
+            "The draft's id matches dr-<8hex>",
+            "suggested_type is 'failure'",
+            "suggested_content is the attempts concatenated as '{diagnosis} → {fix_tried}' joined by '; '",
+            "status is 'suggested'",
+            "source_attempts references the triggering attempt_numbers"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.4",
+          "title": "Non-SEMANTIC or empty-attempts recovery does NOT create a draft",
+          "given": [
+            "adv_task_update is invoked with error_recovery.error_class in {TRANSIENT, ENVIRONMENTAL, FATAL}",
+            "Or error_recovery.attempts[] is empty"
+          ],
+          "when": "The update is applied",
+          "then": ["No WisdomDraft is created", "task.wisdom_drafts is not modified"]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.5",
+          "title": "Dedup: at most one suggested draft per task",
+          "given": [
+            "A task already has a WisdomDraft in the 'suggested' state"
+          ],
+          "when": "Another SEMANTIC error_recovery update is applied",
+          "then": [
+            "No additional WisdomDraft is created",
+            "The existing suggested draft remains unchanged"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.6",
+          "title": "Lifecycle: suggested → promoted | dismissed is one-way",
+          "given": ["A WisdomDraft exists in any state"],
+          "when": "A transition is attempted",
+          "then": [
+            "suggested → promoted is the only path to promoted (via adv_wisdom_add from_draft_id)",
+            "suggested → dismissed is the only path to dismissed (with reason auto_checkpoint OR user_dismissed)",
+            "promoted and dismissed are terminal — no revival path",
+            "No 'rejected' state exists in the lifecycle vocabulary"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.7",
+          "title": "adv_wisdom_add from_draft_id atomically promotes",
+          "given": [
+            "adv_wisdom_add is invoked with from_draft_id and sourceTask",
+            "The referenced draft exists on the sourceTask in the 'suggested' state"
+          ],
+          "when": "The wisdom entry is added successfully",
+          "then": [
+            "taskUpdatedSignal fires with the draft's status set to 'promoted'",
+            "The draft's promoted_wisdom_id is set to the new wisdom entry id",
+            "If the draft is missing: DRAFT_NOT_FOUND",
+            "If the draft is already promoted: DRAFT_ALREADY_PROMOTED",
+            "If the draft is dismissed: DRAFT_DISMISSED",
+            "If from_draft_id is supplied without sourceTask: FROM_DRAFT_ID_REQUIRES_SOURCE_TASK"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.8",
+          "title": "adv_task_checkpoint auto-dismisses suggested drafts with counts",
+          "given": [
+            "adv_task_checkpoint is invoked in 'complete' mode",
+            "The task carries one or more drafts in the 'suggested' state"
+          ],
+          "when": "The checkpoint completion signal fires and readback succeeds",
+          "then": [
+            "taskUpdatedSignal fires with each suggested draft transitioned to 'dismissed'",
+            "Each dismissed draft carries dismiss_reason 'auto_checkpoint' and a dismissed_at timestamp",
+            "Terminal drafts (promoted/dismissed) are NOT re-dismissed (idempotent)",
+            "The checkpoint output includes drafts_pending_review (count before dismissal) and drafts_auto_dismissed (count transitioned)",
+            "Draft dismissal is best-effort: signal failure does not roll back completion or block the checkpoint"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.9",
+          "title": "Task-scoped: cancelled tasks' drafts do not surface in change-level queries",
+          "given": [
+            "A task is cancelled carrying wisdom_drafts",
+            "A change-level wisdom query runs"
+          ],
+          "when": "The change-level query aggregates wisdom",
+          "then": [
+            "Drafts from cancelled tasks are not promoted to change-level wisdom entries",
+            "Drafts only become real Wisdom entries via explicit adv_wisdom_add from_draft_id"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.10",
+          "title": "System-block nudge is draft-aware; [ADV:RECORD_WISDOM] retired",
+          "given": [
+            "The system block is assembled",
+            "One or more tasks carry drafts in the 'suggested' state"
+          ],
+          "when": "The block is emitted",
+          "then": [
+            "An [ADV:WISDOM_DRAFTS] prompt fires listing each task with its pending draft count",
+            "The prompt references adv_wisdom_add from_draft_id and notes auto-dismiss-at-checkpoint",
+            "The retired [ADV:RECORD_WISDOM] prompt does NOT fire even when lastCompletedTask is set",
+            "When no drafts are pending, neither prompt fires"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.11",
+          "title": "Advisory-only enrichment never gates or overrides",
+          "given": [
+            "adv_task_show returns _relevantWisdom and/or _episodeRecallHint",
+            "Or adv_task_update auto-creates a WisdomDraft",
+            "Or adv_task_checkpoint reports drafts_pending_review/drafts_auto_dismissed counts"
+          ],
+          "when": "Any downstream gate, contract validation, or evidence evaluation runs",
+          "then": [
+            "Enrichment data is ignored for gate completion decisions",
+            "Enrichment data cannot override specs or contracts",
+            "Enrichment data cannot replace task evidence",
+            "A task with zero drafts or zero relevant wisdom still completes normally"
+          ]
+        },
+        {
+          "id": "rq-wisdomAutoSurfacing01.12",
+          "title": "Backward-compat: existing callers unaffected when new optional fields are absent",
+          "given": [
+            "An existing caller invokes adv_task_show, adv_task_update, adv_wisdom_add, or adv_task_checkpoint",
+            "The caller does not pass any new optional field (from_draft_id, pendingWisdomDraftTasks, etc.)"
+          ],
+          "when": "The tool executes",
+          "then": [
+            "Output shape is byte-identical to pre-change behavior except for added top-level advisory fields",
+            "No new error paths are triggered",
+            "No new required arguments exist",
+            "Existing tests for these tools continue to pass without modification of their core assertions"
           ]
         }
       ]
