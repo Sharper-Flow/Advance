@@ -8,7 +8,7 @@ import { getAdvWorkerTuningOptions } from "./worker-tuning";
 const thisDir = dirname(fileURLToPath(import.meta.url));
 
 function temporalSourceFiles(): string[] {
-  return readdirSync(thisDir)
+  return readdirSync(thisDir, { recursive: true })
     .filter(
       (name) =>
         name.endsWith(".ts") &&
@@ -42,16 +42,23 @@ function hasTuningWithinTenLines(
   lineNumber: number,
 ): boolean {
   const lines = source.split("\n");
-  // The spread appears inside the Worker.create options object, so it is on the
-  // same line or the lines immediately following Worker.create(. We scan a
-  // 10-line window around the call to detect the getAdvWorkerTuningOptions
-  // spread.
-  const start = Math.max(0, lineNumber - 10 - 1);
-  const end = Math.min(lines.length, lineNumber + 10);
-  for (let i = start; i < end; i++) {
-    if (lines[i].includes("getAdvWorkerTuningOptions")) {
+  // The spread is inside the options object, after Worker.create(. Restrict the
+  // ten-line scan to that object so a nearby, separately-created worker cannot
+  // satisfy this call's guard.
+  const window = lines.slice(lineNumber - 1, lineNumber + 10).join("\n");
+  const objectStart = window.indexOf("{");
+  if (objectStart < 0) return false;
+
+  let braceDepth = 0;
+  for (let i = objectStart; i < window.length; i++) {
+    if (window[i] === "{") braceDepth++;
+    if (
+      braceDepth > 0 &&
+      window.slice(i).match(/^\.\.\.\s*getAdvWorkerTuningOptions\s*\(/)
+    ) {
       return true;
     }
+    if (window[i] === "}" && --braceDepth === 0) return false;
   }
   return false;
 }
