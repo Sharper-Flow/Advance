@@ -25,8 +25,9 @@ describe("source-mode worker path resolver (A4a)", () => {
   });
 
   it("worker.ts passes the resolved workflowsPath into Worker.create", () => {
+    expect(workerSource).toMatch(/verifyWorkerArtifactPolicy\(/);
     expect(workerSource).toMatch(
-      /workflowsPath: options\.workflowsPath \?\? resolveWorkflowsPath\(\)/,
+      /workflowsPath: verifiedBundle\.workflowsPath/,
     );
   });
 
@@ -42,10 +43,11 @@ describe("source-mode worker path resolver (A4a)", () => {
   });
 
   it("in-process-worker.ts passes the resolved workflowsPath into Worker.create", () => {
-    // Module computes `workflowsPath` once via `const workflowsPath = input.workflowsPath ?? resolveWorkflowsPath();`
-    // then forwards the local into Worker.create for every registered queue.
+    // Module verifies the explicit policy once, then forwards the canonical
+    // verified path into Worker.create for every registered queue.
+    expect(inProcessWorkerSource).toMatch(/verifyWorkerArtifactPolicy\(/);
     expect(inProcessWorkerSource).toMatch(
-      /const workflowsPath = input\.workflowsPath \?\? resolveWorkflowsPath\(\);/,
+      /const workflowsPath = verifiedBundle\.workflowsPath;/,
     );
     expect(inProcessWorkerSource).toMatch(
       /Worker\.create\(\{[\s\S]*?workflowsPath[\s\S]*?\}\)/,

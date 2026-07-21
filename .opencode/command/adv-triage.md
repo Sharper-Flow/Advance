@@ -5,6 +5,7 @@ description: Triage sources, coalesce issue links, assign bug priority, and bala
 # ADV Triage — Issue Reconciliation and Portfolio Balance
 
 Reconcile backlog sources into GitHub issues, apply `priority:*` labels to bugs autonomously, coalesce unlinked issue↔change overlaps with explicit approval, and report what to finish, clean up, or start. GitHub Projects v2 remains canonical for issue/project membership. Temporal-backed ADV changes and Epics remain canonical for work in progress. ROADMAP.md, `.adv/roadmap-snapshot.json`, `/adv-roadmap`, and `adv roadmap` are retired surfaces; the portfolio reader MCP tool is also retired.
+<!-- rq-roadmapCliBridge01 rq-backlogCoord07 -->
 
 > **rq-backlogCoord01 / rq-backlogCoord05 note:** Issue claims use `AdvBacklogIssueNumber` through bounded Temporal Visibility reads. `/adv-triage` may correlate the open issue pool with active changes, but MUST NOT perform per-change fallback reads when Visibility is unavailable.
 
@@ -66,7 +67,7 @@ Source-specific actions after approval:
 
 MUST NOT create or open issue candidates before cleanup validation completes for the source pool. MUST NOT apply bug priority labels before cleanup validation completes. Title similarity and agent inference are advisory only (P33): they may flag cleanup candidates, never mutate, close, suppress, or remove without structural evidence and explicit approval. See skill § Source cleanup validation.
 
-If `unrepresented[]` is empty, represented issues have required fields, and cleanup validation has completed with no unresolved cleanup/clarification actions → skip Phase 4a issue creation, then continue through Phase 5 coalesce and Phase 6 portfolio balance.
+If `unrepresented[]` is empty, represented issues have required fields, and cleanup validation has completed with no unresolved cleanup/clarification actions: `No new issues, no label gaps.` Skip Phase 4a issue creation, then continue through Phase 5 coalesce and Phase 6 portfolio balance.
 
 ---
 
@@ -93,7 +94,7 @@ For each bug lacking a `priority:*` label (or where the existing label is ambigu
 Rules:
 - **Idempotent** — skip any bug that already has exactly one `priority:{critical,high,medium,low}` label.
 - **Partial-apply safe** — if one assignment fails, log the error and continue with the next bug. Never roll back prior successful assignments.
-- **Bounded context budget** — ask the user at most 2 focused questions per bug to gather missing context (impact, frequency, workaround). Questions gather context only; do NOT ask the user to confirm or choose the priority.
+- **Bounded context budget** — ask the user at most 2 focused questions per bug to gather missing context (impact, frequency, workaround). MUST NOT use `question` tool to confirm priority choice; use it only to gather context.
 - **Default tier** — if context is still insufficient after 2 questions, assign `priority:medium` and add a `context_insufficient` label.
 - **Rationale trailer** — after each assignment, emit `<issue#>: priority=<tier> :: <rationale>` in chat output only. Never post rationale as an issue comment.
 - **Apply** — use `gh issue edit <num> --add-label priority:<tier>` (and `--add-label context_insufficient` when defaulted).

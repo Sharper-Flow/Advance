@@ -1,0 +1,15 @@
+{
+  "name": "makeLegacyDesignValidation poisoned production history",
+  "workflowType": "changeWorkflow",
+  "workflowId": "adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/makeLegacyDesignValidation",
+  "source": "Captured from local Temporal with temporal workflow show --no-json-shorthand-payloads; deterministically sanitized before repository promotion.",
+  "covers": [
+    "Captured production history replays cleanly against current source; historical live failure is therefore classified as worker bundle identity drift rather than a current workflow-code divergence."
+  ],
+  "expected": "Pre-fix replay reproduces the classified divergence.",
+  "sanitized": true,
+  "eventCount": 651,
+  "incidentEventId": "651",
+  "incidentEventType": "EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES",
+  "classification": "makeLegacyDesignValidation.poisoned-production.classification.json"
+}

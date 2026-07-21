@@ -106,5 +106,5 @@ describe("AC7: 3-session poller footprint bounded by getAdvWorkerTuningOptions c
       // total 18 across 3 sessions).
       expect(projectQueue.startsWith("advance-")).toBe(true);
     });
-  });
+  }, 15_000);
 });

@@ -7,6 +7,7 @@ import {
   WORKER_BUNDLE_MANIFEST_FILENAME,
   readWorkerBundleGeneration,
   readWorkerBundleManifest,
+  verifyWorkerArtifactPolicy,
   writeWorkerBundleManifest,
 } from "./worker-bundle-manifest";
 
@@ -111,5 +112,53 @@ describe("worker bundle manifest", () => {
     );
     await expect(readWorkerBundleManifest(malformedDir)).resolves.toBeNull();
     await expect(readWorkerBundleGeneration(malformedDir)).resolves.toBeNull();
+  });
+
+  test("production verification rehashes artifacts and returns canonical workflows path", async () => {
+    const dir = await tempBundleDir();
+    const manifest = await writeWorkerBundleManifest(dir, { now: () => NOW });
+
+    await expect(
+      verifyWorkerArtifactPolicy({
+        policy: { mode: "production_verified", bundleDir: dir },
+      }),
+    ).resolves.toEqual({
+      status: "verified",
+      generation: manifest.generation,
+      artifactHashes: manifest.files,
+      workflowsPath: join(dir, "workflows.js"),
+    });
+  });
+
+  test("production verification fails closed for stale artifacts and overrides", async () => {
+    const dir = await tempBundleDir();
+    await writeWorkerBundleManifest(dir, { now: () => NOW });
+    await writeFile(join(dir, "workflows.js"), "// stale workflows\n");
+
+    await expect(
+      verifyWorkerArtifactPolicy({
+        policy: { mode: "production_verified", bundleDir: dir },
+      }),
+    ).rejects.toMatchObject({ code: "WORKER_BUNDLE_STALE" });
+
+    await writeWorkerBundleManifest(dir, { now: () => NOW });
+    await expect(
+      verifyWorkerArtifactPolicy({
+        policy: { mode: "production_verified", bundleDir: dir },
+        workflowsPath: join(dir, "other-workflows.js"),
+      }),
+    ).rejects.toMatchObject({ code: "WORKER_BUNDLE_STALE" });
+  });
+
+  test("development policy requires an explicit source path and rationale", async () => {
+    const dir = await tempBundleDir();
+    const workflowsPath = join(dir, "workflows.ts");
+
+    await expect(
+      verifyWorkerArtifactPolicy({
+        policy: { mode: "development_source", rationale: "unit test" },
+        workflowsPath,
+      }),
+    ).resolves.toEqual({ status: "development", workflowsPath });
   });
 });

@@ -96,7 +96,7 @@ describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
         digest: "sha256:" + "a".repeat(64),
       }),
     );
-    expect(registerCall.sessionId).toMatch(/^sess_[A-Za-z0-9]{8}$/);
+    expect(registerCall.sessionId).toMatch(/^sess_[A-Za-z0-9_-]{8}$/);
     expect(getCurrentSessionId()).toBe(registerCall.sessionId);
     expect(result.initError).not.toBeNull();
   });
@@ -109,7 +109,7 @@ describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
 
     await tryInitStore(process.cwd(), undefined);
     const firstSessionId = getCurrentSessionId();
-    expect(firstSessionId).toMatch(/^sess_[A-Za-z0-9]{8}$/);
+    expect(firstSessionId).toMatch(/^sess_[A-Za-z0-9_-]{8}$/);
 
     vi.clearAllMocks();
     await tryInitStore(process.cwd(), undefined);

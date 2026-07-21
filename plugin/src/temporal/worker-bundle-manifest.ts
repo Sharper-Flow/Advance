@@ -20,7 +20,7 @@
 
 import { createHash, randomUUID } from "crypto";
 import { readFile, rename, writeFile } from "fs/promises";
-import { join } from "path";
+import { join, resolve } from "path";
 
 export const WORKER_BUNDLE_MANIFEST_FILENAME = "bundle-manifest.json";
 export const WORKER_BUNDLE_MANIFEST_SCHEMA_VERSION = 1;
@@ -41,6 +41,31 @@ export interface WorkerBundleManifest {
 
 export interface WriteWorkerBundleManifestOptions {
   now?: () => Date;
+}
+
+export type WorkerArtifactPolicy =
+  | { mode: "production_verified"; bundleDir: string }
+  | { mode: "development_source"; rationale: string };
+
+export interface VerifiedWorkerBundle {
+  status: "verified";
+  generation: string;
+  artifactHashes: Record<WorkerBundleFile, string>;
+  workflowsPath: string;
+}
+
+export interface DevelopmentWorkerBundle {
+  status: "development";
+  workflowsPath: string;
+}
+
+export class WorkerBundleStaleError extends Error {
+  readonly code = "WORKER_BUNDLE_STALE" as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "WorkerBundleStaleError";
+  }
 }
 
 async function hashFileSha256(path: string): Promise<string> {
@@ -159,4 +184,75 @@ export async function readWorkerBundleGeneration(
 ): Promise<string | null> {
   const manifest = await readWorkerBundleManifest(bundleDir);
   return manifest?.generation ?? null;
+}
+
+/**
+ * Resolve the exact workflow artifact a Worker may load. Production always
+ * rehashes the canonical manifest-declared bundle before Worker.create;
+ * development must opt into source loading explicitly.
+ */
+export async function verifyWorkerArtifactPolicy(input: {
+  policy: WorkerArtifactPolicy;
+  workflowsPath?: string;
+}): Promise<VerifiedWorkerBundle | DevelopmentWorkerBundle> {
+  if (input.policy.mode === "development_source") {
+    if (!input.policy.rationale.trim()) {
+      throw new Error("development_source requires a non-empty rationale");
+    }
+    if (!input.workflowsPath) {
+      throw new Error("development_source requires an explicit workflowsPath");
+    }
+    return {
+      status: "development",
+      workflowsPath: resolve(input.workflowsPath),
+    };
+  }
+
+  const bundleDir = resolve(input.policy.bundleDir);
+  const manifest = await readWorkerBundleManifest(bundleDir);
+  if (!manifest) {
+    throw new WorkerBundleStaleError(
+      `Worker bundle manifest is missing or invalid under ${bundleDir}.`,
+    );
+  }
+
+  const canonicalWorkflowsPath = resolve(join(bundleDir, "workflows.js"));
+  if (
+    input.workflowsPath &&
+    resolve(input.workflowsPath) !== canonicalWorkflowsPath
+  ) {
+    throw new WorkerBundleStaleError(
+      `Production workflowsPath ${resolve(input.workflowsPath)} does not match manifest artifact ${canonicalWorkflowsPath}.`,
+    );
+  }
+
+  const artifactHashes = {} as Record<WorkerBundleFile, string>;
+  for (const name of WORKER_BUNDLE_FILES) {
+    const actual = await hashFileSha256(join(bundleDir, name)).catch(
+      (error: NodeJS.ErrnoException) => {
+        throw new WorkerBundleStaleError(
+          `Worker bundle artifact ${name} is missing under ${bundleDir}: ${error.code ?? error.message}.`,
+        );
+      },
+    );
+    artifactHashes[name] = actual;
+    if (actual !== manifest.files[name]) {
+      throw new WorkerBundleStaleError(
+        `Worker bundle artifact ${name} hash does not match manifest generation ${manifest.generation}.`,
+      );
+    }
+  }
+  const actualGeneration = computeWorkerBundleGeneration(artifactHashes);
+  if (actualGeneration !== manifest.generation) {
+    throw new WorkerBundleStaleError(
+      `Worker bundle generation ${actualGeneration} does not match manifest ${manifest.generation}.`,
+    );
+  }
+
+  return {
+    status: "verified",
+    generation: manifest.generation,
+    artifactHashes,
+    workflowsPath: canonicalWorkflowsPath,
+  };
 }

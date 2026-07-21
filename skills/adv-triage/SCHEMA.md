@@ -24,7 +24,7 @@ Only structurally available optional fields are populated. Heuristic `kind_hint`
 - `active_changes[]` — typed open changes with issue links, gates, task counts, last activity, and optional Epic membership.
 - `active_epics[]` — bounded typed Epic summaries used for context and stale-entry warnings.
 
-## Source cleanup decision
+## Source cleanup decisions (`cleanup_decisions[]`)
 
 ```jsonc
 {
