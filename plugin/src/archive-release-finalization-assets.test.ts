@@ -89,4 +89,35 @@ describe("archive release-finalization docs/spec assets", () => {
     expect(instructions).toContain("adv_archive_repair");
     expect(instructions).not.toMatch(/PR-mode branch-push handoff/i);
   });
+
+  test("rq-releaseFinalization04.2 does NOT grant the waiter remediation authority", () => {
+    // The waiter has edit: deny, morph_edit: deny, task: deny — it cannot
+    // remediate anything. Earlier spec wording ("the waiter's bounded
+    // attempt budget") implied the waiter had remediation authority; that
+    // was wrong and caused parents to hand off remediation to a worker
+    // that could not act. The spec must now state that remediation is the
+    // parent orchestrator's responsibility, not the waiter's.
+    const spec = JSON.parse(read(SPEC_JSON));
+    const requirement = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-releaseFinalization04",
+    );
+    expect(requirement, "rq-releaseFinalization04 must exist").toBeTruthy();
+
+    // The misleading phrase must be gone from every requirement body and
+    // scenario in the spec. Match only the old possessive form
+    // ("waiter's bounded attempt budget") so the regex doesn't false-positive
+    // on the new wording ("no bounded attempt budget").
+    const specJson = read(SPEC_JSON);
+    expect(specJson).not.toMatch(/waiter['']s bounded attempt budget/i);
+    expect(specJson).not.toMatch(/cannot be remediated after the waiter/i);
+
+    // The spec must affirmatively assign remediation to the parent.
+    expect(specJson).toMatch(/parent[^.\n]{0,60}(?:remediat|responsibility)/i);
+
+    // The docs/specs mirror must match.
+    const specDoc = read(SPEC_DOC);
+    expect(specDoc).not.toMatch(/waiter['']s bounded attempt budget/i);
+    expect(specDoc).not.toMatch(/cannot be remediated after the waiter/i);
+    expect(specDoc).toMatch(/parent[^.\n]{0,60}(?:remediat|responsibility)/i);
+  });
 });

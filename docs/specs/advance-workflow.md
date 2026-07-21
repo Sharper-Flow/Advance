@@ -710,7 +710,7 @@ When the spawned “adv-ci-waiter” returns a non-terminal outcome (timeout, bl
 **Blocked (no PR / no auth / red CI) preserves active state** (`rq-releaseFinalization04.2`)
 
 **Given:**
-- The waiter reports blocked: no PR exists, GitHub auth is missing, or red CI cannot be remediated after the waiter’s bounded attempt budget
+- The waiter reports blocked: no PR exists, GitHub auth is missing, or red CI is reported by the waiter and remediation is the parent orchestrator's responsibility (the waiter has `edit: deny` and no bounded attempt budget)
 
 **When:** ADV concludes the auto-drive
 
