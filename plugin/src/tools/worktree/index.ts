@@ -1460,9 +1460,9 @@ export type AdvWorktreeDeleteResult =
  * removal.
  *
  * rq-terminalCleanupSafety01 / rq-terminalCleanupLifecycle01: ownership
- * preflight precedes workspace/git removal. An uncertain lookup or a failed
- * workspace delete is a typed retained blocker — the caller must NOT proceed
- * to `git worktree remove`, and the worktree stays queued for manual retry.
+ * preflight precedes workspace/git removal. Remote lookup failures are
+ * advisory after the upstream local CWD safety check; a failed deletion of a
+ * found workspace remains a typed retained blocker.
  */
 type OpenCodeWorkspaceCleanupResult =
   | { ok: true; warning: string | null }
@@ -2333,9 +2333,10 @@ export async function advWorktreeDelete(
   }
   let workspaceCleanupWarning: string | null;
   try {
-    // Ownership preflight precedes workspace/git removal: an uncertain or
-    // failed workspace cleanup is a typed retained blocker, never a silent
-    // pass-through to `git worktree remove` (rq-terminalCleanupSafety01).
+    // Ownership preflight precedes workspace/git removal. A remote lookup
+    // failure is advisory after the local CWD safety check; failed deletion of
+    // a found workspace remains a typed retained blocker
+    // (rq-terminalCleanupSafety01).
     const workspaceCleanup = await withTimeout(
       cleanupOpenCodeWorkspaceForWorktree(worktreePath, branch, deps),
       remainingMs,

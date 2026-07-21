@@ -479,6 +479,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     });
     // Remote fetch was attempted; no workspace DELETE call (none was found).
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("workspace registry unreachable"),
+    );
     // Deletion proceeded; no pending-delete record retained.
     await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
     expect(
@@ -535,6 +538,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       expect(result.warning).toMatch(/^workspace registry unreachable: /);
       expect(result.warning).toContain("Unable to connect");
     }
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Unable to connect"),
+    );
     // No pending-delete record — deletion succeeded.
     await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
   });
