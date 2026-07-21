@@ -14,7 +14,7 @@
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
-import { buildProjectTaskQueue } from "./temporal/client";
+import { buildProjectTaskQueue, buildSessionTaskQueue } from "./temporal/client";
 import { initStsl, closeStsl, getService } from "./temporal/service";
 import {
   createInProcessWorker,
@@ -235,6 +235,17 @@ export async function tryInitStore(
       // project queue. No peer lock / heartbeat coordination is needed here.
       const projectStateDir = productExternalRoot;
       const expectedQueue = buildProjectTaskQueue(projectId);
+      // KD-2 / rq-isolSessionTaskQueue01: when sessionId is available,
+      // the worker polls BOTH its own-session queue (advance-{P}-{sess})
+      // and the permanent project queue (advance-{P}). The project queue
+      // is co-polled for epic workflows (UD2) and legacy change workflows
+      // still routing to it during migration (KD-4).
+      const sessionQueue = sessionId
+        ? buildSessionTaskQueue(projectId, sessionId)
+        : undefined;
+      const workerQueues = sessionQueue
+        ? [sessionQueue, expectedQueue]
+        : [expectedQueue];
       const projectConfig = await loadProjectConfig(effectiveDir).catch(
         () => null,
       );
@@ -283,7 +294,7 @@ export async function tryInitStore(
           spawnedWorker = await createInProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
-            queues: [expectedQueue],
+            queues: workerQueues,
             onWorkerExhausted,
           });
           worker = spawnedWorker;
@@ -312,9 +323,10 @@ export async function tryInitStore(
           const outOfProcessWorker = await createOutOfProcessWorker({
             address: runtime.address,
             namespace: runtime.namespace,
-            queues: [expectedQueue],
+            queues: workerQueues,
             workerScript: workerScriptPath,
             projectId,
+            sessionId,
             onWorkerExhausted,
           });
           spawnedWorker = outOfProcessWorker;
@@ -677,6 +689,17 @@ export async function restartCurrentProjectTemporalWorker(
     );
   }
   const expectedQueue = buildProjectTaskQueue(projectId);
+  // KD-2 / rq-isolSessionTaskQueue01: include session queue on restart too,
+  // reading the current session ID from the utils holder. If restart happens
+  // before plugin-init has set a session ID (recovery scenario), only the
+  // project queue is polled — the next plugin-init will spawn with both.
+  const restartSessionId = getCurrentSessionId();
+  const restartSessionQueue = restartSessionId
+    ? buildSessionTaskQueue(projectId, restartSessionId)
+    : undefined;
+  const restartWorkerQueues = restartSessionQueue
+    ? [restartSessionQueue, expectedQueue]
+    : [expectedQueue];
 
   if (options.approvedLockReclaim && !options.approvalEvidence?.trim()) {
     throw new Error(
@@ -698,15 +721,16 @@ export async function restartCurrentProjectTemporalWorker(
     ? await createInProcessWorker({
         address: runtime.address,
         namespace: runtime.namespace,
-        queues: [expectedQueue],
+        queues: restartWorkerQueues,
         onWorkerExhausted,
       })
     : await createOutOfProcessWorker({
         address: runtime.address,
         namespace: runtime.namespace,
-        queues: [expectedQueue],
+        queues: restartWorkerQueues,
         workerScript: resolveWorkerScriptPath(),
         projectId,
+        sessionId: restartSessionId,
         onWorkerExhausted,
       });
   workerRef.current = worker;
