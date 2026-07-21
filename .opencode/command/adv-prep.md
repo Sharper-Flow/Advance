@@ -418,7 +418,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 
 ## Phase 7: Progress Tracking
 
-After EACH fix, keep progress in ADV state (`adv_task_list`, `_contextSnapshot`). Emit no `CONTRACT STATUS` block.
+After EACH fix, keep progress in ADV state (`adv_task_list`). Use `include.snapshot:true` on mutation tools or `adv_change_show include.snapshot:true` to request `_contextSnapshot`. Emit no `CONTRACT STATUS` block.
 
 ---
 

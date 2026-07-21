@@ -149,6 +149,15 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
     expect(freshness).toMatch(/include\.snapshot: true/);
   });
 
+  test("context snapshot section teaches include.snapshot opt-in default", () => {
+    const snapshot = section("### Context Snapshot", "## Critical Protocols");
+
+    // After tightenToolOutputDefaults: mutation/ticker tools emit only when
+    // include.snapshot:true is passed (default OFF).
+    expect(snapshot).toMatch(/include\.snapshot:true/);
+    expect(snapshot).toMatch(/When omitted \(default\)/);
+  });
+
   test("reflection trigger wording is phase-number agnostic", () => {
     const reflection = section(
       "### Reflection Protocol",
