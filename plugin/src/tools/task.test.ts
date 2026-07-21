@@ -1119,6 +1119,125 @@ describe("task tools — signal/query adapters", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
+    // D4 internal monotonic recovery (rq-internalMonotonicRecovery01 / AC5):
+    // when operator does NOT supply recoveryMode but describe() shows the
+    // workflow is poisoned, recovery happens automatically via disk projection
+    // without evidence-copy ceremony.
+    test("recovers via D4 internal classification when describe shows poisoned and operator args absent", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Done Task",
+              status: "pending",
+              type: "code",
+              section: "Implementation",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        } as import("../types").Change,
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
+        async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }),
+      );
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          implementation_summary: "Recovered via D4 internal classification",
+          // Note: NO recoveryMode or recoveryEvidence supplied.
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledTimes(1);
+      expect(mocks.handleMock.describe).toHaveBeenCalled();
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    // D4 internal monotonic recovery: when describe is healthy and operator
+    // args are absent, the normal signal path proceeds (no recovery).
+    test("proceeds with signal when describe is healthy and operator args absent", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Pending Task",
+              status: "pending",
+              type: "code",
+              section: "Implementation",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        } as import("../types").Change,
+      });
+      mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+      // describe() returns a healthy workflow — no poisoned markers.
+      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
+        async () => ({
+          workflowExecutionInfo: { status: "RUNNING", historyLength: 12 },
+        }),
+      );
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+        },
+        store,
+      );
+
+      // Signal-driven path ran; no recovery.
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      expect(mocks.saveRecoveredTaskMutation).not.toHaveBeenCalled();
+      // Result is a normal in_progress tool output (no error, no recovery).
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
     test("does not expose adv_task_completed as a second public completion path", () => {
       expect(
         (taskTools as Record<string, unknown>).adv_task_completed,

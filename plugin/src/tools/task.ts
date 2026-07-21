@@ -956,14 +956,31 @@ export const taskTools = {
           !shouldPatchExistingDoneTask &&
           args.recoveryMode !== "poisoned_history"
         ) {
-          return formatToolOutput({
-            error:
-              "Normal task completion must go through adv_task_checkpoint so git checkpoint metadata, touched files, and verification are recorded before the task is marked done.",
-            code: "TASK_DONE_REQUIRES_CHECKPOINT",
-            hint: "Run adv_task_checkpoint with mode:'complete'. Use adv_task_update status:'done' only for explicit poisoned-history recovery with recovery evidence, or to patch an already-done task's metadata/contract refs.",
-            changeId,
-            taskId: args.taskId,
+          // D4 internal classification (rq-internalMonotonicRecovery01):
+          // allow the done-check to be bypassed when describe() confirms the
+          // workflow is poisoned/completed, even without operator-supplied
+          // recoveryMode. The probe is only paid on recovery-shaped calls
+          // (status:done via adv_task_update); normal completion routes
+          // through adv_task_checkpoint.
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
           });
+          if (internalDecision.kind !== "recover_via_disk") {
+            return formatToolOutput({
+              error:
+                "Normal task completion must go through adv_task_checkpoint so git checkpoint metadata, touched files, and verification are recorded before the task is marked done.",
+              code: "TASK_DONE_REQUIRES_CHECKPOINT",
+              hint: "Run adv_task_checkpoint with mode:'complete'. Use adv_task_update status:'done' only for explicit poisoned-history recovery with recovery evidence, or to patch an already-done task's metadata/contract refs.",
+              changeId,
+              taskId: args.taskId,
+              ...(internalDecision.kind === "operator_required"
+                ? {
+                    cause: internalDecision.cause,
+                    detail: internalDecision.detail,
+                  }
+                : {}),
+            });
+          }
         }
 
         // rq-extend-poisoned-recovery AC1 (probe-first): when the operator
