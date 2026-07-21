@@ -1371,7 +1371,7 @@ New changes start directly in the 7-gate model.
 | ------------------------- | ------------------------------------------------------------------------- |
 | `/adv-status`             | Project overview                                                          |
 | `/adv-idea`               | Explore rough ideas before drafting a proposal                            |
-| `/adv-problem`            | Triage issues before fixing or drafting a proposal                        |
+| `/adv-problem`            | Triage defects and unintended behavior before fixing or drafting a proposal |
 | `/adv-epic`               | Gather Epic goals before typed creation                                  |
 | `/adv-proposal <summary>` | Extract problem statement and confirm with user                           |
 | `/adv-discover <id>`      | Gather context, identify objectives, and confirm agreement                |
@@ -1394,7 +1394,7 @@ New changes start directly in the 7-gate model.
 | `/adv-refactor [id]`      | Refresh a stale proposal — single change-id, or omit to batch-refresh the oldest 30% of active changes                             |
 | `/adv-cleanup`            | Triage stale, abandoned, duplicate, and ready-to-archive active changes                                                            |
 | `/adv-coordinate`         | Audit project changes, Epic alignment, sequencing, and membership health                                                           |
-| `/adv-improve`            | Suggest spec/implementation improvements and persist a reusable research pack under `docs/*-prep.md` (consumed by `/adv-discover`) |
+| `/adv-improve`            | Improvement analysis and research on existing specs, implementation, or external landscape; persists a reusable research pack under `docs/*-prep.md` (consumed by `/adv-discover`) |
 | `/adv-tron [target]`      | Investigate codebase structure and suggest agenda candidates                                                                       |
 
 Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For deeper analysis, agents can load the prioritizer skill via `skill("prioritizer")` which provides structured criteria question templates and decision map guidance.

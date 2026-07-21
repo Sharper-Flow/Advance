@@ -1,6 +1,6 @@
 ---
 name: adv-problem
-description: "Triage issues before fixing or drafting a proposal"
+description: "Triage defects and unintended behavior before fixing or drafting a proposal"
 ---
 
 # ADV Problem — Collaborative Issue Triage Before Fix
@@ -18,6 +18,8 @@ Investigate a bug, failure, or confusing behavior before deciding whether it is 
 **Reads:** specs, codebase, sub-agent output, user uploads.
 
 **Creates nothing.** Does not mutate ADV state.
+
+**Persistence:** Conversational triage; RCA carries forward via `## Root Cause Analysis` in proposal.md when defect path taken, otherwise ephemeral.
 
 **× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation. This command does not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly.
 

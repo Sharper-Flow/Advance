@@ -120,7 +120,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | Command                     | Purpose                                                                          |
 | --------------------------- | -------------------------------------------------------------------------------- |
 | `/adv-idea`                 | Explore rough ideas before drafting a proposal                                   |
-| `/adv-problem`              | Triage issues before fixing or drafting a proposal                               |
+| `/adv-problem`              | Triage defects and unintended behavior before fixing or drafting a proposal        |
 | `/adv-status`               | Show fast ADV status table                                                       |
 | `/adv-roadmap`              | Show fast ADV roadmap table                                                      |
 | `/adv-epic`                 | Gather Epic goals before typed creation                                          |
@@ -161,7 +161,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
 | `/adv-coordinate`           | Audit project changes, Epic alignment, sequencing, and membership health                             |
 | `/adv-triage`               | Triage sources, coalesce issue links, assign bug priority, and balance portfolio |
-| `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                                    |
+| `/adv-improve`              | Improvement analysis and research on existing specs, implementation, or external landscape            |
 | `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up candidates             |
 | `/adv-optimizer [target]`   | Analyze code simplification opportunities and propose optimizer changes                              |
 

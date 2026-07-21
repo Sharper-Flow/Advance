@@ -19,6 +19,8 @@ Shape a vague idea into a proposal-ready summary. Fully collaborative; read-only
 
 **Creates nothing.** Does not mutate ADV state.
 
+**Persistence:** Conversational shaping; analysis carries forward via exit recommendation, not disk artifact.
+
 **× MUST NOT:** create change, create tasks, complete gates, or silently commit to implementation design. This command does not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly.
 
 **Gate:** None.

@@ -146,7 +146,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-problem": {
     name: "adv-problem",
-    description: "Triage issues before fixing or drafting a proposal",
+    description:
+      "Triage defects and unintended behavior before fixing or drafting a proposal",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: [],
@@ -418,7 +419,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-improve": {
     name: "adv-improve",
     description:
-      "Suggest targeted improvements to existing specs or implementation",
+      "Improvement analysis and research on existing specs, implementation, or external landscape",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
