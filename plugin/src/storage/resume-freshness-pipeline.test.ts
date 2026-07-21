@@ -15,7 +15,9 @@ import type { Change } from "../types";
 import type { Store } from "./store";
 import { fetchChangeContextSnapshot } from "./context-snapshot-fetch";
 
-function buildChange(overrides: Partial<Change> & Record<string, unknown> = {}): Change {
+function buildChange(
+  overrides: Partial<Change> & Record<string, unknown> = {},
+): Change {
   return {
     id: "targetChange",
     title: "Target change",
@@ -50,8 +52,8 @@ function buildStore(change: Change, peers: Change[] = []): Store {
           lastActivityAt:
             (c as unknown as { lastActivityAt?: string }).lastActivityAt ??
             c.created_at,
-          taskCount:
-            ((c as unknown as { tasks?: unknown[] }).tasks ?? []).length,
+          taskCount: ((c as unknown as { tasks?: unknown[] }).tasks ?? [])
+            .length,
           completedTasks: 0,
         })),
       })),
@@ -77,7 +79,8 @@ describe("fetchChangeContextSnapshot resumeFreshness integration", () => {
     expect(snapshot).not.toContain("Freshness:");
     // store.changes.list should NOT have been called for sibling scan since
     // resolver short-circuits via trigger guard
-    const listCalls = (store.changes.list as ReturnType<typeof vi.fn>).mock.calls;
+    const listCalls = (store.changes.list as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(listCalls.length).toBe(0);
   });
 
@@ -96,7 +99,8 @@ describe("fetchChangeContextSnapshot resumeFreshness integration", () => {
     // With git unavailable at /tmp path, expect freshness_limited OR no Freshness line
     // (formatter only shows Freshness line if findings.length > 0)
     // Verify list was called at least once for sibling/archived scan
-    const listCalls = (store.changes.list as ReturnType<typeof vi.fn>).mock.calls;
+    const listCalls = (store.changes.list as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(listCalls.length).toBeGreaterThan(0);
   });
 
@@ -130,7 +134,10 @@ describe("fetchChangeContextSnapshot resumeFreshness integration", () => {
       success: false,
     });
 
-    const snapshot = await fetchChangeContextSnapshot(emptyStore, "nonexistent");
+    const snapshot = await fetchChangeContextSnapshot(
+      emptyStore,
+      "nonexistent",
+    );
     expect(snapshot).toBeUndefined();
   });
 
@@ -141,19 +148,21 @@ describe("fetchChangeContextSnapshot resumeFreshness integration", () => {
     });
     const store60 = buildStore(exactly60);
     await fetchChangeContextSnapshot(store60, "targetChange");
-    const listCalls60 = (store60.changes.list as ReturnType<typeof vi.fn>).mock.calls;
+    const listCalls60 = (store60.changes.list as ReturnType<typeof vi.fn>).mock
+      .calls;
     // 60min <= 60 (trigger) — should skip; resolver not invoked
     expect(listCalls60.length).toBe(0);
 
     // At 61min, trigger guard fires resolver
     const just61 = buildChange({
       lastActivityAt: new Date(Date.now() - 61 * 60 * 1000).toISOString(),
-      deltas: { "x": [] },
+      deltas: { x: [] },
       tasks: [{ touched_files: ["a.ts"] } as never],
     });
     const store61 = buildStore(just61);
     await fetchChangeContextSnapshot(store61, "targetChange");
-    const listCalls61 = (store61.changes.list as ReturnType<typeof vi.fn>).mock.calls;
+    const listCalls61 = (store61.changes.list as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(listCalls61.length).toBeGreaterThan(0);
   });
 });

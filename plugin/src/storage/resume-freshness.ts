@@ -86,17 +86,13 @@ export interface ResumeFreshnessResult {
  * Compile-time exhaustiveness check helper. Use in switch statements over
  * `ResumeFreshnessCode` to ensure all codes are handled.
  */
-export function assertExhaustiveCode(
-  code: ResumeFreshnessCode,
-): never {
+export function assertExhaustiveCode(code: ResumeFreshnessCode): never {
   throw new Error(`Unhandled ResumeFreshnessCode: ${code}`);
 }
 
 /**
  * Compile-time exhaustiveness check helper for `ResumeFreshnessLabel`.
  */
-export function assertExhaustiveLabel(
-  label: ResumeFreshnessLabel,
-): never {
+export function assertExhaustiveLabel(label: ResumeFreshnessLabel): never {
   throw new Error(`Unhandled ResumeFreshnessLabel: ${label}`);
 }

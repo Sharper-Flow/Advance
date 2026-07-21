@@ -232,7 +232,10 @@ export async function enrichRecentChangeStatus(
   // to bound cost (DDC8: at most once per adv_status call). Non-primary path
   // uses ticker which never invokes resolver.
   let resumeFreshnessInput:
-    | { findings: { code: string; label: string; summary: string }[]; skipped: boolean }
+    | {
+        findings: { code: string; label: string; summary: string }[];
+        skipped: boolean;
+      }
     | undefined;
   if (isPrimary) {
     try {
@@ -246,17 +249,21 @@ export async function enrichRecentChangeStatus(
           (Date.now() - new Date(lastActivityAt).getTime()) / 60000,
         );
         if (lastActivityAgeMinutes > RESUME_FRESHNESS_TRIGGER_MINUTES) {
-        const result = await resolveResumeFreshness(store, changeId, {
-          lastActivityAgeMinutes,
-          lastActivityAt,
-        });
-        resumeFreshnessInput = {
-          findings: result.findings,
-          skipped: result.skipped,
-        };
-        // Surface close+supersede suggestion when single HIGH-conf archived dup
-        appendResumeFreshnessRecommendation(status, changeId, resumeFreshnessInput);
-      }
+          const result = await resolveResumeFreshness(store, changeId, {
+            lastActivityAgeMinutes,
+            lastActivityAt,
+          });
+          resumeFreshnessInput = {
+            findings: result.findings,
+            skipped: result.skipped,
+          };
+          // Surface close+supersede suggestion when single HIGH-conf archived dup
+          appendResumeFreshnessRecommendation(
+            status,
+            changeId,
+            resumeFreshnessInput,
+          );
+        }
       }
     } catch {
       // Degrade gracefully — no Freshness line on resolver failure.
@@ -276,7 +283,9 @@ export async function enrichRecentChangeStatus(
       ? buildChangeContextSnapshot({
           ...snapshotInput,
           directive,
-          ...(resumeFreshnessInput ? { resumeFreshness: resumeFreshnessInput } : {}),
+          ...(resumeFreshnessInput
+            ? { resumeFreshness: resumeFreshnessInput }
+            : {}),
         })
       : buildChangeContextTicker(snapshotInput),
     _directive: directive,
@@ -446,8 +455,7 @@ export function appendResumeFreshnessRecommendation(
 
   const highConfidenceArchivedDups = resumeFreshness.findings.filter(
     (f) =>
-      f.code === "resume:archived_duplicate" &&
-      f.label === "repo_backed_fact",
+      f.code === "resume:archived_duplicate" && f.label === "repo_backed_fact",
   );
 
   // AC11: only fire on EXACTLY ONE HIGH-confidence finding (avoid noise when
@@ -704,7 +712,10 @@ export async function buildCandidateEnrichmentPatch(
 
     // Resume Freshness (D9b): primary-only invocation to bound cost (DDC8).
     let candidateResumeFreshness:
-      | { findings: { code: string; label: string; summary: string }[]; skipped: boolean }
+      | {
+          findings: { code: string; label: string; summary: string }[];
+          skipped: boolean;
+        }
       | undefined;
     if (isPrimary) {
       try {

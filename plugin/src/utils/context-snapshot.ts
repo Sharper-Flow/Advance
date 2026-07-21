@@ -425,7 +425,9 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   const hasCurrentTask = !!currentTask;
   const hasDirective = !!directive;
   const hasFreshness =
-    !!resumeFreshness && !resumeFreshness.skipped && resumeFreshness.findings.length > 0;
+    !!resumeFreshness &&
+    !resumeFreshness.skipped &&
+    resumeFreshness.findings.length > 0;
   const optionalCount =
     (hasDirective ? 1 : 0) +
     (hasWisdom ? 1 : 0) +

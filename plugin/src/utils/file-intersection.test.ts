@@ -3,9 +3,9 @@ import { intersectFileLists } from "./file-intersection.js";
 
 describe("intersectFileLists", () => {
   it("returns the intersection of two non-empty lists", () => {
-    expect(
-      intersectFileLists(["a.ts", "b.ts"], ["b.ts", "c.ts"]),
-    ).toEqual(["b.ts"]);
+    expect(intersectFileLists(["a.ts", "b.ts"], ["b.ts", "c.ts"])).toEqual([
+      "b.ts",
+    ]);
   });
 
   it("returns empty array when planned is empty", () => {
@@ -27,15 +27,16 @@ describe("intersectFileLists", () => {
   });
 
   it("dedupes entries that appear multiple times in planned", () => {
-    expect(
-      intersectFileLists(["a.ts", "a.ts", "b.ts"], ["a.ts"]),
-    ).toEqual(["a.ts"]);
+    expect(intersectFileLists(["a.ts", "a.ts", "b.ts"], ["a.ts"])).toEqual([
+      "a.ts",
+    ]);
   });
 
   it("handles full overlap (identical lists)", () => {
-    expect(
-      intersectFileLists(["a.ts", "b.ts"], ["a.ts", "b.ts"]),
-    ).toEqual(["a.ts", "b.ts"]);
+    expect(intersectFileLists(["a.ts", "b.ts"], ["a.ts", "b.ts"])).toEqual([
+      "a.ts",
+      "b.ts",
+    ]);
   });
 
   it("does not include peer-only entries", () => {

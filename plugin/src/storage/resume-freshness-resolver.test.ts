@@ -10,7 +10,9 @@ import {
 } from "./resume-freshness-resolver";
 
 /** Build a minimal Change fixture. */
-function buildChange(overrides: Partial<Change> & Record<string, unknown> = {}): Change {
+function buildChange(
+  overrides: Partial<Change> & Record<string, unknown> = {},
+): Change {
   return {
     id: "testChange",
     title: "Test change",
@@ -33,8 +35,7 @@ function buildStore(changes: Change[]): Store {
       lastActivityAt:
         (c as unknown as { lastActivityAt?: string }).lastActivityAt ??
         c.created_at,
-      taskCount:
-        ((c as unknown as { tasks?: unknown[] }).tasks ?? []).length,
+      taskCount: ((c as unknown as { tasks?: unknown[] }).tasks ?? []).length,
       completedTasks: 0,
     })),
   };
@@ -212,9 +213,7 @@ describe("resolveArchivedSinceDuplicates", () => {
       id: "parent",
       status: "archived",
       deltas: { "advance-workflow": [] },
-      tasks: [
-        { touched_files: ["a.ts", "b.ts", "c.ts"] } as never,
-      ],
+      tasks: [{ touched_files: ["a.ts", "b.ts", "c.ts"] } as never],
       lastActivityAt: "2026-07-21T02:00:00.000Z",
     });
     const store = buildStore([target, parent]);
@@ -255,7 +254,9 @@ describe("resolveResumeFreshness entrypoint", () => {
     expect(result.skipped).toBe(true);
     expect(result.findings).toEqual([]);
     // Verify sub-resolvers NOT called (store.changes.list spy)
-    expect((store.changes.list as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
+    expect(
+      (store.changes.list as ReturnType<typeof vi.fn>).mock.calls.length,
+    ).toBe(0);
   });
 
   it("returns freshness_limited when target change unreadable", async () => {

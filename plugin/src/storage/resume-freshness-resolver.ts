@@ -28,7 +28,6 @@ import type { ChangeListResponse } from "../types";
 import { execGit } from "../utils/git";
 import { intersectFileLists } from "../utils/file-intersection";
 import type {
-  ResumeFreshnessCode,
   ResumeFreshnessFinding,
   ResumeFreshnessInput,
   ResumeFreshnessLabel,
@@ -54,7 +53,8 @@ export const CODEBASE_DRIFT_COMMIT_CAP = 100;
  * Extract the change's capability scope from deltas[capability] keys.
  */
 function extractCapabilities(change: Change): string[] {
-  const deltas = (change as unknown as { deltas?: Record<string, unknown[]> }).deltas;
+  const deltas = (change as unknown as { deltas?: Record<string, unknown[]> })
+    .deltas;
   if (!deltas || typeof deltas !== "object") return [];
   return Object.keys(deltas);
 }
@@ -63,7 +63,9 @@ function extractCapabilities(change: Change): string[] {
  * Extract the change's touched-file scope from the union of task touched_files.
  */
 function extractTouchedFiles(change: Change): string[] {
-  const tasks = (change as unknown as { tasks?: Array<{ touched_files?: string[] }> }).tasks;
+  const tasks = (
+    change as unknown as { tasks?: Array<{ touched_files?: string[] }> }
+  ).tasks;
   if (!Array.isArray(tasks)) return [];
   const seen = new Set<string>();
   for (const task of tasks) {
@@ -79,8 +81,11 @@ function extractTouchedFiles(change: Change): string[] {
 /**
  * Compute the change's lastActivityAt. Uses `change.lastActivityAt` (set by
  * Temporal at signal time). Falls back to created_at if missing.
+ *
+ * Kept for callers that need a single timestamp; the sub-resolvers below use
+ * the ChangeListResponse's `lastActivityAt` field directly.
  */
-function extractLastActivityAt(change: Change): string {
+function _extractLastActivityAt(change: Change): string {
   const v = (change as unknown as { lastActivityAt?: string }).lastActivityAt;
   if (typeof v === "string" && v.length > 0) return v;
   return change.created_at;
@@ -119,9 +124,7 @@ export async function resolveSiblingOverlap(
   const activeIds = response.changes
     .filter(
       (c) =>
-        c.id !== changeId &&
-        c.status !== "archived" &&
-        c.status !== "closed",
+        c.id !== changeId && c.status !== "archived" && c.status !== "closed",
     )
     .sort((a, b) =>
       (b.lastActivityAt ?? "").localeCompare(a.lastActivityAt ?? ""),
@@ -142,9 +145,7 @@ export async function resolveSiblingOverlap(
 
     const peerCaps = extractCapabilities(peer);
     const peerFiles = extractTouchedFiles(peer);
-    const sharedCaps = scope.capabilities.filter((c) =>
-      peerCaps.includes(c),
-    );
+    const sharedCaps = scope.capabilities.filter((c) => peerCaps.includes(c));
     const sharedPaths = intersectFileLists(scope.touchedFiles, peerFiles);
 
     if (sharedCaps.length === 0 && sharedPaths.length === 0) continue;
@@ -213,9 +214,11 @@ export async function resolveArchivedSinceDuplicates(
   }
   const parentId =
     target &&
-    (target as unknown as {
-      fast_follow_of?: { parent_change_id?: string };
-    }).fast_follow_of?.parent_change_id;
+    (
+      target as unknown as {
+        fast_follow_of?: { parent_change_id?: string };
+      }
+    ).fast_follow_of?.parent_change_id;
 
   // Filter archived, shipped after lastActivityAt, non-self, non-parent.
   const candidateIds = response.changes
@@ -245,9 +248,7 @@ export async function resolveArchivedSinceDuplicates(
 
     const candCaps = extractCapabilities(candidate);
     const candFiles = extractTouchedFiles(candidate);
-    const sharedCaps = scope.capabilities.filter((c) =>
-      candCaps.includes(c),
-    );
+    const sharedCaps = scope.capabilities.filter((c) => candCaps.includes(c));
     const sharedPaths = intersectFileLists(scope.touchedFiles, candFiles);
 
     if (sharedCaps.length === 0 && sharedPaths.length < 3) continue;
@@ -324,7 +325,8 @@ export async function resolveCodebaseDrift(
     if (driftedSet.has(line)) touchEvents++;
   }
 
-  const label: ResumeFreshnessLabel = touchEvents >= 3 ? "repo_backed_fact" : "judgment_call";
+  const label: ResumeFreshnessLabel =
+    touchEvents >= 3 ? "repo_backed_fact" : "judgment_call";
 
   return [
     {
