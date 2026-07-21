@@ -7,6 +7,7 @@ import {
   assertCompletePoisonedHistoryClassifications,
   auditSanitizedHistory,
   sanitizeHistoryForFixture,
+  POISONED_HISTORY_RECOVERY_TARGET,
   type ReplayDivergenceCause,
 } from "../src/temporal/replay-history-classification";
 
@@ -72,11 +73,15 @@ function classify(error: string): ReplayDivergenceCause {
 function currentOperation(error: string): string {
   const machine = error.match(/[A-Za-z][A-Za-z0-9]+Machine/iu)?.[0];
   const event = error.match(/HistoryEvent\([^)]{1,160}\)/u)?.[0];
-  return [machine, event].filter(Boolean).join(": ") || "unresolved command boundary";
+  return (
+    [machine, event].filter(Boolean).join(": ") || "unresolved command boundary"
+  );
 }
 
 async function writeJson(path: string, value: unknown): Promise<void> {
-  const contents = await prettierFormat(JSON.stringify(value), { filepath: path });
+  const contents = await prettierFormat(JSON.stringify(value), {
+    filepath: path,
+  });
   await writeFile(path, contents, "utf8");
 }
 
@@ -104,7 +109,10 @@ async function main(): Promise<void> {
     let rawReplayError: string | undefined;
     try {
       await Worker.runReplayHistory(
-        { workflowsPath, replayName: `${changeId} poisoned production history` },
+        {
+          workflowsPath,
+          replayName: `${changeId} poisoned production history`,
+        },
         raw,
         `adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/${changeId}`,
       );
@@ -119,7 +127,8 @@ async function main(): Promise<void> {
     }
     if (replayedCleanly) {
       const event = raw.events[raw.events.length - 1];
-      if (!event) throw new Error(`${changeId}: exported history has no events.`);
+      if (!event)
+        throw new Error(`${changeId}: exported history has no events.`);
       incident = {
         event,
         error:
@@ -127,7 +136,9 @@ async function main(): Promise<void> {
       };
     }
     if (!incident?.error) {
-      throw new Error(`${changeId}: replay produced no terminal classification.`);
+      throw new Error(
+        `${changeId}: replay produced no terminal classification.`,
+      );
     }
 
     const sanitized = sanitizeHistoryForFixture(raw) as TemporalHistory;
@@ -140,12 +151,16 @@ async function main(): Promise<void> {
     let sanitizedReplayError: string | undefined;
     try {
       await Worker.runReplayHistory(
-        { workflowsPath, replayName: `${changeId} sanitized production history` },
+        {
+          workflowsPath,
+          replayName: `${changeId} sanitized production history`,
+        },
         sanitized,
         `adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/${changeId}`,
       );
     } catch (error) {
-      sanitizedReplayError = error instanceof Error ? error.message : String(error);
+      sanitizedReplayError =
+        error instanceof Error ? error.message : String(error);
     }
 
     const stem = `${changeId}.poisoned-production`;
@@ -155,6 +170,12 @@ async function main(): Promise<void> {
     const failingEventId = Number(incident.event.eventId);
     const sanitizedImmutable = replayedCleanly && Boolean(sanitizedReplayError);
     const classifiedImmutable = Boolean(rawReplayError) && finalizeImmutable;
+    const outcome =
+      sanitizedImmutable || classifiedImmutable
+        ? "immutable_history"
+        : replayedCleanly
+          ? "self_healed"
+          : "reproduced";
     const row = PoisonedHistoryClassificationSchema.parse({
       changeId,
       workflowId: `adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/${changeId}`,
@@ -164,17 +185,19 @@ async function main(): Promise<void> {
         incident.event.eventType ?? "EVENT_TYPE_WORKFLOW_TASK_FAILED",
       observedError: incident.error.slice(0, 2_000),
       currentOperation: currentOperation(incident.error),
-      cause: replayedCleanly ? "bundle_identity_mismatch" : classify(incident.error),
-      outcome: sanitizedImmutable || classifiedImmutable
-        ? "immutable_history"
-        : replayedCleanly
-          ? "self_healed"
-          : "reproduced",
+      cause: replayedCleanly
+        ? "bundle_identity_mismatch"
+        : classify(incident.error),
+      outcome,
       recoveryEvidence: sanitizedImmutable
         ? `Raw production history replays cleanly against current source, but deterministic payload sanitization changes branch-driving state and the safe committed fixture fails replay: ${sanitizedReplayError?.slice(0, 1_000)}`
         : classifiedImmutable
           ? `Captured history records an unversioned search-attribute/activity command order that current source cannot replay (${rawReplayError?.slice(0, 1_000)}). No recorded compatibility marker distinguishes this historical worker order from later open histories, so speculative workflow-code reordering is unsafe; hand off for typed recovery/retirement.`
-        : undefined,
+          : undefined,
+      recoveryTarget:
+        outcome === "immutable_history"
+          ? POISONED_HISTORY_RECOVERY_TARGET
+          : undefined,
     });
     classifications.push(row);
 
@@ -204,7 +227,9 @@ async function main(): Promise<void> {
   }
 
   assertCompletePoisonedHistoryClassifications(classifications);
-  process.stdout.write(`${JSON.stringify({ outputDir, classifications: summary })}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ outputDir, classifications: summary })}\n`,
+  );
 }
 
 await main();

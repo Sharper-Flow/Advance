@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import {
   AFFECTED_POISONED_CHANGE_IDS,
+  auditSanitizedHistory,
   PoisonedHistoryClassificationSchema,
   assertCompletePoisonedHistoryClassifications,
 } from "../replay-history-classification";
@@ -254,6 +255,10 @@ describe("changeWorkflow replay determinism", () => {
         const classification = PoisonedHistoryClassificationSchema.parse(
           await readJson<unknown>(classificationUrl),
         );
+        expect(auditSanitizedHistory(history)).toEqual({
+          safe: true,
+          findings: [],
+        });
         expect(classification.workflowId).toBe(metadata.workflowId);
         expect(metadata.covers.join("\n")).toContain(
           classification.observedError,

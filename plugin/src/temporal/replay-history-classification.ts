@@ -22,6 +22,20 @@ export const ReplayDivergenceCauseSchema = z.enum([
 
 export type ReplayDivergenceCause = z.infer<typeof ReplayDivergenceCauseSchema>;
 
+export const PoisonedHistoryRecoveryTargetSchema = z.object({
+  epicId: z.literal("hardenTemporalReliability"),
+  entryId: z.literal("shell-1784579334278-jib2o8"),
+  title: z.literal(
+    "Recover or retire the 6 poisoned workflows without data loss",
+  ),
+});
+
+export const POISONED_HISTORY_RECOVERY_TARGET = {
+  epicId: "hardenTemporalReliability",
+  entryId: "shell-1784579334278-jib2o8",
+  title: "Recover or retire the 6 poisoned workflows without data loss",
+} as const;
+
 export const PoisonedHistoryClassificationSchema = z
   .object({
     changeId: AffectedChangeIdSchema,
@@ -38,6 +52,7 @@ export const PoisonedHistoryClassificationSchema = z
     cause: ReplayDivergenceCauseSchema,
     outcome: z.enum(["reproduced", "self_healed", "immutable_history"]),
     recoveryEvidence: z.string().min(1).optional(),
+    recoveryTarget: PoisonedHistoryRecoveryTargetSchema.optional(),
   })
   .superRefine((row, ctx) => {
     if (row.outcome === "immutable_history" && !row.recoveryEvidence) {
@@ -45,6 +60,20 @@ export const PoisonedHistoryClassificationSchema = z
         code: "custom",
         path: ["recoveryEvidence"],
         message: "recoveryEvidence is required for immutable_history",
+      });
+    }
+    if (row.outcome === "immutable_history" && !row.recoveryTarget) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["recoveryTarget"],
+        message: "recoveryTarget is required for immutable_history",
+      });
+    }
+    if (row.outcome !== "immutable_history" && row.recoveryTarget) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["recoveryTarget"],
+        message: "recoveryTarget is only valid for immutable_history",
       });
     }
   });
@@ -89,7 +118,8 @@ export function assertCompletePoisonedHistoryClassifications(
   return rows;
 }
 
-const SENSITIVE_KEY = /^(proposal|agreement|task|tasks|evidence|acceptance)$/i;
+const SENSITIVE_KEY =
+  /^(proposal|agreement|task|tasks|evidence|acceptance|documents?|subagent[-_]?reports?)$/i;
 const SECRET_TEXT =
   /(?:api[_-]?key|secret|token|password|private[_-]?key)\s*[:=]/i;
 const REPLAY_PLACEHOLDER = { redacted: true, kind: "adv-payload" } as const;

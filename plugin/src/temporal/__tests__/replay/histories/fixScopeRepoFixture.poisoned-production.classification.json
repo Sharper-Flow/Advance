@@ -8,5 +8,10 @@
   "currentOperation": "unresolved command boundary",
   "cause": "bundle_identity_mismatch",
   "outcome": "immutable_history",
-  "recoveryEvidence": "Raw production history replays cleanly against current source, but deterministic payload sanitization changes branch-driving state and the safe committed fixture fails replay: Replay failed with a nondeterminism error. This means that the workflow code as written is not compatible with the history that was fed in. Details: Workflow activation completion failed: Failure { failure: Some(Failure { message: \"[TMPRL1100] Nondeterminism error: Activity machine does not handle this event: HistoryEvent(id: 208, UpsertWorkflowSearchAttributes)\", source: \"\", stack_trace: \"\", encoded_attributes: None, cause: None, failure_info: Some(ApplicationFailureInfo(ApplicationFailureInfo { r#type: \"\", non_retryable: false, details: None, next_retry_delay: None, category: Unspecified })) }), force_cause: NonDeterministicError }"
+  "recoveryEvidence": "Raw production history replays cleanly against current source, but deterministic payload sanitization changes branch-driving state and the safe committed fixture fails replay: Replay failed with a nondeterminism error. This means that the workflow code as written is not compatible with the history that was fed in. Details: Workflow activation completion failed: Failure { failure: Some(Failure { message: \"[TMPRL1100] Nondeterminism error: Activity machine does not handle this event: HistoryEvent(id: 208, UpsertWorkflowSearchAttributes)\", source: \"\", stack_trace: \"\", encoded_attributes: None, cause: None, failure_info: Some(ApplicationFailureInfo(ApplicationFailureInfo { r#type: \"\", non_retryable: false, details: None, next_retry_delay: None, category: Unspecified })) }), force_cause: NonDeterministicError }",
+  "recoveryTarget": {
+    "epicId": "hardenTemporalReliability",
+    "entryId": "shell-1784579334278-jib2o8",
+    "title": "Recover or retire the 6 poisoned workflows without data loss"
+  }
 }

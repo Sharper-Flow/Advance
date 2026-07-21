@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AFFECTED_POISONED_CHANGE_IDS,
+  POISONED_HISTORY_RECOVERY_TARGET,
   PoisonedHistoryClassificationSchema,
   assertCompletePoisonedHistoryClassifications,
   auditSanitizedHistory,
@@ -37,13 +38,45 @@ describe("poisoned history classification", () => {
     );
   });
 
-  it("requires concrete recovery evidence for immutable histories", () => {
+  it("requires concrete recovery evidence and target for immutable histories", () => {
     expect(() =>
       PoisonedHistoryClassificationSchema.parse({
         ...classification(AFFECTED_POISONED_CHANGE_IDS[0]),
         outcome: "immutable_history",
       }),
     ).toThrow(/recoveryEvidence/i);
+    expect(() =>
+      PoisonedHistoryClassificationSchema.parse({
+        ...classification(AFFECTED_POISONED_CHANGE_IDS[0]),
+        outcome: "immutable_history",
+        recoveryEvidence: "Recorded replay evidence",
+      }),
+    ).toThrow(/recoveryTarget/i);
+  });
+
+  it("rejects malformed immutable recovery targets and accepts self-healed rows without one", () => {
+    expect(() =>
+      PoisonedHistoryClassificationSchema.parse({
+        ...classification(AFFECTED_POISONED_CHANGE_IDS[0]),
+        outcome: "immutable_history",
+        recoveryEvidence: "Recorded replay evidence",
+        recoveryTarget: {
+          ...POISONED_HISTORY_RECOVERY_TARGET,
+          entryId: "wrong",
+        },
+      }),
+    ).toThrow(/entryId/i);
+    expect(() =>
+      PoisonedHistoryClassificationSchema.parse({
+        ...classification(AFFECTED_POISONED_CHANGE_IDS[0]),
+        recoveryTarget: POISONED_HISTORY_RECOVERY_TARGET,
+      }),
+    ).toThrow(/only valid/i);
+    expect(
+      PoisonedHistoryClassificationSchema.parse(
+        classification(AFFECTED_POISONED_CHANGE_IDS[0]),
+      ),
+    ).not.toHaveProperty("recoveryTarget");
   });
 });
 
@@ -136,6 +169,37 @@ describe("sanitized history audit", () => {
     expect(auditSanitizedHistory(sanitized)).toEqual({
       safe: true,
       findings: [],
+    });
+  });
+
+  it("rejects nested document, task, evidence, subagent-report, and secret payloads", () => {
+    const history = {
+      events: [
+        {
+          input: {
+            payloads: [
+              {
+                data: Buffer.from(
+                  JSON.stringify({
+                    state: {
+                      documents: { agreement: "private agreement" },
+                      tasks: [{ title: "private task" }],
+                      evidence: { proof: "private evidence" },
+                      subagentReports: [{ summary: "private report" }],
+                      nested: { credential: "token=super-secret" },
+                    },
+                  }),
+                ).toString("base64"),
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(auditSanitizedHistory(history)).toEqual({
+      safe: false,
+      findings: ["$.events[0].input.payloads[0].data"],
     });
   });
 });
