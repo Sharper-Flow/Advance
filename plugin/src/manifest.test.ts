@@ -509,7 +509,7 @@ describe("Command Manifest", () => {
  * field is metadata-only, not runtime-enforced.
  */
 describe("manifest.ts prerequisites field doc-comment (rq-defectOriginRca01)", () => {
-  const source = readFileSync(join(REPO_ROOT, "src/manifest.ts"), "utf8");
+  const source = readFileSync(join(__dirname, "manifest.ts"), "utf8");
 
   test("prerequisites field has doc-comment marking it metadata-only", () => {
     // Semantic anchors per design DDC1.
