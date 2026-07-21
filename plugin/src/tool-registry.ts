@@ -28,6 +28,43 @@ import { formatToolOutput, paginate } from "./utils/tool-output";
 import type { Store } from "./storage/store-types";
 import type { OpencodeClient } from "./utils/opencode-types";
 
+// Re-export SDK-free catalog types/functions/constants so existing imports
+// from tool-registry keep working (KD2 — task tk-9ad1a04909a2).
+// The canonical definitions live in ./tool-catalog-entries; tool-registry
+// consumes them and layers the SDK-coupled PUBLIC_TOOL_GROUPS data on top.
+export {
+  type ToolArgsSchema,
+  type PublicToolGroup,
+  type PublicToolEntry,
+  type ToolCatalogItem,
+  type ToolInputSchemaResult,
+  type ToolRealm,
+  type ToolGroup,
+  type ToolLifecycleGate,
+  type ToolMetadataV1,
+  ADV_PUBLIC_TOOL_BASELINE_COUNT,
+  REALM_OVERRIDES,
+  REALM_PREFIXES,
+  GROUP_OVERRIDES,
+  LIFECYCLE_BY_REALM,
+  REPAIR_LIFECYCLE,
+  collectPublicToolEntries,
+  renderToolInputSchema,
+  deriveToolRealm,
+  deriveToolMetadata,
+} from "./tool-catalog-entries";
+import {
+  collectPublicToolEntries,
+  renderToolInputSchema,
+  getToolSurface as getToolSurfaceFromEntries,
+  deriveToolMetadata,
+  type ToolArgsSchema,
+  type PublicToolGroup,
+  type PublicToolEntry,
+  type ToolCatalogItem,
+  type ToolMetadataV1,
+} from "./tool-catalog-entries";
+
 import { specTools } from "./tools/spec";
 import { specDeltaTools } from "./tools/spec-delta";
 import { backlogTools, WIP_CALLER_TIMEOUT_MS } from "./tools/backlog";
@@ -61,7 +98,6 @@ import { storeConsolidateTools } from "./tools/store-consolidate";
 import { storeCleanupTools } from "./tools/store-cleanup";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
 import { advInvokeTools } from "./tools/adv-invoke";
-type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
   contextOrExtra?: unknown,
@@ -1073,102 +1109,6 @@ export function createToolMap(
  * pre-consolidation surface omitted them).
  */
 
-/** One retained public `*Tools` export group (data-only view). */
-export type PublicToolGroup = Readonly<
-  Record<string, { description: string; args: ToolArgsSchema }>
->;
-
-/** Canonical definition record: name, required description, original Zod args. */
-export interface PublicToolEntry {
-  readonly name: string;
-  readonly description: string;
-  readonly args: ToolArgsSchema;
-}
-
-/**
- * Flatten retained public groups into ordered definition records.
- *
- * DDC2: a duplicate exported public name across groups is rejected BEFORE any
- * Set/Map construction can collapse it — a collision throws instead of
- * silently dropping one of the colliding tools.
- *
- * SC4: every record must carry a non-empty description and the original Zod
- * args; the silent `args ?? {}` fallback is removed (addAdvanceMetadata).
- */
-export function collectPublicToolEntries(
-  groups: readonly PublicToolGroup[],
-): PublicToolEntry[] {
-  const entries: PublicToolEntry[] = [];
-  const firstGroupIndex = new Map<string, number>();
-  groups.forEach((group, groupIndex) => {
-    for (const [name, def] of Object.entries(group)) {
-      const first = firstGroupIndex.get(name);
-      if (first !== undefined) {
-        throw new Error(
-          `Duplicate public tool name "${name}" exported by public tool inventory groups at index ${first} and ${groupIndex}. Public names must be unique across retained groups before any Set/Map construction (consolidateAdvToolSurface2 DDC2).`,
-        );
-      }
-      if (typeof def.description !== "string" || def.description.length === 0) {
-        throw new Error(
-          `Public tool "${name}" is missing a required description. Every canonical definition record must carry a non-empty description (addAdvanceMetadata SC4).`,
-        );
-      }
-      if (
-        !def.args ||
-        typeof def.args !== "object" ||
-        Array.isArray(def.args)
-      ) {
-        throw new Error(
-          `Public tool "${name}" is missing required original Zod args. Every canonical definition record must carry its args schema (addAdvanceMetadata SC4).`,
-        );
-      }
-      firstGroupIndex.set(name, groupIndex);
-      entries.push({ name, description: def.description, args: def.args });
-    }
-  });
-  return entries;
-}
-
-// =============================================================================
-// Tool Catalog / Describe Projections (addAdvanceMetadata AC3/C3/C4)
-// =============================================================================
-
-/** One entry in the read-only ADV tool catalog. */
-export interface ToolCatalogItem {
-  readonly name: string;
-  readonly description: string;
-  readonly argKeys: readonly string[];
-  readonly visibility: ToolMetadataV1;
-}
-
-/** Result of converting a tool's canonical Zod args to JSON Schema. */
-export type ToolInputSchemaResult =
-  | { readonly ok: true; readonly schema: Record<string, unknown> }
-  | { readonly ok: false; readonly code: string; readonly error: string };
-
-/**
- * Render the input JSON Schema for a canonical tool definition using Zod's
- * native `toJSONSchema` with input semantics. Failures are surfaced as typed
- * projection errors rather than falling back to argument names (AC4).
- */
-export function renderToolInputSchema(
-  entry: PublicToolEntry,
-): ToolInputSchemaResult {
-  try {
-    const schema = z.toJSONSchema(z.object(entry.args), {
-      io: "input",
-      unrepresentable: "throw",
-    }) as Record<string, unknown>;
-    return { ok: true, schema };
-  } catch (err) {
-    return {
-      ok: false,
-      code: "SCHEMA_CONVERSION_FAILED",
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
-
 /**
  * Read-only catalog and describe tools for the canonical ADV tool surface.
  * They project the existing definition inventory and metadata; they never
@@ -1314,40 +1254,21 @@ const PUBLIC_TOOL_GROUPS = [
   advInvokeTools,
 ] as const satisfies readonly PublicToolGroup[];
 
-const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(
+export const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(
   collectPublicToolEntries(PUBLIC_TOOL_GROUPS),
 );
 
 /**
  * Live tool-surface lookup (addAcWarrantGuard): tool name → set of declared
  * argument keys, derived from PUBLIC_TOOL_ENTRIES (data only — no `execute`
- * invocation). This is the source of truth used to verify capability warrants
- * at contract mint. Because it derives from the same typed inventory as
- * ADV_TOOL_NAMES, the warrant surface cannot drift from the canonical list
- * (DDC1), and per-tool argument keys always equal the declared definition
- * keys (DDC3).
- *
- * Consumed by `adv_contract_mint` via a runtime dynamic import so the pure
- * `validator/contract-mint.ts` / `validator/warrant.ts` never statically import
- * the registry (no import cycle).
+ * invocation). Backward-compat wrapper: the imported pure function takes
+ * entries explicitly; this wrapper binds PUBLIC_TOOL_ENTRIES for the legacy
+ * no-arg API. The pure function is re-exported from ./tool-catalog-entries
+ * for new MCP consumers.
  */
 export function getToolSurface(): Map<string, Set<string>> {
-  const surface = new Map<string, Set<string>>();
-  for (const entry of PUBLIC_TOOL_ENTRIES) {
-    surface.set(entry.name, new Set(Object.keys(entry.args)));
-  }
-  return surface;
+  return getToolSurfaceFromEntries(PUBLIC_TOOL_ENTRIES);
 }
-
-/**
- * SC1 source baseline: the number of registered public ADV tools recorded at
- * the start of consolidateAdvToolSurface2 implementation (2026-07-15). The
- * final canonical count must be strictly lower once this change's contracted
- * public removals (adv_backlog_state, adv_project_wisdom_list) land; the
- * baseline/final exact-accounting assertion lives in
- * tool-registry.inventory.test.ts.
- */
-export const ADV_PUBLIC_TOOL_BASELINE_COUNT = 80;
 
 /**
  * Canonical list of all ADV tool names, derived from PUBLIC_TOOL_GROUPS.
@@ -1359,285 +1280,6 @@ export const ADV_PUBLIC_TOOL_BASELINE_COUNT = 80;
 export const ADV_TOOL_NAMES: readonly string[] = Object.freeze(
   PUBLIC_TOOL_ENTRIES.map((entry) => entry.name),
 );
-
-/**
- * Canonical descriptive metadata for every retained ADV tool.
- *
- * Owned facts only: realm, group, lifecycle gates, risk, and recovery-only
- * flag. This table does NOT copy authority from TOOL_ROLE_POLICY (class,
- * agentActions, operatorActions, rationale) or manifest grants from
- * AGENT_TOOL_POLICY (allowed, explicitBlocked, denyWildcard). It is a
- * descriptive, non-authorizing source used by catalog/describe projections
- * and profile authoring (addAdvanceMetadata SC4/AC1/AC5/C1/C2/C5).
- */
-
-export type ToolRealm =
-  | "archive"
-  | "backlog"
-  | "change"
-  | "conformance"
-  | "contract"
-  | "design"
-  | "epic"
-  | "followup"
-  | "gate"
-  | "lightweight"
-  | "ops"
-  | "project"
-  | "reflection"
-  | "report"
-  | "session"
-  | "snapshot"
-  | "spec"
-  | "status"
-  | "store"
-  | "task"
-  | "temporal"
-  | "test"
-  | "tool"
-  | "verification"
-  | "wisdom"
-  | "worktree";
-
-export type ToolGroup =
-  | "bulk"
-  | "diagnostics"
-  | "lifecycle"
-  | "metadata"
-  | "read"
-  | "repair"
-  | "write";
-
-export type ToolLifecycleGate =
-  | "proposal"
-  | "discovery"
-  | "design"
-  | "planning"
-  | "execution"
-  | "acceptance"
-  | "release";
-
-export interface ToolMetadataV1 {
-  readonly realm: ToolRealm;
-  readonly group: ToolGroup;
-  readonly lifecycle: ReadonlyArray<ToolLifecycleGate>;
-  readonly risk: "low" | "medium" | "high" | "operator";
-  readonly recoveryOnly: boolean;
-}
-
-const REALM_OVERRIDES: Record<string, ToolRealm> = {
-  adv_conformance: "conformance",
-  adv_delta_add: "spec",
-  adv_delta_modify: "spec",
-  adv_design_concern_disposition: "design",
-  adv_followup_promote: "followup",
-  adv_report_followup_promote: "report",
-  adv_subagent_report_submit: "report",
-  adv_run_test: "test",
-  adv_snapshot_health: "snapshot",
-  adv_spec: "spec",
-  adv_status: "status",
-  adv_wip_state: "status",
-  adv_lightweight_profile_evaluate: "lightweight",
-  adv_verification_evidence_disposition: "verification",
-  adv_reflect: "reflection",
-  adv_reflection_list: "reflection",
-};
-
-const REALM_PREFIXES: ReadonlyArray<readonly [string, ToolRealm]> = [
-  ["adv_archive_", "archive"],
-  ["adv_backlog_", "backlog"],
-  ["adv_change_", "change"],
-  ["adv_contract_", "contract"],
-  ["adv_epic_", "epic"],
-  ["adv_gate_", "gate"],
-  ["adv_ops_", "ops"],
-  ["adv_project_", "project"],
-  ["adv_session_", "session"],
-  ["adv_store_", "store"],
-  ["adv_task_", "task"],
-  ["adv_temporal_", "temporal"],
-  ["adv_tool_", "tool"],
-  ["adv_worktree_", "worktree"],
-  ["adv_wisdom_", "wisdom"],
-];
-
-function deriveToolRealm(name: string): ToolRealm {
-  const override = REALM_OVERRIDES[name];
-  if (override) return override;
-  for (const [prefix, realm] of REALM_PREFIXES) {
-    if (name.startsWith(prefix)) return realm;
-  }
-  return "change";
-}
-
-const GROUP_OVERRIDES: Record<string, ToolGroup> = {
-  // Repair / operator-only recovery surface
-  adv_archive_purge: "repair",
-  adv_archive_repair: "repair",
-  adv_change_repair_origin: "repair",
-  adv_change_status_repair: "repair",
-  adv_change_workflow_terminate: "repair",
-  adv_store_cleanup: "repair",
-  adv_store_consolidate: "repair",
-  adv_temporal_reconnect: "repair",
-  adv_temporal_register_search_attributes: "repair",
-  adv_temporal_worker_restart: "repair",
-
-  // Diagnostics / read-heavy analysis surface
-  adv_change_validate: "diagnostics",
-  adv_conformance: "diagnostics",
-  adv_design_concern_disposition: "diagnostics",
-  adv_lightweight_profile_evaluate: "diagnostics",
-  adv_run_test: "diagnostics",
-  adv_snapshot_health: "diagnostics",
-  adv_temporal_diagnose: "diagnostics",
-  adv_verification_evidence_disposition: "diagnostics",
-
-  // Metadata / submission surface
-  adv_project_metadata: "metadata",
-  adv_reflect: "metadata",
-  adv_subagent_report_submit: "metadata",
-
-  // Read surface
-  adv_backlog_list: "read",
-  adv_backlog_show: "read",
-  adv_change_list: "read",
-  adv_change_show: "read",
-  adv_epic_list: "read",
-  adv_epic_show: "read",
-  adv_gate_status: "read",
-  adv_project_context: "read",
-  adv_reflection_list: "read",
-  adv_session_list: "read",
-  adv_session_show: "read",
-  adv_spec: "read",
-  adv_status: "read",
-  adv_task_list: "read",
-  adv_task_ready: "read",
-  adv_task_show: "read",
-  adv_tool_catalog: "read",
-  adv_tool_describe: "read",
-  adv_wip_state: "read",
-  adv_wisdom_list: "read",
-  adv_worktree_triage: "read",
-
-  // Lifecycle transitions
-  adv_backlog_promote: "lifecycle",
-  adv_change_archive: "lifecycle",
-  adv_change_reenter: "lifecycle",
-  adv_epic_add_shell: "lifecycle",
-  adv_epic_promote_shell: "lifecycle",
-  adv_followup_promote: "lifecycle",
-  adv_gate_complete: "lifecycle",
-  adv_report_followup_promote: "lifecycle",
-  adv_worktree_resume: "lifecycle",
-
-  // Bulk operations
-  adv_change_bulk_close: "bulk",
-};
-
-const LIFECYCLE_BY_REALM: Readonly<
-  Record<ToolRealm, ReadonlyArray<ToolLifecycleGate>>
-> = {
-  archive: ["release"],
-  backlog: ["proposal", "discovery"],
-  change: [
-    "proposal",
-    "discovery",
-    "design",
-    "planning",
-    "execution",
-    "acceptance",
-    "release",
-  ],
-  conformance: ["acceptance"],
-  contract: ["discovery", "planning"],
-  design: ["execution"],
-  epic: ["proposal", "discovery", "planning", "execution"],
-  followup: ["execution", "acceptance"],
-  gate: ["acceptance", "release"],
-  lightweight: ["execution"],
-  ops: ["execution"],
-  project: [
-    "proposal",
-    "discovery",
-    "design",
-    "planning",
-    "execution",
-    "acceptance",
-    "release",
-  ],
-  reflection: ["release"],
-  report: ["execution", "acceptance"],
-  session: [
-    "proposal",
-    "discovery",
-    "design",
-    "planning",
-    "execution",
-    "acceptance",
-    "release",
-  ],
-  snapshot: [
-    "proposal",
-    "discovery",
-    "design",
-    "planning",
-    "execution",
-    "acceptance",
-    "release",
-  ],
-  spec: ["proposal", "discovery"],
-  status: [
-    "proposal",
-    "discovery",
-    "design",
-    "planning",
-    "execution",
-    "acceptance",
-    "release",
-  ],
-  store: ["release"],
-  task: ["planning", "execution"],
-  temporal: ["execution", "acceptance", "release"],
-  test: ["execution", "acceptance"],
-  tool: [
-    "proposal",
-    "discovery",
-    "design",
-    "planning",
-    "execution",
-    "acceptance",
-    "release",
-  ],
-  verification: ["acceptance"],
-  wisdom: ["execution", "acceptance", "release"],
-  worktree: ["execution"],
-};
-
-const REPAIR_LIFECYCLE: ReadonlyArray<ToolLifecycleGate> = [
-  "execution",
-  "acceptance",
-  "release",
-];
-
-function deriveToolMetadata(name: string): ToolMetadataV1 {
-  const realm = deriveToolRealm(name);
-  const group = GROUP_OVERRIDES[name] ?? "write";
-  const lifecycle: ReadonlyArray<ToolLifecycleGate> =
-    group === "repair" ? REPAIR_LIFECYCLE : LIFECYCLE_BY_REALM[realm];
-  const risk: ToolMetadataV1["risk"] =
-    group === "repair"
-      ? "operator"
-      : group === "bulk" || group === "write"
-        ? "high"
-        : group === "diagnostics"
-          ? "medium"
-          : "low";
-  const recoveryOnly = group === "repair";
-  return { realm, group, lifecycle, risk, recoveryOnly };
-}
 
 export const ADV_TOOL_METADATA: Readonly<Record<string, ToolMetadataV1>> =
   Object.freeze(

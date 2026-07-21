@@ -1,20 +1,23 @@
 /**
  * Plugin bundle generation manifest.
  *
- * The host-loaded plugin bundle (`dist/index.js`) is evaluated once per OpenCode
- * session. The build emits a generation *before* bundling, embeds it into the
- * bundle via a tsup `define`, and then records the final `index.js` SHA-256 in
- * an atomic sidecar manifest (`dist/plugin-bundle-manifest.json`). At runtime
- * the embedded generation is compared against the deployed manifest generation
- * to detect stale plugin bundles without relying on filesystem timestamps.
+ * The host-loaded plugin bundle (`dist/index.js`) and the ADV MCP server
+ * (`dist/mcp-server.js`) are evaluated by the OpenCode host and Vision's
+ * Node process respectively. The build emits a generation *before* bundling,
+ * embeds it into the bundles via a tsup `define`, and then records the final
+ * `index.js` and `mcp-server.js` SHA-256s in an atomic sidecar manifest
+ * (`dist/plugin-bundle-manifest.json`). At runtime the embedded generation is
+ * compared against the deployed manifest generation to detect stale bundles.
  *
  * Generation contract:
  *   - `generation` is an opaque pre-bundle token (64-char hex). It is defined
  *     before the bundler runs and never recomputed from the final bytes.
  *   - `files.index` is the SHA-256 of the final `index.js` and is diagnostic
  *     only; equality of `generation` is the staleness authority.
- *   - The manifest is written LAST (after `index.js` exists) via temp-file +
- *     rename so concurrent readers never observe a partial write.
+ *   - `files.mcp-server` is the SHA-256 of the final `mcp-server.js` and is
+ *     diagnostic only.
+ *   - The manifest is written LAST (after both bundle files exist) via temp-file
+ *     + rename so concurrent readers never observe a partial write.
  */
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -27,7 +30,7 @@ export const PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION = 1;
 
 export const PLUGIN_BUNDLE_STALE_ADVISORY = "PLUGIN_BUNDLE_STALE";
 
-export type PluginBundleFile = "index";
+export type PluginBundleFile = "index" | "mcp-server";
 
 export interface PluginBundleManifest {
   schema_version: typeof PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION;
@@ -87,11 +90,11 @@ async function hashFileSha256(path: string): Promise<string> {
 }
 
 /**
- * Hash the plugin bundle's `index.js` and atomically write the manifest into
- * `distDir`. Must run AFTER the bundler has finished writing `index.js` (the
- * manifest is the LAST write of the plugin build). Throws when `index.js` is
- * missing — a build that cannot produce the plugin bundle must not produce a
- * manifest.
+ * Hash the plugin bundle's `index.js` and `mcp-server.js` and atomically write
+ * the manifest into `distDir`. Must run AFTER the bundler has finished writing
+ * both artifacts (the manifest is the LAST write of the plugin build). Throws
+ * when either artifact is missing — a build that cannot produce both bundles
+ * must not produce a manifest.
  */
 export async function writePluginBundleManifest(
   distDir: string,
@@ -99,19 +102,26 @@ export async function writePluginBundleManifest(
   options: WritePluginBundleManifestOptions = {},
 ): Promise<PluginBundleManifest> {
   const indexPath = join(distDir, "index.js");
-  const indexSha256 = await hashFileSha256(indexPath).catch(
-    (err: NodeJS.ErrnoException) => {
+  const mcpServerPath = join(distDir, "mcp-server.js");
+
+  const [indexSha256, mcpServerSha256] = await Promise.all([
+    hashFileSha256(indexPath).catch((err: NodeJS.ErrnoException) => {
       throw new Error(
         `Cannot write plugin bundle manifest: index.js is missing from ${distDir} (${err.code ?? err.message}).`,
       );
-    },
-  );
+    }),
+    hashFileSha256(mcpServerPath).catch((err: NodeJS.ErrnoException) => {
+      throw new Error(
+        `Cannot write plugin bundle manifest: mcp-server.js is missing from ${distDir} (${err.code ?? err.message}).`,
+      );
+    }),
+  ]);
 
   const builtAt = (options.now ?? (() => new Date()))().toISOString();
   const manifest: PluginBundleManifest = {
     schema_version: PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION,
     generation,
-    files: { index: indexSha256 },
+    files: { index: indexSha256, "mcp-server": mcpServerSha256 },
     built_at: builtAt,
   };
 
@@ -153,11 +163,22 @@ export async function readPluginBundleManifest(
   ) {
     return null;
   }
+  const files = candidate.files as Record<string, unknown> | undefined;
   if (
-    !candidate.files ||
-    typeof candidate.files !== "object" ||
-    typeof (candidate.files as Record<string, unknown>).index !== "string" ||
-    !/^[0-9a-f]{64}$/.test((candidate.files as Record<string, string>).index)
+    !files ||
+    typeof files !== "object" ||
+    typeof files.index !== "string" ||
+    !/^[0-9a-f]{64}$/.test(files.index)
+  ) {
+    return null;
+  }
+  // The manifest is produced atomically with both hashes; if an older
+  // manifest lacks mcp-server.js, preserve backward compatibility by
+  // accepting it as a partial record. If the key is present, validate it.
+  if (
+    "mcp-server" in files &&
+    (typeof files["mcp-server"] !== "string" ||
+      !/^[0-9a-f]{64}$/.test(files["mcp-server"]))
   ) {
     return null;
   }

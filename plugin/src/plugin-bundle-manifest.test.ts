@@ -30,11 +30,12 @@ afterEach(async () => {
   tempDirs = [];
 });
 
-const tempDistDir = async (withIndex = true) => {
+const tempDistDir = async (withFiles = true) => {
   const dir = await createTempDir("plugin-bundle-manifest-");
   tempDirs.push(dir);
-  if (withIndex) {
+  if (withFiles) {
     await writeFile(join(dir, "index.js"), "// plugin bundle v1\n");
+    await writeFile(join(dir, "mcp-server.js"), "// mcp server bundle v1\n");
   }
   return dir;
 };
@@ -46,7 +47,7 @@ describe("plugin bundle manifest", () => {
     expect(generatePluginBundleGeneration()).not.toBe(gen);
   });
 
-  test("write produces schema-v1 manifest with generation and index SHA-256", async () => {
+  test("write produces schema-v1 manifest with generation and both file hashes", async () => {
     const dir = await tempDistDir();
     const generation = generatePluginBundleGeneration();
     const manifest = await writePluginBundleManifest(dir, generation, {
@@ -56,6 +57,9 @@ describe("plugin bundle manifest", () => {
     expect(manifest.schema_version).toBe(1);
     expect(manifest.generation).toBe(generation);
     expect(manifest.files.index).toBe(sha256("// plugin bundle v1\n"));
+    expect(manifest.files["mcp-server"]).toBe(
+      sha256("// mcp server bundle v1\n"),
+    );
     expect(manifest.built_at).toBe(NOW.toISOString());
 
     const raw = await readFile(
@@ -65,6 +69,7 @@ describe("plugin bundle manifest", () => {
     const parsed = JSON.parse(raw);
     expect(parsed.schema_version).toBe(1);
     expect(parsed.files.index).toBe(manifest.files.index);
+    expect(parsed.files["mcp-server"]).toBe(manifest.files["mcp-server"]);
   });
 
   test("write is atomic via temp+rename and leaves no temp files", async () => {
@@ -83,6 +88,15 @@ describe("plugin bundle manifest", () => {
     await expect(
       writePluginBundleManifest(dir, generatePluginBundleGeneration()),
     ).rejects.toThrow(/index\.js/);
+  });
+
+  test("write refuses when mcp-server.js is missing", async () => {
+    const dir = await createTempDir("plugin-bundle-manifest-");
+    tempDirs.push(dir);
+    await writeFile(join(dir, "index.js"), "// index only\n");
+    await expect(
+      writePluginBundleManifest(dir, generatePluginBundleGeneration()),
+    ).rejects.toThrow(/mcp-server\.js/);
   });
 
   test("read round-trips a written manifest", async () => {
@@ -117,12 +131,29 @@ describe("plugin bundle manifest", () => {
       JSON.stringify({
         schema_version: 1,
         generation: "short",
-        files: { index: "also-short" },
+        files: { index: "also-short", "mcp-server": "also-short" },
         built_at: NOW.toISOString(),
       }),
     );
     await expect(
       readPluginBundleManifest(badGenerationDir),
+    ).resolves.toBeNull();
+
+    const badMcpServerHashDir = await tempDistDir();
+    await writeFile(
+      join(badMcpServerHashDir, PLUGIN_BUNDLE_MANIFEST_FILENAME),
+      JSON.stringify({
+        schema_version: 1,
+        generation: generatePluginBundleGeneration(),
+        files: {
+          index: generatePluginBundleGeneration(),
+          "mcp-server": "short",
+        },
+        built_at: NOW.toISOString(),
+      }),
+    );
+    await expect(
+      readPluginBundleManifest(badMcpServerHashDir),
     ).resolves.toBeNull();
 
     const unsupportedDir = await tempDistDir();
@@ -143,7 +174,10 @@ describe("plugin bundle manifest", () => {
       JSON.stringify({
         schema_version: 1,
         generation: generatePluginBundleGeneration(),
-        files: { index: generatePluginBundleGeneration() },
+        files: {
+          index: generatePluginBundleGeneration(),
+          "mcp-server": generatePluginBundleGeneration(),
+        },
         built_at: "not-an-iso-timestamp",
       }),
     );
@@ -152,13 +186,34 @@ describe("plugin bundle manifest", () => {
     ).resolves.toBeNull();
   });
 
+  test("read accepts a legacy manifest that lacks mcp-server.js", async () => {
+    const dir = await tempDistDir();
+    const generation = generatePluginBundleGeneration();
+    await writeFile(
+      join(dir, PLUGIN_BUNDLE_MANIFEST_FILENAME),
+      JSON.stringify({
+        schema_version: 1,
+        generation,
+        files: { index: generatePluginBundleGeneration() },
+        built_at: NOW.toISOString(),
+      }),
+    );
+    const read = await readPluginBundleManifest(dir);
+    expect(read).not.toBeNull();
+    expect(read?.generation).toBe(generation);
+    expect(read?.files["mcp-server"]).toBeUndefined();
+  });
+
   describe("comparePluginBundleGenerations", () => {
     test("returns current when loaded and deployed generations match", () => {
       const generation = generatePluginBundleGeneration();
       const manifest = {
         schema_version: 1 as const,
         generation,
-        files: { index: generatePluginBundleGeneration() },
+        files: {
+          index: generatePluginBundleGeneration(),
+          "mcp-server": generatePluginBundleGeneration(),
+        },
         built_at: NOW.toISOString(),
       };
       const result = comparePluginBundleGenerations(generation, manifest);
@@ -175,7 +230,10 @@ describe("plugin bundle manifest", () => {
       const manifest = {
         schema_version: 1 as const,
         generation: deployed,
-        files: { index: generatePluginBundleGeneration() },
+        files: {
+          index: generatePluginBundleGeneration(),
+          "mcp-server": generatePluginBundleGeneration(),
+        },
         built_at: NOW.toISOString(),
       };
       const result = comparePluginBundleGenerations(loaded, manifest);
@@ -190,7 +248,10 @@ describe("plugin bundle manifest", () => {
       const manifest = {
         schema_version: 1 as const,
         generation: generatePluginBundleGeneration(),
-        files: { index: generatePluginBundleGeneration() },
+        files: {
+          index: generatePluginBundleGeneration(),
+          "mcp-server": generatePluginBundleGeneration(),
+        },
         built_at: NOW.toISOString(),
       };
       const result = comparePluginBundleGenerations(null, manifest);
@@ -213,7 +274,10 @@ describe("plugin bundle manifest", () => {
       const manifest = {
         schema_version: 1 as const,
         generation: generatePluginBundleGeneration(),
-        files: { index: indexHash },
+        files: {
+          index: indexHash,
+          "mcp-server": generatePluginBundleGeneration(),
+        },
         built_at: NOW.toISOString(),
       };
       const result = comparePluginBundleGenerations(loaded, manifest);
@@ -289,6 +353,11 @@ describe("plugin bundle path resolution", () => {
   test("getPluginRoot resolves plugin root from bundled dist chunk module", () => {
     const chunkUrl = "file:///home/user/advance/plugin/dist/chunk-PL7DRBOO.js";
     expect(getPluginRoot(chunkUrl)).toBe("/home/user/advance/plugin");
+  });
+
+  test("getPluginRoot resolves plugin root from bundled dist/mcp-server.js module", () => {
+    const mcpUrl = "file:///home/user/advance/plugin/dist/mcp-server.js";
+    expect(getPluginRoot(mcpUrl)).toBe("/home/user/advance/plugin");
   });
 
   test("getPluginBundleDistDir resolves plugin/dist from source module", () => {

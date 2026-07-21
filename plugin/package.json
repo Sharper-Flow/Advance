@@ -16,6 +16,7 @@
   "author": "Anomaly",
   "scripts": {
     "build": "tsx scripts/build-plugin.ts && pnpm run build:worker && pnpm run build:identity",
+    "build:mcp-server": "tsup src/mcp-server/index.ts --format esm --out-dir dist --no-splitting",
     "build:worker": "tsup src/temporal/worker.ts src/temporal/workflows.ts --format esm --out-dir dist/temporal && tsx scripts/write-worker-bundle-manifest.ts",
     "build:identity": "tsx scripts/write-build-identity.ts",
     "dev": "tsup src/index.ts --format esm --watch",
@@ -36,6 +37,7 @@
     "bench:latency": "bun --smol scripts/bench-adv-latency.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@opencode-ai/plugin": "^1.15.7",
     "@temporalio/client": "^1.16.0",
     "@temporalio/worker": "^1.16.0",
