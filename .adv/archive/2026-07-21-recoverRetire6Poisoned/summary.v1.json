@@ -1,0 +1,23 @@
+{
+  "archived_at": "2026-07-21T21:10:09.049Z",
+  "capabilities": [],
+  "change_hash": "fca9e28c89320f124aeaa6d410f83742fc07f57785378a3d7808daf275562441",
+  "change_id": "recoverRetire6Poisoned",
+  "completed_tasks": 2,
+  "created_at": "2026-07-21T20:52:11.927Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "shell-1784579334278-jib2o8",
+    "epic_id": "hardenTemporalReliability",
+    "linked_at": "2026-07-21T20:52:11.880Z",
+    "order": 5,
+    "title": "Recover or retire the 6 poisoned workflows without data loss"
+  },
+  "last_activity_at": "2026-07-21T21:09:58.380Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "955e490e19ff8dbc6a1c1c4ffb75960067abb1c437631b4889e87e4bc3eb63ca",
+  "task_count": 3,
+  "title": "Recover or retire the 6 poisoned workflows without data loss",
+  "version": "1"
+}
