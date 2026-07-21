@@ -1416,7 +1416,7 @@ else
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
 	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin payload: $ADV_RUNTIME_PLUGIN_PATH"
-	if ! validate_plugin_bundle_manifest "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist/index.js"; then
+	if ! validate_plugin_bundle_manifest "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist"; then
 		echo "    ✗  refusing to publish plugin bundle manifest: copied index validation failed"
 		exit 1
 	fi
