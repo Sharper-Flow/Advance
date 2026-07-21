@@ -548,3 +548,113 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
     expect(handle.signal).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (fixPhase9StatusSignal)", () => {
+  // Signal-processing race: the workflow's changeStateQuery may return
+  // pre-signal state on a read issued immediately after the signal fire,
+  // because the signal call returns after server acceptance — without
+  // waiting for the workflow handler to run. If store.changes.refresh is
+  // called BEFORE waitForArchiveReleaseGateCompletion polls, its single
+  // readback query may capture pre-signal state, classify it as
+  // "confirmed", and cache + disk-write the stale state. The subsequent
+  // verifyReleaseGateDurableForArchive then reads the stale cache and
+  // fails with "did not observe release done".
+  //
+  // The fix moves store.changes.refresh to AFTER waitForArchiveReleaseGateCompletion
+  // observes done, so the refresh's readback query returns post-signal state.
+  const pendingGate = { status: "pending" };
+  const doneGate = {
+    status: "done",
+    completed_at: "2026-01-01T00:00:00Z",
+    completed_by: "adv-archive",
+  };
+  const shippedFinalization: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-1",
+  };
+
+  beforeEach(() => {
+    vi.mocked(getProjectId).mockResolvedValue("project-test");
+  });
+
+  it("calls store.changes.refresh AFTER waitForArchiveReleaseGateCompletion observes done, not before", async () => {
+    // Order-tracking mock: each handle.query and store.changes.refresh call
+    // appends to invocationLog with the observed gate state. The test asserts
+    // that the first refresh invocation occurs AFTER at least one query
+    // returned doneGate — proving refresh was sequenced after the poll
+    // observed done, not before.
+    type LogEntry =
+      | { kind: "query"; result: unknown }
+      | { kind: "refresh" };
+    const invocationLog: LogEntry[] = [];
+
+    // Sequence models the race window:
+    //   - pre-signal query: pending
+    //   - immediate-post-signal readback (if refresh runs early): pending
+    //   - poll attempt 1: pending
+    //   - poll attempt 2: done (workflow has now processed the signal)
+    //   - any later reads (refresh under fix; further polls under bug): done
+    const queryReturnSequence = [
+      pendingGate, // pre-signal query
+      pendingGate, // refresh's readback IF refresh runs at buggy position
+      pendingGate, // poll attempt 1
+      doneGate, // poll attempt 2 — workflow caught up
+      doneGate, // any later reads (refresh under fix)
+      doneGate,
+    ];
+    let queryCallIndex = 0;
+
+    const handle = {
+      query: vi.fn(async () => {
+        const result =
+          queryReturnSequence[queryCallIndex] ??
+          queryReturnSequence[queryReturnSequence.length - 1] ??
+          doneGate;
+        queryCallIndex += 1;
+        invocationLog.push({ kind: "query", result });
+        return result;
+      }),
+      signal: vi.fn(async () => {
+        // Signal accepted by the server; workflow will process asynchronously.
+      }),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const refreshMock = vi.fn(async () => {
+      invocationLog.push({ kind: "refresh" });
+    });
+    const store = {
+      ...createStore("/repo"),
+      changes: { refresh: refreshMock },
+    } as unknown as Store;
+
+    const result = await completeReleaseGateAfterFinalization({
+      store,
+      change: createChange({}),
+      changeId: "fixPhase9Race",
+      finalization: shippedFinalization,
+    });
+
+    expect(result).toMatchObject({ ok: true });
+
+    // The invariant: the first refresh call must occur AFTER at least one
+    // query returned doneGate. Under the buggy sequencing (refresh before
+    // poll), the first refresh would occur after only pendingGate queries.
+    const firstRefreshIndex = invocationLog.findIndex(
+      (entry) => entry.kind === "refresh",
+    );
+    expect(firstRefreshIndex).toBeGreaterThanOrEqual(0);
+
+    const queriesBeforeRefresh = invocationLog.slice(0, firstRefreshIndex);
+    const observedDoneBeforeRefresh = queriesBeforeRefresh.some(
+      (entry) =>
+        entry.kind === "query" &&
+        (entry.result as { status?: string } | null)?.status === "done",
+    );
+    expect(observedDoneBeforeRefresh).toBe(true);
+  });
+});

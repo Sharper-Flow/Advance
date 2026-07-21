@@ -1084,9 +1084,14 @@ export async function completeReleaseGateAfterFinalization(input: {
       completedAt: new Date().toISOString(),
       approvalEvidence: evidence,
     });
-    // rq-cacheRefresh01: refresh after a successful signal, matching
-    // fireSignalAndRefresh semantics; on failure no refresh is attempted.
-    await input.store.changes.refresh(input.changeId);
+    // fixPhase9StatusSignal: refresh is intentionally deferred until AFTER
+    // waitForArchiveReleaseGateCompletion observes done. Calling refresh
+    // here (immediately after the signal fire) races with the workflow's
+    // signal-processing loop — the refresh's single changeStateQuery may
+    // return pre-signal state, get classified "confirmed", and cache +
+    // disk-write stale "pending" state that verifyReleaseGateDurableForArchive
+    // then reads. The poll below is the authoritative post-signal check;
+    // refresh runs once the workflow has confirmed done.
   } catch (error) {
     if (await isAmbiguousReleaseGateSignalFailure(error)) {
       return reconcileReleaseGateAfterAmbiguousSignal({
@@ -1118,6 +1123,11 @@ export async function completeReleaseGateAfterFinalization(input: {
     });
   }
   if (postSignalGate?.status === "done") {
+    // rq-cacheRefresh01: refresh after a successful signal, matching
+    // fireSignalAndRefresh semantics. Deferred until AFTER the poll confirms
+    // done so the refresh's readback query returns post-signal state, not a
+    // stale pre-signal snapshot (fixPhase9StatusSignal race fix).
+    await input.store.changes.refresh(input.changeId);
     return { ok: true, gate: postSignalGate, alreadyDone: false };
   }
   return {
