@@ -43,6 +43,15 @@ export interface SessionHealthIssue {
   kind: "session.error" | "message-history";
   message: string;
   detectedAt: number;
+  /**
+   * True once the banner for this issue has been surfaced in a system block.
+   * `message-history` banners are one-shot: after they surface once, they are
+   * suppressed on subsequent turns (fixSessionHealthBannerNoise). A new
+   * compaction event replaces the issue with a fresh (unsurfaced) one, which
+   * re-emits once. `session.error` banners ignore this flag and stay sticky.
+   * Absent/false means "not yet surfaced" (backward-compatible default).
+   */
+  surfaced?: boolean;
 }
 
 /** State shape this module reads from. Subset of plugin state. */
@@ -191,6 +200,10 @@ function degradedSection(input: AssembleSystemBlockInput): string | null {
 function healthSection(input: AssembleSystemBlockInput): string | null {
   const issue = input.state.lastSessionHealthIssue;
   if (!issue) return null;
+  // fixSessionHealthBannerNoise: `message-history` banners are one-shot —
+  // once surfaced they are suppressed so they don't repeat every turn.
+  // `session.error` stays sticky (safety-critical; drives BLOCKED status).
+  if (issue.kind === "message-history" && issue.surfaced) return null;
   return formatSessionHealthBanner(issue, input.state.activeChange.id);
 }
 
@@ -274,6 +287,11 @@ export interface ApplyAdvSystemBlockResult {
    *  `state.lastCompletedTask` after a successful emission so the prompt
    *  doesn't repeat on subsequent turns. */
   consumedWisdomPrompt: boolean;
+  /** True when a `message-history` session-health banner was emitted this
+   *  assembly; caller should set `lastSessionHealthIssue.surfaced = true`
+   *  so the one-shot banner does not repeat on subsequent turns
+   *  (fixSessionHealthBannerNoise). Never true for `session.error` (sticky). */
+  surfacedMessageHistoryHealth: boolean;
 }
 
 /**
@@ -292,14 +310,24 @@ export function applyAdvSystemBlock(
   const existingSystem = output.system[0] ?? null;
   const block = assembleSystemBlock({ ...input, existingSystem });
   if (block === null) {
-    return { emitted: false, consumedWisdomPrompt: false };
+    return {
+      emitted: false,
+      consumedWisdomPrompt: false,
+      surfacedMessageHistoryHealth: false,
+    };
   }
   output.system[0] = existingSystem ? `${existingSystem}\n\n${block}` : block;
+  const healthIssue = input.state.lastSessionHealthIssue;
   return {
     emitted: true,
     consumedWisdomPrompt:
       input.state.lastCompletedTask !== null ||
       (input.state.pendingWisdomDraftTasks?.length ?? 0) > 0,
+    // Mirrors healthSection's message-history one-shot gate: the banner
+    // emitted this assembly iff the issue is message-history and not yet
+    // surfaced. (block !== null here, so the section was included.)
+    surfacedMessageHistoryHealth:
+      healthIssue?.kind === "message-history" && !healthIssue.surfaced,
   };
 }
 
