@@ -79,7 +79,7 @@ describe("AC8 — sentinel placement invariants", () => {
     const block = assembleSystemBlock({
       state: cleanState({
         activeChange: { id: "c1" },
-        lastCompletedTask: { id: "tk-1", title: "Foo" },
+        pendingWisdomDraftTasks: [{ id: "tk-1", title: "Foo", count: 1 }],
       }),
       initError: null,
       storeAvailable: true,
@@ -93,7 +93,7 @@ describe("AC8 — sentinel placement invariants", () => {
     const block = assembleSystemBlock({
       state: cleanState({
         activeChange: { id: "c1" },
-        lastCompletedTask: null,
+        pendingWisdomDraftTasks: [],
       }),
       initError: null,
       storeAvailable: true,
@@ -108,7 +108,7 @@ describe("AC8 — sentinel placement invariants", () => {
     const block = assembleSystemBlock({
       state: cleanState({
         activeChange: { id: null },
-        lastCompletedTask: { id: "tk-1", title: "Foo" },
+        pendingWisdomDraftTasks: [{ id: "tk-1", title: "Foo", count: 1 }],
       }),
       initError: null,
       storeAvailable: true,
@@ -123,7 +123,7 @@ describe("AC8 — sentinel placement invariants", () => {
     const block = assembleSystemBlock({
       state: cleanState({
         activeChange: { id: "c1" },
-        lastCompletedTask: { id: "tk-1", title: "Foo" },
+        pendingWisdomDraftTasks: [{ id: "tk-1", title: "Foo", count: 1 }],
       }),
       initError: null,
       storeAvailable: true,
