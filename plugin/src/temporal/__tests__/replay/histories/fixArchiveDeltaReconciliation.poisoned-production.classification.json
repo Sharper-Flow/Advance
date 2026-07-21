@@ -1,0 +1,12 @@
+{
+  "changeId": "fixArchiveDeltaReconciliation",
+  "workflowId": "adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/fixArchiveDeltaReconciliation",
+  "fixture": "fixArchiveDeltaReconciliation.poisoned-production.history.json",
+  "failingEventId": 957,
+  "failingEventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+  "observedError": "Captured production history replays cleanly against current source; historical live failure is therefore classified as worker bundle identity drift rather than a current workflow-code divergence.",
+  "currentOperation": "unresolved command boundary",
+  "cause": "bundle_identity_mismatch",
+  "outcome": "immutable_history",
+  "recoveryEvidence": "Raw production history replays cleanly against current source, but deterministic payload sanitization changes branch-driving state and the safe committed fixture fails replay: Replay failed with a nondeterminism error. This means that the workflow code as written is not compatible with the history that was fed in. Details: Workflow activation completion failed: Failure { failure: Some(Failure { message: \"[TMPRL1100] Nondeterminism error: Activity machine does not handle this event: HistoryEvent(id: 834, UpsertWorkflowSearchAttributes)\", source: \"\", stack_trace: \"\", encoded_attributes: None, cause: None, failure_info: Some(ApplicationFailureInfo(ApplicationFailureInfo { r#type: \"\", non_retryable: false, details: None, next_retry_delay: None, category: Unspecified })) }), force_cause: NonDeterministicError }"
+}

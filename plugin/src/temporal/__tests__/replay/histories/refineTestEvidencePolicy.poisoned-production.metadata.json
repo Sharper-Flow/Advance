@@ -1,0 +1,15 @@
+{
+  "name": "refineTestEvidencePolicy poisoned production history",
+  "workflowType": "changeWorkflow",
+  "workflowId": "adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/refineTestEvidencePolicy",
+  "source": "Captured from local Temporal with temporal workflow show --no-json-shorthand-payloads; deterministically sanitized before repository promotion.",
+  "covers": [
+    "[TMPRL1100] Nondeterminism error: Non-deprecated patch marker encountered for change state-backed-acceptance-proof-v1, but there is no corresponding change command!"
+  ],
+  "expected": "Pre-fix replay reproduces the classified divergence.",
+  "sanitized": true,
+  "eventCount": 715,
+  "incidentEventId": "710",
+  "incidentEventType": "EVENT_TYPE_WORKFLOW_TASK_FAILED",
+  "classification": "refineTestEvidencePolicy.poisoned-production.classification.json"
+}

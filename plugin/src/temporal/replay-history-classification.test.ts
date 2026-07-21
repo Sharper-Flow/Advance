@@ -4,6 +4,7 @@ import {
   PoisonedHistoryClassificationSchema,
   assertCompletePoisonedHistoryClassifications,
   auditSanitizedHistory,
+  sanitizeHistoryForFixture,
 } from "./replay-history-classification";
 
 function classification(changeId: string) {
@@ -93,5 +94,41 @@ describe("sanitized history audit", () => {
     };
 
     expect(auditSanitizedHistory(history)).toEqual({ safe: true, findings: [] });
+  });
+
+  it("redacts sensitive values without replacing surrounding payload shape", () => {
+    const history = {
+      events: [
+        {
+          input: {
+            payloads: [
+              {
+                data: Buffer.from(
+                  JSON.stringify({
+                    id: "change-id",
+                    proposal: "private proposal",
+                    status: "draft",
+                  }),
+                ).toString("base64"),
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const sanitized = sanitizeHistoryForFixture(history) as typeof history;
+    const decoded = JSON.parse(
+      Buffer.from(sanitized.events[0].input.payloads[0].data, "base64").toString(
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+
+    expect(decoded).toEqual({
+      id: "change-id",
+      proposal: "[REDACTED]",
+      status: "draft",
+    });
+    expect(auditSanitizedHistory(sanitized)).toEqual({ safe: true, findings: [] });
   });
 });

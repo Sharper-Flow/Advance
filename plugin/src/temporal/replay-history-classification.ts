@@ -35,7 +35,7 @@ export const PoisonedHistoryClassificationSchema = z
     currentOperation: z.string().min(1),
     introducingCommit: z.string().regex(/^[0-9a-f]{7,40}$/).optional(),
     cause: ReplayDivergenceCauseSchema,
-    outcome: z.enum(["self_healed", "immutable_history"]),
+    outcome: z.enum(["reproduced", "self_healed", "immutable_history"]),
     recoveryEvidence: z.string().min(1).optional(),
   })
   .superRefine((row, ctx) => {
@@ -54,6 +54,7 @@ export type PoisonedHistoryClassification = z.infer<
 
 export function assertCompletePoisonedHistoryClassifications(
   input: unknown[],
+  options: { requireTerminal?: boolean } = {},
 ): PoisonedHistoryClassification[] {
   const rows = input.map((row) => PoisonedHistoryClassificationSchema.parse(row));
   const counts = new Map<string, number>();
@@ -72,6 +73,16 @@ export function assertCompletePoisonedHistoryClassifications(
       `Classification coverage invalid: duplicate=[${duplicate.join(", ")}], missing=[${missing.join(", ")}].`,
     );
   }
+  if (options.requireTerminal) {
+    const pending = rows
+      .filter((row) => row.outcome === "reproduced")
+      .map((row) => row.changeId);
+    if (pending.length > 0) {
+      throw new Error(
+        `Classification outcomes are not terminal: [${pending.join(", ")}].`,
+      );
+    }
+  }
   return rows;
 }
 
@@ -79,6 +90,7 @@ const SENSITIVE_KEY = /^(proposal|agreement|task|tasks|evidence|acceptance)$/i;
 const SECRET_TEXT =
   /(?:api[_-]?key|secret|token|password|private[_-]?key)\s*[:=]/i;
 const REPLAY_PLACEHOLDER = { redacted: true, kind: "adv-payload" } as const;
+const REDACTED_TEXT = "[REDACTED]";
 
 export interface SanitizationAudit {
   safe: boolean;
@@ -97,8 +109,56 @@ function containsSensitiveValue(value: unknown): boolean {
   if (typeof value === "string") return SECRET_TEXT.test(value);
   if (Array.isArray(value)) return value.some(containsSensitiveValue);
   if (!value || typeof value !== "object") return false;
-  return Object.entries(value as Record<string, unknown>).some(
-    ([key, nested]) => SENSITIVE_KEY.test(key) || containsSensitiveValue(nested),
+  return Object.entries(value as Record<string, unknown>).some(([key, nested]) =>
+    SENSITIVE_KEY.test(key)
+      ? !isRedactedValue(nested)
+      : containsSensitiveValue(nested),
+  );
+}
+
+function isRedactedValue(value: unknown): boolean {
+  if (value === REDACTED_TEXT) return true;
+  if (value === null || typeof value === "number" || typeof value === "boolean") {
+    return true;
+  }
+  if (Array.isArray(value)) return value.every(isRedactedValue);
+  if (!value || typeof value !== "object") return false;
+  if (
+    (value as Record<string, unknown>).redacted === true &&
+    (value as Record<string, unknown>).kind === "adv-payload"
+  ) {
+    return true;
+  }
+  return Object.values(value as Record<string, unknown>).every((nested) =>
+    typeof nested === "string" ? nested === REDACTED_TEXT : isRedactedValue(nested),
+  );
+}
+
+function redactAllText(value: unknown): unknown {
+  if (typeof value === "string") return REDACTED_TEXT;
+  if (Array.isArray(value)) return value.map(redactAllText);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+      key,
+      redactAllText(nested),
+    ]),
+  );
+}
+
+function redactDecodedPayload(value: unknown): unknown {
+  if (typeof value === "string") {
+    return SECRET_TEXT.test(value) ? REDACTED_TEXT : value;
+  }
+  if (Array.isArray(value)) return value.map(redactDecodedPayload);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+      key,
+      SENSITIVE_KEY.test(key)
+        ? redactAllText(nested)
+        : redactDecodedPayload(nested),
+    ]),
   );
 }
 
@@ -145,9 +205,14 @@ export function sanitizeHistoryForFixture(value: unknown): unknown {
     }
     if (key === "data" && typeof nested === "string") {
       const decoded = decodePayloadData(nested);
-      out[key] = containsSensitiveValue(decoded)
-        ? Buffer.from(JSON.stringify(REPLAY_PLACEHOLDER)).toString("base64")
-        : nested;
+      if (containsSensitiveValue(decoded)) {
+        const redacted = redactDecodedPayload(decoded);
+        out[key] = Buffer.from(JSON.stringify(redacted ?? REPLAY_PLACEHOLDER)).toString(
+          "base64",
+        );
+      } else {
+        out[key] = nested;
+      }
       continue;
     }
     out[key] = sanitizeHistoryForFixture(nested);

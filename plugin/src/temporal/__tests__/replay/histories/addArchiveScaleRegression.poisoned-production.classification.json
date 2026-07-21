@@ -1,0 +1,11 @@
+{
+  "changeId": "addArchiveScaleRegression",
+  "workflowId": "adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/addArchiveScaleRegression",
+  "fixture": "addArchiveScaleRegression.poisoned-production.history.json",
+  "failingEventId": 1091,
+  "failingEventType": "EVENT_TYPE_WORKFLOW_TASK_FAILED",
+  "observedError": "[TMPRL1100] Nondeterminism error: UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 579, ActivityTaskScheduled)",
+  "currentOperation": "UpsertWorkflowSearchAttributesMachine: HistoryEvent(id: 579, ActivityTaskScheduled)",
+  "cause": "search_attribute_order_mismatch",
+  "outcome": "reproduced"
+}
