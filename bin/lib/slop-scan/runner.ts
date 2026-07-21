@@ -100,7 +100,11 @@ export function createToolRunner(): ToolRunner {
         command: request.command,
         status: classifyExitCode(exitCode, request.findingsExitCodes ?? []),
         exitCode,
-        stdout: bounded(stdout),
+        // Successful detector stdout is parser input, not diagnostic text.
+        // Truncating it here corrupts valid JSON reports from large scans.
+        // Bun already materialized the full stream above, so preserving it adds
+        // no extra peak-memory cost. Failed/timed-out diagnostics remain bounded.
+        stdout,
         stderr: bounded(stderr),
         durationMs: Date.now() - started,
       };
