@@ -1,0 +1,640 @@
+{
+  "id": "addUserFocusVoiceRule",
+  "title": "Add user-focus voice rule",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-20T23:30:32.902Z",
+  "tasks": [
+    {
+      "id": "tk-4e010eff5c04",
+      "title": "Add user-focus pointer bullet to `## Voice Contract` section in deployed ADV agent source + repo overlay mirror.",
+      "type": "docs",
+      "section": "Overlay injection",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T00:22:12.754Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1"
+        ],
+        "respects": [
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Bullet content is mechanical pointer text matching existing Voice Contract style. Static check (grep + format match against sibling bullets) is sufficient; no behavior to test or judgment to review.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T00:25:11.664Z",
+      "verification": "GREEN: grep \"User-Focus\" .opencode/agents/adv.md → 1, .opencode/overlays/adv.overlay.md → 1. Bullet is pointer-style (terse, single paragraph, ends with `docs/command-voice-standard.md` § User-Focus reference), matches existing Voice Contract form. Placement correct: after \"Normal prose OK for...\" line, before \"## Scope Validity\". Constraints honored: C1 (ADD only, no existing Voice Contract line modified), DONT2 (single pointer bullet, no multi-paragraph bloat).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7d3b1124075fadc8110875bdbc555dc869ee875c",
+      "completedAt": "2026-07-21T00:27:19.194Z",
+      "completed_at": "2026-07-21T00:27:19.194Z"
+    },
+    {
+      "id": "tk-3d331b16c78c",
+      "title": "Add `## User-Focus` section to `docs/command-voice-standard.md`",
+      "type": "docs",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T00:22:12.756Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1",
+          "C3",
+          "C4"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Doc content is judgment-applied prose (inherently-prose class). Structural correctness (heading placement, table format, length ≤30) verifiable by static inspection; content quality (translation discipline clarity, motivational-aside framing) requires review. No runtime behavior to test.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T00:25:11.630Z",
+      "verification": "GREEN: grep \"^## User-Focus$\" docs/command-voice-standard.md → 1. Section body 32 lines (target ≤30; slight over acceptable for inherently-prose density). Structure matches design: purpose stmt, 4-row content split table, translation discipline, 5-row enforcement contrast table, motivational aside marked instance-not-normative. AC1-AC4 satisfied: section at correct position (between Core Rules and Manifest Description Rules), all 5 structural elements present. Constraints honored: C1 (ADD only, no existing rule touched), C3 (toolbox is aside only), C4 (length discipline), DONT1 (judgment-not-regex language), DONT3 (instance-not-rule framing).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        ".opencode/overlays/adv.overlay.md",
+        "docs/command-voice-standard.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        ".opencode/overlays/adv.overlay.md",
+        "docs/command-voice-standard.md"
+      ],
+      "checkpointSha": "7d3b1124075fadc8110875bdbc555dc869ee875c",
+      "completedAt": "2026-07-21T00:27:13.116Z",
+      "completed_at": "2026-07-21T00:27:13.116Z"
+    },
+    {
+      "id": "tk-0fa0b4883bc0",
+      "title": "Verify no regression in voice enforcement + build/deploy sanity.",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T00:22:57.278Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3d331b16c78c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4e010eff5c04"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T00:27:30.295Z",
+      "verification": "FULL GREEN: (1) pnpm run check exits 0 (schemas, typecheck, agent-manifest/test-isolation/lockfile, lint, format). (2) bin/oc-test targeted -- 5 drift test files: all 98 tests pass (manifest 13/13, manifest-doc-drift 17/17, checkpoint-surface-drift, handoff-footer-drift, decision-rationale-assets). (3) deploy-local.sh --dry-run --diff: adv.md in deployment payload, frontmatter unique, tool drift check passes 83 tools, config valid. Campsite fix applied: PR #264 had drifted /adv-triage description in 3 downstream docs (adv-triage.md, README.md, ADV_INSTRUCTIONS.md) — updated all 3 to match manifest source of truth. Wisdom entry promoted project-wide. Verifies C2 (no new enforcement mechanism; existing tests still green).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-triage.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-triage.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md"
+      ],
+      "checkpointSha": "439742ee875d33255ae72b17e77906260785c8e1",
+      "completedAt": "2026-07-21T00:37:11.303Z",
+      "completed_at": "2026-07-21T00:37:11.303Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addUserFocusVoiceRule",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addUserFocusVoiceRule",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/manifest-doc-drift.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Pass: 17/17 manifest-doc-drift tests, exit 0 (adv_run_test tr_mrtxfkaj_236fa882). `git diff --check trunk...HEAD` clean. Contract review: C1 PASS—only six modified files; User-Focus inserted at docs/command-voice-standard.md:15-46 while Core Rules remain :5-13 and Manifest Description Rules begin :48. C2 PASS—no test file changed; :34 and :42 explicitly classify judgment-only/no drift test. C3/DONT3 PASS—motivational aside explicitly says 'not normative' and 'The rule generalizes' at :44-46. C4 PASS—32-line inherently-prose structured section; only the distinct Prose-Load Reduction Rules section is capped at 80 by plugin/src/manifest-doc-drift.test.ts:350-360. DONT1 PASS—translation is explicit human/agent judgment, not regex, at :28-30. DONT2 PASS—single pointer-style reminder at .opencode/agents/adv.md:156 and mirror at .opencode/overlays/adv.overlay.md:15. Deploy chain PASS—scripts/deploy-local.sh:502-527 copies .opencode/agents/adv.md verbatim, invokes sync at :1601-1602, and excludes adv from overlay application at :1604-1612. Campsite fix PASS—the exact manifest text at plugin/src/manifest.ts:462 matches command frontmatter :3, README.md:428, and ADV_INSTRUCTIONS.md:163; repository text scan found no additional markdown mirrors."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/manifest-doc-drift.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addUserFocusVoiceRule",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addUserFocusVoiceRule",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "release-1",
+          "label": "blocker",
+          "file": ".opencode/agents/adv.md",
+          "line": 1,
+          "what": "Change branch is seven commits behind trunk.",
+          "why": "Although `git merge-tree` exits 0 and the worktree is clean, `git diff --stat trunk..HEAD` contains 35 files and 2,422 deletions from stale branch ancestry rather than this change's six-file diff. Archive/release must integrate current trunk and re-verify before finalization.",
+          "fix": "Orchestrator: integrate current trunk into the ADV worktree, resolve if needed, then rerun targeted drift tests, deploy dry-run, and archive preflight."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git status --short",
+          "git log --oneline trunk..HEAD",
+          "git diff --stat trunk..HEAD",
+          "git rev-list --left-right --count trunk...HEAD",
+          "git merge-tree $(git merge-base trunk HEAD) trunk HEAD",
+          "bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts src/decision-rationale-assets.test.ts",
+          "./scripts/deploy-local.sh --dry-run --diff",
+          "adv_change_archive dryRun:true"
+        ],
+        "results": "fail",
+        "evidence": "Worktree clean; branch is 7 commits behind trunk. Targeted suite: 98/98 tests passed. Deploy dry-run copies adv.md; 83-tool allowlist and config validation pass. Archive dry-run succeeds with NO_DELTAS."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Deploy only after merge from updated trunk; restart OpenCode/plugin-host sessions.",
+        "User-Focus is inherently-prose and judgment-only.",
+        "Rollback: revert change commits on trunk, validate, deploy, restart."
+      ],
+      "required_main_agent_actions": [
+        "Integrate trunk, then rerun targeted drift suite, deploy dry-run, and archive dry-run.",
+        "Deploy from updated trunk only; restart OpenCode/plugin-host sessions.",
+        "Tier B archive sign-off only after refreshed evidence."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git status --short"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git log --oneline trunk..HEAD"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --stat trunk..HEAD"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git rev-list --left-right --count trunk...HEAD"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git merge-tree $(git merge-base trunk HEAD) trunk HEAD"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts src/decision-rationale-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: ./scripts/deploy-local.sh --dry-run --diff"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_archive dryRun:true"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-0fa0b4883bc0": [
+      {
+        "runId": "tr_mrtx08by_5e4a0bff",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/manifest.test.ts plugin/src/manifest-doc-drift.test.ts plugin/src/checkpoint-surface-drift.test.ts plugin/src/handoff-footer-drift.test.ts plugin/src/decision-rationale-assets.test.ts",
+        "durationMs": 949.6649700000416,
+        "assertionDensity": 0.99,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-21T00:28:10.438Z"
+      },
+      {
+        "runId": "tr_mrtx0jih_59558b5b",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts src/decision-rationale-assets.test.ts",
+        "durationMs": 2.0237240000860766,
+        "recordedAt": "2026-07-21T00:28:24.942Z"
+      },
+      {
+        "runId": "tr_mrtx1kwg_dda24343",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts src/decision-rationale-assets.test.ts",
+        "durationMs": 1684.1798750000307,
+        "recordedAt": "2026-07-21T00:29:13.396Z"
+      },
+      {
+        "runId": "tr_mrtx44v1_86c19c67",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 38003.140418999945,
+        "recordedAt": "2026-07-21T00:31:12.585Z"
+      },
+      {
+        "runId": "tr_mrtx4ihz_9809f6ce",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "./scripts/deploy-local.sh --dry-run --diff 2>&1 | tail -80",
+        "durationMs": 4446.341117999982,
+        "recordedAt": "2026-07-21T00:31:30.260Z"
+      },
+      {
+        "runId": "tr_mrtxawoj_568b610d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/manifest-doc-drift.test.ts",
+        "durationMs": 1313.6974990000017,
+        "recordedAt": "2026-07-21T00:36:28.563Z"
+      },
+      {
+        "runId": "tr_mrtxb4ri_47ebfa3d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run format:check",
+        "durationMs": 11786.195517000044,
+        "recordedAt": "2026-07-21T00:36:39.042Z"
+      },
+      {
+        "runId": "tr_mrtxfkaj_236fa882",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/manifest-doc-drift.test.ts",
+        "durationMs": 1231.3120969999582,
+        "recordedAt": "2026-07-21T00:40:05.800Z"
+      },
+      {
+        "runId": "tr_mrtxrlp9_c25cc744",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts src/decision-rationale-assets.test.ts",
+        "durationMs": 1698.379968999885,
+        "recordedAt": "2026-07-21T00:49:27.484Z"
+      },
+      {
+        "runId": "tr_mrtxsehg_13528757",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 38965.43146699993,
+        "recordedAt": "2026-07-21T00:50:04.789Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-NDWDcb",
+      "type": "gotcha",
+      "content": "PR #264 (Reshape /adv-triage to portfolio balance) updated `plugin/src/manifest.ts` description for /adv-triage but missed 3 downstream docs: `.opencode/command/adv-triage.md` frontmatter, `README.md` table row, `ADV_INSTRUCTIONS.md` table row. Drift detected by `plugin/src/manifest-doc-drift.test.ts` (3 failures). Fix: when updating any manifest description in `manifest.ts`, scan and update all downstream surfaces (command doc frontmatter, README, ADV_INSTRUCTIONS) in the same PR. The manifest-doc-drift test enforces this — it's not advisory.",
+      "source_task": "tk-0fa0b4883bc0",
+      "recorded_at": "2026-07-21T00:36:55.119Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-20T23:32:01.358Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved combined proposal+agreement checkpoint. Problem statement confirmed as crystallysized from operator brief.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e8184395c43dfebccd53a5b33004f95caf3675a6ac5a15e56561079d367030d1",
+        "non_whitespace_chars": 1916,
+        "checked_at": "2026-07-20T23:30:32.938Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-20T23:32:54.286Z",
+      "completed_at": "2026-07-20T23:33:11.342Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery inline. Voice standard structure mapped; insertion point between Core Rules and Manifest Description Rules. Overlay injection chain confirmed (adv.overlay.md -> apply_overlay_block -> adv.md ADV_SYNC markers -> assemble_adv_runtime_agent -> global plugin agents -> live system prompt). Test surface mapped; only structural cap is Prose-Load Reduction Rules ≤80 lines (independent of new section). Enforcement class lexicon: inherently-prose. Contract minted (C1-C4, DONT1-DONT3).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "non_whitespace_chars": 2717,
+        "checked_at": "2026-07-20T23:30:32.939Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:20:56.301Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design approved with correction. Validator CONFLICT on overlay chain resolved: deploy path is .opencode/agents/adv.md (sync_adv_runtime_agent), not adv.overlay.md (apply_overlay_block skips adv). User approved corrected 3-file touch. INJECT decision (Option A) stands.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4a99e748c24b26182683f451875c0af4d9bfe2320241b94de631d10e550091b7",
+        "non_whitespace_chars": 5296,
+        "checked_at": "2026-07-20T23:30:32.940Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:24:57.310Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved task graph (3 tasks: doc section, overlay/agent bullets, verification). Contract coverage complete. Worktree materialized at change/addUserFocusVoiceRule."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:37:31.548Z",
+      "completed_by": "agent",
+      "approval_evidence": "3/3 tasks done. Doc section added (32 lines, all AC1-AC4 satisfied). Voice Contract bullet injected into adv.md (deployed) + adv.overlay.md (mirror). Verification FULL GREEN: pnpm run check, 5 drift test files (98/98 tests), deploy dry-run. Campsite fix applied: 3 doc surfaces updated for /adv-triage description drift left by PR #264. Wisdom entry promoted project-wide."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-21T00:43:28.929Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved acceptance. Review matrix 7/7 passing (C1-C4 pass, DONT1-DONT3 respected). Executive summary persisted. Independent reviewer (adv-reviewer, PHASE=review, attempt 2) verdict READY, 0 findings, 0 remediations.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9060f92ce9fa58de26397ffbb1d7c5ac112943b9aab090296dbe05363571b4fb",
+        "non_whitespace_chars": 2562,
+        "checked_at": "2026-07-20T23:30:32.941Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+      "approvedAt": "2026-07-20T23:33:07.005Z"
+    },
+    "items": [
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "ADD only — do not modify existing voice rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No new enforcement mechanism; no new drift test for this rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Cross-project rule: generalize the prose; toolbox example is motivational aside only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve doc length discipline (use compression templates from Prose-Load Reduction Rules where applicable).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not invent a heuristic detector for \"internal artifact names\" — the translation discipline is human/agent judgment, not a regex.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not bloat the ADV overlay with multi-paragraph explanations if injection is chosen — pointer-style only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not cite the toolbox `reduceLaunchTime` change as normative; it is an instance, not the rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T00:41:50.754Z",
+      "rows": [
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "6 modified files; User-Focus inserted at docs/command-voice-standard.md:15-46 while Core Rules remain :5-13 and Manifest Description Rules begin :48. No existing voice rule text changed.",
+          "notes": "Reviewer file:line audit confirms scope boundaries."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "No test file changed. Section :34 and :42 explicitly classify judgment-only/no drift test. 98/98 voice-enforcement drift tests pass (manifest-doc-drift 17/17).",
+          "notes": "Existing enforcement unchanged."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Motivational aside at docs/command-voice-standard.md:44-46 explicitly says 'not normative' and 'The rule generalizes.' Toolbox instance motivates only.",
+          "notes": "Cross-project generalization intact."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "32-line inherently-prose structured section (one-line purpose + tables). Only Prose-Load Reduction Rules section is capped at 80 (plugin/src/manifest-doc-drift.test.ts:350-360); User-Focus not subject to that cap.",
+          "notes": "Length discipline preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Translation discipline at docs/command-voice-standard.md:28-30 explicitly framed as 'Judgment — not a regex.' No heuristic detector language.",
+          "notes": "Avoidance respected."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Single pointer-style reminder at .opencode/agents/adv.md:156 and mirror at .opencode/overlays/adv.overlay.md:15. No multi-paragraph bloat.",
+          "notes": "Pointer-style only, matches existing Voice Contract form."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Aside at docs/command-voice-standard.md:44-46 says 'not normative' and 'rule generalizes'; toolbox reduceLaunchTime framed as instance-not-rule.",
+          "notes": "Avoidance respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Add user-focus voice rule\n\n## Problem\n\nADV agents drift into implementation-speak (file paths, function names, schema fields) in user-facing decision messages, when they should lead with what the user sees / what changes for them. This forces the user to translate implementation framing into user-visible impact before they can make the decision.\n\nConcrete instance (2026-07-20, toolbox `reduceLaunchTime`): describing removal of an opencode-quota integration, the agent led with \"the snapshot JSON `providers` field changes\" and \"schema change.\" User-visible reality was tiny — the `zl` picker preview was already fed by async cache files; only a rarely-used `--status-panel` debug command lost data. Implementation framing inflated apparent impact and forced user-side translation.\n\nUser framing of the fix: \"self-documentation is fine and good — but adv agents should be doing that with documentation not with messages to the user.\"\n\n## Scope\n\nCodify a User-Focus voice rule in `docs/command-voice-standard.md`:\n\n1. **Canonical doc** — new section, near top (after Core Rules), covering:\n   - Content split: what belongs in user messages vs durable artifacts\n   - Translation discipline: scan pre-send for internal artifact names; reframe or move\n   - Motivational example (toolbox instance, generalized)\n2. **Prompt injection decision** — decide whether the rule also appears in `.opencode/overlays/adv.overlay.md` (always-loaded) or stays doc-only. Decide + justify at design.\n3. **Test distinction** — explicitly note which voice rules are mechanically enforced (manifest/handoff/checkpoint drift tests) vs judgment-applied (this one). No new test.\n\n## Constraints\n\n- ADD only; do not change existing voice rules.\n- No new enforcement mechanism; judgment-based rule.\n- Preserve doc structure + table styles.\n- No regression to `bun test` voice enforcement suites.\n- Cross-project rule — generalize; toolbox example is motivational aside only.\n\n## Out of scope\n\n- Mechanically enforcing user-focus (regex/schema can't capture judgment).\n- Touching slash-command description rules (those stay governed by Manifest Description Rules).\n- Per-agent overlays beyond the ADV overlay (build/plan/general/explore) unless design proves they need it.",
+    "problemStatement": "# Problem Statement\n\nADV agents collaborating with the user on decisions drift into implementation-speak (file paths, function names, JSON fields, schema details) when describing impact, instead of leading with what the user sees or what changes for them.\n\nThis forces the user to translate implementation framing into user-visible impact before they can make the decision. Small user-visible changes get inflated by implementation framing; large ones get buried under internal artifact names.\n\nRoot cause: agents self-document (good) but route the self-documentation into chat messages (wrong surface). Self-documentation belongs in durable artifacts (design.md, code comments, wisdom entries) — not user-facing decision messages.\n\nConcrete instance (2026-07-20, toolbox `reduceLaunchTime`): describing removal of an opencode-quota integration, agent led with \"snapshot JSON `providers` field changes\" and \"schema change.\" User-visible reality: the `zl` picker preview was already fed by async cache files; only a rarely-used `--status-panel` debug command lost data. Implementation framing made a small user impact sound bigger, forcing user-side translation.\n\n## Outcome wanted\n\nA codified User-Focus voice rule in ADV's canonical voice standard that:\n\n1. Tells agents what belongs in user-facing decision messages vs durable artifacts.\n2. Gives a translation discipline agents apply before sending.\n3. Sits alongside the existing Core Rules so it applies to all user-facing text.\n4. Notes its own enforcement class (judgment-applied, not test-enforced) so future contributors don't expect a missing test.",
+    "agreement": "# Agreement — addUserFocusVoiceRule\n\n## Objectives\n\n1. Codify a User-Focus voice rule in `docs/command-voice-standard.md` as the canonical source of truth.\n2. Apply the rule to all user-facing ADV text — not just slash-command descriptions.\n3. Preserve all existing voice rules and their mechanical enforcement.\n4. Decide prompt-injection scope (overlay vs doc-only) at design with explicit rationale.\n5. Make the rule's enforcement class explicit in the doc itself.\n\n## Acceptance Criteria\n\n### AC1 — Canonical doc section added\n\nA new \"User-Focus\" section is added to `docs/command-voice-standard.md`:\n- Sits near the top (after Core Rules, before Manifest Description Rules) so it applies to all user-facing text.\n- Contains the content-split table (in user messages vs in artifacts).\n- Contains the translation-discipline steps.\n- Contains the toolbox example as a motivational aside, not as normative text (rule generalizes).\n- Uses the existing table styles (matches Core Rules / Manifest Description Rules).\n\n### AC2 — Content split codified\n\nThe section's content-split table matches this intent:\n\n| In user messages (decision-need) | In artifacts (self-documentation) |\n|---|---|\n| What the user will see / change | File paths, function names |\n| Options + trade-offs affecting them | Internal data flow, schema details |\n| Concrete recommendation | Evidence trail, reasoning narrative |\n| Decision asks | How conclusions were reached |\n\n### AC3 — Translation discipline codified\n\nThe section contains a pre-send translation discipline:\n\n> Before sending any user-facing message, scan for internal artifact names. If present, either reframe in the user-visible surface, or move the detail into an artifact.\n\n### AC4 — Enforcement class explicit\n\nThe section explicitly states:\n- It is judgment-applied (inherently-prose class per existing Prose-Load Reduction Rules).\n- It is NOT mechanically enforced by a drift test.\n- Cross-references the existing mechanically-enforced rules (manifest, manifest-doc-drift, checkpoint-surface-drift, handoff-footer-drift) for contrast.\n\n### AC5 — Overlay injection decision made with rationale\n\nDesign gate records the decision: does the rule also appear in `.opencode/overlays/adv.overlay.md`, or stay doc-only? Either choice is acceptable with explicit rationale.\n\n### AC6 — No regression\n\n- `bun test` (or `bin/oc-test` equivalent) remains green for all voice enforcement suites.\n- No existing voice rule is changed or removed.\n- Doc structure and table styles preserved.\n\n## Constraints\n\n- ADD only — do not modify existing voice rules.\n- No new enforcement mechanism; no new drift test for this rule.\n- Cross-project rule: generalize the prose; toolbox example is motivational aside only.\n- Preserve doc length discipline (use compression templates from Prose-Load Reduction Rules where applicable).\n\n## Avoidances\n\n- Do not invent a heuristic detector for \"internal artifact names\" — the translation discipline is human/agent judgment, not a regex.\n- Do not bloat the ADV overlay with multi-paragraph explanations if injection is chosen — pointer-style only.\n- Do not cite the toolbox `reduceLaunchTime` change as normative; it is an instance, not the rule.",
+    "design": "# Design — addUserFocusVoiceRule\n\n## Discovery summary\n\n- Voice standard = 795 lines. Insertion point between line 13 (Core Rules end) and line 15 (Manifest Description Rules start). New section sits near top, applies to all user-facing text per AC1.\n- Overlay injection chain **corrected** after validator CONFLICT: `apply_overlay_block` runs only for `build`/`explore`/`general`/`plan` — NOT `adv` (`scripts/deploy-local.sh:1604-1612`). `adv.md` is repo-owned; `sync_adv_runtime_agent` copies it verbatim to global plugin agents dir (`scripts/deploy-local.sh:502-527`). Therefore the **deployed** path is direct edit to `.opencode/agents/adv.md` (the runtime source), optionally mirrored in `adv.overlay.md` for repo consistency.\n- Existing ADV overlay Voice Contract section: 2 lines, pointer-style to doc.\n- Tests mapped: 4 drift test files. All locate headings by regex; none anchor to early section order. Only structural cap is `## Prose-Load Reduction Rules` ≤80 lines — independent of new section.\n- Enforcement class lexicon: existing taxonomy uses `inherently-prose` for judgment rules (`docs/command-voice-standard.md:210-217`). New section must use that term.\n\n## Design decision: overlay injection\n\n**Decision: INJECT (Option A).** Add one pointer bullet to the `## Voice Contract` section in `.opencode/agents/adv.md` (the deployed source). Mirror the same bullet in `.opencode/overlays/adv.overlay.md` for repo convention consistency.\n\n### Rationale\n\n| Factor | Reading |\n|---|---|\n| Pattern fit | Existing `## Voice Contract` in `adv.md` is pointer-style. A user-focus bullet is the same shape. |\n| Token cost | ~25 tokens per ADV prompt. Negligible against the existing overlay's ~120 tokens. |\n| Rule class | User-focus is a runtime prose rule. The `adv.md` Voice Contract section exists exactly for runtime prose rules. |\n| Failure mode if doc-only | Agents under delivery pressure skip doc consultation. User-focus drift happens mid-flow, exactly when the terse reminder helps most. |\n| Blast radius | One line added to `adv.md` + mirror in `adv.overlay.md`; doc gets the full treatment. No new test, no schema change. |\n| Deploy correctness | `adv.md` is the deployed source (sync_adv_runtime_agent copies verbatim). Editing it directly reaches live ADV prompt. |\n\n**Injected bullet (draft):**\n\n> Lead user-facing messages with what the user sees / what changes for them. Move file paths, function names, schema details into artifacts (design.md, wisdom, code comments). See `§ User-Focus`.\n\n### Alternatives rejected\n\n- **Doc-only** — rejected: rule most needed mid-conversation when doc consultation least likely. Overlay reminder is the structural guard.\n- **Standalone overlay section** — rejected: bloats `adv.md`; existing Voice Contract section is the right home.\n- **Multi-bullet expansion** — rejected: stays terse; detail lives in doc.\n- **`adv.overlay.md`-only injection** — rejected after validator CONFLICT: `apply_overlay_block` skips `adv`; overlay-only edit has zero deployed effect.\n\n## Section design (doc)\n\n**Title:** `## User-Focus`\n\n**Position:** after Core Rules (line 13), before Manifest Description Rules (line 15).\n\n**Structure (matches existing patterns):**\n\n1. One-line purpose statement.\n2. Content-split table (4 rows: in user messages vs in artifacts).\n3. Translation discipline (pre-send scan + reframe-or-move step).\n4. Enforcement class note (inherently-prose; cross-reference mechanically-enforced tests for contrast).\n5. Motivational aside (toolbox `reduceLaunchTime` instance) — clearly marked as instance, not normative.\n\n**Length target:** ≤30 lines (matches Core Rules density). Justification: inherently-prose; per Prose-Load Reduction Rules, inherently-prose sections use the structured template but are not \"compressed away.\"\n\n**Tables to add:**\n\nContent split:\n\n| In user messages (decision-need) | In artifacts (self-documentation) |\n|---|---|\n| What the user will see / change | File paths, function names |\n| Options + trade-offs affecting them | Internal data flow, schema details |\n| Concrete recommendation | Evidence trail, reasoning narrative |\n| Decision asks | How conclusions were reached |\n\nEnforcement class contrast:\n\n| Voice rule | Class | Enforcement |\n|---|---|---|\n| Manifest descriptions (verb, length, banned phrases) | fully-enforced | `plugin/src/manifest.test.ts` |\n| Manifest ↔ command doc drift | fully-enforced | `plugin/src/manifest-doc-drift.test.ts` |\n| Checkpoint inline approval anchor | fully-enforced | `plugin/src/checkpoint-surface-drift.test.ts` |\n| Gate handoff spine | fully-enforced | `plugin/src/handoff-footer-drift.test.ts` |\n| User-focus (this section) | inherently-prose | Judgment only — no drift test |\n\n## Files to touch\n\n| File | Change |\n|---|---|\n| `docs/command-voice-standard.md` | Add `## User-Focus` section between Core Rules and Manifest Description Rules |\n| `.opencode/agents/adv.md` | Add pointer bullet to `## Voice Contract` section (deployed source via `sync_adv_runtime_agent`) |\n| `.opencode/overlays/adv.overlay.md` | Mirror the same pointer bullet for repo convention (does not deploy for `adv` but keeps overlay consistent with deployed state) |\n\n## Validation plan\n\n- Run `bin/oc-test targeted -- plugin/src/manifest.test.ts plugin/src/manifest-doc-drift.test.ts plugin/src/checkpoint-surface-drift.test.ts plugin/src/handoff-footer-drift.test.ts plugin/src/decision-rationale-assets.test.ts` — confirm no regression in voice enforcement.\n- Run `pnpm run check` — schemas, typecheck, lint, format.\n- Build + deploy locally; verify new Voice Contract bullet appears in deployed `~/.local/share/opencode/plugins/.../agents/adv.md` (synced from `.opencode/agents/adv.md`) via grep.\n- Confirm new ADV system prompt (after OpenCode restart) carries the user-focus bullet.\n\n## Validator evidence\n\nIndependent adv-researcher validator ran (PHASE=design). Verdict: CONFLICT on chain claim; all else VERIFIED or PARTIALLY_VERIFIED with no test-break risk. Correction: switch deployed surface from `adv.overlay.md` (inactive for `adv`) to `.opencode/agents/adv.md`. User approved corrected design 2026-07-20.\n",
+    "executiveSummary": "# Executive Summary — addUserFocusVoiceRule\n\n## Outcome\n\nADV agents now have a codified User-Focus voice rule. The rule tells agents to lead user-facing messages with what the user sees / what changes for them, and to move implementation detail (file paths, function names, schema fields) into durable artifacts (design docs, wisdom, code comments) instead of chat.\n\n## Value / why it matters\n\nBefore this change, agents collaborating with the user on decisions would drift into implementation-speak — describing impact via internal artifact names rather than user-visible outcomes. This forced the user to mentally translate (\"the snapshot JSON `providers` field changes\" → \"what does that mean for me?\") before they could decide. Small user-visible changes got inflated by implementation framing; large ones got buried. The new rule sits in the canonical voice standard at the top (after Core Rules), applies to all user-facing text, and is reinforced by a pointer bullet in the deployed ADV system prompt so agents see it under delivery pressure when doc consultation is least likely.\n\n## What was verified\n\n- All 4 constraints + 3 avoidances from the approved agreement pass independent reviewer audit (file:line cited per item).\n- 98/98 voice-enforcement drift tests pass (manifest, manifest-doc-drift, checkpoint-surface-drift, handoff-footer-drift, decision-rationale-assets).\n- `pnpm run check` exits 0 (schemas, typecheck, agent-manifest/test-isolation/lockfile, lint, format).\n- Deploy dry-run confirms `.opencode/agents/adv.md` is in the deployment payload; tool drift check passes (83 tools).\n- Campsite fix verified: 3 downstream surfaces (adv-triage.md, README.md, ADV_INSTRUCTIONS.md) now match the manifest source of truth for /adv-triage description.\n\n## Risks / follow-ups\n\n- **Judgment-applied only.** The rule is `inherently-prose` — no drift test enforces it. This is by design (regex/schema can't capture translation judgment) but means compliance is agent-discipline, not machine-checked.\n- **Overlay mirror is non-deploying.** `.opencode/overlays/adv.overlay.md` carries the same bullet for repo convention consistency, but `apply_overlay_block` skips `adv` in the deploy chain. The deployed source is `.opencode/agents/adv.md`. Future contributors editing only the overlay will see no live effect.\n- **Requires deploy + restart.** The new bullet reaches the live ADV system prompt only after `./scripts/deploy-local.sh` runs and OpenCode restarts. Pre-deploy, the rule lives in docs only.\n- **No follow-up ADV changes required.** The campsite fix absorbed /adv-triage drift; no separate cleanup change needed.\n\n## Supporting evidence\n\n- Reviewer report: adv-reviewer, verdict READY, 0 findings, attempt 2 (PHASE=review).\n- Wisdom entry promoted project-wide (ws-NDWDcb): documents the manifest-description drift pattern from PR #264 for future contributors.\n- Git: branch `change/addUserFocusVoiceRule`, 2 commits (7d3b1124 + 439742ee), 6 files, +43 lines.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T00:41:50.754Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| C1 | constraint | ADD only — do not modify existing voice rules. | pass | 6 modified files; User-Focus inserted at docs/command-voice-standard.md:15-46 while Core Rules remain :5-13 and Manifest Description Rules begin :48. No existing voice rule text changed. |\n| C2 | constraint | No new enforcement mechanism; no new drift test for this rule. | pass | No test file changed. Section :34 and :42 explicitly classify judgment-only/no drift test. 98/98 voice-enforcement drift tests pass (manifest-doc-drift 17/17). |\n| C3 | constraint | Cross-project rule: generalize the prose; toolbox example is motivational aside only. | pass | Motivational aside at docs/command-voice-standard.md:44-46 explicitly says 'not normative' and 'The rule generalizes.' Toolbox instance motivates only. |\n| C4 | constraint | Preserve doc length discipline (use compression templates from Prose-Load Reduction Rules where applicable). | pass | 32-line inherently-prose structured section (one-line purpose + tables). Only Prose-Load Reduction Rules section is capped at 80 (plugin/src/manifest-doc-drift.test.ts:350-360); User-Focus not subject to that cap. |\n| DONT1 | avoidance | Do not invent a heuristic detector for \"internal artifact names\" — the translation discipline is human/agent judgment, not a regex. | respected | Translation discipline at docs/command-voice-standard.md:28-30 explicitly framed as 'Judgment — not a regex.' No heuristic detector language. |\n| DONT2 | avoidance | Do not bloat the ADV overlay with multi-paragraph explanations if injection is chosen — pointer-style only. | respected | Single pointer-style reminder at .opencode/agents/adv.md:156 and mirror at .opencode/overlays/adv.overlay.md:15. No multi-paragraph bloat. |\n| DONT3 | avoidance | Do not cite the toolbox `reduceLaunchTime` change as normative; it is an instance, not the rule. | respected | Aside at docs/command-voice-standard.md:44-46 says 'not normative' and 'rule generalizes'; toolbox reduceLaunchTime framed as instance-not-rule. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-20T23:30:32.956Z",
+      "contentHash": "e8184395c43dfebccd53a5b33004f95caf3675a6ac5a15e56561079d367030d1",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-20T23:31:10.726Z",
+      "contentHash": "ef80a73df486ecc5cb95816cb8f2f2029933f2482ebd85371c9b7c8f16de9f2f",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-20T23:31:10.726Z",
+      "contentHash": "72f4858c4f048c5334d8e5c508d3acd7415c8693449d7cd93d614c60377b58df",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T00:20:46.573Z",
+      "contentHash": "4a99e748c24b26182683f451875c0af4d9bfe2320241b94de631d10e550091b7",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T00:41:50.791Z",
+      "contentHash": "9060f92ce9fa58de26397ffbb1d7c5ac112943b9aab090296dbe05363571b4fb",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T00:50:04.789Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-21T00:13:38.494Z"
+    }
+  ]
+}

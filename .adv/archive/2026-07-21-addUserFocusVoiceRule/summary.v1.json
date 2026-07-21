@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T00:51:13.566Z",
+  "capabilities": [],
+  "change_hash": "e6de91de88a7f46b8e816321d47e60ceedbaec8bf3f9aec58dff157d07317bdc",
+  "change_id": "addUserFocusVoiceRule",
+  "completed_tasks": 3,
+  "created_at": "2026-07-20T23:30:32.902Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T00:43:28.929Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "6839ea77877b62c84555842a77d18162e022d553f77943f7a5004f4fbc57bf30",
+  "task_count": 3,
+  "title": "Add user-focus voice rule",
+  "version": "1"
+}

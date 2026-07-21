@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-NDWDcb",
+      "type": "gotcha",
+      "content": "PR #264 (Reshape /adv-triage to portfolio balance) updated `plugin/src/manifest.ts` description for /adv-triage but missed 3 downstream docs: `.opencode/command/adv-triage.md` frontmatter, `README.md` table row, `ADV_INSTRUCTIONS.md` table row. Drift detected by `plugin/src/manifest-doc-drift.test.ts` (3 failures). Fix: when updating any manifest description in `manifest.ts`, scan and update all downstream surfaces (command doc frontmatter, README, ADV_INSTRUCTIONS) in the same PR. The manifest-doc-drift test enforces this — it's not advisory.",
+      "source_task": "tk-0fa0b4883bc0",
+      "recorded_at": "2026-07-21T00:36:55.119Z"
+    }
+  ],
+  "count": 1
+}
