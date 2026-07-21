@@ -593,17 +593,14 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
 
     // Sequence models the race window:
     //   - pre-signal query: pending
-    //   - immediate-post-signal readback (if refresh runs early): pending
     //   - poll attempt 1: pending
     //   - poll attempt 2: done (workflow has now processed the signal)
-    //   - any later reads (refresh under fix; further polls under bug): done
+    //   - refresh's readback after the fixed poll ordering: done
     const queryReturnSequence = [
       pendingGate, // pre-signal query
-      pendingGate, // refresh's readback IF refresh runs at buggy position
       pendingGate, // poll attempt 1
       doneGate, // poll attempt 2 — workflow caught up
-      doneGate, // any later reads (refresh under fix)
-      doneGate,
+      doneGate, // refresh's post-poll readback
     ];
     let queryCallIndex = 0;
 
@@ -626,6 +623,10 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
 
     const refreshMock = vi.fn(async () => {
       invocationLog.push({ kind: "refresh" });
+      // Model refresh's state readback. With the pre-fix ordering this would
+      // consume the second, still-pending query result before the poll; under
+      // the fixed ordering it consumes the post-done result above.
+      await handle.query();
     });
     const store = {
       ...createStore("/repo"),
