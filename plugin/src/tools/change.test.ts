@@ -4445,9 +4445,13 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
-    test("does not archive-status recover from poisoned signal-error text without describe evidence", async () => {
+    test("recovers archive status from poisoned signal-error class without describe evidence (C2)", async () => {
+      // C2 (fixPoisonedRecovery reviewer-block remediation): describe() is NOT
+      // required for recovery. Poisoned-history error class in saveError text
+      // + precise recoveryEvidence is sufficient authority. The previous
+      // behavior required describe() confirmation — that violated C2.
       const tempDir = await createTempDir(
-        "adv-change-archive-poisoned-signal-only-no-recovery-",
+        "adv-change-archive-poisoned-signal-only-recovery-",
       );
       try {
         await prepareNoRemoteReleaseProof(tempDir);
@@ -4482,12 +4486,58 @@ describe("change tools — signal-driven lifecycle", () => {
         );
         const parsed = JSON.parse(result);
 
-        expect(parsed.success).toBe(false);
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalled();
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("does not recover archive status when saveError is generic and evidence is missing (C2)", async () => {
+      // C2: without precise operator evidence AND without poisoned/completed
+      // error class, recovery MUST NOT fire. describe() cannot authorize.
+      const tempDir = await createTempDir(
+        "adv-change-archive-no-recovery-generic-error-",
+      );
+      try {
+        await prepareNoRemoteReleaseProof(tempDir);
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        await mkdir(`${tempDir}/changes/test-change`, { recursive: true });
+        await writeFile(
+          `${tempDir}/changes/test-change/change.json`,
+          JSON.stringify((await store.changes.get("test-change")).data),
+        );
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          new Error("Failed to query Workflow"),
+        );
+        (
+          mocks.handleMock as typeof mocks.handleMock & {
+            describe: ReturnType<typeof vi.fn>;
+          }
+        ).describe = vi.fn(async () => ({
+          rawDescription: "TMPRL1100 Nondeterminism error",
+        }));
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          {
+            changeId: "test-change",
+            phase9: "skip",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence: "Failed to query Workflow",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBeFalsy();
         expect(parsed._recoveryMutation).toBeUndefined();
         expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
-        expect(parsed.error).toContain(
-          "TMPRL1100 nondeterminism while saving archive status",
-        );
+        expect(parsed.error).toMatch(/Failed to query Workflow|TMPRL1100/i);
       } finally {
         await cleanupTempDir(tempDir);
       }

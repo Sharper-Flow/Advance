@@ -95,7 +95,9 @@ import { checkPlanRoutingGuard } from "../migration/routing-guard";
 import { createLogger } from "../utils/debug-log";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
+  isPoisonedHistoryError,
   isPreciseWorkflowRecoveryEvidence,
+  isWorkflowCompletedError,
   RECOVERY_RECONCILIATION_WARNING,
 } from "../temporal/recovery-classification";
 import { hasGateRecoveryAudit } from "./recovery-audit";
@@ -103,7 +105,6 @@ import {
   classifyCompletedOrPoisonedRecovery,
   logRecoveryProbeDiagnostics,
   shouldTakeRecoveryBranch,
-  workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
@@ -1289,10 +1290,18 @@ export const gateTools = {
                 // rq-fix-gate-tools-recovery AC1: poisoned-history fallback.
                 // The store's changes.get already returned a disk projection
                 // (likely via temporal_query_fallback). Honour that disk
-                // projection when the workflow describe carries poisoned
-                // evidence, instead of propagating the generic
-                // "Failed to query Workflow" error.
-                if (await workflowHasPoisonedRecoveryEvidence(handle)) {
+                // projection when the workflow is poisoned/completed, instead
+                // of propagating the generic "Failed to query Workflow" error.
+                //
+                // C2 (fixPoisonedRecovery reviewer-block remediation):
+                // describe() must NOT be consulted for poison authority —
+                // even as a fallback. Error class is the sole authority here.
+                // describe() remains in use elsewhere for run identity /
+                // open-closed detection only.
+                if (
+                  isPoisonedHistoryError(queryError) ||
+                  isWorkflowCompletedError(queryError)
+                ) {
                   poisonedFallback = true;
                 } else {
                   throw queryError;
