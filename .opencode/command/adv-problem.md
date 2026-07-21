@@ -115,6 +115,7 @@ Emit a compact triage summary:
 - Spec-law impact
 - Guardrail assessment
 - Recommended exit path and next command
+- Root cause (if defect origin) — when the issue is a defect/bug/regression, attach a Root Cause Analysis (RCA) section that downstream `/adv-proposal` or `/adv-task` invocations MUST carry forward (per rq-defectOriginRca01). RCA shape reuses the bullets above; if `/adv-problem` already ran, its output IS the RCA.
 
 ## Anti-Patterns
 

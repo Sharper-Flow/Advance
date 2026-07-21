@@ -196,6 +196,8 @@ Before doing anything, classify what the user is asking for:
 
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
+> **Defect-origin routing footnote (rq-defectOriginRca01):** When the user's intent describes unintended behavior, route through `/adv-problem` to produce Root Cause Analysis (RCA) evidence before any proposal-creation path. Defect triggers: "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X". Non-defect triggers (proceed normally to `/adv-proposal` or `/adv-task`): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X". Rule of thumb: user describes unintended behavior → defect; user describes desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3). Defect-origin `/adv-proposal` and `/adv-task` invocations MUST carry a `## Root Cause Analysis` section in the persisted proposal.md artifact. `/adv-task` fast-track does NOT bypass RCA for defects.
+
 ## Step 2: Load State
 Before every gate transition: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume at the first incomplete gate. During discovery, make at most one advisory `episode_recall` when available. Pass the active project namespace and `top_k: 5`; shared global results remain advisory. If unavailable, continue with native ADV context and record the limitation. Never use recalled content to complete gates, override specs/contracts, or replace task evidence. Do not call Episode write/delete tools.
 

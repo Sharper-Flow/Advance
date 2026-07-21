@@ -122,3 +122,30 @@ describe("adv-task fast-track spec-law tracking contract", () => {
     ]);
   });
 });
+
+/**
+ * Defect-origin RCA rejection (rq-defectOriginRca01) — added by sequenceTriageProposal.
+ *
+ * Verifies that /adv-task explicitly rejects defect-origin invocations that
+ * lack RCA evidence. The fast-track exemption applies to ceremony only; it
+ * does NOT bypass RCA for defects (per design KD3 + UD3).
+ */
+describe("adv-task defect-origin RCA rejection (rq-defectOriginRca01)", () => {
+  const command = readFileSync(COMMAND_PATH, "utf8");
+
+  test("command recognizes defect-origin classification", () => {
+    // Semantic anchor per design DDC1.
+    expect(command).toMatch(/defect[- ]origin/i);
+  });
+
+  test("command requires Root Cause Analysis for defect-origin invocations", () => {
+    expect(command).toMatch(/Root Cause Analysis|RCA/i);
+  });
+
+  test("command defers defect-origin without RCA to /adv-problem", () => {
+    expect(command).toMatch(/\/adv-problem/);
+    expect(command).toMatch(
+      /defect[- ]origin[^.]*\b(RCA|Root Cause Analysis)\b|fast-track does not bypass RCA/i,
+    );
+  });
+});

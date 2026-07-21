@@ -306,3 +306,30 @@ describe("ADV_INSTRUCTIONS.md compression guards", () => {
     }
   });
 });
+
+/**
+ * Defect-origin RCA requirement (rq-defectOriginRca01) — added by sequenceTriageProposal.
+ *
+ * Verifies that ADV_INSTRUCTIONS.md reflects the advisory RCA requirement for
+ * defect-origin work: bug/defect reports must produce Root Cause Analysis
+ * evidence before reaching /adv-proposal or /adv-task.
+ */
+describe("ADV_INSTRUCTIONS.md defect-origin RCA requirement (rq-defectOriginRca01)", () => {
+  const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+  test("mentions Root Cause Analysis for defect-origin work", () => {
+    // Semantic anchor per design DDC1.
+    expect(content).toMatch(/Root Cause Analysis|RCA/i);
+  });
+
+  test("references defect-origin classification", () => {
+    expect(content).toMatch(/defect[- ]origin/i);
+  });
+
+  test("HITL Boundary table or pre-implementation section ties /adv-problem to RCA evidence", () => {
+    // Either the /adv-problem HITL row or the pre-implementation phase section
+    // must connect triage to RCA. Anchor on /adv-problem mention + RCA nearby.
+    expect(content).toMatch(/\/adv-problem/);
+    expect(content).toMatch(/Root Cause Analysis|RCA/i);
+  });
+});
