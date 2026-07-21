@@ -48,10 +48,7 @@ export function discoverReplayFixtures(
         stem,
         metadataPath: join(historiesDir, name),
         historyPath: join(historiesDir, `${stem}.history.json`),
-        classificationPath: join(
-          historiesDir,
-          `${stem}.classification.json`,
-        ),
+        classificationPath: join(historiesDir, `${stem}.classification.json`),
       };
     });
 }

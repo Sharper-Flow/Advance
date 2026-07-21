@@ -232,7 +232,12 @@ function createMockStore(
       reclassifyTdd: vi.fn(),
       ...overrides.tasks,
     } as Store["tasks"],
-    wisdom: {} as Store["wisdom"],
+    wisdom: {
+      search: vi.fn(async () => []),
+      list: vi.fn(async () => []),
+      listAll: vi.fn(async () => []),
+      add: vi.fn(),
+    } as unknown as Store["wisdom"],
     gates: {
       get: vi.fn(async () => overrides.gates ?? defaultGates),
       complete: vi.fn(),
@@ -383,6 +388,180 @@ describe("task tools — signal/query adapters", () => {
       await expect(
         taskTools.adv_task_show.execute({ taskId: "tk-schema-broken" }, store),
       ).rejects.toThrow(/Schema validation failed/);
+    });
+
+    // -------------------------------------------------------------------------
+    // rq-wisdomAutoSurfacing01 — D1+D2 enrichment
+    // -------------------------------------------------------------------------
+
+    test("D1+D2: returns _relevantWisdom and _episodeRecallHint when contract_refs.implements is non-empty", async () => {
+      // Recency-sort wins over FTS ranking: FTS fixture returns older-first
+      // [ws-old, ws-new]; output must be newer-first [ws-new, ws-old] per AC1.
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Enriched Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1", "AC2"] },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-1",
+        title: "Enriched Task",
+        status: "pending",
+        contract_refs: { implements: ["AC1", "AC2"] },
+      });
+      (store.wisdom.search as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: "ws-old",
+          type: "pattern",
+          content: "older entry",
+          recorded_at: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          id: "ws-new",
+          type: "failure",
+          content: "newer entry",
+          recorded_at: "2026-07-01T00:00:00.000Z",
+        },
+      ]);
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-1" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // D1: top 5 by recency — newer entry first
+      expect(parsed._relevantWisdom).toHaveLength(2);
+      expect(parsed._relevantWisdom[0].id).toBe("ws-new");
+      expect(parsed._relevantWisdom[1].id).toBe("ws-old");
+      // D2: capabilities-gated hint emitted; plugin does not call MCP
+      expect(parsed._episodeRecallHint).toEqual({
+        namespace: expect.any(String),
+        query: "AC1 AC2",
+        top_k: 3,
+      });
+      // FTS query routed the implements[] joined with spaces
+      expect(store.wisdom.search).toHaveBeenCalledWith("AC1 AC2", {
+        changeId: "test-change",
+      });
+    });
+
+    test("D1+D2: caps _relevantWisdom to top 5 by recorded_at DESC", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "T",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1"] },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-cap",
+        contract_refs: { implements: ["AC1"] },
+      });
+      // 7 entries — expect 5 newest in DESC order
+      (store.wisdom.search as ReturnType<typeof vi.fn>).mockResolvedValue(
+        Array.from({ length: 7 }, (_, i) => ({
+          id: `ws-${i}`,
+          type: "pattern",
+          content: `entry-${i}`,
+          recorded_at: `2026-01-0${i + 1}T00:00:00.000Z`,
+        })),
+      );
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-cap" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toHaveLength(5);
+      // Newest first (recorded_at DESC)
+      expect(parsed._relevantWisdom[0].id).toBe("ws-6");
+      expect(parsed._relevantWisdom[4].id).toBe("ws-2");
+    });
+
+    test("D1: returns [] _relevantWisdom when contract_refs.implements is empty", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-noimp",
+        contract_refs: { implements: [] },
+      });
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-noimp" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toEqual([]);
+      expect(parsed._episodeRecallHint).toBeUndefined();
+      expect(store.wisdom.search).not.toHaveBeenCalled();
+    });
+
+    test("D1: returns [] _relevantWisdom when contract_refs is undefined", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({ id: "tk-bare" });
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-bare" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toEqual([]);
+      expect(parsed._episodeRecallHint).toBeUndefined();
+    });
+
+    test("D1: falls back to [] when wisdom.search throws (advisory-only)", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "T",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              contract_refs: { implements: ["AC1"] },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-throw",
+        contract_refs: { implements: ["AC1"] },
+      });
+      (store.wisdom.search as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("FTS index missing"),
+      );
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-throw" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._relevantWisdom).toEqual([]);
+      // Hint still emitted — it does not depend on FTS
+      expect(parsed._episodeRecallHint).toEqual({
+        namespace: expect.any(String),
+        query: "AC1",
+        top_k: 3,
+      });
     });
   });
 
@@ -627,6 +806,98 @@ describe("task tools — signal/query adapters", () => {
         taskId: "tk-abc",
         reason: "Blocked reason",
       });
+    });
+
+    test("blocked with SEMANTIC error_recovery creates WisdomDraft (rq-wisdomAutoSurfacing01.3 / correctness-4)", async () => {
+      // Without this fix, blocked-status bypassed draft creation; SEMANTIC
+      // learning moments on blocked tasks were lost. Verify the
+      // taskBlockedSignal now carries wisdom_drafts atomically.
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-blocked",
+        status: "pending",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-blocked",
+          status: "blocked",
+          notes: "Hit a wall",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "TypeError",
+                diagnosis: "missing null check",
+                fix_tried: "added guard",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-blocked",
+        reason: "Hit a wall",
+        wisdom_drafts: [
+          expect.objectContaining({
+            suggested_type: "failure",
+            suggested_content: "missing null check → added guard",
+            status: "suggested",
+          }),
+        ],
+      });
+    });
+
+    test("blocked without SEMANTIC error_recovery omits wisdom_drafts (DDC6 backward-compat)", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-blocked2",
+        status: "pending",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-blocked2",
+          status: "blocked",
+          notes: "External dep missing",
+          error_recovery: {
+            last_error: "ServiceUnavailable",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "TRANSIENT",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "503",
+                diagnosis: "service down",
+                fix_tried: "retry",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      // No wisdom_drafts field — TRANSIENT does not trigger draft creation
+      expect(signalCall[4].wisdom_drafts).toBeUndefined();
     });
 
     test("routes other partials to taskUpdatedSignal", async () => {
@@ -1280,6 +1551,191 @@ describe("task tools — signal/query adapters", () => {
         "tk-cancelled",
       ]);
       expect(parsed.contractCoverage.cancelledTaskCount).toBe(1);
+    });
+
+    // ---------------------------------------------------------------------------
+    // rq-wisdomAutoSurfacing01 — WisdomDraft auto-creation on SEMANTIC recovery
+    // ---------------------------------------------------------------------------
+
+    test("auto-creates a WisdomDraft when error_recovery is SEMANTIC with attempts", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "TypeError",
+                diagnosis: "missing await",
+                fix_tried: "add await",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      const partial = signalCall[4].partial;
+      expect(partial.error_recovery.error_class).toBe("SEMANTIC");
+      expect(partial.wisdom_drafts).toBeDefined();
+      expect(partial.wisdom_drafts).toHaveLength(1);
+      const draft = partial.wisdom_drafts[0];
+      expect(draft.id).toMatch(/^dr-[0-9a-f]{8}$/);
+      expect(draft.suggested_type).toBe("failure");
+      expect(draft.suggested_content).toBe("missing await → add await");
+      expect(draft.source_attempts).toEqual([1]);
+      expect(draft.status).toBe("suggested");
+    });
+
+    test("does NOT create a WisdomDraft when error_class is not SEMANTIC", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "Network timeout",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "TRANSIENT",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "timeout",
+                diagnosis: "slow net",
+                fix_tried: "retry",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
+    });
+
+    test("does NOT create a WisdomDraft when attempts[] is empty", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 0,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [],
+          },
+        },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
+    });
+
+    test("dedups: does not create a second suggested draft when one already exists", async () => {
+      const existingDraft = {
+        id: "dr-existing",
+        suggested_type: "failure",
+        suggested_content: "prior issue → prior fix",
+        source_attempts: [1],
+        status: "suggested",
+        created_at: "2026-07-21T16:00:00.000Z",
+      };
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Sample",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              wisdom_drafts: [existingDraft],
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+        wisdom_drafts: [existingDraft],
+      });
+
+      await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 2,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 2,
+                error: "different error",
+                diagnosis: "new diag",
+                fix_tried: "new fix",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      // No wisdom_drafts in the partial — dedup kept the existing draft untouched.
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
+    });
+
+    test("no error_recovery → no wisdom_drafts in partial", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "pending",
+      });
+
+      await taskTools.adv_task_update.execute(
+        { taskId: "tk-abc", status: "pending", notes: "regular update" },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4].partial.wisdom_drafts).toBeUndefined();
     });
   });
 

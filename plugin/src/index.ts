@@ -245,6 +245,15 @@ interface PluginState extends StatusFlags {
 
   /** Last detected session-resume hazard to surface in system context. */
   lastSessionHealthIssue: SessionHealthIssue | null;
+
+  /**
+   * Tasks on the active change that carry `wisdom_drafts[]` entries in the
+   * `suggested` state. Populated by the system.transform producer each turn
+   * (rq-wisdomAutoSurfacing01.10 / AC8) so the [ADV:WISDOM_DRAFTS] prompt
+   * fires. Recomputed before applyAdvSystemBlock; cleared implicitly when
+   * drafts are promoted or auto-dismissed at checkpoint.
+   */
+  pendingWisdomDraftTasks: Array<{ id: string; title: string; count: number }>;
 }
 
 /**
@@ -447,6 +456,7 @@ const advancePluginImpl: Plugin = async (input) => {
     isMainCheckout,
 
     lastSessionHealthIssue: null,
+    pendingWisdomDraftTasks: [],
   };
 
   // AC6 — reset session-scoped metrics on every plugin init. JC-1 keeps
@@ -1252,6 +1262,39 @@ const advancePluginImpl: Plugin = async (input) => {
         });
 
         const beforeBytes = output.system[0]?.length ?? 0;
+
+        // rq-wisdomAutoSurfacing01.10 / AC8 producer: refresh
+        // pendingWisdomDraftTasks from the active change's task list so the
+        // [ADV:WISDOM_DRAFTS] nudge reflects the current draft state. The
+        // producer is best-effort: any storage failure yields an empty
+        // array (no nudge fires). Drafts are advisory-only and never gate.
+        state.pendingWisdomDraftTasks = [];
+        if (store && state.activeChange.id) {
+          try {
+            const taskList = await store.tasks.list(state.activeChange.id);
+            state.pendingWisdomDraftTasks = taskList
+              .map((t) => {
+                const suggestedCount = (t.wisdom_drafts ?? []).filter(
+                  (d) => d.status === "suggested",
+                ).length;
+                return suggestedCount > 0
+                  ? { id: t.id, title: t.title, count: suggestedCount }
+                  : null;
+              })
+              .filter(
+                (
+                  entry,
+                ): entry is { id: string; title: string; count: number } =>
+                  entry !== null,
+              );
+          } catch (e) {
+            debugLog(
+              `pendingWisdomDraftTasks producer failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
+            state.pendingWisdomDraftTasks = [];
+          }
+        }
+
         const result = applyAdvSystemBlock(output, {
           state,
           initError,
@@ -1265,8 +1308,12 @@ const advancePluginImpl: Plugin = async (input) => {
           recordSystemBlockBytes(afterBytes - beforeBytes);
         }
 
-        // Wisdom prompt is volatile: clear lastCompletedTask once it has
-        // been emitted so the prompt does not repeat next turn.
+        // Wisdom prompt is volatile. Legacy tracking: clear
+        // lastCompletedTask once it has been emitted so the retired
+        // [ADV:RECORD_WISDOM] prompt does not repeat next turn.
+        // The new [ADV:WISDOM_DRAFTS] prompt is driven by
+        // state.pendingWisdomDraftTasks and naturally clears when drafts
+        // are promoted or auto-dismissed at checkpoint.
         if (result.consumedWisdomPrompt) {
           state.lastCompletedTask = null;
         }

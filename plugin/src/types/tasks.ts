@@ -132,6 +132,80 @@ export const ErrorRecoverySchema = z.object({
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 
 // =============================================================================
+// Wisdom Drafts (rq-wisdomAutoSurfacing01)
+// =============================================================================
+//
+// Advisory-only typed drafts auto-created when a task records a SEMANTIC
+// error_recovery attempt. Drafts are task-scoped (AC7) and follow a strict
+// lifecycle (AC4): suggested → promoted | dismissed. No revival path.
+// Promotion happens via adv_wisdom_add from_draft_id; auto-dismissal happens
+// at adv_task_checkpoint with dismiss_reason "auto_checkpoint"; explicit user
+// dismiss carries dismiss_reason "user_dismissed".
+
+/**
+ * Lifecycle status for a WisdomDraft.
+ * - suggested: newly created, awaiting review
+ * - promoted:  terminal — promoted to a Wisdom entry via adv_wisdom_add
+ * - dismissed: terminal — auto-dismissed at checkpoint OR explicitly by user
+ */
+export const WisdomDraftStatusSchema = z.enum([
+  "suggested",
+  "promoted",
+  "dismissed",
+]);
+
+/**
+ * Reason a draft entered the dismissed terminal state.
+ * - auto_checkpoint: draft was unreviewed when adv_task_checkpoint completed
+ * - user_dismissed:  user explicitly dismissed the draft
+ */
+export const WisdomDraftDismissReasonSchema = z.enum([
+  "auto_checkpoint",
+  "user_dismissed",
+]);
+
+/**
+ * Suggested wisdom category derived from the triggering error_class.
+ * SEMANTIC errors map to "failure"; future FATAL support may add "gotcha".
+ */
+export const WisdomDraftSuggestedTypeSchema = z.enum(["failure", "gotcha"]);
+
+/**
+ * A single wisdom draft suggestion auto-created from a SEMANTIC error_recovery
+ * attempt. The agent reviews the draft and either promotes it to a real Wisdom
+ * entry (via adv_wisdom_add from_draft_id) or lets it auto-dismiss at checkpoint.
+ *
+ * Lifecycle invariant: once status leaves "suggested", it never returns.
+ */
+export const WisdomDraftSchema = z.object({
+  /** Stable draft identifier; format dr-<8hex> (unique per task — DDC3) */
+  id: z.string(),
+  /** Suggested wisdom type derived from triggering error_class */
+  suggested_type: WisdomDraftSuggestedTypeSchema,
+  /**
+   * Terse "{diagnosis} → {fix}" template populated from the first SEMANTIC
+   * attempt. Multiple SEMANTIC attempts are concatenated with "; ".
+   * Capped at 2000 chars (matches WisdomEntrySchema.content) to bound
+   * Temporal signal payload size.
+   */
+  suggested_content: z.string().max(2000),
+  /** attempt_number refs from error_recovery.attempts[] that triggered this draft */
+  source_attempts: z.array(z.number().int().min(1)).optional(),
+  /** Current lifecycle status (suggested → promoted | dismissed) */
+  status: WisdomDraftStatusSchema,
+  /** ISO8601 timestamp when the draft was created */
+  created_at: z.string(),
+  /** ISO8601 timestamp when the draft entered a terminal state */
+  dismissed_at: z.string().optional(),
+  /** Reason for dismissal — required when status === "dismissed" */
+  dismiss_reason: WisdomDraftDismissReasonSchema.optional(),
+  /** Wisdom ID set when status === "promoted" via adv_wisdom_add from_draft_id */
+  promoted_wisdom_id: z.string().optional(),
+});
+
+export type WisdomDraft = z.infer<typeof WisdomDraftSchema>;
+
+// =============================================================================
 // Task
 // =============================================================================
 
@@ -269,6 +343,13 @@ export const TaskSchema = z
      * review/research/scanner sidecars persist on change.subagent_reports[].
      */
     subagent_reports: z.array(SubagentReportSchema).optional(),
+    /**
+     * Advisory-only typed wisdom drafts auto-created from SEMANTIC
+     * error_recovery attempts (rq-wisdomAutoSurfacing01). Task-scoped (AC7):
+     * cancelled tasks' drafts do not appear in change-level wisdom queries.
+     * Lifecycle is one-way: suggested → promoted | dismissed (AC4).
+     */
+    wisdom_drafts: z.array(WisdomDraftSchema).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

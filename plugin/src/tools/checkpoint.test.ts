@@ -13,6 +13,7 @@ import {
   checkpointTools,
   detectRepoState,
 } from "./checkpoint";
+import { taskUpdatedSignal } from "../temporal/messages";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import type { Store } from "../storage/store-types";
 
@@ -521,6 +522,193 @@ describe("checkpoint tools — signal-driven", () => {
         verification: "Tests passed",
         checkpointSha: expect.any(String),
       });
+    });
+
+    // -------------------------------------------------------------------------
+    // rq-wisdomAutoSurfacing01 — WisdomDraft auto-dismiss at checkpoint (AC5)
+    // -------------------------------------------------------------------------
+
+    test("auto-dismisses suggested drafts at checkpoint and reports counts (AC5)", async () => {
+      const store = createMockStore();
+      mockGitResponses({});
+      mockRecordedTask({
+        // @ts-expect-error — extending readback shape with wisdom_drafts
+        wisdom_drafts: [
+          {
+            id: "dr-a",
+            suggested_type: "failure",
+            suggested_content: "diag-a → fix-a",
+            source_attempts: [1],
+            status: "suggested",
+            created_at: "2026-07-21T17:00:00.000Z",
+          },
+          {
+            id: "dr-b",
+            suggested_type: "failure",
+            suggested_content: "diag-b → fix-b",
+            source_attempts: [1],
+            status: "suggested",
+            created_at: "2026-07-21T17:00:00.000Z",
+          },
+          {
+            id: "dr-c",
+            suggested_type: "failure",
+            suggested_content: "already-promoted",
+            source_attempts: [1],
+            status: "promoted",
+            created_at: "2026-07-21T16:00:00.000Z",
+            promoted_wisdom_id: "ws-old",
+          },
+        ],
+      });
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification: "Tests passed",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("committed");
+      expect(parsed.drafts_pending_review).toBe(2);
+      expect(parsed.drafts_auto_dismissed).toBe(2);
+
+      // Two signals: taskCompletedSignal + taskUpdatedSignal (draft auto-dismiss)
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
+      const draftDismissCall = mocks.fireSignalAndRefresh.mock.calls[1];
+      expect(draftDismissCall[3]).toBe(taskUpdatedSignal);
+      expect(draftDismissCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        partial: {
+          wisdom_drafts: expect.arrayContaining([
+            expect.objectContaining({
+              id: "dr-a",
+              status: "dismissed",
+              dismiss_reason: "auto_checkpoint",
+            }),
+            expect.objectContaining({
+              id: "dr-b",
+              status: "dismissed",
+              dismiss_reason: "auto_checkpoint",
+            }),
+            expect.objectContaining({
+              id: "dr-c",
+              status: "promoted", // untouched — already terminal
+            }),
+          ]),
+        },
+      });
+    });
+
+    test("does NOT fire draft-dismiss signal when no suggested drafts exist", async () => {
+      const store = createMockStore();
+      mockGitResponses({});
+      mockRecordedTask({
+        // @ts-expect-error — extending readback shape with wisdom_drafts
+        wisdom_drafts: [
+          {
+            id: "dr-promoted",
+            suggested_type: "failure",
+            suggested_content: "done",
+            status: "promoted",
+            created_at: "2026-07-21T16:00:00.000Z",
+            promoted_wisdom_id: "ws-x",
+          },
+        ],
+      });
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification: "Tests passed",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.drafts_pending_review).toBe(0);
+      expect(parsed.drafts_auto_dismissed).toBe(0);
+      // Only the taskCompletedSignal fires
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    test("no wisdom_drafts on task → zero counts, single signal", async () => {
+      const store = createMockStore();
+      mockGitResponses({});
+      mockRecordedTask();
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification: "Tests passed",
+        },
+        store,
+        "/tmp/test",
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed.drafts_pending_review).toBe(0);
+      expect(parsed.drafts_auto_dismissed).toBe(0);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    test("draft-dismiss signal failure is best-effort: status stays committed, counts stay 0 (rq-wisdomAutoSurfacing01.8)", async () => {
+      const store = createMockStore();
+      mockGitResponses({});
+      mockRecordedTask({
+        // @ts-expect-error — extending readback shape with wisdom_drafts
+        wisdom_drafts: [
+          {
+            id: "dr-a",
+            suggested_type: "failure",
+            suggested_content: "diag-a → fix-a",
+            source_attempts: [1],
+            status: "suggested",
+            created_at: "2026-07-21T17:00:00.000Z",
+          },
+          {
+            id: "dr-b",
+            suggested_type: "failure",
+            suggested_content: "diag-b → fix-b",
+            source_attempts: [1],
+            status: "suggested",
+            created_at: "2026-07-21T17:00:00.000Z",
+          },
+        ],
+      });
+
+      // First call (taskCompletedSignal) succeeds; second call
+      // (taskUpdatedSignal for draft dismiss) rejects. Verifies the
+      // try/catch at checkpoint.ts:497-509 keeps checkpoint completion
+      // intact and surfaces zero auto-dismissed counts on signal failure.
+      mocks.fireSignalAndRefresh
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("temporal unavailable"));
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification: "Tests passed",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      // Checkpoint itself stays committed despite dismiss-signal failure
+      expect(parsed.status).toBe("committed");
+      // Counts reflect that dismiss did NOT complete: 2 pending, 0 dismissed
+      expect(parsed.drafts_pending_review).toBe(2);
+      expect(parsed.drafts_auto_dismissed).toBe(0);
+      // Both signals attempted (completion + failed dismiss)
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
     });
 
     test("extracts structured_output from <adv-output> in verification on complete", async () => {
