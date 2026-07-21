@@ -6,7 +6,7 @@
   "contractBytes": 305,
   "prompts": {
     "adv-ci-waiter": {
-      "bytes": 4223,
+      "bytes": 5060,
       "mcpCapable": false,
       "grants": []
     },

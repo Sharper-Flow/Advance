@@ -45,6 +45,17 @@ Rules:
 
 `oc-ci-wait` reports CI terminal states. Its `conclusion` is CI success or failure, not PR merge state. Do not report `MERGED` based on `oc-ci-wait` output alone. PR `MERGED` requires separate PR-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit`). When CI success is reported but PR state is not `MERGED`, hand back honestly with a `Pending auto-merge.`-shaped terminal so the parent flow can keep the change active.
 
+## On red CI: return, do not remediate
+
+You have `edit: deny`, `morph_edit: deny`, `task: deny`. You cannot remediate anything. When CI concludes `failure`:
+
+1. Stop polling immediately (do not retry the failing run).
+2. Classify the failing checks: name, URL, and a brief log excerpt (≤500 chars total across all failing checks).
+3. Return to the parent with: `conclusion: failure`, the failing-checks list, and `next action: parent classifies and remediates in the PR worktree`.
+4. Do NOT attempt to fix code, push commits, edit files, or re-spawn yourself. Do NOT call `question` to ask the user how to remediate.
+
+Remediation is the parent orchestrator's responsibility, not yours. The parent reads your classification, inspects logs/artifacts as needed, fixes in the PR worktree, pushes, and re-spawns you to watch the next run.
+
 ## Bounded output
 
 - Do not dump raw logs unless needed for failing-check summary.

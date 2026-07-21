@@ -509,7 +509,7 @@ Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit 
    ```
    Read the nested fields from `finalization.*`, not top-level.
 
-2. **Spawn the waiter.** Use the Task tool to spawn `adv-ci-waiter` with `{ repo, prNumber, prUrl }`. Cite `~/.config/opencode/instructions/oc-ci-wait.md` for the polling contract — the **main agent never polls CI itself** (P37). `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state.
+2. **Spawn the waiter.** Use the Task tool to spawn `adv-ci-waiter` with `{ repo, prNumber, prUrl }`. Cite `~/.config/opencode/instructions/oc-ci-wait.md` for the polling contract — the **main agent never polls CI itself** (P37). `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state. The waiter polls and reports only — it has `edit: deny` and cannot remediate. If CI fails, the waiter returns to the parent (you) with classification (failing check names, URLs, log excerpt); the parent classifies the cause, remediates in the PR worktree, pushes the fix, and re-spawns the waiter. Do not ask the waiter to remediate.
 
 3. **Branch on the terminal result.**
    - **CI success, `PR state == MERGED`** (verified via `gh pr view <number> --json state,mergedAt,mergeCommit`):

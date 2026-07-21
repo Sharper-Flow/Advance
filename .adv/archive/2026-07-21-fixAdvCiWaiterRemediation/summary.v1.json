@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T13:25:01.530Z",
+  "capabilities": [],
+  "change_hash": "fc61f43d6685f2a24395dc7fe2c7425ffe2c63fd9313e6daa4bd61bc58ebae63",
+  "change_id": "fixAdvCiWaiterRemediation",
+  "completed_tasks": 5,
+  "created_at": "2026-07-21T05:33:13.524Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T12:24:30.796Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "f045f8f8f79b65ff62457d02ac6f0bb839487cf2c65823d28c7f1164a391d1d6",
+  "task_count": 5,
+  "title": "Fix adv-ci-waiter remediation policy",
+  "version": "1"
+}
