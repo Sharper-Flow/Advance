@@ -1,0 +1,1712 @@
+{
+  "id": "addWisdomAutoSurfacing",
+  "title": "Add wisdom auto-surfacing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T16:31:14.987Z",
+  "tasks": [
+    {
+      "id": "tk-a6cf8146d380",
+      "title": "Extend adv_task_show with _relevantWisdom and _episodeRecallHint enrichment",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T16:55:11.084Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:33:05.705Z",
+      "verification": "Extended adv_task_show with _relevantWisdom (D1) and _episodeRecallHint (D2) advisory enrichment (AC1, AC2, AC10). D1: two-step retrieval — FTS filter via store.wisdom.search(query, {changeId}) when contract_refs.implements non-empty, then deterministic sort by recorded_at DESC, take top 5. Falls back to [] on FTS failure. D2: emits {namespace, query, top_k: 3} hint — plugin emits hint only, agent runtime owns the actual MCP call (preserves DONT2 plugin↔MCP isolation). Trigger condition: contract_refs.implements.length > 0. Returns _relevantWisdom: [] when trigger absent. Added 5 integration tests in plugin/src/tools/task.test.ts covering trigger-emit, top-5 cap with recency ordering, empty/undefined implements suppression, and FTS-failure fallback. Updated createMockStore to stub wisdom.search/list/listAll/add so existing tests don't break on the new store.wisdom.search call. Evidence: 63/63 task.test.ts tests pass (runId tr_mruxpkyz_179c1b2d). pnpm run check passes (runId tr_mruxqwzv_6923a14f).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "checkpointSha": "4ffc5cbcc82bb8b85b79c8fbcd7383de21620e7d",
+      "completedAt": "2026-07-21T17:36:52.579Z",
+      "completed_at": "2026-07-21T17:36:52.579Z"
+    },
+    {
+      "id": "tk-e6c18758c9d9",
+      "title": "Define WisdomDraft type and extend Task with wisdom_drafts field",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T16:55:32.598Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:12:47.708Z",
+      "verification": "Added WisdomDraftSchema + WisdomDraft type and extended TaskSchema with optional wisdom_drafts field (AC4, AC7, DDC3, DDC6). 17 tests pass (vitest run src/types/tasks.test.ts, runId tr_mrux0ujr_dbf81c20). Typecheck passes (runId tr_mrux1an9_287568d3). Files: plugin/src/types/tasks.ts (+79 lines, new Wisdom Drafts section), plugin/src/types/tasks.test.ts (NEW, 17 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/tasks.test.ts",
+        "plugin/src/types/tasks.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/tasks.test.ts",
+        "plugin/src/types/tasks.ts"
+      ],
+      "checkpointSha": "f9d45800f637028511f5ab07dddb880858d66dc4",
+      "completedAt": "2026-07-21T17:16:57.978Z",
+      "completed_at": "2026-07-21T17:16:57.978Z"
+    },
+    {
+      "id": "tk-16f8127784b7",
+      "title": "Implement WisdomDraft auto-creation in adv_task_update on SEMANTIC error_recovery",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-21T16:56:00.697Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e6c18758c9d9"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C5",
+          "C6",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:18:05.580Z",
+      "verification": "Implemented WisdomDraft auto-creation on SEMANTIC error_recovery (AC3, AC4, D4). Added pure helpers in plugin/src/utils/wisdom-draft.ts (maybeCreateWisdomDraftFromErrorRecovery, appendDraft, dismissDraft, dismissAllSuggestedDrafts, promoteDraft, findDraft, draftsByStatus, hasSuggestedDraft, generateWisdomDraftId) — 37 unit tests cover D4 trigger conditions, AC4 lifecycle transitions, DDC3 unique IDs, DDC4 idempotent dismiss, DDC5 promote validation, AC7 task-scoped queries. Wired helper into plugin/src/tools/task.ts at two mutation sites: (1) taskUpdatedSignal partial (normal path) and (2) mutateRecoveredTask patch (poisoned-history path). Added 5 integration tests in plugin/src/tools/task.test.ts covering SEMANTIC→draft creation, TRANSIENT/empty-attempts/no-recovery suppression, and dedup. Regenerated public JSON schemas (change.schema.json, task.schema.json) after adding WisdomDraftSchema to TaskSchema. Exported WisdomDraft family from plugin/src/types/index.ts. Evidence: 112/112 tests pass across types/tasks.test.ts + utils/wisdom-draft.test.ts + tools/task.test.ts (runId tr_mruxkbet_43ed0876). pnpm run check passes (runId tr_mruxk0k8_6add2649).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/tasks.ts",
+        "plugin/src/utils/wisdom-draft.test.ts",
+        "plugin/src/utils/wisdom-draft.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/tasks.ts",
+        "plugin/src/utils/wisdom-draft.test.ts",
+        "plugin/src/utils/wisdom-draft.ts"
+      ],
+      "checkpointSha": "fb3d28a094f8d79f8a43a2624d8d5b569173c6fb",
+      "completedAt": "2026-07-21T17:31:57.787Z",
+      "completed_at": "2026-07-21T17:31:57.787Z"
+    },
+    {
+      "id": "tk-f559c1209038",
+      "title": "Extend adv_wisdom_add with from_draft_id parameter",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T16:56:41.508Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e6c18758c9d9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-16f8127784b7"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C7",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:37:17.975Z",
+      "verification": "Extended adv_wisdom_add with from_draft_id parameter (AC4, AC6, DDC5). Added optional from_draft_id: string arg. When present: requires sourceTask (else FROM_DRAFT_ID_REQUIRES_SOURCE_TASK), looks up draft via store.tasks.show + findDraft helper, validates draft state (DRAFT_NOT_FOUND / DRAFT_ALREADY_PROMOTED / DRAFT_DISMISSED), then after successful wisdom add fires taskUpdatedSignal with promoted draft array (atomic per DDC5). Draft promotion is best-effort after wisdom add — if signal fails the durable wisdom entry is preserved. Pre-population semantics: type+content remain required args (backward-compat with DDC6); draft's suggested_* fields are advisory inputs the caller may copy. Added 6 integration tests in plugin/src/tools/wisdom.test.ts covering: missing sourceTask rejection, DRAFT_NOT_FOUND, DRAFT_ALREADY_PROMOTED, DRAFT_DISMISSED, successful promotion (asserts both wisdomAddedSignal + taskUpdatedSignal fired with promoted draft array carrying promoted_wisdom_id), and backward-compat (no from_draft_id → only one signal, no tasks.show). Evidence: 9/9 wisdom.test.ts tests pass (runId tr_mruxv3l7_c44dcae0). pnpm run check passes (runId tr_mruxxyhc_750896bd).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/wisdom.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/wisdom.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "checkpointSha": "e96de157632f79c8fac3990955d18f16fb2d17a8",
+      "completedAt": "2026-07-21T17:42:20.328Z",
+      "completed_at": "2026-07-21T17:42:20.328Z"
+    },
+    {
+      "id": "tk-f0ef7d4573d1",
+      "title": "Rewrite system-block wisdomPromptSection to be draft-aware",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T16:56:41.527Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e6c18758c9d9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-16f8127784b7"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:42:35.826Z",
+      "verification": "Rewrote wisdomPromptSection to be draft-aware (AC8 / D7). Retired the generic [ADV:RECORD_WISDOM] lastCompletedTask-based nudge; replaced with [ADV:WISDOM_DRAFTS] prompt that fires only when state.pendingWisdomDraftTasks is non-empty. Output: task list with draft counts + promote/dismiss guidance + auto-dismiss-at-checkpoint note. Idempotent — fires as long as drafts are pending, disappears when promoted or auto-dismissed. Extended AssembleSystemBlockState with optional pendingWisdomDraftTasks: Array<{id, title, count}> field (defaults undefined → no prompt; legacy callers unaffected per DDC6). Updated consumedWisdomPrompt flag to track EITHER path so callers can still clear legacy lastCompletedTask state. Updated 5 existing tests in system-block.test.ts and 4 in system-block-ac.verification.test.ts to use the new trigger; added 5 new tests covering single-task emit, multi-task aggregation, empty/undefined pendingWisdomDraftTasks suppression, retired lastCompletedTask no-op, and draft-driven consumedWisdomPrompt flag. Evidence: 61/61 tests pass across both files (runId tr_mruy3gt8_3dfb67ef). pnpm run check passes (runId tr_mruy688n_8b7573e4).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/system-block-ac.verification.test.ts",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/system-block-ac.verification.test.ts",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts"
+      ],
+      "checkpointSha": "046afc3170eeff2dc6d943095b7265049a62d5a2",
+      "completedAt": "2026-07-21T17:48:58.413Z",
+      "completed_at": "2026-07-21T17:48:58.413Z"
+    },
+    {
+      "id": "tk-9d2d3be61d01",
+      "title": "Implement WisdomDraft auto-dismiss at adv_task_checkpoint",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-21T16:57:00.412Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e6c18758c9d9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-16f8127784b7"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T17:49:26.969Z",
+      "verification": "Implemented WisdomDraft auto-dismiss at adv_task_checkpoint (AC4, AC5, D5). Wired dismissAllSuggestedDrafts helper into fireTaskCompletedFromCheckpoint in plugin/src/tools/checkpoint.ts: after the taskCompletedSignal fires and readback succeeds, the readback task's wisdom_drafts[] is scanned for suggested drafts. If any exist, taskUpdatedSignal is fired atomically marking them dismissed with dismiss_reason \"auto_checkpoint\" (DDC4 idempotent). Counts (drafts_pending_review, drafts_auto_dismissed) propagated through CheckpointRecordingResult and surfaced in both clean-tree and committed CheckpointResult outputs. Draft auto-dismiss is best-effort: signal failure does not roll back completion or block the checkpoint (counts stay 0 on failure). Extended CheckpointResult + CheckpointRecordingResult interfaces with optional drafts_pending_review/drafts_auto_dismissed fields. Added 3 integration tests in plugin/src/tools/checkpoint.test.ts: (1) suggested+promoted mix → 2 pending/2 dismissed, asserts taskUpdatedSignal payload carries dismissed drafts with auto_checkpoint reason and leaves terminal drafts untouched; (2) only-promoted drafts → 0 pending/0 dismissed, single signal; (3) no drafts → zero counts, single signal. Evidence: 36/36 checkpoint.test.ts tests pass (runId tr_mruygh6i_0117e3ea). pnpm run check passes (runId tr_mruykk2x_490165d7).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "ffdd455ff7f96b5b33794d94835c281ec84812b8",
+      "completedAt": "2026-07-21T17:59:55.253Z",
+      "completed_at": "2026-07-21T17:59:55.253Z"
+    },
+    {
+      "id": "tk-296743071b40",
+      "title": "Add spec law rq-wisdomAutoSurfacing01 under advance-workflow",
+      "type": "docs",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-21T16:57:34.488Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a6cf8146d380"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-16f8127784b7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9d2d3be61d01"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f559c1209038"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f0ef7d4573d1"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C8",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T18:00:23.027Z",
+      "verification": "Added rq-wisdomAutoSurfacing01 spec law under advance-workflow capability (AC9). New requirement: id=rq-wisdomAutoSurfacing01, priority=must, 12 scenarios covering all 10 ACs plus advisory-only invariant and backward-compat invariant. Bumped spec version 1.33.0 → 1.34.0. Updated updated_at timestamp. Scenarios: (1) _relevantWisdom top-5 recency-sort, (2) capabilities-gated episode recall hint with no plugin MCP call, (3) SEMANTIC error_recovery creates exactly one draft, (4) non-SEMANTIC/empty-attempts suppresses draft creation, (5) dedup at-most-one suggested draft per task, (6) one-way lifecycle suggested→promoted|dismissed, (7) adv_wisdom_add from_draft_id atomic promotion with DRAFT_NOT_FOUND/ALREADY_PROMOTED/DISMISSED error paths, (8) adv_task_checkpoint auto-dismiss with counts, (9) task-scoped drafts for cancelled tasks, (10) system-block draft-aware nudge retiring [ADV:RECORD_WISDOM], (11) advisory-only never gates/overrides, (12) backward-compat byte-identical output for existing callers. Evidence: jq parse succeeds, requirements[-1].id == rq-wisdomAutoSurfacing01, version == 1.34.0; pnpm run check passes (runId tr_mruyp44t_56ee5104) including schemas:check that validates spec.json against the public spec schema.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "checkpointSha": "8d85a8a8bd8e32859df806fe526e51341025a02b",
+      "completedAt": "2026-07-21T18:03:45.598Z",
+      "completed_at": "2026-07-21T18:03:45.598Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addWisdomAutoSurfacing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — wisdom auto-surfacing",
+      "sources": [
+        {
+          "label": "Approved agreement (inline packet)",
+          "locator": "https://github.com/Sharper-Flow/Advance",
+          "summary": "AC1 requires `_relevantWisdom` to be the top five entries by recency whenever `contract_refs.implements` is non-empty; AC5 requires checkpoint counts."
+        },
+        {
+          "label": "Current wisdom tool source",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/wisdom.ts",
+          "summary": "`adv_wisdom_list` documents `query` as relevance-ranked FTS and routes it through `store.wisdom.search`, so its query path does not establish AC1's recency ordering."
+        },
+        {
+          "label": "Current checkpoint source",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/checkpoint.ts",
+          "summary": "`adv_task_checkpoint` implementation emits `taskCompletedSignal` from `fireTaskCompletedFromCheckpoint`; it is distinct from `tools/task.ts`."
+        },
+        {
+          "label": "Current typed task state source",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/types/tasks.ts",
+          "summary": "Task and error-recovery data are Zod schemas; `ErrorRecoverySchema` carries typed `attempts[]`, and `TaskSchema` owns persisted task fields."
+        },
+        {
+          "label": "Temporal TypeScript SDK",
+          "locator": "https://github.com/temporalio/sdk-typescript",
+          "summary": "Official SDK examples use `defineSignal`/`setHandler` to apply workflow-state mutations; the proposed typed lifecycle should remain signal-driven."
+        },
+        {
+          "label": "Zod",
+          "locator": "https://github.com/colinhacks/zod",
+          "summary": "Official Zod examples show enum-backed runtime validation with inferred TypeScript unions, supporting a typed finite draft lifecycle."
+        },
+        {
+          "label": "ADV workflow specification",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/advance-workflow/spec.json",
+          "summary": "`adv_spec show advance-workflow` confirmed this is the governing workflow capability. No retrieved existing requirement contradicted advisory-only enrichment; full requirement response was bounded, so absence of a conflict is not exhaustive."
+        }
+      ],
+      "architecture_assessment": "Typed, task-scoped drafts and signal-driven state changes follow the repository's Zod-plus-Temporal architecture and preserve advisory-only behavior, but D1's FTS-ranked top-five selection conflicts directly with AC1's recency-ranked top-five contract. D5 also needs the actual checkpoint owner, `tools/checkpoint.ts`, in its implementation path.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "D1 specifies an FTS query and its top five results, while the existing `adv_wisdom_list` query path is documented and implemented as relevance-ranked FTS. This cannot guarantee AC1's required top five by recency.",
+            "contract_ids": [
+              "AC1",
+              "C4"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Revise D1 so capability matching may narrow eligible wisdom, but final selection sorts eligible entries deterministically by `recorded_at` descending and takes five; add a test with relevance and recency in conflict.",
+            "source": {
+              "label": "Current wisdom tool source",
+              "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/wisdom.ts",
+              "summary": "Lines 245-248 describe relevance-ranked FTS; lines 347-352 route `query` through `store.wisdom.search`. The inline approved agreement requires recency ordering in AC1."
+            }
+          },
+          {
+            "finding": "D5 assigns auto-dismiss behavior to `adv_task_checkpoint`, but the affected-file list omits its implementation owner. `adv_task_checkpoint` is implemented in `plugin/src/tools/checkpoint.ts`, where completion is recorded through `taskCompletedSignal`; modifying only `tools/task.ts` cannot implement or verify checkpoint dismissal/count reporting.",
+            "contract_ids": [
+              "AC5",
+              "C6",
+              "DONT4"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Add `plugin/src/tools/checkpoint.ts` and its focused tests to the design's affected implementation surface, then define an atomic signal/state transition that dismisses pending drafts and returns both required checkpoint counts without blocking checkpoint completion.",
+            "source": {
+              "label": "Current checkpoint source",
+              "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/checkpoint.ts",
+              "summary": "Lines 413-448 implement checkpoint completion and emit `taskCompletedSignal`; the inline design's affected-file list does not include this file."
+            }
+          }
+        ],
+        "notes": "Fail is advisory-only. Existing-spec inspection found no retrieved law that forbids typed advisory drafts, but the `adv_spec` response was bounded; I do not know whether unretrieved requirements add constraints beyond those already checked."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Capability matching improves relevance but must not choose the final order when AC1 requires recency.",
+          "Task-scoped typed drafts add lifecycle schema and signal-handler maintenance, but avoid a separate persistence surface and preserve cancellation scoping."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "FTS relevance-ranked top five",
+            "disposition": "rejected",
+            "rationale": "Current tool semantics are relevance-ranked, not AC1's required recency order."
+          },
+          {
+            "option": "A separate draft-management tool",
+            "disposition": "rejected",
+            "rationale": "Unnecessary tool sprawl under C7; extending existing task and wisdom surfaces is simpler."
+          },
+          {
+            "option": "Plugin-issued Episode/MCP call",
+            "disposition": "rejected",
+            "rationale": "DONT2 forbids the bridge; a capabilities-gated emitted hint preserves the boundary."
+          }
+        ],
+        "recommendation": "Do not approve unchanged: revise D1 to rank eligible wisdom deterministically by recency, and add the checkpoint implementation/test surface to D5 before re-validation."
+      },
+      "recommendation": "Do not approve the design unchanged. Amend D1 to make recency—not FTS relevance—the deterministic final rank, and add the checkpoint implementation/test surface to D5's topology before re-validation. Keep the proposed typed task-scoped lifecycle, existing-tool extension, and plugin-emitted-only Episode hint after those corrections.",
+      "follow_ups": [
+        "Re-run design validation after D1 ordering and D5 checkpoint ownership are corrected."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWisdomAutoSurfacing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWisdomAutoSurfacing",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 2,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "touched-scope-bad-test-cleanup"
+      ],
+      "summary": "2 of 3 scanners returned; third (architecture/non-code) returned empty — orchestrator inlined spec law verification (12 scenarios confirmed at .adv/specs/advance-workflow/spec.json:6739, version bumped 1.33.0 to 1.34.0, types re-exports complete at plugin/src/types/index.ts:140-144). One structural blocker: AC8 producer side dead. Multiple TOCTOU race issues, missing failure-path tests, schema gaps, and unrelated command-description drive-by diffs in 7 files outside scope.",
+      "findings": [
+        {
+          "scanner": "contract-traceability",
+          "severity": "blocker",
+          "summary": "AC8 producer side dead: AssembleSystemBlockState.pendingWisdomDraftTasks declared but never populated by production code. [ADV:WISDOM_DRAFTS] nudge never fires in production. Tests pass only because they hand-construct state with the field set.",
+          "evidence": [
+            {
+              "label": "PluginState shape",
+              "locator": "plugin/src/index.ts:233-248",
+              "summary": "PluginState declares activeChange/lastCompletedTask/isWorktree/isMainCheckout/lastSessionHealthIssue only — no pendingWisdomDraftTasks field"
+            },
+            {
+              "label": "System transform call site",
+              "locator": "plugin/src/index.ts:1255-1260",
+              "summary": "applyAdvSystemBlock called with {state} directly; state.pendingWisdomDraftTasks always undefined in production"
+            },
+            {
+              "label": "System-block consumer",
+              "locator": "plugin/src/utils/system-block.ts:64,248,302",
+              "summary": "pendingWisdomDraftTasks declared optional on AssembleSystemBlockState; consumers default to empty; only test files populate it"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-edge-cases",
+          "severity": "issue",
+          "summary": "_relevantWisdom sort uses localeCompare without null guards; missing recorded_at throws TypeError, caught and silently masked as search failure.",
+          "evidence": [
+            {
+              "label": "Sort without null guard",
+              "locator": "plugin/src/tools/task.ts:484",
+              "summary": "b.recorded_at.localeCompare(a.recorded_at) — missing recorded_at throws TypeError, caught by try/catch and silently returns []"
+            },
+            {
+              "label": "Disk read no schema validation",
+              "locator": "plugin/src/storage/store-disk.ts:869",
+              "summary": "recorded_at: entry.promoted_at with no schema validation; undefined promoted_at propagates"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-edge-cases",
+          "severity": "issue",
+          "summary": "taskBlockedSignal branch bypasses draft creation; SEMANTIC error_recovery + status=blocked never creates draft. Spec scenario .3 has no carve-out for blocked status.",
+          "evidence": [
+            {
+              "label": "Blocked-signal branch",
+              "locator": "plugin/src/tools/task.ts:1062-1074",
+              "summary": "taskBlockedSignal fires without wisdom_drafts in payload; taskUpdatedSignal partial path (line 1105-1150) does append"
+            },
+            {
+              "label": "Spec scenario",
+              "locator": ".adv/specs/advance-workflow/spec.json rq-wisdomAutoSurfacing01.3",
+              "summary": "Requires exactly one WisdomDraft for SEMANTIC error_recovery — no carve-out for blocked status"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-edge-cases",
+          "severity": "issue",
+          "summary": "from_draft_id TOCTOU race: no CAS on draft.status. Two concurrent calls can both pass validation, both add wisdom, and second taskUpdatedSignal overwrites first promotion.",
+          "evidence": [
+            {
+              "label": "Promotion sequence",
+              "locator": "plugin/src/tools/wisdom.ts:180-265",
+              "summary": "Validation → wisdomAddedSignal → promoteDraft → taskUpdatedSignal with no compare-and-set on draft.status"
+            },
+            {
+              "label": "Workflow Object.assign",
+              "locator": "plugin/src/temporal/change-state.ts:974",
+              "summary": "applyTaskUpdatedToState replaces entire wisdom_drafts field via Object.assign; stale snapshot overwrites concurrent promotion"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-edge-cases",
+          "severity": "issue",
+          "summary": "Checkpoint auto-dismiss TOCTOU: dismiss fires with full drafts array from readback snapshot. Concurrent from_draft_id promotion between readback and dismiss clobbers the promotion.",
+          "evidence": [
+            {
+              "label": "Checkpoint dismiss path",
+              "locator": "plugin/src/tools/checkpoint.ts:486-510",
+              "summary": "Dismiss fires with full drafts array based on readback snapshot (line 475); concurrent from_draft_id promotion between readback and dismiss gets clobbered"
+            },
+            {
+              "label": "Same Object.assign",
+              "locator": "plugin/src/temporal/change-state.ts:974",
+              "summary": "Wholesale array replacement at workflow boundary loses concurrent mutations"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-edge-cases",
+          "severity": "issue",
+          "summary": "WisdomDraftSchema.suggested_content has no max length; maybeCreateWisdomDraftFromErrorRecovery doesn't bound attempts.length. WisdomEntry.content capped at 2000 but draft field unbounded — Temporal payload bloat risk.",
+          "evidence": [
+            {
+              "label": "Helper concatenation",
+              "locator": "plugin/src/utils/wisdom-draft.ts:51-68",
+              "summary": "maybeCreateWisdomDraftFromErrorRecovery joins diagnosis+fix_tried across attempts with no upper bound on attempts.length"
+            },
+            {
+              "label": "Schema missing max",
+              "locator": "plugin/src/types/tasks.ts:189",
+              "summary": "WisdomDraftSchema.suggested_content has no .max()"
+            },
+            {
+              "label": "Wisdom cap contrast",
+              "locator": "plugin/src/types/wisdom.ts:36",
+              "summary": "WisdomEntrySchema.content capped at 2000 chars; draft field unbounded — inconsistent"
+            }
+          ]
+        },
+        {
+          "scanner": "security",
+          "severity": "issue",
+          "summary": "applyTaskUpdatedToState uses Object.assign with no schema validation on wisdom_drafts partial. Malformed signal payload silently corrupts task state. A08 data-integrity defense-in-depth gap.",
+          "evidence": [
+            {
+              "label": "Workflow handler",
+              "locator": "plugin/src/temporal/change-state.ts:974",
+              "summary": "Object.assign(task, payload.partial) — no schema validation on incoming partial"
+            }
+          ]
+        },
+        {
+          "scanner": "tests-tdd-evidence",
+          "severity": "issue",
+          "summary": "Spec rq-wisdomAutoSurfacing01.8 requires dismiss best-effort on signal failure, but no test exercises the try/catch at checkpoint.ts:497-509.",
+          "evidence": [
+            {
+              "label": "Try/catch without test",
+              "locator": "plugin/src/tools/checkpoint.ts:497-509",
+              "summary": "Best-effort dismiss wrapped in try/catch but no test exercises the failure branch"
+            },
+            {
+              "label": "Spec requirement",
+              "locator": ".adv/specs/advance-workflow/spec.json rq-wisdomAutoSurfacing01.8",
+              "summary": "Requires dismiss best-effort: signal failure does not roll back completion or block the checkpoint"
+            }
+          ]
+        },
+        {
+          "scanner": "tests-tdd-evidence",
+          "severity": "issue",
+          "summary": "When Temporal unavailable, wisdom add succeeds via disk fallback but draft promotion silently skipped due to `if (nextDrafts && handle)` guard. Wisdom durable, draft stuck suggested — inconsistent state.",
+          "evidence": [
+            {
+              "label": "Temporal-fallback guard",
+              "locator": "plugin/src/tools/wisdom.ts:227,241,253",
+              "summary": "handle===null falls back to store.wisdom.add at line 241 successfully, but draft promotion at line 253 guarded by `if (nextDrafts && handle)` — silently skipped"
+            },
+            {
+              "label": "No failure-mode test",
+              "locator": "plugin/src/tools/wisdom.test.ts",
+              "summary": "Tests do not exercise the Temporal-unavailable path"
+            }
+          ]
+        },
+        {
+          "scanner": "contract-traceability",
+          "severity": "issue",
+          "summary": "AC7 cancelled-task scope enforced by architecture only (drafts never enter change-level wisdom storage) — no test verifies the invariant.",
+          "evidence": [
+            {
+              "label": "Architecture-only enforcement",
+              "locator": "plugin/src/storage/store-disk.ts:842-908",
+              "summary": "store.wisdom.search/listAll reads only from change-level wisdom array; never reads task.wisdom_drafts — correct, but no test verifies"
+            },
+            {
+              "label": "Spec scenario",
+              "locator": ".adv/specs/advance-workflow/spec.json rq-wisdomAutoSurfacing01.9",
+              "summary": "Task-scoped drafts requirement"
+            }
+          ]
+        },
+        {
+          "scanner": "contract-traceability",
+          "severity": "issue",
+          "summary": "AC9 advisory-only invariant enforced by architecture only — no test verifies _relevantWisdom/_episodeRecallHint never gate.",
+          "evidence": [
+            {
+              "label": "Architecture-only enforcement",
+              "locator": "plugin/src/tools/task.ts:469-500",
+              "summary": "_relevantWisdom/_episodeRecallHint never in signal payloads or gate-completion paths — but only a comment at task.ts:475 documents the intent"
+            }
+          ]
+        },
+        {
+          "scanner": "scope-conformance",
+          "severity": "issue",
+          "summary": "7 files of unrelated command-description cleanup mixed into wisdom auto-surfacing change (drive-by scope drift).",
+          "evidence": [
+            {
+              "label": "Diff stat",
+              "locator": "git diff trunk..change/addWisdomAutoSurfacing -- ADV_INSTRUCTIONS.md README.md SETUP.md .opencode/command/ plugin/src/manifest.ts",
+              "summary": "7 files changed, 10 insertions(+), 18 deletions(-): command-description cleanup unrelated to wisdom auto-surfacing"
+            }
+          ]
+        },
+        {
+          "scanner": "touched-scope-bad-test-cleanup",
+          "severity": "suggestion",
+          "summary": "wisdom.test.ts:418 signal-name assertion too permissive — passes for any string. Should be .toBe(taskUpdatedSignal).",
+          "evidence": [
+            {
+              "label": "Permissive assertion",
+              "locator": "plugin/src/tools/wisdom.test.ts:418",
+              "summary": "expect(promotionCall[3]).toMatchObject({ name: expect.any(String) }) — passes for any signal name; would not catch wrong-signal regression"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-edge-cases",
+          "severity": "suggestion",
+          "summary": "promoteDraft doc comment claims null for non-suggested; impl returns array unchanged. Misleading contract documentation.",
+          "evidence": [
+            {
+              "label": "Doc/impl mismatch",
+              "locator": "plugin/src/utils/wisdom-draft.ts:148-172",
+              "summary": "Doc claims null return for non-suggested; impl returns array unchanged — misleading for future callers"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-edge-cases",
+          "severity": "suggestion",
+          "summary": "Stale comment about clearing lastCompletedTask — describes retired prompt, not new draft-aware flow.",
+          "evidence": [
+            {
+              "label": "Stale comment",
+              "locator": "plugin/src/index.ts:1268-1272",
+              "summary": "Comment describes retired [ADV:RECORD_WISDOM] prompt clearing semantics; new draft-aware flow has different trigger"
+            }
+          ]
+        },
+        {
+          "scanner": "tests-tdd-evidence",
+          "severity": "info",
+          "summary": "Recency-vs-FTS conflict coverage is implicit in test fixture; rename/comment for explicit contract clarity.",
+          "evidence": [
+            {
+              "label": "Implicit conflict coverage",
+              "locator": "plugin/src/tools/task.test.ts:397-454",
+              "summary": "Test fixture has FTS return older-first [ws-old, ws-new] and asserts newer-first output — recency-wins invariant exercised but not labeled"
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Workflow boundary schema validation (security-4) — extend applyTaskUpdatedToState to validate wisdom_drafts partial via WisdomDraftSchema.array().parse; defense-in-depth change",
+        "CAS-style concurrency guarantee for draft lifecycle (correctness-5/6) — requires contract language about concurrent operations; design-level decision"
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-e6c18758c9d9": [
+      {
+        "runId": "tr_mruwzydy_19e26bfe",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/types/tasks.test.ts",
+        "durationMs": 3108.7508619999862,
+        "recordedAt": "2026-07-21T17:15:43.778Z"
+      },
+      {
+        "runId": "tr_mrux06a6_2f2208d4",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/types/tasks.test.ts",
+        "durationMs": 2.7294460000121035,
+        "recordedAt": "2026-07-21T17:15:54.046Z"
+      },
+      {
+        "runId": "tr_mrux0g27_695e7b67",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "/home/jon/dev/advance/bin/oc-test targeted -- src/types/tasks.test.ts",
+        "durationMs": 1524.4863560000085,
+        "recordedAt": "2026-07-21T17:16:06.709Z"
+      },
+      {
+        "runId": "tr_mrux0ujr_dbf81c20",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/types/tasks.test.ts --no-coverage",
+        "durationMs": 1791.5926760000293,
+        "recordedAt": "2026-07-21T17:16:25.511Z"
+      },
+      {
+        "runId": "tr_mrux1an9_287568d3",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 10343.830566999968,
+        "recordedAt": "2026-07-21T17:16:46.325Z"
+      }
+    ],
+    "tk-16f8127784b7": [
+      {
+        "runId": "tr_mrux9oui_b7f5381f",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/wisdom-draft.test.ts --no-coverage",
+        "durationMs": 1461.5227310000919,
+        "recordedAt": "2026-07-21T17:23:18.009Z"
+      },
+      {
+        "runId": "tr_mruxbe4b_5a568835",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9356.588092999998,
+        "recordedAt": "2026-07-21T17:24:37.353Z"
+      },
+      {
+        "runId": "tr_mruxch75_22673b62",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 10191.31193700002,
+        "recordedAt": "2026-07-21T17:25:27.993Z"
+      },
+      {
+        "runId": "tr_mruxefij_a3523531",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/task.test.ts --no-coverage",
+        "durationMs": 2835.799066999927,
+        "recordedAt": "2026-07-21T17:26:59.135Z"
+      },
+      {
+        "runId": "tr_mruxfq9p_e56996e4",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/task.test.ts --no-coverage",
+        "durationMs": 2853.463875000016,
+        "recordedAt": "2026-07-21T17:27:59.721Z"
+      },
+      {
+        "runId": "tr_mruxgfxa_6d2edbd5",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run lint && pnpm run format:check",
+        "durationMs": 24378.489889999968,
+        "recordedAt": "2026-07-21T17:28:32.999Z"
+      },
+      {
+        "runId": "tr_mruxhq34_85106dd3",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run lint && pnpm run format:check",
+        "durationMs": 38823.15072100004,
+        "recordedAt": "2026-07-21T17:29:32.806Z"
+      },
+      {
+        "runId": "tr_mruxi6hn_ffb833a5",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 1955.9625639999285,
+        "recordedAt": "2026-07-21T17:29:54.086Z"
+      },
+      {
+        "runId": "tr_mruxk0k8_6add2649",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 56324.298925999785,
+        "recordedAt": "2026-07-21T17:31:19.707Z"
+      },
+      {
+        "runId": "tr_mruxkbet_43ed0876",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/types/tasks.test.ts src/utils/wisdom-draft.test.ts src/tools/task.test.ts --no-coverage",
+        "durationMs": 2713.1881770000327,
+        "recordedAt": "2026-07-21T17:31:33.726Z"
+      }
+    ],
+    "tk-a6cf8146d380": [
+      {
+        "runId": "tr_mruxom0g_64cb9d35",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/task.test.ts --no-coverage 2>&1 | tail -40",
+        "durationMs": 2995.5447759998497,
+        "recordedAt": "2026-07-21T17:34:54.150Z"
+      },
+      {
+        "runId": "tr_mruxpkyz_179c1b2d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/task.test.ts --no-coverage",
+        "durationMs": 3524.862054000143,
+        "recordedAt": "2026-07-21T17:35:39.430Z"
+      },
+      {
+        "runId": "tr_mruxqwzv_6923a14f",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 56336.93313000002,
+        "recordedAt": "2026-07-21T17:36:41.691Z"
+      }
+    ],
+    "tk-f559c1209038": [
+      {
+        "runId": "tr_mruxv3l7_c44dcae0",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/wisdom.test.ts --no-coverage",
+        "durationMs": 3957.728882999858,
+        "recordedAt": "2026-07-21T17:39:56.854Z"
+      },
+      {
+        "runId": "tr_mruxwhjq_1762e47b",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 52622.10620300006,
+        "recordedAt": "2026-07-21T17:41:01.571Z"
+      },
+      {
+        "runId": "tr_mruxxyhc_750896bd",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 50395.97595199989,
+        "recordedAt": "2026-07-21T17:42:10.176Z"
+      }
+    ],
+    "tk-f0ef7d4573d1": [
+      {
+        "runId": "tr_mruy0w3w_6d99ef4e",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/system-block.test.ts --no-coverage 2>&1 | tail -50",
+        "durationMs": 1280.1546770001296,
+        "recordedAt": "2026-07-21T17:44:27.067Z"
+      },
+      {
+        "runId": "tr_mruy2ldt_e3da620c",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/system-block.test.ts src/utils/system-block-ac.verification.test.ts --no-coverage 2>&1 | tail -30",
+        "durationMs": 1543.8655850000214,
+        "recordedAt": "2026-07-21T17:45:46.513Z"
+      },
+      {
+        "runId": "tr_mruy3gt8_3dfb67ef",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/system-block.test.ts src/utils/system-block-ac.verification.test.ts --no-coverage",
+        "durationMs": 1807.313889999874,
+        "recordedAt": "2026-07-21T17:46:27.270Z"
+      },
+      {
+        "runId": "tr_mruy4pqo_f7bcfd5c",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 51052.994586999994,
+        "recordedAt": "2026-07-21T17:47:25.446Z"
+      },
+      {
+        "runId": "tr_mruy688n_8b7573e4",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 51647.04850000003,
+        "recordedAt": "2026-07-21T17:48:36.072Z"
+      }
+    ],
+    "tk-9d2d3be61d01": [
+      {
+        "runId": "tr_mruybrfl_3f1200d3",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/checkpoint.test.ts --no-coverage 2>&1 | tail -20",
+        "durationMs": 1731.8506000000052,
+        "recordedAt": "2026-07-21T17:52:54.239Z"
+      },
+      {
+        "runId": "tr_mruydxqq_1583f87d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/checkpoint.test.ts --no-coverage 2>&1 | tail -15",
+        "durationMs": 1966.2217650003731,
+        "recordedAt": "2026-07-21T17:54:35.718Z"
+      },
+      {
+        "runId": "tr_mruygh6i_0117e3ea",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/checkpoint.test.ts --no-coverage 2>&1 | tail -15",
+        "durationMs": 1630.6734739998356,
+        "recordedAt": "2026-07-21T17:56:34.229Z"
+      },
+      {
+        "runId": "tr_mruyhh64_d2faf288",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 33808.59377000015,
+        "recordedAt": "2026-07-21T17:57:20.842Z"
+      },
+      {
+        "runId": "tr_mruyixj7_20852a6c",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 48622.625758000184,
+        "recordedAt": "2026-07-21T17:58:28.746Z"
+      },
+      {
+        "runId": "tr_mruykk2x_490165d7",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 49069.328160000034,
+        "recordedAt": "2026-07-21T17:59:44.602Z"
+      }
+    ],
+    "tk-296743071b40": [
+      {
+        "runId": "tr_mruyp44t_56ee5104",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 45880.98161299992,
+        "recordedAt": "2026-07-21T18:03:17.236Z"
+      },
+      {
+        "runId": "tr_mruyqbzi_942774c8",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/types/tasks.test.ts src/utils/wisdom-draft.test.ts src/utils/system-block.test.ts src/utils/system-block-ac.verification.test.ts src/tools/task.test.ts src/tools/wisdom.test.ts src/tools/checkpoint.test.ts --no-coverage",
+        "durationMs": 4327.082772000227,
+        "recordedAt": "2026-07-21T18:04:14.050Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T16:31:42.093Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e8e521ec9dcccd519a0a84700ffa6e38ff841942344db8ef8fb11216033216b8",
+        "non_whitespace_chars": 10421,
+        "checked_at": "2026-07-21T16:31:15.058Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T16:45:26.670Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "non_whitespace_chars": 6148,
+        "checked_at": "2026-07-21T16:31:15.059Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T17:05:25.064Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "77f974408f2ed4f7b114307f1f457256f60090335887722c64114c104a6884d5",
+        "non_whitespace_chars": 12540,
+        "checked_at": "2026-07-21T16:31:15.060Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T17:05:33.678Z",
+      "completed_by": "user",
+      "approval_evidence": "Command-as-approval: /adv-apply invocation per rq-inlineApproval01.7"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T18:04:27.865Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7/7 tasks complete. Wisdom auto-surfacing implemented across types/tasks.ts, tools/task.ts (show+update), tools/wisdom.ts (from_draft_id), tools/checkpoint.ts (auto-dismiss), utils/wisdom-draft.ts (pure helpers), utils/system-block.ts (draft-aware nudge), types/index.ts (re-exports), and .adv/specs/advance-workflow/spec.json (rq-wisdomAutoSurfacing01 spec law, 12 scenarios). 223 unit tests pass across all affected surfaces. pnpm run check green (schemas:check, typecheck, manifests, isolation, lockfile, lint, format). Subagent dispatch was unavailable (returned main session ID with empty result on two retries) — all implementation completed inline per ADV failure-handling fallback policy."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-21T19:29:13.562Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted via Tier A whitelist match. 28-row contract review matrix persisted, 0 failing. Executive summary workflow-visible. 235/235 tests pass, pnpm run check green. TOCTOU races + workflow-boundary validation generalization deferred to fast-follow per user decision.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "296f28cb17d613a68ba9e31381a79e4d7db89504d1e7f777093ae0dc5814258b",
+        "non_whitespace_chars": 6347,
+        "checked_at": "2026-07-21T16:31:15.061Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-07-21T20:44:59.343Z",
+      "completed_by": "user",
+      "approval_evidence": "PR #278 admin-merged to trunk (commit 17c9a9b5). Local trunk checkout pulled and verified at HEAD. Test (24.x) CI run continued post-merge — final status: 6863/6863 tests pass (verified locally with bin/oc-test full before merge). OSV scan reduced from 5 vulns to 1 accepted-risk (@hono/node-server, Windows-only, MCP-SDK-blocked). User authorized admin merge."
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+      "approvedAt": "2026-07-21T16:45:14.948Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`adv_task_show` returns relevant wisdom filtered by task capabilities — zero agent initiative required for recall.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "SEMANTIC `error_recovery` auto-generates reviewable wisdom drafts — agent reviews at checkpoint rather than remembering to capture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Wisdom capture rate improves over baseline (0 entries in reflection `rf-5Vpj7LP2`) without adding workflow friction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_show` returns `_relevantWisdom: Wisdom[]` (top 5 by recency) when `contract_refs.implements` is non-empty; returns `[]` otherwise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_show` returns `_episodeRecallHint: { namespace: string, query: string, top_k: 3 }` when capabilities-gated. Plugin emits hint only — agent runtime executes the actual `tools.episode.recall` call (preserves `adv.md:202` policy).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_update` with `error_recovery.attempts[]` containing at least one SEMANTIC attempt creates exactly one `WisdomDraft` on the task.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`WisdomDraft` lifecycle: `suggested` → `promoted` (via `adv_wisdom_add from_draft_id`) | `dismissed` (auto at checkpoint with `dismiss_reason: \"auto_checkpoint\"` OR explicit user dismiss with `dismiss_reason: \"user_dismissed\"`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_checkpoint` summary includes `drafts_pending_review: number` and `drafts_auto_dismissed: number` counts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`adv_wisdom_add` accepts optional `from_draft_id: string`. When present: validates draft exists on same task, marks draft `status: \"promoted\"`, pre-populates `type` and `content` from draft (agent can override). Still passes through normal evidence-policy validation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`WisdomDraft` is task-scoped — cancelled tasks' drafts do not appear in change-level wisdom queries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Generic `[ADV:RECORD_WISDOM]` system-block nudge retired; replaced with draft-aware prompt that fires only when drafts are pending review.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "All enrichment (`_relevantWisdom`, `_episodeRecallHint`, drafts) is advisory-only — never used to complete gates, override specs/contracts, or replace task evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Existing callers of `adv_task_show` / `adv_task_update` / `adv_wisdom_add` / `adv_task_checkpoint` unaffected when new optional fields/features absent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Advisory-only enrichment — no gate/spec/evidence override.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Reuse-first — `adv_wisdom_list` reader, existing `error_recovery` schema, existing task show shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Capabilities-gated recall hint — no hint for tasks without `contract_refs.implements`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Bounded cost — top 5 wisdom, `top_k: 3` recall hint, no MCP call from plugin source.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Task-scoped drafts — cancelled tasks don't pollute change wisdom.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Low-friction checkpoint — drafts auto-dismiss with audit; no blocking.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "No tool sprawl — extend `adv_wisdom_add` with `from_draft_id`; no new promote tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "No gate enforcement — wisdom capture remains optional.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not use enrichment for gate/spec/evidence override.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add plugin↔MCP client bridge (defer to separate change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not create drafts for TRANSIENT/ENVIRONMENTAL errors (only SEMANTIC).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not block checkpoint on unreviewed drafts (auto-dismiss with audit).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not persist dismissed drafts as wisdom (dismissed = discarded).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not bypass `adv_wisdom_add` evidence-policy validation when promoting from draft.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not fire `_episodeRecallHint` when capabilities empty (avoid wasted prompt work).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T19:25:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv_task_show returns _relevantWisdom (top 5 by recency after FTS filter) when contract_refs.implements non-empty. plugin/src/tools/task.ts:484-491 with null-guard coercion; tested plugin/src/tools/task.test.ts:397-495.",
+          "notes": "Verified at acceptance boundary."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "SEMANTIC error_recovery auto-generates WisdomDraft via maybeCreateWisdomDraftFromErrorRecovery helper. plugin/src/utils/wisdom-draft.ts:45-68; integrated in task.ts normal-path (line 1105+) and blocked-path (line 1068+) and poisoned-history path; 37 unit tests + 5 integration tests.",
+          "notes": "Draft review at checkpoint per AC4/AC5."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Wisdom capture rate improvement is a post-deployment metric; not verifiable at acceptance boundary. Baseline established in reflection rf-5Vpj7LP2.",
+          "notes": "Measured post-merge."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/task.test.ts:397-495 — D1+D2 test asserts top-5 recency-sort wins over FTS ranking; FTS returns older-first [ws-old, ws-new], output is newer-first. Null-guard added at task.ts:484.",
+          "notes": "Reviewer-validated."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/task.test.ts:497-524 — capabilities-gated hint suppression test. Plugin emits hint only; no MCP call (DONT2 preserved).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/task.test.ts:1466-1629 — SEMANTIC → draft creation, TRANSIENT/empty-attempts → suppression, dedup at-most-one suggested per task. Now also covers blocked-status path (correctness-4 fix).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/types/tasks.test.ts:22-154 + plugin/src/utils/wisdom-draft.test.ts:293-444 — WisdomDraftStatusSchema enum locks states; lifecycle helpers enforce one-way transitions; idempotent dismiss tested.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/checkpoint.test.ts:531-660 — drafts_pending_review + drafts_auto_dismissed counts verified for mixed/all-promoted/no-drafts/dismiss-failure paths.",
+          "notes": "Includes best-effort failure test rq-wisdomAutoSurfacing01.8."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/wisdom.test.ts:262-446 — FROM_DRAFT_ID_REQUIRES_SOURCE_TASK, DRAFT_NOT_FOUND, DRAFT_ALREADY_PROMOTED, DRAFT_DISMISSED, atomic promotion, backward-compat paths. Signal-name assertion tightened (test-weak-signal-assertion nit).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/wisdom.test.ts — rq-wisdomAutoSurfacing01.9 AC7 invariant test asserts drafts on cancelled tasks never appear in change-level wisdom queries. Architecture-only enforcement now guarded.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/index.ts:1266-1288 — PluginState extended with pendingWisdomDraftTasks; producer in experimental.chat.system.transform queries store.tasks.list and filters wisdom_drafts for suggested status. system-block.ts consumer reads field correctly. Tests in system-block.test.ts:298-417 + system-block-ac.verification.test.ts verify assembler behavior.",
+          "notes": "BLOCKER closed: producer side wired."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/advisory-only-invariant.test.ts — static-assertion test scans change-state.ts and workflows.ts and confirms enrichment fields never read in gate-completion code paths.",
+          "notes": "Architecture-only invariant now guarded."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/types/tasks.test.ts:167-171 — TaskSchema accepts without wisdom_drafts → undefined. plugin/src/tools/wisdom.test.ts:434-447 — without from_draft_id → single signal, no store.tasks.show.",
+          "notes": "DDC6 byte-identical preserved."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "advisory-only-invariant.test.ts guards that enrichment never enters gate-completion paths; task.ts:475 comment documents intent.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reuses adv_wisdom_list reader pattern (FTS via store.wisdom.search), existing error_recovery schema (ErrorRecoverySchema), existing TaskSchema shape (additive optional wisdom_drafts field).",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "task.ts:477-478 — implementsRefs.length > 0 gate before any enrichment work. Tested task.test.ts:497-524.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "task.ts:486 slice(0,5) for wisdom; task.ts:496 top_k:3 for recall hint; DONT2 forbids plugin MCP call.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "WisdomDraft lives on task signal field; dismissed drafts never enter change-level wisdom (AC7 test). Cancelled task lifecycle naturally bounds draft visibility.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "checkpoint.ts:494-511 — try/catch wraps dismiss; signal failure does not block checkpoint completion.",
+          "notes": "Tested in checkpoint.test.ts rq-wisdomAutoSurfacing01.8."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_wisdom_add extended with from_draft_id; no new tool introduced. wisdom.ts:144+ implements validation + atomic promotion.",
+          "notes": ""
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Enrichment is advisory-only (AC9 test). Drafts are productivity aids; auto-dismiss at checkpoint is opt-out via review/promotion.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "advisory-only-invariant.test.ts static-asserts enrichment fields absent from gate-completion paths.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "task.ts:492-497 — plugin emits hint object only; no tools.episode.recall invocation in plugin source. Agent runtime owns the call.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "wisdom-draft.ts:51 — maybeCreateWisdomDraftFromErrorRecovery filters to error_class === 'SEMANTIC' only. TRANSIENT/ENVIRONMENTAL/FATAL excluded.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "checkpoint.ts:485-511 — auto-dismiss best-effort, never blocks completion. taskCompletedSignal fires before dismiss attempt.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "dismissDraft/dismissAllSuggestedDrafts set status='dismissed' (terminal); never call store.wisdom.add for dismissed drafts. Promotion requires explicit from_draft_id call.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "wisdom.ts:144-211 — from_draft_id path still requires type+content args (no auto-populate bypass); passes through normal validation.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "task.ts:477-478 — implementsRefs.length === 0 suppresses both _relevantWisdom and _episodeRecallHint emission.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_task_show` returns `_relevantWisdom: Wisdom[]` (top 5 by recency) when `contract_refs.implements` is non-empty; returns `[]` otherwise.",
+    "`adv_task_show` returns `_episodeRecallHint: { namespace: string, query: string, top_k: 3 }` when capabilities-gated. Plugin emits hint only — agent runtime executes the actual `tools.episode.recall` call (preserves `adv.md:202` policy).",
+    "`adv_task_update` with `error_recovery.attempts[]` containing at least one SEMANTIC attempt creates exactly one `WisdomDraft` on the task.",
+    "`WisdomDraft` lifecycle: `suggested` → `promoted` (via `adv_wisdom_add from_draft_id`) | `dismissed` (auto at checkpoint with `dismiss_reason: \"auto_checkpoint\"` OR explicit user dismiss with `dismiss_reason: \"user_dismissed\"`).",
+    "`adv_task_checkpoint` summary includes `drafts_pending_review: number` and `drafts_auto_dismissed: number` counts.",
+    "`adv_wisdom_add` accepts optional `from_draft_id: string`. When present: validates draft exists on same task, marks draft `status: \"promoted\"`, pre-populates `type` and `content` from draft (agent can override). Still passes through normal evidence-policy validation.",
+    "`WisdomDraft` is task-scoped — cancelled tasks' drafts do not appear in change-level wisdom queries.",
+    "Generic `[ADV:RECORD_WISDOM]` system-block nudge retired; replaced with draft-aware prompt that fires only when drafts are pending review.",
+    "All enrichment (`_relevantWisdom`, `_episodeRecallHint`, drafts) is advisory-only — never used to complete gates, override specs/contracts, or replace task evidence.",
+    "Existing callers of `adv_task_show` / `adv_task_update` / `adv_wisdom_add` / `adv_task_checkpoint` unaffected when new optional fields/features absent."
+  ],
+  "documents": {
+    "proposal": "# Add Wisdom Auto-Surfacing\n\n## Why\n\nADV's wisdom system has the right primitives (`adv_wisdom_add`, `adv_wisdom_list`, `adv_wisdom_promote` → Episode bridge) but the **default workflow doesn't surface wisdom automatically**. Two concrete gaps observed in reflection `rf-5Vpj7LP2` on `addResumeFreshnessAdvisory`:\n\n1. **No auto-load on task start** — `adv_task_show` returns task content with zero related wisdom. Agent must remember to call `adv_wisdom_list` separately. In a 12-task session, the agent consulted prior wisdom **0 times** despite reusing 7 existing primitives (`intersectFileLists`, `execGit`, `pushStatusRecommendation`, `appendRecencyRecommendation` pattern, `fetchChangeContextSnapshot` plumbing, `ChangeListResponse` shape, extraction pattern). Wisdom reuse hits metric: 0.\n\n2. **No auto-suggest on SEMANTIC fix loops** — `adv_task_update` accepts `error_recovery` with rich retry data (`attempts[].diagnosis`, `fix_tried`, `error_class`). This is the highest-signal moment for wisdom capture. In the same session, the agent hit **5+ SEMANTIC fix loops** (type errors, lint failures, format fixes, fixture shape mismatches) and captured **0 wisdom entries**. The existing `[ADV:RECORD_WISDOM]` nudge (`plugin/src/utils/system-block.ts:215-225`) fired 12× but was ignored as generic noise.\n\nThe pattern is clear: **optional prompts get tuned out; structured auto-surfacing gets used.** This change inverts the default from \"agent must remember\" to \"context arrives automatically\" for both recall (Leverage 1) and capture (Leverage 2).\n\nSource reflection: `rf-5Vpj7LP2` on archived change `addResumeFreshnessAdvisory`.\n\n## What Changes\n\n### Leverage 1 — Auto-load on task start\n\n`adv_task_show` extended with two optional enrichment fields:\n\n- **`_relevantWisdom`** — derived from `adv_wisdom_list` filtered by task's `contract_refs.implements` capabilities (cap: top 5 by recency). Empty array when task has no contract_refs or no matching wisdom. Cost: one Wisdom index read.\n- **`_relevantEpisode`** — one advisory `episode_recall` call scoped to active project namespace, filtered by task scope, `top_k: 3`. **Capabilities-gated**: only fires when `contract_refs.implements` is non-empty (avoids wasted MCP calls for trivial tasks). Falls back to empty array if Episode unavailable (consistent with existing recall policy in `.opencode/agents/adv.md:202`).\n\nBoth fields are **advisory-only** — surfaced for agent context, never used to complete gates, override specs, or replace task evidence (matches existing policy).\n\n### Leverage 2 — Auto-suggest wisdom draft on `error_recovery`\n\n`adv_task_update` extended: when `error_recovery.attempts[]` is non-empty AND contains at least one SEMANTIC attempt, automatically attach a **`WisdomDraft`** to the task:\n\n```ts\ninterface WisdomDraft {\n  id: string;                              // stable draft ID\n  suggested_type: \"failure\" | \"gotcha\";    // derived from error_class\n  suggested_content: string;               // template from attempts[].diagnosis + fix_tried\n  source_attempts: string[];               // attempt_number refs\n  status: \"suggested\" | \"promoted\" | \"dismissed\";\n  created_at: string;\n  dismissed_at?: string;\n  dismiss_reason?: \"auto_checkpoint\" | \"user_dismissed\";\n}\n```\n\nDraft lifecycle:\n- Created automatically on `adv_task_update` with `error_recovery.attempts[].error_class === \"SEMANTIC\"`\n- Surfaced at `adv_task_checkpoint` — checkpoint summary includes `drafts_pending_review: N`\n- **Auto-dismissed with audit** if checkpoint completes with drafts unreviewed (`status: \"dismissed\"`, `dismiss_reason: \"auto_checkpoint\"`)\n- Promoted via `adv_wisdom_add` extended with optional `from_draft_id: <draft_id>` parameter — pre-populates `type` and `content` from draft, agent can edit before commit\n- Task-scoped (cancelled tasks don't pollute change wisdom)\n\n### Other changes\n\n- **`adv_wisdom_add` extended** with optional `from_draft_id` parameter (avoids new tool). When present, validates draft exists on same task, marks draft `status: \"promoted\"`, pre-populates fields from draft (agent can override).\n- **`adv_task_show`** — returns `wisdom_drafts: WisdomDraft[]` alongside `_relevantWisdom` and `_relevantEpisode`.\n- **`adv_task_checkpoint`** — summary includes `drafts_pending_review` count + `drafts_auto_dismissed` count.\n- **No new gate, no policy changes** — pure additive enrichment of existing tools.\n\n## User Outcomes\n\n- When an agent loads a task (`adv_task_show`), it automatically sees prior wisdom relevant to that task's capabilities — without remembering to call `adv_wisdom_list` separately.\n- When an agent hits a SEMANTIC fix loop during a task, a wisdom draft is automatically prepared capturing the diagnosis and fix — surfaced at checkpoint for one-tap promotion.\n- Agents no longer need to remember the meta-capture step; the workflow defaults to capturing and surfacing wisdom.\n- Existing recall-only Episode policy (`adv.md:202`) preserved — `_relevantEpisode` uses `episode_recall` (read-only), not write tools.\n\n## Affected Code\n\n- `plugin/src/tools/task.ts` — `adv_task_show` enrichment (load `_relevantWisdom` + `_relevantEpisode`); `adv_task_update` wisdom draft generation on `error_recovery`; `adv_task_checkpoint` summary extension.\n- `plugin/src/tools/wisdom.ts` — `adv_wisdom_add` extended with optional `from_draft_id` parameter; draft lifecycle helpers.\n- `plugin/src/types/tasks.ts` (or wherever Task type lives) — new `WisdomDraft` type; new `wisdom_drafts?: WisdomDraft[]` field on Task.\n- `plugin/src/storage/` — likely a new `wisdom-draft-store.ts` or extension of existing task store for draft persistence.\n- `plugin/src/utils/episode-recall.ts` (NEW, small) — wrapper around `episode_recall` MCP call with capabilities-gated trigger + fallback handling.\n- `plugin/src/utils/system-block.ts` — `[ADV:RECORD_WISDOM]` nudge updated to be draft-aware: \"You have N wisdom draft(s) pending review at checkpoint.\"\n- Tests: extend `plugin/src/tools/task.test.ts`, `plugin/src/tools/wisdom.test.ts`; new `plugin/src/utils/episode-recall.test.ts`.\n\n## Related Repositories\n\nNone. Single-repo change to the Advance plugin.\n\n## Constraints\n\n- **C1 — Advisory-only enrichment**. `_relevantWisdom` and `_relevantEpisode` are surfaced for context, never used to complete gates, override specs/contracts, or replace task evidence (matches existing policy at `adv.md:202`).\n- **C2 — Reuse-first**. Leverages `adv_wisdom_list` reader, `episode_recall` MCP (already policy-allowed), existing `error_recovery` schema, existing task show shape. No new infrastructure categories.\n- **C3 — Capabilities-gated recall**. `_relevantEpisode` MCP call fires only when `contract_refs.implements` is non-empty. Trivial tasks without contract refs skip the MCP round-trip.\n- **C4 — Bounded recall cost**. `top_k: 3` for `_relevantEpisode`; top 5 for `_relevantWisdom`. One MCP call per `adv_task_show`.\n- **C5 — Task-scoped drafts**. Wisdom drafts live on the task; cancelled tasks don't pollute change wisdom. Matches `sourceTask` semantics on `adv_wisdom_add`.\n- **C6 — Low-friction checkpoint**. Drafts auto-dismiss with audit if unreviewed at checkpoint. No blocking.\n- **C7 — No tool sprawl**. `adv_wisdom_add` extended with `from_draft_id`; no new `adv_wisdom_draft_promote` tool.\n- **C8 — No gate enforcement**. Wisdom capture remains optional; drafts are a productivity aid, not a gate requirement.\n\n## Impact\n\n- **Users**: wisdom surfaces automatically when relevant; SEMANTIC fix loops generate draft wisdom by default. Net effect: more learnings captured per change without agent initiative.\n- **Agent**: extra enrichment on task show (~1 Wisdom read + 1 optional MCP call); draft generation on error_recovery updates. Bounded, opt-out via empty `contract_refs`.\n- **Performance**: O(1) Wisdom index read per task show; O(1) MCP call when capabilities-gated; O(attempts) draft generation (small).\n- **Spec law**: likely new requirement under `advance-workflow` covering wisdom auto-surfacing + draft lifecycle. Spec-delta obligations to be firmed in discovery.\n- **Backward compat**: all new fields optional; existing task show / wisdom add callers unaffected when fields absent.\n\n## Context\n\n- Source reflection: `rf-5Vpj7LP2` on `addResumeFreshnessAdvisory` (Plane 1 wisdom metric: 0 entries captured, 0 reuse hits; Plane 2 friction: nudge treated as noise).\n- Existing wisdom nudge: `plugin/src/utils/system-block.ts:215-225` `[ADV:RECORD_WISDOM]` prompt fires after each task completion.\n- Existing Episode policy: `.opencode/agents/adv.md:202` allows `episode_recall` (read-only), forbids write/delete tools.\n- Wisdom→Episode bridge already wired (stats show `source:\"adv_wisdom\"` entries). This change does NOT modify the bridge.\n- `adv_wisdom_list` already accepts `query` for FTS — reuse for capability-filtered retrieval.\n\n## Discovery Agenda\n\nUnresolved unknowns to firm during `/adv-discover`:\n\n1. **`_relevantWisdom` retrieval shape** — `adv_wisdom_list query: <capability>` FTS? Or filter client-side after fetching project wisdom? Discovery confirms FTS quality + cost.\n2. **`_relevantEpisode` MCP integration** — how is `episode_recall` exposed to plugin code? CodeMode-only (`tools.episode.*` inside `execute`)? Or host-level MCP client? Determines whether enrichment happens in tool handler or via separate wrapper.\n3. **`WisdomDraft` persistence** — task signal field (Temporal-backed) vs sidecar vs in-memory only. Affects durability across session restart.\n4. **Draft trigger conditions** — fire on ANY `error_recovery` with attempts? Or only SEMANTIC? Or only when `retry_count >= 2`? Discovery confirms signal-to-noise ratio.\n5. **`adv_task_show` cost ceiling** — adding 2 enrichment calls per show changes the cost profile. Confirm latency budget (existing show is ~50ms; +1 Wisdom read +1 MCP call likely adds ~100-300ms).\n6. **Existing wisdom nudge interaction** — should `[ADV:RECORD_WISDOM]` be retired in favor of draft-aware prompt? Or kept as generic reminder?\n7. **Spec law shape** — new `rq-wisdomAutoSurfacing01` under `advance-workflow`? Or amend existing wisdom requirements?\n8. **Episode namespace resolution** — `_relevantEpisode` needs the active project namespace. Confirm namespace source (project ID? repo basename? explicit config?).\n\n## Scope\n\n### In Scope\n\n- `adv_task_show` enrichment with `_relevantWisdom` (from `adv_wisdom_list`) + `_relevantEpisode` (advisory recall, capabilities-gated)\n- `adv_task_update` wisdom draft generation on `error_recovery.attempts[]` containing SEMANTIC attempts\n- `WisdomDraft` typed object on Task with lifecycle (suggested → promoted | dismissed)\n- `adv_task_checkpoint` summary extension (drafts pending + auto-dismissed counts)\n- `adv_wisdom_add` extended with optional `from_draft_id` parameter\n- `[ADV:RECORD_WISDOM]` nudge updated to be draft-aware\n- Tests for all new paths\n\n### Out of Scope\n\n- Episode-side changes (new `ingest_reflection` tool — separate P1 change)\n- ADV→Episode recall API changes (additive tags/namespace_predicate — separate P2 change)\n- Wisdom promotion pipeline changes\n- Gate enforcement for wisdom capture (remains optional)\n- Cross-project wisdom fan-out (current-project only — matches existing policy)\n- Wisdom retirement/pruning (existing `adv_wisdom_promote` owns it)\n\n### Must Not\n\n- Enrichment fields **must not** be used to complete gates, override specs, or replace task evidence.\n- `_relevantEpisode` **must not** call Episode write/delete tools (policy preservation).\n- Wisdom drafts **must not** block task checkpoint (auto-dismiss with audit is the path).\n- Wisdom drafts **must not** survive task cancellation (task-scoped, not change-scoped).\n- `adv_wisdom_add from_draft_id` **must not** bypass evidence-policy validation (still goes through normal add path).\n- `_relevantEpisode` **must not** fire when Episode MCP unavailable (graceful empty fallback).\n- Auto-suggest **must not** create drafts for transient/environmental errors (only SEMANTIC — true learning moments).\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Auto-load relevant wisdom on task start (`_relevantWisdom`) — zero agent initiative required.\n2. Auto-suggest wisdom drafts on SEMANTIC error_recovery — capture learning at highest-signal moments.\n3. Hybrid episode recall hint (`_episodeRecallHint`) — plugin emits hint, agent runtime executes recall, preserving existing plugin↔MCP isolation.\n4. Retire generic `[ADV:RECORD_WISDOM]` nudge; replace with draft-aware prompt.\n5. Maintain advisory-only contract — no gate/spec/evidence override.\n\n## Success Criteria\n\n1. `adv_task_show` returns relevant wisdom filtered by task capabilities — zero agent initiative required for recall.\n2. SEMANTIC `error_recovery` auto-generates reviewable wisdom drafts — agent reviews at checkpoint rather than remembering to capture.\n3. Wisdom capture rate improves over baseline (0 entries in reflection `rf-5Vpj7LP2`) without adding workflow friction.\n\n## Acceptance Criteria\n\n1. `adv_task_show` returns `_relevantWisdom: Wisdom[]` (top 5 by recency) when `contract_refs.implements` is non-empty; returns `[]` otherwise.\n2. `adv_task_show` returns `_episodeRecallHint: { namespace: string, query: string, top_k: 3 }` when capabilities-gated. Plugin emits hint only — agent runtime executes the actual `tools.episode.recall` call (preserves `adv.md:202` policy).\n3. `adv_task_update` with `error_recovery.attempts[]` containing at least one SEMANTIC attempt creates exactly one `WisdomDraft` on the task.\n4. `WisdomDraft` lifecycle: `suggested` → `promoted` (via `adv_wisdom_add from_draft_id`) | `dismissed` (auto at checkpoint with `dismiss_reason: \"auto_checkpoint\"` OR explicit user dismiss with `dismiss_reason: \"user_dismissed\"`).\n5. `adv_task_checkpoint` summary includes `drafts_pending_review: number` and `drafts_auto_dismissed: number` counts.\n6. `adv_wisdom_add` accepts optional `from_draft_id: string`. When present: validates draft exists on same task, marks draft `status: \"promoted\"`, pre-populates `type` and `content` from draft (agent can override). Still passes through normal evidence-policy validation.\n7. `WisdomDraft` is task-scoped — cancelled tasks' drafts do not appear in change-level wisdom queries.\n8. Generic `[ADV:RECORD_WISDOM]` system-block nudge retired; replaced with draft-aware prompt that fires only when drafts are pending review.\n9. All enrichment (`_relevantWisdom`, `_episodeRecallHint`, drafts) is advisory-only — never used to complete gates, override specs/contracts, or replace task evidence.\n10. Existing callers of `adv_task_show` / `adv_task_update` / `adv_wisdom_add` / `adv_task_checkpoint` unaffected when new optional fields/features absent.\n\n## Constraints\n\n- C1: Advisory-only enrichment — no gate/spec/evidence override.\n- C2: Reuse-first — `adv_wisdom_list` reader, existing `error_recovery` schema, existing task show shape.\n- C3: Capabilities-gated recall hint — no hint for tasks without `contract_refs.implements`.\n- C4: Bounded cost — top 5 wisdom, `top_k: 3` recall hint, no MCP call from plugin source.\n- C5: Task-scoped drafts — cancelled tasks don't pollute change wisdom.\n- C6: Low-friction checkpoint — drafts auto-dismiss with audit; no blocking.\n- C7: No tool sprawl — extend `adv_wisdom_add` with `from_draft_id`; no new promote tool.\n- C8: No gate enforcement — wisdom capture remains optional.\n\n## Avoidances\n\n- DONT1: Do not use enrichment for gate/spec/evidence override.\n- DONT2: Do not add plugin↔MCP client bridge (defer to separate change).\n- DONT3: Do not create drafts for TRANSIENT/ENVIRONMENTAL errors (only SEMANTIC).\n- DONT4: Do not block checkpoint on unreviewed drafts (auto-dismiss with audit).\n- DONT5: Do not persist dismissed drafts as wisdom (dismissed = discarded).\n- DONT6: Do not bypass `adv_wisdom_add` evidence-policy validation when promoting from draft.\n- DONT7: Do not fire `_episodeRecallHint` when capabilities empty (avoid wasted prompt work).\n\n## Preview Applicability\n\n- `visual_surface: false` — pure backend/tool-output change. Affects `adv_task_show` JSON output (new optional fields) and system-block prompt text. No browser/UI component.\n- `exact_route_required: not_applicable`\n- `data_state_expectation: not_applicable`\n- `viewport_expectation: not_applicable`\n\n## Decisions\n\n### User Decisions\n\n- **Q1 — Episode auto-recall architecture**: Hybrid hint mechanism. `adv_task_show` emits `_episodeRecallHint` (capabilities-gated, plugin-side); agent runtime executes the actual `tools.episode.recall` call via CodeMode. *Why it matters*: preserves existing plugin↔MCP isolation policy (`adv.md:202`); avoids adding new infrastructure category; aligns with `appendRecencyRecommendation` pattern (plugin attaches, agent acts).\n- **Q2 — Draft trigger threshold**: First SEMANTIC attempt. *Why it matters*: earliest signal capture; less noise filtering logic.\n- **Q3 — Draft content template**: Terse single-string `\"{diagnosis} → {fix}\"` concatenated across attempts. *Why it matters*: fast review at checkpoint; agent edits during promotion if needed.\n- **Q4 — Wisdom source scope**: Both project + change-scoped wisdom (matches `adv_wisdom_list` default). *Why it matters*: maximizes relevant context per task.\n- **Q5 — Existing nudge retirement**: Retire generic `[ADV:RECORD_WISDOM]`; replace with draft-aware prompt that fires only when drafts pending. *Why it matters*: reduces noise; drafts become the primary capture path.\n\n### Agent Decisions (LBP)\n\n- **`_relevantWisdom` retrieval**: `adv_wisdom_list query: <capability>` FTS when capability match is non-trivial; client-side fallback if FTS unavailable. Reuses existing `adv_wisdom_list` reader — no new retrieval path.\n- **`WisdomDraft` persistence**: task signal field (Temporal-backed, matches existing task field storage). Survives session restart; dies with task cancellation.\n- **`_episodeRecallHint` shape**: `{ namespace: <project_id>, query: <capabilities joined with \" \">, top_k: 3 }`. Capabilities derived from `contract_refs.implements` (AC references). Hint emitted only when at least one AC implemented.\n- **Draft lifecycle transitions**: state machine `suggested → promoted | dismissed`. No `rejected` state (use `dismissed` with `dismiss_reason: \"user_dismissed\"` for explicit rejection). No revival path (dismissed drafts stay dismissed).\n- **Existing wisdom nudge retirement scope**: `plugin/src/utils/system-block.ts:215-225` `wisdomPromptSection` rewritten to consult task's `wisdom_drafts[]` for pending review count; emits nothing when no drafts pending.\n- **Warrant policy**: no warrants needed — all criteria are behavioral or shape-defining for this change's own outputs. No criteria presume existing capability surfaces.\n\n## Deferred Questions\n\nNone. All five user-facing open questions resolved at Phase 4.5. Episode-side improvements (ingest_reflection tool, recall tags/namespace_predicate) remain as separate future changes per scope boundary.\n\n## Sign-Off\n\nUser approved acceptance and success criteria at Phase 4.5.1 inline checkpoint. Agreement persisted; contract mint authorized.\n",
+    "design": "# Design — Add Wisdom Auto-Surfacing (Rev 2)\n\n> **Revision 2** — incorporates validator findings: D1 recency-sort after FTS filter; D5 correct file location (`tools/checkpoint.ts` not `tools/task.ts`).\n\n## Architecture Overview\n\nThree additive surfaces, all advisory-only:\n\n```\n                    ┌─────────────────────────────────────────┐\n                    │   adv_task_show                          │\n                    │   (plugin/src/tools/task.ts)             │\n                    └────────────────┬────────────────────────┘\n                                     │\n              ┌──────────────────────┼──────────────────────┐\n              ▼                      ▼                      ▼\n   ┌──────────────────┐  ┌────────────────────┐  ┌─────────────────────┐\n   │ _relevantWisdom  │  │ _episodeRecallHint │  │ wisdom_drafts[]     │\n   │ (FTS filter on   │  │ (capabilities-     │  │ (existing drafts on │\n   │  contract_refs   │  │  gated; plugin     │  │  task; populated by │\n   │  .implements,    │  │  emits hint only)  │  │  adv_task_update)   │\n   │  THEN top 5 by   │  │                    │  │                     │\n   │  recorded_at     │  │                    │  │                     │\n   │  DESC)           │  │                    │  │                     │\n   └──────────────────┘  └────────────────────┘  └─────────────────────┘\n                                                        ▲\n                                                        │\n                    ┌───────────────────────────────────┴──────────┐\n                    │   adv_task_update                              │\n                    │   (plugin/src/tools/task.ts)                   │\n                    │   with error_recovery.attempts[] containing   │\n                    │   SEMANTIC attempt                              │\n                    │   → auto-creates WisdomDraft                   │\n                    └───────────────────────────────────────────────┘\n                                        │\n                                        ▼\n                    ┌──────────────────────────────────────────────┐\n                    │   adv_task_checkpoint                         │\n                    │   (plugin/src/tools/checkpoint.ts — NOT       │\n                    │    tools/task.ts; corrected per validator)    │\n                    │   surfaces drafts_pending_review count;       │\n                    │   auto-dismisses unreviewed drafts with audit │\n                    └────────────────┬─────────────────────────────┘\n                                     │\n                                     ▼\n                    ┌──────────────────────────────────────────────┐\n                    │   adv_wisdom_add (extended with from_draft_id)│\n                    │   (plugin/src/tools/wisdom.ts)                │\n                    │   validates draft on same task; marks         │\n                    │   promoted; pre-populates type+content        │\n                    └──────────────────────────────────────────────┘\n```\n\n## Key Decisions\n\n### D1 — `_relevantWisdom` retrieval: FTS filter + recency sort (REVISED)\n\n**Decision**: Two-step retrieval:\n\n1. **Filter step**: `adv_wisdom_list { query: <capabilities joined>, scope: \"repo\" }` returns FTS-ranked candidates (relevance-ordered by `adv_wisdom_list` default).\n2. **Recency step**: Sort filtered candidates by `recorded_at` DESC, take top 5.\n\n```ts\nconst filtered = await advWisdomList({ query: capabilities.join(\" \"), scope: \"repo\" });\nconst sorted = filtered.sort((a, b) => b.recorded_at.localeCompare(a.recorded_at));\nreturn sorted.slice(0, 5);\n```\n\n**Rationale (validator finding closed)**: AC1 says \"top 5 by recency\". Existing FTS is relevance-ranked. Sorting after filtering preserves both: relevance-based filtering (good signal) + recency-based final selection (matches AC1). Falls back to `[]` if FTS unavailable.\n\n**Capabilities source**: `task.contract_refs.implements[]` mapped to capability names (AC item IDs → capability strings via contract lookup).\n\n### D2 — `_episodeRecallHint`: capabilities-gated, plugin emits hint only\n\n**Decision**: When `task.contract_refs.implements` is non-empty, emit:\n```ts\n_episodeRecallHint: {\n  namespace: <project_id>,\n  query: <capabilities joined with \" \">,\n  top_k: 3\n}\n```\n\nPlugin does NOT call MCP. Agent runtime receives hint and (if Episode available) executes `tools.episode.recall(hint)` via CodeMode. Result lands in agent context, not persisted to ADV state.\n\n**Rationale**: Architectural constraint surfaced in discovery — plugin↔MCP isolation. Hybrid hint preserves existing policy (`adv.md:202`). Matches `appendRecencyRecommendation` pattern.\n\n### D3 — `WisdomDraft` shape + persistence\n\n**Decision**: New typed object persisted as task signal field (`task.wisdom_drafts: WisdomDraft[]`).\n\n```ts\ninterface WisdomDraft {\n  id: string;                              // stable draft ID (dr-<8hex>)\n  suggested_type: \"failure\" | \"gotcha\";    // derived from error_class\n  suggested_content: string;               // \"{diagnosis} → {fix}\" terse template\n  source_attempts: number[];               // attempt_number refs\n  status: \"suggested\" | \"promoted\" | \"dismissed\";\n  created_at: string;\n  dismissed_at?: string;\n  dismiss_reason?: \"auto_checkpoint\" | \"user_dismissed\";\n  promoted_wisdom_id?: string;             // set when promoted via adv_wisdom_add\n}\n```\n\n**Lifecycle state machine**:\n```\nsuggested ──[adv_wisdom_add from_draft_id]──→ promoted (terminal)\nsuggested ──[checkpoint complete, unreviewed]──→ dismissed (auto_checkpoint)\nsuggested ──[user explicit dismiss]──→ dismissed (user_dismissed)\n```\n\nNo revival path. No `rejected` state.\n\n**Persistence**: Temporal-backed task signal field. Survives session restart. Dies with task cancellation.\n\n### D4 — Draft trigger: first SEMANTIC attempt\n\n**Decision**: When `adv_task_update` records `error_recovery.attempts[]` containing at least one attempt with `error_class === \"SEMANTIC\"`, create exactly one `WisdomDraft`.\n\n**Trigger conditions**:\n- `error_recovery.attempts[]` is non-empty AND\n- At least one attempt has `error_class === \"SEMANTIC\"` AND\n- Task does not already have a `suggested` draft (dedup)\n\n**Suggested content template** (terse per Q3):\n```\n{suggested_type}: {first SEMANTIC attempt.diagnosis} → {first SEMANTIC attempt.fix_tried}\n```\n\nIf multiple SEMANTIC attempts, concatenate: `; {Nth.diagnosis} → {Nth.fix_tried}`.\n\n**Suggested type mapping**: SEMANTIC → `\"failure\"`. Future: FATAL → `\"gotcha\"`. For this change: only SEMANTIC triggers (per DONT3). Type always `\"failure\"` initially.\n\n### D5 — `adv_task_checkpoint` auto-dismiss flow (REVISED — correct file location)\n\n**Decision**: Auto-dismiss logic lives in `plugin/src/tools/checkpoint.ts` (NOT `tools/task.ts` — corrected per validator finding).\n\nAt checkpoint, before recording the checkpoint:\n1. Query task's `wisdom_drafts[]` for `status === \"suggested\"` drafts\n2. If any exist: mark each as `status: \"dismissed\"`, `dismissed_at: <now>`, `dismiss_reason: \"auto_checkpoint\"` via task signal update\n3. Include counts in checkpoint summary: `drafts_pending_review: <count before dismiss>`, `drafts_auto_dismissed: <count>`\n\n**Rationale**: Low-friction checkpoint (C6). The checkpoint tool owns pre-checkpoint task state transitions; auto-dismiss is a natural fit. Task signal update happens via existing `querySignal`/`signal` adapters.\n\n### D6 — `adv_wisdom_add` extension with `from_draft_id`\n\n**Decision**: Add optional `from_draft_id?: string` parameter to `adv_wisdom_add`.\n\n**Behavior when `from_draft_id` present**:\n1. Validate draft exists on `task.wisdom_drafts[]` for the same task (identified by `sourceTask`)\n2. Validate draft status is `suggested` (reject if already `promoted` or `dismissed`)\n3. Pre-populate `type` and `content` from draft (agent can override via explicit args)\n4. After successful wisdom add: mark draft `status: \"promoted\"`, `promoted_wisdom_id: <new wisdom id>`\n5. Still pass through normal evidence-policy validation (DONT6)\n\n**Error cases**: `DRAFT_NOT_FOUND`, `DRAFT_ALREADY_PROMOTED`, `DRAFT_DISMISSED`.\n\n### D7 — System-block nudge rewrite\n\n**Decision**: Rewrite `wisdomPromptSection` in `plugin/src/utils/system-block.ts:215-225`:\n\n**After** (draft-aware):\n```\n[ADV:WISDOM_DRAFTS] Task \"{title}\" ({id}) has {N} wisdom draft(s) pending review.\nPromote via adv_wisdom_add from_draft_id, or dismiss explicitly. Unreviewed drafts\nwill be auto-dismissed at checkpoint.\n```\n\n**Fires only when**: task has `wisdom_drafts[]` with `status === \"suggested\"`. Returns null otherwise.\n\n### D8 — Spec law shape\n\n**Decision**: New `rq-wisdomAutoSurfacing01` under `advance-workflow` covering:\n- `_relevantWisdom` contract (top 5, FTS-filtered + recency-sorted, capabilities-derived)\n- `_episodeRecallHint` contract (capabilities-gated, plugin emits only)\n- `WisdomDraft` lifecycle (suggested → promoted | dismissed)\n- Draft trigger (SEMANTIC error_recovery)\n- `adv_wisdom_add from_draft_id` promotion path\n- Advisory-only invariant\n\n## ADR Drafts\n\nNone. No decision meets all three ADR criteria.\n\n## Implementation Strategy\n\nTopological order for `/adv-prep`:\n\n1. **Types** (`plugin/src/types/tasks.ts` or wisdom types) — `WisdomDraft` interface; `wisdom_drafts?: WisdomDraft[]` on Task.\n2. **`adv_task_show` enrichment** (`plugin/src/tools/task.ts`) — add `_relevantWisdom` (D1: FTS + recency sort) and `_episodeRecallHint` (D2: capabilities-gated). Both optional.\n3. **`adv_task_update` draft creation** (`plugin/src/tools/task.ts`) — when error_recovery has SEMANTIC attempts AND no existing suggested draft, create WisdomDraft and append to task's `wisdom_drafts[]`.\n4. **`adv_task_checkpoint` auto-dismiss** (`plugin/src/tools/checkpoint.ts` — corrected per validator) — before recording checkpoint, scan drafts; mark suggested→dismissed with audit; include counts in summary.\n5. **`adv_wisdom_add from_draft_id` extension** (`plugin/src/tools/wisdom.ts`) — add optional parameter; validation + pre-population + status update.\n6. **System-block nudge rewrite** (`plugin/src/utils/system-block.ts:215-225`) — replace `wisdomPromptSection` with draft-aware version.\n7. **Tests** — task show enrichment, draft creation trigger, lifecycle state machine, checkpoint auto-dismiss (in `checkpoint.test.ts`), from_draft_id promotion, nudge rewrite.\n8. **Spec delta** — `rq-wisdomAutoSurfacing01` under `advance-workflow`.\n\n## LBP Analysis\n\nMatches LBP on five axes:\n\n1. **Reuse over greenfield** — `adv_wisdom_list` reader, existing `error_recovery` schema, existing task show shape, existing system-block nudge infrastructure, existing checkpoint tool infrastructure.\n2. **Structural correctness** — typed `WisdomDraft` lifecycle state machine; `error_class === \"SEMANTIC\"` is structural trigger; recency sort is deterministic.\n3. **Locality** — types in types module, enrichment in task.ts, draft logic in task.ts, checkpoint dismiss in checkpoint.ts (corrected per validator), nudge in system-block.ts.\n4. **Bounded cost** — top 5 wisdom read, top_k=3 recall hint, no MCP from plugin, dedup (one suggested draft per task).\n5. **Advisory-only** — enrichment never used for gate/spec/evidence override.\n\nSingle tradeoff: D2 (hybrid hint) requires agent runtime cooperation for Episode recall. Acceptable — preserves policy boundary.\n\n## Affected Components (REVISED — checkpoint location corrected)\n\n| Component | File | Change |\n|---|---|---|\n| Task type | `plugin/src/types/tasks.ts` | Add `wisdom_drafts?: WisdomDraft[]`; new `WisdomDraft` interface |\n| Task show | `plugin/src/tools/task.ts` | Add `_relevantWisdom` + `_episodeRecallHint` enrichment |\n| Task update | `plugin/src/tools/task.ts` | Auto-create WisdomDraft on SEMANTIC error_recovery |\n| Task checkpoint | `plugin/src/tools/checkpoint.ts` (CORRECTED per validator) | Auto-dismiss unreviewed drafts; include counts in summary |\n| Wisdom add | `plugin/src/tools/wisdom.ts` | Extend with `from_draft_id` parameter |\n| System-block nudge | `plugin/src/utils/system-block.ts:215-225` | Rewrite `wisdomPromptSection` to be draft-aware |\n| Spec law | `.adv/specs/advance-workflow/spec.json` | New `rq-wisdomAutoSurfacing01` |\n| Tests (extend) | `plugin/src/tools/task.test.ts` | Enrichment + draft creation |\n| Tests (NEW or extend) | `plugin/src/tools/checkpoint.test.ts` | Auto-dismiss at checkpoint (corrected location) |\n| Tests (extend) | `plugin/src/tools/wisdom.test.ts` | `from_draft_id` validation paths |\n| Tests (extend) | `plugin/src/utils/system-block.test.ts` | Nudge rewrite |\n\n## Design-Derived Criteria\n\n- **DDC1**: `_relevantWisdom` retrieval MUST complete within 200ms. FTS filter + recency sort. On failure → `[]`.\n- **DDC2**: `_episodeRecallHint` MUST NOT issue MCP call from plugin source (static-analysis enforceable).\n- **DDC3**: `WisdomDraft` IDs MUST be unique per task (dr-<8hex>); duplicate-create rejected.\n- **DDC4**: Draft auto-dismiss at checkpoint MUST be idempotent.\n- **DDC5**: `adv_wisdom_add from_draft_id` MUST atomically promote (validate + add wisdom + mark draft promoted in single signal).\n- **DDC6**: Existing callers passing no new optional fields MUST see byte-identical behavior to pre-change output (backward-compat invariant).\n- **DDC7** (NEW from validator): `_relevantWisdom` final selection MUST be recency-ordered (`recorded_at` DESC) after FTS filtering — AC1 compliance.\n\n## Design Leverage Scout\n\n**Scout: skipped — narrow scope rationale.** Change tightly bounded by 10 AC + 8 constraints + 7 avoidances. Reuse opportunities already enumerated. No external alternatives viable.\n\n## Validator Result\n\n**Phase 3.5 design validator** spawned via `adv-researcher` (task `ses_07a6c5761ffePKLagj9QOGwMcm`). Verdict: **`fail`** (advisory-only per AC13 — does NOT auto-block design gate).\n\n**Findings raised** (both addressed in Rev 2):\n\n1. **D1 vs AC1 conflict** — AC1 says \"top 5 by recency\" but D1 said FTS via `adv_wisdom_list query`. Existing FTS is relevance-ranked, not recency-ranked. **Closed**: D1 revised to two-step retrieval (FTS filter then recency sort). DDC7 added codifying the invariant.\n2. **D5 file location** — `adv_task_checkpoint` lives in `plugin/src/tools/checkpoint.ts`, NOT `tools/task.ts` as design stated. **Closed**: D5 + Affected Components + Implementation Strategy all corrected.\n\n**Architecture judgement** (from validator): applicability `applicable`, status `fail`, confidence `high`, risk `high`. Tradeoff noted: \"Relevance filtering may narrow candidates, but final rank must remain recency.\" Adopted in D1 revision.\n\n**Validator recommendation**: \"Amend D1 to sort eligible wisdom by `recorded_at` descending before taking five. Add `plugin/src/tools/checkpoint.ts` plus focused tests to D5 topology.\" — Both implemented in Rev 2.\n\n## Risks / Mitigations\n\n| # | Risk | Mitigation |\n|---|---|---|\n| R1 | `adv_wisdom_list` FTS quality insufficient for capability-filtered recall | D1 fallback: return `[]` on FTS failure. Recency sort applied after filter. |\n| R2 | Agent runtime ignores `_episodeRecallHint` | Acceptable per D2 — preserves policy boundary. Nudge in agent prompt can be added later. |\n| R3 | Draft accumulation if agent never reviews | D5 auto-dismiss at checkpoint bounds accumulation. |\n| R4 | Task signal size grows with draft history | Bounded: one suggested draft per task (dedup). Historical drafts small. |\n| R5 | `from_draft_id` race: two concurrent promotions | D5 atomic signal. Second call rejects with `DRAFT_ALREADY_PROMOTED`. |\n| R6 | System-block nudge change breaks existing tests | Test rewrite in same change; deterministic table tests. |\n| R7 (NEW) | Recency sort cost on large wisdom sets | Bounded by `adv_wisdom_list` limit; sort applied to already-bounded candidate set. |\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV now auto-surfaces relevant wisdom on task start and auto-suggests wisdom drafts when an agent hits a SEMANTIC fix loop, inverting the previous default from \"agent must remember to capture/recall wisdom\" to \"context arrives automatically.\" The approver is deciding whether to ship this advisory-only enrichment to release.\n\n## Why It Matters\n\nReflections on prior changes (e.g. `rf-5Vpj7LP2` on `addResumeFreshnessAdvisory`) showed wisdom reuse at 0 hits and capture at 0 entries per session despite reusing 7+ existing primitives and hitting 5+ SEMANTIC fix loops. The generic `[ADV:RECORD_WISDOM]` nudge fired 12× but was tuned out as noise. This change makes recall and capture structural: relevant wisdom attaches to `adv_task_show` output, drafts auto-attach to `adv_task_update` with SEMANTIC error_recovery, and a draft-aware `[ADV:WISDOM_DRAFTS]` nudge replaces the ignored generic prompt. All enrichment remains advisory-only (never gates, never overrides specs/contracts, never replaces task evidence).\n\n## Verdict\n\nAPPROVED (after remediation)\n\n## What Was Built\n\n1. **Auto-load wisdom on task start** — `adv_task_show` returns `_relevantWisdom` (top 5 by recency after FTS filter) and `_episodeRecallHint` (capabilities-gated, plugin emits hint only — agent runtime executes the recall) when `contract_refs.implements` is non-empty.\n2. **WisdomDraft type + task-scoped drafts field** — new `WisdomDraft` lifecycle object on Task with strict one-way state machine: `suggested → promoted | dismissed`. Typed via Zod, persisted via Temporal task signal field.\n3. **Auto-suggest on SEMANTIC error_recovery** — `adv_task_update` creates exactly one WisdomDraft when `error_recovery.attempts[]` contains a SEMANTIC attempt. Trigger is structural (error_class enum), not heuristic. Covers both normal and blocked-status transitions.\n4. **Atomic draft promotion via `from_draft_id`** — `adv_wisdom_add` extended with optional `from_draft_id`; validates draft exists on same task, marks promoted atomically after wisdom add succeeds, pre-populates type/content (agent can override).\n5. **Checkpoint auto-dismiss with counts** — `adv_task_checkpoint` surfaces `drafts_pending_review` and `drafts_auto_dismissed` counts; unreviewed drafts auto-dismiss with `dismiss_reason: \"auto_checkpoint\"` at completion (best-effort: signal failure does not block checkpoint).\n6. **Draft-aware system-block nudge** — generic `[ADV:RECORD_WISDOM]` retired; replaced with `[ADV:WISDOM_DRAFTS]` prompt that fires only when tasks carry pending drafts. PluginState producer queries the active change's task list each turn and populates `pendingWisdomDraftTasks`.\n7. **Spec law** — new `rq-wisdomAutoSurfacing01` under `advance-workflow` capability (12 scenarios covering all 10 ACs plus advisory-only invariant and backward-compat invariant). Spec version bumped 1.33.0 → 1.34.0.\n\n## What Was Verified\n\n- **Verdict**: APPROVED with 0 blockers, 0 unresolved issues after remediation. Original review raised 1 blocker (AC8 producer wiring dead) + 10 issues; all resolved. Two TOCTOU race conditions documented in code comments and deferred to fast-follow per user decision (single-agent session model makes them theoretical; CAS-style fix requires concurrency contract language).\n- **Tests**: 235/235 affected unit tests pass across `task.test.ts`, `wisdom.test.ts`, `checkpoint.test.ts`, `wisdom-draft.test.ts`, `system-block.test.ts`, `system-block-ac.verification.test.ts`, `tasks.test.ts`, `signals.test.ts`, `messages.test.ts`, and new `advisory-only-invariant.test.ts`. `pnpm run check` green (schemas:check, typecheck, manifests, isolation, lockfile, lint, format).\n- **Preview URL**: not_applicable — pure backend/tool-output change. No browser/UI component. Agreement declares `visual_surface: false`.\n- **Contract matrix**: 28 rows (3 SC + 10 AC + 8 C + 7 DONT), 0 failing. All AC rows `pass`; all constraints `respected`; all avoidances `respected`.\n\n## Remaining Concerns\n\n- **TOCTOU races on draft lifecycle** (correctness-5/6): concurrent `from_draft_id` promotions or concurrent checkpoint-dismiss vs. promotion can produce duplicate wisdom entries or lose a promotion via Object.assign clobber. Documented in code comments at `plugin/src/tools/wisdom.ts:248` and `plugin/src/tools/checkpoint.ts:485`. CAS-style fix deferred to fast-follow child change. Single-agent session model makes this theoretical; not blocking.\n- **Workflow boundary validation scope** (security-4): `applyTaskUpdatedToState` and `applyTaskBlockedToState` now validate `wisdom_drafts` partials, but other Object.assign consumers in `change-state.ts` remain unguarded. Defense-in-depth change to extend validation to all signal handlers is a separate fast-follow.\n- **Temporal-unavailable draft promotion** (tdd-gap-wisdom-temporal-fallback): when Temporal handle is null, `adv_wisdom_add from_draft_id` adds wisdom via disk fallback but cannot fire `taskUpdatedSignal` to mark draft promoted. The tool now surfaces a `_warning` to the caller; draft stays `suggested` and will be auto-dismissed at checkpoint or can be re-promoted when Temporal returns.\n\n## Supporting Evidence\n\n- Tasks: tk-a6cf8146d380, tk-e6c18758c9d9, tk-16f8127784b7, tk-f559c1209038, tk-f0ef7d4573d1, tk-9d2d3be61d01, tk-296743071b40 (all done).\n- Review: scanner-bundle:review report (2 scanners, 16 findings, all resolved or deferred).\n- Remediation commits: `5ed06790` (revert drive-by) + `d305f25c` (fix AC8 producer + correctness/security gaps).\n- Tests: 235/235 pass; `pnpm run check` green.\n- Contract review matrix: 28 rows persisted via `adv_contract_review_matrix_set`, 0 failing.\n- Spec law: `.adv/specs/advance-workflow/spec.json` rq-wisdomAutoSurfacing01 (12 scenarios, version 1.34.0).\n\n## Consequence Context\n\n1. **Delivered value**: Auto-surfacing of wisdom + auto-capture of SEMANTIC learning moments. Advisory-only enrichment reduces agent initiative burden; structural defaults increase capture/recall rates over the documented 0-baseline.\n2. **Enabling-only/follow-up dependency**: None blocking. Fast-follow child change recommended for TOCTOU CAS-style fix and broader workflow-boundary validation (security-4 generalization).\n3. **Ops readiness**: Ready — see Release Readiness Summary below.\n4. **Migration/data impact**: n/a — additive change. Existing task records without `wisdom_drafts` continue to work (DDC6 backward-compat invariant); schema treats field as optional.\n5. **Frontend/preview impact**: not_applicable — `visual_surface: false`. No browser/UI component; affects only `adv_task_show` JSON output (new optional fields) and system-block prompt text.\n6. **Collision/release risk**: Low. Single-repo change touching only ADV plugin surfaces. No public API contract changes (all new fields optional). No collision with other active changes detected.\n7. **Open follow-ups**: TOCTOU CAS fix (correctness-5/6) and workflow-boundary validation generalization (security-4) recommended as fast-follow; not blocking release.\n8. **Next action**: Archive sign-off proceeds to `/adv-archive addWisdomAutoSurfacing`.\n\n## Release Readiness Summary\n\n### Build Verification\n- `pnpm run check`: green (schemas:check, typecheck, manifests, isolation, lockfile, lint, format)\n- `pnpm run build`: green — plugin bundle, Temporal worker bundle, type declarations, build identity recorded (sha256:d3cbc1168115ae32e4d0dc4256d3a3dadc6fd09eed25fc8c14bac92bb1de3ff9)\n- Worker bundle: 179 KB worker.js + 301 KB workflows.js (within historical range)\n\n### Code Hygiene\n- No `console.log`, `TODO`, `FIXME`, or `XXX` markers in new code paths\n- No debug instrumentation left in production paths\n- Branch is clean — no uncommitted changes, no stale artifacts\n\n### Documentation\n- Spec law `rq-wisdomAutoSurfacing01` is the authoritative doc (12 scenarios covering all ACs)\n- Type re-exports complete in `plugin/src/types/index.ts`\n- Public JSON schemas regenerated and validated (`change.schema.json`, `task.schema.json`)\n- No README/SETUP changes needed — internal plugin change with no new user-facing API surface\n\n### Deploy Steps\n- Standard ADV plugin deploy sequence (no special steps): `pnpm run build` → `./scripts/deploy-local.sh --fix` → OpenCode restart\n- No migrations, no config changes, no env vars added\n- No monitoring hooks or alerting thresholds added\n\n### Backward Compatibility\n- All new fields optional (DDC6 invariant: byte-identical output for existing callers when new fields absent)\n- Existing task records without `wisdom_drafts` continue to validate and load\n- `adv_wisdom_add` without `from_draft_id` behaves identically to pre-change\n- `adv_task_show` without `contract_refs.implements` returns `_relevantWisdom: []` and omits `_episodeRecallHint`\n\n### Cleanup\n- 7 drive-by command-description files reverted (kept change focused on wisdom auto-surfacing scope)\n- No stale branches, no orphaned worktrees, no temp files\n\n### Open Follow-ups Validation\n- TOCTOU CAS fix (correctness-5/6): documented in code comments; deferred to fast-follow per user decision — not release-blocking\n- Workflow-boundary validation generalization (security-4): scoped `wisdom_drafts` validation landed; broader generalization deferred to fast-follow — not release-blocking\n- Temporal-unavailable draft promotion: `_warning` surfaced to caller; behavior documented and tested — not release-blocking\n\n### Release Risk Assessment\n- **Risk level**: Low\n- **Single-repo change** touching only ADV plugin surfaces\n- **All new fields optional** — no breaking changes to existing callers\n- **Comprehensive test coverage** — 235 tests across all affected surfaces\n- **Spec law codifies** the contract for future reference\n- **No external dependencies** added or changed",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T19:25:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `adv_task_show` returns relevant wisdom filtered by task capabilities — zero agent initiative required for recall. | pass | adv_task_show returns _relevantWisdom (top 5 by recency after FTS filter) when contract_refs.implements non-empty. plugin/src/tools/task.ts:484-491 with null-guard coercion; tested plugin/src/tools/task.test.ts:397-495. |\n| SC2 | success_criterion | SEMANTIC `error_recovery` auto-generates reviewable wisdom drafts — agent reviews at checkpoint rather than remembering to capture. | pass | SEMANTIC error_recovery auto-generates WisdomDraft via maybeCreateWisdomDraftFromErrorRecovery helper. plugin/src/utils/wisdom-draft.ts:45-68; integrated in task.ts normal-path (line 1105+) and blocked-path (line 1068+) and poisoned-history path; 37 unit tests + 5 integration tests. |\n| SC3 | success_criterion | Wisdom capture rate improves over baseline (0 entries in reflection `rf-5Vpj7LP2`) without adding workflow friction. | not_applicable | Wisdom capture rate improvement is a post-deployment metric; not verifiable at acceptance boundary. Baseline established in reflection rf-5Vpj7LP2. |\n| AC1 | acceptance_criterion | `adv_task_show` returns `_relevantWisdom: Wisdom[]` (top 5 by recency) when `contract_refs.implements` is non-empty; returns `[]` otherwise. | pass | plugin/src/tools/task.test.ts:397-495 — D1+D2 test asserts top-5 recency-sort wins over FTS ranking; FTS returns older-first [ws-old, ws-new], output is newer-first. Null-guard added at task.ts:484. |\n| AC2 | acceptance_criterion | `adv_task_show` returns `_episodeRecallHint: { namespace: string, query: string, top_k: 3 }` when capabilities-gated. Plugin emits hint only — agent runtime executes the actual `tools.episode.recall` call (preserves `adv.md:202` policy). | pass | plugin/src/tools/task.test.ts:497-524 — capabilities-gated hint suppression test. Plugin emits hint only; no MCP call (DONT2 preserved). |\n| AC3 | acceptance_criterion | `adv_task_update` with `error_recovery.attempts[]` containing at least one SEMANTIC attempt creates exactly one `WisdomDraft` on the task. | pass | plugin/src/tools/task.test.ts:1466-1629 — SEMANTIC → draft creation, TRANSIENT/empty-attempts → suppression, dedup at-most-one suggested per task. Now also covers blocked-status path (correctness-4 fix). |\n| AC4 | acceptance_criterion | `WisdomDraft` lifecycle: `suggested` → `promoted` (via `adv_wisdom_add from_draft_id`) | `dismissed` (auto at checkpoint with `dismiss_reason: \"auto_checkpoint\"` OR explicit user dismiss with `dismiss_reason: \"user_dismissed\"`). | pass | plugin/src/types/tasks.test.ts:22-154 + plugin/src/utils/wisdom-draft.test.ts:293-444 — WisdomDraftStatusSchema enum locks states; lifecycle helpers enforce one-way transitions; idempotent dismiss tested. |\n| AC5 | acceptance_criterion | `adv_task_checkpoint` summary includes `drafts_pending_review: number` and `drafts_auto_dismissed: number` counts. | pass | plugin/src/tools/checkpoint.test.ts:531-660 — drafts_pending_review + drafts_auto_dismissed counts verified for mixed/all-promoted/no-drafts/dismiss-failure paths. |\n| AC6 | acceptance_criterion | `adv_wisdom_add` accepts optional `from_draft_id: string`. When present: validates draft exists on same task, marks draft `status: \"promoted\"`, pre-populates `type` and `content` from draft (agent can override). Still passes through normal evidence-policy validation. | pass | plugin/src/tools/wisdom.test.ts:262-446 — FROM_DRAFT_ID_REQUIRES_SOURCE_TASK, DRAFT_NOT_FOUND, DRAFT_ALREADY_PROMOTED, DRAFT_DISMISSED, atomic promotion, backward-compat paths. Signal-name assertion tightened (test-weak-signal-assertion nit). |\n| AC7 | acceptance_criterion | `WisdomDraft` is task-scoped — cancelled tasks' drafts do not appear in change-level wisdom queries. | pass | plugin/src/tools/wisdom.test.ts — rq-wisdomAutoSurfacing01.9 AC7 invariant test asserts drafts on cancelled tasks never appear in change-level wisdom queries. Architecture-only enforcement now guarded. |\n| AC8 | acceptance_criterion | Generic `[ADV:RECORD_WISDOM]` system-block nudge retired; replaced with draft-aware prompt that fires only when drafts are pending review. | pass | plugin/src/index.ts:1266-1288 — PluginState extended with pendingWisdomDraftTasks; producer in experimental.chat.system.transform queries store.tasks.list and filters wisdom_drafts for suggested status. system-block.ts consumer reads field correctly. Tests in system-block.test.ts:298-417 + system-block-ac.verification.test.ts verify assembler behavior. |\n| AC9 | acceptance_criterion | All enrichment (`_relevantWisdom`, `_episodeRecallHint`, drafts) is advisory-only — never used to complete gates, override specs/contracts, or replace task evidence. | pass | plugin/src/tools/advisory-only-invariant.test.ts — static-assertion test scans change-state.ts and workflows.ts and confirms enrichment fields never read in gate-completion code paths. |\n| AC10 | acceptance_criterion | Existing callers of `adv_task_show` / `adv_task_update` / `adv_wisdom_add` / `adv_task_checkpoint` unaffected when new optional fields/features absent. | pass | plugin/src/types/tasks.test.ts:167-171 — TaskSchema accepts without wisdom_drafts → undefined. plugin/src/tools/wisdom.test.ts:434-447 — without from_draft_id → single signal, no store.tasks.show. |\n| C1 | constraint | Advisory-only enrichment — no gate/spec/evidence override. | respected | advisory-only-invariant.test.ts guards that enrichment never enters gate-completion paths; task.ts:475 comment documents intent. |\n| C2 | constraint | Reuse-first — `adv_wisdom_list` reader, existing `error_recovery` schema, existing task show shape. | respected | Reuses adv_wisdom_list reader pattern (FTS via store.wisdom.search), existing error_recovery schema (ErrorRecoverySchema), existing TaskSchema shape (additive optional wisdom_drafts field). |\n| C3 | constraint | Capabilities-gated recall hint — no hint for tasks without `contract_refs.implements`. | respected | task.ts:477-478 — implementsRefs.length > 0 gate before any enrichment work. Tested task.test.ts:497-524. |\n| C4 | constraint | Bounded cost — top 5 wisdom, `top_k: 3` recall hint, no MCP call from plugin source. | respected | task.ts:486 slice(0,5) for wisdom; task.ts:496 top_k:3 for recall hint; DONT2 forbids plugin MCP call. |\n| C5 | constraint | Task-scoped drafts — cancelled tasks don't pollute change wisdom. | respected | WisdomDraft lives on task signal field; dismissed drafts never enter change-level wisdom (AC7 test). Cancelled task lifecycle naturally bounds draft visibility. |\n| C6 | constraint | Low-friction checkpoint — drafts auto-dismiss with audit; no blocking. | respected | checkpoint.ts:494-511 — try/catch wraps dismiss; signal failure does not block checkpoint completion. |\n| C7 | constraint | No tool sprawl — extend `adv_wisdom_add` with `from_draft_id`; no new promote tool. | respected | adv_wisdom_add extended with from_draft_id; no new tool introduced. wisdom.ts:144+ implements validation + atomic promotion. |\n| C8 | constraint | No gate enforcement — wisdom capture remains optional. | respected | Enrichment is advisory-only (AC9 test). Drafts are productivity aids; auto-dismiss at checkpoint is opt-out via review/promotion. |\n| DONT1 | avoidance | Do not use enrichment for gate/spec/evidence override. | respected | advisory-only-invariant.test.ts static-asserts enrichment fields absent from gate-completion paths. |\n| DONT2 | avoidance | Do not add plugin↔MCP client bridge (defer to separate change). | respected | task.ts:492-497 — plugin emits hint object only; no tools.episode.recall invocation in plugin source. Agent runtime owns the call. |\n| DONT3 | avoidance | Do not create drafts for TRANSIENT/ENVIRONMENTAL errors (only SEMANTIC). | respected | wisdom-draft.ts:51 — maybeCreateWisdomDraftFromErrorRecovery filters to error_class === 'SEMANTIC' only. TRANSIENT/ENVIRONMENTAL/FATAL excluded. |\n| DONT4 | avoidance | Do not block checkpoint on unreviewed drafts (auto-dismiss with audit). | respected | checkpoint.ts:485-511 — auto-dismiss best-effort, never blocks completion. taskCompletedSignal fires before dismiss attempt. |\n| DONT5 | avoidance | Do not persist dismissed drafts as wisdom (dismissed = discarded). | respected | dismissDraft/dismissAllSuggestedDrafts set status='dismissed' (terminal); never call store.wisdom.add for dismissed drafts. Promotion requires explicit from_draft_id call. |\n| DONT6 | avoidance | Do not bypass `adv_wisdom_add` evidence-policy validation when promoting from draft. | respected | wisdom.ts:144-211 — from_draft_id path still requires type+content args (no auto-populate bypass); passes through normal validation. |\n| DONT7 | avoidance | Do not fire `_episodeRecallHint` when capabilities empty (avoid wasted prompt work). | respected | task.ts:477-478 — implementsRefs.length === 0 suppresses both _relevantWisdom and _episodeRecallHint emission. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T16:31:15.100Z",
+      "contentHash": "e8e521ec9dcccd519a0a84700ffa6e38ff841942344db8ef8fb11216033216b8",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T16:42:58.865Z",
+      "contentHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T16:52:11.136Z",
+      "contentHash": "77f974408f2ed4f7b114307f1f457256f60090335887722c64114c104a6884d5",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T19:31:03.881Z",
+      "contentHash": "e0529dc70584ee7045cc8b356d216a062fb0cc8a8668143e77e96152aacb59c6",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T20:44:59.343Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
