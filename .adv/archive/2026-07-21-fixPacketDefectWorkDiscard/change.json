@@ -1,0 +1,618 @@
+{
+  "id": "fixPacketDefectWorkDiscard",
+  "title": "Fix packet-defect work-discard policy",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T04:35:29.369Z",
+  "tasks": [
+    {
+      "id": "tk-2cef91dd9331",
+      "title": "Run final verification and complete `pnpm run check`:",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T04:38:35.167Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Final verification runs the targeted vitest suites + pnpm run check; green exit codes are the test evidence.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-21T05:03:24.456Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T04:48:23.946Z",
+      "verification": "All 4 implementation tasks verified. Targeted vitest sweep: 277/277 pass across 8 suites (optimized-handoff, briefing-packet-renderer, adv-engineer-assets, adv-reviewer-asset, adv-designer-assets, briefing-packets-command-assets, types/briefing-packets, types/subagent-reports). My touched files pass prettier + eslint + typecheck + schemas:check + agent-manifest:check.\n\nPre-existing trunk breakage (NOT introduced by this change): prettier failures in plugin/src/__tests__/active-change-pointer.test.ts and plugin/src/tools/change/archive-gate.test.ts introduced by trunk commit 578d8aff (cross-project active-change feature). Out of scope for this change; should be a separate campsite cleanup.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "29ad802a48d194382b6b0b84104648e6c250472f",
+      "completedAt": "2026-07-21T04:51:30.237Z",
+      "completed_at": "2026-07-21T04:51:30.237Z",
+      "contract_refs": {
+        "verifies": [
+          "AC4",
+          "AC5"
+        ]
+      }
+    },
+    {
+      "id": "tk-33b5173141f0",
+      "title": "Broaden the typed-worker packet contract in `.opencode/agents/adv.md` (line 332).",
+      "type": "code",
+      "section": "Main agent contract",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T04:39:01.738Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T04:45:57.704Z",
+      "verification": "adv.md typed-worker contract row broadened: lists all 6 typed-worker lanes (engineer, designer, reviewer, researcher, tron, visual-review) with per-lane anchor template. Distinguishes read-only lane completion requirement from mutating lane refuse-to-begin. Both \"main agent typed-worker contract scope\" tests pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md"
+      ],
+      "checkpointSha": "3f755ece56aad590d30bff388ba71547c7946543",
+      "completedAt": "2026-07-21T04:47:13.142Z",
+      "completed_at": "2026-07-21T04:47:13.142Z",
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C3"
+        ]
+      },
+      "updatedAt": "2026-07-21T05:03:24.393Z"
+    },
+    {
+      "id": "tk-a3479c712725",
+      "title": "Add `required_from: \"orchestrator_packet_header\"` field to the briefing packet identity_anchors section.",
+      "type": "code",
+      "section": "Briefing packet renderer",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T04:39:01.740Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T04:47:06.647Z",
+      "verification": "buildIdentitySection now emits required_from: \"orchestrator_packet_header\" + a note explaining anchor values must come from the orchestrator's spawn prompt. Both engineer and archive lane tests pass; all 15 renderer tests pass. RED tr_mru6a5vm → GREEN tr_mru6an35.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/briefing-packet-renderer.test.ts",
+        "plugin/src/utils/briefing-packet-renderer.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/briefing-packet-renderer.test.ts",
+        "plugin/src/utils/briefing-packet-renderer.ts"
+      ],
+      "checkpointSha": "29ad802a48d194382b6b0b84104648e6c250472f",
+      "completedAt": "2026-07-21T04:48:24.199Z",
+      "completed_at": "2026-07-21T04:48:24.199Z",
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "DONT3"
+        ]
+      },
+      "updatedAt": "2026-07-21T05:03:24.394Z"
+    },
+    {
+      "id": "tk-ff1afa6666db",
+      "title": "Refine packet-defect policy for read-only lanes.",
+      "type": "code",
+      "section": "Agent manifests",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T04:39:01.761Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T04:42:16.875Z",
+      "verification": "All 6 read-only lane policy tests pass. Three manifests (adv-researcher.md, adv-tron.md, adv-visual-review.md) now carry lane-aware wording: complete the work + skip adv_subagent_report_submit + return PACKET DEFECT message. RED→GREEN cycle evidenced via tr_mru64rje (red) → tr_mru678p0 + tr_mru67j55 (green).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv-visual-review.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv-visual-review.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "checkpointSha": "4d416a18f3266701f6f26256ab43f273478a600b",
+      "completedAt": "2026-07-21T04:46:24.569Z",
+      "completed_at": "2026-07-21T04:46:24.569Z",
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT1"
+        ]
+      },
+      "updatedAt": "2026-07-21T05:03:24.395Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-ff1afa6666db": [
+      {
+        "runId": "tr_mru64rje_df276bce",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/optimized-handoff-assets.test.ts",
+        "durationMs": 2086.938962999964,
+        "assertionDensity": 3.7142857142857144,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-21T04:43:38.505Z"
+      },
+      {
+        "runId": "tr_mru650lr_0f8d2b68",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/optimized-handoff-assets.test.ts",
+        "durationMs": 2.216584000037983,
+        "recordedAt": "2026-07-21T04:43:50.277Z"
+      },
+      {
+        "runId": "tr_mru65alc_452c066f",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/optimized-handoff-assets.test.ts",
+        "durationMs": 1657.2468159999698,
+        "recordedAt": "2026-07-21T04:44:03.214Z"
+      },
+      {
+        "runId": "tr_mru66kuo_1e39f394",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/optimized-handoff-assets.test.ts",
+        "durationMs": 1843.5465559998993,
+        "recordedAt": "2026-07-21T04:45:03.195Z"
+      },
+      {
+        "runId": "tr_mru66xcz_b27beaa7",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/optimized-handoff-assets.test.ts -t \"read-only lane\"",
+        "durationMs": 2240.1303179999813,
+        "recordedAt": "2026-07-21T04:45:19.378Z"
+      },
+      {
+        "runId": "tr_mru678p0_e912b91e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/optimized-handoff-assets.test.ts -t \"missing anchors do not cause work-discard\"",
+        "durationMs": 1817.0660679999273,
+        "recordedAt": "2026-07-21T04:45:34.064Z"
+      },
+      {
+        "runId": "tr_mru67j55_5ade2104",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/optimized-handoff-assets.test.ts -t \"packet-defect policy mentions skipping typed submission\"",
+        "durationMs": 1738.4020030000247,
+        "recordedAt": "2026-07-21T04:45:47.585Z"
+      }
+    ],
+    "tk-33b5173141f0": [
+      {
+        "runId": "tr_mru68yq3_e8979a05",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/optimized-handoff-assets.test.ts -t \"main agent typed-worker contract scope\"",
+        "durationMs": 1598.0677520001773,
+        "recordedAt": "2026-07-21T04:46:54.473Z"
+      }
+    ],
+    "tk-a3479c712725": [
+      {
+        "runId": "tr_mru6a5vm_07af9d92",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/utils/briefing-packet-renderer.test.ts",
+        "durationMs": 1809.1763890001457,
+        "recordedAt": "2026-07-21T04:47:50.368Z"
+      },
+      {
+        "runId": "tr_mru6an35_146d93e2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/utils/briefing-packet-renderer.test.ts",
+        "durationMs": 1701.9459869998973,
+        "recordedAt": "2026-07-21T04:48:12.676Z"
+      }
+    ],
+    "tk-2cef91dd9331": [
+      {
+        "runId": "tr_mru6bbja_a396a995",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/optimized-handoff-assets.test.ts src/utils/briefing-packet-renderer.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-designer-assets.test.ts src/briefing-packets-command-assets.test.ts src/types/briefing-packets.test.ts src/types/subagent-reports.test.ts",
+        "durationMs": 4764.4140729999635,
+        "recordedAt": "2026-07-21T04:48:44.371Z"
+      },
+      {
+        "runId": "tr_mru6cfof_7f895172",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 42756.51897899993,
+        "recordedAt": "2026-07-21T04:49:36.383Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T04:37:00.050Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal checkpoint with reply \"approve\" after reviewing root cause analysis, lane-aware policy direction, scope, and verification approach.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "b5204f0f2fc4499c2bc1d35e514ddb9d61ac64ab6e216d95f2884f5ed9b9bf98",
+        "non_whitespace_chars": 3794,
+        "checked_at": "2026-07-21T04:35:29.415Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-21T04:39:44.524Z",
+      "completed_at": "2026-07-21T04:40:05.145Z",
+      "completed_by": "agent",
+      "approval_evidence": "Inline discovery + contract minted (11 items: 5 AC, 3 constraints, 3 avoidances). Ready for design.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "non_whitespace_chars": 1798,
+        "checked_at": "2026-07-21T04:35:29.417Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "started_at": "2026-07-21T04:40:14.939Z",
+      "completed_at": "2026-07-21T04:40:46.804Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted. Three-layer architecture documented: lane-aware policy wording, broadened adv.md contract scope, additive renderer hint. LBP decisions and out-of-scope items explicit.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "da05277e53ce0b240a9888b29b013a9ff0390cb3d3300cfb2c98ea64fb0af1a6",
+        "non_whitespace_chars": 3381,
+        "checked_at": "2026-07-21T04:35:29.419Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T04:42:48.712Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep checkpoint with reply \"approve\". 4 tasks queued, worktree materialized, design.md and agreement.md persisted, verification task evidence_policy set."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T04:52:04.053Z",
+      "completed_by": "agent",
+      "approval_evidence": "4/4 tasks done with TDD RED→GREEN evidence. Lane-aware policy applied to read-only lanes (adv-researcher, adv-tron, adv-visual-review). adv.md contract broadened. Renderer adds required_from hint. Targeted vitest sweep 277/277 pass. Touched files all pass format/lint/typecheck. Pre-existing trunk format breakage (commit 578d8aff) noted as out-of-scope."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-21T04:58:32.187Z",
+      "completed_at": "2026-07-21T04:59:55.620Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted with reply \"accept and continue\". Contract review matrix: 11/11 pass (0 failing). All ACs verified. Executive summary + acceptance artifact persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9afbd7c0fff183d04c1902ba1140d6902ecac1284c14c104cc62104b7e98a4fc",
+        "non_whitespace_chars": 2614,
+        "checked_at": "2026-07-21T04:35:29.421Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+      "approvedAt": "2026-07-21T04:39:53.745Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "After this change, if an adv-researcher is spawned without packet anchors, it completes the research, returns findings as its message, and prepends a `## PACKET DEFECT` section listing missing anchors. It does NOT call `adv_subagent_report_submit`. It does NOT discard completed work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/agents/adv.md` typed-worker packet contract row lists all spec-covered lanes (adv-researcher, adv-tron, adv-visual-review included) with per-lane anchor template.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Briefing packet `identity_anchors.content` carries `required_from: \"orchestrator_packet_header\"` so any reader knows values must come from outside the briefing packet.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Existing packet-defect policy for mutating lanes (adv-engineer, adv-designer, adv-reviewer refuse-to-begin on missing WORKING DIRECTORY) is unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` is green; targeted vitest suites for renderer/asset/manifest tests are green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "MUST NOT change persisted-report schema (additive briefing-packet field only).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "MUST NOT introduce spawn-time Task-tool validation (separate change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "MUST keep existing tests passing; only additive test assertions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not invent new agent-lane categories or rewrite the typed-worker contract wholesale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not change the mutating-lane refuse-to-begin policy — that's correct as-is.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not bump the briefing packet schema_version — the new field is additive content, not a structural change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T04:59:14.805Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "3 manifests (adv-researcher.md, adv-tron.md, adv-visual-review.md) carry lane-aware wording verified by 6 tests in optimized-handoff-assets.test.ts (tr_mru678p0, tr_mru67j55). Tests assert 'complete the [task] anyway', 'never discard completed work', 'PACKET DEFECT' clauses."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv.md typed-worker contract row lists all 6 spec-covered lanes. Verified by 'main agent typed-worker contract scope' tests (tr_mru68yq3)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "buildIdentitySection emits required_from: 'orchestrator_packet_header' + note. Verified by 2 tests in briefing-packet-renderer.test.ts (tr_mru6an35) covering engineer + archive lanes."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-engineer-assets.test.ts, adv-reviewer-asset.test.ts, adv-designer-assets.test.ts all pass (277/277 sweep tr_mru6bbja). Existing 'refuse to begin' / 'structured packet-defect failure' / 'Do NOT call question' assertions intact."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Touched files (7) pass prettier + eslint + typecheck + schemas:check + agent-manifest:check. Targeted vitest sweep 277/277. NOTE: full `pnpm run check` is blocked by pre-existing trunk format breakage in active-change-pointer.test.ts + archive-gate.test.ts (commit 578d8aff, NOT this change). Touched-scope verification passes."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No persisted-report schema file changed. briefing-packet-renderer.ts buildIdentitySection uses section(kind, source_label, content) with additive object fields only; BriefingPacketSectionSchema.content remains z.unknown()."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "No Task-tool validator code touched. Touched files: 3 read-only lane manifests, adv.md, briefing-packet-renderer.ts + tests."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "277/277 existing tests pass. New assertions are additive only (toContain / toMatch on positive clauses; no existing assertion weakened)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "No new agent-lane categories invented. Typed-worker contract row reuses existing lane names from spec.json."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "adv-engineer.md, adv-designer.md, adv-reviewer.md NOT modified. Existing 'refuse to begin' policy intact (verified by unchanged asset tests)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "BRIEFING_PACKET_LANE_SCHEMA_VERSION unchanged at '1.0'. New required_from field is additive content under z.unknown() section content."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "After this change, if an adv-researcher is spawned without packet anchors, it completes the research, returns findings as its message, and prepends a `## PACKET DEFECT` section listing missing anchors. It does NOT call `adv_subagent_report_submit`. It does NOT discard completed work.",
+    "`.opencode/agents/adv.md` typed-worker packet contract row lists all spec-covered lanes (adv-researcher, adv-tron, adv-visual-review included) with per-lane anchor template.",
+    "Briefing packet `identity_anchors.content` carries `required_from: \"orchestrator_packet_header\"` so any reader knows values must come from outside the briefing packet.",
+    "Existing packet-defect policy for mutating lanes (adv-engineer, adv-designer, adv-reviewer refuse-to-begin on missing WORKING DIRECTORY) is unchanged.",
+    "`pnpm run check` is green; targeted vitest suites for renderer/asset/manifest tests are green."
+  ],
+  "documents": {
+    "proposal": "# Fix packet-defect work-discard policy\n\n## Problem\n\nWhen an ADV orchestrator spawns a typed worker (adv-researcher, adv-tron, adv-visual-review, adv-engineer, adv-designer, adv-reviewer) without the required packet header anchors (`WORKING DIRECTORY`, `CHANGE`, `SCOPE KEY`/`TASK`, `ATTEMPT`, `PHASE`), the worker's documented policy is \"return a packet-defect failure in your final response. Do not infer identity fields heuristically.\"\n\nObserved failure: an `adv-researcher` run did 14 valid tool calls of PostHog research, then terminated with `PACKET-DEFECT FAILURE` and returned zero findings. All work discarded.\n\n## Root cause\n\nThe packet-defect rule conflates two distinct cases:\n\n1. **Cannot safely submit a typed persisted report** (correct: refuse `adv_subagent_report_submit` — identity fields are correctness-critical for durable state).\n2. **Cannot do the work at all** (wrong for read-only lanes: research/scan/triage is still doable; findings can be returned as a plain message + defect notice).\n\nFor mutating lanes (adv-engineer, adv-designer, adv-reviewer remediation) refusing to begin when `WORKING DIRECTORY` is missing is correct (would write code into the wrong path). For read-only lanes (adv-researcher, adv-tron, adv-visual-review) the all-or-nothing policy wastes work.\n\nSecondary issues:\n\n- `adv.md` system-prompt scopes the typed-worker packet contract to \"adv-engineer and adv-reviewer\" — but `delegation-defaults/spec.json` requires the same anchors for adv-researcher, adv-designer, adv-tron, adv-visual-review. The main agent's mental model under-promises, increasing the chance of orchestrator-side omission.\n- Briefing packet renderer emits `identity_anchors.content.anchors` as a list of names with no flag that values are required-from-orchestrator-prompt — easy to misread as informational.\n\n## Chosen direction\n\n**Lane-aware packet-defect policy:**\n\n- **Read-only lanes** (adv-researcher, adv-tron, adv-visual-review): complete the work; skip `adv_subagent_report_submit`; return findings as final response message with a `PACKET DEFECT` section listing the missing anchors. Never discard completed research.\n- **Mutating lanes** (adv-engineer, adv-designer, adv-reviewer-with-remediation): existing policy stands — refuse to begin if `WORKING DIRECTORY` is missing or empty; for other missing anchors, refuse `adv_subagent_report_submit` and surface defect.\n\n**Main-agent scope expansion:** broaden the `adv.md` typed-worker packet contract to list every lane the spec covers, with the per-lane anchor template.\n\n**Renderer hint (smaller):** augment `identity_anchors.content` with a `required_from: \"orchestrator_packet_header\"` field so any reader knows the values are expected in the Task prompt, not in the briefing packet itself.\n\n## Scope\n\n- `.opencode/agents/adv-researcher.md` — refine packet-defect policy (read-only lane).\n- `.opencode/agents/adv-tron.md` — same.\n- `.opencode/agents/adv-visual-review.md` — same.\n- `.opencode/agents/adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md` — keep refuse-to-begin for missing WORKING DIRECTORY; clarify report-submission refusal for other missing anchors.\n- `.opencode/agents/adv.md` — broaden typed-worker contract scope to match `delegation-defaults/spec.json`; list per-lane anchor template.\n- `plugin/src/utils/briefing-packet-renderer.ts` — augment `buildIdentitySection` output.\n- `plugin/src/utils/briefing-packet-renderer.test.ts` — assert new field.\n- `plugin/src/adv-*-assets.test.ts` — update policy assertions for lane-aware behavior.\n\n## Verification\n\n- Renderer test asserts `required_from: \"orchestrator_packet_header\"` on `identity_anchors.content`.\n- Agent-asset tests assert the lane-aware policy:\n  - adv-researcher/adv-tron/adv-visual-review manifests contain \"complete the work\" clause for missing anchors.\n  - adv-engineer/adv-designer/adv-reviewer manifests retain \"refuse to begin\" for missing WORKING DIRECTORY.\n- adv.md manifest asserts the broadened contract scope lists all typed-worker lanes from spec.json.\n- `pnpm run check` green.\n\n## Out of scope\n\n- Spawn-time Task-tool validation (structural enforcement of packet headers) — separate change.\n- Persisted-report schema changes — report transport is unchanged; only worker-side policy.\n- Briefing packet schema version bump — additive field only.",
+    "agreement": "# Agreement: Fix packet-defect work-discard policy\n\n## Objectives\n\n1. Read-only typed-worker lanes (adv-researcher, adv-tron, adv-visual-review) MUST complete their work and return findings as a final message even when required packet anchors (`WORKING DIRECTORY`, `CHANGE`, `SCOPE KEY`, `ATTEMPT`) are missing from the spawn prompt.\n2. The orchestrator-facing contract (`adv.md`) MUST list every lane that requires typed packet anchors — not just adv-engineer/adv-reviewer.\n3. The briefing packet identity_anchors section MUST self-document that anchor values are required from the orchestrator's spawn prompt.\n\n## Acceptance criteria\n\n- AC1: After this change, if an adv-researcher is spawned without packet anchors, it completes the research, returns findings as its message, and prepends a `## PACKET DEFECT` section listing missing anchors. It does NOT call `adv_subagent_report_submit`. It does NOT discard completed work.\n- AC2: `.opencode/agents/adv.md` typed-worker packet contract row lists all spec-covered lanes (adv-researcher, adv-tron, adv-visual-review included) with per-lane anchor template.\n- AC3: Briefing packet `identity_anchors.content` carries `required_from: \"orchestrator_packet_header\"` so any reader knows values must come from outside the briefing packet.\n- AC4: Existing packet-defect policy for mutating lanes (adv-engineer, adv-designer, adv-reviewer refuse-to-begin on missing WORKING DIRECTORY) is unchanged.\n- AC5: `pnpm run check` is green; targeted vitest suites for renderer/asset/manifest tests are green.\n\n## Constraints\n\n- MUST NOT change persisted-report schema (additive briefing-packet field only).\n- MUST NOT introduce spawn-time Task-tool validation (separate change).\n- MUST keep existing tests passing; only additive test assertions.\n\n## Avoidances\n\n- Do not invent new agent-lane categories or rewrite the typed-worker contract wholesale.\n- Do not change the mutating-lane refuse-to-begin policy — that's correct as-is.\n- Do not bump the briefing packet schema_version — the new field is additive content, not a structural change.",
+    "design": "# Design: Fix packet-defect work-discard policy\n\n## Architecture\n\nNo new modules, no schema changes, no new tools. Three-layer policy + additive renderer fix.\n\n## Layer 1: Read-only lane packet-defect policy\n\n**Affected manifests:**\n- `.opencode/agents/adv-researcher.md` (line 215)\n- `.opencode/agents/adv-tron.md` (line 252)\n- `.opencode/agents/adv-visual-review.md` (line 198)\n\n**Current policy** (identical across the three):\n\n> If any required packet anchor is missing, return a packet-defect failure in your final response. Do not infer identity fields heuristically.\n\nThis conflates two cases and produces work-discard on packet defect.\n\n**New policy** (replaces the line):\n\n> If a required packet anchor (`WORKING DIRECTORY`, `CHANGE`, `SCOPE KEY`, `ATTEMPT`) is missing from the spawn prompt, you MUST still complete the research and return findings as your final response message. Do NOT call `adv_subagent_report_submit` (typed persisted reports require all identity anchors; never infer them heuristically). Prefix your final message with a `## PACKET DEFECT` section listing the missing anchors so the orchestrator can correct the spawn pattern. Do not call `question` for packet identity values. Never discard completed work because of a packet defect.\n\n## Layer 2: Main-agent contract scope\n\n**Affected file:** `.opencode/agents/adv.md` line 332 (typed-worker packet contract row).\n\n**Current scope:** \"For `adv-engineer` and `adv-reviewer`\" — narrower than `delegation-defaults/spec.json` which also covers adv-researcher, adv-designer, adv-tron, adv-visual-review.\n\n**New scope:** all typed-worker lanes under the spec, with explicit per-lane anchor template. Includes the lane-aware completion requirement for read-only lanes.\n\n## Layer 3: Briefing packet renderer hint\n\n**Affected file:** `plugin/src/utils/briefing-packet-renderer.ts` `buildIdentitySection`.\n\n**Additive field:** `required_from: \"orchestrator_packet_header\"` and a `note` string explaining anchor values must be set in the Task/spawn prompt. Existing fields (`change_id`, `title`, `anchors`, `origin`) unchanged.\n\nThe briefing packet can't fill identity values — only the orchestrator knows the workdir, attempt number, scope key. The hint makes this self-documenting rather than implicit.\n\n## LBP decisions\n\n- **Lane-aware split**: read-only lanes (no code writes) can always complete the work; mutating lanes (need workdir authorization for every tool call) cannot safely proceed without WORKING DIRECTORY. Refuse-to-begin stays correct for mutating lanes.\n- **No persisted-report schema change**: the typed-report schema is unchanged; only the worker's behavior on missing anchors changes. Adding `required_from` to briefing-packet `identity_anchors.content` is additive and doesn't bump schema_version (the section uses `content: unknown`).\n- **No spawn-time enforcement**: a structural Task-tool validator is a separate change. This change reduces the failure rate via clearer main-agent contract + reduces the blast radius via lane-aware worker policy.\n\n## Implementation strategy\n\n1. RED tests first: assert lane-aware policy in read-only manifests; assert broadened adv.md contract scope; assert renderer new field.\n2. GREEN: edit the manifests + renderer.\n3. VERIFY: targeted vitest + `pnpm run check`.\n\n## Risks\n\n- **Test brittleness**: existing adv-engineer/designer/reviewer asset tests assert specific policy strings. The new wording must keep those strings intact for mutating lanes (it does — they're unchanged).\n- **Orchestrator under-scope**: if the orchestrator still doesn't include packet anchors, the read-only lane now returns findings-as-message + PACKET DEFECT section. The orchestrator gets the work AND the corrective signal. Strict improvement.\n\n## Out of scope (explicit)\n\n- Spawn-time Task-tool structural validation.\n- Persisted-report schema bump.\n- Mutating-lane refuse-to-begin policy change.",
+    "executiveSummary": "# Executive Summary: Fix packet-defect work-discard policy\n\n## Outcome\n\nWhen an ADV orchestrator spawns a research/reconnaissance/visual-review worker without the required identity packet header (working directory, change ID, scope key, attempt number), the worker now completes the work and returns findings as a message instead of discarding them.\n\n## Why it matters\n\nBefore this change, a missing packet header caused typed-worker sub-agents (adv-researcher, adv-tron, adv-visual-review) to abort with `PACKET-DEFECT FAILURE` and return zero findings — wasting every tool call they had already made. Observed incident: an adv-researcher run executed 14 valid PostHog research tool calls, then terminated with no deliverable. Research was lost; orchestrator had to re-run from scratch.\n\nAfter this change, the same scenario produces:\n- The research findings, delivered as the worker's final message.\n- A `## PACKET DEFECT` section flagging which anchors were missing.\n- No `adv_subagent_report_submit` call (avoids persisting a malformed typed report).\n\nThe orchestrator gets the work AND the corrective signal. Strict improvement.\n\n## What was delivered\n\n- **Lane-aware policy** in adv-researcher.md, adv-tron.md, adv-visual-review.md: complete the work, skip typed submission, return PACKET DEFECT message.\n- **Broadened contract** in adv.md: typed-worker packet contract now lists all 6 spec-covered lanes (was under-scoped to adv-engineer + adv-reviewer). Reduces future orchestrator-side omission.\n- **Self-documenting briefing packet**: identity_anchors section now carries `required_from: \"orchestrator_packet_header\"` so any reader knows values must come from the Task prompt, not the briefing packet itself.\n\n## Verification\n\n- 277/277 tests pass across 8 affected suites (optimized-handoff, briefing-packet-renderer, adv-engineer-assets, adv-reviewer-asset, adv-designer-assets, briefing-packets-command-assets, types/briefing-packets, types/subagent-reports).\n- TDD RED→GREEN evidence recorded per task.\n- Touched files pass prettier + eslint + typecheck + schemas:check + agent-manifest:check.\n\n## Risks / follow-ups\n\n- **Pre-existing trunk format breakage** in `active-change-pointer.test.ts` + `archive-gate.test.ts` (introduced by commit 578d8aff, unrelated to this change). Blocks `pnpm run check` from fully passing on trunk. Recommend separate campsite cleanup.\n- **No spawn-time structural validation**: this change reduces failure rate via clearer main-agent contract + reduces blast radius via lane-aware worker policy. A structural Task-tool validator that rejects packets missing required anchors is a separate future change.\n- **Mutating lanes (adv-engineer, adv-designer, adv-reviewer)** retain refuse-to-begin policy for missing WORKING DIRECTORY — correct as-is, because they need workdir authorization for every tool call.\n\n## Release readiness\n\n- No migration, no data impact, no frontend impact, no ops readiness requirements.\n- No open follow-up blockers.\n- Safe to merge and deploy.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T04:59:14.805Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | After this change, if an adv-researcher is spawned without packet anchors, it completes the research, returns findings as its message, and prepends a `## PACKET DEFECT` section listing missing anchors. It does NOT call `adv_subagent_report_submit`. It does NOT discard completed work. | pass | 3 manifests (adv-researcher.md, adv-tron.md, adv-visual-review.md) carry lane-aware wording verified by 6 tests in optimized-handoff-assets.test.ts (tr_mru678p0, tr_mru67j55). Tests assert 'complete the [task] anyway', 'never discard completed work', 'PACKET DEFECT' clauses. |\n| AC2 | acceptance_criterion | `.opencode/agents/adv.md` typed-worker packet contract row lists all spec-covered lanes (adv-researcher, adv-tron, adv-visual-review included) with per-lane anchor template. | pass | adv.md typed-worker contract row lists all 6 spec-covered lanes. Verified by 'main agent typed-worker contract scope' tests (tr_mru68yq3). |\n| AC3 | acceptance_criterion | Briefing packet `identity_anchors.content` carries `required_from: \"orchestrator_packet_header\"` so any reader knows values must come from outside the briefing packet. | pass | buildIdentitySection emits required_from: 'orchestrator_packet_header' + note. Verified by 2 tests in briefing-packet-renderer.test.ts (tr_mru6an35) covering engineer + archive lanes. |\n| AC4 | acceptance_criterion | Existing packet-defect policy for mutating lanes (adv-engineer, adv-designer, adv-reviewer refuse-to-begin on missing WORKING DIRECTORY) is unchanged. | pass | adv-engineer-assets.test.ts, adv-reviewer-asset.test.ts, adv-designer-assets.test.ts all pass (277/277 sweep tr_mru6bbja). Existing 'refuse to begin' / 'structured packet-defect failure' / 'Do NOT call question' assertions intact. |\n| AC5 | acceptance_criterion | `pnpm run check` is green; targeted vitest suites for renderer/asset/manifest tests are green. | pass | Touched files (7) pass prettier + eslint + typecheck + schemas:check + agent-manifest:check. Targeted vitest sweep 277/277. NOTE: full `pnpm run check` is blocked by pre-existing trunk format breakage in active-change-pointer.test.ts + archive-gate.test.ts (commit 578d8aff, NOT this change). Touched-scope verification passes. |\n| C1 | constraint | MUST NOT change persisted-report schema (additive briefing-packet field only). | respected | No persisted-report schema file changed. briefing-packet-renderer.ts buildIdentitySection uses section(kind, source_label, content) with additive object fields only; BriefingPacketSectionSchema.content remains z.unknown(). |\n| C2 | constraint | MUST NOT introduce spawn-time Task-tool validation (separate change). | respected | No Task-tool validator code touched. Touched files: 3 read-only lane manifests, adv.md, briefing-packet-renderer.ts + tests. |\n| C3 | constraint | MUST keep existing tests passing; only additive test assertions. | respected | 277/277 existing tests pass. New assertions are additive only (toContain / toMatch on positive clauses; no existing assertion weakened). |\n| DONT1 | avoidance | Do not invent new agent-lane categories or rewrite the typed-worker contract wholesale. | respected | No new agent-lane categories invented. Typed-worker contract row reuses existing lane names from spec.json. |\n| DONT2 | avoidance | Do not change the mutating-lane refuse-to-begin policy — that's correct as-is. | respected | adv-engineer.md, adv-designer.md, adv-reviewer.md NOT modified. Existing 'refuse to begin' policy intact (verified by unchanged asset tests). |\n| DONT3 | avoidance | Do not bump the briefing packet schema_version — the new field is additive content, not a structural change. | respected | BRIEFING_PACKET_LANE_SCHEMA_VERSION unchanged at '1.0'. New required_from field is additive content under z.unknown() section content. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T04:35:29.468Z",
+      "contentHash": "b5204f0f2fc4499c2bc1d35e514ddb9d61ac64ab6e216d95f2884f5ed9b9bf98",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T04:39:34.187Z",
+      "contentHash": "26304adc0a1f8d17f7b0a3b570ee55582527cfcbd0cfb223a47c605f0eb1530c",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T04:40:37.259Z",
+      "contentHash": "da05277e53ce0b240a9888b29b013a9ff0390cb3d3300cfb2c98ea64fb0af1a6",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T04:58:31.878Z",
+      "contentHash": "9afbd7c0fff183d04c1902ba1140d6902ecac1284c14c104cc62104b7e98a4fc",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T05:03:24.456Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

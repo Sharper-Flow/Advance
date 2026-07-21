@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T05:04:02.529Z",
+  "capabilities": [],
+  "change_hash": "e3ec23fc4c0ee0791f796b27cc6af6dfc7e336e2edab87c57a1a36a60a9eb76b",
+  "change_id": "fixPacketDefectWorkDiscard",
+  "completed_tasks": 4,
+  "created_at": "2026-07-21T04:35:29.369Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T04:59:55.620Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "0d18e17b143b5c118b62e2e118dc21d4edfcc3801e0fd1e8fbdb104906bb6848",
+  "task_count": 4,
+  "title": "Fix packet-defect work-discard policy",
+  "version": "1"
+}
