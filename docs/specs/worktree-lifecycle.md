@@ -299,7 +299,7 @@ ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. 
 
 **ID:** `rq-terminalCleanupSafety01` | **Priority:** **[MUST]**
 
-Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority.
+Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority. The local CWD scan (`isWorktreeInUse`) is the sole safety authority for the "no live process CWD" portion of this requirement. The remote OpenCode workspace-list API is advisory: when reachable, it cleans up stale workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.
 
 **Tags:** `worktree`, `cleanup`, `safety`
 
@@ -325,6 +325,18 @@ Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktr
 
 **Then:**
 - advWorktreeDelete still verifies durable ADV state before deletion
+
+**Remote workspace registry failure is advisory** (`rq-terminalCleanupSafety01.3`)
+
+**Given:**
+- advWorktreeDelete has verified via local `/proc/*/cwd` scan that no live process holds the worktree as CWD
+- The remote OpenCode workspace-list API returns a failure (network, 5xx, malformed response)
+
+**When:** The terminal cleanup evaluates workspace ownership
+
+**Then:**
+- Deletion proceeds without retaining the worktree
+- A warning is logged with the remote failure reason
 
 ---
 

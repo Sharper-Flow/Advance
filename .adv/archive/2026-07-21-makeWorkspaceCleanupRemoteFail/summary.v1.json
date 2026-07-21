@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T00:45:24.038Z",
+  "capabilities": [],
+  "change_hash": "b2dd62579e0a93eec98639368f20ac15518eaf5ae8739d70c7829fb239e4d7d3",
+  "change_id": "makeWorkspaceCleanupRemoteFail",
+  "completed_tasks": 3,
+  "created_at": "2026-07-21T00:34:21.201Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T00:44:45.045Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "6d7167d856842a2e5d739befcb257ba4da1ca3b27fe921e01e94cf03779dc750",
+  "task_count": 3,
+  "title": "Make workspace cleanup remote-fail advisory",
+  "version": "1"
+}

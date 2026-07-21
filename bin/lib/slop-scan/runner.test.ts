@@ -16,6 +16,25 @@ describe("slop-scan runner", () => {
     expect(normalizeCoverageFromExecution("bun-version", "Bun", result).state).toBe("run");
   });
 
+  test("preserves successful detector stdout above the diagnostic output limit", async () => {
+    const runner = createToolRunner();
+    const outputSize = 250_001;
+    const result = await runner.run({
+      detectorId: "large-json",
+      command: [
+        process.execPath,
+        "-e",
+        `process.stdout.write("x".repeat(${outputSize}))`,
+      ],
+      cwd: process.cwd(),
+      timeoutMs: 5000,
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.stdout.length).toBe(outputSize);
+    expect(result.stdout).not.toContain("[truncated]");
+  });
+
   test("classifies missing command as unavailable", async () => {
     const runner = createToolRunner();
     const result = await runner.run({

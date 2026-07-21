@@ -2,7 +2,7 @@
 
 import { mkdir, readFile, readdir, stat } from "fs/promises";
 import { readFileSync } from "fs";
-import { dirname, isAbsolute, join, resolve } from "path";
+import { basename, dirname, isAbsolute, join, resolve } from "path";
 import { tmpdir } from "os";
 
 import { buildEslintCommand, normalizeEslintJson } from "./adapters/eslint";
@@ -103,10 +103,85 @@ function targetPath(repoRoot: string, requestedPath: string): string {
     : resolve(repoRoot, requestedPath);
 }
 
-async function nearestPackageRoot(
+export type PackageRootResult =
+  | { kind: "found"; cwd: string }
+  | { kind: "ambiguous"; candidates: string[] };
+
+const SOURCE_EXTENSIONS = new Set(Object.keys(EXTENSION_LANGUAGES));
+
+/**
+ * Walk a directory tree (bounded by SKIP_DIRS) and return true as soon as any
+ * source file is found. Used to filter nested-package candidates so empty
+ * package shells (e.g. `.opencode/`) are not picked as the package root.
+ */
+async function directoryContainsSource(dir: string): Promise<boolean> {
+  let info;
+  try {
+    info = await stat(dir);
+  } catch {
+    return false;
+  }
+  if (!info.isDirectory()) return false;
+
+  const stack: string[] = [dir];
+  while (stack.length > 0) {
+    const current = stack.pop() as string;
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const entryPath = join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) continue;
+        stack.push(entryPath);
+      } else if (entry.isFile()) {
+        const dot = entry.name.lastIndexOf(".");
+        if (dot >= 0 && SOURCE_EXTENSIONS.has(entry.name.slice(dot))) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * When walk-up fails to find a package.json, scan immediate subdirectories of
+ * repoRoot for nested package roots. Skips SKIP_DIRS and any directory that
+ * contains no source files. Returns absolute paths sorted alphabetically for
+ * stable output.
+ */
+async function findNestedPackageRoots(repoRoot: string): Promise<string[]> {
+  let entries;
+  try {
+    entries = await readdir(repoRoot, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const candidates: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (SKIP_DIRS.has(entry.name)) continue;
+    const childPath = join(repoRoot, entry.name);
+    const hasPackageJson = await stat(join(childPath, "package.json"))
+      .then((s) => s.isFile())
+      .catch(() => false);
+    if (!hasPackageJson) continue;
+    if (!(await directoryContainsSource(childPath))) continue;
+    candidates.push(childPath);
+  }
+  candidates.sort();
+  return candidates;
+}
+
+export async function nearestPackageRoot(
   repoRoot: string,
   path: string,
-): Promise<string> {
+): Promise<PackageRootResult> {
+  // Walk-up phase: resolves the package root for paths inside a package.
   let current = (await stat(path).catch(() => null))?.isFile()
     ? dirname(path)
     : path;
@@ -114,7 +189,9 @@ async function nearestPackageRoot(
 
   while (current.startsWith(root)) {
     try {
-      if ((await stat(join(current, "package.json"))).isFile()) return current;
+      if ((await stat(join(current, "package.json"))).isFile()) {
+        return { kind: "found", cwd: current };
+      }
     } catch {
       // Keep walking toward the repository root.
     }
@@ -124,7 +201,19 @@ async function nearestPackageRoot(
     current = parent;
   }
 
-  return repoRoot;
+  // Descent phase: when walk-up fails (target is at/above all packages), look
+  // one level down into immediate subdirectories of repoRoot for a package
+  // root. Handles the canonical monorepo / nested-plugin layout (ADV's plugin/).
+  const candidates = await findNestedPackageRoots(repoRoot);
+  if (candidates.length === 0) {
+    // Preserve the existing fallback so pnpm's ERR_PNPM_NO_PKG_MANIFEST remains
+    // the diagnostic when there is genuinely no package.json anywhere relevant.
+    return { kind: "found", cwd: repoRoot };
+  }
+  if (candidates.length === 1) {
+    return { kind: "found", cwd: candidates[0] };
+  }
+  return { kind: "ambiguous", candidates };
 }
 
 function coverageFailed(
@@ -140,6 +229,57 @@ function coverageFailed(
     important: detector.important,
     command: command.join(" "),
   };
+}
+
+function ambiguousCoverageEntry(
+  detector: DetectorDefinition,
+  reason: string,
+): DetectorCoverage {
+  return {
+    id: detector.id,
+    label: detector.label,
+    state: "failed",
+    reason,
+    important: detector.important,
+  };
+}
+
+/**
+ * Build an early-exit report when multiple nested package roots are detected
+ * and the resolver cannot pick one deterministically. Required applicable
+ * detectors are marked failed with the ambiguity reason; external coverage
+ * (e.g. Semgrep PR gate) is still reported since it does not depend on the
+ * package root.
+ */
+async function buildAmbiguousPackageRootReport(
+  report: SlopScanReport,
+  candidates: string[],
+  detectors: DetectorDefinition[],
+): Promise<SlopScanReport> {
+  const candidateNames = candidates.map((c) => basename(c)).join(", ");
+  const reason = `Multiple package.json roots found: ${candidateNames}. Pass an explicit path (e.g. \`bin/adv slop-scan <subdir>\`) for deterministic results.`;
+
+  for (const detector of detectors) {
+    if (detector.id === "external-ci-semgrep") {
+      // External CI coverage does not depend on the package root; report it normally.
+      report.coverage.detectors.push(await semgrepCoverage(report.scope.repoRoot));
+      continue;
+    }
+    report.coverage.detectors.push(ambiguousCoverageEntry(detector, reason));
+  }
+
+  report.coverage.falsePositiveProtections = [
+    "Deletion candidates require review; no automatic deletion proof is emitted.",
+    "Unavailable, failed, timed-out, or skipped detectors remain visible in coverage.",
+  ];
+
+  attachSlopScanFailure(report);
+  // attachSlopScanFailure writes a generic degraded message; override with the
+  // ambiguity-specific message so the operator sees the candidate list.
+  if (report.failure) {
+    report.failure.message = reason;
+  }
+  return report;
 }
 
 function appendParsed(
@@ -219,10 +359,18 @@ export async function runSlopScan(
     createDetectorRegistry(),
     languages,
   );
-  const packageRoot = await nearestPackageRoot(
+  const packageRootResult = await nearestPackageRoot(
     options.repoRoot,
     absoluteTarget,
   );
+  if (packageRootResult.kind === "ambiguous") {
+    return buildAmbiguousPackageRootReport(
+      report,
+      packageRootResult.candidates,
+      detectors,
+    );
+  }
+  const packageRoot = packageRootResult.cwd;
 
   for (const detector of detectors) {
     switch (detector.id) {

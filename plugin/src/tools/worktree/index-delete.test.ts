@@ -453,7 +453,10 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).toContain(branch);
   });
 
-  it("fails closed when workspace ownership is uncertain (list request fails)", async () => {
+  it("proceeds with a warning when workspace ownership is uncertain (list request fails)", async () => {
+    // rq-terminalCleanupSafety01.3: the local isWorktreeInUse check upstream
+    // is the safety authority; the remote workspace-list API is advisory.
+    // When unreachable, deletion proceeds with a logged warning.
     vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
     const branch = "feature/workspace-uncertain";
     const wtPath = addWorktree(repoRoot, branch);
@@ -466,29 +469,27 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       fetchImpl,
     };
 
-    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
-      ok: false,
-      error: "WORKSPACE_OWNERSHIP_UNCERTAIN",
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: true,
       branch,
       path: wtPath,
-      hint: expect.stringContaining("adv_worktree_cleanup"),
+      warning: expect.stringContaining("workspace registry unreachable"),
     });
-    // Uncertain ownership: no git removal and no DELETE call attempted.
+    // Remote fetch was attempted; no workspace DELETE call (none was found).
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
-      expect.objectContaining({
-        branch,
-        reason: expect.stringContaining("ownership uncertain"),
-        lastErrorClass: "workspace_ownership_uncertain",
-        attempts: 0,
-      }),
-    ]);
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("workspace registry unreachable"),
+    );
+    // Deletion proceeded; no pending-delete record retained.
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).toContain(branch);
+    ).not.toContain(branch);
   });
 
-  it("fails closed when the workspace list lookup throws", async () => {
+  it("proceeds with a warning when the workspace list lookup throws", async () => {
     vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
     const branch = "feature/workspace-throw";
     const wtPath = addWorktree(repoRoot, branch);
@@ -501,15 +502,47 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       fetchImpl,
     };
 
-    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
-      ok: false,
-      error: "WORKSPACE_OWNERSHIP_UNCERTAIN",
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: true,
       branch,
       path: wtPath,
+      warning: expect.stringContaining("connection refused"),
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).toContain(branch);
+    ).not.toContain(branch);
+  });
+
+  it("regression: remote workspace registry unreachable is advisory and surfaces reason in warning", async () => {
+    // Explicit regression for the post-archive cleanup wedge observed when
+    // the OpenCode workspace API is unreachable. Local /proc/*/cwd evidence
+    // already cleared safety upstream; remote failure must not block.
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+    const branch = "feature/registry-unreachable";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Unable to connect"));
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.warning).toMatch(/^workspace registry unreachable: /);
+      expect(result.warning).toContain("Unable to connect");
+    }
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Unable to connect"),
+    );
+    // No pending-delete record — deletion succeeded.
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
   });
 
   it("HOOK_INTRODUCED_CHANGES — blocks delete when hook creates uncommitted changes", async () => {
