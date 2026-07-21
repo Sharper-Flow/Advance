@@ -441,22 +441,94 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       expect(getStatus().activeChangeId).toBe(diskOnlyId);
     });
 
-    it("does not touch caller pointer for cross-project target_path calls", async () => {
+    it("re-points caller's pointer for cross-project active-work mutator when target change.json exists", async () => {
+      const targetDir = join(tempDir, "other-project");
+      const targetChangeId = "otherProjectChange";
+      const targetChangesDir = join(targetDir, ".adv", "changes", targetChangeId);
+      await mkdir(targetChangesDir, { recursive: true });
+      await writeFile(
+        join(targetChangesDir, "change.json"),
+        JSON.stringify({ id: targetChangeId, epicId: "epic-1" }),
+      );
+
       mockStore = makeFakeStore({
-        changesDir: join(tempDir, ".adv/changes"),
-        reachable: new Set(["otherProjectChange"]),
+        changesDir: join(tempDir, ".adv", "changes"),
+        reachable: new Set(), // target is reachable only via disk
       });
       await createPlugin();
+
       await hooks["tool.execute.before"]!(
         { tool: "adv_task_update", sessionID: "main" } as any,
         {
           args: {
-            changeId: "otherProjectChange",
-            target_path: "/some/other/project",
+            changeId: targetChangeId,
+            target_path: targetDir,
+          },
+        } as any,
+      );
+      expect(getStatus().activeChangeId).toBe(targetChangeId);
+      expect(getStatus().activeEpicId).toBe("epic-1");
+    });
+
+    it("does not re-point for cross-project read/diagnostic tool", async () => {
+      const targetDir = join(tempDir, "other-project");
+      const targetChangeId = "otherProjectChange";
+      const targetChangesDir = join(targetDir, ".adv", "changes", targetChangeId);
+      await mkdir(targetChangesDir, { recursive: true });
+      await writeFile(
+        join(targetChangesDir, "change.json"),
+        JSON.stringify({ id: targetChangeId, epicId: "epic-1" }),
+      );
+
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv", "changes"),
+        reachable: new Set(),
+      });
+      await createPlugin();
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_change_show", sessionID: "main" } as any,
+        {
+          args: {
+            changeId: targetChangeId,
+            target_path: targetDir,
           },
         } as any,
       );
       expect(getStatus().activeChangeId).toBeNull();
+      expect(getStatus().activeEpicId).toBeNull();
+    });
+
+    it("clears caller's pointer on cross-project terminal transition with matching changeId", async () => {
+      const targetDir = join(tempDir, "other-project");
+      const targetChangeId = "otherProjectChange";
+
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv", "changes"),
+        reachable: new Set(),
+      });
+      await createPlugin();
+
+      // Establish an active pointer (could have been set by a cross-project repoint)
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_change_create" } as any,
+        {
+          args: { summary: "test" },
+          output: JSON.stringify({ changeId: targetChangeId }),
+        } as any,
+      );
+      expect(getStatus().activeChangeId).toBe(targetChangeId);
+
+      // Cross-project close with matching changeId clears regardless of project ownership
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_change_close" } as any,
+        {
+          args: { changeId: targetChangeId, target_path: targetDir },
+          output: terminalOutput(targetChangeId),
+        } as any,
+      );
+      expect(getStatus().activeChangeId).toBeNull();
+      expect(getStatus().activeEpicId).toBeNull();
     });
 
     it("lets adv_change_forget bypass the reachability gate", async () => {
