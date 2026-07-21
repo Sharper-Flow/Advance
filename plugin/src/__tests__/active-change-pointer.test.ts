@@ -6,9 +6,14 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { AdvancePlugin } from "../index";
-import { getStatus, resetStatusForTest } from "../events/status";
+import {
+  getStatus,
+  resetStatusForTest,
+  setActiveChange,
+} from "../events/status";
 import { createTempDir, cleanupTempDir } from "./setup";
 import type { Store } from "../storage/store-types";
+import { getWorktreeBase } from "../utils/project-id";
 
 // Multiple plugin instances register SIGINT/SIGTERM listeners; raise the
 // default warning threshold for this test file.
@@ -38,6 +43,55 @@ vi.mock("../tool-registry", async () => {
     ...actual,
     createToolMap: vi.fn(() => ({})),
     createDegradedToolMap: vi.fn(() => ({})),
+  };
+});
+
+vi.mock("../plugin-context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../plugin-context")>();
+  return {
+    ...actual,
+    resolveProjectContext: vi.fn(async (directory: string) => ({
+      effectiveDir: directory,
+      projectId: "test-project-id",
+      externalRoot: undefined,
+      identityError: undefined,
+    })),
+  };
+});
+
+vi.mock("../events/status", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../events/status")>();
+  return {
+    ...actual,
+    setActiveChange: vi.fn(actual.setActiveChange),
+  };
+});
+
+// Mock target-project resolution so cross-project tests can control the
+// target's externalRoot without setting up a real git repo at target_path.
+// Test fixtures write change.json at ${target_path}/.adv/changes/${cid}/
+// so the mock returns externalRoot = ${target_path}/.adv to match.
+vi.mock("../tools/target-project", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../tools/target-project")>();
+  return {
+    ...actual,
+    resolveTargetProject: vi.fn(async (input: {
+      currentProjectPath: string;
+      target_path?: string;
+    }) => {
+      if (!input.target_path) {
+        throw new Error("target_path required for mocked resolveTargetProject");
+      }
+      return {
+        root: input.target_path,
+        projectId: "target-project-id",
+        externalRoot: join(input.target_path, ".adv"),
+        trusted: true,
+        trustSource: "test",
+        stateMode: "current" as const,
+      };
+    }),
   };
 });
 
@@ -444,11 +498,19 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
     it("re-points caller's pointer for cross-project active-work mutator when target change.json exists", async () => {
       const targetDir = join(tempDir, "other-project");
       const targetChangeId = "otherProjectChange";
-      const targetChangesDir = join(targetDir, ".adv", "changes", targetChangeId);
+      const targetChangesDir = join(
+        targetDir,
+        ".adv",
+        "changes",
+        targetChangeId,
+      );
       await mkdir(targetChangesDir, { recursive: true });
       await writeFile(
         join(targetChangesDir, "change.json"),
-        JSON.stringify({ id: targetChangeId, epicId: "epic-1" }),
+        JSON.stringify({
+          id: targetChangeId,
+          epic_membership: { epic_id: "epic-1" },
+        }),
       );
 
       mockStore = makeFakeStore({
@@ -473,11 +535,19 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
     it("does not re-point for cross-project read/diagnostic tool", async () => {
       const targetDir = join(tempDir, "other-project");
       const targetChangeId = "otherProjectChange";
-      const targetChangesDir = join(targetDir, ".adv", "changes", targetChangeId);
+      const targetChangesDir = join(
+        targetDir,
+        ".adv",
+        "changes",
+        targetChangeId,
+      );
       await mkdir(targetChangesDir, { recursive: true });
       await writeFile(
         join(targetChangesDir, "change.json"),
-        JSON.stringify({ id: targetChangeId, epicId: "epic-1" }),
+        JSON.stringify({
+          id: targetChangeId,
+          epic_membership: { epic_id: "epic-1" },
+        }),
       );
 
       mockStore = makeFakeStore({
@@ -556,6 +626,98 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         { args: { changeId: "ghost" }, output: forgetOutput("ghost") } as any,
       );
       expect(getStatus().activeChangeId).toBeNull();
+    });
+  });
+
+  describe("cwd-detect at init (AC1/AC2)", () => {
+    const cid = "cwdChange";
+    let cwdSpy: ReturnType<typeof vi.spyOn> | undefined;
+    let worktreeBase: string;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      process.env.ADV_WORKTREE_HOME = join(tempDir, "worktrees");
+      worktreeBase = getWorktreeBase("test-project-id");
+    });
+
+    afterEach(() => {
+      cwdSpy?.mockRestore();
+      cwdSpy = undefined;
+      delete process.env.ADV_WORKTREE_HOME;
+    });
+
+    it("AC1: seeds pointer from matching worktree cwd", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set([cid]),
+      });
+      cwdSpy = vi
+        .spyOn(process, "cwd")
+        .mockReturnValue(`${worktreeBase}/change/${cid}/`);
+      await createPlugin();
+      expect(getStatus().activeChangeId).toBe(cid);
+      expect(setActiveChange).toHaveBeenCalledWith(cid, {});
+    });
+
+    it("AC2: leaves pointer null when cwd does not match worktree pattern", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set([cid]),
+      });
+      cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/some-random-dir");
+      await createPlugin();
+      expect(getStatus().activeChangeId).toBeNull();
+      expect(setActiveChange).not.toHaveBeenCalled();
+    });
+
+    it("matches trailing slash on cwd", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set([cid]),
+      });
+      cwdSpy = vi
+        .spyOn(process, "cwd")
+        .mockReturnValue(`${worktreeBase}/change/${cid}/`);
+      await createPlugin();
+      expect(getStatus().activeChangeId).toBe(cid);
+    });
+
+    it("matches nested path under change dir", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set([cid]),
+      });
+      cwdSpy = vi
+        .spyOn(process, "cwd")
+        .mockReturnValue(`${worktreeBase}/change/${cid}/src/foo/`);
+      await createPlugin();
+      expect(getStatus().activeChangeId).toBe(cid);
+    });
+
+    it("does not seed when changeId segment is empty", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set(),
+      });
+      cwdSpy = vi
+        .spyOn(process, "cwd")
+        .mockReturnValue(`${worktreeBase}/change/`);
+      await createPlugin();
+      expect(getStatus().activeChangeId).toBeNull();
+      expect(setActiveChange).not.toHaveBeenCalled();
+    });
+
+    it("does not seed when changeId is not reachable", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set(),
+      });
+      cwdSpy = vi
+        .spyOn(process, "cwd")
+        .mockReturnValue(`${worktreeBase}/change/${cid}/`);
+      await createPlugin();
+      expect(getStatus().activeChangeId).toBeNull();
+      expect(setActiveChange).not.toHaveBeenCalled();
     });
   });
 });
