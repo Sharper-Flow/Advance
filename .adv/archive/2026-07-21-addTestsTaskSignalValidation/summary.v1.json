@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T21:23:33.112Z",
+  "capabilities": [],
+  "change_hash": "aaadc8df119c58f133aa25294a6b222b0b1955d3755904b07475f7ebf09346d8",
+  "change_id": "addTestsTaskSignalValidation",
+  "completed_tasks": 1,
+  "created_at": "2026-07-21T21:03:40.232Z",
+  "current_gate": "done",
+  "last_activity_at": "2026-07-21T21:23:09.297Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "3f5a8975d2c69a66928febb532cd44e7cbb40ae56ff30bd1b3887dfeaaa1b914",
+  "task_count": 1,
+  "title": "Add tests for task signal validation",
+  "version": "1"
+}
