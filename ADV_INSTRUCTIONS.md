@@ -220,6 +220,31 @@ Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reente
 
 ## Critical Protocols
 
+### Resume Freshness Advisory (Step 2.5)
+
+When the agent loads state for a resumed change at Step 2 and the change's `lastActivityAgeMinutes > 60`, surface a bounded Resume Freshness advisory before proceeding to Step 3 Gate Machine.
+
+**Stable finding codes** (no LLM-classified labels):
+
+- `resume:sibling_overlap` — active sibling change touches same capability/paths
+- `resume:archived_duplicate` — archive shipped since `lastActivityAt` overlaps scope
+- `resume:codebase_drift` — commits to task-referenced files since `lastActivityAt`
+- `resume:freshness_limited` — could not reach a conclusion (missing/stale evidence or budget exceeded)
+
+Each finding carries a label from `/adv-coordinate`'s inherited taxonomy: `repo_backed_fact` (HIGH), `adv_backed_fact` (HIGH), `judgment_call` (MEDIUM), or `freshness_limited` (no conclusion).
+
+**Contract:**
+
+- Informational with proceed-default — agent proceeds unless user objects; advisory does NOT block gate transitions.
+- Read-only — no ADV state mutation from the advisory itself.
+- Current-project scope only — cross-project fan-out remains `/adv-coordinate` ownership.
+- No dismissal memory — findings re-raise on every stale resume.
+- Fresh changes (`lastActivityAgeMinutes ≤ 60`) skip the advisory entirely.
+- Spec law: `rq-resumeFreshness01` under `advance-workflow`.
+
+**Single HIGH-confidence `resume:archived_duplicate` action:** surface a copy-pasteable `adv_change_close ... supersededBy: <current>` snippet. User must run explicitly with their own approval evidence. **ADV does not auto-execute close.** Wording: "one-command accept (copy-paste and run)" — never "one-click" or any phrasing implying button-click auto-execution.
+
+
 ### MCP Tool Name Contract
 
 External MCP invocation follows the active-surface contract carried by each MCP-capable agent prompt: use only capabilities actually exposed in the session — through the generated catalog when `execute` is exposed, direct callables otherwise — and never normalize identifiers. Name providers and capabilities in workflow prose (Context7 for library docs, Exa for web discovery, searchcode for public-repo code, Firecrawl for page scrape/crawl, lgrep for local code intelligence, Vision for daemon status); take exact invocation spellings from the active schema or catalog at runtime.

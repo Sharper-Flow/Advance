@@ -199,6 +199,40 @@ If the user's intent is ambiguous or no change-id is provided, check `adv_change
 ## Step 2: Load State
 Before every gate transition: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume at the first incomplete gate. During discovery, make at most one advisory `episode_recall` when available. Pass the active project namespace and `top_k: 5`; shared global results remain advisory. If unavailable, continue with native ADV context and record the limitation. Never use recalled content to complete gates, override specs/contracts, or replace task evidence. Do not call Episode write/delete tools.
 
+### Step 2.5: Resume Freshness Advisory (informational)
+
+When `lastActivityAgeMinutes > 60` (visible on `adv_change_list` output and in `_contextSnapshot` when emitted), the agent surfaces a bounded **Resume Freshness advisory** before proceeding to Step 3 Gate Machine.
+
+The advisory carries stable, machine-classifiable finding codes (no LLM-classified labels):
+
+| Code | Meaning |
+|---|---|
+| `resume:sibling_overlap` | Active sibling change touches same capability/paths |
+| `resume:archived_duplicate` | Archive shipped since `lastActivityAt` overlaps scope |
+| `resume:codebase_drift` | Commits to task-referenced files since `lastActivityAt` |
+| `resume:freshness_limited` | Could not reach a conclusion (missing/stale evidence or budget exceeded) |
+
+Each finding carries a label from `/adv-coordinate`'s inherited taxonomy: `repo_backed_fact` (HIGH confidence), `adv_backed_fact` (HIGH confidence), `judgment_call` (MEDIUM confidence), or `freshness_limited` (no conclusion).
+
+**Behavioral contract:**
+
+- **Informational with proceed-default.** Agent surfaces findings, recommends an action, and proceeds unless the user objects. Advisory does NOT block gate transitions.
+- **No state mutation.** Advisory is read-only — no close, supersede, task/gate mutations fired by the advisory itself.
+- **Current-project scope only.** Cross-project fan-out remains `/adv-coordinate` ownership.
+- **No dismissal memory.** Findings re-raise on every stale resume; ADV does not persist user dismissals.
+- **Fresh changes (`lastActivityAgeMinutes ≤ 60`) skip the advisory entirely** — zero noise for in-flight work.
+
+**Single HIGH-confidence `resume:archived_duplicate` action (Q4 decision):**
+
+When the advisory finds exactly one HIGH-confidence (`repo_backed_fact` label) `resume:archived_duplicate`, the agent surfaces a **one-command close+supersede suggestion**:
+
+- A copy-pasteable `adv_change_close changeId: <archived_dup_id> reason: "superseded" supersededBy: <current_id> approvedByUser: true approvalEvidence: "..."` snippet.
+- Explicit text: **"Run the command above to close. ADV does not auto-execute close."**
+- User must run the command explicitly with their own approval evidence. ADV does not auto-fire the close.
+
+**Wording guard:** always use "one-command accept (copy-paste and run)" language. NEVER use "one-click" or imply button-click auto-execution. The close requires explicit user invocation via `adv_change_close` with `approvedByUser: true` + non-empty `approvalEvidence`.
+
+
 ## Step 3: Gate Machine
 Drive gates sequentially. Each gate has an owning workflow contract; execute it inline, verify, then advance.
 
