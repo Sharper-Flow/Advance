@@ -40,8 +40,11 @@ import {
   changeTaskQuery,
   getStateQuery,
   taskCompletedSignal,
+  taskUpdatedSignal,
 } from "../temporal/messages";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
+import { dismissAllSuggestedDrafts } from "../utils/wisdom-draft";
+import type { WisdomDraft } from "../types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -82,6 +85,17 @@ interface CheckpointResult {
   remediation?: string;
   /** Repo-relative paths of files modified in this checkpoint */
   touched_files?: string[];
+  /**
+   * Wisdom drafts in the `suggested` state at checkpoint time
+   * (rq-wisdomAutoSurfacing01 / AC5). Count BEFORE auto-dismissal.
+   */
+  drafts_pending_review?: number;
+  /**
+   * Wisdom drafts auto-dismissed at this checkpoint with
+   * dismiss_reason "auto_checkpoint". Equals drafts_pending_review when
+   * the dismissal signal fired successfully.
+   */
+  drafts_auto_dismissed?: number;
 }
 
 type ErrorClass = "SEMANTIC" | "ENVIRONMENTAL" | "TRANSIENT";
@@ -90,6 +104,10 @@ interface CheckpointRecordingResult {
   recorded: boolean;
   error?: string;
   remediation?: string;
+  /** Drafts in `suggested` state observed before auto-dismissal (AC5). */
+  drafts_pending_review?: number;
+  /** Drafts transitioned to `dismissed` at this checkpoint (AC5). */
+  drafts_auto_dismissed?: number;
 }
 
 const CHECKPOINT_RECORDING_REMEDIATION =
@@ -433,6 +451,7 @@ async function fireTaskCompletedFromCheckpoint(
     ))
       ? null
       : extractStructuredOutput(verification);
+
     // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
     // changeCache is invalidated after the signal fires — without this,
     // the very next adv_change_show / adv_change_archive read returns
@@ -452,6 +471,7 @@ async function fireTaskCompletedFromCheckpoint(
       verification?: string;
       checkpointSha?: string;
       filesTouched?: string[];
+      wisdom_drafts?: WisdomDraft[];
     } | null>(handle, changeTaskQuery, taskId);
 
     if (!recordedTask) {
@@ -460,6 +480,34 @@ async function fireTaskCompletedFromCheckpoint(
         error: `Task ${taskId} was not readable after checkpoint completion signal`,
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
+    }
+
+    // rq-wisdomAutoSurfacing01 / D5 / AC5: now that the checkpoint
+    // completion is durable, scan the readback task's wisdom_drafts[] for
+    // `suggested` drafts and fire taskUpdatedSignal to atomically mark them
+    // dismissed with dismiss_reason "auto_checkpoint". Idempotent per DDC4 —
+    // checkpoint retries do not re-dismiss already-dismissed drafts. Draft
+    // dismissal is best-effort: signal failure does not roll back the
+    // completion or block the checkpoint.
+    let draftsPendingReview = 0;
+    let draftsAutoDismissed = 0;
+    try {
+      const result = dismissAllSuggestedDrafts(
+        recordedTask.wisdom_drafts,
+        "auto_checkpoint",
+        new Date().toISOString(),
+      );
+      draftsPendingReview = result.pendingReviewCount;
+      if (result.dismissedCount > 0) {
+        await fireSignalAndRefresh(handle, store, changeId, taskUpdatedSignal, {
+          taskId,
+          partial: { wisdom_drafts: result.drafts },
+          updatedAt: new Date().toISOString(),
+        });
+        draftsAutoDismissed = result.dismissedCount;
+      }
+    } catch {
+      // Draft auto-dismiss is best-effort; counts remain 0 on failure.
     }
 
     if (recordedTask.status !== "done") {
@@ -504,6 +552,8 @@ async function fireTaskCompletedFromCheckpoint(
         recorded: false,
         error: `Task ${taskId} checkpointSha did not match ${sha}`,
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
+        drafts_pending_review: draftsPendingReview,
+        drafts_auto_dismissed: draftsAutoDismissed,
       };
     }
 
@@ -516,10 +566,16 @@ async function fireTaskCompletedFromCheckpoint(
         recorded: false,
         error: `Task ${taskId} filesTouched did not match checkpoint files`,
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
+        drafts_pending_review: draftsPendingReview,
+        drafts_auto_dismissed: draftsAutoDismissed,
       };
     }
 
-    return { recorded: true };
+    return {
+      recorded: true,
+      drafts_pending_review: draftsPendingReview,
+      drafts_auto_dismissed: draftsAutoDismissed,
+    };
   } catch (err) {
     if (ADV_DEBUG) {
       console.warn("[checkpoint] taskCompletedSignal fire failed:", err);
@@ -834,6 +890,12 @@ export const checkpointTools = {
             ...(checkpointRecording.remediation && {
               remediation: checkpointRecording.remediation,
             }),
+            ...(checkpointRecording.drafts_pending_review !== undefined && {
+              drafts_pending_review: checkpointRecording.drafts_pending_review,
+            }),
+            ...(checkpointRecording.drafts_auto_dismissed !== undefined && {
+              drafts_auto_dismissed: checkpointRecording.drafts_auto_dismissed,
+            }),
           } satisfies CheckpointResult);
         }
 
@@ -963,6 +1025,12 @@ export const checkpointTools = {
               remediation: checkpointRecording.remediation,
             }),
             touched_files: touchedFiles,
+            ...(checkpointRecording.drafts_pending_review !== undefined && {
+              drafts_pending_review: checkpointRecording.drafts_pending_review,
+            }),
+            ...(checkpointRecording.drafts_auto_dismissed !== undefined && {
+              drafts_auto_dismissed: checkpointRecording.drafts_auto_dismissed,
+            }),
           } satisfies CheckpointResult);
         } catch (err) {
           const cls = classifyGitError(err);
