@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T20:50:05.736Z",
+  "capabilities": [],
+  "change_hash": "8d7b81d1a85c902deea1e1335ca3a6aea2a3d85575c5b5a899b95772e95c93d4",
+  "change_id": "addWisdomAutoSurfacing",
+  "completed_tasks": 7,
+  "created_at": "2026-07-21T16:31:14.987Z",
+  "current_gate": "done",
+  "last_activity_at": "2026-07-21T20:44:59.343Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "c5233b805d1e73349192335a759097e0651598453e09ac7c97bb6a4cf466a1c0",
+  "task_count": 7,
+  "title": "Add wisdom auto-surfacing",
+  "version": "1"
+}
