@@ -84,6 +84,7 @@ async function main(): Promise<void> {
   const rawDir = parseArg("--raw-dir");
   const outputDir = parseArg("--output-dir");
   const workflowsPath = parseArg("--workflows-path");
+  const finalizeImmutable = process.argv.includes("--finalize-immutable");
   await mkdir(outputDir, { recursive: true });
   const { Worker } = await import("@temporalio/worker");
 
@@ -100,22 +101,21 @@ async function main(): Promise<void> {
       .map((event) => ({ event, error: replayError(event) }))
       .find((candidate) => candidate.error);
     let replayedCleanly = false;
-    if (!incident?.error) {
-      try {
-        await Worker.runReplayHistory(
-          { workflowsPath, replayName: `${changeId} poisoned production history` },
-          raw,
-          `adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/${changeId}`,
-        );
-        replayedCleanly = true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const eventId = message.match(/HistoryEvent\(id:\s*(\d+)/u)?.[1];
-        const event =
-          raw.events.find((candidate) => candidate.eventId === eventId) ??
-          raw.events[raw.events.length - 1];
-        if (event) incident = { event, error: message };
-      }
+    let rawReplayError: string | undefined;
+    try {
+      await Worker.runReplayHistory(
+        { workflowsPath, replayName: `${changeId} poisoned production history` },
+        raw,
+        `adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/${changeId}`,
+      );
+      replayedCleanly = true;
+    } catch (error) {
+      rawReplayError = error instanceof Error ? error.message : String(error);
+      const eventId = rawReplayError.match(/HistoryEvent\(id:\s*(\d+)/u)?.[1];
+      const event =
+        raw.events.find((candidate) => candidate.eventId === eventId) ??
+        raw.events[raw.events.length - 1];
+      if (event) incident = { event, error: rawReplayError };
     }
     if (replayedCleanly) {
       const event = raw.events[raw.events.length - 1];
@@ -154,6 +154,7 @@ async function main(): Promise<void> {
     const classificationPath = join(outputDir, `${stem}.classification.json`);
     const failingEventId = Number(incident.event.eventId);
     const sanitizedImmutable = replayedCleanly && Boolean(sanitizedReplayError);
+    const classifiedImmutable = Boolean(rawReplayError) && finalizeImmutable;
     const row = PoisonedHistoryClassificationSchema.parse({
       changeId,
       workflowId: `adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/${changeId}`,
@@ -164,13 +165,15 @@ async function main(): Promise<void> {
       observedError: incident.error.slice(0, 2_000),
       currentOperation: currentOperation(incident.error),
       cause: replayedCleanly ? "bundle_identity_mismatch" : classify(incident.error),
-      outcome: sanitizedImmutable
+      outcome: sanitizedImmutable || classifiedImmutable
         ? "immutable_history"
         : replayedCleanly
           ? "self_healed"
           : "reproduced",
       recoveryEvidence: sanitizedImmutable
         ? `Raw production history replays cleanly against current source, but deterministic payload sanitization changes branch-driving state and the safe committed fixture fails replay: ${sanitizedReplayError?.slice(0, 1_000)}`
+        : classifiedImmutable
+          ? `Captured history records an unversioned search-attribute/activity command order that current source cannot replay (${rawReplayError?.slice(0, 1_000)}). No recorded compatibility marker distinguishes this historical worker order from later open histories, so speculative workflow-code reordering is unsafe; hand off for typed recovery/retirement.`
         : undefined,
     });
     classifications.push(row);

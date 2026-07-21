@@ -5,6 +5,7 @@ import { Worker } from "@temporalio/worker";
 import {
   AFFECTED_POISONED_CHANGE_IDS,
   PoisonedHistoryClassificationSchema,
+  assertCompletePoisonedHistoryClassifications,
 } from "../replay-history-classification";
 
 // rq-workflowVersioning01 — committed workflow histories must replay in CI.
@@ -186,6 +187,25 @@ function markerPatchId(event: ReplayHistoryEvent): string | undefined {
 }
 
 describe("changeWorkflow replay determinism", () => {
+  it("records one terminal classification for each affected production history", async () => {
+    const rows = await Promise.all(
+      AFFECTED_POISONED_CHANGE_IDS.map((changeId) =>
+        readJson<unknown>(
+          new URL(
+            `./replay/histories/${changeId}.poisoned-production.classification.json`,
+            import.meta.url,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assertCompletePoisonedHistoryClassifications(rows, {
+        requireTerminal: true,
+      }),
+    ).toHaveLength(AFFECTED_POISONED_CHANGE_IDS.length);
+  });
+
   it.each(replayFixtures)(
     "replays committed history fixture %#",
     async ({
