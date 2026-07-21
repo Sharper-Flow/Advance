@@ -69,7 +69,8 @@ describe("getAdvWorkerTuningOptions", () => {
 
     expect(result.workflowTaskPollerBehavior).toEqual({
       type: "simple-maximum",
-      maximum: 1,
+      // SDK invariant: max_cached_workflows > 0 requires ≥2 workflow pollers.
+      maximum: 2,
     });
     expect(result.activityTaskPollerBehavior).toEqual({
       type: "simple-maximum",
@@ -83,10 +84,10 @@ describe("getAdvWorkerTuningOptions", () => {
 
   it("overrides values from env", () => {
     const result = getAdvWorkerTuningOptions({
-      ADV_WORKER_WORKFLOW_POLLER_CAP: "2",
+      ADV_WORKER_WORKFLOW_POLLER_CAP: "4",
     });
 
-    expect(result.workflowTaskPollerBehavior.maximum).toBe(2);
+    expect(result.workflowTaskPollerBehavior.maximum).toBe(4);
   });
 
   it("falls back to defaults for malformed env values", () => {
@@ -94,7 +95,7 @@ describe("getAdvWorkerTuningOptions", () => {
       ADV_WORKER_WORKFLOW_POLLER_CAP: "not-a-number",
     });
 
-    expect(result.workflowTaskPollerBehavior.maximum).toBe(1);
+    expect(result.workflowTaskPollerBehavior.maximum).toBe(2);
   });
 
   it("falls back to defaults for negative env values", () => {

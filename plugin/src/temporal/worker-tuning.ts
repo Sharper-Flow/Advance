@@ -27,7 +27,13 @@ export function getAdvWorkerTuningOptions(
   return {
     workflowTaskPollerBehavior: {
       type: "simple-maximum",
-      maximum: readInt(env, "ADV_WORKER_WORKFLOW_POLLER_CAP", 1),
+      // SDK invariant: `max_cached_workflows > 0` (the default) requires
+      // `workflowTaskPollerBehavior.maximum >= 2`. ADV's long-lived
+      // signal-driven workflows benefit from caching, so we keep the cache
+      // and bump the poller cap to the SDK minimum. This changes KD-3's
+      // "1+1 pollers" budget to "2+1 pollers" — total 3-session footprint
+      // stays bounded: 3 sessions × (2 queues × 3 pollers) = 18 = AC7 cap.
+      maximum: readInt(env, "ADV_WORKER_WORKFLOW_POLLER_CAP", 2),
     },
     activityTaskPollerBehavior: {
       type: "simple-maximum",

@@ -600,7 +600,7 @@ describe("temporal worker helpers", () => {
 
     expect(workerMocks.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        workflowTaskPollerBehavior: { type: "simple-maximum", maximum: 1 },
+        workflowTaskPollerBehavior: { type: "simple-maximum", maximum: 2 },
         activityTaskPollerBehavior: { type: "simple-maximum", maximum: 1 },
         maxConcurrentWorkflowTaskExecutions: 4,
         maxConcurrentActivityTaskExecutions: 4,
