@@ -25,14 +25,13 @@ import {
 } from "../workflow-start";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput, EpicWorkflowInput } from "../contracts";
-import {
-  buildProjectTaskQueue,
-  buildSessionTaskQueue,
-} from "../client";
+import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
 import { requiredAdvSearchAttributes } from "../observability";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
-const workflowsPath = fileURLToPath(new URL("../workflows.ts", import.meta.url));
+const workflowsPath = fileURLToPath(
+  new URL("../workflows.ts", import.meta.url),
+);
 const PROJECT_ID = "proj-session-route-001";
 const SESSION_ID = "sess_RouteItest1";
 

@@ -21,18 +21,14 @@ import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 import { ensureChangeWorkflowStarted } from "../workflow-start";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput } from "../contracts";
-import {
-  buildProjectTaskQueue,
-  buildSessionTaskQueue,
-} from "../client";
-import {
-  changeStateQuery,
-  proposalUpdatedSignal,
-} from "../messages";
+import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
+import { changeStateQuery, proposalUpdatedSignal } from "../messages";
 import { requiredAdvSearchAttributes } from "../observability";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
-const workflowsPath = fileURLToPath(new URL("../workflows.ts", import.meta.url));
+const workflowsPath = fileURLToPath(
+  new URL("../workflows.ts", import.meta.url),
+);
 const PROJECT_ID = "proj-legacy-copoll-001";
 const SESSION_ID = "sess_LegacyCopoll1";
 

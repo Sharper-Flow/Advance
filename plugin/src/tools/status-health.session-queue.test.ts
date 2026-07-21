@@ -25,15 +25,19 @@ vi.mock("../temporal/health-probe", () => ({
 
 vi.mock("../temporal/queue-serviceability", () => ({
   probeTaskQueuePollers: mockProbeTaskQueuePollers,
-  classifyQueueServiceability: vi.fn((input: { serverPollerProbe?: { status?: string } }) => ({
-    status:
-      input.serverPollerProbe?.status === "fresh"
-        ? "serviceable"
-        : "not_serviceable",
-    confidence: "server",
-    evidence: { serverPollerProbe: input.serverPollerProbe?.status ?? "unavailable" },
-    blockers: [],
-  })),
+  classifyQueueServiceability: vi.fn(
+    (input: { serverPollerProbe?: { status?: string } }) => ({
+      status:
+        input.serverPollerProbe?.status === "fresh"
+          ? "serviceable"
+          : "not_serviceable",
+      confidence: "server",
+      evidence: {
+        serverPollerProbe: input.serverPollerProbe?.status ?? "unavailable",
+      },
+      blockers: [],
+    }),
+  ),
 }));
 
 vi.mock("../utils/session-id", () => ({

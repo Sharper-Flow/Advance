@@ -173,7 +173,12 @@ export async function probeTaskQueuePollers(
     });
     const pollers = extractPollers(response);
     if (pollers.length === 0)
-      return { status: "none", lastAccessMs: null, pollerCount: 0, lastPollerAt: null };
+      return {
+        status: "none",
+        lastAccessMs: null,
+        pollerCount: 0,
+        lastPollerAt: null,
+      };
 
     const nowMs = input.nowMs?.() ?? Date.now();
     const ages = pollers

@@ -56,7 +56,10 @@ export function buildProjectTaskQueue(projectId: string): string {
   return `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${projectId}`;
 }
 
-export function buildSessionTaskQueue(projectId: string, sessionId: string): string {
+export function buildSessionTaskQueue(
+  projectId: string,
+  sessionId: string,
+): string {
   return `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${projectId}-${sessionId}`;
 }
 

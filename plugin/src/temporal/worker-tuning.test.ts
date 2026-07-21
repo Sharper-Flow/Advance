@@ -37,10 +37,7 @@ function findWorkerCreateLineNumbers(source: string): number[] {
   return hits;
 }
 
-function hasTuningWithinTenLines(
-  source: string,
-  lineNumber: number,
-): boolean {
+function hasTuningWithinTenLines(source: string, lineNumber: number): boolean {
   const lines = source.split("\n");
   // The spread is inside the options object, after Worker.create(. Restrict the
   // ten-line scan to that object so a nearby, separately-created worker cannot

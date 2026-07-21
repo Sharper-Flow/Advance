@@ -48,7 +48,11 @@ vi.mock("./temporal/runtime-manager", async () => {
   };
 });
 
-import { getCurrentSessionId, registerShutdownHandlers, tryInitStore } from "./plugin-init";
+import {
+  getCurrentSessionId,
+  registerShutdownHandlers,
+  tryInitStore,
+} from "./plugin-init";
 
 describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
   let tempDirs: string[] = [];

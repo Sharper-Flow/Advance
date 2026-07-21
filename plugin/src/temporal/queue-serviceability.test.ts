@@ -87,7 +87,12 @@ describe("probeTaskQueuePollers", () => {
       freshPollerMs: 60_000,
     });
 
-    expect(result).toEqual({ status: "fresh", lastAccessMs: 10_000, pollerCount: 1, lastPollerAt: "1970-01-01T00:01:30.000Z" });
+    expect(result).toEqual({
+      status: "fresh",
+      lastAccessMs: 10_000,
+      pollerCount: 1,
+      lastPollerAt: "1970-01-01T00:01:30.000Z",
+    });
     expect(describeTaskQueue).toHaveBeenCalledWith({
       namespace: "default",
       taskQueue: { name: "advance-proj-a" },
@@ -110,7 +115,12 @@ describe("probeTaskQueuePollers", () => {
       freshPollerMs: 60_000,
     });
 
-    expect(result).toEqual({ status: "stale", lastAccessMs: 90_000, pollerCount: 1, lastPollerAt: "1970-01-01T00:00:10.000Z" });
+    expect(result).toEqual({
+      status: "stale",
+      lastAccessMs: 90_000,
+      pollerCount: 1,
+      lastPollerAt: "1970-01-01T00:00:10.000Z",
+    });
   });
 
   it("reports unavailable when describeTaskQueue is missing or throws", async () => {
@@ -120,7 +130,12 @@ describe("probeTaskQueuePollers", () => {
         namespace: "default",
         taskQueue: "advance-proj-a",
       }),
-    ).resolves.toMatchObject({ status: "unavailable", lastAccessMs: null, pollerCount: 0, lastPollerAt: null });
+    ).resolves.toMatchObject({
+      status: "unavailable",
+      lastAccessMs: null,
+      pollerCount: 0,
+      lastPollerAt: null,
+    });
 
     await expect(
       probeTaskQueuePollers({
@@ -134,6 +149,11 @@ describe("probeTaskQueuePollers", () => {
         namespace: "default",
         taskQueue: "advance-proj-a",
       }),
-    ).resolves.toMatchObject({ status: "unavailable", lastAccessMs: null, pollerCount: 0, lastPollerAt: null });
+    ).resolves.toMatchObject({
+      status: "unavailable",
+      lastAccessMs: null,
+      pollerCount: 0,
+      lastPollerAt: null,
+    });
   });
 });

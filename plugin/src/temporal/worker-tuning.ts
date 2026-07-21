@@ -14,7 +14,11 @@ export interface AdvWorkerTuningOptions {
  * design.md KD-3.
  */
 
-function readInt(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
+function readInt(
+  env: NodeJS.ProcessEnv,
+  key: string,
+  fallback: number,
+): number {
   const raw = env[key];
   if (raw === undefined || raw === "") return fallback;
   const n = Number.parseInt(raw, 10);

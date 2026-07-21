@@ -14,7 +14,10 @@
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
-import { buildProjectTaskQueue, buildSessionTaskQueue } from "./temporal/client";
+import {
+  buildProjectTaskQueue,
+  buildSessionTaskQueue,
+} from "./temporal/client";
 import { initStsl, closeStsl, getService } from "./temporal/service";
 import {
   createInProcessWorker,
@@ -43,10 +46,7 @@ import {
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
 import { generateSessionId } from "./utils/session-id";
-import {
-  getCurrentSessionId,
-  setCurrentSessionId,
-} from "./utils/session-id";
+import { getCurrentSessionId, setCurrentSessionId } from "./utils/session-id";
 import {
   registerPluginSession,
   unregisterLoadedBuildSession,

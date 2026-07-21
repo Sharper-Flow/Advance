@@ -451,9 +451,7 @@ export async function computeStatusQueueServiceability(input: {
       staleRunningWorkflowCount,
       staleQueueProbe: input.health.server_alive ? "ok" : "unavailable",
     }),
-    ...(sessionQueue
-      ? { sessionQueue, sessionQueueServiceability }
-      : {}),
+    ...(sessionQueue ? { sessionQueue, sessionQueueServiceability } : {}),
   };
 }
 /** Fallback TemporalHealthSnapshot used when the health probe throws. */

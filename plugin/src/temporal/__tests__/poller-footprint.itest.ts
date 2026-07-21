@@ -27,13 +27,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
-import {
-  buildProjectTaskQueue,
-  buildSessionTaskQueue,
-} from "../client";
+import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
 import { getAdvWorkerTuningOptions } from "../worker-tuning";
 
-const workflowsPath = fileURLToPath(new URL("../workflows.ts", import.meta.url));
+const workflowsPath = fileURLToPath(
+  new URL("../workflows.ts", import.meta.url),
+);
 const PROJECT_ID = "proj-poller-footprint-001";
 const SESSION_IDS = [
   "sess_PollerSess1",

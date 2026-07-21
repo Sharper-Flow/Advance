@@ -25,14 +25,13 @@ import { ensureChangeWorkflowStarted } from "../workflow-start";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput } from "../contracts";
 import { buildSessionTaskQueue } from "../client";
-import {
-  changeStateQuery,
-  proposalUpdatedSignal,
-} from "../messages";
+import { changeStateQuery, proposalUpdatedSignal } from "../messages";
 import { requiredAdvSearchAttributes } from "../observability";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
-const workflowsPath = fileURLToPath(new URL("../workflows.ts", import.meta.url));
+const workflowsPath = fileURLToPath(
+  new URL("../workflows.ts", import.meta.url),
+);
 const PROJECT_ID = "proj-wedge-isolation-001";
 const SESSION_S2 = "sess_WedgeS2Active";
 // SESSION_S1 has NO worker in this test — simulates wedge / not-yet-spawned.

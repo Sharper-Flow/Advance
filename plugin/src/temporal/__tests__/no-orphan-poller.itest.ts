@@ -28,7 +28,9 @@ import { Worker } from "@temporalio/worker";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 import { buildSessionTaskQueue } from "../client";
 
-const workflowsPath = fileURLToPath(new URL("../workflows.ts", import.meta.url));
+const workflowsPath = fileURLToPath(
+  new URL("../workflows.ts", import.meta.url),
+);
 const PROJECT_ID = "proj-no-orphan-001";
 const SESSION_ID = "sess_NoOrphanTest1";
 
