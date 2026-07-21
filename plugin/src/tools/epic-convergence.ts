@@ -32,11 +32,15 @@ export type ConvergenceStatus =
   | "conflict";
 
 export interface ConvergenceObservation {
-  epic_entry_status: Extract<EpicEntry, { kind: "change" }>["membership_status"];
+  epic_entry_status: Extract<
+    EpicEntry,
+    { kind: "change" }
+  >["membership_status"];
   child_epic_membership: NonNullable<Change["epic_membership"]> | null;
-  child_terminal:
-    | { status: "archived" | "closed"; completed_at: string }
-    | null;
+  child_terminal: {
+    status: "archived" | "closed";
+    completed_at: string;
+  } | null;
 }
 
 export type ConvergenceRepairKind =
@@ -83,8 +87,7 @@ function buildExpectedMembership(
   epicId: string,
   linkedAt: string,
 ): NonNullable<Change["epic_membership"]> {
-  const title =
-    typeof entry.title === "string" ? entry.title : "Linked Change";
+  const title = typeof entry.title === "string" ? entry.title : "Linked Change";
   return {
     epic_id: epicId,
     entry_id: entry.entry_id,
@@ -152,8 +155,7 @@ export function convergeEpicMembership(
         checkedAt;
       observed.child_terminal = {
         status: child.change.status,
-        completed_at:
-          typeof completedAt === "string" ? completedAt : checkedAt,
+        completed_at: typeof completedAt === "string" ? completedAt : checkedAt,
       };
     }
   }

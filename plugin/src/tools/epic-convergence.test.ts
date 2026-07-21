@@ -8,9 +8,7 @@ import {
 
 type ChangeEntry = Extract<EpicEntry, { kind: "change" }>;
 
-function makeEntry(
-  overrides?: Partial<ChangeEntry>,
-): ChangeEntry {
+function makeEntry(overrides?: Partial<ChangeEntry>): ChangeEntry {
   return {
     kind: "change",
     entry_id: "entry-1",
@@ -25,9 +23,7 @@ function makeEntry(
   } as ChangeEntry;
 }
 
-function makeChange(
-  overrides?: Partial<Change>,
-): Change {
+function makeChange(overrides?: Partial<Change>): Change {
   return {
     id: "change-A",
     title: "Test change",
