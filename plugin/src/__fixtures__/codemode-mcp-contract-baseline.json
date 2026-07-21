@@ -6,7 +6,7 @@
   "contractBytes": 305,
   "prompts": {
     "adv-ci-waiter": {
-      "bytes": 4223,
+      "bytes": 5060,
       "mcpCapable": false,
       "grants": []
     },
@@ -95,7 +95,10 @@
     "adv-temporal-repair": {
       "bytes": 5987,
       "mcpCapable": true,
-      "grants": ["lgrep_get_file_outline=true", "lgrep_search_text=true"]
+      "grants": [
+        "lgrep_get_file_outline=true",
+        "lgrep_search_text=true"
+      ]
     },
     "adv-tron": {
       "bytes": 10295,
