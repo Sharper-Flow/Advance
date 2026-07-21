@@ -6,8 +6,12 @@
 
 import { basename } from "path";
 import type { Store } from "../storage/store";
-import { buildProjectTaskQueue } from "../temporal/client";
+import {
+  buildProjectTaskQueue,
+  buildSessionTaskQueue,
+} from "../temporal/client";
 import { getTemporalHealth } from "../temporal/health-probe";
+import { getCurrentSessionId } from "../utils/session-id";
 import {
   getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics,
@@ -70,6 +74,18 @@ export interface StatusQueueServiceabilitySnapshot {
   expectedQueue: string;
   serviceability: QueueServiceability;
   workerDiagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>;
+  /**
+   * Per-session queue serviceability when per-session routing is active
+   * (rq-isolSessionTaskQueue04 / AC6). Present only when the current
+   * process has a session ID and a session-scoped task queue was probed
+   * alongside the permanent project queue. Operators reading
+   * `adv_status view:"health"` consume this to distinguish session-queue
+   * state from project-queue state — a peer-session wedge may leave the
+   * project queue serviceable while the session queue is not.
+   */
+  sessionQueueServiceability?: QueueServiceability;
+  /** The session-scoped queue name when `sessionQueueServiceability` is present. */
+  sessionQueue?: string;
 }
 export const healthSnapshotCache = new Map<
   string,
@@ -379,6 +395,48 @@ export async function computeStatusQueueServiceability(input: {
     getTemporalWorkerAliveness() ||
     statusDiagnosticsShowAliveQueue(workerDiagnostics, expectedQueue);
 
+  // KD-5 / rq-isolSessionTaskQueue04 / AC6: when per-session routing is
+  // active, also probe the session-scoped queue so operators reading
+  // `adv_status view:"health"` can distinguish session-queue serviceability
+  // from project-queue serviceability. A peer-session wedge may leave the
+  // project queue serviceable (peer is polling it) while the session queue
+  // has no poller. Without this probe, the status view would mask the
+  // wedge — exactly the diagnostic gap AC6 was written to close.
+  const sessionId = getCurrentSessionId();
+  const sessionQueue = sessionId
+    ? buildSessionTaskQueue(input.projectId, sessionId)
+    : undefined;
+  let sessionQueueServiceability: QueueServiceability | undefined;
+  if (bundle && sessionQueue) {
+    const sessionPollerProbe = await probeTaskQueuePollers({
+      connection: bundle.connection as unknown as Parameters<
+        typeof probeTaskQueuePollers
+      >[0]["connection"],
+      namespace: bundle.namespace,
+      taskQueue: sessionQueue,
+    });
+    const sessionStaleCount = input.health.stale_queues
+      .filter((queue) => queue.queue === sessionQueue)
+      .reduce((total, queue) => total + queue.running_count, 0);
+    const sessionLocalRegistered =
+      input.health.registered_queues.includes(sessionQueue) ||
+      statusDiagnosticsIncludeQueue(workerDiagnostics, sessionQueue);
+    const sessionLocalWorkerAlive =
+      getTemporalWorkerAliveness() ||
+      statusDiagnosticsShowAliveQueue(workerDiagnostics, sessionQueue);
+    sessionQueueServiceability = classifyQueueServiceability({
+      projectId: input.projectId,
+      expectedQueue: sessionQueue,
+      localRegistered: sessionLocalRegistered,
+      localWorkerAlive: sessionLocalWorkerAlive,
+      localOwnership: statusLocalOwnership(input.health),
+      workerDiagnostics,
+      serverPollerProbe: sessionPollerProbe,
+      staleRunningWorkflowCount: sessionStaleCount,
+      staleQueueProbe: input.health.server_alive ? "ok" : "unavailable",
+    });
+  }
+
   return {
     expectedQueue,
     workerDiagnostics,
@@ -393,6 +451,7 @@ export async function computeStatusQueueServiceability(input: {
       staleRunningWorkflowCount,
       staleQueueProbe: input.health.server_alive ? "ok" : "unavailable",
     }),
+    ...(sessionQueue ? { sessionQueue, sessionQueueServiceability } : {}),
   };
 }
 /** Fallback TemporalHealthSnapshot used when the health probe throws. */

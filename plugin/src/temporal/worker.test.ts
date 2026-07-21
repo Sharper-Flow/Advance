@@ -589,4 +589,24 @@ describe("temporal worker helpers", () => {
       }
     });
   });
+
+  it("runTemporalWorker passes ADV worker tuning options to Worker.create", async () => {
+    await runTemporalWorker({
+      taskQueue: "advance-tuning",
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      workflowsPath: "/tmp/workflows.js",
+    });
+
+    expect(workerMocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowTaskPollerBehavior: { type: "simple-maximum", maximum: 2 },
+        activityTaskPollerBehavior: { type: "simple-maximum", maximum: 1 },
+        maxConcurrentWorkflowTaskExecutions: 4,
+        maxConcurrentActivityTaskExecutions: 4,
+        maxConcurrentLocalActivityExecutions: 4,
+        maxActivitiesPerSecond: 10,
+      }),
+    );
+  });
 });

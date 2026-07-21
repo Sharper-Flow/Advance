@@ -25,3 +25,34 @@ import { nanoid } from "nanoid";
 export function generateSessionId(): string {
   return `sess_${nanoid(8)}`;
 }
+
+/**
+ * Runtime holder for the current process's session ID.
+ *
+ * Set once per plugin-init lifecycle by the host (plugin-init.ts) or
+ * initialized from `ADV_TEMPORAL_SESSION_ID` env var by the worker child
+ * (`runTemporalWorkerFromEnv` in worker.ts). Kept here — co-located with
+ * `generateSessionId` — so callers in any layer (storage, temporal, tools)
+ * can read it without importing plugin-init.ts (which would create an
+ * import cycle, since plugin-init imports the storage layer).
+ *
+ * Spec anchors: rq-isolSessionTaskQueue01 (per-session task-queue routing),
+ * rq-multiSessionCoordination01.
+ */
+let currentSessionId: string | undefined;
+
+/** Set the runtime session ID. Called once per process at init. */
+export function setCurrentSessionId(id: string | undefined): void {
+  currentSessionId = id;
+}
+
+/**
+ * Get the runtime session ID for this process, if set.
+ *
+ * Returns undefined before plugin-init has run (or in tests that don't
+ * initialize the plugin). Callers that need a session-scoped value should
+ * treat undefined as "fall back to project-scoped behavior" (KD-10).
+ */
+export function getCurrentSessionId(): string | undefined {
+  return currentSessionId;
+}

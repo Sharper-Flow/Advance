@@ -40,6 +40,8 @@ export const LoadedBuildSessionSchema = z
     /** `/proc` start ticks recorded at registration (PID-reuse guard). */
     processStartTicks: z.string().nullable(),
     projectId: z.string().min(1),
+    /** Opaque session ID generated once per plugin-init lifecycle. */
+    sessionId: z.string().min(1).optional(),
     buildDigest: z.string().min(1),
     pluginRoot: z.string().min(1),
     startedAt: z.string().min(1),
@@ -64,6 +66,7 @@ export function registerLoadedBuildSession(input: {
   projectId: string;
   buildDigest: string;
   pluginRoot: string;
+  sessionId?: string;
   pid?: number;
   startTicks?: string | null;
   now?: Date;
@@ -79,6 +82,7 @@ export function registerLoadedBuildSession(input: {
           ? input.startTicks
           : readProcessStartTicks(pid),
       projectId: input.projectId,
+      sessionId: input.sessionId,
       buildDigest: input.buildDigest,
       pluginRoot: input.pluginRoot,
       startedAt: now,
@@ -187,6 +191,7 @@ export function registerPluginSession(input: {
   projectId: string;
   migrationRoot: string;
   identity: BuildIdentity | null;
+  sessionId: string;
   env?: NodeJS.ProcessEnv;
   pid?: number;
 }): RegisterPluginSessionResult {
@@ -202,6 +207,7 @@ export function registerPluginSession(input: {
     projectId: input.projectId,
     buildDigest: input.identity.digest,
     pluginRoot: input.identity.pluginRoot,
+    sessionId: input.sessionId,
     pid: input.pid,
   });
   return result.registered

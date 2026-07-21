@@ -305,6 +305,14 @@ export function buildTemporalWorkerProcessSpec(input: {
   address: string;
   namespace: string;
   projectId: string;
+  /**
+   * Optional session ID (KD-6 / rq-isolSessionTaskQueue01). When provided,
+   * emitted as `ADV_TEMPORAL_SESSION_ID` env var so the worker child knows
+   * its own-session identity for diagnostics and future child-side routing
+   * computation. The queue list itself is parent-computed and passed via
+   * `ADV_TEMPORAL_TASK_QUEUES` (multi-queue mode).
+   */
+  sessionId?: string;
 }): TemporalWorkerProcessSpec {
   return {
     command: process.execPath,
@@ -315,6 +323,9 @@ export function buildTemporalWorkerProcessSpec(input: {
       ADV_TEMPORAL_NAMESPACE: input.namespace,
       ADV_TEMPORAL_TASK_QUEUE: input.taskQueue,
       ADV_TEMPORAL_PROJECT_ID: input.projectId,
+      ...(input.sessionId !== undefined
+        ? { ADV_TEMPORAL_SESSION_ID: input.sessionId }
+        : {}),
       [ADV_TEMPORAL_WORKER_SELF_ROLL_ENV]:
         ADV_TEMPORAL_WORKER_SELF_ROLL_CAPABILITY,
     },

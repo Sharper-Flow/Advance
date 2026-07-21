@@ -227,6 +227,16 @@ export interface ChangeWorkflowInput {
   title: string;
   initializedAt: string;
   /**
+   * Session ID for per-session task-queue routing (KD-10,
+   * rq-isolSessionTaskQueue01). When present, ensureChangeWorkflowStarted
+   * (tk-654199bec3cb) routes the workflow to
+   * `advance-{projectId}-{sessionId}`; when absent, falls back to the
+   * permanent project queue `advance-{projectId}` (backward-compat for
+   * tests, re-import paths, epic-only callers, and any in-flight callers
+   * that do not yet have session context).
+   */
+  sessionId?: string;
+  /**
    * When false, workflow handlers skip wf.upsertSearchAttributes() calls.
    * Defaults to true (or undefined, which is treated as true) for backward
    * compatibility. Set to false when Temporal search attributes are not

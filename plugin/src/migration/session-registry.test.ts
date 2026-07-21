@@ -184,6 +184,7 @@ describe("registerPluginSession (init seam)", () => {
         computedAt: "2026-07-16T00:00:00.000Z",
         pluginRoot: "/x",
       },
+      sessionId: "sess_test123",
       env: { VITEST: "true" },
     });
     expect(result.registered).toBe(false);
@@ -196,6 +197,7 @@ describe("registerPluginSession (init seam)", () => {
       projectId: "proj-1",
       migrationRoot: root,
       identity: null,
+      sessionId: "sess_test123",
       env: {},
     });
     expect(result).toMatchObject({ registered: false, skipped: "no_identity" });
@@ -213,6 +215,7 @@ describe("registerPluginSession (init seam)", () => {
         computedAt: "2026-07-16T00:00:00.000Z",
         pluginRoot: "/x",
       },
+      sessionId: "sess_test123",
       env: {},
       pid: 5150,
     });

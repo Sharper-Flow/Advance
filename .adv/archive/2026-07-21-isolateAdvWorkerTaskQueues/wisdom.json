@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-h2__ky",
+      "type": "gotcha",
+      "content": "Plain `pnpm test -- src/temporal/<file>.test.ts` triggers the full Vitest suite (both unit and temporal integration projects), causing timeouts. Use `pnpm vitest run --project unit src/temporal/<file>.test.ts` for fast unit-only iteration (~1.3s), or `bin/oc-test targeted -- src/temporal/<file>.test.ts` for the host-throttled variant. Reserve plain `pnpm test` for full-suite runs.",
+      "source_task": "tk-7dc4e04c085b",
+      "recorded_at": "2026-07-21T03:54:10.554Z"
+    },
+    {
+      "id": "ws-MqePhs",
+      "type": "gotcha",
+      "content": "Spec drift on rq-isolSessionTaskQueue03: delta text in change.json says workflowTaskPollerBehavior.maximum:1, but implementation (worker-tuning.ts:36) uses maximum:2 because Temporal SDK requires ≥2 when max_cached_workflows > 0 (default). ADR-0005 + deployment-notes + worker-tuning.ts:30-35 comments all document this deviation. Archive will apply the stale maximum:1 text to spec.json; a fast-follow change is needed to update rq-isolSessionTaskQueue03 body + scenario 03.1 to maximum:2 after archive. The adv_delta_modify tool requires the exact SHA-256 of the current global-spec requirement, which doesn't exist pre-archive, so in-flight delta text correction isn't possible from within the change.",
+      "source_task": "tk-57fdd4b32814",
+      "recorded_at": "2026-07-21T05:26:45.563Z"
+    }
+  ],
+  "count": 2
+}

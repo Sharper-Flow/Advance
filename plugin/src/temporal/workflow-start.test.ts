@@ -91,6 +91,48 @@ describe("ensureChangeWorkflowStarted", () => {
       }),
     );
   });
+
+  test("routes to session task queue when sessionId is present (rq-isolSessionTaskQueue01, KD-10)", async () => {
+    const handle = { query: vi.fn() };
+    const start = vi.fn().mockResolvedValue(handle);
+    const client = { workflow: { start, getHandle: vi.fn() } };
+
+    await ensureChangeWorkflowStarted(client, {
+      projectId: "pid-abc",
+      changeId: "sessionRouted",
+      title: "Session routed",
+      initializedAt: "2026-07-21T00:00:00.000Z",
+      sessionId: "sess_RouteTest",
+    });
+
+    expect(start).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        taskQueue: "advance-pid-abc-sess_RouteTest",
+      }),
+    );
+  });
+
+  test("falls back to project task queue when sessionId is absent (backward compat, KD-10)", async () => {
+    const handle = { query: vi.fn() };
+    const start = vi.fn().mockResolvedValue(handle);
+    const client = { workflow: { start, getHandle: vi.fn() } };
+
+    await ensureChangeWorkflowStarted(client, {
+      projectId: "pid-abc",
+      changeId: "legacyRoute",
+      title: "Legacy route",
+      initializedAt: "2026-07-21T00:00:00.000Z",
+      // sessionId intentionally omitted
+    });
+
+    expect(start).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        taskQueue: "advance-pid-abc",
+      }),
+    );
+  });
 });
 
 describe("reImportChangeState", () => {

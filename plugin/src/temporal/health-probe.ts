@@ -16,6 +16,19 @@ import {
 } from "./queue-serviceability";
 import { getService } from "./service";
 
+export interface QueueProbeTarget {
+  queueName: string;
+  queueType: "session" | "project";
+}
+
+export interface QueueProbeResult {
+  queueName: string;
+  queueType: "session" | "project";
+  serviceable: boolean;
+  pollerCount: number;
+  lastPollerAt: string | null;
+}
+
 export interface StaleQueue {
   queue: string;
   running_count: number;
@@ -44,6 +57,7 @@ export interface TemporalHealth {
     at: string;
   } | null;
   server_poller_probe?: ServerPollerProbe | null;
+  queues?: QueueProbeResult[];
 }
 
 let overrideTelemetry: {
@@ -73,8 +87,63 @@ const pollerProbeCache = new Map<
 >();
 const POLLER_PROBE_TTL_MS = 30_000;
 
+async function probeQueues(
+  targets: QueueProbeTarget[],
+  _signal?: AbortSignal,
+): Promise<
+  Array<{ result: QueueProbeResult; probe: ServerPollerProbe | null }>
+> {
+  const bundle = getService();
+  if (!bundle || targets.length === 0) {
+    return [];
+  }
+
+  const now = Date.now();
+  const results: Array<{
+    result: QueueProbeResult;
+    probe: ServerPollerProbe | null;
+  }> = [];
+
+  for (const target of targets) {
+    let probe: ServerPollerProbe | null;
+    const cached = pollerProbeCache.get(target.queueName);
+    if (cached && now - cached.cachedAt < POLLER_PROBE_TTL_MS) {
+      probe = cached.result;
+    } else {
+      try {
+        probe = await probeTaskQueuePollers({
+          connection: bundle.connection as unknown as Parameters<
+            typeof probeTaskQueuePollers
+          >[0]["connection"],
+          namespace: bundle.namespace,
+          taskQueue: target.queueName,
+        });
+        pollerProbeCache.set(target.queueName, {
+          result: probe,
+          cachedAt: now,
+        });
+      } catch {
+        probe = null;
+      }
+    }
+
+    results.push({
+      result: {
+        queueName: target.queueName,
+        queueType: target.queueType,
+        serviceable: probe?.status === "fresh",
+        pollerCount: probe?.pollerCount ?? 0,
+        lastPollerAt: probe?.lastPollerAt ?? null,
+      },
+      probe,
+    });
+  }
+
+  return results;
+}
+
 export async function getTemporalHealth(
-  _projectId?: string,
+  _projectIdOrTargets?: string | QueueProbeTarget[],
   options: { signal?: AbortSignal } = {},
 ): Promise<TemporalHealth> {
   const address = getTemporalAddress(process.env);
@@ -85,39 +154,28 @@ export async function getTemporalHealth(
   const worker_process_alive = getTemporalWorkerAliveness();
   const telemetry = overrideTelemetry ?? getTemporalRetryTelemetry();
 
-  let serverPollerProbe: ServerPollerProbe | null = null;
-  const bundle = getService();
-  if (bundle && _projectId) {
-    const taskQueue = buildProjectTaskQueue(_projectId);
-    const now = Date.now();
-    const cached = pollerProbeCache.get(taskQueue);
-    if (cached && now - cached.cachedAt < POLLER_PROBE_TTL_MS) {
-      serverPollerProbe = cached.result;
-    } else {
-      try {
-        serverPollerProbe = await probeTaskQueuePollers({
-          connection: bundle.connection as unknown as Parameters<
-            typeof probeTaskQueuePollers
-          >[0]["connection"],
-          namespace: bundle.namespace,
-          taskQueue,
-        });
-        pollerProbeCache.set(taskQueue, {
-          result: serverPollerProbe,
-          cachedAt: now,
-        });
-      } catch {
-        serverPollerProbe = null;
-      }
-    }
-  }
+  const targets: QueueProbeTarget[] = Array.isArray(_projectIdOrTargets)
+    ? _projectIdOrTargets
+    : _projectIdOrTargets
+      ? [
+          {
+            queueName: buildProjectTaskQueue(_projectIdOrTargets),
+            queueType: "project",
+          },
+        ]
+      : [];
+
+  const probed = await probeQueues(targets, options.signal);
+  const queues = probed.map((p) => p.result);
+  const serverPollerProbe =
+    probed.find((p) => p.result.queueType === "project")?.probe ?? null;
 
   return {
     server_alive,
     worker_alive:
       worker_process_alive ||
       registered_queues.length > 0 ||
-      serverPollerProbe?.status === "fresh",
+      queues.some((q) => q.serviceable),
     worker_process_alive,
     registered_queues,
     last_op_at: telemetry.lastOpAt,
@@ -129,5 +187,6 @@ export async function getTemporalHealth(
     worker_lock: null,
     last_worker_run_error: getLastWorkerRunError(),
     server_poller_probe: serverPollerProbe,
+    queues,
   };
 }

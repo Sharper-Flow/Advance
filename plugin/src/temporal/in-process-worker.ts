@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { recordWorkerRunFailure } from "./retry-wrapper";
+import { getAdvWorkerTuningOptions } from "./worker-tuning";
 
 interface TemporalWorkerInstance {
   run(): Promise<void>;
@@ -153,6 +154,7 @@ export async function createInProcessWorker(
             taskQueue,
             workflowsPath,
             activities: effectiveActivities,
+            ...getAdvWorkerTuningOptions(),
           });
       // Re-check: shutdown may have been initiated while Worker.create was
       // in flight. If so, tear this worker down immediately and refuse to

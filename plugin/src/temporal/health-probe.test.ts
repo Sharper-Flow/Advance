@@ -211,3 +211,140 @@ describe("getTemporalHealth — server poller probe integration", () => {
     expect(health.worker_alive).toBe(false);
   });
 });
+
+describe("getTemporalHealth — multi-queue probing", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetTemporalHealthProbeState();
+
+    mockCanReachTemporalAddress.mockResolvedValue(true);
+    mockGetTemporalWorkerAliveness.mockReturnValue(false);
+    mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
+    mockGetTemporalAddress.mockReturnValue("127.0.0.1:7233");
+    mockGetTemporalNamespace.mockReturnValue("default");
+    mockBuildProjectTaskQueue.mockImplementation((pid: string) => `adv-${pid}`);
+    mockGetService.mockReturnValue({
+      connection: { workflowService: { describeTaskQueue: vi.fn() } },
+      namespace: "default",
+    });
+    mockGetTemporalRetryTelemetry.mockReturnValue({
+      lastOpAt: null,
+      lastError: null,
+    });
+    mockGetTemporalOpTelemetry.mockReturnValue([]);
+    mockGetLastWorkerRunError.mockReturnValue(null);
+  });
+
+  it("probes multiple queues and tags each result with its type", async () => {
+    mockProbeTaskQueuePollers
+      .mockResolvedValueOnce({
+        status: "fresh",
+        lastAccessMs: 1000,
+        pollerCount: 2,
+        lastPollerAt: "2024-01-01T00:00:00.000Z",
+      })
+      .mockResolvedValueOnce({
+        status: "stale",
+        lastAccessMs: 120_000,
+        pollerCount: 1,
+        lastPollerAt: "2023-01-01T00:00:00.000Z",
+      });
+
+    const health = await getTemporalHealth([
+      { queueName: "advance-P-sess-A", queueType: "session" },
+      { queueName: "advance-P", queueType: "project" },
+    ]);
+
+    expect(health.queues).toHaveLength(2);
+    expect(health.queues![0]).toEqual({
+      queueName: "advance-P-sess-A",
+      queueType: "session",
+      serviceable: true,
+      pollerCount: 2,
+      lastPollerAt: "2024-01-01T00:00:00.000Z",
+    });
+    expect(health.queues![1]).toEqual({
+      queueName: "advance-P",
+      queueType: "project",
+      serviceable: false,
+      pollerCount: 1,
+      lastPollerAt: "2023-01-01T00:00:00.000Z",
+    });
+    expect(mockProbeTaskQueuePollers).toHaveBeenCalledTimes(2);
+    expect(mockProbeTaskQueuePollers).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ taskQueue: "advance-P-sess-A" }),
+    );
+    expect(mockProbeTaskQueuePollers).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ taskQueue: "advance-P" }),
+    );
+  });
+
+  it("returns an empty queues array for an empty target list", async () => {
+    const health = await getTemporalHealth([]);
+
+    expect(health.queues).toEqual([]);
+    expect(health.worker_alive).toBe(false);
+    expect(mockProbeTaskQueuePollers).not.toHaveBeenCalled();
+  });
+
+  it("caches poller probe results per queue name", async () => {
+    mockProbeTaskQueuePollers
+      .mockResolvedValueOnce({
+        status: "fresh",
+        lastAccessMs: 1000,
+        pollerCount: 1,
+        lastPollerAt: "2024-01-01T00:00:00.000Z",
+      })
+      .mockResolvedValueOnce({
+        status: "fresh",
+        lastAccessMs: 2000,
+        pollerCount: 1,
+        lastPollerAt: "2024-01-02T00:00:00.000Z",
+      });
+
+    const now = Date.now();
+    vi.setSystemTime(now);
+
+    const first = await getTemporalHealth([
+      { queueName: "advance-A-sess-1", queueType: "session" },
+      { queueName: "advance-A", queueType: "project" },
+    ]);
+    expect(mockProbeTaskQueuePollers).toHaveBeenCalledTimes(2);
+    expect(first.queues).toHaveLength(2);
+
+    // Second call within TTL should reuse cache for both queues.
+    vi.setSystemTime(now + 15_000);
+    const second = await getTemporalHealth([
+      { queueName: "advance-A-sess-1", queueType: "session" },
+      { queueName: "advance-A", queueType: "project" },
+    ]);
+    expect(mockProbeTaskQueuePollers).toHaveBeenCalledTimes(2);
+    expect(second.queues).toEqual(first.queues);
+  });
+
+  it("wraps a single projectId string into a single project queue target", async () => {
+    mockProbeTaskQueuePollers.mockResolvedValue({
+      status: "fresh",
+      lastAccessMs: 1000,
+      pollerCount: 1,
+      lastPollerAt: "2024-01-01T00:00:00.000Z",
+    });
+
+    const health = await getTemporalHealth("proj123");
+
+    expect(health.queues).toEqual([
+      {
+        queueName: "adv-proj123",
+        queueType: "project",
+        serviceable: true,
+        pollerCount: 1,
+        lastPollerAt: "2024-01-01T00:00:00.000Z",
+      },
+    ]);
+    expect(health.server_poller_probe).toEqual(
+      expect.objectContaining({ status: "fresh" }),
+    );
+  });
+});

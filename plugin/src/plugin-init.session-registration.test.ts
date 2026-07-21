@@ -48,7 +48,11 @@ vi.mock("./temporal/runtime-manager", async () => {
   };
 });
 
-import { registerShutdownHandlers, tryInitStore } from "./plugin-init";
+import {
+  getCurrentSessionId,
+  registerShutdownHandlers,
+  tryInitStore,
+} from "./plugin-init";
 
 describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
   let tempDirs: string[] = [];
@@ -79,14 +83,44 @@ describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
 
     // Registration fired even though Temporal runtime startup fails here.
     expect(mocks.registerPluginSession).toHaveBeenCalledTimes(1);
-    expect(mocks.registerPluginSession).toHaveBeenCalledWith({
-      projectId: synthesizeTestProjectId(process.cwd()),
-      migrationRoot: "/tmp/adv-test-migration-root",
-      identity: expect.objectContaining({
+    const registerCall = mocks.registerPluginSession.mock.calls[0][0] as {
+      projectId: string;
+      migrationRoot: string;
+      identity: { digest: string };
+      sessionId: string;
+    };
+    expect(registerCall.projectId).toBe(synthesizeTestProjectId(process.cwd()));
+    expect(registerCall.migrationRoot).toBe("/tmp/adv-test-migration-root");
+    expect(registerCall.identity).toEqual(
+      expect.objectContaining({
         digest: "sha256:" + "a".repeat(64),
       }),
-    });
+    );
+    expect(registerCall.sessionId).toMatch(/^sess_[A-Za-z0-9]{8}$/);
+    expect(getCurrentSessionId()).toBe(registerCall.sessionId);
     expect(result.initError).not.toBeNull();
+  });
+
+  test("subsequent tryInitStore calls reuse the same session ID", async () => {
+    // Isolate any external-state side effects from the real machine shard.
+    const xdg = await createTempDir("adv-initreg-xdg-");
+    tempDirs.push(xdg);
+    process.env.XDG_DATA_HOME = xdg;
+
+    await tryInitStore(process.cwd(), undefined);
+    const firstSessionId = getCurrentSessionId();
+    expect(firstSessionId).toMatch(/^sess_[A-Za-z0-9]{8}$/);
+
+    vi.clearAllMocks();
+    await tryInitStore(process.cwd(), undefined);
+
+    // The module-level session ID is sticky: ADV's tryInitStore is designed to
+    // run once per process, so the getter continues to return the originally
+    // generated ID even if init is invoked again in the same process.
+    expect(getCurrentSessionId()).toBe(firstSessionId);
+    expect(mocks.registerPluginSession).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: firstSessionId }),
+    );
   });
 
   test("shutdown unregisters the session record even with a null store", () => {

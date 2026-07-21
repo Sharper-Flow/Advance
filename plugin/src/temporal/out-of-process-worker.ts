@@ -23,6 +23,8 @@ export interface OutOfProcessWorkerInput {
   queues: readonly string[];
   workerScript: string;
   projectId: string;
+  /** Optional session ID (KD-6); emitted to child as ADV_TEMPORAL_SESSION_ID. */
+  sessionId?: string;
   nodeEnv?: NodeJS.ProcessEnv;
   onWorkerExhausted?: () => void | Promise<void>;
 }
@@ -57,6 +59,7 @@ export async function createOutOfProcessWorker(
     queues: input.queues,
     workerScript: input.workerScript,
     projectId: input.projectId,
+    sessionId: input.sessionId,
     nodeEnv: input.nodeEnv,
     onWorkerExhausted: input.onWorkerExhausted,
   });
