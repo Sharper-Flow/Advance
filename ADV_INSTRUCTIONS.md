@@ -499,7 +499,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 | In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal + on-disk projection       | Session-coordinated, gate-validated, replay-safe. GH can't model.                                         |
 | Linkage                                                     | `change.origin` (in `change.json`)  | Linkage IS ADV state. Lives with rest of ADV state.                                                       |
 
-**Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, `adv_roadmap` cross-references active changes by `origin.issue_number`). Linked roadmap/triage archives close upstream issues by default per `rq-issueChangeLinkage02`. Remaining behavior automation (`/adv-proposal #N` body prefill, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
+**Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, cross-references active changes by `origin.issue_number`). Linked roadmap/triage archives close upstream issues by default per `rq-issueChangeLinkage02`. Remaining behavior automation (`/adv-proposal #N` body prefill, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
 
 **Anti-patterns:**
 
@@ -508,7 +508,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 | Auto-create GH issue from every `/adv-proposal` | Only when `origin.kind === 'roadmap'`; post-hoc promotion is `/adv-triage` job |
 | `linked_issues[]` as canonical link             | `change.origin.issue_number` — single, typed, queryable. Arrays advisory only. |
 | Move ranked backlog into Temporal               | Keep in GH Project. `.adv/roadmap-snapshot.json` = agent-readable mirror.      |
-| Ship behavior + schema together                 | Schema first, validate via `adv_roadmap` cross-refs, then automation.          |
+| Ship behavior + schema together                 | Schema first, validate via cross-refs, then automation.          |
 | Default new change to `origin.kind = 'roadmap'` | Default omitted or explicit. `roadmap` requires `issue_number`.                |
 
 **Agent picks `origin_kind` at create:**
