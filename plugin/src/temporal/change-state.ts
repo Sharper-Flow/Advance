@@ -972,10 +972,21 @@ export function applyTaskUpdatedToState(
   payload: TaskUpdatedSignalPayload,
 ): ChangeWorkflowState {
   const task = getMutableTask(state, payload.taskId);
-  // security-4 (rq-wisdomAutoSurfacing01): defense-in-depth — validate
-  // wisdom_drafts partial at the workflow boundary before Object.assign
-  // merges it into task state. Malformed payloads are logged and skipped
-  // rather than thrown; signal handlers must not crash the workflow.
+  // rq-releaseFinalization01 / security-4 (addWisdomAutoSurfacing):
+  // defense-in-depth — validate the wisdom_drafts partial at the workflow
+  // boundary before Object.assign merges it into task state. Malformed
+  // arrays are dropped (existing task.wisdom_drafts preserved); other
+  // fields in the same partial still apply.
+  //
+  // Design note: full TaskSchema.partial().safeParse was evaluated and
+  // rejected during addTestsTaskSignalValidation. TaskSchema uses
+  // .passthrough() for forward/backward compatibility (older workflow
+  // code may write fields newer code doesn't know about); full-safeParse
+  // would either preserve unknown keys (defeating the strip goal) or
+  // drop the entire partial on any single malformed field (rejecting
+  // valid partial updates). The field-specific pattern is the correct
+  // tradeoff: validate the nested substructure that's known to evolve
+  // (wisdom_drafts), leave scalar fields to the signal payload schema.
   const partial = { ...payload.partial };
   if (partial.wisdom_drafts !== undefined) {
     const parsed = WisdomDraftSchema.array().safeParse(partial.wisdom_drafts);
