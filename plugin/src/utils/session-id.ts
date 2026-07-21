@@ -31,10 +31,10 @@ export function generateSessionId(): string {
  *
  * Set once per plugin-init lifecycle by the host (plugin-init.ts) or
  * initialized from `ADV_TEMPORAL_SESSION_ID` env var by the worker child
- * (tk-e144b115d1cc). Kept here — co-located with `generateSessionId` — so
- * callers in any layer (storage, temporal, tools) can read it without
- * importing plugin-init.ts (which would create an import cycle, since
- * plugin-init imports the storage layer).
+ * (`runTemporalWorkerFromEnv` in worker.ts). Kept here — co-located with
+ * `generateSessionId` — so callers in any layer (storage, temporal, tools)
+ * can read it without importing plugin-init.ts (which would create an
+ * import cycle, since plugin-init imports the storage layer).
  *
  * Spec anchors: rq-isolSessionTaskQueue01 (per-session task-queue routing),
  * rq-multiSessionCoordination01.

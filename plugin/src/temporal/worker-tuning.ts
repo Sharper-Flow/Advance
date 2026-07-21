@@ -18,7 +18,7 @@ function readInt(env: NodeJS.ProcessEnv, key: string, fallback: number): number 
   const raw = env[key];
   if (raw === undefined || raw === "") return fallback;
   const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
+  return Number.isFinite(n) && n >= 1 ? n : fallback;
 }
 
 export function getAdvWorkerTuningOptions(

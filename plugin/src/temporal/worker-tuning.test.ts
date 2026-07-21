@@ -105,6 +105,25 @@ describe("getAdvWorkerTuningOptions", () => {
 
     expect(result.maxActivitiesPerSecond).toBe(10);
   });
+
+  it("rejects zero for any cap (would silently disable polling/slots)", () => {
+    const result = getAdvWorkerTuningOptions({
+      ADV_WORKER_WORKFLOW_POLLER_CAP: "0",
+      ADV_WORKER_ACTIVITY_POLLER_CAP: "0",
+      ADV_WORKER_WORKFLOW_SLOT_CAP: "0",
+      ADV_WORKER_ACTIVITY_SLOT_CAP: "0",
+      ADV_WORKER_LOCAL_ACTIVITY_SLOT_CAP: "0",
+      ADV_WORKER_ACTIVITY_RATE: "0",
+    });
+
+    // All caps should fall back to defaults — zero is never a valid cap.
+    expect(result.workflowTaskPollerBehavior.maximum).toBe(2);
+    expect(result.activityTaskPollerBehavior.maximum).toBe(1);
+    expect(result.maxConcurrentWorkflowTaskExecutions).toBe(4);
+    expect(result.maxConcurrentActivityTaskExecutions).toBe(4);
+    expect(result.maxConcurrentLocalActivityExecutions).toBe(4);
+    expect(result.maxActivitiesPerSecond).toBe(10);
+  });
 });
 
 describe("Worker.create tuning drift guard", () => {

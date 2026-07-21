@@ -658,26 +658,22 @@ export const temporalOpsTools = {
         ];
         const probed = await Promise.all(
           probeTargets.map(async (target) => {
-            try {
-              const probe = await probeTaskQueuePollers({
-                connection: bundle.connection as unknown as Parameters<
-                  typeof probeTaskQueuePollers
-                >[0]["connection"],
-                namespace: bundle.namespace,
-                taskQueue: target.queue,
-              });
-              return {
-                queue: target.queue,
-                queueType: target.queueType,
-                serviceable: probe.status === "fresh",
-              };
-            } catch {
-              return {
-                queue: target.queue,
-                queueType: target.queueType,
-                serviceable: false,
-              };
-            }
+            // probeTaskQueuePollers wraps describeTaskQueue in try/catch
+            // and returns {status:"unavailable", ...} on failure rather
+            // than throwing — no inner try/catch needed here. If the
+            // wrapper's contract changes to throw, reintroduce the catch.
+            const probe = await probeTaskQueuePollers({
+              connection: bundle.connection as unknown as Parameters<
+                typeof probeTaskQueuePollers
+              >[0]["connection"],
+              namespace: bundle.namespace,
+              taskQueue: target.queue,
+            });
+            return {
+              queue: target.queue,
+              queueType: target.queueType,
+              serviceable: probe.status === "fresh",
+            };
           }),
         );
         queues = probed;

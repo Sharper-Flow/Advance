@@ -4,6 +4,7 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
 import { getAdvWorkerTuningOptions } from "./worker-tuning";
+import { setCurrentSessionId } from "../utils/session-id";
 
 function resolveWorkflowsPath(): string {
   const jsPath = fileURLToPath(new URL("./workflows.js", import.meta.url));
@@ -398,6 +399,14 @@ export function startParentLivenessWatchdog(
 export async function runTemporalWorkerFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<void> {
+  // KD-6: worker child reads ADV_TEMPORAL_SESSION_ID and persists it via
+  // setCurrentSessionId so any in-process caller (or future child-side
+  // routing computation) can read this worker's own-session identity
+  // via getCurrentSessionId(). Emitted by buildTemporalWorkerProcessSpec.
+  if (env.ADV_TEMPORAL_SESSION_ID) {
+    setCurrentSessionId(env.ADV_TEMPORAL_SESSION_ID);
+  }
+
   // AC4: arm the parent-liveness watchdog before entering the (blocking)
   // worker.run() poll loop. Covers both the single-queue and multi-queue
   // paths below. If the plugin-host parent crashes, the clean-shutdown
