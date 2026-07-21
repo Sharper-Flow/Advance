@@ -8,7 +8,8 @@ export interface AdvWorkerTuningOptions {
 }
 
 /**
- * Single source of truth for ADV Worker.create tuning. Caps bound per-session
+ * rq-isolSessionTaskQueue03: single source of truth for ADV Worker.create
+ * tuning. Caps bound per-session
  * polling footprint so per-session task-queue routing does not increase total
  * per-project load. See ADR-0001 (draft) and change isolateAdvWorkerTaskQueues
  * design.md KD-3.

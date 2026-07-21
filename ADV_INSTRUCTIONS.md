@@ -161,7 +161,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
 | `/adv-coordinate`           | Audit project changes, Epic alignment, sequencing, and membership health                             |
 | `/adv-triage`               | Triage sources, coalesce issue links, assign bug priority, and balance portfolio |
-| `/adv-improve`              | Improvement analysis and research on existing specs, implementation, or external landscape            |
+| `/adv-improve`              | Analyze improvements across existing specs, implementation, and external landscape                    |
 | `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up candidates             |
 | `/adv-optimizer [target]`   | Analyze code simplification opportunities and propose optimizer changes                              |
 

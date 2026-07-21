@@ -2,6 +2,12 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
+import {
+  AFFECTED_POISONED_CHANGE_IDS,
+  auditSanitizedHistory,
+  PoisonedHistoryClassificationSchema,
+  assertCompletePoisonedHistoryClassifications,
+} from "../replay-history-classification";
 
 // rq-workflowVersioning01 — committed workflow histories must replay in CI.
 const workflowsPath = fileURLToPath(
@@ -23,6 +29,7 @@ interface ReplayFixtureMetadata {
 interface ReplayFixture {
   metadataUrl: URL;
   historyUrl: URL;
+  classificationUrl?: URL;
   /**
    * Patch marker id the committed history must record as a core_patch
    * VersionMarker. Omit for pre-patch legacy histories (which instead prove
@@ -30,7 +37,7 @@ interface ReplayFixture {
    */
   patchMarker?: string;
   /** Substring the metadata `covers[]` must include (branch-specific coverage). */
-  coversIncludes: string;
+  coversIncludes?: string;
 }
 
 const replayFixtures: ReplayFixture[] = [
@@ -131,6 +138,20 @@ const replayFixtures: ReplayFixture[] = [
     coversIncludes:
       "ACCEPTANCE_READINESS_FENCE_PATCH (acceptance-readiness-revision-v1) (legacy)",
   },
+  ...AFFECTED_POISONED_CHANGE_IDS.map((changeId) => ({
+    metadataUrl: new URL(
+      `./replay/histories/${changeId}.poisoned-production.metadata.json`,
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      `./replay/histories/${changeId}.poisoned-production.history.json`,
+      import.meta.url,
+    ),
+    classificationUrl: new URL(
+      `./replay/histories/${changeId}.poisoned-production.classification.json`,
+      import.meta.url,
+    ),
+  })),
 ];
 
 async function readJson<T>(url: URL): Promise<T> {
@@ -167,9 +188,34 @@ function markerPatchId(event: ReplayHistoryEvent): string | undefined {
 }
 
 describe("changeWorkflow replay determinism", () => {
+  it("records one terminal classification for each affected production history", async () => {
+    const rows = await Promise.all(
+      AFFECTED_POISONED_CHANGE_IDS.map((changeId) =>
+        readJson<unknown>(
+          new URL(
+            `./replay/histories/${changeId}.poisoned-production.classification.json`,
+            import.meta.url,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assertCompletePoisonedHistoryClassifications(rows, {
+        requireTerminal: true,
+      }),
+    ).toHaveLength(AFFECTED_POISONED_CHANGE_IDS.length);
+  });
+
   it.each(replayFixtures)(
     "replays committed history fixture %#",
-    async ({ metadataUrl, historyUrl, patchMarker, coversIncludes }) => {
+    async ({
+      metadataUrl,
+      historyUrl,
+      classificationUrl,
+      patchMarker,
+      coversIncludes,
+    }) => {
       const metadata = await readJson<ReplayFixtureMetadata>(metadataUrl);
       const history = await readJson<{ events: ReplayHistoryEvent[] }>(
         historyUrl,
@@ -183,7 +229,9 @@ describe("changeWorkflow replay determinism", () => {
           eventType: metadata.incidentEventType,
         }),
       );
-      expect(metadata.covers.join("\n")).toContain(coversIncludes);
+      if (coversIncludes) {
+        expect(metadata.covers.join("\n")).toContain(coversIncludes);
+      }
 
       if (patchMarker) {
         // Branch-specific coverage: the committed history must record the
@@ -194,14 +242,38 @@ describe("changeWorkflow replay determinism", () => {
         expect(recordedMarkers).toContain(patchMarker);
       }
 
-      await Worker.runReplayHistory(
-        {
-          workflowsPath,
-          replayName: metadata.name,
-        },
-        history,
-        metadata.workflowId,
-      );
+      const replay = () =>
+        Worker.runReplayHistory(
+          {
+            workflowsPath,
+            replayName: metadata.name,
+          },
+          history,
+          metadata.workflowId,
+        );
+      if (classificationUrl) {
+        const classification = PoisonedHistoryClassificationSchema.parse(
+          await readJson<unknown>(classificationUrl),
+        );
+        expect(auditSanitizedHistory(history)).toEqual({
+          safe: true,
+          findings: [],
+        });
+        expect(classification.workflowId).toBe(metadata.workflowId);
+        expect(metadata.covers.join("\n")).toContain(
+          classification.observedError,
+        );
+        if (
+          classification.outcome === "reproduced" ||
+          classification.outcome === "immutable_history"
+        ) {
+          await expect(replay()).rejects.toThrow();
+        } else {
+          await expect(replay()).resolves.toBeUndefined();
+        }
+      } else {
+        await replay();
+      }
     },
     30_000,
   );

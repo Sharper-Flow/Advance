@@ -24,6 +24,11 @@ import {
 } from "./worker";
 import { RESTART_HARD_KILL_DEADLINE_MS } from "./worker-multi";
 
+const TEST_ARTIFACT_POLICY = {
+  mode: "development_source",
+  rationale: "worker unit test",
+} as const;
+
 describe("temporal worker helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,7 +36,7 @@ describe("temporal worker helpers", () => {
 
   it("runTemporalWorkerFromEnv requires ADV_TEMPORAL_TASK_QUEUE", async () => {
     await expect(
-      runTemporalWorkerFromEnv({} as NodeJS.ProcessEnv),
+      runTemporalWorkerFromEnv({} as NodeJS.ProcessEnv, TEST_ARTIFACT_POLICY),
     ).rejects.toThrow(/ADV_TEMPORAL_TASK_QUEUE is required/);
   });
 
@@ -41,6 +46,7 @@ describe("temporal worker helpers", () => {
       address: "127.0.0.1:7233",
       namespace: "default",
       workflowsPath: "/tmp/workflows.js",
+      artifactPolicy: TEST_ARTIFACT_POLICY,
     });
 
     expect(workerMocks.connect).toHaveBeenCalledWith({
@@ -57,13 +63,33 @@ describe("temporal worker helpers", () => {
     expect(workerMocks.close).toHaveBeenCalled();
   });
 
+  it("runTemporalWorker uses explicit development source policy", async () => {
+    await runTemporalWorker({
+      taskQueue: "advance-proj-source",
+      address: "127.0.0.1:7233",
+      namespace: "default",
+      workflowsPath: "/tmp/workflows.ts",
+      artifactPolicy: TEST_ARTIFACT_POLICY,
+    });
+
+    expect(workerMocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskQueue: "advance-proj-source",
+        workflowsPath: "/tmp/workflows.ts",
+      }),
+    );
+  });
+
   it("runTemporalWorkerFromEnv uses env-derived defaults", async () => {
-    await runTemporalWorkerFromEnv({
-      ADV_TEMPORAL_TASK_QUEUE: "advance-proj2",
-      ADV_TEMPORAL_ADDRESS: "10.0.0.2:9333",
-      ADV_TEMPORAL_ALLOW_REMOTE: "true",
-      ADV_TEMPORAL_NAMESPACE: "adv-dev",
-    } as NodeJS.ProcessEnv);
+    await runTemporalWorkerFromEnv(
+      {
+        ADV_TEMPORAL_TASK_QUEUE: "advance-proj2",
+        ADV_TEMPORAL_ADDRESS: "10.0.0.2:9333",
+        ADV_TEMPORAL_ALLOW_REMOTE: "true",
+        ADV_TEMPORAL_NAMESPACE: "adv-dev",
+      } as NodeJS.ProcessEnv,
+      TEST_ARTIFACT_POLICY,
+    );
 
     expect(workerMocks.connect).toHaveBeenCalledWith({
       address: "10.0.0.2:9333",
@@ -83,9 +109,12 @@ describe("temporal worker helpers", () => {
       .mockImplementation((() => true) as typeof process.kill);
 
     try {
-      await runTemporalWorkerFromEnv({
-        ADV_TEMPORAL_TASK_QUEUE: "advance-clean-return",
-      } as NodeJS.ProcessEnv);
+      await runTemporalWorkerFromEnv(
+        {
+          ADV_TEMPORAL_TASK_QUEUE: "advance-clean-return",
+        } as NodeJS.ProcessEnv,
+        TEST_ARTIFACT_POLICY,
+      );
 
       vi.advanceTimersByTime(3_000);
       expect(killSpy).not.toHaveBeenCalled();
@@ -95,30 +124,16 @@ describe("temporal worker helpers", () => {
     }
   });
 
-  it("runTemporalWorker falls back to workflows.ts when workflows.js is absent in source mode", async () => {
-    await runTemporalWorker({
-      taskQueue: "advance-proj-source",
-      address: "127.0.0.1:7233",
-      namespace: "default",
-    });
-
-    expect(workerMocks.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        taskQueue: "advance-proj-source",
-        workflowsPath: expect.stringMatching(
-          /src\/temporal\/workflows\.(js|ts)$/,
-        ),
-      }),
-    );
-  });
-
   it("runTemporalWorkerFromEnv honors ADV_TEMPORAL_MULTI_QUEUE and creates one Worker per queue", async () => {
-    await runTemporalWorkerFromEnv({
-      ADV_TEMPORAL_MULTI_QUEUE: "1",
-      ADV_TEMPORAL_TASK_QUEUES: "advance-a, advance-b, advance-c",
-      ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
-      ADV_TEMPORAL_NAMESPACE: "default",
-    } as NodeJS.ProcessEnv);
+    await runTemporalWorkerFromEnv(
+      {
+        ADV_TEMPORAL_MULTI_QUEUE: "1",
+        ADV_TEMPORAL_TASK_QUEUES: "advance-a, advance-b, advance-c",
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+        ADV_TEMPORAL_NAMESPACE: "default",
+      } as NodeJS.ProcessEnv,
+      TEST_ARTIFACT_POLICY,
+    );
 
     // One connection shared across all queues.
     expect(workerMocks.connect).toHaveBeenCalledTimes(1);
@@ -150,10 +165,14 @@ describe("temporal worker helpers", () => {
         });
 
       await expect(
-        runMultiQueueTemporalWorker(["advance-a", "advance-b"], {
-          ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
-          ADV_TEMPORAL_NAMESPACE: "default",
-        } as NodeJS.ProcessEnv),
+        runMultiQueueTemporalWorker(
+          ["advance-a", "advance-b"],
+          {
+            ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+            ADV_TEMPORAL_NAMESPACE: "default",
+          } as NodeJS.ProcessEnv,
+          TEST_ARTIFACT_POLICY,
+        ),
       ).rejects.toThrow("poller failed");
 
       const messages = writes.map((line) => JSON.parse(line));
@@ -220,10 +239,14 @@ describe("temporal worker helpers", () => {
           shutdown: vi.fn(async () => {}),
         });
 
-      const runPromise = runMultiQueueTemporalWorker(["advance-a"], {
-        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
-        ADV_TEMPORAL_NAMESPACE: "default",
-      } as NodeJS.ProcessEnv);
+      const runPromise = runMultiQueueTemporalWorker(
+        ["advance-a"],
+        {
+          ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+          ADV_TEMPORAL_NAMESPACE: "default",
+        } as NodeJS.ProcessEnv,
+        TEST_ARTIFACT_POLICY,
+      );
 
       await vi.waitFor(() => expect(stdinDataHandler).toBeDefined());
       stdinDataHandler!(
@@ -287,6 +310,7 @@ describe("temporal worker helpers", () => {
         address: "127.0.0.1:7233",
         namespace: "default",
         workflowsPath: "/tmp/workflows.js",
+        artifactPolicy: TEST_ARTIFACT_POLICY,
       });
 
       expect(workerMocks.create).toHaveBeenCalledWith(
@@ -297,10 +321,14 @@ describe("temporal worker helpers", () => {
     });
 
     it("runMultiQueueTemporalWorker sets explicit shutdownGraceTime for every queue", async () => {
-      await runMultiQueueTemporalWorker(["advance-g1", "advance-g2"], {
-        ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
-        ADV_TEMPORAL_NAMESPACE: "default",
-      } as NodeJS.ProcessEnv);
+      await runMultiQueueTemporalWorker(
+        ["advance-g1", "advance-g2"],
+        {
+          ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
+          ADV_TEMPORAL_NAMESPACE: "default",
+        } as NodeJS.ProcessEnv,
+        TEST_ARTIFACT_POLICY,
+      );
 
       expect(workerMocks.create).toHaveBeenCalledTimes(2);
       for (const [opts] of workerMocks.create.mock.calls) {
@@ -596,6 +624,7 @@ describe("temporal worker helpers", () => {
       address: "127.0.0.1:7233",
       namespace: "default",
       workflowsPath: "/tmp/workflows.js",
+      artifactPolicy: TEST_ARTIFACT_POLICY,
     });
 
     expect(workerMocks.create).toHaveBeenCalledWith(

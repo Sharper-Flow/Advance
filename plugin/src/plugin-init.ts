@@ -235,7 +235,8 @@ export async function tryInitStore(
       // project queue. No peer lock / heartbeat coordination is needed here.
       const projectStateDir = productExternalRoot;
       const expectedQueue = buildProjectTaskQueue(projectId);
-      // KD-2 / rq-isolSessionTaskQueue01: when sessionId is available,
+      // KD-2 / rq-isolSessionTaskQueue01 / rq-isolSessionTaskQueue02: when
+      // sessionId is available,
       // the worker polls BOTH its own-session queue (advance-{P}-{sess})
       // and the permanent project queue (advance-{P}). The project queue
       // is co-polled for epic workflows (UD2) and legacy change workflows
@@ -295,6 +296,10 @@ export async function tryInitStore(
             address: runtime.address,
             namespace: runtime.namespace,
             queues: workerQueues,
+            artifactPolicy: {
+              mode: "production_verified",
+              bundleDir: dirname(resolveWorkerScriptPath()),
+            },
             onWorkerExhausted,
           });
           worker = spawnedWorker;
@@ -722,6 +727,10 @@ export async function restartCurrentProjectTemporalWorker(
         address: runtime.address,
         namespace: runtime.namespace,
         queues: restartWorkerQueues,
+        artifactPolicy: {
+          mode: "production_verified",
+          bundleDir: dirname(resolveWorkerScriptPath()),
+        },
         onWorkerExhausted,
       })
     : await createOutOfProcessWorker({

@@ -21,6 +21,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
 
 import { createInProcessWorker } from "../temporal/in-process-worker";
 import { createTemporalStoreBackend } from "../storage/store-temporal";
@@ -46,6 +47,13 @@ describe("P1.9 — E2E tool calls (real Temporal stack)", () => {
           address: env.address ?? "127.0.0.1:7233",
           namespace,
           queues: [taskQueue],
+          workflowsPath: fileURLToPath(
+            new URL("../temporal/workflows.ts", import.meta.url),
+          ),
+          artifactPolicy: {
+            mode: "development_source",
+            rationale: "Temporal integration test",
+          },
           connection: env.nativeConnection,
         });
 

@@ -16,6 +16,20 @@ import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
+const FAKE_WORKER = "// fake worker\n";
+const FAKE_WORKFLOWS = "// fake workflows\n";
+const FAKE_MCP_SERVER = "// fake mcp server\n";
+const FAKE_TEMPORAL_MANIFEST = JSON.stringify({
+  schema_version: 1,
+  generation: "fake",
+  files: {
+    "worker.js": createHash("sha256").update(FAKE_WORKER).digest("hex"),
+    "workflows.js": createHash("sha256")
+      .update(FAKE_WORKFLOWS)
+      .digest("hex"),
+  },
+  built_at: "2026-01-01T00:00:00.000Z",
+});
 
 // deploy-local.sh can rebuild plugin/dist before syncing runtime assets in
 // addition to copying the single ADV runtime agent and provider hint assets;
@@ -120,6 +134,10 @@ describe("overlay sync script support", () => {
       });
       writeFileSync(distPath, "// fresh dist\n");
       writeFileSync(
+        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
+        FAKE_MCP_SERVER,
+      );
+      writeFileSync(
         join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
         "// fresh worker\n",
       );
@@ -135,14 +153,43 @@ describe("overlay sync script support", () => {
           "temporal",
           "bundle-manifest.json",
         ),
-        '{"schema_version":1}\n',
+        JSON.stringify({
+          schema_version: 1,
+          generation: "fresh",
+          files: {
+            "worker.js": createHash("sha256")
+              .update("// fresh worker\n")
+              .digest("hex"),
+            "workflows.js": createHash("sha256")
+              .update("// fresh workflows\n")
+              .digest("hex"),
+          },
+          built_at: "2026-01-01T00:00:00.000Z",
+        }),
       );
       writeFileSync(
         join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
-        '{"schema_version":1,"generation":"fresh","files":{"index":"d46de8ad756e25bc85bb3589a2523f5ee15fb8ec2358640174b169c0285a7a9f"},"built_at":"2026-01-01T00:00:00.000Z"}\n',
+        JSON.stringify({
+          schema_version: 1,
+          generation: "fresh",
+          files: {
+            index: createHash("sha256")
+              .update("// fresh dist\n")
+              .digest("hex"),
+            "mcp-server": createHash("sha256")
+              .update(FAKE_MCP_SERVER)
+              .digest("hex"),
+          },
+          built_at: "2026-01-01T00:00:00.000Z",
+        }),
       );
       utimesSync(
         distPath,
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
         new Date("2030-01-01T00:00:00Z"),
         new Date("2030-01-01T00:00:00Z"),
       );
@@ -232,11 +279,13 @@ fi
 mkdir -p "$PWD/dist"
 mkdir -p "$PWD/dist/temporal"
 printf '// fake build\n' > "$PWD/dist/index.js"
+printf '// fake mcp server\n' > "$PWD/dist/mcp-server.js"
 printf '// fake worker\n' > "$PWD/dist/temporal/worker.js"
 printf '// fake workflows\n' > "$PWD/dist/temporal/workflows.js"
-printf '{"schema_version":1}\n' > "$PWD/dist/temporal/bundle-manifest.json"
-printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
+printf '%s\n' '${FAKE_TEMPORAL_MANIFEST}' > "$PWD/dist/temporal/bundle-manifest.json"
+printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad","mcp-server":"${createHash("sha256").update(FAKE_MCP_SERVER).digest("hex")}"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
 touch "$PWD/dist/index.js"
+touch "$PWD/dist/mcp-server.js"
 touch "$PWD/dist/temporal/worker.js"
 touch "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/temporal/bundle-manifest.json"
@@ -305,7 +354,10 @@ exit 0
         FAKE_PNPM_LOG: pnpmLog,
         FAKE_RSYNC_LOG: rsyncLog,
       });
-      expect(freshResult.status).toBe(0);
+      expect(
+        freshResult.status,
+        `${freshResult.stdout}${freshResult.stderr}`,
+      ).toBe(0);
       const freshPnpmLog = readFileSync(pnpmLog, "utf8");
       expect(freshPnpmLog).toContain("run generate:manifests");
       expect(freshPnpmLog).not.toContain("run build");
@@ -672,6 +724,10 @@ cp -a "$src/." "$dest/"
         "// test dist is fresh\n",
       );
       writeFileSync(
+        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
+        FAKE_MCP_SERVER,
+      );
+      writeFileSync(
         join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
         "// test worker is fresh\n",
       );
@@ -687,7 +743,19 @@ cp -a "$src/." "$dest/"
           "temporal",
           "bundle-manifest.json",
         ),
-        '{"schema_version":1}\n',
+        JSON.stringify({
+          schema_version: 1,
+          generation: "test",
+          files: {
+            "worker.js": createHash("sha256")
+              .update("// test worker is fresh\n")
+              .digest("hex"),
+            "workflows.js": createHash("sha256")
+              .update("// test workflows is fresh\n")
+              .digest("hex"),
+          },
+          built_at: "2026-01-01T00:00:00.000Z",
+        }),
       );
       writeFileSync(
         join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
@@ -699,12 +767,16 @@ cp -a "$src/." "$dest/"
             index: createHash("sha256")
               .update("// test dist is fresh\n")
               .digest("hex"),
+            "mcp-server": createHash("sha256")
+              .update(FAKE_MCP_SERVER)
+              .digest("hex"),
           },
           built_at: "2026-07-16T00:00:00.000Z",
         }),
       );
       for (const distFile of [
         join(tempWorktree, "plugin", "dist", "index.js"),
+        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
         join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
         join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
         join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
@@ -729,7 +801,7 @@ cp -a "$src/." "$dest/"
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
       });
-      expect(fixResult.status).toBe(0);
+      expect(fixResult.status, `${fixResult.stdout}${fixResult.stderr}`).toBe(0);
       const deployOutput = `${fixResult.stdout}${fixResult.stderr}`;
       const canonicalRootMatch = deployOutput.match(
         /ADV deploy-local \(fix\):\s+(.*?)\s+->/,
