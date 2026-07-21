@@ -46,7 +46,11 @@ export interface CommandDef {
   gate?: GateId;
   /** Whether the command requires a change ID argument */
   requiresChangeId: boolean;
-  /** Commands that should be completed before this one */
+  /**
+   * Command prerequisites — metadata describing expected prior commands.
+   * NOT runtime-enforced: no layer reads this array to block invocation.
+   * Advisory routing hints live in .opencode/agents/adv.md Step 1.
+   */
   prerequisites: string[];
   /** Commands to recommend after this one completes */
   successors: string[];
