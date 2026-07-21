@@ -14,7 +14,7 @@ export const DEFAULT_SLOP_SCAN_CONFIG: SlopScanConfig = {
   nesting_depth_threshold: 4,
   defensive_guard_threshold: 3,
   complexity_threshold: 10,
-  ast_timeout_ms: 10000,
+  ast_timeout_ms: 30000,
 };
 
 export type SlopScanConfigResult =

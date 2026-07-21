@@ -18,6 +18,11 @@ describe("slop-scan config", () => {
     });
   });
 
+  test("default ast_timeout_ms is 30000ms for large TS/JS trees", () => {
+    // 10s was too tight for ESLint on the full ADV plugin/ tree (~1100 files).
+    expect(DEFAULT_SLOP_SCAN_CONFIG.ast_timeout_ms).toBe(30000);
+  });
+
   test("accepts partial canonical threshold overrides", () => {
     const parsed = parseSlopScanConfig({
       nesting_depth_threshold: 6,
