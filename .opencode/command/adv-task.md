@@ -25,6 +25,7 @@ Fast-track a small, well-understood durable change through proposal, discovery, 
 Extract agreed change from conversation. Emit QUICK CONTRACT block:
 
 - **INTENT:** {1-3 sentences}
+- **ORIGIN:** {defect | non-defect | ambiguous} — classify per rq-defectOriginRca01. Defect triggers: "fix X", "X is broken", "X fails", "bug in X", "regression", "X crashes". Non-defect: "add X", "build X", "refactor X", "improve X". Ambiguous → default to defect.
 - **LBP TARGETS:** {decisions requiring validation}
 - **SCOPE:** {files/modules}
 - **USER OUTCOMES:** {user-facing outcomes}
@@ -34,11 +35,15 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 - Abort → stop
 - Confirmed → Phase 1
 
+> **Defect-origin RCA requirement (rq-defectOriginRca01):** The fast-track exemption applies to ceremony only. If ORIGIN = defect (including ambiguous defaulted to defect), Phase 1 MUST carry Root Cause Analysis (RCA) evidence in the rendered proposal content OR defer to `/adv-problem` first before `adv_change_create` is called. The fast-track does NOT bypass RCA for defects. Non-defect invocations proceed normally.
+
 ---
 ## Phase 1: Create Change
 `adv_change_create summary: "{2-5 words}" proposal: "{rendered proposal markdown}"` — include Intent, LBP Targets, Scope, and User Outcomes sections. Capture `changeId`.
 
-× Persist proposal via tool call only — no direct filesystem writes.
+> **Defect-origin guard (rq-defectOriginRca01.2):** If ORIGIN = defect, the rendered proposal markdown MUST include a `## Root Cause Analysis` section (shape mirrors `/adv-problem` output) OR the agent MUST defer to `/adv-problem` first. Fast-track does not bypass RCA. Hint: run `/adv-problem {brief}` to produce the RCA, then return with its output attached.
+
+ × Persist proposal via tool call only — no direct filesystem writes.
 ### Complete Gate
 `adv_gate_complete changeId: {id} gateId: proposal`
 
