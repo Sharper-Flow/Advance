@@ -390,7 +390,7 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 
 ## ADV State Access Policy
 
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool: change/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance artifacts under `~/.local/share/opencode/plugins/advance/**` (including legacy agenda), or locked sibling conformance dirs (`advance-conformance-{pid}/`). Path guards also block glob/grep/lgrep on locked sibling paths.
+**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool: change.json/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance artifacts under `~/.local/share/opencode/plugins/advance/**` (legacy agenda), or locked sibling conformance dirs (`advance-conformance-{pid}/`). Path guards also block glob/grep/lgrep on locked sibling paths.
 
 **ALWAYS** use ADV tools: change details/context → `adv_change_show`; task → `adv_task_show`; ready/all tasks → `adv_task_ready`/`adv_task_list`; active changes → `adv_change_list`; validation → `adv_change_validate`; wisdom → `adv_wisdom_list`; conformance → `adv_conformance action: "status"`.
 
