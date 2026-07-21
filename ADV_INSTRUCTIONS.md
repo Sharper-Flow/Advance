@@ -244,6 +244,8 @@ Each finding carries a label from `/adv-coordinate`'s inherited taxonomy: `repo_
 
 **Single HIGH-confidence `resume:archived_duplicate` action:** surface a copy-pasteable `adv_change_close ... supersededBy: <current>` snippet. User must run explicitly with their own approval evidence. **ADV does not auto-execute close.** Wording: "one-command accept (copy-paste and run)" — never "one-click" or any phrasing implying button-click auto-execution.
 
+**Session hygiene — one session per major change.** Prefer a fresh OpenCode session for each major change rather than chaining multiple `/adv-archive` cycles in one long-lived session. Long sessions accumulate large tool outputs and diffs; ADV compacts any prompt entry over the size threshold and surfaces a one-shot `[ADV:SESSION_HEALTH]` banner (`message-history` kind) warning that prior chat history is truncated and not a source of truth. The banner is informational (fires once per compaction event), but its appearance is the signal to start fresh and resume by `changeId` — durable ADV state (changes, tasks, gates, contracts) is the source of truth, not chat scrollback.
+
 
 ### MCP Tool Name Contract
 

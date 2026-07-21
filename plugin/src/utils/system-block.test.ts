@@ -602,6 +602,102 @@ describe("applyAdvSystemBlock", () => {
     expect(result.consumedWisdomPrompt).toBe(false);
   });
 
+  // ─── session-health banner one-shot (fixSessionHealthBannerNoise) ─────────
+  describe("session-health banner one-shot", () => {
+    it("AC2: fresh message-history issue emits the banner and flags surfacedMessageHistoryHealth", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted 33 oversized diff(s)",
+            detectedAt: 0,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(result.emitted).toBe(true);
+      expect(output.system[0]).toContain("[ADV:SESSION_HEALTH]");
+      expect(output.system[0]).toContain("message-history");
+      expect(result.surfacedMessageHistoryHealth).toBe(true);
+    });
+
+    it("AC1: already-surfaced message-history issue does NOT re-emit the banner", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted 33 oversized diff(s)",
+            detectedAt: 0,
+            surfaced: true,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0] ?? "").not.toContain("[ADV:SESSION_HEALTH]");
+      expect(result.surfacedMessageHistoryHealth).toBe(false);
+    });
+
+    it("AC1: surfaced message-history is suppressed but other sections still emit", () => {
+      const output = { system: [] as string[] };
+      applyAdvSystemBlock(output, {
+        state: cleanState({
+          activeChange: { id: "c1" },
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted diffs",
+            detectedAt: 0,
+            surfaced: true,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0]).toContain("[ADV] Active change: c1");
+      expect(output.system[0]).not.toContain("[ADV:SESSION_HEALTH]");
+    });
+
+    it("AC3: session.error banner is sticky — emits even when surfaced=true", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "session.error",
+            message: "session crashed",
+            detectedAt: 0,
+            surfaced: true,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0]).toContain("[ADV:SESSION_HEALTH]");
+      expect(output.system[0]).toContain("session.error");
+      // session.error never counts as message-history surfacing
+      expect(result.surfacedMessageHistoryHealth).toBe(false);
+    });
+
+    it("AC4: absent surfaced flag behaves as unsurfaced (emits + flags)", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted diffs",
+            detectedAt: 0,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0]).toContain("[ADV:SESSION_HEALTH]");
+      expect(result.surfacedMessageHistoryHealth).toBe(true);
+    });
+  });
+
   it("emits degraded banner via single entry when storeAvailable is false", () => {
     const output = { system: [] as string[] };
     applyAdvSystemBlock(output, {

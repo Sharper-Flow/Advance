@@ -1317,6 +1317,19 @@ const advancePluginImpl: Plugin = async (input) => {
         if (result.consumedWisdomPrompt) {
           state.lastCompletedTask = null;
         }
+
+        // fixSessionHealthBannerNoise: mark a message-history session-health
+        // issue as surfaced once its banner has been emitted, so the one-shot
+        // banner does not repeat every turn. A subsequent compaction event
+        // replaces lastSessionHealthIssue with a fresh (unsurfaced) issue,
+        // which re-emits once. session.error banners stay sticky and are
+        // never marked surfaced here.
+        if (
+          result.surfacedMessageHistoryHealth &&
+          state.lastSessionHealthIssue?.kind === "message-history"
+        ) {
+          state.lastSessionHealthIssue.surfaced = true;
+        }
       } catch (e) {
         debugLog(`experimental.chat.system.transform error: ${e}`);
       }
