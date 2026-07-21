@@ -1,0 +1,24 @@
+{
+  "archived_at": "2026-07-21T23:51:06.121Z",
+  "capabilities": [],
+  "change_hash": "d2e1cc0d38c9c0f88196961d382f5b54d0edb5191457842cd9de87bd1f62d028",
+  "change_id": "fixReleaseDurabilityFalse",
+  "completed_tasks": 1,
+  "created_at": "2026-07-21T23:38:25.347Z",
+  "current_gate": "done",
+  "epic_membership": {
+    "entry_id": "shell-1784579344661-9c9ziz",
+    "epic_id": "hardenTemporalReliability",
+    "linked_at": "2026-07-21T23:38:50.519Z",
+    "order": 7,
+    "source": "link_existing",
+    "title": "Fix release durability false negative"
+  },
+  "last_activity_at": "2026-07-21T23:50:53.642Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "ca09a05d1d92ec3d0a79f4f74c6f06da152e8077384aee38f00711ea6e44f12b",
+  "task_count": 1,
+  "title": "Fix release durability false negative",
+  "version": "1"
+}
