@@ -255,10 +255,10 @@ async function buildLegacyAcceptanceVariant(): Promise<string> {
 async function buildLegacyFenceVariant(): Promise<string> {
   const src = await readFile(workflowsPath, "utf8");
   const marker =
-    'const acceptanceReadinessFenceActive =\n' +
+    "const acceptanceReadinessFenceActive =\n" +
     '      payload.gateId === "acceptance" &&\n' +
-    '      wf.patched(ACCEPTANCE_READINESS_FENCE_PATCH);';
-  const replacement = 'const acceptanceReadinessFenceActive = false;';
+    "      wf.patched(ACCEPTANCE_READINESS_FENCE_PATCH);";
+  const replacement = "const acceptanceReadinessFenceActive = false;";
   if (!src.includes(marker)) {
     throw new Error(
       "Variant surgery failed: acceptance-readiness-fence block not found",
@@ -266,10 +266,7 @@ async function buildLegacyFenceVariant(): Promise<string> {
   }
   const variant = src.replace(marker, replacement);
   const variantPath = fileURLToPath(
-    new URL(
-      "../src/temporal/workflows.gen-legacy-fence.ts",
-      import.meta.url,
-    ),
+    new URL("../src/temporal/workflows.gen-legacy-fence.ts", import.meta.url),
   );
   await writeFile(variantPath, variant, "utf8");
   return variantPath;

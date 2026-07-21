@@ -101,6 +101,8 @@ import {
 import { hasGateRecoveryAudit } from "./recovery-audit";
 import {
   classifyCompletedOrPoisonedRecovery,
+  logRecoveryProbeDiagnostics,
+  shouldTakeRecoveryBranch,
   workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
@@ -793,9 +795,24 @@ async function completeGateViaRecovery(input: {
     if (blocker) return blocker;
   }
 
+  // AC3: readiness/blocker evaluation must read the durable disk projection
+  // when available. Under recovery the disk projection is authoritative; in
+  // normal operation it stays in sync via signals.
+  const diskReadinessLoad = await loadChange(
+    input.store.paths.changes,
+    input.changeId,
+  );
+  const readinessChange =
+    diskReadinessLoad.success && diskReadinessLoad.data
+      ? diskReadinessLoad.data
+      : recoveryChange;
+  const readinessGates =
+    diskReadinessLoad.success && diskReadinessLoad.data
+      ? (diskReadinessLoad.data.gates ?? createDefaultGates())
+      : recoveryGates;
   const recoveryState = buildRecoveryReadinessState({
-    change: recoveryChange,
-    gates: recoveryGates,
+    change: readinessChange,
+    gates: readinessGates,
     projectionChangesDir: input.store.paths.changes,
   });
   const readiness = evaluateGateReadiness(recoveryState, input.gateId, {
@@ -1424,6 +1441,12 @@ export const gateTools = {
         .string()
         .optional()
         .describe("Optional notes about the gate completion"),
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .describe(
+          "Recovery mode for acceptance/release gate recovery. Use 'poisoned_history' only when the workflow is poisoned or completed and precise recoveryEvidence is supplied. Defaults to 'normal'.",
+        ),
       compatibilityReason: z
         .string()
         .optional()
@@ -1464,6 +1487,7 @@ export const gateTools = {
         completedBy = "agent",
         userApproved,
         notes,
+        recoveryMode,
         compatibilityReason,
         recoveryReason,
         recoveryEvidence,
@@ -1477,6 +1501,7 @@ export const gateTools = {
         completedBy?: string;
         userApproved?: boolean;
         notes?: string;
+        recoveryMode?: "normal" | "poisoned_history";
         compatibilityReason?: string;
         recoveryReason?: string;
         recoveryEvidence?: string;
@@ -1562,6 +1587,41 @@ export const gateTools = {
           });
         }
         const handle = getChangeHandle(bundle.client, projectId, changeId);
+
+        // rq-fix-gate-tools-recovery probe-first: when the operator has
+        // supplied precise poisoned-history evidence, bypass the Temporal
+        // query/signal fire-and-forget path entirely and write the disk
+        // projection directly. Signals resolve on server acceptance, not
+        // workflow processing, so waiting for a signal throw would leave
+        // recovery unreachable for the common poison case. The catch-gated
+        // fallback below remains as defense-in-depth for the rare signal
+        // RPC error.
+        if (
+          (gateId === "acceptance" || gateId === "release") &&
+          shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence })
+        ) {
+          await logRecoveryProbeDiagnostics(handle, changeId);
+          const boundaryWarning = validateGateBoundary(gateId, completedBy);
+          return completeGateViaRecovery({
+            store: activeStore,
+            change,
+            changeId,
+            gateId,
+            gates,
+            completedBy,
+            notes,
+            compatibilityReason,
+            boundaryWarning,
+            diskDirect: true,
+            recoveryReason,
+            recoveryEvidence,
+            priorApprovalEvidence,
+            extraPayload: projectContext
+              ? { _projectContext: projectContext }
+              : {},
+          });
+        }
+
         let queriedGates: Gates | undefined;
         try {
           queriedGates = await querySignal<Gates>(
@@ -1703,6 +1763,36 @@ export const gateTools = {
             changeId,
           });
           if (blocker) return blocker;
+        }
+
+        // Probe-first recovery for the signal path: if the operator already
+        // supplied precise poisoned-history evidence, do not rely on the
+        // fire-and-forget signal (which silently resolves on poisoned replay).
+        // Write the disk projection directly and emit recovery_audit. The
+        // catch-gated fallback below remains for the rare signal RPC error.
+        if (
+          (gateId === "acceptance" || gateId === "release") &&
+          shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence })
+        ) {
+          await logRecoveryProbeDiagnostics(handle, changeId);
+          return completeGateViaRecovery({
+            store: activeStore,
+            change,
+            changeId,
+            gateId,
+            gates,
+            completedBy,
+            notes,
+            compatibilityReason,
+            boundaryWarning,
+            diskDirect: true,
+            recoveryReason,
+            recoveryEvidence,
+            priorApprovalEvidence,
+            extraPayload: projectContext
+              ? { _projectContext: projectContext }
+              : {},
+          });
         }
 
         // Signal-driven mutation: fire gateCompletedSignal after

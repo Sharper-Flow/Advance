@@ -13,6 +13,7 @@ import { changeTools } from "./change";
 import { verifyReleaseGateDurableForArchive } from "./change/archive-gate";
 import type { Store } from "../storage/store";
 import type { Change, Gates, OpsFollowupLink } from "../types";
+import * as storageJson from "../storage/json";
 
 const mocks = vi.hoisted(() => {
   const workflow = {
@@ -1482,6 +1483,79 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.finalization).toBeUndefined();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+  });
+
+  test("poisoned_history recovery bypasses Temporal read and archives from disk projection", async () => {
+    const store = createMockStore();
+    mocks.findArchiveBundle.mockResolvedValue(null);
+    const change = (await store.changes.get("example")).data as Change;
+    // If the pre-bundle Temporal read is still used, the first handler call to
+    // store.changes.get will reject and fail the archive. The later proposal load
+    // is allowed to reject because it falls back to a scaffold.
+    vi.mocked(store.changes.get)
+      .mockRejectedValueOnce(
+        Object.assign(new Error("Failed to query Workflow"), {
+          name: "WorkflowNotFoundError",
+        }),
+      )
+      .mockResolvedValue({ success: true, data: change });
+    const loadChangeSpy = vi
+      .spyOn(storageJson, "loadChange")
+      .mockResolvedValue({ success: true, data: change });
+
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        phase9: "run",
+        recoveryMode: "poisoned_history",
+        recoveryEvidence:
+          "WorkflowNotFoundError: workflow execution already completed",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    // Success proves the pre-bundle read skipped store.changes.get.
+    expect(parsed.success).toBe(true);
+    expect(loadChangeSpy).toHaveBeenCalledWith(store.paths.changes, "example");
+    expect(mocks.archiveChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        change: expect.objectContaining({ id: "example" }),
+      }),
+    );
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "example", status: "archived" }),
+    );
+
+    loadChangeSpy.mockRestore();
+  });
+
+  test("absent workflow without recovery mode still throws on archive read", async () => {
+    const store = createMockStore();
+    mocks.findArchiveBundle.mockResolvedValue(null);
+    const loadChangeSpy = vi.spyOn(storageJson, "loadChange");
+    vi.mocked(store.changes.get).mockRejectedValue(
+      Object.assign(new Error("Failed to query Workflow"), {
+        name: "WorkflowNotFoundError",
+      }),
+    );
+
+    await expect(
+      changeTools.adv_change_archive.execute(
+        {
+          changeId: "example",
+          worktreePath: "/tmp/worktree",
+          phase9: "run",
+        },
+        store,
+      ),
+    ).rejects.toThrow("Failed to query Workflow");
+
+    expect(loadChangeSpy).not.toHaveBeenCalled();
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+
+    loadChangeSpy.mockRestore();
   });
 
   // AC4: phase9_status visible in adv_change_show

@@ -75,7 +75,11 @@ import {
   RECOVERY_RECONCILIATION_WARNING,
   isPrecisePoisonedHistoryEvidence,
 } from "../temporal/recovery-classification";
-import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
+import {
+  workflowHasPoisonedRecoveryEvidence,
+  shouldTakeRecoveryBranch,
+  logRecoveryProbeDiagnostics,
+} from "./recovery-probe";
 import {
   saveRecoveredTaskAdd,
   saveRecoveredTaskMutation,
@@ -919,157 +923,187 @@ export const taskTools = {
           });
         }
 
+        // rq-extend-poisoned-recovery AC1 (probe-first): when the operator
+        // supplies precise poisoned-history evidence, take the disk-direct
+        // recovery branch BEFORE firing the signal. Temporal signals are
+        // fire-and-forget server-acceptance; they silently resolve on poisoned
+        // replay, so the catch-branch below is unreachable for the common
+        // poison case (issue #198, #253). describe() diagnostics are advisory
+        // only; recovery authority comes solely from operator-supplied
+        // recoveryEvidence (validated by shouldTakeRecoveryBranch).
         let recoveredViaPoisoned = false;
-        try {
+        const mutateRecoveredTask = (task: Task) => {
+          const patch: Partial<Task> = {
+            status: args.status,
+            ...(args.notes && { notes: args.notes }),
+            ...(args.implementation_summary && {
+              implementation_summary: args.implementation_summary,
+              summary: args.implementation_summary,
+            }),
+            ...(args.error_recovery && {
+              error_recovery: args.error_recovery,
+            }),
+            ...(args.contract_refs && {
+              contract_refs: args.contract_refs,
+            }),
+            ...(evidencePlanRepair && {
+              evidence_policy: evidencePlanRepair.policy,
+              evidence_plan: evidencePlanRepair,
+            }),
+          };
           if (args.status === "in_progress") {
-            const isFrontendTask = currentTask?.metadata?.frontend === "true";
-            const currentCycle = currentTask?.apply_cycle;
-            const applyCycle =
-              isFrontendTask &&
-              (!currentCycle || args.restartImplementationCycle === true)
-                ? {
-                    implementation_cycle_id: `ic_${randomUUID()}`,
-                    started_at: now,
-                    kind: currentCycle
-                      ? ("retry" as const)
-                      : ("initial" as const),
-                  }
-                : undefined;
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              changeId,
-              taskAssignedSignal,
-              {
-                taskId: args.taskId,
-                sessionId: "agent",
-                assignedAt: now,
-                ...(applyCycle && { applyCycle }),
-              },
-            );
-          } else if (args.status === "blocked") {
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              changeId,
-              taskBlockedSignal,
-              {
-                taskId: args.taskId,
-                reason: args.notes ?? "Task blocked",
-                attempts: args.error_recovery?.attempts ?? [],
-                blockedAt: now,
-              },
-            );
-          } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
-            const combinedText = [args.implementation_summary, args.notes]
-              .filter(Boolean)
-              .join("\n");
-            const structuredOutput =
-              existingTaskReports.length > 0
-                ? null
-                : extractStructuredOutput(combinedText);
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              changeId,
-              taskCompletedSignal,
-              {
-                taskId: args.taskId,
-                verification:
-                  args.notes ??
-                  args.implementation_summary ??
-                  "Task marked done via adv_task_update",
-                summary:
-                  args.implementation_summary ?? args.notes ?? "Task completed",
-                filesTouched: [],
-                completedAt: now,
-                ...(structuredOutput && {
-                  structured_output: structuredOutput,
-                }),
-              },
-            );
-          } else {
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              changeId,
-              taskUpdatedSignal,
-              {
-                taskId: args.taskId,
-                partial: {
-                  status: args.status,
-                  ...(args.notes && { notes: args.notes }),
-                  ...(args.implementation_summary && {
-                    implementation_summary: args.implementation_summary,
-                  }),
-                  ...(args.error_recovery && {
-                    error_recovery: args.error_recovery,
-                  }),
-                  ...(args.contract_refs && {
-                    contract_refs: args.contract_refs,
-                  }),
-                  ...(evidencePlanRepair && {
-                    evidence_policy: evidencePlanRepair.policy,
-                    evidence_plan: evidencePlanRepair,
-                  }),
-                },
-                updatedAt: now,
-              },
+            patch.assignedTo = "agent";
+            patch.started_at = task.started_at ?? now;
+          } else if (args.status === "done") {
+            patch.completed_at = now;
+            patch.completedAt = now;
+            patch.verification =
+              args.notes ??
+              args.implementation_summary ??
+              "Task marked done via adv_task_update (poisoned-history recovery)";
+          }
+          return { ...task, ...patch } as Task;
+        };
+        if (shouldTakeRecoveryBranch(args)) {
+          await logRecoveryProbeDiagnostics(handle, changeId);
+          const changeResult = await activeStore.changes.get(changeId);
+          if (!changeResult.success || !changeResult.data) {
+            throw new Error(
+              `Cannot recover task ${args.taskId}: change ${changeId} not found`,
             );
           }
-        } catch (signalError) {
-          // rq-extend-poisoned-recovery AC1: disk-projection fallback when
-          // workflow is poisoned. Requires explicit recoveryMode + precise
-          // evidence + describe-confirmed signature.
-          if (
-            args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedRecoveryEvidence(handle))
-          ) {
-            const changeResult = await activeStore.changes.get(changeId);
-            if (!changeResult.success || !changeResult.data) {
-              throw signalError;
-            }
-            const change = changeResult.data;
-            await saveRecoveredTaskMutation({
-              store: activeStore,
-              change,
-              taskId: args.taskId,
-              mutate: (task) => {
-                const patch: Partial<Task> = {
-                  status: args.status,
-                  ...(args.notes && { notes: args.notes }),
-                  ...(args.implementation_summary && {
-                    implementation_summary: args.implementation_summary,
-                    summary: args.implementation_summary,
-                  }),
-                  ...(args.error_recovery && {
-                    error_recovery: args.error_recovery,
-                  }),
-                  ...(args.contract_refs && {
-                    contract_refs: args.contract_refs,
-                  }),
-                  ...(evidencePlanRepair && {
-                    evidence_policy: evidencePlanRepair.policy,
-                    evidence_plan: evidencePlanRepair,
-                  }),
-                };
-                if (args.status === "in_progress") {
-                  patch.assignedTo = "agent";
-                  patch.started_at = task.started_at ?? now;
-                } else if (args.status === "done") {
-                  patch.completed_at = now;
-                  patch.completedAt = now;
-                  patch.verification =
+          await saveRecoveredTaskMutation({
+            store: activeStore,
+            change: changeResult.data,
+            taskId: args.taskId,
+            mutate: mutateRecoveredTask,
+          });
+          recoveredViaPoisoned = true;
+        }
+
+        if (!recoveredViaPoisoned) {
+          try {
+            if (args.status === "in_progress") {
+              const isFrontendTask = currentTask?.metadata?.frontend === "true";
+              const currentCycle = currentTask?.apply_cycle;
+              const applyCycle =
+                isFrontendTask &&
+                (!currentCycle || args.restartImplementationCycle === true)
+                  ? {
+                      implementation_cycle_id: `ic_${randomUUID()}`,
+                      started_at: now,
+                      kind: currentCycle
+                        ? ("retry" as const)
+                        : ("initial" as const),
+                    }
+                  : undefined;
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                changeId,
+                taskAssignedSignal,
+                {
+                  taskId: args.taskId,
+                  sessionId: "agent",
+                  assignedAt: now,
+                  ...(applyCycle && { applyCycle }),
+                },
+              );
+            } else if (args.status === "blocked") {
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                changeId,
+                taskBlockedSignal,
+                {
+                  taskId: args.taskId,
+                  reason: args.notes ?? "Task blocked",
+                  attempts: args.error_recovery?.attempts ?? [],
+                  blockedAt: now,
+                },
+              );
+            } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
+              const combinedText = [args.implementation_summary, args.notes]
+                .filter(Boolean)
+                .join("\n");
+              const structuredOutput =
+                existingTaskReports.length > 0
+                  ? null
+                  : extractStructuredOutput(combinedText);
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                changeId,
+                taskCompletedSignal,
+                {
+                  taskId: args.taskId,
+                  verification:
                     args.notes ??
                     args.implementation_summary ??
-                    "Task marked done via adv_task_update (poisoned-history recovery)";
-                }
-                return { ...task, ...patch } as Task;
-              },
-            });
-            recoveredViaPoisoned = true;
-          } else {
-            throw signalError;
+                    "Task marked done via adv_task_update",
+                  summary:
+                    args.implementation_summary ??
+                    args.notes ??
+                    "Task completed",
+                  filesTouched: [],
+                  completedAt: now,
+                  ...(structuredOutput && {
+                    structured_output: structuredOutput,
+                  }),
+                },
+              );
+            } else {
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                changeId,
+                taskUpdatedSignal,
+                {
+                  taskId: args.taskId,
+                  partial: {
+                    status: args.status,
+                    ...(args.notes && { notes: args.notes }),
+                    ...(args.implementation_summary && {
+                      implementation_summary: args.implementation_summary,
+                    }),
+                    ...(args.error_recovery && {
+                      error_recovery: args.error_recovery,
+                    }),
+                    ...(args.contract_refs && {
+                      contract_refs: args.contract_refs,
+                    }),
+                    ...(evidencePlanRepair && {
+                      evidence_policy: evidencePlanRepair.policy,
+                      evidence_plan: evidencePlanRepair,
+                    }),
+                  },
+                  updatedAt: now,
+                },
+              );
+            }
+          } catch (signalError) {
+            // rq-extend-poisoned-recovery AC1: disk-projection fallback when
+            // workflow is poisoned. Requires explicit recoveryMode + precise
+            // evidence + describe-confirmed signature.
+            if (
+              args.recoveryMode === "poisoned_history" &&
+              (await workflowHasPoisonedRecoveryEvidence(handle))
+            ) {
+              const changeResult = await activeStore.changes.get(changeId);
+              if (!changeResult.success || !changeResult.data) {
+                throw signalError;
+              }
+              const change = changeResult.data;
+              await saveRecoveredTaskMutation({
+                store: activeStore,
+                change,
+                taskId: args.taskId,
+                mutate: mutateRecoveredTask,
+              });
+              recoveredViaPoisoned = true;
+            } else {
+              throw signalError;
+            }
           }
         }
 
@@ -1407,35 +1441,62 @@ export const taskTools = {
         }
 
         let recoveredViaPoisoned = false;
-        try {
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            changeId,
-            taskAddedSignal,
-            {
-              task,
-              addedAt: now,
-            },
-          );
-        } catch (signalError) {
-          // rq-extend-poisoned-recovery AC2: disk-projection fallback for add.
-          if (
-            args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedRecoveryEvidence(handle))
-          ) {
-            const changeResult = await activeStore.changes.get(changeId);
-            if (!changeResult.success || !changeResult.data) {
+
+        // rq-extend-poisoned-recovery AC2 (probe-first): when the operator
+        // supplies precise poisoned-history evidence, take the disk-direct
+        // recovery branch BEFORE firing the signal. Temporal signals are
+        // fire-and-forget server-acceptance; they silently resolve on poisoned
+        // replay, so the catch-branch below is unreachable for the common
+        // poison case (issue #198, #253). describe() diagnostics are advisory
+        // only; recovery authority comes solely from operator-supplied
+        // recoveryEvidence (validated by shouldTakeRecoveryBranch).
+        if (shouldTakeRecoveryBranch(args)) {
+          await logRecoveryProbeDiagnostics(handle, changeId);
+          const changeResult = await activeStore.changes.get(changeId);
+          if (!changeResult.success || !changeResult.data) {
+            throw new Error(
+              `Cannot recover-add task for change ${changeId}: change not found`,
+            );
+          }
+          await saveRecoveredTaskAdd({
+            store: activeStore,
+            change: changeResult.data,
+            task,
+          });
+          recoveredViaPoisoned = true;
+        }
+
+        if (!recoveredViaPoisoned) {
+          try {
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              changeId,
+              taskAddedSignal,
+              {
+                task,
+                addedAt: now,
+              },
+            );
+          } catch (signalError) {
+            // rq-extend-poisoned-recovery AC2: disk-projection fallback for add.
+            if (
+              args.recoveryMode === "poisoned_history" &&
+              (await workflowHasPoisonedRecoveryEvidence(handle))
+            ) {
+              const changeResult = await activeStore.changes.get(changeId);
+              if (!changeResult.success || !changeResult.data) {
+                throw signalError;
+              }
+              await saveRecoveredTaskAdd({
+                store: activeStore,
+                change: changeResult.data,
+                task,
+              });
+              recoveredViaPoisoned = true;
+            } else {
               throw signalError;
             }
-            await saveRecoveredTaskAdd({
-              store: activeStore,
-              change: changeResult.data,
-              task,
-            });
-            recoveredViaPoisoned = true;
-          } else {
-            throw signalError;
           }
         }
 
@@ -1650,45 +1711,72 @@ export const taskTools = {
 
           try {
             const handle = await getHandleForChangeId(activeStore, changeId);
-            try {
-              await fireSignalAndRefresh(
-                handle,
-                activeStore,
-                changeId,
-                taskCancelledSignal,
-                {
-                  taskId,
-                  approvalEvidence,
-                  reason: reasons[taskId],
-                  cancelledAt: now,
-                },
-              );
-            } catch (signalError) {
-              // rq-extend-poisoned-recovery AC3: disk-projection fallback
-              // for cancel when workflow is poisoned.
-              if (
-                args.recoveryMode === "poisoned_history" &&
-                (await workflowHasPoisonedRecoveryEvidence(handle))
-              ) {
-                const changeResult = await activeStore.changes.get(changeId);
-                if (!changeResult.success || !changeResult.data) {
+            const mutateCancelledTask = (task: Task) =>
+              ({
+                ...task,
+                status: "cancelled",
+                completed_at: now,
+                completedAt: now,
+                notes: reasons[taskId],
+              }) as Task;
+
+            // rq-extend-poisoned-recovery AC3 (probe-first): when the operator
+            // supplies precise poisoned-history evidence, take the disk-direct
+            // recovery branch BEFORE firing the signal. Temporal signals are
+            // fire-and-forget server-acceptance; they silently resolve on
+            // poisoned replay, so the catch-branch below is unreachable for the
+            // common poison case (issue #198, #253). describe() diagnostics are
+            // advisory only; recovery authority comes solely from
+            // operator-supplied recoveryEvidence (validated by
+            // shouldTakeRecoveryBranch).
+            if (shouldTakeRecoveryBranch(args)) {
+              await logRecoveryProbeDiagnostics(handle, changeId);
+              const changeResult = await activeStore.changes.get(changeId);
+              if (!changeResult.success || !changeResult.data) {
+                throw new Error(
+                  `Cannot recover-cancel task ${taskId}: change ${changeId} not found`,
+                );
+              }
+              await saveRecoveredTaskMutation({
+                store: activeStore,
+                change: changeResult.data,
+                taskId,
+                mutate: mutateCancelledTask,
+              });
+            } else {
+              try {
+                await fireSignalAndRefresh(
+                  handle,
+                  activeStore,
+                  changeId,
+                  taskCancelledSignal,
+                  {
+                    taskId,
+                    approvalEvidence,
+                    reason: reasons[taskId],
+                    cancelledAt: now,
+                  },
+                );
+              } catch (signalError) {
+                // rq-extend-poisoned-recovery AC3: disk-projection fallback
+                // for cancel when workflow is poisoned.
+                if (
+                  args.recoveryMode === "poisoned_history" &&
+                  (await workflowHasPoisonedRecoveryEvidence(handle))
+                ) {
+                  const changeResult = await activeStore.changes.get(changeId);
+                  if (!changeResult.success || !changeResult.data) {
+                    throw signalError;
+                  }
+                  await saveRecoveredTaskMutation({
+                    store: activeStore,
+                    change: changeResult.data,
+                    taskId,
+                    mutate: mutateCancelledTask,
+                  });
+                } else {
                   throw signalError;
                 }
-                await saveRecoveredTaskMutation({
-                  store: activeStore,
-                  change: changeResult.data,
-                  taskId,
-                  mutate: (task) =>
-                    ({
-                      ...task,
-                      status: "cancelled",
-                      completed_at: now,
-                      completedAt: now,
-                      notes: reasons[taskId],
-                    }) as Task,
-                });
-              } else {
-                throw signalError;
               }
             }
             results.push({ taskId, success: true });

@@ -40,7 +40,11 @@ const OPS: BenchmarkOp[] = [
   "adv_wisdom_add",
 ];
 
-const MODES: BenchmarkMode[] = ["cold-start", "warm-interactive", "repeated-command"];
+const MODES: BenchmarkMode[] = [
+  "cold-start",
+  "warm-interactive",
+  "repeated-command",
+];
 
 function sampleCount(op: BenchmarkOp): number {
   return op === "adv_status" || op === "adv_change_list" ? 30 : 20;
@@ -55,13 +59,20 @@ async function main() {
   console.error(`[BENCH-EXEC] Output: ${outputDir}`);
 
   // Check env
-  if (process.env.ADV_DISABLE_TEMPORAL || process.env.ADV_ALLOW_DEGRADED_FALLBACK) {
-    console.error("[BENCH-EXEC] Error: bypass flags must not be set for Temporal benchmarking");
+  if (
+    process.env.ADV_DISABLE_TEMPORAL ||
+    process.env.ADV_ALLOW_DEGRADED_FALLBACK
+  ) {
+    console.error(
+      "[BENCH-EXEC] Error: bypass flags must not be set for Temporal benchmarking",
+    );
     process.exit(1);
   }
 
   // Create stress fixture
-  console.error("[BENCH-EXEC] Creating stress fixture (50 changes × 30 tasks)...");
+  console.error(
+    "[BENCH-EXEC] Creating stress fixture (50 changes × 30 tasks)...",
+  );
   const fixtureRoot = join(outputDir, "fixture");
   const fixture = await createBenchmarkFixture({
     externalRoot: fixtureRoot,
@@ -140,7 +151,9 @@ async function main() {
   }
 
   // Stress run: adv_status + adv_change_list with 50-change fixture
-  console.error("[BENCH-EXEC] Stress run: repeated-command with 50-change fixture");
+  console.error(
+    "[BENCH-EXEC] Stress run: repeated-command with 50-change fixture",
+  );
   for (const op of ["adv_status", "adv_change_list"] as BenchmarkOp[]) {
     const adapter = createBoundOpAdapter(op, fixtureRoot);
     const startedAt = new Date().toISOString();
@@ -175,9 +188,15 @@ async function main() {
   await writeFile(samplesPath, lines + "\n", "utf-8");
 
   const summaryPath = join(outputDir, "summary.json");
-  await writeFile(summaryPath, JSON.stringify({ runId, records }, null, 2), "utf-8");
+  await writeFile(
+    summaryPath,
+    JSON.stringify({ runId, records }, null, 2),
+    "utf-8",
+  );
 
-  console.error(`[BENCH-EXEC] Wrote ${allSamples.length} samples to ${samplesPath}`);
+  console.error(
+    `[BENCH-EXEC] Wrote ${allSamples.length} samples to ${samplesPath}`,
+  );
   console.error(`[BENCH-EXEC] Wrote summary to ${summaryPath}`);
   console.error("[BENCH-EXEC] Done.");
 }

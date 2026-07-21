@@ -586,9 +586,7 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     // that the first refresh invocation occurs AFTER at least one query
     // returned doneGate — proving refresh was sequenced after the poll
     // observed done, not before.
-    type LogEntry =
-      | { kind: "query"; result: unknown }
-      | { kind: "refresh" };
+    type LogEntry = { kind: "query"; result: unknown } | { kind: "refresh" };
     const invocationLog: LogEntry[] = [];
 
     // Sequence models the race window:

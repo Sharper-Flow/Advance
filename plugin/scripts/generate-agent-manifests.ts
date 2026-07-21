@@ -211,7 +211,10 @@ export function generateManifestContent(
   const markers = findMarkerLines(lines);
 
   if (markers) {
-    const originalRegion = lines.slice(markers.startIndex + 1, markers.endIndex);
+    const originalRegion = lines.slice(
+      markers.startIndex + 1,
+      markers.endIndex,
+    );
     const generated = generateAdvToolsBlock(agent);
     const merged = mergeRegionWithGenerated(originalRegion, generated, agent);
     const before = lines.slice(0, markers.startIndex + 1);

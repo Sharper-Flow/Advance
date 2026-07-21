@@ -16,7 +16,11 @@ import {
   MutationApplicationUnconfirmedError,
 } from "./_adapters";
 import { saveRecoveredDesignConcernDisposition } from "./_recovery-writers";
-import { classifyCompletedOrPoisonedRecovery } from "./recovery-probe";
+import {
+  classifyCompletedOrPoisonedRecovery,
+  logRecoveryProbeDiagnostics,
+  shouldTakeRecoveryBranch,
+} from "./recovery-probe";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -154,6 +158,36 @@ async function executeDisposition(
 
   const handle = await getChangeHandleForChangeId(store, args.changeId);
   const mutationReceiptId = `mrec_${randomUUID()}`;
+  // rq-extend-poisoned-recovery AC5 (probe-first): when the operator supplies
+  // precise poisoned-history evidence, take the disk-direct recovery branch
+  // BEFORE firing the signal. Temporal signals are fire-and-forget server-
+  // acceptance; they silently resolve on poisoned replay, so the catch-branch
+  // below is unreachable for the common poison case (issue #198, #253).
+  // describe() diagnostics are advisory only; recovery authority comes solely
+  // from operator-supplied recoveryEvidence (validated by shouldTakeRecoveryBranch).
+  if (shouldTakeRecoveryBranch(args)) {
+    await logRecoveryProbeDiagnostics(handle, args.changeId);
+    await saveRecoveredDesignConcernDisposition({
+      store,
+      change,
+      authorization: {
+        reason: args.recoveryReason?.trim() ?? "poisoned_history",
+        evidence: args.recoveryEvidence?.trim() ?? "<missing>",
+      },
+      disposition,
+    });
+    return formatToolOutput({
+      success: true,
+      changeId: args.changeId,
+      disposition,
+      _recoveryMutation: true,
+      recovered: true,
+      recoveryMode: "poisoned_history",
+      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+      note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
+      ...proj,
+    });
+  }
   try {
     await fireSignalAndRefresh(
       handle,

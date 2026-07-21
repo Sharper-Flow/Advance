@@ -28,7 +28,11 @@ const __dirname = dirname(__filename);
 /* Types                                                              */
 /* ------------------------------------------------------------------ */
 
-export type BenchmarkMode = "cold-start" | "warm-interactive" | "repeated-command" | "concurrent-clients";
+export type BenchmarkMode =
+  | "cold-start"
+  | "warm-interactive"
+  | "repeated-command"
+  | "concurrent-clients";
 export type BenchmarkOp =
   | "adv_status"
   | "adv_change_list"
@@ -161,7 +165,9 @@ function parseArgs(argv: string[]): {
 /* Env guards (D3)                                                    */
 /* ------------------------------------------------------------------ */
 
-export function checkEnvBypass(): { ok: true } | { ok: false; remediation: string } {
+export function checkEnvBypass():
+  | { ok: true }
+  | { ok: false; remediation: string } {
   // Temporal is the only runtime mode; no bypass flags exist.
   return { ok: true };
 }
@@ -170,7 +176,10 @@ export function checkEnvBypass(): { ok: true } | { ok: false; remediation: strin
 /* Timing helper                                                      */
 /* ------------------------------------------------------------------ */
 
-export async function time<T>(label: string, fn: () => Promise<T>): Promise<{ result: T; duration_ns: number }> {
+export async function time<T>(
+  label: string,
+  fn: () => Promise<T>,
+): Promise<{ result: T; duration_ns: number }> {
   const start = process.hrtime.bigint();
   const result = await fn();
   const end = process.hrtime.bigint();
@@ -189,7 +198,9 @@ export interface ContaminationContext {
   fallbackCount: number;
 }
 
-export function classifyContamination(ctx: ContaminationContext): ContaminationTag {
+export function classifyContamination(
+  ctx: ContaminationContext,
+): ContaminationTag {
   // Priority 1: per-op fallback counter (explicit legacy path invocation)
   if (ctx.fallbackCount > 0) {
     return "fallback";
@@ -198,7 +209,7 @@ export function classifyContamination(ctx: ContaminationContext): ContaminationT
   // Priority 2: operation threw — classify the error
   if (ctx.opError != null) {
     const errorText = String(
-      ctx.opError instanceof Error ? ctx.opError.message : ctx.opError
+      ctx.opError instanceof Error ? ctx.opError.message : ctx.opError,
     );
     // Retry-exhausted: we see an error but retry telemetry shows a recent success
     // (meaning retries were attempted and eventually succeeded or the error is post-retry)
@@ -206,7 +217,9 @@ export function classifyContamination(ctx: ContaminationContext): ContaminationT
       return "retry-exhausted";
     }
     // Server-unreachable: connection-level failure
-    if (/ECONNREFUSED|connection refused|unreachable|Unavailable/i.test(errorText)) {
+    if (
+      /ECONNREFUSED|connection refused|unreachable|Unavailable/i.test(errorText)
+    ) {
       return "server-unreachable";
     }
     return "unknown";
@@ -254,21 +267,23 @@ export async function runColdStart(
 
     // Spawn a fresh child process per sample so bundle/connection caches
     // cannot be reused. The child runs --single-shot and emits JSON.
-    const child = spawn(process.execPath, [
-      "--import",
-      "tsx",
-      __filename,
-      `--op=${op}`,
-      "--single-shot",
-    ], {
-      env: { ...process.env, BENCH_CHILD_RUN_ID: `${runId}-${i}` },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(
+      process.execPath,
+      ["--import", "tsx", __filename, `--op=${op}`, "--single-shot"],
+      {
+        env: { ...process.env, BENCH_CHILD_RUN_ID: `${runId}-${i}` },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
 
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (d) => { stdout += d; });
-    child.stderr.on("data", (d) => { stderr += d; });
+    child.stdout.on("data", (d) => {
+      stdout += d;
+    });
+    child.stderr.on("data", (d) => {
+      stderr += d;
+    });
 
     const exitCode = await new Promise<number>((resolve) => {
       child.on("close", resolve);
@@ -417,7 +432,10 @@ export async function runRepeatedCommand(
 /* Single-shot execution (used by cold-start child processes)         */
 /* ------------------------------------------------------------------ */
 
-export async function runSingleShot(op: BenchmarkOp, adapter: OpAdapter): Promise<BenchmarkSample> {
+export async function runSingleShot(
+  op: BenchmarkOp,
+  adapter: OpAdapter,
+): Promise<BenchmarkSample> {
   const runId = `single-${Date.now()}`;
   const startedAt = new Date().toISOString();
 
@@ -453,16 +471,14 @@ export async function runSingleShot(op: BenchmarkOp, adapter: OpAdapter): Promis
 /* Concurrent-clients runner (A4)                                     */
 /* ------------------------------------------------------------------ */
 
-export async function runConcurrentClients(
-  opts: {
-    clients: number;
-    durationSec: number;
-    ops?: string[];
-    projectDir?: string;
-    /** Test-only: skip connection.close() so caller manages lifecycle. */
-    skipConnectionClose?: boolean;
-  },
-): Promise<ConcurrentClientResult> {
+export async function runConcurrentClients(opts: {
+  clients: number;
+  durationSec: number;
+  ops?: string[];
+  projectDir?: string;
+  /** Test-only: skip connection.close() so caller manages lifecycle. */
+  skipConnectionClose?: boolean;
+}): Promise<ConcurrentClientResult> {
   const {
     clients,
     durationSec,
@@ -480,9 +496,8 @@ export async function runConcurrentClients(
   // Dynamic imports so the script can be parsed without src/ modules
   let getBoundedProjectWorkflowAccess: unknown;
   try {
-    ({ getBoundedProjectWorkflowAccess } = await import(
-      "../src/tools/project-workflow-helper.ts"
-    ));
+    ({ getBoundedProjectWorkflowAccess } =
+      await import("../src/tools/project-workflow-helper.ts"));
   } catch {
     // project-workflow-helper was retired along with projectWorkflow.
     return {
@@ -611,63 +626,66 @@ export async function runConcurrentClients(
     },
   };
 
-  const clientPromises = Array.from({ length: clients }, async (_, clientId) => {
-    let counter = 0;
-    const lastVersion = new Map<string, number>();
+  const clientPromises = Array.from(
+    { length: clients },
+    async (_, clientId) => {
+      let counter = 0;
+      const lastVersion = new Map<string, number>();
 
-    while (Date.now() < endTime) {
-      const op = ops[Math.floor(Math.random() * ops.length)];
-      const startedAt = Date.now();
-      counter++;
+      while (Date.now() < endTime) {
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        const startedAt = Date.now();
+        counter++;
 
-      try {
-        const dispatcher = dispatchers[op];
-        if (!dispatcher) {
-          throw new Error(`Unknown op: ${op}`);
-        }
-
-        const { source_version_observed } = await dispatcher(
-          temporal.handle,
-          clientId,
-          counter,
-        );
-
-        const endedAt = Date.now();
-
-        records.push({
-          clientId,
-          op,
-          startedAt,
-          endedAt,
-          source_version_observed,
-        });
-
-        if (source_version_observed !== undefined) {
-          const prev = lastVersion.get(op);
-          if (prev !== undefined && source_version_observed <= prev) {
-            lostUpdates.push({
-              clientId,
-              op,
-              prevVersion: prev,
-              nextVersion: source_version_observed,
-            });
+        try {
+          const dispatcher = dispatchers[op];
+          if (!dispatcher) {
+            throw new Error(`Unknown op: ${op}`);
           }
-          lastVersion.set(op, source_version_observed);
+
+          const { source_version_observed } = await dispatcher(
+            temporal.handle,
+            clientId,
+            counter,
+          );
+
+          const endedAt = Date.now();
+
+          records.push({
+            clientId,
+            op,
+            startedAt,
+            endedAt,
+            source_version_observed,
+          });
+
+          if (source_version_observed !== undefined) {
+            const prev = lastVersion.get(op);
+            if (prev !== undefined && source_version_observed <= prev) {
+              lostUpdates.push({
+                clientId,
+                op,
+                prevVersion: prev,
+                nextVersion: source_version_observed,
+              });
+            }
+            lastVersion.set(op, source_version_observed);
+          }
+        } catch (err) {
+          const endedAt = Date.now();
+          const message = err instanceof Error ? err.message : String(err);
+          records.push({
+            clientId,
+            op,
+            startedAt,
+            endedAt,
+            error: message,
+          });
+          errors.push({ clientId, op, message });
         }
-      } catch (err) {
-        const endedAt = Date.now();
-        const message = err instanceof Error ? err.message : String(err);
-        records.push({
-          clientId,
-          op,
-          startedAt,
-          endedAt,
-          error: message,
-        });
-        errors.push({ clientId, op, message });
       }
-    }
-  });
+    },
+  );
 
   await Promise.all(clientPromises);
 
@@ -823,8 +841,8 @@ export async function createBenchmarkFixture(
 /* ------------------------------------------------------------------ */
 
 export interface PromoteSegmentTiming {
-  seg1_change_level_ns: number;   // store.wisdom.add
-  seg2_project_level_ns: number;  // getProjectWorkflowHandle + update + query + writeJsonlAtomic
+  seg1_change_level_ns: number; // store.wisdom.add
+  seg2_project_level_ns: number; // getProjectWorkflowHandle + update + query + writeJsonlAtomic
   end_to_end_ns: number;
 }
 
@@ -882,9 +900,12 @@ export async function runPromotePipeline(
   let warning: string | undefined;
 
   try {
-    const { getBoundedProjectWorkflowAccess } = await import("../src/tools/project-workflow-helper.ts");
-    const { addProjectWisdomUpdate, projectWisdomQuery } = await import("../src/temporal/messages.ts");
-    const { writeJsonlAtomic } = await import("../src/storage/jsonl-atomic-writer.ts");
+    const { getBoundedProjectWorkflowAccess } =
+      await import("../src/tools/project-workflow-helper.ts");
+    const { addProjectWisdomUpdate, projectWisdomQuery } =
+      await import("../src/temporal/messages.ts");
+    const { writeJsonlAtomic } =
+      await import("../src/storage/jsonl-atomic-writer.ts");
     const promotableEntry = asPromotableWisdomEntry(entry);
 
     if (!promotableEntry) {
@@ -898,15 +919,20 @@ export async function runPromotePipeline(
 
     if (temporal.mode === "workflow-backed") {
       promoted = await temporal.handle.executeUpdate(addProjectWisdomUpdate, {
-        args: [{
-          type: promotableEntry.type,
-          content: promotableEntry.content,
-          sourceChange: changeId,
-          sourceTask: promotableEntry.source_task,
-        }],
+        args: [
+          {
+            type: promotableEntry.type,
+            content: promotableEntry.content,
+            sourceChange: changeId,
+            sourceTask: promotableEntry.source_task,
+          },
+        ],
       });
 
-      const latest = await temporal.handle.query(projectWisdomQuery, undefined) as Array<{
+      const latest = (await temporal.handle.query(
+        projectWisdomQuery,
+        undefined,
+      )) as Array<{
         id: string;
         type: string;
         content: string;
@@ -1046,13 +1072,19 @@ export function createBoundOpAdapter(
 /* Stats                                                              */
 /* ------------------------------------------------------------------ */
 
-export function computeStats(samples: number[]): { p50_ns: number; p95_ns: number; max_ns: number } {
+export function computeStats(samples: number[]): {
+  p50_ns: number;
+  p95_ns: number;
+  max_ns: number;
+} {
   if (samples.length === 0) {
     return { p50_ns: 0, p95_ns: 0, max_ns: 0 };
   }
   const sorted = [...samples].sort((a, b) => a - b);
-  const p50 = sorted[Math.floor(sorted.length * 0.5)] ?? sorted[sorted.length - 1];
-  const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1];
+  const p50 =
+    sorted[Math.floor(sorted.length * 0.5)] ?? sorted[sorted.length - 1];
+  const p95 =
+    sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1];
   const max = sorted[sorted.length - 1];
   return { p50_ns: p50, p95_ns: p95, max_ns: max };
 }
@@ -1068,8 +1100,10 @@ async function collectHealthAndTelemetry(): Promise<{
   // These imports are dynamic so the scaffold can be parsed even when
   // the src/ modules aren't resolvable (e.g. in a bare Node context).
   try {
-    const { getTemporalHealth } = await import("../src/temporal/health-probe.ts");
-    const { getTemporalRetryTelemetry } = await import("../src/temporal/retry-wrapper.ts");
+    const { getTemporalHealth } =
+      await import("../src/temporal/health-probe.ts");
+    const { getTemporalRetryTelemetry } =
+      await import("../src/temporal/retry-wrapper.ts");
 
     const [health, retry] = await Promise.all([
       getTemporalHealth().catch(() => null),
@@ -1092,7 +1126,9 @@ async function collectHealthAndTelemetry(): Promise<{
 /* Path validation                                                    */
 /* ------------------------------------------------------------------ */
 
-export function validateOutputDir(input?: string): { ok: true; path: string } | { ok: false; reason: string } {
+export function validateOutputDir(
+  input?: string,
+): { ok: true; path: string } | { ok: false; reason: string } {
   if (!input) {
     return { ok: true, path: join(process.cwd(), "temp", "bench") };
   }
@@ -1103,12 +1139,22 @@ export function validateOutputDir(input?: string): { ok: true; path: string } | 
 
   // Reject paths that escape cwd or temp root (catches traversal after normalization)
   if (!resolved.startsWith(cwd) && !resolved.startsWith(tempRoot)) {
-    return { ok: false, reason: `outputDir escapes cwd/temp root (possible traversal). Got: ${input}` };
+    return {
+      ok: false,
+      reason: `outputDir escapes cwd/temp root (possible traversal). Got: ${input}`,
+    };
   }
 
   // Reject obvious unresolved traversal patterns in raw input
-  if (input.includes("..") || input.startsWith("/") || /^[a-zA-Z]:/.test(input)) {
-    return { ok: false, reason: `outputDir contains unsafe path pattern. Got: ${input}` };
+  if (
+    input.includes("..") ||
+    input.startsWith("/") ||
+    /^[a-zA-Z]:/.test(input)
+  ) {
+    return {
+      ok: false,
+      reason: `outputDir contains unsafe path pattern. Got: ${input}`,
+    };
   }
 
   return { ok: true, path: resolved };
@@ -1152,21 +1198,29 @@ async function main(): Promise<void> {
   if (args.mode === "concurrent-clients") {
     const clients = args.clients ?? 5;
     const duration = args.duration ?? 30;
-    console.error(`[BENCH] Starting concurrent-clients: ${clients} clients × ${duration}s`);
+    console.error(
+      `[BENCH] Starting concurrent-clients: ${clients} clients × ${duration}s`,
+    );
     const result = await runConcurrentClients({
       clients,
       durationSec: duration,
     });
     console.log(JSON.stringify(result, null, 2));
-    console.error(`[BENCH] Concurrent-clients complete. Total ops: ${result.totalOps}`);
+    console.error(
+      `[BENCH] Concurrent-clients complete. Total ops: ${result.totalOps}`,
+    );
     return;
   }
 
   // Full benchmark mode
   if (!args.mode || !args.op) {
     console.error("Usage:");
-    console.error("  --mode=cold-start|warm-interactive|repeated-command|concurrent-clients");
-    console.error("  --op=adv_status|adv_change_list|adv_change_show|adv_task_list|adv_task_show|adv_wisdom_add");
+    console.error(
+      "  --mode=cold-start|warm-interactive|repeated-command|concurrent-clients",
+    );
+    console.error(
+      "  --op=adv_status|adv_change_list|adv_change_show|adv_task_list|adv_task_show|adv_wisdom_add",
+    );
     console.error("  [--samples=N] [--gapMs=N] [--outputDir=path]");
     console.error("Or for concurrent-clients:");
     console.error("  --mode=concurrent-clients --clients=N --duration=SECONDS");
@@ -1177,7 +1231,8 @@ async function main(): Promise<void> {
 
   const mode = args.mode;
   const op = args.op;
-  const samples = args.samples ?? (op === "adv_status" || op === "adv_change_list" ? 30 : 20);
+  const samples =
+    args.samples ?? (op === "adv_status" || op === "adv_change_list" ? 30 : 20);
   const gapMs = args.gapMs ?? 750;
   const runId = `${mode}-${op}-${Date.now()}`;
 
@@ -1200,7 +1255,12 @@ async function main(): Promise<void> {
       benchmarkSamples = await runColdStart(op, samples, boundAdapter);
       break;
     case "warm-interactive":
-      benchmarkSamples = await runWarmInteractive(op, samples, gapMs, boundAdapter);
+      benchmarkSamples = await runWarmInteractive(
+        op,
+        samples,
+        gapMs,
+        boundAdapter,
+      );
       break;
     case "repeated-command":
       benchmarkSamples = await runRepeatedCommand(op, samples, boundAdapter);
@@ -1216,7 +1276,8 @@ async function main(): Promise<void> {
   const stats = computeStats(durations);
 
   // Collect health/telemetry
-  const { temporal_health, retry_telemetry } = await collectHealthAndTelemetry();
+  const { temporal_health, retry_telemetry } =
+    await collectHealthAndTelemetry();
 
   // Build record
   const record: BenchmarkRecord = {
@@ -1245,7 +1306,9 @@ async function main(): Promise<void> {
     const samplesPath = join(outputDir, `${runId}.jsonl`);
     const lines = benchmarkSamples.map((s) => JSON.stringify(s)).join("\n");
     await fs.writeFile(samplesPath, lines + "\n", "utf-8");
-    console.error(`[BENCH] Wrote ${benchmarkSamples.length} samples to ${samplesPath}`);
+    console.error(
+      `[BENCH] Wrote ${benchmarkSamples.length} samples to ${samplesPath}`,
+    );
   }
 
   console.error(`[BENCH] Run ${runId} complete.`);

@@ -163,10 +163,12 @@ describe("adv_design_concern_disposition", () => {
   });
 
   test("recovers through disk projection when completed workflow evidence is explicit", async () => {
+    // Probe-first (rq-extend-poisoned-recovery AC5): precise recoveryEvidence
+    // triggers the disk-direct recovery path BEFORE the signal fires. The
+    // observable contract — disk-direct writer called with the typed
+    // disposition + operator authorization, output reports recovery — is the
+    // same as the prior catch-branch path; only the trigger changed.
     const store = storeFor(change());
-    const completedError = new Error("workflow execution already completed");
-    completedError.name = "WorkflowNotFoundError";
-    mocks.fireSignalAndRefresh.mockRejectedValueOnce(completedError);
 
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
@@ -208,7 +210,13 @@ describe("adv_design_concern_disposition", () => {
     });
   });
 
-  test("does not recover generic signal failures", async () => {
+  test("does not recover generic signal failures in normal mode", async () => {
+    // Under probe-first semantics (rq-extend-poisoned-recovery AC5), precise
+    // recoveryEvidence always wins and the catch-branch becomes unreachable
+    // end-to-end. This test guards the still-valid normal-mode contract: with
+    // recoveryMode="normal", generic signal errors propagate as errors and no
+    // recovery writer fires. The catch-branch remains as defense-in-depth for
+    // a future where probe-first might be removed.
     const store = storeFor(change());
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(
       new Error("task queue unavailable"),
@@ -218,10 +226,7 @@ describe("adv_design_concern_disposition", () => {
       await designConcernTools.adv_design_concern_disposition.execute(
         {
           ...validArgs,
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason: "completed workflow recovery",
+          recoveryMode: "normal",
         },
         store,
       ),
@@ -266,5 +271,38 @@ describe("adv_design_concern_disposition", () => {
 
     expect(output.error).toContain("requires recoveryReason");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("AC5: takes probe-first recovery path when fireSignalAndRefresh would silently resolve", async () => {
+    // Poisoned replay case (issue #198, #253): fireSignalAndRefresh resolves
+    // silently because Temporal signals are fire-and-forget server-acceptance.
+    // The catch-branch never fires for this case, so the probe-first gate
+    // must short-circuit BEFORE the signal call.
+    const store = storeFor(change());
+
+    const output = parse(
+      await designConcernTools.adv_design_concern_disposition.execute(
+        {
+          ...validArgs,
+          disposition: "fixed",
+          evidence: "test evidence",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+          recoveryReason: "poisoned workflow",
+        },
+        store,
+      ),
+    );
+
+    // CRITICAL: probe-first path taken; fireSignalAndRefresh NOT called.
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    // Disk-direct writer WAS called.
+    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledTimes(
+      1,
+    );
+    // Output still reports a successful recovery.
+    expect(output.success).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
   });
 });

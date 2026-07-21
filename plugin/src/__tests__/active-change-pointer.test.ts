@@ -76,22 +76,23 @@ vi.mock("../tools/target-project", async (importOriginal) => {
     await importOriginal<typeof import("../tools/target-project")>();
   return {
     ...actual,
-    resolveTargetProject: vi.fn(async (input: {
-      currentProjectPath: string;
-      target_path?: string;
-    }) => {
-      if (!input.target_path) {
-        throw new Error("target_path required for mocked resolveTargetProject");
-      }
-      return {
-        root: input.target_path,
-        projectId: "target-project-id",
-        externalRoot: join(input.target_path, ".adv"),
-        trusted: true,
-        trustSource: "test",
-        stateMode: "current" as const,
-      };
-    }),
+    resolveTargetProject: vi.fn(
+      async (input: { currentProjectPath: string; target_path?: string }) => {
+        if (!input.target_path) {
+          throw new Error(
+            "target_path required for mocked resolveTargetProject",
+          );
+        }
+        return {
+          root: input.target_path,
+          projectId: "target-project-id",
+          externalRoot: join(input.target_path, ".adv"),
+          trusted: true,
+          trustSource: "test",
+          stateMode: "current" as const,
+        };
+      },
+    ),
   };
 });
 

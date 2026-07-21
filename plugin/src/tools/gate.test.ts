@@ -71,6 +71,20 @@ const mocks = vi.hoisted(() => {
       },
     })),
     evaluateLightweightProfileAndSignal: vi.fn(),
+    detectArchiveMode: vi.fn(() => ({
+      archiveMode: "direct",
+      autoPush: false,
+    })),
+    resolveMainCheckout: vi.fn(() => "/tmp/main"),
+    detectDefaultBranch: vi.fn(() => ({ branch: "main" })),
+    classifyFinalizationRoute: vi.fn(() => ({
+      route: "direct",
+      repo: "owner/repo",
+      remoteUrl: "https://github.com/owner/repo",
+      protected: false,
+      parsedRules: [],
+    })),
+    resolveReleaseReachability: vi.fn(() => ({ reachable: true })),
   };
 });
 
@@ -89,6 +103,20 @@ vi.mock("./worktree-auto-manage", () => ({
   ensureWorktreeForMutation: mocks.ensureWorktreeForMutation,
   buildWorktreeAutoManageDeps: mocks.buildWorktreeAutoManageDeps,
 }));
+
+vi.mock("./archive-helpers/git-finalize", async () => {
+  const actual = await vi.importActual<
+    typeof import("./archive-helpers/git-finalize")
+  >("./archive-helpers/git-finalize");
+  return {
+    ...actual,
+    detectArchiveMode: mocks.detectArchiveMode,
+    resolveMainCheckout: mocks.resolveMainCheckout,
+    detectDefaultBranch: mocks.detectDefaultBranch,
+    classifyFinalizationRoute: mocks.classifyFinalizationRoute,
+    resolveReleaseReachability: mocks.resolveReleaseReachability,
+  };
+});
 
 vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
@@ -511,6 +539,289 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("must cite precise");
       expect(store.changes.save).not.toHaveBeenCalled();
+    });
+
+    test("probe-first acceptance recovery bypasses a silently-resolving signal", async () => {
+      // Regression: Temporal signals are fire-and-forget. If the workflow is
+      // poisoned, the signal RPC can resolve silently without the workflow
+      // ever processing the gate completion. With operator-supplied evidence,
+      // the tool must take the disk-direct recovery path WITHOUT firing the
+      // signal and WITHOUT depending on the signal throw.
+      const tmp = await mkdtemp(
+        join(tmpdir(), "adv-gate-probe-first-acceptance-"),
+      );
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+      store.paths.changes = changesDir;
+
+      try {
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify({
+            id: "test-change",
+            title: "Test Change",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            created_by: "test",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates,
+          }),
+        );
+
+        // fireSignalAndRefresh is hoisted to resolve silently by default,
+        // simulating the fire-and-forget poison case where the signal RPC
+        // does NOT throw.
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "acceptance",
+            completedBy: "agent",
+            notes: "Recovered gate after poisoned workflow",
+            compatibilityReason: "legacy replay lacks contract proof",
+            recoveryMode: "poisoned_history",
+            recoveryReason: "acceptance gate recovery after poisoned workflow",
+            recoveryEvidence:
+              "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
+            priorApprovalEvidence: "Prior user acceptance approval: approve",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.recovered).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.querySignal).not.toHaveBeenCalled();
+
+        const persisted = JSON.parse(
+          await readFile(join(changeDir, "change.json"), "utf8"),
+        );
+        expect(persisted.gates.acceptance.status).toBe("done");
+        expect(persisted.gates.acceptance.recovery_audit).toMatchObject({
+          reason: "acceptance gate recovery after poisoned workflow",
+          evidence: expect.stringContaining(
+            "WorkflowTaskFailedCauseNonDeterministicError",
+          ),
+          recovered_at: expect.any(String),
+        });
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test("probe-first release recovery bypasses a silently-resolving signal", async () => {
+      const tmp = await mkdtemp(
+        join(tmpdir(), "adv-gate-probe-first-release-"),
+      );
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+      store.paths.changes = changesDir;
+
+      try {
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify({
+            id: "test-change",
+            title: "Test Change",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            created_by: "test",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates,
+          }),
+        );
+
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "release",
+            completedBy: "agent",
+            notes: "Recovered release after poisoned workflow",
+            compatibilityReason: "legacy replay lacks contract proof",
+            recoveryMode: "poisoned_history",
+            recoveryReason: "release gate recovery after poisoned workflow",
+            recoveryEvidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.recovered).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.querySignal).not.toHaveBeenCalled();
+
+        const persisted = JSON.parse(
+          await readFile(join(changeDir, "change.json"), "utf8"),
+        );
+        expect(persisted.gates.release.status).toBe("done");
+        expect(persisted.gates.release.recovery_audit).toMatchObject({
+          reason: "release gate recovery after poisoned workflow",
+          evidence: expect.stringContaining(
+            "WorkflowExecutionAlreadyCompleted",
+          ),
+          recovered_at: expect.any(String),
+        });
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test("AC3: recovery readiness evaluates from disk projection, not stale Temporal state", async () => {
+      // Regression: a disposition recorded on disk via probe-first recovery must
+      // clear its VERIFICATION_EVIDENCE_MISSING blocker even when the Temporal
+      // projection still carries the stale warning-bearing state.
+      const tmp = await mkdtemp(
+        join(tmpdir(), "adv-gate-recovery-readiness-disk-"),
+      );
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
+
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+
+      const task = {
+        id: "tk-1",
+        title: "Task with verification gap",
+        status: "done",
+        priority: 1,
+        created_at: "2026-01-01T00:00:00Z",
+        evidence_policy: "test",
+      };
+
+      const verificationReport = {
+        schema_version: "1.0",
+        change_id: "test-change",
+        task_id: "tk-1",
+        scope: { kind: "task", task_id: "tk-1" },
+        attempt: 1,
+        agent: "adv-engineer",
+        status: "complete",
+        workdir_used: "/tmp/worktree",
+        files_touched: ["src/foo.ts"],
+        verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
+        decisions: [],
+        blockers: [],
+        scope_drift: null,
+        follow_ups: [],
+        required_main_agent_actions: [],
+        related_scan: "none",
+        context_update_for_adv: {
+          what_ads_needs_to_know: "verification gap recorded",
+          suggested_next_action: "proceed",
+        },
+        consumer_warnings: [
+          { kind: "verification_missing", message: "missing test evidence" },
+        ],
+      };
+
+      const disposition = {
+        taskId: "tk-1",
+        concernKey: "verification",
+        disposition: "fixed",
+        evidence: "re-run tests, all green",
+        dispositionedAt: "2026-01-01T00:01:00Z",
+      };
+
+      const staleChange = {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [task],
+        subagent_reports: [verificationReport],
+        deltas: {},
+        wisdom: [],
+        gates,
+      };
+
+      const diskChange = {
+        ...staleChange,
+        verification_evidence_dispositions: [disposition],
+      };
+
+      const store = createMockStore({
+        gates,
+        change: staleChange as Partial<import("../types").Change>,
+      });
+      store.paths.changes = changesDir;
+      (store.changes.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        data: staleChange,
+      });
+
+      try {
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify(diskChange, null, 2),
+        );
+
+        // Catch-gated recovery path: query fails with poisoned evidence, so
+        // diskDirect is false. The readiness evaluator must still reach disk.
+        mocks.querySignal.mockRejectedValueOnce(
+          new Error("TMPRL1100: Nondeterminism error"),
+        );
+
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "release",
+            completedBy: "agent",
+            notes: "Recovered release after poisoned workflow",
+            compatibilityReason: "legacy replay lacks contract proof",
+            recoveryReason: "release gate recovery after poisoned workflow",
+            recoveryEvidence:
+              "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.recovered).toBe(true);
+        expect(parsed.readinessBlockers).toBeUndefined();
+        expect(parsed.error).toBeUndefined();
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
     });
 
     test("queries workflow gate state before firing completion signal", async () => {
