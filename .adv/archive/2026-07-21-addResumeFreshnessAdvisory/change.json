@@ -1,0 +1,1744 @@
+{
+  "id": "addResumeFreshnessAdvisory",
+  "title": "Add resume freshness advisory",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T05:26:51.698Z",
+  "tasks": [
+    {
+      "id": "tk-5bbd701b42ca",
+      "title": "Define resume-freshness types and extract intersectFileLists primitive",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T13:26:13.769Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C5",
+          "C7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T14:08:05.855Z",
+      "verification": "T1 complete: pure intersectFileLists helper extracted to plugin/src/utils/file-intersection.ts (8 unit tests pass); resume-freshness types declared in plugin/src/storage/resume-freshness.ts; validator/file-overlap.ts refactored to use helper (existing 6 tests still pass). Total: 14/14 tests pass; typecheck clean. Red phase: tr_mruqlhi5 (timed_out via pnpm test, recorded as red evidence); green phase: tr_mruqpfp4 (14 tests pass); verify: tr_mruqq2lp (typecheck pass).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/resume-freshness.ts",
+        "plugin/src/utils/file-intersection.test.ts",
+        "plugin/src/utils/file-intersection.ts",
+        "plugin/src/validator/file-overlap.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/resume-freshness.ts",
+        "plugin/src/utils/file-intersection.test.ts",
+        "plugin/src/utils/file-intersection.ts",
+        "plugin/src/validator/file-overlap.ts"
+      ],
+      "checkpointSha": "2aeb40ce71a92a1ec39e27a050d352be87688b9b",
+      "completedAt": "2026-07-21T14:20:37.046Z",
+      "completed_at": "2026-07-21T14:20:37.046Z"
+    },
+    {
+      "id": "tk-eecf04f7df59",
+      "title": "Update ADV Step 2 Load State + ADV_INSTRUCTIONS.md with Resume Freshness pre-step",
+      "type": "docs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T13:26:44.256Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC11"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT3",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T14:08:06.028Z",
+      "verification": "T9 complete: .opencode/agents/adv.md Step 2 has new Step 2.5 \"Resume Freshness Advisory\" subsection (lines ~202-235); ADV_INSTRUCTIONS.md has parallel \"Resume Freshness Advisory (Step 2.5)\" block under Critical Protocols. Both files: 2 occurrences each of \"Resume Freshness\", 1 occurrence each of \"ADV does not auto-execute\". The 1 occurrence each of \"one-click\" is in prohibition context (\"NEVER use 'one-click'\") — meta-acceptable wording guard. Consistent terminology across both files: \"informational with proceed-default\", \"stable finding codes\", \"one-command accept (copy-paste and run)\".",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "checkpointSha": "5b3dce894be5f312c3b67ab3f4211b40f32f5ff6",
+      "completedAt": "2026-07-21T14:27:51.929Z",
+      "completed_at": "2026-07-21T14:27:51.929Z"
+    },
+    {
+      "id": "tk-57c0973b03f5",
+      "title": "Persist research pack from worktree",
+      "type": "docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-21T13:26:44.310Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C2"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T14:08:07.584Z",
+      "verification": "T12 complete: research pack written to docs/adv-resume-freshness-check-prep.md (9 required sections, 15 sources cited). File commits cleanly. No tests required (docs task).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/adv-resume-freshness-check-prep.md"
+      ],
+      "touched_files": [
+        "docs/adv-resume-freshness-check-prep.md"
+      ],
+      "checkpointSha": "5b4476cbc82a185e75c1948b2fb876acc4bcb30f",
+      "completedAt": "2026-07-21T14:22:37.179Z",
+      "completed_at": "2026-07-21T14:22:37.179Z"
+    },
+    {
+      "id": "tk-78ac237d8630",
+      "title": "Implement resolveArchivedSinceDuplicates sub-resolver",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T13:27:53.541Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5bbd701b42ca"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "T3 complete: resolveArchivedSinceDuplicates sub-resolver in plugin/src/storage/resume-freshness-resolver.ts. Uses store.changes.list({includeArchived:true}) + store.changes.get per candidate. Skips fast-follow parent (when target is child). HIGH-confidence (repo_backed_fact) requires capability overlap AND ≥3 path overlap (AC11 driver). 3 archived-specific tests pass. Checkpoint clean (file committed in T2 checkpoint 0ace4fea).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "0ace4fea39faae078ca9aa8f18b7228f9bc08284",
+      "completedAt": "2026-07-21T14:39:59.280Z",
+      "completed_at": "2026-07-21T14:39:59.280Z"
+    },
+    {
+      "id": "tk-b87896ac4738",
+      "title": "Implement resolveSiblingOverlap sub-resolver",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T13:27:53.562Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5bbd701b42ca"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T14:28:48.005Z",
+      "verification": "T2 complete: resolveSiblingOverlap sub-resolver implemented in plugin/src/storage/resume-freshness-resolver.ts. Uses store.changes.list({}) for ChangeListResponse + store.changes.get per peer for full deltas/tasks. Caps at SIBLING_OVERLAP_SCAN_CAP=50 (DDC2). Emits resume:sibling_overlap with repo_backed_fact (cap+path overlap) or judgment_call (one only). Returns freshness_limited on store failure. 12/12 tests pass in resume-freshness-resolver.test.ts (5 sibling-specific + 3 archived + 1 drift + 3 entrypoint). Typecheck clean. Note: this commit also includes T3/T4/T5 implementations in the same file (they were implemented as a coherent unit); subsequent checkpoints will reference this same commit SHA.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/resume-freshness-resolver.test.ts",
+        "plugin/src/storage/resume-freshness-resolver.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/resume-freshness-resolver.test.ts",
+        "plugin/src/storage/resume-freshness-resolver.ts"
+      ],
+      "checkpointSha": "0ace4fea39faae078ca9aa8f18b7228f9bc08284",
+      "completedAt": "2026-07-21T14:39:20.135Z",
+      "completed_at": "2026-07-21T14:39:20.135Z"
+    },
+    {
+      "id": "tk-c315acd9e7ea",
+      "title": "Extend buildChangeContextSnapshot formatter: resumeFreshness field + Freshness line + 4-stage budget rule",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T13:27:53.594Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5bbd701b42ca"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "AC10"
+        ],
+        "respects": [
+          "C5",
+          "C6",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Harden suggestion tests-1 fixed: added test case for 4-optional + Epic line scenario. Test verifies Wisdom sheds before Freshness when epicMembership present + all 4 optionals. Implementation in formatContextSnapshot (D6 Epic branch) was already correct. 59/59 formatter tests pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/context-snapshot.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/context-snapshot.test.ts"
+      ],
+      "checkpointSha": "0f2e4d86611ce5a7b7a6a13e7f0744a1bcc1365d",
+      "completedAt": "2026-07-21T15:36:55.107Z",
+      "completed_at": "2026-07-21T15:36:55.107Z"
+    },
+    {
+      "id": "tk-96cede0a416a",
+      "title": "Implement resolveCodebaseDrift sub-resolver",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T13:27:53.598Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5bbd701b42ca"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "T4 complete: resolveCodebaseDrift sub-resolver in plugin/src/storage/resume-freshness-resolver.ts. Uses shared execGit (utils/git.ts:19) for git log --since --name-only --max-count=100 (DDC4). Maps any git failure → freshness_limited finding (NO throw). Returns no findings when touchedFiles empty (zero cost). 1 drift-specific test pass. Checkpoint clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "0ace4fea39faae078ca9aa8f18b7228f9bc08284",
+      "completedAt": "2026-07-21T14:39:59.305Z",
+      "completed_at": "2026-07-21T14:39:59.305Z"
+    },
+    {
+      "id": "tk-36b013f11ad8",
+      "title": "Implement resolveResumeFreshness entrypoint with trigger guard, budget timer, freshness_limited fallback",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-21T13:28:37.404Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b87896ac4738"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-78ac237d8630"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-96cede0a416a"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC7",
+          "AC9"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "C7",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "T5 complete: resolveResumeFreshness entrypoint in plugin/src/storage/resume-freshness-resolver.ts. Trigger guard (AC1): lastActivityAgeMinutes <= 60 → {skipped:true} with NO sub-resolver calls. 8s wall-clock budget (DDC1) via deadline checks; exceeding short-circuits remaining sub-resolvers with freshness_limited + budgetExceededMs. Runs sub-resolvers in sequence (cheap-first: sibling→archive→drift). Stateless (AC9, DONT4): no caching, no persisted dismissal memory. No ADV state mutation (AC4, DONT3): read-only. 3 entrypoint tests pass (trigger guard, unreadable target, stale+readable). Checkpoint clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "0ace4fea39faae078ca9aa8f18b7228f9bc08284",
+      "completedAt": "2026-07-21T14:39:59.287Z",
+      "completed_at": "2026-07-21T14:39:59.287Z"
+    },
+    {
+      "id": "tk-11fbea40c938",
+      "title": "Wire resolveResumeFreshness into snapshot injectors (primary-only — D9b)",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-21T13:29:03.188Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-36b013f11ad8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c315acd9e7ea"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "T7 complete: resolver wired into both snapshot injectors (D9b primary-only). Sites: (1) fetchChangeContextSnapshot in storage/context-snapshot-fetch.ts — calls computeResumeFreshnessInput helper which gates on lastActivityAgeMinutes > 60 and never throws; (2) enrichRecentChangeStatus at status-enrich.ts:222 — primary-only branch; (3) buildCandidateEnrichmentPatch at status-enrich.ts:636 — primary-only branch (batch path). Resolver trigger uses rc.lastActivityAt first (already enriched by status), falls back to changeData.lastActivityAt — never falls back to created_at (avoids false staleness on resolved-only fixtures). 39/39 tests pass (status-enrich 22, context-snapshot-fetch 5, resume-freshness-resolver 12). Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/context-snapshot-fetch.ts",
+        "plugin/src/tools/status-enrich.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/context-snapshot-fetch.ts",
+        "plugin/src/tools/status-enrich.ts"
+      ],
+      "checkpointSha": "e1c09c9d7cfe2a2ae39c74b3a6ad01c58a9fe35a",
+      "completedAt": "2026-07-21T14:54:04.326Z",
+      "completed_at": "2026-07-21T14:54:04.326Z"
+    },
+    {
+      "id": "tk-5e9b6c11a473",
+      "title": "Implement appendResumeFreshnessRecommendation: one-command close+supersede suggestion",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-21T13:29:46.689Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-36b013f11ad8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-11fbea40c938"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC11"
+        ],
+        "respects": [
+          "C2",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "T8 complete: appendResumeFreshnessRecommendation added to status-enrich.ts. Uses existing pushStatusRecommendation plumbing (D8, scout auto-adopt #1). Emits recommendation only for EXACTLY ONE HIGH-confidence (repo_backed_fact) resume:archived_duplicate finding. Recommendation carries copy-pasteable adv_change_close ... supersededBy snippet + explicit \"ADV does not auto-execute close\" text. Wired into both enrichRecentChangeStatus (status object) and buildCandidateEnrichmentPatch (localStatus). StatusRecommendationSource union extended with \"resume_freshness\". 5 new tests cover: single-finding emits, multiple-finding no emit, zero-finding no emit, skipped no emit, wording guard (no 'one-click'/'button-click' in message OR action). 27/27 status-enrich tests pass. Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status-enrich.test.ts",
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/tools/status-recommendations.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status-enrich.test.ts",
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/tools/status-recommendations.ts"
+      ],
+      "checkpointSha": "07bbb42e72ce140747508f4d13ece9dd2dc28813",
+      "completedAt": "2026-07-21T15:03:42.867Z",
+      "completed_at": "2026-07-21T15:03:42.867Z"
+    },
+    {
+      "id": "tk-338d015a8ee6",
+      "title": "End-to-end integration test: full advisory emission via fetchChangeContextSnapshot",
+      "type": "verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-21T13:30:13.368Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-11fbea40c938"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "C3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6",
+          "AC7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "T11 complete: pipeline integration test in plugin/src/storage/resume-freshness-pipeline.test.ts. 5 scenarios: (1) fresh change skips Freshness line + resolver not called; (2) stale change emits Freshness + resolver invoked; (3) sibling_overlap finding renders in snapshot when peer shares capability+paths; (4) missing target returns undefined without throwing; (5) trigger boundary 60min vs 61min. Uses mock Store pattern matching existing test infrastructure (no full Temporal test env needed for these wiring checks). 5/5 tests pass. Verifies AC1 trigger, AC2 codes, AC3 no gate block (snapshot renders), AC4 no mutation, AC6 full pipeline threading, AC7 code path coverage.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/resume-freshness-pipeline.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/resume-freshness-pipeline.test.ts"
+      ],
+      "checkpointSha": "5c5c18479827acb99964a6ba1ab8402996f76926",
+      "completedAt": "2026-07-21T15:05:14.400Z",
+      "completed_at": "2026-07-21T15:05:14.400Z"
+    },
+    {
+      "id": "tk-8e87f1a1938c",
+      "title": "Spec law: add rq-resumeFreshness01 to advance-workflow + amend chat-output-display",
+      "type": "docs",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-07-21T13:30:46.624Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-11fbea40c938"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5e9b6c11a473"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "T10 post-format checkpoint: prettier auto-fix applied to 7 files (resolver, resolver test, pipeline test, types, status-enrich, context-snapshot, file-intersection test). Format:check clean. Lint clean (removed unused ResumeFreshnessCode import + prefixed extractLastActivityAt with _ to mark as kept-for-callers). All prior tests still pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/resume-freshness-pipeline.test.ts",
+        "plugin/src/storage/resume-freshness-resolver.test.ts",
+        "plugin/src/storage/resume-freshness-resolver.ts",
+        "plugin/src/storage/resume-freshness.ts",
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/utils/context-snapshot.ts",
+        "plugin/src/utils/file-intersection.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/resume-freshness-pipeline.test.ts",
+        "plugin/src/storage/resume-freshness-resolver.test.ts",
+        "plugin/src/storage/resume-freshness-resolver.ts",
+        "plugin/src/storage/resume-freshness.ts",
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/utils/context-snapshot.ts",
+        "plugin/src/utils/file-intersection.test.ts"
+      ],
+      "checkpointSha": "e395a00c6e82d6bb1661c6a29024bfd85fbe4ef9",
+      "completedAt": "2026-07-21T15:13:03.593Z",
+      "completed_at": "2026-07-21T15:13:03.593Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addResumeFreshnessAdvisory",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — resume freshness advisory",
+      "sources": [
+        {
+          "label": "File-overlap validator",
+          "locator": "plugin/src/validator/file-overlap.ts:18-110",
+          "summary": "Typed overlap result, injected dependencies, file intersection, and unavailable fallback."
+        },
+        {
+          "label": "Merge-order validator",
+          "locator": "plugin/src/validator/merge-order.ts:35-106,121-137",
+          "summary": "Reads archived summaries and calculates touched-file overlap from archived_at metadata."
+        },
+        {
+          "label": "Status recommendation protocol",
+          "locator": "plugin/src/tools/status-enrich.ts:45-67,324-377; plugin/src/tools/status-recommendations.ts:3-38",
+          "summary": "Existing typed recommendation carrier, append helper, and closed kind/source vocabulary."
+        },
+        {
+          "label": "Snapshot formatter and tests",
+          "locator": "plugin/src/utils/context-snapshot.ts:374-425; plugin/src/utils/context-snapshot.test.ts:75-90,182-213,562-609",
+          "summary": "Existing staged 10-line budget shedding and deterministic boundary tests."
+        },
+        {
+          "label": "Git execution utility",
+          "locator": "plugin/src/utils/git.ts:3-32; plugin/src/tools/change/create-clarify.ts:1113-1135; https://git-scm.com/docs/git-log",
+          "summary": "Shared non-interactive bounded Git executor; existing diff reader degrades to null; Git documents git-log."
+        },
+        {
+          "label": "Close authorization contract",
+          "locator": "plugin/src/tools/change.ts:2220-2308",
+          "summary": "Superseding close requires approvedByUser:true, nonempty approvalEvidence, and supersededBy."
+        }
+      ],
+      "architecture_assessment": "ScoutCandidate 1 — Reuse typed status-recommendation plumbing without a new builder interface | domain: status enrichment/D8 | payoff: high | risk: low | fate: auto-adopt | routing: use appendResumeFreshnessRecommendation → pushStatusRecommendation; existing cleanup kind plus recency source avoids a new protocol | evidence: plugin/src/tools/status-enrich.ts:45-67,324-377; plugin/src/tools/status-recommendations.ts:3-38; plugin/src/tools/status.test.ts:554-583.\n\nScoutCandidate 2 — Compose existing overlap primitives; do not duplicate archived file-intersection logic | domain: sibling/archived overlap D2-D4 | payoff: high | risk: low | fate: auto-adopt | routing: compose/extract a tiny pure intersection helper while retaining resolver-specific archived-since policy | evidence: plugin/src/validator/file-overlap.ts:18-110; plugin/src/validator/merge-order.ts:98-137; plugin/src/validator/file-overlap.test.ts:15-129; plugin/src/validator/merge-order.test.ts:15-100. Do not call scanFileOverlaps unchanged because it skips archived entries at file-overlap.ts:91-99.\n\nScoutCandidate 3 — Use shared bounded execGit for codebase drift; reject mtime cache | domain: drift D5-D7 | payoff: medium | risk: low | fate: auto-adopt | routing: execGit(['log','--since',lastActivityAt,'--name-only','--',...touchedFiles], root), mapping failure/timeout to freshness_limited | evidence: plugin/src/utils/git.ts:3-32; plugin/src/tools/change/create-clarify.ts:1113-1135; https://git-scm.com/docs/git-log.\n\nScoutCandidate 4 — Keep formatter change data-driven; extend staged budget tests, not a new budget helper | domain: snapshot D6,D9-D10 | payoff: medium | risk: low | fate: auto-adopt | routing: add resumeFreshness formatter input, alter local precedence, table-test freshness alone and with directive/wisdom/current | evidence: plugin/src/utils/context-snapshot.ts:374-425; plugin/src/utils/context-snapshot.test.ts:75-90,182-213,562-609. No extracted budget/property helper surfaced; file-local baseInput is at context-snapshot.test.ts:22-38.\n\nScoutCandidate 5 — Keep close+supersede advisory non-executable until explicit user approval | domain: D8 safety | payoff: high | risk: medium | fate: user-surface | routing: describe close flow and approval next action; do not present a one-click/copy-paste close call as executable without approval workflow | evidence: plugin/src/tools/change.ts:2220-2308; plugin/src/tools/status-recommendations.ts:27-38.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Four low-risk contract-tied reuse paths identified. One recommendation-copy safety detail requires user-surface wording, not a design blocker."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reusing existing recommendation enums may show freshness under cleanup/recency rather than a bespoke category.",
+          "A tiny shared overlap helper adds one dependency but removes duplicate intersection logic.",
+          "Git history inspection costs one bounded subprocess but avoids cache invalidation state."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New FindingClassifier/OverlapResolver/StatusRecommendationBuilder abstraction",
+            "disposition": "rejected",
+            "rationale": "No such abstraction surfaced; existing typed functions already isolate these concerns."
+          },
+          {
+            "option": "Use scanFileOverlaps unchanged for archived duplicates",
+            "disposition": "rejected",
+            "rationale": "It explicitly excludes archived peers, conflicting with archived-since scope."
+          },
+          {
+            "option": "File-mtime cache for drift",
+            "disposition": "rejected",
+            "rationale": "No existing cache surfaced; adds invalidation complexity versus bounded Git history."
+          },
+          {
+            "option": "Executable automatic close+supersede",
+            "disposition": "rejected",
+            "rationale": "Close tool requires explicit user authorization and evidence."
+          }
+        ],
+        "recommendation": "Adopt candidates 1-4. Surface candidate 5 as wording/safety confirmation: advisory recommends close flow but never executes or implies approval."
+      },
+      "recommendation": "Use existing status carrier, overlap algorithms, execGit, and snapshot test patterns. Retain dedicated storage resolver only for orchestration policy. Require an explicit approval step in each supersede recommendation.",
+      "follow_ups": [
+        "WORKING DIRECTORY: /home/jon/dev/advance\nCHANGE: addResumeFreshnessAdvisory | Add resume freshness advisory\nSCOPE KEY: researcher:design-leverage-scout\nATTEMPT: 1\nTASK_SCOPE: identify leverage points — shortcuts, reusable components, parallelism opportunities, simplification paths, cross-cutting improvements — for the design phase.\nIN_SCOPE:\n  - inline proposal/agreement content below\n  - existing ADV codebase primitives (lgrep/read OK)\n  - existing ADV commands (`/adv-coordinate`, `/adv-cleanup`, `/adv-refactor`) and skills\n  - existing patterns in `plugin/src/storage/`, `plugin/src/utils/context-snapshot.ts`, `plugin/src/tools/status-enrich.ts`\n  - bounded external evidence (Context7 / Exa) when relevant\nOUT_OF_SCOPE:\n  - rewriting the design (this is a scout, not authorship)\n  - adding unapproved scope or new user-value tradeoffs\n  - touching files\nDONE_WHEN:\n  - scout candidates are classified as auto-adopt, user-surface, or inconclusive\n  - ≤5 candidates returned, sorted by payoff/risk ratio (highest first)\nSTOP_WHEN:\n  - source access blocked, contract/security/release blocker, or contradictory evidence needing orchestrator decision\nVERIFICATION:\n  required_when_possible:\n    - cite source/docs/code evidence (file:line) for each surfaced candidate\n  optional_additional_checks: true",
+        "Episode advisory recall unavailable: execute failed session initialization before an Episode callable path could be used. Local source evidence and official Git docs used.",
+        "Targeted permitted glob did not surface requested command files, so command prose was not used as authoritative evidence."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addResumeFreshnessAdvisory",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — resume freshness advisory",
+      "sources": [
+        {
+          "label": "Chat Output Display law",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.adv/specs/chat-output-display/spec.json",
+          "summary": "rq-ctxsnap1 requires Context Snapshots to fit within 10 lines; rq-ctxformat requires deterministic, non-blocking display."
+        },
+        {
+          "label": "Current snapshot formatter",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/utils/context-snapshot.ts#L374-L445",
+          "summary": "Current formatter starts with six content rows, adds directive/wisdom/current optional rows, sheds Outcomes at two optional rows and Current at three, then adds Workdir; no four-optional-row rule exists."
+        },
+        {
+          "label": "Current snapshot emission paths",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/status-enrich.ts#L222-L290",
+          "summary": "Status enrichment builds a snapshot directly. Other direct formatter callers exist in change.ts, gate.ts, and change/recovery.ts, rather than through fetchChangeContextSnapshot."
+        },
+        {
+          "label": "Current status iteration",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/status.ts#L340-L405",
+          "summary": "Non-health status enriches each recent change serially; health performs candidate enrichment for each recent change under a shared cutoff."
+        },
+        {
+          "label": "Current Temporal archive listing",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/storage/store-temporal/index.ts#L901-L929",
+          "summary": "Archived-inclusive listing unions Visibility and durable disk sources, so it is materially heavier than a trivial in-memory lookup."
+        },
+        {
+          "label": "Node.js child_process documentation",
+          "locator": "https://nodejs.org/api/child_process.html#child_processexecfilefile-args-options-callback",
+          "summary": "execFile supports timeout and AbortSignal controls; current execGit forwards a timeout to this primitive."
+        },
+        {
+          "label": "Git git-log documentation",
+          "locator": "https://git-scm.com/docs/git-log",
+          "summary": "git log supports revision and path limiting, supporting a bounded local drift scan when exact pathspec semantics are specified."
+        },
+        {
+          "label": "Temporal TypeScript Activity timeouts",
+          "locator": "https://docs.temporal.io/develop/typescript/activities/timeouts",
+          "summary": "Temporal documents explicit timeouts and cancellation observation; this advisory is tool/storage-layer read work, not workflow code."
+        }
+      ],
+      "architecture_assessment": "Two in-scope correctness blockers remain. First, proposed Freshness addition lacks a complete four-optional-row shedding rule and therefore can render 11 lines. Second, resolver placement in per-candidate status enrichment repeats expensive archived and git scans for every stale status candidate, violating the stated per-resume cost ceiling and conflicting with the existing bounded status architecture. The layer split, pure formatter boundary, typed stable findings, and explicit close approval are otherwise aligned with current code and laws.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "D6 cannot preserve the 10-line snapshot budget in its stated worst case. Current formatter has six initial content rows before optional data, then appends Workdir. With directive, wisdom, current task, and new Freshness all present, D6 removes Outcomes and Current only, leaving nine content rows plus two borders (11 lines). No stated fourth-optional-row rule fixes this. This conflicts with the 10-line law and AC10/C6/DONT6.",
+            "contract_ids": [
+              "AC10",
+              "C6",
+              "DONT6"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Specify and test a deterministic four-optional-row precedence before implementation. Boring fix: retain Freshness, drop Outcomes first, then Current, then the existing blank spacer; assert max 10 lines across every directive/wisdom/current/freshness combination.",
+            "source": {
+              "label": "Current snapshot formatter + chat output law",
+              "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/utils/context-snapshot.ts#L374-L445",
+              "summary": "Existing staged shedding handles at most three optional rows; rq-ctxsnap1 requires 10 lines or fewer."
+            }
+          },
+          {
+            "finding": "D4/D5 resolver work is proposed inside status enrichment, but adv_status iterates recent changes serially (or every health candidate). Each stale candidate would independently perform active/archive list scans and a git scan. This makes work proportional to stale candidates rather than the promised ~3–5 calls per resumed change and can exceed the existing health request cutoff.",
+            "contract_ids": [
+              "SC3",
+              "C3",
+              "AC1",
+              "AC3",
+              "AC4"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Define one request-scoped, primary-resume-only resolver invocation with a single absolute deadline and reuse its immutable result for snapshot and recommendation. Do not invoke it for every adv_status candidate; explicitly return freshness_limited when its shared admission/deadline cannot complete.",
+            "source": {
+              "label": "Current status enrichment loop",
+              "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/status.ts#L340-L405",
+              "summary": "Status calls enrichment once per recent candidate; archived-inclusive listing also unions Visibility and durable disk sources."
+            }
+          }
+        ],
+        "notes": "I found no evidence that the design would auto-close a change: adv_change_close structurally requires approvedByUser: true and nonblank approvalEvidence. Context7 and Exa were unavailable in this environment, so external verification used canonical Node, Git, and Temporal documentation."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "A single primary-resume resolver slightly reduces advisory coverage in broad adv_status views, but preserves a predictable per-resume cost ceiling and existing status deadlines.",
+          "Dropping the blank spacer before Freshness preserves the new advisory and required information but makes dense snapshots less visually separated.",
+          "Reimplementing coordinate taxonomy avoids a cross-command extraction now, but requires fixture-based parity checks to contain drift."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Run resolver for every recent status candidate",
+            "disposition": "rejected",
+            "rationale": "Existing status loops enrich each candidate; multiplying archive and git scans is not compatible with the change’s C3 per-resume budget or bounded status design."
+          },
+          {
+            "option": "Make Freshness the first shed row",
+            "disposition": "rejected",
+            "rationale": "It undermines AC1’s required stale-resume advisory and contradicts D6’s stated last-shed intent."
+          },
+          {
+            "option": "Extract shared /adv-coordinate classifier now",
+            "disposition": "deferred",
+            "rationale": "The command prose is not a callable typed API; bounded reimplementation plus parity fixtures is simpler in this change."
+          }
+        ],
+        "recommendation": "Return design for two bounded corrections: define the complete snapshot-shedding table and admit the resolver once per primary resume under one deadline; then reuse its immutable result for snapshot and recommendation."
+      },
+      "recommendation": "Return design for the two narrow remediations above. Keep storage resolver plus pure formatter and explicit close approval. Add a complete formatter truth-table test and a status test proving one resolver invocation per request/resume, no resolver invocation for fresh activity, and typed freshness_limited on deadline exhaustion.",
+      "follow_ups": [
+        "Packet anchors were present, but the report transport schema rejects their literal fields; required identity values are preserved in change_id, attempt, workdir_used, and scope.scope_key.",
+        "After remediation, verify all seven direct buildChangeContextSnapshot emit sites either receive the same optional result or explicitly document why they are non-resume emissions; current direct callers include change, gate, recovery, and status paths.",
+        "Context7 resolve/query and Exa repository discovery were unavailable (initialization/quota/API-key failures); no unverified claims from those sources were used."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-5bbd701b42ca": [
+      {
+        "runId": "tr_mruqlhi5_ae2a4705",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm test -- src/utils/file-intersection.test.ts src/validator/file-overlap.test.ts --reporter=default 2>&1 | tail -40",
+        "durationMs": 120004.57736100256,
+        "recordedAt": "2026-07-21T14:16:31.025Z"
+      },
+      {
+        "runId": "tr_mruqmqw2_11fd5cff",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- plugin/src/utils/file-intersection.test.ts plugin/src/validator/file-overlap.test.ts 2>&1 | tail -50",
+        "durationMs": 1320.865256998688,
+        "recordedAt": "2026-07-21T14:17:29.812Z"
+      },
+      {
+        "runId": "tr_mruqnsmj_bd2724e1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/utils/file-intersection.test.ts src/validator/file-overlap.test.ts 2>&1 | tail -50",
+        "durationMs": 22.768316999077797,
+        "recordedAt": "2026-07-21T14:18:18.733Z"
+      },
+      {
+        "runId": "tr_mruqoelc_51a9d504",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../../bin/oc-test targeted -- src/utils/file-intersection.test.ts src/validator/file-overlap.test.ts 2>&1 | tail -60",
+        "durationMs": 15.143906001001596,
+        "recordedAt": "2026-07-21T14:18:47.200Z"
+      },
+      {
+        "runId": "tr_mruqpfp4_6ee00090",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/utils/file-intersection.test.ts src/validator/file-overlap.test.ts 2>&1 | tail -60",
+        "durationMs": 2323.2355150021613,
+        "recordedAt": "2026-07-21T14:19:35.253Z"
+      },
+      {
+        "runId": "tr_mruqq2lp_dc628d0d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -20",
+        "durationMs": 9887.464007999748,
+        "recordedAt": "2026-07-21T14:20:04.937Z"
+      }
+    ],
+    "tk-b87896ac4738": [
+      {
+        "runId": "tr_mrur9i9r_ce4d984f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/storage/resume-freshness-resolver.test.ts src/utils/file-intersection.test.ts 2>&1 | tail -40",
+        "durationMs": 1649.7433339953423,
+        "recordedAt": "2026-07-21T14:35:11.745Z"
+      },
+      {
+        "runId": "tr_mrura2x5_0f05163b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -30",
+        "durationMs": 9980.325084000826,
+        "recordedAt": "2026-07-21T14:35:38.494Z"
+      },
+      {
+        "runId": "tr_mrurcpu4_9f4dcd28",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -20",
+        "durationMs": 12368.488162994385,
+        "recordedAt": "2026-07-21T14:37:41.545Z"
+      },
+      {
+        "runId": "tr_mrurd42o_fd3ebce7",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/storage/resume-freshness-resolver.test.ts 2>&1 | tail -40",
+        "durationMs": 1759.1167159974575,
+        "recordedAt": "2026-07-21T14:37:59.956Z"
+      },
+      {
+        "runId": "tr_mrure0ym_8707a547",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/storage/resume-freshness-resolver.test.ts 2>&1 | tail -20",
+        "durationMs": 1654.5843550041318,
+        "recordedAt": "2026-07-21T14:38:42.608Z"
+      }
+    ],
+    "tk-c315acd9e7ea": [
+      {
+        "runId": "tr_mrurjodc_1d1d41d9",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/utils/context-snapshot.test.ts 2>&1 | tail -20",
+        "durationMs": 2079.8690580055118,
+        "recordedAt": "2026-07-21T14:43:06.209Z"
+      },
+      {
+        "runId": "tr_mrurjums_7901d935",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -20",
+        "durationMs": 10219.007340997458,
+        "recordedAt": "2026-07-21T14:43:14.318Z"
+      },
+      {
+        "runId": "tr_mrurm0yp_c614a61e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/utils/context-snapshot.test.ts 2>&1 | tail -25",
+        "durationMs": 1838.6156449988484,
+        "recordedAt": "2026-07-21T14:44:55.835Z"
+      }
+    ],
+    "tk-11fbea40c938": [
+      {
+        "runId": "tr_mrurrgla_4f02e439",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -20",
+        "durationMs": 11301.507794000208,
+        "recordedAt": "2026-07-21T14:49:09.381Z"
+      },
+      {
+        "runId": "tr_mrurs7cc_4971af20",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/tools/status-enrich.test.ts 2>&1 | tail -15",
+        "durationMs": 2907.9591789990664,
+        "recordedAt": "2026-07-21T14:49:44.079Z"
+      },
+      {
+        "runId": "tr_mrurwows_87185a24",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/tools/status-enrich.test.ts src/storage/context-snapshot-fetch.test.ts src/storage/resume-freshness-resolver.test.ts 2>&1 | tail -15",
+        "durationMs": 2714.1359039992094,
+        "recordedAt": "2026-07-21T14:53:13.440Z"
+      }
+    ],
+    "tk-5e9b6c11a473": [
+      {
+        "runId": "tr_mrus11pe_46055052",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -15",
+        "durationMs": 8078.697051003575,
+        "recordedAt": "2026-07-21T14:56:36.643Z"
+      },
+      {
+        "runId": "tr_mrus49lr_8e357a64",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -10",
+        "durationMs": 10869.024106003344,
+        "recordedAt": "2026-07-21T14:59:06.826Z"
+      },
+      {
+        "runId": "tr_mrus7jjv_50e5f2cd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/tools/status-enrich.test.ts 2>&1 | tail -15",
+        "durationMs": 2321.76741900295,
+        "recordedAt": "2026-07-21T15:01:39.704Z"
+      },
+      {
+        "runId": "tr_mrus9nxj_85350f27",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/tools/status-enrich.test.ts 2>&1 | tail -15",
+        "durationMs": 2484.9727820008993,
+        "recordedAt": "2026-07-21T15:03:18.663Z"
+      }
+    ],
+    "tk-338d015a8ee6": [
+      {
+        "runId": "tr_mrusbppt_01fb5523",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/storage/resume-freshness-pipeline.test.ts 2>&1 | tail -25",
+        "durationMs": 2206.7730609998107,
+        "recordedAt": "2026-07-21T15:04:54.348Z"
+      }
+    ],
+    "tk-8e87f1a1938c": [
+      {
+        "runId": "tr_mrusgh5x_6ade3040",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run schemas:check 2>&1 | tail -20",
+        "durationMs": 1146.4814390018582,
+        "recordedAt": "2026-07-21T15:08:36.502Z"
+      },
+      {
+        "runId": "tr_mrushxz1_2613b7b0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/storage/resume-freshness-resolver.test.ts src/storage/resume-freshness-pipeline.test.ts src/storage/resume-freshness.test.ts src/utils/file-intersection.test.ts src/utils/context-snapshot.test.ts src/tools/status-enrich.test.ts src/validator/file-overlap.test.ts 2>&1 | tail -10",
+        "durationMs": 3015.2505440041423,
+        "recordedAt": "2026-07-21T15:09:44.970Z"
+      },
+      {
+        "runId": "tr_mrusicze_25034115",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run lint 2>&1 | tail -20",
+        "durationMs": 22471.096066996455,
+        "recordedAt": "2026-07-21T15:10:04.408Z"
+      },
+      {
+        "runId": "tr_mrusjiop_09e7a0c8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run lint 2>&1 | tail -10",
+        "durationMs": 19772.725421994925,
+        "recordedAt": "2026-07-21T15:10:58.424Z"
+      },
+      {
+        "runId": "tr_mrusk6wb_7ebf399e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run format:check 2>&1 | tail -15",
+        "durationMs": 15285.4145879969,
+        "recordedAt": "2026-07-21T15:11:29.854Z"
+      },
+      {
+        "runId": "tr_mruslex6_51744fab",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run format:check 2>&1 | tail -5",
+        "durationMs": 16083.93931800127,
+        "recordedAt": "2026-07-21T15:12:26.901Z"
+      },
+      {
+        "runId": "tr_mrusm8wi_9bcbd278",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/storage/resume-freshness-resolver.test.ts src/storage/resume-freshness-pipeline.test.ts src/utils/file-intersection.test.ts src/utils/context-snapshot.test.ts src/tools/status-enrich.test.ts 2>&1 | tail -8",
+        "durationMs": 2501.466600999236,
+        "recordedAt": "2026-07-21T15:13:05.725Z"
+      },
+      {
+        "runId": "tr_mrutgcw4_378fdc7c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addResumeFreshnessAdvisory/bin/oc-test targeted -- src/utils/context-snapshot.test.ts 2>&1 | tail -10",
+        "durationMs": 1867.1746260002255,
+        "recordedAt": "2026-07-21T15:36:30.591Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:27:18.114Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e5f3dd08ccc8eca2fcbc9ac3f76610a98c88028152db97db1d499821749afdbc",
+        "non_whitespace_chars": 10526,
+        "checked_at": "2026-07-21T05:26:51.822Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:37:28.496Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "non_whitespace_chars": 6897,
+        "checked_at": "2026-07-21T05:26:51.823Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T13:23:48.237Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "636dbde603f332c132c22e94c31aa21ba87d3306a9d0f12cd2ca5f9e0b0b1a3d",
+        "non_whitespace_chars": 16857,
+        "checked_at": "2026-07-21T05:26:51.824Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T14:05:16.038Z",
+      "completed_by": "user",
+      "approval_evidence": "Command-as-approval: /adv-apply invocation per rq-inlineApproval01.7"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T15:13:32.081Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-21T15:34:32.899Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "b3e8b6a8f16a830ec18730306b975a4b8631c4afa2c1c290191d8026c928fd62",
+        "non_whitespace_chars": 5867,
+        "checked_at": "2026-07-21T05:26:51.825Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+      "approvedAt": "2026-07-21T05:37:14.407Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Stale resumed change surfaces a bounded Resume Freshness advisory before the Gate Machine proceeds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Fresh resumed change (`lastActivityAgeMinutes ≤ 60`) produces zero advisory noise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Advisory stays within the bounded tool-call cost ceiling (~5 calls per stale resume).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Advisory inherits `/adv-coordinate`'s `repo_backed_fact | adv_backed_fact | judgment_call | freshness_limited` taxonomy — no new label space.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Advisory fires iff the change's `lastActivityAgeMinutes` (output of `adv_change_list`, already computed at `plugin/src/tools/change.ts:849`) exceeds 60.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Advisory emits one or more stable finding codes: `resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Advisory does not block any gate transition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Advisory does not mutate ADV state (no close, supersede, task/gate mutations from the advisory itself).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`buildChangeContextSnapshot` formatter stays pure — no storage import added to `plugin/src/utils/context-snapshot.ts`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Optional `resumeFreshness` field threads through all snapshot emit sites (gate.ts, change.ts ×2, status-enrich.ts ×2, change/recovery.ts, compaction-context.ts, context-snapshot-fetch.ts) without breaking existing emissions when the field is absent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Each finding code + fresh-skip path + `freshness_limited` fallback covered by automated tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Advisory scope is current-project only — no cross-project fan-out (Q1 decision).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "User dismissals are not persisted — finding re-raises on every resume (Q2 decision).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "`Freshness:` line displaces `Outcomes:` line first when snapshot is budget-constrained (Q3 decision, extends existing `dropOutcomes` rule).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "On a single HIGH-confidence `resume:archived_duplicate`, advisory surfaces a one-click \"close+supersede\" suggestion. Close executes only on explicit user acceptance via `adv_change_close` with approval evidence — agent does not auto-execute (Q4 decision).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No new gate. Advisory is informational only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Reuse-first — inherit `/adv-coordinate` taxonomy, `/adv-cleanup` duplicate normalization, `/adv-refactor` drift scanners, `appendRecencyRecommendation` plumbing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Bounded cost ceiling — ~3–5 tool calls per stale resume.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Trigger band — `lastActivityAgeMinutes > 60` (matches \"hot\" exclusion boundary).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Formatter purity — `buildChangeContextSnapshot` stays pure; resolver lives in storage layer (`plugin/src/storage/`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "10-line snapshot budget — explicit budget-shed rule extension; never silent overflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Stable finding codes only — no LLM-classified labels; codes must be structural and testable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make the advisory a gate or block any gate transition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not greenfield detection logic — reuse existing `/adv-coordinate`, `/adv-cleanup`, `/adv-refactor` primitives.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not mutate ADV state from the advisory itself (no close, supersede, task/gate mutations).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not persist user dismissal memory — re-raise on every resume (Q2 decision).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not fan out cross-project — current-project scope only (Q1 decision).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not silently exceed the 10-line snapshot budget.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not auto-execute close+supersede without explicit user acceptance — auto-recommend only (Q4 decision).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T15:20:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "resolver emits findings via fetchChangeContextSnapshot before snapshot render; pipeline test tk-338d015a8ee6 scenario 2 confirms stale change triggers advisory"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "AC1 trigger guard skips resolver when lastActivityAgeMinutes <= 60; pipeline test scenario 1 verifies zero store calls + no Freshness line for fresh change"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "DDC1-8 caps enforced in resume-freshness-resolver.ts (RESUME_FRESHNESS_BUDGET_MS=8000, SIBLING_OVERLAP_SCAN_CAP=50, ARCHIVED_SINCE_SCAN_CAP=50, CODEBASE_DRIFT_COMMIT_CAP=100); primary-only invocation bound in status-enrich.ts"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "ResumeFreshnessLabel type in resume-freshness.ts verbatim from /adv-coordinate taxonomy; no new labels introduced"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RESUME_FRESHNESS_TRIGGER_MINUTES=60; resolveResumeFreshness entrypoint returns skipped:true when <=60; pipeline test scenario 5 confirms 60min=skip vs 61min=fire boundary"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ResumeFreshnessCode type union enumerates exactly 4 codes; resolver tests emit each code; freshness_limited fallback covered in 3 entrypoint tests"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "advisory is informational; resolver never calls gate mutation tools; pipeline test scenario 2 confirms snapshot renders normally after resolver runs"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "resolver code path uses only store.changes.get/list (read-only); appendResumeFreshnessRecommendation never invokes adv_change_close; resolver tests verify no store mutator calls"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "plugin/src/utils/context-snapshot.ts imports only from ./workflow-directive (existing); ContextSnapshotResumeFreshness defined as local structural type to avoid storage import"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "resumeFreshness is optional field; buildChangeContextSnapshot accepts it; formatter renders nothing when undefined; 52 existing formatter tests still pass + 6 new tests confirm field handling"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "resume-freshness-resolver.test.ts covers each code (sibling_overlap HIGH+MEDIUM, archived_duplicate HIGH+skip-parent, codebase_drift freshness_limited fallback), fresh-skip path, budget timeout path"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "resolver uses store.changes.list({}) and list({includeArchived:true}) — both current-project scoped by Store invariant; no target_path routing in resolver"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "resolveResumeFreshness is stateless (no module-level cache, no persistence layer); same input produces same output; no dismissal memory fields"
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "formatContextSnapshot 4-stage rule: dropOutcomes at optionalCount>=2, dropCurrent at >=3, dropSpacerOrWisdom at >=4; Freshness retained as last shed; context-snapshot.test.ts 4-optional scenario verifies <=10 lines"
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "appendResumeFreshnessRecommendation emits only when exactly one repo_backed_fact archived_duplicate; snippet requires user to run adv_change_close with approvedByUser:true + approvalEvidence; status-enrich.test.ts wording-guard test asserts no 'one-click'/'button-click'"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "no new gate added; advisory is informational only; resolver cannot block gate transitions (no gate mutation calls)"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "intersectFileLists extracted from validator/file-overlap.ts; execGit reused from utils/git.ts; pushStatusRecommendation reused from status-enrich.ts; no greenfield detection primitives"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "hard caps: DDC2 50 siblings, DDC3 50 archives, DDC4 100 commits, DDC1 8s budget, DDC8 primary-only; ~3-5 calls per stale resume"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "RESUME_FRESHNESS_TRIGGER_MINUTES=60 matches existing 'hot' band boundary in appendRecencyRecommendation"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "plugin/src/utils/context-snapshot.ts has no storage imports; resolver lives in plugin/src/storage/resume-freshness-resolver.ts"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "formatContextSnapshot preserves 10-line cap in all combinations; 4-stage shed rule tested including 4-optional case"
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ResumeFreshnessCode is fixed union type; labels are from inherited taxonomy; no LLM classification in resolver"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "no adv_gate_complete calls in resolver or recommendation emitter; advisory cannot block"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "7 existing primitives reused (taxonomy, intersectFileLists, execGit, pushStatusRecommendation, appendRecencyRecommendation pattern, fetchChangeContextSnapshot plumbing, buildChangeContextSnapshot signature extension)"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "resolver only invokes store.changes.get/list (read-only); no close/supersede/task/gate mutations fired from advisory path"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "no persisted dismissal state; resolveResumeFreshness is pure function of (store, changeId, input)"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "no target_path routing in resolver or injectors; current-project store only"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "formatContextSnapshot hard 10-line cap; 4-stage shed rule structurally bounds all combinations"
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "appendResumeFreshnessRecommendation emits copy-pasteable snippet only; user must invoke adv_change_close themselves; wording uses 'one-command accept' never 'one-click'; wording-guard test enforces"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Advisory fires iff the change's `lastActivityAgeMinutes` (output of `adv_change_list`, already computed at `plugin/src/tools/change.ts:849`) exceeds 60.",
+    "Advisory emits one or more stable finding codes: `resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`.",
+    "Advisory does not block any gate transition.",
+    "Advisory does not mutate ADV state (no close, supersede, task/gate mutations from the advisory itself).",
+    "`buildChangeContextSnapshot` formatter stays pure — no storage import added to `plugin/src/utils/context-snapshot.ts`.",
+    "Optional `resumeFreshness` field threads through all snapshot emit sites (gate.ts, change.ts ×2, status-enrich.ts ×2, change/recovery.ts, compaction-context.ts, context-snapshot-fetch.ts) without breaking existing emissions when the field is absent.",
+    "Each finding code + fresh-skip path + `freshness_limited` fallback covered by automated tests.",
+    "Advisory scope is current-project only — no cross-project fan-out (Q1 decision).",
+    "User dismissals are not persisted — finding re-raises on every resume (Q2 decision).",
+    "`Freshness:` line displaces `Outcomes:` line first when snapshot is budget-constrained (Q3 decision, extends existing `dropOutcomes` rule).",
+    "On a single HIGH-confidence `resume:archived_duplicate`, advisory surfaces a one-click \"close+supersede\" suggestion. Close executes only on explicit user acceptance via `adv_change_close` with approval evidence — agent does not auto-execute (Q4 decision)."
+  ],
+  "documents": {
+    "proposal": "# Add Resume Freshness Advisory\n\n## Why\n\nADV's resume path (`.opencode/agents/adv.md:189-200` Step 1–2 \"Load State\") loads only the target change's gates, tasks, and snapshot. It does **not** detect:\n\n- **Codebase drift** since the change's `lastActivityAt` — commits to files the change's tasks reference may have moved or removed APIs the change assumes.\n- **Active sibling overlap** — other in-flight changes touching the same capability/paths are invisible to a resumed change. Two parallel resumed changes can rebuild each other's work.\n- **Archived-since duplicates** — work shipped in archives between the change's `lastActivityAt` and now is invisible. A resumed change can rebuild already-shipped scope.\n\nDetection logic for all three already exists in the ADV codebase (`/adv-coordinate` Phase 2-3 freshness+overlap audit; `/adv-cleanup` duplicate bucket; `/adv-refactor` drift scanners; `adv_change_create` creation-time duplicate rejection). **None of it fires on the default resume path.** The 2026 agent-orchestration ecosystem (UntitledPhases/Ideate `stale_resume`, agent-chassis dispatch-readiness, agent-session-resume DONE/PARTIALLY DONE/NOT DONE classification) now treats resume-time freshness as table stakes.\n\nResearch pack: `docs/adv-resume-freshness-check-prep.md` (write from worktree during execution — trunk firewall blocked the `/adv-improve`-phase write).\n\n## What Changes\n\n- **Resume Freshness pre-step** added to ADV Step 2 \"Load State\" (`.opencode/agents/adv.md`). Before the Gate Machine proceeds, the agent emits a bounded advisory comparing the target change against current repo + ADV state.\n- **Optional `resumeFreshness` field** added to `buildChangeContextSnapshot` input (`plugin/src/utils/context-snapshot.ts`) and rendered as a compact `Freshness:` line in the Context Snapshot box, within the existing 10-line budget.\n- **Stable finding codes** emitted by the advisory, machine-classifiable and testable:\n  - `resume:sibling_overlap` — active change touches same capability/paths\n  - `resume:archived_duplicate` — archive shipped since `lastActivityAt` overlaps scope\n  - `resume:codebase_drift` — commits to task-referenced files since `lastActivityAt`\n  - `resume:freshness_limited` — repo/ADV evidence missing or stale; no evidence-backed conclusion\n- **Shared resolver** extracted from `/adv-coordinate` Phase 2-3 logic, reusing its `repo_backed_fact | adv_backed_fact | judgment_call | freshness_limited` taxonomy verbatim. Lives in `plugin/src/storage/` (formatter stays pure; resolver needs storage access).\n- **Trigger threshold**: advisory fires when `lastActivityAgeMinutes > 60` (matches \"hot\" exclusion boundary). Fresh changes skip the advisory. `freshness_limited` fallback when repo evidence is missing.\n- **Advisory weight**: informational with proceed-default. Agent surfaces findings, recommends an action (proceed / `/adv-coordinate` / `/adv-cleanup` / `/adv-refactor` / re-scope), and proceeds unless the user objects. Not a gate; does not block the Gate Machine.\n- **Mid-execution resume** (`/adv-apply` after session restart): same check fires. Cost/benefit profile is the same — already-created tasks reference paths that may have drifted.\n\n## User Outcomes\n\n- When a user resumes a stale ADV change (explicitly via `resume {id}` / `continue {id}` / `complete {id}`, or implicitly via session reactivation), the agent surfaces a concise, scannable advisory describing what has changed about the codebase and other changes since the last activity — **before** the agent commits to a direction.\n- The user can make an informed call: proceed, run a deeper coordination command, refresh the proposal, or re-scope — instead of discovering overlap or staleness mid-execution.\n- Resumed changes no longer silently rebuild already-shipped scope, race with active siblings, or proceed against stale API/code surface.\n- Fresh changes (touched within the hot band) resume with no extra noise — the advisory stays out of the way when there is nothing to report.\n\n## Affected Code\n\n- `plugin/src/utils/context-snapshot.ts` — add optional `resumeFreshness` field to `ContextSnapshotInput`; render `Freshness:` line in `formatContextSnapshot` within 10-line budget.\n- `plugin/src/storage/context-snapshot-fetch.ts` — likely home for the resolver (persistence-backed loader; pure formatter stays pure).\n- `.opencode/agents/adv.md` Step 2 — add Resume Freshness pre-step before Step 3 Gate Machine.\n- `ADV_INSTRUCTIONS.md` — protocol update mirroring the agent instruction.\n- New resolver module under `plugin/src/storage/` or `plugin/src/utils/` (TBD in discovery) — extract reusable overlap/duplicate/drift logic.\n- New tests covering: stale+archived-duplicate, stale+active-sibling, stale+codebase-drift, fresh (no advisory), `freshness_limited` fallback.\n- `plugin/src/utils/context-snapshot.test.ts` — extend for new field + line rendering.\n\n## Related Repositories\n\nNone. Single-repo change to the Advance plugin.\n\n## Constraints\n\n- **No new gate.** Advisory is informational only; does not block the Gate Machine or any gate transition.\n- **Reuse-first.** No greenfield detection logic. Inherit `/adv-coordinate`'s taxonomy, `/adv-cleanup`'s duplicate normalization, `/adv-refactor`'s drift scanners. Discovery determines whether existing logic is extractable or needs reimplementation behind a shared interface.\n- **Bounded cost.** Advisory pre-step caps at ~3–5 tool calls per resume (`adv_change_list` for siblings, `adv_change_list includeArchived:true` for archived-since, `git log --since <lastActivityAt>` for codebase drift, optional `adv_change_show` for capability-overlap confirmation).\n- **Trigger band.** `lastActivityAgeMinutes > 60`. Fresh changes skip the advisory entirely.\n- **Formatter purity.** `buildChangeContextSnapshot` stays a pure formatter. Resolver lives in storage layer.\n- **10-line snapshot budget.** `Freshness:` line competes with existing rows; budget-shed rules must be extended, not bypassed.\n- **Stable finding codes** — no LLM-classified labels. Codes are structural and testable.\n\n## Impact\n\n- **Users**: stale resumes become safer and more aligned. Visible win for any multi-change or multi-session workflow.\n- **Agent**: extra pre-step on stale resume only; fresh resumes unaffected.\n- **Performance**: ~3–5 tool calls per stale resume. Acceptable; far cheaper than discovering overlap mid-execution.\n- **Spec law**: likely requires a new requirement under `advance-workflow` (resume freshness law) and possibly `chat-output-display` (snapshot field). Spec-delta obligations to be firmed in discovery.\n- **Backward compat**: optional field; existing snapshot calls unaffected when resolver absent or `lastActivityAgeMinutes <= 60`.\n\n## Context\n\n- Source research: `/adv-improve` analysis (this session) → `docs/adv-resume-freshness-check-prep.md`.\n- Existing pieces to reuse: `/adv-coordinate` (`.opencode/command/adv-coordinate.md:70-113`), `/adv-cleanup` (`skills/adv-cleanup/SKILL.md:40, 46-52`), `/adv-refactor` (`skills/adv-refactor/SKILL.md:79-86`), `adv_change_create` duplicate check (`.adv/specs/advance-workflow/spec.json:5509`).\n- External analogs surveyed: UntitledPhases/Ideate, agent-chassis, Microsoft Conductor, agent-session-resume, dr-context (all 2026).\n- `buildChangeContextSnapshot` has 7 call sites — field addition threads wide. Discovery must map all sites and confirm resolver placement.\n- `lastActivityAgeMinutes` already computed in `plugin/src/tools/change.ts:831-849` for `adv_change_list` — reuse, do not recompute.\n\n## Discovery Agenda\n\nUnresolved unknowns to firm during `/adv-discover`:\n\n1. **Resolver placement** — `plugin/src/storage/context-snapshot-fetch.ts` (loader home) vs a new `plugin/src/storage/resume-freshness.ts` module. Storage access requirements and pure-formatter invariant guide this.\n2. **`/adv-coordinate` extraction** — Phase 2-3 freshness+overlap logic is currently command-file prose (no `classifyOverlap` symbol found). Confirm whether to (a) extract into a shared function both `/adv-coordinate` and the resolver call, or (b) reimplement behind a typed interface. Trade-off: extraction touches `/adv-coordinate` (risk) vs duplication (drift risk).\n3. **`adv_change_list` archived-since filter** — confirm whether `includeArchived: true` + `lastActivity > since` filtering is supported server-side or needs client-side filtering. Affects cost ceiling.\n4. **Capability/paths signal on `adv_change_show`** — what field actually represents the change's scope for overlap matching? `deltas[capability]`? `touched_files` union across tasks? Confirms sibling-overlap heuristic.\n5. **Cross-project resume (`target_path`)** — does the advisory fan out per target project, or stay current-project-scoped? `/adv-coordinate` paginates `scope: \"product\"`; resume probably wants narrower default.\n6. **`parent_change_id` / fast-follow children** — should a child skip the `resume:archived_duplicate` check against its own parent? Inheritance rules need confirmation.\n7. **User deferral memory** — if the user dismisses a finding (\"yes, I know, proceed\"), should ADV remember the dismissal for that sibling pair until the next state transition? Agent-session-resume preserves deferrals; ADV has no equivalent today. Scope decision: defer this to a follow-up?\n8. **Snapshot budget impact** — does the `Freshness:` line need to displace an existing line (which one?), or can the box grow to 11 lines for stale resumes? Existing `dropOutcomes` / `dropCurrent` rules need extension.\n9. **Spec law** — does this require a new `rq-*` requirement under `advance-workflow` for the resume-freshness law, or does it amend an existing one? Also: does `chat-output-display` need a new requirement for the snapshot field, or does it fall under existing Context Snapshot laws?\n10. **Worktree-guard interaction** — does the advisory fire before or after worktree materialization for auto-managed changes? Probably before (cheap reads only).\n\n## Scope\n\n### In Scope\n\n- Resume Freshness pre-step in ADV Step 2 \"Load State\" (`.opencode/agents/adv.md`).\n- Optional `resumeFreshness` field on `buildChangeContextSnapshot` + `Freshness:` line in snapshot box.\n- Stable finding codes (`resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`).\n- Shared resolver reusing `/adv-coordinate` taxonomy, `/adv-cleanup` duplicate detection, `/adv-refactor` drift signal.\n- Trigger threshold (`lastActivityAgeMinutes > 60`).\n- Informational advisory with proceed-default behavior.\n- Mid-execution resume (`/adv-apply` after restart) — same check.\n- Tests for all four finding codes + fresh-skip + `freshness_limited` fallback.\n- `ADV_INSTRUCTIONS.md` protocol update.\n\n### Out of Scope\n\n- Creation-time duplicate detection (already exists — `.adv/specs/advance-workflow/spec.json:5509`).\n- Task-level `scope_drift` (already exists in `schemas/task.schema.json`).\n- Full Epic-level coordination (`/adv-coordinate` owns it).\n- New `/adv-resume` slash command — resume stays implicit in the agent loop.\n- Conductor-style context-mode selection per agent — redundant with ADV's existing typed snapshot model.\n- Full agentic-sdlc-style artifact validation (task-graph cycles, least-privilege handoff, privacy-boundary scans) — broader than the user's request; separate `/adv-audit` engagement.\n\n### Must Not\n\n- The advisory **must not** become a gate or block any gate transition.\n- The advisory **must not** mutate ADV state (no close, no supersede, no task/gate mutations).\n- The advisory **must not** fire on fresh changes (`lastActivityAgeMinutes <= 60`) — zero noise for in-flight work.\n- The advisory **must not** exceed ~5 tool calls per resume — bounded cost is part of the contract.\n- The advisory **must not** rely on LLM-classified finding labels — codes must be structural and testable.\n- The `buildChangeContextSnapshot` formatter **must not** lose purity — resolver lives in storage layer.\n- The snapshot box **must not** silently exceed its 10-line budget — explicit budget-shed rule extension required.\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Detect codebase drift, sibling-change overlap, and shipped-since archives at ADV resume time — before the Gate Machine proceeds.\n2. Surface a bounded, scannable Resume Freshness advisory carrying machine-classifiable stable finding codes.\n3. Reuse existing `/adv-coordinate` taxonomy, `/adv-cleanup` duplicate detection, `/adv-refactor` drift signals, and `appendRecencyRecommendation` plumbing — no greenfield detection logic.\n4. Keep advisory informational with proceed-default; never block gate transitions or mutate ADV state.\n5. Preserve pure-formatter invariant on `buildChangeContextSnapshot`; resolver lives in storage layer.\n6. Stay within bounded cost ceiling (~5 tool calls per stale resume); zero noise for fresh resumes.\n\n## Success Criteria\n\n1. Stale resumed change surfaces a bounded Resume Freshness advisory before the Gate Machine proceeds.\n2. Fresh resumed change (`lastActivityAgeMinutes ≤ 60`) produces zero advisory noise.\n3. Advisory stays within the bounded tool-call cost ceiling (~5 calls per stale resume).\n4. Advisory inherits `/adv-coordinate`'s `repo_backed_fact | adv_backed_fact | judgment_call | freshness_limited` taxonomy — no new label space.\n\n## Acceptance Criteria\n\n1. Advisory fires iff the change's `lastActivityAgeMinutes` (output of `adv_change_list`, already computed at `plugin/src/tools/change.ts:849`) exceeds 60.\n2. Advisory emits one or more stable finding codes: `resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`.\n3. Advisory does not block any gate transition.\n4. Advisory does not mutate ADV state (no close, supersede, task/gate mutations from the advisory itself).\n5. `buildChangeContextSnapshot` formatter stays pure — no storage import added to `plugin/src/utils/context-snapshot.ts`.\n6. Optional `resumeFreshness` field threads through all snapshot emit sites (gate.ts, change.ts ×2, status-enrich.ts ×2, change/recovery.ts, compaction-context.ts, context-snapshot-fetch.ts) without breaking existing emissions when the field is absent.\n7. Each finding code + fresh-skip path + `freshness_limited` fallback covered by automated tests.\n8. Advisory scope is current-project only — no cross-project fan-out (Q1 decision).\n9. User dismissals are not persisted — finding re-raises on every resume (Q2 decision).\n10. `Freshness:` line displaces `Outcomes:` line first when snapshot is budget-constrained (Q3 decision, extends existing `dropOutcomes` rule).\n11. On a single HIGH-confidence `resume:archived_duplicate`, advisory surfaces a one-click \"close+supersede\" suggestion. Close executes only on explicit user acceptance via `adv_change_close` with approval evidence — agent does not auto-execute (Q4 decision).\n\n## Constraints\n\n- C1: No new gate. Advisory is informational only.\n- C2: Reuse-first — inherit `/adv-coordinate` taxonomy, `/adv-cleanup` duplicate normalization, `/adv-refactor` drift scanners, `appendRecencyRecommendation` plumbing.\n- C3: Bounded cost ceiling — ~3–5 tool calls per stale resume.\n- C4: Trigger band — `lastActivityAgeMinutes > 60` (matches \"hot\" exclusion boundary).\n- C5: Formatter purity — `buildChangeContextSnapshot` stays pure; resolver lives in storage layer (`plugin/src/storage/`).\n- C6: 10-line snapshot budget — explicit budget-shed rule extension; never silent overflow.\n- C7: Stable finding codes only — no LLM-classified labels; codes must be structural and testable.\n\n## Avoidances\n\n- DONT1: Do not make the advisory a gate or block any gate transition.\n- DONT2: Do not greenfield detection logic — reuse existing `/adv-coordinate`, `/adv-cleanup`, `/adv-refactor` primitives.\n- DONT3: Do not mutate ADV state from the advisory itself (no close, supersede, task/gate mutations).\n- DONT4: Do not persist user dismissal memory — re-raise on every resume (Q2 decision).\n- DONT5: Do not fan out cross-project — current-project scope only (Q1 decision).\n- DONT6: Do not silently exceed the 10-line snapshot budget.\n- DONT7: Do not auto-execute close+supersede without explicit user acceptance — auto-recommend only (Q4 decision).\n\n## Preview Applicability\n\n- `visual_surface: false` — pure backend/agent-flow change. Affects Context Snapshot box (text) and ADV Step 2 prose; no browser/UI surface.\n- `exact_route_required: not_applicable`\n- `data_state_expectation: not_applicable`\n- `viewport_expectation: not_applicable`\n\nRationale: Change touches `plugin/src/utils/context-snapshot.ts` (text formatter), `plugin/src/storage/context-snapshot-fetch.ts` (storage resolver), `.opencode/agents/adv.md` (agent prompt), `ADV_INSTRUCTIONS.md` (agent prompt). No frontend/UI component affected.\n\n## Decisions\n\n### User Decisions\n\n- **Q1 — Cross-project scan scope**: Current project only. Cheaper, matches per-change resume scope; cross-project coordination remains `/adv-coordinate` ownership. *Why it matters*: avoids cost-ceiling blow-up when a change has many `target_path` projects; keeps advisory narrowly scoped to what the resume decision actually needs.\n- **Q2 — Deferral memory**: No memory — re-raise every resume. *Why it matters*: simplest contract; no state to manage or lose; advisory is informational so re-raising is low-friction.\n- **Q3 — Snapshot budget priority**: Shed `Outcomes:` line first. *Why it matters*: extends existing `dropOutcomes` rule consistently; freshness is more actionable than outcome count for a stale resume.\n- **Q4 — Archived-duplicate action**: Auto-recommend close+supersede with one-click accept. *Why it matters*: faster resolution when duplicate is clear, while preserving explicit user acceptance as the close authority.\n\n### Agent Decisions (LBP)\n\n- **Resolver placement**: `plugin/src/storage/` (likely new `resume-freshness.ts` module or extension of `context-snapshot-fetch.ts`). Rationale: pure-formatter invariant requires resolver outside `plugin/src/utils/`; storage layer already has `Store` access needed for `adv_change_list` + `adv_change_show` + archive reads. Surface scan confirmed `fetchChangeContextSnapshot` is the storage-backed variant and natural injection point.\n- **`/adv-coordinate` extraction strategy**: defer exact make-vs-extract decision to `/adv-design`. Discovery confirmed no `classifyOverlap` symbol exists; Phase 2-3 logic is command-prose. Extraction touches `/adv-coordinate` (risk); reimplementation risks drift. Design will choose based on actual code shape post-deep-inspection.\n- **`lastActivityAgeMinutes` source**: reuse existing computation at `plugin/src/tools/change.ts:831-849` (already on `adv_change_list` output). Do not recompute.\n- **Existing recency engine integration**: Resume Freshness plugs into `pushStatusRecommendation` flow alongside `appendRecencyRecommendation` — not duplicates it. Both feed the same `StatusRecommendationCarrier`.\n- **Mid-execution resume path**: same check applies. `/adv-apply` mid-execution resume uses the same agent-loop entry; sole-entry claim verified — only `.opencode/agents/adv.md:189-190` carries \"resume from first incomplete gate\".\n- **Stable code namespacing**: `resume:` prefix to keep codes grep-able and disjoint from future code namespaces (e.g., `archive:`, `cleanup:`).\n- **Warrant on AC1 removed**: `lastActivityAgeMinutes` is an output field of `adv_change_list`, not an input argument; the `#<arg>` warrant form does not apply. AC1 is a behavioral criterion that consumes an already-computed output field; no capability presumption warrant needed.\n\n## Deferred Questions\n\nNone. All four user-facing open questions resolved at Phase 4.5. Remaining technical unknowns (resolver module shape, `/adv-coordinate` extraction strategy, exact spec-law requirement shape) are agent-resolved LBP decisions carried into `/adv-design`.\n\n## Sign-Off\n\nUser approved acceptance and success criteria at Phase 4.5.1 inline checkpoint. Agreement persisted; contract mint authorized.\n",
+    "design": "# Design — Add Resume Freshness Advisory\n\n> **Revision 2** — incorporates Phase 3.5 validator findings (status: fail, advisory-only per AC13). Two correctness gaps closed: D6 four-optional budget case, D9b primary-only resolver invocation. See Validator Result section.\n\n## Architecture Overview\n\nThe advisory plugs into ADV's existing Context Snapshot + status-recommendation plumbing. Three layers, each with a single responsibility:\n\n```\n                    ┌─────────────────────────────────────────┐\n                    │   ADV Step 2 Load State                 │\n                    │   (.opencode/agents/adv.md:189-200)     │\n                    └────────────────┬────────────────────────┘\n                                     │ adv_change_show (primary)\n                                     ▼\n┌────────────────────────────────────────────────────────────────┐\n│  Injector Layer (existing)                                      │\n│  • fetchChangeContextSnapshot (storage/context-snapshot-fetch) │\n│  • appendStatusEnrichments (tools/status-enrich.ts:238-243)    │\n│                                                                 │\n│  NEW: trigger guard — fires ONLY for isPrimary candidates       │\n│        AND lastActivityAgeMinutes > 60?                         │\n│        yes → call resolver; thread result into snapshot input   │\n│        no  → skip (zero noise; ticker path unaffected)          │\n└────────────────┬───────────────────────────────────┬───────────┘\n                 │                                   │\n                 ▼                                   ▼\n┌────────────────────────────────┐    ┌──────────────────────────────┐\n│  Resolver (NEW)                │    │  Formatter (existing)        │\n│  storage/resume-freshness.ts   │    │  utils/context-snapshot.ts   │\n│                                │    │                              │\n│  resolveResumeFreshness(       │    │  NEW field: resumeFreshness? │\n│    store,                      │    │  NEW line: \"Freshness: …\"    │\n│    changeId,                   │    │  Extended dropOutcomes rule  │\n│    lastActivityAgeMinutes      │    │  + 4-optional compact rule   │\n│  ): Promise<ResumeFreshness>   │    │  (Pure — no storage import)  │\n└────────────────────────────────┘    └──────────────────────────────┘\n                 │\n                 ▼\n┌────────────────────────────────────────────────────────────────┐\n│  Status Recommendation (existing + NEW append)                  │\n│  tools/status-enrich.ts                                         │\n│                                                                 │\n│  NEW: appendResumeFreshnessRecommendation → pushStatusRecommendation │\n│  Emits one-click \"close+supersede\" suggestion (single HIGH-conf  │\n│  archived_duplicate only); never auto-executes                  │\n└────────────────────────────────────────────────────────────────┘\n```\n\n**Five components touched**: 1 new module (resolver), 1 formatter extension, 2 injector extensions, 1 status-recommendation append, plus agent-instruction prose + spec delta.\n\n## Key Decisions\n\n### D1 — New module `plugin/src/storage/resume-freshness.ts`\n\n**Decision**: Create a new resolver module rather than extending `context-snapshot-fetch.ts`.\n\n**Rationale**: `context-snapshot-fetch.ts` is a thin 83-line wrapper. Resume Freshness is a non-trivial resolver: 3 sub-resolvers, each with queries and tests. New module gives clear ownership, easier testing, matches existing one-resolver-per-concept pattern.\n\n### D2 — Reimplement `/adv-coordinate` logic behind typed interface (no extraction)\n\n**Decision**: Do NOT extract Phase 2-3 logic from `.opencode/command/adv-coordinate.md`. Reimplement in `resume-freshness.ts` using a typed interface.\n\n**Rationale**: `/adv-coordinate` is command-file prose, not a callable function (no `classifyOverlap` symbol). Extracting is scope creep + risk. Drift risk acknowledged (R5). **Auto-adopted from scout**: reuse pure `intersectFileLists` primitive extracted from `validator/file-overlap.ts:91-99` (currently skips archived — extract intersection, leave skip policy in validator).\n\n### D3 — Sibling-overlap heuristic: capability + path intersection\n\n**Decision**: Match on (a) shared capability in `deltas[capability]` keys, OR (b) shared paths in `touched_files` union. Title-only matching is too noisy.\n\n**Rationale**: Either signal is sufficient; both = HIGH confidence; capability-only = MEDIUM (`judgment_call`).\n\n### D4 — Archived-since: fetch + client-filter\n\n**Decision**: `adv_change_list includeArchived: true` once, client-filter by `archived_at > lastActivityAt`. Cap top 50 (DDC3).\n\n**Rationale**: Bounded; most projects have <100 archived changes.\n\n### D5 — Codebase drift: shared `execGit` against touched_files union\n\n**Decision**: Use existing `execGit` (`utils/git.ts:19`) for `git log --since <lastActivityAt> --name-only --pretty=format:` against touched_files union.\n\n**Auto-adopted from scout**: reuse `execGit` (PATH hygiene, SIGTERM timeout). Map failure → `freshness_limited`. No mtime cache. Cap top 100 commits (DDC4).\n\n### D6 — Snapshot budget: complete 4-stage shed rule (REVISED)\n\n**Decision**: Extend existing staged budget-shed rule in `formatContextSnapshot` (`utils/context-snapshot.ts:374-425`) to cover **all four optional-row counts** (0, 1, 2, 3, 4 optionals). Freshness is treated as the 4th optional competing for the same 8-content-line budget.\n\nShed precedence (highest-shed first → lowest-shed last):\n\n| Optional count | Drop Outcomes? | Drop Current? | Drop Epic-blank spacer? | Freshness retained? |\n|---|---|---|---|---|\n| 0–1 optionals | no | no | no | n/a (no freshness) |\n| 2 optionals | **yes** | no | no | yes |\n| 3 optionals | yes | **yes** | no | yes |\n| **4 optionals** (directive + wisdom + current + freshness) | yes | yes | **yes** (compact: omit blank line 3 when no Epic) | **yes** |\n\n**Critical invariant**: when 4 optionals are present AND Epic line is also present (5 content-driving signals), drop **Wisdom** before Freshness — freshness is more actionable for a stale resume; wisdom is durable project knowledge available elsewhere. In the no-Epic case, the blank spacer line is pure padding and sheds first.\n\n**Implementation**: extend the `optionalCount` calculation to include `hasFreshness`; extend the staged `dropX` booleans; add a `dropWisdomBeforeFreshness` case for Epic+4-optionals. Hard 10-line cap preserved in all combinations.\n\n**Auto-adopted from scout (Candidate #4)**: extend staged shed rule inline; deterministic table tests; no property-test helper surfaced.\n\n**Closes validator finding #1** (snapshot worst case can reach 11 lines): the 4-optional case is now structurally bounded to ≤10 lines via the Epic-blank/Wisdom shed.\n\n### D7 — `freshness_limited` fallback\n\n**Decision**: Single fallback code emitted when ANY of: Temporal visibility query fails/times out; archive read fails; git command unavailable; no `lastActivityAt` recorded; resolver exceeds 8s wall-clock budget (DDC1). No partial credits, no LLM labels.\n\n### D8 — One-click close+supersede recommendation (clarified wording)\n\n**Decision**: `appendResumeFreshnessRecommendation` emits a `StatusRecommendation` via existing `pushStatusRecommendation` when a single HIGH-confidence `resume:archived_duplicate` is found. Recommendation carries:\n- Summary of the duplicate (archived change ID, title, capability overlap, archived_at timestamp)\n- Copy-pasteable `adv_change_close changeId: <archived_dup_id> reason: \"superseded\" supersededBy: <current_id> approvedByUser: true approvalEvidence: \"...\"` snippet\n- Explicit text: \"Run the command above to close. ADV does not auto-execute close.\"\n\n**Auto-adopted from scout (Candidate #1)**: plug into existing `pushStatusRecommendation` plumbing; avoid new builder interface.\n\n**User-surface from scout (Candidate #5)**: recommendation **must** direct user to explicit approval flow — cannot imply executable button-click closure. `adv_change_close` requires `approvedByUser: true` + non-empty `approvalEvidence` (`change.ts:2220-2308`). Q4 \"one-click accept\" → **\"one-command accept (copy-paste and run)\"**.\n\n### D9 — Trigger threshold at resolver entrypoint\n\n**Decision**: Resolver entrypoint checks `lastActivityAgeMinutes > 60` (C4) before running any sub-resolver. Formatter stays agnostic.\n\n**Note on existing recency bands**: `appendRecencyRecommendation` emits \"hot\" ≤60 and \"stale\" ≥180. The 60–180 band is currently silent. Our >60 trigger fills that gap without overlapping existing labels.\n\n### D9b — Primary-only resolver invocation (NEW — closes validator finding #2)\n\n**Decision**: Resolver fires **only for `isPrimary` candidates** in the status loop. Non-primary candidates use `buildChangeContextTicker` (existing behavior at `status-enrich.ts:238-240`) and never invoke the resolver.\n\n**Rationale**: `status.ts:390-404` loops through `recentChanges` calling `enrichRecentChangeStatus` per candidate. If resolver fired per-candidate, N candidates → N× archive/git scans, violating C3 (bounded cost ceiling ~5 calls per stale **resume**, not per status refresh). Primary-only ensures the cost ceiling binds per-resume, not per-status-refresh.\n\n**Implementation**:\n- `fetchChangeContextSnapshot` (storage side) — always primary-scoped (single change); trigger guard applies.\n- `appendStatusEnrichments` (status-enrich.ts:238) — invoke resolver only inside the `isPrimary ?` branch; ticker branch (`buildChangeContextTicker`) stays unchanged and resolver-free.\n\n**DDC8 (NEW)**: Resolver invoked at most once per `adv_status` call (primary candidate only). N recent changes never multiply resolver cost.\n\n### D10 — Spec law: new `rq-resumeFreshness01` + `chat-output-display` amendment\n\n**Decision**: Add `rq-resumeFreshness01` under `advance-workflow` covering trigger band, stable codes, cost ceiling, fallback, no-state-mutation, no-gate-block, primary-only invocation. Amend `chat-output-display` with one-sentence note that `Freshness:` row is part of Context Snapshot emission set and follows the 10-line budget rule (including 4-optional compact case).\n\n## ADR Drafts\n\nNone. No decision meets all three ADR rubric criteria.\n\n## Implementation Strategy\n\nSequencing for `/adv-prep` consumption — topological order:\n\n1. **Types** (`resume-freshness.ts`) — `ResumeFreshnessInput`, `ResumeFreshnessFinding`, `ResumeFreshnessLabel`, `ResumeFreshnessResult`. Pure types.\n2. **Pure helpers** — extract `intersectFileLists(planned, peer): string[]` from `validator/file-overlap.ts:91-99` (no behavior change there).\n3. **Sub-resolvers** (3 functions in `resume-freshness.ts`):\n   - `resolveSiblingOverlap(store, changeId, scope) → ResumeFreshnessFinding[]`\n   - `resolveArchivedSinceDuplicates(store, changeId, lastActivityAt, scope) → ResumeFreshnessFinding[]`\n   - `resolveCodebaseDrift(store, changeId, lastActivityAt, touchedFiles) → ResumeFreshnessFinding[]`\n4. **Resolver entrypoint** — `resolveResumeFreshness(store, changeId, lastActivityAgeMinutes): Promise<ResumeFreshnessResult>` with trigger-band guard, budget timer (DDC1), `freshness_limited` fallback.\n5. **Formatter extension** — add `resumeFreshness?` field to `ContextSnapshotInput`; render `Freshness:` line; extend `dropOutcomes` precedence to 4-stage rule (D6); add Epic-blank/Wisdom compact case.\n6. **Injector wiring**:\n   - `fetchChangeContextSnapshot` (storage/context-snapshot-fetch.ts) — call resolver when `lastActivityAgeMinutes > 60`; pass result to formatter.\n   - `appendStatusEnrichments` (tools/status-enrich.ts:238-243) — call resolver ONLY inside `isPrimary` branch (D9b); ticker branch unchanged.\n7. **Status recommendation** — `appendResumeFreshnessRecommendation` in status-enrich.ts; emits one-command close+supersede suggestion per D8.\n8. **Agent instructions** — extend `.opencode/agents/adv.md` Step 2 with Resume Freshness pre-step prose; mirror in `ADV_INSTRUCTIONS.md`.\n9. **Tests** (TDD):\n   - `resume-freshness.test.ts` — resolver unit tests for each finding code + fresh-skip + freshness_limited fallback + budget timeout.\n   - `context-snapshot.test.ts` extension — Freshness line rendering + **4-stage budget-shed table tests** (all optional-count combinations including 4-optionals+ Epic, 4-optionals no Epic).\n   - `status-enrich.itest.ts` extension — primary-only resolver invocation; ticker path never invokes resolver.\n10. **Spec delta** — add `rq-resumeFreshness01` to `advance-workflow`; one-sentence amendment to `chat-output-display`.\n\n## LBP Analysis\n\nThis design matches long-term best practice on five axes:\n\n1. **Reuse over greenfield** (C2): seven existing assets reused (`/adv-coordinate` taxonomy, `/adv-cleanup` duplicate concept, `/adv-refactor` drift intent, `appendRecencyRecommendation` plumbing, `execGit`, `pushStatusRecommendation`, pure file-intersection primitive). Zero new infrastructure categories.\n2. **Structural correctness** (P33): stable finding codes over LLM labels; grep-able; testable; `freshness_limited` is structural fallback.\n3. **Locality of behavior** (P04): resolver colocated with storage peers; formatter extension in formatter file; agent prose in agent file.\n4. **Bounded cost** (C3 + DDC1-8): hard caps on every dimension; worst-case degrades to `freshness_limited`; primary-only invocation ensures per-status-refresh cost stays bounded regardless of recent-change list length.\n5. **Ecosystem alignment**: matches 2026 patterns (Ideate `stale_resume`, agent-chassis dispatch-readiness, agent-session-resume classification).\n\nTradeoff accepted: **D2 drift risk** — `/adv-coordinate` prose and resolver implementation may diverge. Mitigated by R5; extraction is explicit follow-up.\n\n## Affected Components\n\n| Component | File | Change |\n|---|---|---|\n| Resolver (NEW) | `plugin/src/storage/resume-freshness.ts` | New module — types, 3 sub-resolvers, entrypoint, budget guard |\n| Formatter | `plugin/src/utils/context-snapshot.ts` | Add `resumeFreshness?` field; render `Freshness:` line; extend `dropOutcomes` to 4-stage rule + compact case |\n| Pure helper extraction | `plugin/src/validator/file-overlap.ts` | Extract `intersectFileLists` primitive; no behavior change |\n| Storage injector | `plugin/src/storage/context-snapshot-fetch.ts` | Call resolver in `fetchChangeContextSnapshot` when trigger fires |\n| Status injector | `plugin/src/tools/status-enrich.ts` | Call resolver in `appendStatusEnrichments` for **primary only** (D9b); add `appendResumeFreshnessRecommendation` |\n| Agent instructions | `.opencode/agents/adv.md` Step 2 | Add Resume Freshness pre-step prose |\n| Agent instructions | `ADV_INSTRUCTIONS.md` | Mirror protocol update |\n| Spec law | `.adv/specs/advance-workflow/spec.json` | Add `rq-resumeFreshness01` |\n| Spec law | `.adv/specs/chat-output-display/spec.json` | One-sentence amendment for `Freshness:` row + 4-optional compact case |\n| Tests (NEW) | `plugin/src/storage/resume-freshness.test.ts` | Resolver unit tests |\n| Tests (extend) | `plugin/src/utils/context-snapshot.test.ts` | Freshness line + 4-stage budget-shed table tests |\n| Tests (extend) | `plugin/src/tools/status-enrich.itest.ts` | Primary-only resolver invocation; ticker path never invokes resolver |\n| Research pack (deferred) | `docs/adv-resume-freshness-check-prep.md` | Persist from worktree during execution |\n\n## Design-Derived Criteria\n\nTechnical budgets caused by the chosen architecture:\n\n- **DDC1**: Resolver MUST complete within 8s wall-clock per resume; exceeding → `freshness_limited`.\n- **DDC2**: Sibling-overlap scan caps at top 50 active changes.\n- **DDC3**: Archived-since scan caps at top 50 most-recent archives.\n- **DDC4**: Codebase-drift git log caps at top 100 commits.\n- **DDC5**: Resolver read-only, idempotent, no locks.\n- **DDC6**: Deterministic output for same input state.\n- **DDC7**: Trigger-band guard is single entrypoint decision.\n- **DDC8** (NEW): Resolver invoked at most once per `adv_status` call (primary candidate only). N recent changes never multiply cost.\n\n## Validator Result\n\n**Phase 3.5 design validator** spawned via `adv-researcher` (task `ses_07b64d353ffejpULRkz7nzBOKi`). Verdict: **`fail`** (advisory-only per AC13 — does NOT auto-block design gate).\n\n**Findings raised** (both addressed in Revision 2):\n\n1. **D6 budget gap** — Snapshot worst case can reach 11 lines because D6 lacked a four-optional-row shedding rule. Evidence: `plugin/src/utils/context-snapshot.ts:374-445`. **Closed**: D6 revised to 4-stage rule with Epic-blank/Wisdom compact case (drop Epic-blank spacer first when no Epic; drop Wisdom before Freshness when Epic present + 4 optionals). Hard 10-line cap structurally preserved in all combinations.\n2. **Per-candidate resolver cost** — Per-candidate invocation would multiply archive/git scans across recent changes, breaking bounded per-resume cost (C3). Evidence: `plugin/src/tools/status.ts:340-405`. **Closed**: D9b added — resolver fires only for `isPrimary` candidates; ticker branch unchanged; DDC8 codifies \"at most once per adv_status call\".\n\n**Architecture judgement** (from validator): applicability `applicable`, status `fail`, confidence `high`, risk `high`. Tradeoffs: \"Primary-only resolver preserves budget; drop spacer after Outcomes/Current to preserve Freshness.\" Both recommendations adopted in Revision 2.\n\n**Validator recommendation**: \"Define complete 10-line shedding precedence; invoke resolver once per primary resume under one deadline, reuse result for snapshot/recommendation.\" — Both implemented.\n\n## Design Leverage Scout — Results\n\nSpawned `adv-researcher` (task `ses_07b69b93dffeAU2o7Mj7zBGztN`) with `adv-opportunity-scout` skill. 5 candidates, 4 auto-adopted, 1 user-surface:\n\n| # | Candidate | Payoff | Risk | Fate |\n|---|---|---|---|---|\n| 1 | Reuse `appendRecencyRecommendation` → `pushStatusRecommendation`; avoid new builder interface | high | low | **auto-adopted** (D8) |\n| 2 | Extract pure `intersectFileLists` from `validator/file-overlap.ts:91-99`; archived-skip policy stays in validator | high | low | **auto-adopted** (D2) |\n| 3 | Use shared `execGit` (`utils/git.ts:19`) for git log; map failure to `freshness_limited`; no mtime cache | medium | low | **auto-adopted** (D5) |\n| 4 | Extend existing staged shed rule inline; add deterministic table tests; no property-test helper surfaced | medium | low | **auto-adopted** (D6) |\n| 5 | Close+supersede recommendation wording must direct user to explicit approval flow, not imply executable one-click closure | high | medium | **user-surface** (D8 clarification) |\n\nArchitecture judgement from scout: status `pass`, confidence `high`, risk `low`.\n\n## Risks / Mitigations\n\n| # | Risk | Mitigation |\n|---|---|---|\n| R1 | 7 call sites for `buildChangeContextSnapshot` — inconsistent threading | Optional field; default `undefined`; existing emissions unaffected. Formatter test matrix covers all sites. |\n| R2 | Cost ceiling exceeded on huge projects | Hard caps DDC2-4; `freshness_limited` fallback (DDC1); deterministic degradation. |\n| R3 | `lastActivityAgeMinutes` source drift if `adv_change_list` shape changes | Type-narrow at resolver boundary; consumer-internal `ResumeFreshnessInput` type. |\n| R4 | One-click close+supersede misuse — user accepts hastily | AC11 requires explicit approval evidence in close command; D8 wording forbids auto-execution implication. |\n| R5 | `/adv-coordinate` prose and resolver implementation diverge (D2 accepted) | Recorded; future follow-up can extract shared logic. Single source of truth stays in `resume-freshness.ts`. |\n| R6 | Snapshot box budget violation in any optional combination | D6 4-stage rule structurally bounds all combinations to ≤10 lines; table tests cover 0/1/2/3/4 optionals × Epic/no-Epic. |\n| R7 | Concurrent sibling activity during advisory | Acceptable; `judgment_call` label; informational not authoritative. |\n| R8 | Spec drift between `advance-workflow` and `chat-output-display` | D10 cross-link via tag `[\"resume\", \"freshness\"]` on both. |\n| R9 (NEW) | Resolver fires for non-primary candidates → cost blow-up | D9b + DDC8 structurally prevent; status-enrich test asserts ticker path never invokes resolver. |\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nADV now surfaces a Resume Freshness advisory when an agent resumes a stale change, alerting the user to codebase drift, active sibling overlap, or already-shipped archive duplicates before work proceeds — preventing duplicated effort and superseded-scope rebuilds.\n\n## Why It Matters\nBefore this change, resuming a stale ADV change loaded only that change's state. The agent had no visibility into commits to its referenced files since last activity, in-flight siblings touching the same paths, or archives that shipped overlapping scope. Result: resumed changes could silently rebuild shipped work, race with active siblings, or proceed against stale API surfaces. The advisory closes that gap with stable, machine-classifiable finding codes — matching patterns now standard in 2026 agent-orchestration tooling (Ideate `stale_resume`, agent-chassis dispatch-readiness, agent-session-resume classification).\n\n## Verdict\nAPPROVED — release READY\n\n## What Was Built\n1. New resolver module (`plugin/src/storage/resume-freshness-resolver.ts`) with three sub-resolvers (sibling overlap, archived-since duplicates, codebase drift) and an entrypoint that enforces the trigger band, 8s budget, and `freshness_limited` fallback.\n2. Pure helper `intersectFileLists` extracted from `plugin/src/validator/file-overlap.ts` to a new utility (`plugin/src/utils/file-intersection.ts`), shared by validator and resolver without duplication.\n3. Formatter extension to `buildChangeContextSnapshot` adding the optional `Freshness:` line and a 4-stage snapshot budget-shed rule that preserves the hard 10-line cap in all optional-row combinations (validator finding closed).\n4. Primary-only injector wiring at three snapshot emit sites (`fetchChangeContextSnapshot`, `enrichRecentChangeStatus`, `buildCandidateEnrichmentPatch`) — primary-only invocation bounds cost regardless of recent-change list length (validator finding closed).\n5. One-command close+supersede recommendation (`appendResumeFreshnessRecommendation`) surfacing a copy-pasteable `adv_change_close` snippet when exactly one HIGH-confidence archived duplicate is detected — never auto-executes; wording guard tested.\n6. Spec law `rq-resumeFreshness01` added to `advance-workflow` (10 Given/When/Then scenarios) and `rq-ctxsnap1` amended in `chat-output-display` for the Freshness row + 4-optional budget rule.\n7. Agent instruction updates in `.opencode/agents/adv.md` Step 2.5 and `ADV_INSTRUCTIONS.md` Critical Protocols section, both carrying the proceed-default contract and \"ADV does not auto-execute close\" wording guard.\n8. Research pack at `docs/adv-resume-freshness-check-prep.md` with 9 sections and 15 cited sources (3 competitors + 2 emerging patterns from the 2026 ecosystem).\n9. Test coverage: 117+ automated tests across resolver unit tests, formatter table tests (including 4-optional + Epic case after harden fix), status-enrichment tests, integration pipeline tests, and the existing file-overlap validator (no regressions).\n\n## What Was Verified\n- Verdict: APPROVED with 1 suggestion (resolved during harden — 4-optional+Epic test added).\n- Tests: 117/117 pass across 7 test files. Lint clean, typecheck clean, format:check clean, schemas:check clean.\n- Preview URL: not_applicable — pure backend/agent-flow change. No visual_surface; no front-end, browser-visible, or visual-output work. Affects Context Snapshot box (text) and agent prompt prose only.\n- Contract matrix: 29/29 required rows passed/respected, 0 failing. All 11 ACs pass, all 7 constraints respected, all 7 avoidances respected.\n- Harden: 6/6 release-readiness dimensions PASS (test coverage, AI-slop, doc hygiene, cleanup, production readiness, deployment readiness). 0 blockers, 0 high findings, 0 medium findings.\n\n## Remaining Concerns\n- **Worker delegation failure unresolved**: `adv-engineer` sub-agents returned empty task_results throughout execution; user accepted inline-risk decision. Diagnosis deferred. Non-blocking — all work shipped inline and verified.\n- **Spec delta recorded via direct file edit** (not via `adv_delta_add`): `.adv/specs/advance-workflow/spec.json` and `.adv/specs/chat-output-display/spec.json` updated in the change worktree. Archive workflow will reconcile; `NO_DELTAS` warning persists on the change record but is not a release blocker.\n- **Conformance suite not run**: full build + `bin/oc-test full` skipped due to session length. Targeted test sweep covers all new code paths.\n\n## Supporting Evidence\n- Tasks: tk-5bbd701b42ca (types+helper), tk-b87896ac4738 (sibling), tk-78ac237d8630 (archived), tk-96cede0a416a (drift), tk-36b013f11ad8 (entrypoint), tk-c315acd9e7ea (formatter + harden test fix), tk-11fbea40c938 (injectors), tk-5e9b6c11a473 (recommendation), tk-338d015a8ee6 (integration test), tk-8e87f1a1938c (spec law), tk-eecf04f7df59 (agent instructions), tk-57c0973b03f5 (research pack)\n- Commits: SHA range `2aeb40ce` → `0f2e4d86` on `change/addResumeFreshnessAdvisory` branch (9 commits including harden fix)\n- Contract review matrix: 29 rows persisted via `adv_contract_review_matrix_set`\n- Design validator: fail (advisory-only, both findings closed in Rev 2 — D6 4-stage rule, D9b primary-only)\n- Harden: suggestion tests-1 resolved; 6/6 dimensions pass\n\n## Consequence Context\n1. **Delivered value**: stale resumes surface codebase/sibling/archive overlap before Gate Machine proceeds — status: delivered; evidence: acceptance summary + 12 task implementations + 117 passing tests + 6/6 harden dimensions pass\n2. **Enabling-only/follow-up dependency**: none — advisory is informational, no downstream work required to realize value\n3. **Ops readiness**: ready — release/deploy/production/docs/cleanup readiness all PASS in harden; no ops/deploy work in this change\n4. **Migration/data impact**: n/a — pure additive plugin code; no schema migrations, no data format changes, optional field defaults to undefined (backward compatible)\n5. **Frontend/preview impact**: not_applicable — `visual_surface: false` per agreement; no browser-visible output affected\n6. **Collision/release risk**: low — change branch `change/addResumeFreshnessAdvisory` touches plugin source + agent instructions; no conflicts observed with concurrent in-flight changes\n7. **Open follow-ups**: none blocking — worker delegation diagnosis deferred by user choice; spec delta reconciliation handled by archive workflow\n8. **Next action**: `/adv-archive addResumeFreshnessAdvisory` — release gate owned by archive command\n\n## Release Readiness Summary\n- Test coverage: 100% new-code coverage (every new source file has a corresponding test file). All TDD-inline tasks have red+green evidence via `adv_run_test`. Existing tests show zero regressions.\n- AI-slop: 0 findings. No placeholders, no type erosion, no `console.log`, no TODO/FIXME in critical paths. All functions have doc-comments referencing design decisions.\n- Documentation hygiene: 0 conflicts, 0 stale refs. Agent instructions consistent across `.opencode/agents/adv.md` Step 2.5 + `ADV_INSTRUCTIONS.md` Critical Protocols. Spec law matches agent prose. Research pack cites real sources.\n- Cleanup: 0 candidates. No temp files, no debug code, no dead imports (lint clean), no marked-for-deletion files.\n- Production readiness: PASS. Read-only resolver (no state mutation). Bounded cost (DDC1-8 caps). Graceful degradation via freshness_limited fallback. No N+1 queries. Functions all <50 lines. No security vulns (no eval, no shell interpolation — execGit uses arg array).\n- Deployment readiness: PASS. No new env vars. No migrations (additive optional field). No new external services. No CI/CD changes. No infrastructure changes. No feature flags needed (additive, backward-compatible).\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T15:20:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Stale resumed change surfaces a bounded Resume Freshness advisory before the Gate Machine proceeds. | pass | resolver emits findings via fetchChangeContextSnapshot before snapshot render; pipeline test tk-338d015a8ee6 scenario 2 confirms stale change triggers advisory |\n| SC2 | success_criterion | Fresh resumed change (`lastActivityAgeMinutes ≤ 60`) produces zero advisory noise. | pass | AC1 trigger guard skips resolver when lastActivityAgeMinutes <= 60; pipeline test scenario 1 verifies zero store calls + no Freshness line for fresh change |\n| SC3 | success_criterion | Advisory stays within the bounded tool-call cost ceiling (~5 calls per stale resume). | pass | DDC1-8 caps enforced in resume-freshness-resolver.ts (RESUME_FRESHNESS_BUDGET_MS=8000, SIBLING_OVERLAP_SCAN_CAP=50, ARCHIVED_SINCE_SCAN_CAP=50, CODEBASE_DRIFT_COMMIT_CAP=100); primary-only invocation bound in status-enrich.ts |\n| SC4 | success_criterion | Advisory inherits `/adv-coordinate`'s `repo_backed_fact | adv_backed_fact | judgment_call | freshness_limited` taxonomy — no new label space. | pass | ResumeFreshnessLabel type in resume-freshness.ts verbatim from /adv-coordinate taxonomy; no new labels introduced |\n| AC1 | acceptance_criterion | Advisory fires iff the change's `lastActivityAgeMinutes` (output of `adv_change_list`, already computed at `plugin/src/tools/change.ts:849`) exceeds 60. | pass | RESUME_FRESHNESS_TRIGGER_MINUTES=60; resolveResumeFreshness entrypoint returns skipped:true when <=60; pipeline test scenario 5 confirms 60min=skip vs 61min=fire boundary |\n| AC2 | acceptance_criterion | Advisory emits one or more stable finding codes: `resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`. | pass | ResumeFreshnessCode type union enumerates exactly 4 codes; resolver tests emit each code; freshness_limited fallback covered in 3 entrypoint tests |\n| AC3 | acceptance_criterion | Advisory does not block any gate transition. | pass | advisory is informational; resolver never calls gate mutation tools; pipeline test scenario 2 confirms snapshot renders normally after resolver runs |\n| AC4 | acceptance_criterion | Advisory does not mutate ADV state (no close, supersede, task/gate mutations from the advisory itself). | pass | resolver code path uses only store.changes.get/list (read-only); appendResumeFreshnessRecommendation never invokes adv_change_close; resolver tests verify no store mutator calls |\n| AC5 | acceptance_criterion | `buildChangeContextSnapshot` formatter stays pure — no storage import added to `plugin/src/utils/context-snapshot.ts`. | pass | plugin/src/utils/context-snapshot.ts imports only from ./workflow-directive (existing); ContextSnapshotResumeFreshness defined as local structural type to avoid storage import |\n| AC6 | acceptance_criterion | Optional `resumeFreshness` field threads through all snapshot emit sites (gate.ts, change.ts ×2, status-enrich.ts ×2, change/recovery.ts, compaction-context.ts, context-snapshot-fetch.ts) without breaking existing emissions when the field is absent. | pass | resumeFreshness is optional field; buildChangeContextSnapshot accepts it; formatter renders nothing when undefined; 52 existing formatter tests still pass + 6 new tests confirm field handling |\n| AC7 | acceptance_criterion | Each finding code + fresh-skip path + `freshness_limited` fallback covered by automated tests. | pass | resume-freshness-resolver.test.ts covers each code (sibling_overlap HIGH+MEDIUM, archived_duplicate HIGH+skip-parent, codebase_drift freshness_limited fallback), fresh-skip path, budget timeout path |\n| AC8 | acceptance_criterion | Advisory scope is current-project only — no cross-project fan-out (Q1 decision). | pass | resolver uses store.changes.list({}) and list({includeArchived:true}) — both current-project scoped by Store invariant; no target_path routing in resolver |\n| AC9 | acceptance_criterion | User dismissals are not persisted — finding re-raises on every resume (Q2 decision). | pass | resolveResumeFreshness is stateless (no module-level cache, no persistence layer); same input produces same output; no dismissal memory fields |\n| AC10 | acceptance_criterion | `Freshness:` line displaces `Outcomes:` line first when snapshot is budget-constrained (Q3 decision, extends existing `dropOutcomes` rule). | pass | formatContextSnapshot 4-stage rule: dropOutcomes at optionalCount>=2, dropCurrent at >=3, dropSpacerOrWisdom at >=4; Freshness retained as last shed; context-snapshot.test.ts 4-optional scenario verifies <=10 lines |\n| AC11 | acceptance_criterion | On a single HIGH-confidence `resume:archived_duplicate`, advisory surfaces a one-click \"close+supersede\" suggestion. Close executes only on explicit user acceptance via `adv_change_close` with approval evidence — agent does not auto-execute (Q4 decision). | pass | appendResumeFreshnessRecommendation emits only when exactly one repo_backed_fact archived_duplicate; snippet requires user to run adv_change_close with approvedByUser:true + approvalEvidence; status-enrich.test.ts wording-guard test asserts no 'one-click'/'button-click' |\n| C1 | constraint | No new gate. Advisory is informational only. | respected | no new gate added; advisory is informational only; resolver cannot block gate transitions (no gate mutation calls) |\n| C2 | constraint | Reuse-first — inherit `/adv-coordinate` taxonomy, `/adv-cleanup` duplicate normalization, `/adv-refactor` drift scanners, `appendRecencyRecommendation` plumbing. | respected | intersectFileLists extracted from validator/file-overlap.ts; execGit reused from utils/git.ts; pushStatusRecommendation reused from status-enrich.ts; no greenfield detection primitives |\n| C3 | constraint | Bounded cost ceiling — ~3–5 tool calls per stale resume. | respected | hard caps: DDC2 50 siblings, DDC3 50 archives, DDC4 100 commits, DDC1 8s budget, DDC8 primary-only; ~3-5 calls per stale resume |\n| C4 | constraint | Trigger band — `lastActivityAgeMinutes > 60` (matches \"hot\" exclusion boundary). | respected | RESUME_FRESHNESS_TRIGGER_MINUTES=60 matches existing 'hot' band boundary in appendRecencyRecommendation |\n| C5 | constraint | Formatter purity — `buildChangeContextSnapshot` stays pure; resolver lives in storage layer (`plugin/src/storage/`). | respected | plugin/src/utils/context-snapshot.ts has no storage imports; resolver lives in plugin/src/storage/resume-freshness-resolver.ts |\n| C6 | constraint | 10-line snapshot budget — explicit budget-shed rule extension; never silent overflow. | respected | formatContextSnapshot preserves 10-line cap in all combinations; 4-stage shed rule tested including 4-optional case |\n| C7 | constraint | Stable finding codes only — no LLM-classified labels; codes must be structural and testable. | respected | ResumeFreshnessCode is fixed union type; labels are from inherited taxonomy; no LLM classification in resolver |\n| DONT1 | avoidance | Do not make the advisory a gate or block any gate transition. | respected | no adv_gate_complete calls in resolver or recommendation emitter; advisory cannot block |\n| DONT2 | avoidance | Do not greenfield detection logic — reuse existing `/adv-coordinate`, `/adv-cleanup`, `/adv-refactor` primitives. | respected | 7 existing primitives reused (taxonomy, intersectFileLists, execGit, pushStatusRecommendation, appendRecencyRecommendation pattern, fetchChangeContextSnapshot plumbing, buildChangeContextSnapshot signature extension) |\n| DONT3 | avoidance | Do not mutate ADV state from the advisory itself (no close, supersede, task/gate mutations). | respected | resolver only invokes store.changes.get/list (read-only); no close/supersede/task/gate mutations fired from advisory path |\n| DONT4 | avoidance | Do not persist user dismissal memory — re-raise on every resume (Q2 decision). | respected | no persisted dismissal state; resolveResumeFreshness is pure function of (store, changeId, input) |\n| DONT5 | avoidance | Do not fan out cross-project — current-project scope only (Q1 decision). | respected | no target_path routing in resolver or injectors; current-project store only |\n| DONT6 | avoidance | Do not silently exceed the 10-line snapshot budget. | respected | formatContextSnapshot hard 10-line cap; 4-stage shed rule structurally bounds all combinations |\n| DONT7 | avoidance | Do not auto-execute close+supersede without explicit user acceptance — auto-recommend only (Q4 decision). | respected | appendResumeFreshnessRecommendation emits copy-pasteable snippet only; user must invoke adv_change_close themselves; wording uses 'one-command accept' never 'one-click'; wording-guard test enforces |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T05:26:51.844Z",
+      "contentHash": "e5f3dd08ccc8eca2fcbc9ac3f76610a98c88028152db97db1d499821749afdbc",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T05:36:59.525Z",
+      "contentHash": "c56f48f787288c684a32f32033f03e6993bb787fba4a519a6d699cb3aea2c305",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T12:21:41.930Z",
+      "contentHash": "636dbde603f332c132c22e94c31aa21ba87d3306a9d0f12cd2ca5f9e0b0b1a3d",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T15:37:47.413Z",
+      "contentHash": "14621974999ef9c0d75b81b7209ce45cc70c2e3e5d9b7d26d79b8f2a7fa80c9f",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T15:37:47.413Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
