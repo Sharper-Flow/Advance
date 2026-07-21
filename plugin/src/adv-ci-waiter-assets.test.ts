@@ -96,4 +96,29 @@ describe("adv-ci-waiter assets", () => {
       /(PR\s+state\s*==\s*MERGED|MERGED[^.\n]*PR\s+state|state[^.\n]*MERGED|PR[^.\n]*MERGED|MERGED[^.\n]*PR)/i,
     );
   });
+
+  test("on red CI: returns to parent with classification, does NOT remediate", () => {
+    // The waiter has edit: deny, morph_edit: deny, task: deny. It cannot
+    // remediate anything. The previous spec implied it had a "bounded
+    // remediation budget" — that was wrong. The agent manifest must make
+    // the boundary explicit so parents don't hand off remediation to it.
+    const content = readFileSync(AGENT_PATH, "utf8");
+
+    // Must have a dedicated section calling out red-CI behavior.
+    expect(content).toMatch(/## .*red CI/i);
+
+    // Must explicitly tell the waiter NOT to remediate.
+    expect(content).toMatch(/do\s+not\s+(?:attempt\s+to\s+)?remediate/i);
+
+    // Must classify failing checks (name + URL + log excerpt) so the parent
+    // has enough info to remediate without re-running CI discovery.
+    expect(content).toMatch(/classif/i);
+    expect(content).toMatch(/failing\s+checks?/i);
+
+    // Must state that remediation is the parent's job.
+    expect(content).toMatch(/parent/i);
+    expect(content).toMatch(
+      /parent[^.\n]{0,40}(?:responsibility|orchestrator)/i,
+    );
+  });
 });
