@@ -629,6 +629,154 @@ describe("adv_epic_show", () => {
     );
     expect(parsed.epic.entries).toBeUndefined();
   });
+
+  test("rq-epicDirectConvergence01: repairs stale entry status when child projection is correctly linked (issue #255 case c)", async () => {
+    // Reproduction: Epic link completed correctly (child has matching
+    // epic_membership), but the Epic entry's membership_status was never
+    // advanced from projection_pending. Pre-convergence, adv_epic_show
+    // would emit projection_missing and recommend adv_epic_repair_membership.
+    // Post-convergence, the entry is repaired to "linked" in-place and the
+    // rendered member_status is "ok".
+    const entryId = "entry-stale";
+    const changeId = "change-stale";
+    const epicId = "addAuthEpic";
+    const staleEntry: Extract<EpicEntry, { kind: "change" }> = {
+      kind: "change",
+      entry_id: entryId,
+      order: 1,
+      change_id: changeId,
+      title: "Stale entry",
+      membership_status: "projection_pending",
+      linked_at: "2026-07-01T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "original link",
+    };
+    const childChange = {
+      id: changeId,
+      title: "Stale entry",
+      status: "draft",
+      epic_membership: {
+        epic_id: epicId,
+        entry_id: entryId,
+        order: 1,
+        title: "Stale entry",
+        linked_at: "2026-07-01T00:00:00.000Z",
+      },
+    } as Change;
+    const repairedEntry: Extract<EpicEntry, { kind: "change" }> = {
+      ...staleEntry,
+      membership_status: "linked",
+    };
+    const setEntryMembershipStatus = vi.fn(async () => repairedEntry);
+    const store = makeStore({
+      entries: [staleEntry],
+      progress: {
+        status: "active",
+        total_entries: 1,
+        completed_entries: 0,
+        active_entries: 1,
+        next_entry_id: entryId,
+        updated_at: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    // Override changes.get to return our childChange, and stub the repair.
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (requestedId: string) =>
+        requestedId === changeId
+          ? { success: true, data: childChange }
+          : { success: false, data: null },
+    );
+    store.epics.setEntryMembershipStatus = setEntryMembershipStatus;
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: epicId },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    // Convergence repaired the entry in-place.
+    expect(setEntryMembershipStatus).toHaveBeenCalledWith(
+      epicId,
+      expect.objectContaining({
+        entryId,
+        membershipStatus: "linked",
+        evidence: expect.stringContaining("convergence"),
+      }),
+    );
+    // Rendered member_status reflects the post-convergence truth: ok.
+    expect(parsed.epic.next_work[0]).toMatchObject({
+      entry_id: entryId,
+      change_id: changeId,
+      member_status: expect.objectContaining({ status: "ok" }),
+    });
+  });
+
+  test("rq-epicDirectConvergence01: does not repair when child genuinely has no projection", async () => {
+    // Entry is linked but child change has no epic_membership projection.
+    // Convergence should rebuild the child projection (sync_child_projection)
+    // rather than recommending adv_epic_repair_membership.
+    const entryId = "entry-missing-proj";
+    const changeId = "change-missing-proj";
+    const epicId = "addAuthEpic";
+    const linkedEntry: Extract<EpicEntry, { kind: "change" }> = {
+      kind: "change",
+      entry_id: entryId,
+      order: 1,
+      change_id: changeId,
+      title: "Missing projection",
+      membership_status: "linked",
+      linked_at: "2026-07-01T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "link",
+    };
+    const childChangeNoProj = {
+      id: changeId,
+      title: "Missing projection",
+      status: "draft",
+      // epic_membership intentionally absent
+    } as Change;
+    const setEpicMembership = vi.fn(async () => childChangeNoProj);
+    const store = makeStore({
+      entries: [linkedEntry],
+      progress: {
+        status: "active",
+        total_entries: 1,
+        completed_entries: 0,
+        active_entries: 1,
+        next_entry_id: entryId,
+        updated_at: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (requestedId: string) =>
+        requestedId === changeId
+          ? { success: true, data: childChangeNoProj }
+          : { success: false, data: null },
+    );
+    store.changes.setEpicMembership = setEpicMembership;
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: epicId },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    // Convergence rebuilt the child projection.
+    expect(setEpicMembership).toHaveBeenCalledWith(
+      changeId,
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_id: epicId,
+          entry_id: entryId,
+        }),
+      }),
+    );
+    // Entry was already linked; rendered member_status is ok.
+    expect(parsed.epic.next_work[0]).toMatchObject({
+      entry_id: entryId,
+      member_status: expect.objectContaining({ status: "ok" }),
+    });
+  });
 });
 
 describe("adv_epic_show fast-follow lineage projection (rq-epicFastFollowLineage01)", () => {

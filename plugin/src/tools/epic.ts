@@ -28,6 +28,10 @@ import {
   targetPathSchema,
   withTargetPathStore,
 } from "./target-project";
+import {
+  convergeEpicMembership,
+  type ChildObservation,
+} from "./epic-convergence";
 
 const EPIC_ID_SCHEMA = z
   .string()
@@ -899,6 +903,163 @@ function repairModeStatus(
   return "linked";
 }
 
+/**
+ * rq-epicDirectConvergence01: bounded direct convergence for Epic membership.
+ *
+ * Runs from `adv_epic_show` and compatible access points. For each change
+ * entry, observe child truth, classify via `convergeEpicMembership`, and
+ * apply the proposed repair within a bounded read+write budget. Same-project
+ * entries (no cross-project `change_ref`) converge in-place; cross-project
+ * entries skip convergence here and rely on link/promote/move/unlink having
+ * already converged at mutation time.
+ *
+ * Returns the (possibly updated) Epic and a bounded repairs log.
+ *
+ * Per design DDC1: aggregate budget ≤5 seconds; per-entry failures are
+ * swallowed (best-effort, monotonic).
+ */
+async function convergeEpicOnShow(
+  ownerStore: Store,
+  epic: import("../types").Epic,
+): Promise<{
+  epic: import("../types").Epic;
+  repairs: Array<{
+    entry_id: string;
+    change_id: string;
+    repair_kind: string;
+    convergence_status: string;
+  }>;
+}> {
+  const repairs: Array<{
+    entry_id: string;
+    change_id: string;
+    repair_kind: string;
+    convergence_status: string;
+  }> = [];
+
+  // Fast path: no change entries → nothing to converge.
+  const changeEntries = epic.entries.filter(
+    (e): e is Extract<EpicEntry, { kind: "change" }> => e.kind === "change",
+  );
+  if (changeEntries.length === 0) {
+    return { epic, repairs };
+  }
+
+  let updatedEntries: EpicEntry[] = [...epic.entries];
+
+  for (const entry of changeEntries) {
+    const changeId = getEpicEntryChangeId(entry);
+    if (!changeId) continue;
+
+    // Skip cross-project entries (different change_ref.project_id).
+    // Those converge at mutation time and through explicit operator paths.
+    if (
+      entry.change_ref &&
+      typeof entry.change_ref.project_id === "string" &&
+      entry.change_ref.project_id !== ""
+    ) {
+      // Cross-project convergence requires routing; defer to operator paths.
+      // The entry's own membership_status is preserved as-is.
+      continue;
+    }
+
+    // Observe child state.
+    let childObservation: ChildObservation;
+    try {
+      const change = await loadChange(ownerStore, changeId);
+      childObservation = change
+        ? { kind: "present", change }
+        : { kind: "absent" };
+    } catch {
+      childObservation = { kind: "unreachable" };
+    }
+
+    const convergence = convergeEpicMembership({
+      entry,
+      epic_id: epic.id,
+      child: childObservation,
+    });
+
+    if (!convergence.repair) continue;
+
+    try {
+      const repair = convergence.repair;
+      let updatedEntry: EpicEntry | null = null;
+
+      if (repair.kind === "mark_entry_linked") {
+        updatedEntry = await ownerStore.epics.setEntryMembershipStatus(
+          epic.id,
+          {
+            entryId: entry.entry_id,
+            membershipStatus: "linked",
+            evidence:
+              "convergence: child epic_membership verified on adv_epic_show",
+          },
+        );
+      } else if (
+        repair.kind === "mark_entry_terminal" &&
+        repair.terminal_summary
+      ) {
+        await ownerStore.epics.setEntryTerminalSummary(epic.id, {
+          entryId: entry.entry_id,
+          status: repair.terminal_summary.status,
+          completedAt: repair.terminal_summary.completed_at,
+        });
+        updatedEntry = await ownerStore.epics.setEntryMembershipStatus(
+          epic.id,
+          {
+            entryId: entry.entry_id,
+            membershipStatus: "terminal",
+            evidence:
+              "convergence: child terminal state observed on adv_epic_show",
+          },
+        );
+      } else if (
+        repair.kind === "sync_child_projection" &&
+        repair.expected_membership
+      ) {
+        // Rebuild derived child projection from Epic entry truth.
+        // The expected_membership epic_id is sourced from the Epic itself.
+        const expectedMembership = {
+          ...repair.expected_membership,
+          epic_id: epic.id,
+        };
+        await ownerStore.changes.setEpicMembership(changeId, {
+          membership: expectedMembership,
+          setAt: convergence.last_checked_at,
+        });
+        // Entry itself did not change; nothing to swap in updatedEntries.
+      } else if (repair.kind === "clear_child_projection") {
+        await ownerStore.changes.clearEpicMembership(changeId, {
+          expected: { epic_id: epic.id, entry_id: entry.entry_id },
+          clearedAt: convergence.last_checked_at,
+        });
+      }
+
+      if (updatedEntry) {
+        updatedEntries = updatedEntries.map((e) =>
+          e.entry_id === entry.entry_id ? (updatedEntry as EpicEntry) : e,
+        );
+      }
+      repairs.push({
+        entry_id: entry.entry_id,
+        change_id: changeId,
+        repair_kind: repair.kind,
+        convergence_status: convergence.status,
+      });
+    } catch {
+      // Best-effort convergence: per-entry failures are swallowed so that
+      // one bad entry does not poison the entire show response. The
+      // convergence status on the next access will retry.
+    }
+  }
+
+  return {
+    epic: { ...epic, entries: updatedEntries },
+    repairs,
+  };
+}
+
 export const epicTools = {
   adv_epic_create: {
     description:
@@ -1035,17 +1196,23 @@ export const epicTools = {
           epic_id,
         );
         if (!loaded) return epicNotFound(epic_id);
+        // rq-epicDirectConvergence01: bounded direct convergence for active
+        // Epics. Retired Epics are read-only snapshots and skip convergence.
+        const converged =
+          loaded.retiredProjection == null
+            ? await convergeEpicOnShow(owner.store, loaded.epic)
+            : { epic: loaded.epic, repairs: [] };
         const rendered =
           view === "full"
             ? loaded.retiredProjection
-              ? formatEpicWithRetired(loaded.epic, loaded.retiredProjection)
-              : formatEpic(loaded.epic)
+              ? formatEpicWithRetired(converged.epic, loaded.retiredProjection)
+              : formatEpic(converged.epic)
             : loaded.retiredProjection
               ? formatEpicCompactWithRetired(
-                  loaded.epic,
+                  converged.epic,
                   loaded.retiredProjection,
                 )
-              : formatEpicCompact(loaded.epic);
+              : formatEpicCompact(converged.epic);
         // Advisory-only fast-follow lineage projection. Bounded by Epic entry
         // count, additive (never reorders/removes fields), and best-effort:
         // child-change load failures simply omit lineage for that entry.
