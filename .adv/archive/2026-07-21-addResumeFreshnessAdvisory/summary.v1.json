@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T15:41:35.541Z",
+  "capabilities": [],
+  "change_hash": "2a1e44375eb7ffc910d69a5577f84666e4838fa6ad6d8d79236f9859a870e924",
+  "change_id": "addResumeFreshnessAdvisory",
+  "completed_tasks": 12,
+  "created_at": "2026-07-21T05:26:51.698Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T15:36:55.107Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "439718f26af07af51b0f6636350e14d4248be0a5b2be54d5732142eb15670b3c",
+  "task_count": 12,
+  "title": "Add resume freshness advisory",
+  "version": "1"
+}

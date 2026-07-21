@@ -55,6 +55,22 @@ export interface ContextSnapshotInput {
     title: string;
     linked_at: string;
   };
+  /**
+   * Optional Resume Freshness advisory (added by addResumeFreshnessAdvisory).
+   * When present and not skipped, renders a `Freshness:` line.
+   * Local structural type — pure formatter does NOT import from storage layer.
+   * Shape mirrors `ResumeFreshnessResult` from `plugin/src/storage/resume-freshness.ts`.
+   */
+  resumeFreshness?: ContextSnapshotResumeFreshness;
+}
+
+/**
+ * Local structural type for resumeFreshness field. Defined here (not imported
+ * from storage) to preserve formatter purity (AC5, C5).
+ */
+export interface ContextSnapshotResumeFreshness {
+  findings: Array<{ code: string; label: string; summary: string }>;
+  skipped: boolean;
 }
 
 type SnapshotTaskLike = {
@@ -175,12 +191,14 @@ export function buildChangeContextSnapshot({
   gates,
   workdir,
   directive,
+  resumeFreshness,
 }: {
   change: SnapshotChangeLike;
   proposalText?: string;
   gates?: Record<string, GateInfo>;
   workdir?: string;
   directive?: WorkflowDirective;
+  resumeFreshness?: ContextSnapshotResumeFreshness;
 }): string {
   const { taskCounts, currentTask, touchedFilesCount, errorBudgetProximity } =
     summarizeTasks(change.tasks);
@@ -200,6 +218,7 @@ export function buildChangeContextSnapshot({
     errorBudgetProximity,
     directive,
     epicMembership: change.epic_membership,
+    resumeFreshness,
   });
 }
 
@@ -330,6 +349,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     errorBudgetProximity,
     directive,
     epicMembership,
+    resumeFreshness,
   } = input;
 
   const gateProgress = formatGateProgress(input.gates);
@@ -390,19 +410,32 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   );
 
   // Budget: hard 10-line cap (2 borders + 8 content). The directive `Next:`
-  // row is a new content line that competes with the wisdom and current-task
-  // rows. Count the optional rows present (directive + wisdom + current) and
-  // shed the least-critical lines in stages so every combination stays ≤10:
+  // row is a new content line that competes with the wisdom, current-task,
+  // and resumeFreshness rows. Count the optional rows present (directive +
+  // wisdom + current + freshness) and shed the least-critical lines in
+  // stages so every combination stays ≤10:
   //   - ≥2 optional rows: drop the Outcomes/Budget line (least critical).
-  //   - 3 optional rows (directive + wisdom + current): also drop the Current
-  //     line — redundant with the directive's next-action orientation, while
-  //     wisdom (durable project knowledge) is retained.
+  //   - ≥3 optional rows: also drop the Current line — redundant with the
+  //     directive's next-action orientation.
+  //   - 4 optional rows (directive + wisdom + current + freshness):
+  //     * No Epic line: drop the blank spacer line (compact).
+  //     * Epic line present: drop the Wisdom line — freshness is more
+  //       actionable for a stale resume; wisdom is durable project knowledge
+  //       available elsewhere. Freshness is always retained (D6: LAST shed).
   const hasCurrentTask = !!currentTask;
   const hasDirective = !!directive;
+  const hasFreshness =
+    !!resumeFreshness &&
+    !resumeFreshness.skipped &&
+    resumeFreshness.findings.length > 0;
   const optionalCount =
-    (hasDirective ? 1 : 0) + (hasWisdom ? 1 : 0) + (hasCurrentTask ? 1 : 0);
+    (hasDirective ? 1 : 0) +
+    (hasWisdom ? 1 : 0) +
+    (hasCurrentTask ? 1 : 0) +
+    (hasFreshness ? 1 : 0);
   const dropOutcomes = optionalCount >= 2;
   const dropCurrent = optionalCount >= 3;
+  const dropSpacerOrWisdom = optionalCount >= 4;
   if (dropOutcomes) {
     const budgetLineIndex = lines.findIndex(
       (line) => line.startsWith("Outcomes:") || line.startsWith("⚠ "),
@@ -410,7 +443,21 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     if (budgetLineIndex >= 0) lines.splice(budgetLineIndex, 1);
   }
 
-  if (hasWisdom && wisdomLine) {
+  // 4-optional case (D6): shed spacer or wisdom to preserve Freshness
+  let wisdomDropped = false;
+  if (dropSpacerOrWisdom) {
+    if (!epicMembership) {
+      // Drop the blank spacer line at index 2 (CONTEXT/title/spacer/Gates/...)
+      // Find first empty line and remove it
+      const spacerIdx = lines.findIndex((l) => l === "");
+      if (spacerIdx >= 0) lines.splice(spacerIdx, 1);
+    } else {
+      // Epic line present — drop Wisdom instead (Freshness more actionable)
+      wisdomDropped = true;
+    }
+  }
+
+  if (hasWisdom && wisdomLine && !wisdomDropped) {
     lines.push(wisdomLine);
   }
 
@@ -420,6 +467,18 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
         ? currentTask.title.slice(0, 37) + "..."
         : currentTask.title;
     lines.push(`Current: ${currentTask.id} (${taskDesc})`);
+  }
+
+  // Freshness line — added LAST among optionals so it's the most recently-
+  // pushed content line; shedding priority ensures it's retained in the
+  // 4-optional case (D6).
+  if (hasFreshness) {
+    const topFinding = resumeFreshness?.findings[0];
+    const freshnessLine =
+      resumeFreshness!.findings.length === 1
+        ? `Freshness: 1 finding · ${topFinding?.code ?? "?"}`
+        : `Freshness: ${resumeFreshness!.findings.length} findings · ${topFinding?.code ?? "?"}`;
+    lines.push(freshnessLine);
   }
 
   lines.push(`Workdir: ${workdir ?? "(unavailable)"}`);

@@ -14,6 +14,7 @@ import {
   initStateDb,
   getWorktreeRegistrySnapshot,
 } from "../tools/worktree/state";
+import { intersectFileLists } from "../utils/file-intersection";
 
 export interface OverlapMatch {
   peerBranch: string;
@@ -93,9 +94,7 @@ export async function scanFileOverlaps(
     if (summary.status === "archived") continue;
 
     const peerFiles = summary.touched_files ?? [];
-    const intersection = plannedTouchedFiles.filter((f) =>
-      peerFiles.includes(f),
-    );
+    const intersection = intersectFileLists(plannedTouchedFiles, peerFiles);
 
     if (intersection.length > 0) {
       overlaps.push({

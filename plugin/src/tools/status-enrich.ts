@@ -32,6 +32,8 @@ import {
 import { readArtifact } from "./change/artifacts";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
+import { resolveResumeFreshness } from "../storage/resume-freshness-resolver";
+import { RESUME_FRESHNESS_TRIGGER_MINUTES } from "../storage/resume-freshness-resolver";
 import {
   statusRecommendationToString,
   type StatusRecommendationItem,
@@ -226,6 +228,48 @@ export async function enrichRecentChangeStatus(
     workdir: store.paths.root,
   };
 
+  // Resume Freshness (D9b): compute resolver result ONLY for primary candidates
+  // to bound cost (DDC8: at most once per adv_status call). Non-primary path
+  // uses ticker which never invokes resolver.
+  let resumeFreshnessInput:
+    | {
+        findings: { code: string; label: string; summary: string }[];
+        skipped: boolean;
+      }
+    | undefined;
+  if (isPrimary) {
+    try {
+      // Prefer rc.lastActivityAt (already-enriched recency field); fall back to
+      // changeData.lastActivityAt. If neither present, treat as fresh (no resolver).
+      const lastActivityAt =
+        (rc as unknown as { lastActivityAt?: string }).lastActivityAt ??
+        (changeData as unknown as { lastActivityAt?: string }).lastActivityAt;
+      if (lastActivityAt) {
+        const lastActivityAgeMinutes = Math.floor(
+          (Date.now() - new Date(lastActivityAt).getTime()) / 60000,
+        );
+        if (lastActivityAgeMinutes > RESUME_FRESHNESS_TRIGGER_MINUTES) {
+          const result = await resolveResumeFreshness(store, changeId, {
+            lastActivityAgeMinutes,
+            lastActivityAt,
+          });
+          resumeFreshnessInput = {
+            findings: result.findings,
+            skipped: result.skipped,
+          };
+          // Surface close+supersede suggestion when single HIGH-conf archived dup
+          appendResumeFreshnessRecommendation(
+            status,
+            changeId,
+            resumeFreshnessInput,
+          );
+        }
+      }
+    } catch {
+      // Degrade gracefully — no Freshness line on resolver failure.
+    }
+  }
+
   Object.assign(rc, {
     parent_change_id: changeData.fast_follow_of?.parent_change_id,
     epic: changeData.epic_membership
@@ -236,7 +280,13 @@ export async function enrichRecentChangeStatus(
         }
       : undefined,
     _contextSnapshot: isPrimary
-      ? buildChangeContextSnapshot({ ...snapshotInput, directive })
+      ? buildChangeContextSnapshot({
+          ...snapshotInput,
+          directive,
+          ...(resumeFreshnessInput
+            ? { resumeFreshness: resumeFreshnessInput }
+            : {}),
+        })
       : buildChangeContextTicker(snapshotInput),
     _directive: directive,
     ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
@@ -376,8 +426,68 @@ export function appendRecencyRecommendation(
   }
 }
 
+/**
+ * T8: Append a one-command close+supersede recommendation when the resolver
+ * found EXACTLY ONE HIGH-confidence (label `repo_backed_fact`) archived
+ * duplicate. Implements AC11 + D8 (clarified wording: "one-command accept,
+ * copy-paste and run"; NEVER "one-click" or implying button-click).
+ *
+ * Read-only — never calls adv_change_close. The user must run the snippet
+ * themselves with their own approval evidence.
+ *
+ * Emits nothing when: zero HIGH-confidence findings, multiple HIGH-confidence
+ * findings (ambiguous), or when resumeFreshness is skipped.
+ */
+export function appendResumeFreshnessRecommendation(
+  recommendations: RecommendationTarget,
+  changeId: string,
+  resumeFreshness: {
+    findings: Array<{
+      code: string;
+      label: string;
+      summary: string;
+      evidenceChangeIds?: string[];
+    }>;
+    skipped: boolean;
+  },
+): void {
+  if (resumeFreshness.skipped) return;
+
+  const highConfidenceArchivedDups = resumeFreshness.findings.filter(
+    (f) =>
+      f.code === "resume:archived_duplicate" && f.label === "repo_backed_fact",
+  );
+
+  // AC11: only fire on EXACTLY ONE HIGH-confidence finding (avoid noise when
+  // ambiguous). Zero or multiple → no recommendation.
+  if (highConfidenceArchivedDups.length !== 1) return;
+
+  const finding = highConfidenceArchivedDups[0];
+  const archivedDupId = finding.evidenceChangeIds?.[0];
+  if (!archivedDupId) return;
+
+  const snippet = `adv_change_close changeId: ${archivedDupId} reason: "superseded" supersededBy: ${changeId} approvedByUser: true approvalEvidence: "resume:archived_duplicate HIGH-confidence overlap detected"`;
+
+  // D8 wording guard: NEVER use "one-click" or imply button-click auto-execution.
+  // Always: "one-command accept (copy-paste and run)" + explicit
+  // "ADV does not auto-execute close."
+  const message = `🔍 Possible duplicate: archived \`${archivedDupId}\` may have already shipped this scope. To close it as superseded (ADV does not auto-execute close), copy and run:\n\n  ${snippet}`;
+
+  pushStatusRecommendation(recommendations, {
+    kind: "next_gate",
+    priority: "high",
+    changeId,
+    title: `Possible duplicate: ${archivedDupId}`,
+    detail: finding.summary,
+    action: "review overlap; one-command accept (copy-paste and run)",
+    source: "resume_freshness",
+    message,
+  });
+}
+
 export const _test = {
   appendRecencyRecommendation,
+  appendResumeFreshnessRecommendation,
 };
 export async function filterRecentChangesForProductScope(
   recentChanges: ChangeRecency[],
@@ -600,6 +710,38 @@ export async function buildCandidateEnrichmentPatch(
       workdir: store.paths.root,
     };
 
+    // Resume Freshness (D9b): primary-only invocation to bound cost (DDC8).
+    let candidateResumeFreshness:
+      | {
+          findings: { code: string; label: string; summary: string }[];
+          skipped: boolean;
+        }
+      | undefined;
+    if (isPrimary) {
+      try {
+        const lastActivityAt =
+          (rc as unknown as { lastActivityAt?: string }).lastActivityAt ??
+          (changeData as unknown as { lastActivityAt?: string }).lastActivityAt;
+        if (lastActivityAt) {
+          const lastActivityAgeMinutes = Math.floor(
+            (Date.now() - new Date(lastActivityAt).getTime()) / 60000,
+          );
+          if (lastActivityAgeMinutes > RESUME_FRESHNESS_TRIGGER_MINUTES) {
+            const result = await resolveResumeFreshness(store, changeId, {
+              lastActivityAgeMinutes,
+              lastActivityAt,
+            });
+            candidateResumeFreshness = {
+              findings: result.findings,
+              skipped: result.skipped,
+            };
+          }
+        }
+      } catch {
+        // Degrade gracefully.
+      }
+    }
+
     const candidate: Record<string, unknown> = {
       parent_change_id: changeData.fast_follow_of?.parent_change_id,
       epic: changeData.epic_membership
@@ -610,7 +752,13 @@ export async function buildCandidateEnrichmentPatch(
           }
         : undefined,
       _contextSnapshot: isPrimary
-        ? buildChangeContextSnapshot({ ...snapshotInput, directive })
+        ? buildChangeContextSnapshot({
+            ...snapshotInput,
+            directive,
+            ...(candidateResumeFreshness
+              ? { resumeFreshness: candidateResumeFreshness }
+              : {}),
+          })
         : buildChangeContextTicker(snapshotInput),
       _directive: directive,
       ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
@@ -634,6 +782,15 @@ export async function buildCandidateEnrichmentPatch(
         : fallbackNextGate;
 
     const localStatus: StatusRecommendationCarrier = { recommendations: [] };
+
+    // Surface close+supersede suggestion for single HIGH-conf archived dup
+    if (candidateResumeFreshness) {
+      appendResumeFreshnessRecommendation(
+        localStatus,
+        changeId,
+        candidateResumeFreshness,
+      );
+    }
 
     if (directive && nextGate) {
       if (signal?.aborted || Date.now() >= cutoffAt) {
