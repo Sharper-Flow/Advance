@@ -12,6 +12,39 @@ Defines the enforceable voice rules for all `/adv-*` command descriptions, proto
 | **Negation**    | Minimize; frame positively                            | "Allowed exits: done, doom-loop" not "Don't skip, don't defer" |
 | **Length**      | Manifest descriptions: 5–14 words                     | "Validate change against specs and block archive on failure"   |
 
+## User-Focus
+
+Lead user-facing messages with what the user sees / what changes for them. Move implementation detail (file paths, function names, schema fields) into durable artifacts (design.md, wisdom, code comments), not chat.
+
+### Content split
+
+| In user messages (decision-need) | In artifacts (self-documentation) |
+|---|---|
+| What the user will see / change | File paths, function names |
+| Options + trade-offs affecting them | Internal data flow, schema details |
+| Concrete recommendation | Evidence trail, reasoning narrative |
+| Decision asks | How conclusions were reached |
+
+### Translation discipline
+
+Before sending user-facing text, scan for internal artifact names. Reframe in the user-visible surface, or move into an artifact. Judgment — not a regex.
+
+### Enforcement class
+
+`inherently-prose` per `## Prose-Load Reduction Rules`. No drift test. Contrast:
+
+| Voice rule | Class | Enforcement |
+|---|---|---|
+| Manifest descriptions | fully-enforced | `plugin/src/manifest.test.ts` |
+| Manifest ↔ command doc drift | fully-enforced | `plugin/src/manifest-doc-drift.test.ts` |
+| Checkpoint inline approval anchor | fully-enforced | `plugin/src/checkpoint-surface-drift.test.ts` |
+| Gate handoff spine | fully-enforced | `plugin/src/handoff-footer-drift.test.ts` |
+| User-focus (this section) | inherently-prose | Judgment only |
+
+### Instance (motivational, not normative)
+
+2026-07-20, toolbox `reduceLaunchTime`: agent framed a quota-integration removal as "snapshot JSON `providers` field changes." User-visible reality was small — the main picker was already fed by async cache files; only a rarely-used `--status-panel` debug command lost data. Implementation framing inflated apparent impact. The rule generalizes; the instance motivates.
+
 ## Manifest Description Rules
 
 `manifest.ts` is the **single source of truth** for command descriptions. All other surfaces (command doc frontmatter, README, ADV_INSTRUCTIONS) derive from it. Drift is enforced by `plugin/src/manifest-doc-drift.test.ts`.

@@ -12,6 +12,8 @@
 User-facing prose: terse, concrete, low-fluff. Prefer bullets/tables/fragments. Keep technical terms and quoted errors exact. See `docs/command-voice-standard.md` § Voice Contract.
 Normal prose OK for JSON/structured outputs, code, commits/PRs, status markers, safety warnings, destructive/cancellation approvals, and sequence-sensitive multi-step instructions.
 
+Lead user-facing messages with what the user sees / what changes for them. Move file paths, function names, schema details into artifacts (design.md, wisdom, code comments). See `docs/command-voice-standard.md` § User-Focus.
+
 ## Scope Validity
 
 - × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
