@@ -1109,7 +1109,6 @@ export function createToolMap(
  * pre-consolidation surface omitted them).
  */
 
-
 /**
  * Read-only catalog and describe tools for the canonical ADV tool surface.
  * They project the existing definition inventory and metadata; they never
@@ -1271,7 +1270,6 @@ export function getToolSurface(): Map<string, Set<string>> {
   return getToolSurfaceFromEntries(PUBLIC_TOOL_ENTRIES);
 }
 
-
 /**
  * Canonical list of all ADV tool names, derived from PUBLIC_TOOL_GROUPS.
  * Duplicates are rejected at module load by collectPublicToolEntries before
@@ -1282,7 +1280,6 @@ export function getToolSurface(): Map<string, Set<string>> {
 export const ADV_TOOL_NAMES: readonly string[] = Object.freeze(
   PUBLIC_TOOL_ENTRIES.map((entry) => entry.name),
 );
-
 
 export const ADV_TOOL_METADATA: Readonly<Record<string, ToolMetadataV1>> =
   Object.freeze(

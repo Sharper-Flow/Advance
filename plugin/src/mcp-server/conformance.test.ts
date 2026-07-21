@@ -44,7 +44,9 @@ async function closeClient(
   await serverTransport.close();
 }
 
-function extractText(result: { content?: Array<{ type: string; text?: string }> }): string {
+function extractText(result: {
+  content?: Array<{ type: string; text?: string }>;
+}): string {
   if (!result.content || result.content.length === 0) {
     throw new Error("MCP result has no content");
   }
@@ -107,7 +109,9 @@ describe("DDC5 — conformance corpus (parity vs plugin)", () => {
   it.todo("worktree_triage: MCP deep-equals plugin (needs git fixture)");
   it.todo("tool_catalog: MCP deep-equals plugin (pure)");
   it.todo("tool_describe: MCP deep-equals plugin (pure)");
-  it.todo("status: parity may be partial (host-probe fields non-deterministic)");
+  it.todo(
+    "status: parity may be partial (host-probe fields non-deterministic)",
+  );
 
   it("conformance coverage accounting: 1 of 13 tools currently deep-equal tested; 12 deferred to follow-up burst", () => {
     // DDC5 target: ≥ 11 of 13 (≥ 80%). Current: 1 of 13 (~7.7%).

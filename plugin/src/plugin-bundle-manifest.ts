@@ -105,20 +105,16 @@ export async function writePluginBundleManifest(
   const mcpServerPath = join(distDir, "mcp-server.js");
 
   const [indexSha256, mcpServerSha256] = await Promise.all([
-    hashFileSha256(indexPath).catch(
-      (err: NodeJS.ErrnoException) => {
-        throw new Error(
-          `Cannot write plugin bundle manifest: index.js is missing from ${distDir} (${err.code ?? err.message}).`,
-        );
-      },
-    ),
-    hashFileSha256(mcpServerPath).catch(
-      (err: NodeJS.ErrnoException) => {
-        throw new Error(
-          `Cannot write plugin bundle manifest: mcp-server.js is missing from ${distDir} (${err.code ?? err.message}).`,
-        );
-      },
-    ),
+    hashFileSha256(indexPath).catch((err: NodeJS.ErrnoException) => {
+      throw new Error(
+        `Cannot write plugin bundle manifest: index.js is missing from ${distDir} (${err.code ?? err.message}).`,
+      );
+    }),
+    hashFileSha256(mcpServerPath).catch((err: NodeJS.ErrnoException) => {
+      throw new Error(
+        `Cannot write plugin bundle manifest: mcp-server.js is missing from ${distDir} (${err.code ?? err.message}).`,
+      );
+    }),
   ]);
 
   const builtAt = (options.now ?? (() => new Date()))().toISOString();

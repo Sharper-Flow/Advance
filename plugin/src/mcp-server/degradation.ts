@@ -51,9 +51,8 @@ export const HOST_PROBE_FIELDS: readonly string[] = [
  */
 export async function isTemporalReachable(): Promise<boolean> {
   try {
-    const { createTemporalClientBundle } = await import(
-      "../temporal/client.js"
-    );
+    const { createTemporalClientBundle } =
+      await import("../temporal/client.js");
     const bundlePromise = createTemporalClientBundle();
     const timeoutPromise = new Promise<never>((_, reject) => {
       const timer = setTimeout(() => {
@@ -85,9 +84,8 @@ export async function isTemporalReachable(): Promise<boolean> {
  */
 export async function areHostProbesAvailable(): Promise<boolean> {
   try {
-    const { scanOpenCodeSessionDebt } = await import(
-      "../utils/opencode-session-debt.js"
-    );
+    const { scanOpenCodeSessionDebt } =
+      await import("../utils/opencode-session-debt.js");
     const result = await scanOpenCodeSessionDebt();
     return result.available === true;
   } catch {

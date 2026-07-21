@@ -145,7 +145,10 @@ describe("plugin bundle manifest", () => {
       JSON.stringify({
         schema_version: 1,
         generation: generatePluginBundleGeneration(),
-        files: { index: generatePluginBundleGeneration(), "mcp-server": "short" },
+        files: {
+          index: generatePluginBundleGeneration(),
+          "mcp-server": "short",
+        },
         built_at: NOW.toISOString(),
       }),
     );
@@ -163,9 +166,7 @@ describe("plugin bundle manifest", () => {
         built_at: NOW.toISOString(),
       }),
     );
-    await expect(
-      readPluginBundleManifest(unsupportedDir),
-    ).resolves.toBeNull();
+    await expect(readPluginBundleManifest(unsupportedDir)).resolves.toBeNull();
 
     const invalidTimestampDir = await tempDistDir();
     await writeFile(
@@ -173,7 +174,10 @@ describe("plugin bundle manifest", () => {
       JSON.stringify({
         schema_version: 1,
         generation: generatePluginBundleGeneration(),
-        files: { index: generatePluginBundleGeneration(), "mcp-server": generatePluginBundleGeneration() },
+        files: {
+          index: generatePluginBundleGeneration(),
+          "mcp-server": generatePluginBundleGeneration(),
+        },
         built_at: "not-an-iso-timestamp",
       }),
     );
@@ -270,7 +274,10 @@ describe("plugin bundle manifest", () => {
       const manifest = {
         schema_version: 1 as const,
         generation: generatePluginBundleGeneration(),
-        files: { index: indexHash, "mcp-server": generatePluginBundleGeneration() },
+        files: {
+          index: indexHash,
+          "mcp-server": generatePluginBundleGeneration(),
+        },
         built_at: NOW.toISOString(),
       };
       const result = comparePluginBundleGenerations(loaded, manifest);

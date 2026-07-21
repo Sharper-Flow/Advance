@@ -14,10 +14,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const MODULE_PATH = resolve(
-  import.meta.dirname,
-  "tool-catalog-entries.ts",
-);
+const MODULE_PATH = resolve(import.meta.dirname, "tool-catalog-entries.ts");
 
 describe("plugin/src/tool-catalog-entries.ts — SDK-free boundary", () => {
   it("source contains no @opencode-ai/plugin import", () => {

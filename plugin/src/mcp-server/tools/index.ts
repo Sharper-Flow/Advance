@@ -7,10 +7,7 @@
  */
 
 import type { Store } from "../../storage/store-types.js";
-import {
-  wrapTier4Tool,
-  type DegradationOptions,
-} from "../degradation.js";
+import { wrapTier4Tool, type DegradationOptions } from "../degradation.js";
 
 export type ToolClassification =
   | "pure"

@@ -166,8 +166,10 @@ describe("DDC7 mutation-shaped argument rejection", () => {
           arguments: positiveArgs,
         });
         const positiveText = extractText(positiveResult);
-        expect(positiveText, `${toolName} valid args should not be rejected`).
-          not.toContain("ARG_REJECTED");
+        expect(
+          positiveText,
+          `${toolName} valid args should not be rejected`,
+        ).not.toContain("ARG_REJECTED");
       } finally {
         await close();
       }

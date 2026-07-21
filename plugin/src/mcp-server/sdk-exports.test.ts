@@ -30,7 +30,9 @@ describe("@modelcontextprotocol/sdk v1.x server exports", () => {
     );
     expect(s).toBeInstanceOf(mod.Server);
     // Low-level Server uses setRequestHandler, NOT registerTool
-    expect(typeof (s as unknown as { setRequestHandler: unknown }).setRequestHandler).toBe("function");
+    expect(
+      typeof (s as unknown as { setRequestHandler: unknown }).setRequestHandler,
+    ).toBe("function");
   });
 
   it("exports StdioServerTransport from server/stdio.js", async () => {
@@ -49,7 +51,8 @@ describe("@modelcontextprotocol/sdk v1.x server exports", () => {
   });
 
   it("McpServer.registerTool accepts (name, schema, handler) with Zod inputSchema", async () => {
-    const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
+    const { McpServer } =
+      await import("@modelcontextprotocol/sdk/server/mcp.js");
     const { z } = await import("zod");
     const mcp = new McpServer({ name: "smoke", version: "0.0.0" });
     // Should not throw — registers a tool with Zod schema (the API the ADV MCP server uses)
