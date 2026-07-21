@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T01:20:36.391Z",
+  "capabilities": [],
+  "change_hash": "9e884647f6f50db65f5afcee54d9a2816e8247b4e21a7d5ebc2b150af312ab2b",
+  "change_id": "fixPhase9StatusSignal",
+  "completed_tasks": 2,
+  "created_at": "2026-07-21T00:54:00.113Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T01:19:20.087Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "45ef99a997f34d3a0f1922b13b3d132d400fae880be524bfd73fdc9bd53bb197",
+  "task_count": 2,
+  "title": "Fix phase9 status signal durability",
+  "version": "1"
+}
