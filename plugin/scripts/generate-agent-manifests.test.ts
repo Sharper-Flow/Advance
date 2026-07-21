@@ -225,7 +225,10 @@ describe("generate-agent-manifests", () => {
       expect(endMarker).toBeGreaterThan(-1);
       const inserted = "  # Hand-owned non-adv_* line";
       const modified =
-        original.slice(0, endMarker) + inserted + "\n" + original.slice(endMarker);
+        original.slice(0, endMarker) +
+        inserted +
+        "\n" +
+        original.slice(endMarker);
       writeFileSync(path, modified, "utf8");
       const result = await runGenerate({ check: true, agentsDir });
       expect(result.ok).toBe(true);

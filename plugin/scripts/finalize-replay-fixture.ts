@@ -127,7 +127,10 @@ function sanitizeIdentity(value: unknown): unknown {
   if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = k === "identity" && typeof v === "string" ? SANITIZED_IDENTITY : sanitizeIdentity(v);
+      out[k] =
+        k === "identity" && typeof v === "string"
+          ? SANITIZED_IDENTITY
+          : sanitizeIdentity(v);
     }
     return out;
   }
