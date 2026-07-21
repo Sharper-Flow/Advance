@@ -23,7 +23,6 @@ import {
   TEMPORAL_WORKER_SHUTDOWN_GRACE_MS,
 } from "./worker";
 import { RESTART_HARD_KILL_DEADLINE_MS } from "./worker-multi";
-import { getAdvWorkerTuningOptions } from "./worker-tuning";
 
 describe("temporal worker helpers", () => {
   beforeEach(() => {

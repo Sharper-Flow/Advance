@@ -89,7 +89,7 @@ const POLLER_PROBE_TTL_MS = 30_000;
 
 async function probeQueues(
   targets: QueueProbeTarget[],
-  signal?: AbortSignal,
+  _signal?: AbortSignal,
 ): Promise<Array<{ result: QueueProbeResult; probe: ServerPollerProbe | null }>> {
   const bundle = getService();
   if (!bundle || targets.length === 0) {
