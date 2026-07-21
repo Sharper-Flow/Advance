@@ -32,6 +32,8 @@ import {
 import { readArtifact } from "./change/artifacts";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
+import { resolveResumeFreshness } from "../storage/resume-freshness-resolver";
+import { RESUME_FRESHNESS_TRIGGER_MINUTES } from "../storage/resume-freshness-resolver";
 import {
   statusRecommendationToString,
   type StatusRecommendationItem,
@@ -226,6 +228,39 @@ export async function enrichRecentChangeStatus(
     workdir: store.paths.root,
   };
 
+  // Resume Freshness (D9b): compute resolver result ONLY for primary candidates
+  // to bound cost (DDC8: at most once per adv_status call). Non-primary path
+  // uses ticker which never invokes resolver.
+  let resumeFreshnessInput:
+    | { findings: { code: string; label: string; summary: string }[]; skipped: boolean }
+    | undefined;
+  if (isPrimary) {
+    try {
+      // Prefer rc.lastActivityAt (already-enriched recency field); fall back to
+      // changeData.lastActivityAt. If neither present, treat as fresh (no resolver).
+      const lastActivityAt =
+        (rc as unknown as { lastActivityAt?: string }).lastActivityAt ??
+        (changeData as unknown as { lastActivityAt?: string }).lastActivityAt;
+      if (lastActivityAt) {
+        const lastActivityAgeMinutes = Math.floor(
+          (Date.now() - new Date(lastActivityAt).getTime()) / 60000,
+        );
+        if (lastActivityAgeMinutes > RESUME_FRESHNESS_TRIGGER_MINUTES) {
+          const result = await resolveResumeFreshness(store, changeId, {
+            lastActivityAgeMinutes,
+            lastActivityAt,
+          });
+          resumeFreshnessInput = {
+            findings: result.findings,
+            skipped: result.skipped,
+          };
+        }
+      }
+    } catch {
+      // Degrade gracefully — no Freshness line on resolver failure.
+    }
+  }
+
   Object.assign(rc, {
     parent_change_id: changeData.fast_follow_of?.parent_change_id,
     epic: changeData.epic_membership
@@ -236,7 +271,11 @@ export async function enrichRecentChangeStatus(
         }
       : undefined,
     _contextSnapshot: isPrimary
-      ? buildChangeContextSnapshot({ ...snapshotInput, directive })
+      ? buildChangeContextSnapshot({
+          ...snapshotInput,
+          directive,
+          ...(resumeFreshnessInput ? { resumeFreshness: resumeFreshnessInput } : {}),
+        })
       : buildChangeContextTicker(snapshotInput),
     _directive: directive,
     ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
@@ -600,6 +639,35 @@ export async function buildCandidateEnrichmentPatch(
       workdir: store.paths.root,
     };
 
+    // Resume Freshness (D9b): primary-only invocation to bound cost (DDC8).
+    let candidateResumeFreshness:
+      | { findings: { code: string; label: string; summary: string }[]; skipped: boolean }
+      | undefined;
+    if (isPrimary) {
+      try {
+        const lastActivityAt =
+          (rc as unknown as { lastActivityAt?: string }).lastActivityAt ??
+          (changeData as unknown as { lastActivityAt?: string }).lastActivityAt;
+        if (lastActivityAt) {
+          const lastActivityAgeMinutes = Math.floor(
+            (Date.now() - new Date(lastActivityAt).getTime()) / 60000,
+          );
+          if (lastActivityAgeMinutes > RESUME_FRESHNESS_TRIGGER_MINUTES) {
+            const result = await resolveResumeFreshness(store, changeId, {
+              lastActivityAgeMinutes,
+              lastActivityAt,
+            });
+            candidateResumeFreshness = {
+              findings: result.findings,
+              skipped: result.skipped,
+            };
+          }
+        }
+      } catch {
+        // Degrade gracefully.
+      }
+    }
+
     const candidate: Record<string, unknown> = {
       parent_change_id: changeData.fast_follow_of?.parent_change_id,
       epic: changeData.epic_membership
@@ -610,7 +678,13 @@ export async function buildCandidateEnrichmentPatch(
           }
         : undefined,
       _contextSnapshot: isPrimary
-        ? buildChangeContextSnapshot({ ...snapshotInput, directive })
+        ? buildChangeContextSnapshot({
+            ...snapshotInput,
+            directive,
+            ...(candidateResumeFreshness
+              ? { resumeFreshness: candidateResumeFreshness }
+              : {}),
+          })
         : buildChangeContextTicker(snapshotInput),
       _directive: directive,
       ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
