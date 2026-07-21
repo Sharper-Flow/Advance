@@ -626,7 +626,7 @@ import {
   HistoricalConflictDispositionSchema,
   type HistoricalConflictDisposition,
 } from "../archive";
-import { formatToolOutput, paginate } from "../utils/tool-output";
+import { formatToolOutput, paginate, resolveOutputMode } from "../utils/tool-output";
 import { withTimeout, TimeoutError } from "../utils/with-timeout";
 import {
   buildTodoProjection,
@@ -1067,6 +1067,10 @@ export const changeTools = {
         .describe(
           "Optional include flags to attach extra fields. Defaults preserve current behavior.",
         ),
+      outputMode: z
+        .enum(["compact", "pretty"])
+        .optional()
+        .describe("Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call."),
     },
     execute: async (
       {
@@ -1075,6 +1079,7 @@ export const changeTools = {
         offset,
         target_path,
         include,
+        outputMode,
       }: {
         changeId: string;
         limit?: number;
@@ -1101,6 +1106,7 @@ export const changeTools = {
           briefingPacketLane?: BriefingPacketLane;
           briefingPacketRequest?: string;
         };
+        outputMode?: "compact" | "pretty";
       },
       store: Store,
     ) => {
@@ -1427,7 +1433,7 @@ export const changeTools = {
               output._acceptance = artifactContent.acceptance;
           }
         }
-        return formatToolOutput(output);
+        return formatToolOutput(output, { pretty: resolveOutputMode(outputMode) });
       };
 
       if (target_path && requestedKinds.length > 0) {
