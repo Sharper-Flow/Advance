@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-21T00:24:54.067Z",
+  "capabilities": [],
+  "change_hash": "63549c6b9b8ff3f285660e80363f384e6804dc817135e4058d6e6f2a3ce88711",
+  "change_id": "fixSlopScanResolverTimeouts",
+  "completed_tasks": 3,
+  "created_at": "2026-07-20T23:55:41.636Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-21T00:21:19.717Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "79bea994f09ebbce4d96e9acab571af1e12bc7a9fc69e35ce1f04005b74a2f69",
+  "task_count": 3,
+  "title": "Fix slop scan resolver and timeouts",
+  "version": "1"
+}
