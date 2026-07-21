@@ -1,6 +1,6 @@
 ---
 name: adv-triage
-description: Triage issues, changes, and Epics into an actionable portfolio balance
+description: Triage sources, coalesce issue links, assign bug priority, and balance portfolio
 ---
 # ADV Triage — Issue Reconciliation and Portfolio Balance
 

@@ -425,7 +425,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-refactor`  | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
 | `/adv-cleanup`   | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
 | `/adv-coordinate` | Audit project changes, Epic alignment, sequencing, and membership health                          |
-| `/adv-triage`    | Triage backlog sources, reconcile into GH issues, apply bug priority labels, regenerate ROADMAP.md |
+| `/adv-triage`    | Triage sources, coalesce issue links, assign bug priority, and balance portfolio |
 | `/adv-improve`   | Suggest targeted improvements to existing specs or implementation                                    |
 | `/adv-tron`      | Investigate codebase structure, hotspots, risks, and suggest follow-up candidates             |
 | `/adv-optimizer` | Analyze code simplification opportunities and propose optimizer changes                              |
