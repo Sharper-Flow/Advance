@@ -56,11 +56,31 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # Active changes include draft + in-flight. If prerequisite appears here, gate fails.
-STATUS_JSON="$("$ADV_BIN" status --json 2>/dev/null || printf '{"changes":[]}')"
+# Fail-closed: if `adv status` itself fails (Temporal down, ADV_BIN broken, parse error),
+# the shell substitution returns non-zero and `set -e` aborts before we reach the
+# IS_ACTIVE check. Never fall back to empty-changes (that would incorrectly pass the gate).
+ADV_STATUS_OUTPUT="$("$ADV_BIN" status --json 2>&1 1>/dev/null)" || true
+STATUS_JSON="$("$ADV_BIN" status --json 2>/dev/null)" || STATUS_JSON=""
+if [ -z "$STATUS_JSON" ]; then
+  echo "RELEASE GATE UNKNOWN: adv status --json failed or produced no output" >&2
+  echo "  ADV_BIN: $ADV_BIN" >&2
+  echo "  stderr: $ADV_STATUS_OUTPUT" >&2
+  echo "  Cannot determine status of prerequisite $PREREQ." >&2
+  echo "  Dependent: $DEPENDENT -- refuse release until prerequisite status is verifiable." >&2
+  exit 2
+fi
 
-IS_ACTIVE="$(printf '%s' "$STATUS_JSON" | jq -r --arg id "$PREREQ" '
-  if (.changes // []) | any(.id == $id) then "yes" else "no" end
-')"
+# Sanity: parsed JSON must have a `changes` array; otherwise the schema changed and we
+# cannot safely interpret absence as "not active". Fail-closed on schema drift.
+if ! printf '%s' "$STATUS_JSON" | jq -e '.changes | type == "array"' >/dev/null 2>&1; then
+  echo "RELEASE GATE UNKNOWN: adv status --json output schema drift (no .changes array)" >&2
+  echo "  Cannot safely determine status of $PREREQ." >&2
+  echo "  Dependent: $DEPENDENT -- refuse release until ADV status schema is reconciled." >&2
+  exit 2
+fi
+
+IS_ACTIVE="$(printf '%s' "$STATUS_JSON" | jq -r --arg id "$PREREQ" \
+  '.changes | map(.id) | index($id) | if . then "yes" else "no" end')"
 
 case "$IS_ACTIVE" in
   yes)
