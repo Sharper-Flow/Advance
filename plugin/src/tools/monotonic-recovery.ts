@@ -44,8 +44,7 @@ export type MonotonicRecoveryAuthority =
    * - `workflow_poisoned_describe` — describe() carries poisoned-history
    *   evidence; only safe disk-direct writes are allowed.
    */
-  | "workflow_completed"
-  | "workflow_poisoned_describe";
+  "workflow_completed" | "workflow_poisoned_describe";
 
 export type OperatorRequiredCause =
   /**
@@ -57,9 +56,7 @@ export type OperatorRequiredCause =
    * - `non_monotonic` — reserved for callers to surface post-write
    *   monotonicity violations through the same typed refusal shape.
    */
-  | "query_failed"
-  | "reachable_authority_disagrees"
-  | "non_monotonic";
+  "query_failed" | "reachable_authority_disagrees" | "non_monotonic";
 
 export type MonotonicRecoveryDecision =
   | { kind: "proceed_with_signal" }
@@ -190,7 +187,8 @@ function summarizeError(error: unknown): string {
   if (error instanceof Error) {
     const name = error.name ?? "";
     const msg = error.message ?? "";
-    const text = name && msg ? `${name}: ${msg}` : msg || name || "unknown error";
+    const text =
+      name && msg ? `${name}: ${msg}` : msg || name || "unknown error";
     return truncate(text);
   }
   const text = typeof error === "string" ? error : safeStringify(error);
@@ -216,7 +214,9 @@ function safeStringify(value: unknown): string {
  * Convenience predicate for callers that only need the binary
  * "should I skip the signal and recover via disk?" answer.
  */
-export async function shouldRecoverViaDisk(args: ClassifyMutationRecoveryArgs): Promise<boolean> {
+export async function shouldRecoverViaDisk(
+  args: ClassifyMutationRecoveryArgs,
+): Promise<boolean> {
   const decision = await classifyMutationRecoveryDecision(args);
   return decision.kind === "recover_via_disk";
 }

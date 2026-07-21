@@ -21,6 +21,7 @@ import {
   logRecoveryProbeDiagnostics,
   shouldTakeRecoveryBranch,
 } from "./recovery-probe";
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -187,6 +188,45 @@ async function executeDisposition(
       note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
       ...proj,
     });
+  }
+
+  // D4 internal classification (rq-internalMonotonicRecovery01): probe
+  // describe() to auto-detect poisoned/completed workflows without operator
+  // evidence-copy ceremony (AC5/SC3). Operator-supplied path above remains
+  // as back-compat until tk-0528be678596 retires the public surface.
+  {
+    const internalDecision = await classifyMutationRecoveryDecision({ handle });
+    if (internalDecision.kind === "recover_via_disk") {
+      await logRecoveryProbeDiagnostics(handle, args.changeId);
+      await saveRecoveredDesignConcernDisposition({
+        store,
+        change,
+        authorization: {
+          reason: internalDecision.reason,
+          evidence: internalDecision.evidence,
+        },
+        disposition,
+      });
+      return formatToolOutput({
+        success: true,
+        changeId: args.changeId,
+        disposition,
+        _recoveryMutation: true,
+        recovered: true,
+        recoveryMode: "poisoned_history",
+        reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+        note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
+        ...proj,
+      });
+    }
+    if (internalDecision.kind === "operator_required") {
+      return formatToolOutput({
+        error: `Cannot safely record design concern disposition: ${internalDecision.detail}`,
+        code: "DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED",
+        cause: internalDecision.cause,
+        changeId: args.changeId,
+      });
+    }
   }
   try {
     await fireSignalAndRefresh(

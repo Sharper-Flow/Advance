@@ -1263,8 +1263,11 @@ describe("gate tools — signal-driven lifecycle", () => {
     });
 
     test("poisoned-history acceptance recovery covers WorkflowTaskFailedCauseNonDeterministicError describe", async () => {
-      // rq-fix-gate-tools-recovery AC2: probe-based recovery for generic
-      // signal errors when workflow describe carries poisoned evidence.
+      // rq-fix-gate-tools-recovery AC2 + D4 internal monotonic recovery:
+      // describe() carrying poisoned evidence now triggers recovery via the
+      // internal probe-first path (rq-internalMonotonicRecovery01) without
+      // attempting the signal (which silently resolves on poisoned replay).
+      // The operator-supplied recoveryEvidence path remains as back-compat.
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -1286,12 +1289,9 @@ describe("gate tools — signal-driven lifecycle", () => {
         } as Partial<import("../types").Change>,
       });
 
-      // Healthy gates query succeeds (no isPoisonedHistoryError(error)
-      // signal — workflow signal will fail with a generic error instead).
+      // Healthy gates query succeeds; signal is NOT attempted because the
+      // internal probe-first path detects poison via describe() first.
       mocks.querySignal.mockResolvedValueOnce(gates);
-      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
-        new Error("Failed to send signal"),
-      );
 
       // Inject describe() that reports nondeterminism via TemporalReportedProblems.
       const describeMock = vi.fn(async () => ({

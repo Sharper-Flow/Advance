@@ -38,6 +38,7 @@ import {
   shouldTakeRecoveryBranch,
   workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -396,6 +397,43 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
+          // D4 internal classification (rq-internalMonotonicRecovery01):
+          // probe describe() to auto-classify poison/missing workflow when
+          // operator has not supplied recoveryMode (AC5/SC3).
+          {
+            const internalDecision = await classifyMutationRecoveryDecision({
+              handle,
+            });
+            if (internalDecision.kind === "recover_via_disk") {
+              await logRecoveryProbeDiagnostics(handle, args.changeId);
+              await saveRecoveredContract({
+                store: activeStore,
+                change,
+                contract,
+                diskDirect: internalDecision.authority === "workflow_completed",
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                itemCount: contract.items.length,
+                contractIds: contract.items.map((item) => item.id),
+                _recoveryMutation: true,
+                recovered: true,
+                recoveryMode: "poisoned_history",
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            if (internalDecision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely mint contract: ${internalDecision.detail}`,
+                code: "CONTRACT_MINT_OPERATOR_REQUIRED",
+                cause: internalDecision.cause,
+                changeId: args.changeId,
+              });
+            }
+          }
           try {
             await fireSignalAndRefresh(
               handle,
@@ -615,6 +653,47 @@ export const contractTools = {
               note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
+          }
+          // D4 internal classification (rq-internalMonotonicRecovery01).
+          {
+            const internalDecision = await classifyMutationRecoveryDecision({
+              handle,
+            });
+            if (internalDecision.kind === "recover_via_disk") {
+              await logRecoveryProbeDiagnostics(handle, args.changeId);
+              await saveRecoveredReviewMatrix({
+                store: activeStore,
+                change,
+                reviewMatrix,
+                authorization: {
+                  reason: internalDecision.reason,
+                  evidence: internalDecision.evidence,
+                },
+                diskDirect: internalDecision.authority === "workflow_completed",
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                rowCount: reviewMatrix.rows.length,
+                failingRows: reviewMatrix.rows.filter((row) =>
+                  isFailingContractReviewStatus(row.status),
+                ).length,
+                _recoveryMutation: true,
+                recovered: true,
+                recoveryMode: "poisoned_history",
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            if (internalDecision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely set review matrix: ${internalDecision.detail}`,
+                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
+                cause: internalDecision.cause,
+                changeId: args.changeId,
+              });
+            }
           }
           try {
             await fireSignalAndRefresh(

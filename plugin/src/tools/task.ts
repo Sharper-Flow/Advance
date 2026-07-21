@@ -1594,6 +1594,37 @@ export const taskTools = {
             task,
           });
           recoveredViaPoisoned = true;
+        } else {
+          // D4 internal classification (rq-internalMonotonicRecovery01):
+          // probe describe() to detect poisoned/completed workflows
+          // automatically when operator has not supplied recoveryMode.
+          // See adv_task_update for the full design note.
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
+          });
+          if (internalDecision.kind === "recover_via_disk") {
+            await logRecoveryProbeDiagnostics(handle, changeId);
+            const changeResult = await activeStore.changes.get(changeId);
+            if (!changeResult.success || !changeResult.data) {
+              throw new Error(
+                `Cannot recover-add task for change ${changeId}: change not found`,
+              );
+            }
+            await saveRecoveredTaskAdd({
+              store: activeStore,
+              change: changeResult.data,
+              task,
+            });
+            recoveredViaPoisoned = true;
+          } else if (internalDecision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely add task to ${changeId}: ${internalDecision.detail}`,
+              code: "TASK_ADD_OPERATOR_REQUIRED",
+              cause: internalDecision.cause,
+              hint: "Re-run after recovering workflow reachability, or supply explicit recoveryMode/recoveryEvidence if verifying a known-poisoned workflow.",
+              changeId,
+            });
+          }
         }
 
         if (!recoveredViaPoisoned) {

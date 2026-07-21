@@ -106,6 +106,7 @@ import {
   logRecoveryProbeDiagnostics,
   shouldTakeRecoveryBranch,
 } from "./recovery-probe";
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
 import type { LightweightProfilePhase } from "../types";
@@ -1631,6 +1632,61 @@ export const gateTools = {
           });
         }
 
+        // D4 internal classification (rq-internalMonotonicRecovery01):
+        // when operator has not supplied recoveryMode/evidence, probe
+        // describe() to detect poisoned/completed workflows automatically.
+        // Removes evidence-copy ceremony from routine gate completion
+        // (AC5/SC3). Acceptance gate still requires priorApprovalEvidence
+        // (human checkpoint) per AC6 — destructive/competing-authority cases
+        // remain explicitly operator-controlled.
+        if (gateId === "acceptance" || gateId === "release") {
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
+          });
+          if (internalDecision.kind === "recover_via_disk") {
+            if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
+              return formatToolOutput({
+                error:
+                  "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
+                code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
+                changeId,
+                gateId,
+                hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
+              });
+            }
+            await logRecoveryProbeDiagnostics(handle, changeId);
+            const boundaryWarning = validateGateBoundary(gateId, completedBy);
+            return completeGateViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason:
+                compatibilityReason ??
+                `D4 internal monotonic recovery (authority=${internalDecision.authority})`,
+              boundaryWarning,
+              diskDirect: internalDecision.authority === "workflow_completed",
+              recoveryReason: internalDecision.reason,
+              recoveryEvidence: internalDecision.evidence,
+              priorApprovalEvidence,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          } else if (internalDecision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely complete ${gateId} gate: ${internalDecision.detail}`,
+              code: "GATE_MUTATION_OPERATOR_REQUIRED",
+              cause: internalDecision.cause,
+              changeId,
+              gateId,
+            });
+          }
+        }
+
         let queriedGates: Gates | undefined;
         try {
           queriedGates = await querySignal<Gates>(
@@ -1802,6 +1858,56 @@ export const gateTools = {
               ? { _projectContext: projectContext }
               : {},
           });
+        }
+
+        // D4 internal classification (rq-internalMonotonicRecovery01):
+        // probe describe() to auto-classify poison/missing workflow state.
+        // Acceptance still requires priorApprovalEvidence per AC6.
+        if (gateId === "acceptance" || gateId === "release") {
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
+          });
+          if (internalDecision.kind === "recover_via_disk") {
+            if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
+              return formatToolOutput({
+                error:
+                  "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
+                code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
+                changeId,
+                gateId,
+                hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
+              });
+            }
+            await logRecoveryProbeDiagnostics(handle, changeId);
+            return completeGateViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason:
+                compatibilityReason ??
+                `D4 internal monotonic recovery (authority=${internalDecision.authority})`,
+              boundaryWarning,
+              diskDirect: internalDecision.authority === "workflow_completed",
+              recoveryReason: internalDecision.reason,
+              recoveryEvidence: internalDecision.evidence,
+              priorApprovalEvidence,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          } else if (internalDecision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely complete ${gateId} gate: ${internalDecision.detail}`,
+              code: "GATE_MUTATION_OPERATOR_REQUIRED",
+              cause: internalDecision.cause,
+              changeId,
+              gateId,
+            });
+          }
         }
 
         // Signal-driven mutation: fire gateCompletedSignal after
