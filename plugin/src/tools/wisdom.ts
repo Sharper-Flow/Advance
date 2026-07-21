@@ -22,7 +22,7 @@ import {
 } from "../storage/project-wisdom";
 import { wisdomAddedSignal, changeStateQuery } from "../temporal/messages";
 import { formatToolOutput } from "../utils/tool-output";
-import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
+import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import {
@@ -31,6 +31,7 @@ import {
   getChangeHandle,
 } from "./_adapters";
 import { withOptionalTargetPathStore } from "./target-project";
+import { includeSnapshotSchema } from "./shared-args";
 
 async function getChangeHandleForChangeId(
   store: Store,
@@ -120,6 +121,7 @@ export const wisdomTools = {
         .boolean()
         .optional()
         .describe("When true, also promote the added wisdom to project level"),
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       {
@@ -128,12 +130,14 @@ export const wisdomTools = {
         content,
         sourceTask,
         promote,
+        include,
       }: {
         changeId: string;
         type: "pattern" | "success" | "failure" | "gotcha" | "convention";
         content: string;
         sourceTask?: string;
         promote?: boolean;
+        include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
@@ -205,21 +209,16 @@ export const wisdomTools = {
           }
         }
 
-        let snapshot: string | undefined;
-        try {
-          snapshot = await fetchChangeContextTicker(store, changeId);
-        } catch {
-          // Snapshot emission is best-effort; never fail the tool
-        }
-        return formatToolOutput({
+        const output: Record<string, unknown> = {
           success: true,
           entry,
           promoted,
-          ...(snapshot ? { _contextSnapshot: snapshot } : {}),
           message: promote
             ? `Added and promoted ${type} wisdom for change ${changeId}`
             : `Added ${type} wisdom to change ${changeId}`,
-        });
+        };
+        await maybeAttachChangeTicker(output, include, store, changeId);
+        return formatToolOutput(output);
       } catch (error) {
         return formatToolOutput({
           error:

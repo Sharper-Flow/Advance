@@ -123,6 +123,18 @@ vi.mock("./_adapters", () => ({
 
 vi.mock("../storage/context-snapshot-fetch", () => ({
   fetchChangeContextTicker: mocks.fetchChangeContextTicker,
+  maybeAttachChangeTicker: vi.fn(
+    async (
+      output: Record<string, unknown>,
+      include: { snapshot?: boolean } | undefined,
+      _store: unknown,
+      _changeId: string,
+    ) => {
+      if (!include?.snapshot) return;
+      const snapshot = await mocks.fetchChangeContextTicker();
+      if (snapshot) output._contextSnapshot = snapshot;
+    },
+  ),
 }));
 
 vi.mock("./_recovery-writers", async () => {
