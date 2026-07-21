@@ -689,3 +689,115 @@ describe("buildChangeContextSnapshot epic context", () => {
     expect(output).toContain("Add OAuth");
   });
 });
+
+describe("formatContextSnapshot resumeFreshness", () => {
+  function baseInput(overrides: Record<string, unknown> = {}) {
+    return {
+      changeId: "testChange",
+      title: "Test change",
+      taskCounts: { done: 0, in_progress: 0, pending: 0, cancelled: 0 },
+      workdir: "/tmp/work",
+      ...overrides,
+    };
+  }
+
+  it("renders Freshness line when resumeFreshness present with 1 finding", () => {
+    const out = formatContextSnapshot(
+      baseInput({
+        resumeFreshness: {
+          findings: [
+            {
+              code: "resume:sibling_overlap",
+              label: "repo_backed_fact",
+              summary: "x",
+            },
+          ],
+          skipped: false,
+        },
+      }) as ContextSnapshotInput,
+    );
+    expect(out).toContain("Freshness: 1 finding · resume:sibling_overlap");
+  });
+
+  it("renders Freshness line with count for multiple findings", () => {
+    const out = formatContextSnapshot(
+      baseInput({
+        resumeFreshness: {
+          findings: [
+            { code: "resume:sibling_overlap", label: "x", summary: "a" },
+            { code: "resume:archived_duplicate", label: "y", summary: "b" },
+          ],
+          skipped: false,
+        },
+      }) as ContextSnapshotInput,
+    );
+    expect(out).toContain("Freshness: 2 findings · resume:sibling_overlap");
+  });
+
+  it("does NOT render Freshness when skipped=true", () => {
+    const out = formatContextSnapshot(
+      baseInput({
+        resumeFreshness: { findings: [], skipped: true },
+      }) as ContextSnapshotInput,
+    );
+    expect(out).not.toContain("Freshness:");
+  });
+
+  it("does NOT render Freshness when findings empty and skipped=false", () => {
+    const out = formatContextSnapshot(
+      baseInput({
+        resumeFreshness: { findings: [], skipped: false },
+      }) as ContextSnapshotInput,
+    );
+    expect(out).not.toContain("Freshness:");
+  });
+
+  it("sheds Outcomes line when directive + freshness present (2 optionals)", () => {
+    const out = formatContextSnapshot(
+      baseInput({
+        userOutcomeCount: 4,
+        directive: {
+          action: { kind: "gate_complete", gateId: "discovery" },
+          reason: "next",
+        } as never,
+        resumeFreshness: {
+          findings: [
+            { code: "resume:codebase_drift", label: "x", summary: "a" },
+          ],
+          skipped: false,
+        },
+      }) as ContextSnapshotInput,
+    );
+    expect(out).toContain("Freshness:");
+    expect(out).not.toContain("Outcomes:");
+  });
+
+  it("preserves 10-line cap with directive + wisdom + current + freshness (4 optionals, no Epic)", () => {
+    const out = formatContextSnapshot(
+      baseInput({
+        userOutcomeCount: 4,
+        wisdomCount: 3,
+        wisdomByType: { pattern: 2, gotcha: 1 },
+        currentTask: { id: "tk-abc", title: "Do thing" },
+        directive: {
+          action: { kind: "gate_complete", gateId: "discovery" },
+          reason: "next",
+        } as never,
+        resumeFreshness: {
+          findings: [
+            { code: "resume:codebase_drift", label: "x", summary: "a" },
+          ],
+          skipped: false,
+        },
+      }) as ContextSnapshotInput,
+    );
+    // Count content lines (between borders)
+    const lines = out.split("\n");
+    const contentLines = lines.filter(
+      (l) => l.startsWith("║") && !l.startsWith("╔") && !l.startsWith("╚"),
+    );
+    expect(contentLines.length).toBeLessThanOrEqual(8);
+    expect(out).toContain("Freshness:");
+    expect(out).toContain("Wisdom:");
+  });
+});
