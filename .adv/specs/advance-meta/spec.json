@@ -2707,61 +2707,6 @@
       ]
     },
     {
-      "id": "rq-toolPlaceholderPolicy01.6",
-      "title": "Contextually-Validated Audit Fields Must Use blank: omit in Preflight",
-      "body": "Optional audit and recovery fields that are only required in specific contextual paths (recovery mode, cross-project mutation, or specific gate types) must use blank: 'omit' in the FIELD_POLICIES preflight table. The handler layer validates these fields contextually — preflight rejection of blank values creates a deadlock for strict-mode API providers (e.g., OpenAI Responses API with strict:true) that auto-fill every optional field with empty strings. Fields in this class include: confirmationEvidence (required only when target_path is present for cross-project mutations), recoveryEvidence/recoveryReason/priorApprovalEvidence (required only when recoveryMode is poisoned_history), and completedBy on adv_gate_complete (handler defaults to 'agent'). Always-required semantic fields (approvalEvidence, reason, command, content, title, branch) retain blank: 'reject'.",
-      "priority": "must",
-      "tags": [
-        "preflight",
-        "strict-mode",
-        "tool-args",
-        "placeholder-normalization"
-      ],
-      "scenarios": [
-        {
-          "id": "rq-toolPlaceholderPolicy01.6.1",
-          "title": "Strict-mode provider can complete non-recovery gate without deadlock",
-          "given": [
-            "A strict-mode API provider sends adv_gate_complete with all optional fields filled with blank strings",
-            "The gate is a non-recovery gate (not acceptance or release recovery)"
-          ],
-          "when": "The preflight layer processes the tool arguments",
-          "then": [
-            "Blank recoveryEvidence, recoveryReason, priorApprovalEvidence, completedBy, and confirmationEvidence are normalized to omitted",
-            "The call is not rejected at the preflight layer",
-            "The handler processes the gate completion normally with default values"
-          ]
-        },
-        {
-          "id": "rq-toolPlaceholderPolicy01.6.2",
-          "title": "Recovery path still validates audit fields",
-          "given": [
-            "adv_gate_complete is called with recoveryMode or a poisoned workflow is detected",
-            "Blank recovery fields were normalized to omitted by preflight"
-          ],
-          "when": "The handler executes the recovery path",
-          "then": [
-            "The handler rejects the call because required recovery fields are missing",
-            "The error message identifies the specific missing fields",
-            "No silent data loss or unverified recovery occurs"
-          ]
-        },
-        {
-          "id": "rq-toolPlaceholderPolicy01.6.3",
-          "title": "Contextually-validated fields across all tools use omit policy",
-          "given": [
-            "The FIELD_POLICIES table in tool-arg-preflight.ts"
-          ],
-          "when": "Entries for confirmationEvidence, recoveryEvidence, recoveryReason, priorApprovalEvidence, and completedBy on adv_gate_complete are inspected",
-          "then": [
-            "All such entries use blank: 'omit'",
-            "The handler layer for each tool still validates these fields when contextually required",
-            "Always-required fields (approvalEvidence, reason, command, content) retain blank: 'reject'"
-          ]
-        }
-      ]
-    },
-    {
       "id": "rq-activeChangePointer01",
       "title": "Session Active-Change Pointer Hygiene",
       "body": "The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) a recovery MCP tool (adv_change_forget) to clear phantom pointers, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. Cross-project tool calls are treated as active-work repoints only for tools in the activeChangeRepointTools allow-list when the target change.json exists; read/diagnostic cross-project calls do not mutate the caller's pointer, while terminal-clear hooks clear the pointer whenever the terminal changeId matches regardless of project ownership. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.",

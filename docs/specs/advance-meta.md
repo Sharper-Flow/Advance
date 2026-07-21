@@ -2490,56 +2490,6 @@ Project-scope Visibility queries used by ADV listing paths MUST filter on a regi
 
 ---
 
-### Contextually-Validated Audit Fields Must Use blank: omit in Preflight
-
-**ID:** `rq-toolPlaceholderPolicy01.6` | **Priority:** **[MUST]**
-
-Optional audit and recovery fields that are only required in specific contextual paths (recovery mode, cross-project mutation, or specific gate types) must use blank: 'omit' in the FIELD_POLICIES preflight table. The handler layer validates these fields contextually — preflight rejection of blank values creates a deadlock for strict-mode API providers (e.g., OpenAI Responses API with strict:true) that auto-fill every optional field with empty strings. Fields in this class include: confirmationEvidence (required only when target_path is present for cross-project mutations), recoveryEvidence/recoveryReason/priorApprovalEvidence (required only when recoveryMode is poisoned_history), and completedBy on adv_gate_complete (handler defaults to 'agent'). Always-required semantic fields (approvalEvidence, reason, command, content, title, branch) retain blank: 'reject'.
-
-**Tags:** `preflight`, `strict-mode`, `tool-args`, `placeholder-normalization`
-
-#### Scenarios
-
-**Strict-mode provider can complete non-recovery gate without deadlock** (`rq-toolPlaceholderPolicy01.6.1`)
-
-**Given:**
-- A strict-mode API provider sends adv_gate_complete with all optional fields filled with blank strings
-- The gate is a non-recovery gate (not acceptance or release recovery)
-
-**When:** The preflight layer processes the tool arguments
-
-**Then:**
-- Blank recoveryEvidence, recoveryReason, priorApprovalEvidence, completedBy, and confirmationEvidence are normalized to omitted
-- The call is not rejected at the preflight layer
-- The handler processes the gate completion normally with default values
-
-**Recovery path still validates audit fields** (`rq-toolPlaceholderPolicy01.6.2`)
-
-**Given:**
-- adv_gate_complete is called with recoveryMode or a poisoned workflow is detected
-- Blank recovery fields were normalized to omitted by preflight
-
-**When:** The handler executes the recovery path
-
-**Then:**
-- The handler rejects the call because required recovery fields are missing
-- The error message identifies the specific missing fields
-- No silent data loss or unverified recovery occurs
-
-**Contextually-validated fields across all tools use omit policy** (`rq-toolPlaceholderPolicy01.6.3`)
-
-**Given:**
-- The FIELD_POLICIES table in tool-arg-preflight.ts
-
-**When:** Entries for confirmationEvidence, recoveryEvidence, recoveryReason, priorApprovalEvidence, and completedBy on adv_gate_complete are inspected
-
-**Then:**
-- All such entries use blank: 'omit'
-- The handler layer for each tool still validates these fields when contextually required
-- Always-required fields (approvalEvidence, reason, command, content) retain blank: 'reject'
-
----
-
 ### Session Active-Change Pointer Hygiene
 
 **ID:** `rq-activeChangePointer01` | **Priority:** **[MUST]**
