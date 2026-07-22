@@ -1284,6 +1284,73 @@ export function createTemporalStoreBackend(
       changeId: string,
     ): Promise<{ change?: Change; resolution?: CandidateResolution }> => {
       const isArchiveCandidate = archiveIdSet.has(changeId);
+
+      // bl-HiZJbUuy / disk-authoritative active reads: resolve each NON-archive
+      // candidate from its durable on-disk change.json projection BEFORE any
+      // per-workflow Temporal query. The disk projection is the eventually-
+      // consistent read model the change workflow writes on every signal;
+      // enumeration (list/status/wip_state) tolerates its lag, and reading it
+      // first eliminates the per-workflow query N+1 that saturates the single
+      // project worker under multi-session load (94 workflows × cold replay >
+      // the 8s aggregate deadline). Mutation preconditions still call
+      // getTemporalChange/get directly (Temporal-fresh) — this disk-first
+      // reorder is scoped to the read-only listResolvedChanges path. A disk
+      // miss (brand-new change not yet projected, or a Temporal/memo-only
+      // entry) falls through to the getTemporalChange hydration below.
+      if (!isArchiveCandidate && !expired()) {
+        try {
+          const diskResult = await raceWithTemporalDeadline(
+            legacy.changes.get(changeId),
+            deadline,
+          );
+          if (isSchemaError(diskResult)) {
+            throw new Error(diskResult.error);
+          }
+          if (diskResult.success && diskResult.data) {
+            const terminalOnDisk =
+              diskResult.data.status === "archived" ||
+              diskResult.data.status === "closed";
+            // Layer A1 terminal override: a non-terminal disk status with a
+            // present archive bundle IS archived (the bundle is durable truth).
+            if (
+              !terminalOnDisk &&
+              (await raceWithTemporalDeadline(
+                checkArchiveBundle(changeId),
+                deadline,
+              ))
+            ) {
+              const archived = {
+                ...diskResult.data,
+                status: "archived" as const,
+              };
+              indexTasksFromChange(archived);
+              return {
+                change: archived,
+                resolution: {
+                  id: changeId,
+                  terminal: true,
+                  source: "archive",
+                  omitted: false,
+                },
+              };
+            }
+            indexTasksFromChange(diskResult.data);
+            return {
+              change: diskResult.data,
+              resolution: {
+                id: changeId,
+                terminal: terminalOnDisk,
+                source: "disk",
+                omitted: false,
+              },
+            };
+          }
+        } catch {
+          // Disk miss / unreadable — fall through to the getTemporalChange
+          // hydration below (covers Temporal/memo-only and cache-warm cases).
+        }
+      }
+
       try {
         const result = await raceWithTemporalDeadline(
           getTemporalChange(changeId, { context: ctx }),
