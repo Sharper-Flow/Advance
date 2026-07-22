@@ -1351,6 +1351,22 @@ export function createTemporalStoreBackend(
         }
       }
 
+      // If the disk-first read exhausted the aggregate budget, do NOT begin a
+      // workflow query: getTemporalChange would immediately reject as expired
+      // and, racing an already-expired deadline, orphan its rejection. Record
+      // typed incompleteness and stop (mirrors the post-query expiry guard).
+      if (expired()) {
+        markDeadline("workflow_query");
+        return {
+          resolution: {
+            id: changeId,
+            terminal: isArchiveCandidate,
+            omitted: true,
+            omissionReason: "deadline",
+          },
+        };
+      }
+
       try {
         const result = await raceWithTemporalDeadline(
           getTemporalChange(changeId, { context: ctx }),

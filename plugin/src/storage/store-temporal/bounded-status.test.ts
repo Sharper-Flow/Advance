@@ -136,7 +136,9 @@ describe("bounded summary status reads", () => {
 
     // The bound applies before deep hydration: at most 10 candidates were
     // loaded; the remaining 2 are typed omissions, never silently dropped.
-    expect(queried).toHaveLength(10);
+    // bl-HiZJbUuy: candidates hydrate disk-first, so no workflow queries fire;
+    // the bound is proven by resolvedChanges.size (10) + boundedOmitted (2).
+    expect(queried).toHaveLength(0);
     expect(status.changes.recent.length).toBeLessThanOrEqual(10);
     expect(status.warnings).toEqual(
       expect.arrayContaining([
@@ -172,10 +174,16 @@ describe("bounded summary status reads", () => {
 
     const status = await store.status({ recentLimit: 10 });
 
-    expect(queried).toHaveLength(3);
+    // bl-HiZJbUuy: disk-first hydration — 3 candidates resolve from disk with
+    // zero workflow queries; completeness proven by resolvedChanges.size (3).
+    expect(queried).toHaveLength(0);
     expect(status.warnings).toBeUndefined();
     expect(status.hydrationStats).toBeUndefined();
-    expect(status.changes.byStatus.active).toBe(3);
+    // bl-HiZJbUuy: disk-first returns the canonical normalized status — the
+    // disk load path normalizes legacy "active" to "draft" (the schema enum is
+    // draft/archived/closed), whereas the old Temporal query mock returned the
+    // un-normalized "active".
+    expect(status.changes.byStatus.draft).toBe(3);
     expect(status.changes.recent).toHaveLength(3);
     expect(status.resolvedChanges?.size).toBe(3);
   });
@@ -198,9 +206,13 @@ describe("bounded summary status reads", () => {
 
     const status = await store.status();
 
-    expect(queried).toHaveLength(12);
+    // bl-HiZJbUuy: full view hydrates all 12 candidates disk-first (no workflow
+    // queries); completeness proven by resolvedChanges.size (12).
+    expect(queried).toHaveLength(0);
     expect(status.warnings).toBeUndefined();
-    expect(status.changes.byStatus.active).toBe(12);
+    // bl-HiZJbUuy: disk-first returns canonical "draft" (legacy "active"
+    // normalizes at the disk load path), not the mock's un-normalized "active".
+    expect(status.changes.byStatus.draft).toBe(12);
     expect(status.changes.recent).toHaveLength(12);
     expect(status.resolvedChanges?.size).toBe(12);
   });
@@ -295,7 +307,9 @@ describe("bounded summary status reads", () => {
       )
       .slice(0, 10)
       .map((row) => row.id);
-    expect(queried).toHaveLength(10);
+    // bl-HiZJbUuy: source-ranked candidates hydrate disk-first (no workflow
+    // queries); the newest-10 ranking + 47 bounded omissions still hold.
+    expect(queried).toHaveLength(0);
     expect(status.changes.recent.map((row) => row.id)).toEqual(expected);
     expect(status.hydrationStats?.boundedOmitted).toBe(47);
     expect(

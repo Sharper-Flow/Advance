@@ -520,7 +520,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     );
   });
 
-  it("list re-seeds active disk-only changes without resurrecting terminal changes", async () => {
+  it("serves active disk-only changes from disk without resurrecting any workflow", async () => {
     tempDir = await createTempDir();
     const active = activeChange("activeDiskOnlyList");
     const archived = archivedChange("archivedDiskOnlyList");
@@ -543,14 +543,16 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(list.changes.map((change) => change.id)).not.toContain(
       "closedDiskOnlyList",
     );
-    expect(startInputs()).toEqual([
-      expect.objectContaining({ changeId: "activeDiskOnlyList" }),
-    ]);
-    // Poison read-resilience: both terminal statuses are now served from the
-    // disk terminal projection WITHOUT a live workflow query. Archived
-    // previously incurred one query (then reseed-to-disk); it is now consistent
-    // with closed at zero queries, so a poisoned/terminated terminal workflow is
-    // never touched during enumeration.
+    // bl-HiZJbUuy / disk-authoritative reads: enumeration is side-effect-free.
+    // The active change is served from its durable change.json projection
+    // WITHOUT re-seeding (resurrecting) its workflow. Orphan re-seed now happens
+    // on the next mutation (getTemporalChange), never during a read — so no
+    // workflow start occurs for ANY candidate during list.
+    expect(startInputs()).toEqual([]);
+    // All candidates (active + both terminal) resolve from disk with zero
+    // workflow queries, so a poisoned/terminated workflow is never touched
+    // during enumeration.
+    expect(queryCount("activeDiskOnlyList")).toBe(0);
     expect(queryCount("archivedDiskOnlyList")).toBe(0);
     expect(queryCount("closedDiskOnlyList")).toBe(0);
   });

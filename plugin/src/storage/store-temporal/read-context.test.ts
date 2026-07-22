@@ -396,9 +396,13 @@ describe("Temporal read context — change/gate/status stages", () => {
 
     await store.status();
 
-    // One visibility-list RPC plus one query per change = 3 total RPCs.
-    expect(deadlineCalls.length).toBeGreaterThanOrEqual(3);
-    expect(abortCalls.length).toBeGreaterThanOrEqual(3);
+    // Disk-authoritative reads (bl-HiZJbUuy): status() enumerates via one
+    // visibility-list RPC and hydrates each change from its on-disk change.json
+    // projection, so the per-change workflow queries (the old N+1) are gone. The
+    // visibility RPC still threads the shared deadline + abort signal; the
+    // coherence invariant below holds for whatever Temporal RPCs occur.
+    expect(deadlineCalls.length).toBeGreaterThanOrEqual(1);
+    expect(abortCalls.length).toBeGreaterThanOrEqual(1);
 
     const firstDeadline = deadlineCalls[0].deadline;
     const firstSignal = abortCalls[0].signal;
