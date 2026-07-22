@@ -385,7 +385,7 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 
 **ID:** `rq-releaseFinalization01` | **Priority:** **[MUST]**
 
-Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_archive_repair` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push. For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or `Merged locally.` for `no_remote`), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
+Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or `Merged locally.` for `no_remote`), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
 
 **Tags:** `workflow`, `archive`, `worktree`, `git`
 
@@ -536,7 +536,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - The branch is not reachable from post-fetch `origin/{default-branch}`
 - The branch appears archived or otherwise stranded
 
-**When:** `adv_archive_repair` scans or re-drives the branch
+**When:** `adv_doctor` scans or re-drives the branch
 
 **Then:**
 - Scan reports the archived-but-unmerged branch with release-proof diagnostics
@@ -776,7 +776,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 **ID:** `rq-archiveRecoveryConsistency01` | **Priority:** **[MUST]**
 
-Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. `adv_change_status_repair` success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery-path selection MUST stay explicit: `adv_archive_repair action=reconcile` is the batch terminal-projection repair over all release-stuck candidates, gated on branch-merge evidence; `adv_change_status_repair` is the single-change targeted status flip, gated on precise workflow evidence (no branch requirement) with target_path routing.
+Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. Status-repair success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery is consolidated through `adv_doctor`, which diagnoses the release-stuck projection and applies the safe repair path; batch terminal-projection repair over all release-stuck candidates and single-change targeted status flip are internalized behind `adv_doctor` and gated on structural branch-merge evidence or precise workflow evidence.
 
 **Tags:** `workflow`, `archive`, `repair`, `status`, `target-path`
 
@@ -1676,8 +1676,8 @@ Acceptance and success criteria that presume a capability surface exists (a tool
 **Mint succeeds and records a warrant that resolves** (`rq-acWarrant01.2`)
 
 **Given:**
-- An approved agreement declares a criterion with [warrant: tool:adv_change_status_repair#target_path]
-- adv_change_status_repair exposes a target_path argument
+- An approved agreement declares a criterion with [warrant: tool:adv_doctor#target_path]
+- adv_doctor exposes a target_path argument
 
 **When:** adv_contract_mint mints the contract
 
@@ -2835,18 +2835,19 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 - getStslStats().saVerification reflects the verification result
 - The verification polls checkAdvSearchAttributes until ok:true or maxAttempts exhausted
 
-**adv_temporal_register_search_attributes returns verification result** (`rq-searchAttrHealth01.4`)
+**adv_doctor registers missing ADV search attributes and returns verification result** (`rq-searchAttrHealth01.4`)
 
 **Given:**
 - A Temporal namespace where ADV search attributes need registration
-- User has approved registration with approvedByUser: true
+- The operator has run `adv_doctor` and the safe-fix path is not blocked
 
-**When:** adv_temporal_register_search_attributes is called
+**When:** adv_doctor diagnoses missing or wrong-type ADV search attributes
 
 **Then:**
-- After registerMissingAdvSearchAttributes, checkAdvSearchAttributes is called for verification
+- If the attributes are missing, registerMissingAdvSearchAttributes is called, followed by checkAdvSearchAttributes for verification
+- If the attributes are the wrong type, adv_doctor returns an approval-required proposal and does not mutate the server
 - The tool output includes a verification field with ok, present, missing, wrongType
-- The tool success field requires both registration ok AND verification ok
+- The tool success field requires both registration ok AND verification ok for missing-attribute repair
 
 ---
 
@@ -3817,36 +3818,48 @@ Acceptance gate completion MUST use typed contract, review matrix state, generat
 
 **ID:** `rq-acceptanceRecovery01` | **Priority:** **[MUST]**
 
-Completed-workflow or poisoned-history acceptance recovery MUST be explicit and audited. Recovery MAY repair disk projection for contract.reviewMatrix, executive-summary metadata, and acceptance gate completion only when precise completed/poisoned evidence, recovery rationale, and prior user approval evidence are supplied. Recovery MUST rerun deterministic readiness validation against typed contract state and required artifacts before marking acceptance done. Silent recovery, chat-history reconstruction, caller-forged metadata, and manual ADV state-file edits are not supported recovery mechanisms.
+Completed-workflow or poisoned-history acceptance recovery MUST be machine-classified and audited internally. Recovery MAY repair disk projection for contract.reviewMatrix, executive-summary metadata, and acceptance gate completion only when structured completed/poisoned evidence is obtained by ADV, prior user acceptance approval evidence exists, and deterministic readiness validation passes against typed contract state and required artifacts. Callers MUST NOT transcribe machine errors through recoveryMode, recoveryEvidence, or recoveryReason. Silent recovery, chat-history reconstruction, inferred human approval, caller-forged metadata, and manual ADV state-file edits are unsupported.
 
 **Tags:** `workflow`, `acceptance`, `recovery`, `audit`
 
 #### Scenarios
 
-**Audited recovery repairs terminal acceptance evidence** (`rq-acceptanceRecovery01.1`)
+**Machine-classified recovery repairs terminal acceptance evidence** (`rq-acceptanceRecovery01.1`)
 
 **Given:**
 - A change workflow is completed or poisoned
 - Acceptance proof was produced but could not be fully persisted through Temporal
+- Prior user acceptance approval evidence is durable
 
-**When:** Recovery is invoked with precise evidence, recovery rationale, and prior user approval evidence
+**When:** ADV obtains structured completed or poisoned evidence and deterministic readiness passes
 
 **Then:**
-- The recovery path validates contract rows and required artifacts deterministically
-- The disk projection may be repaired with audit metadata
-- The response marks the mutation as recovery and warns that workflow history is not healed
+- The disk projection may be converged with internal audit metadata
+- The caller does not supply recoveryMode, recoveryEvidence, or recoveryReason
+- The response records that workflow history was not rewritten
 
-**Recovery without evidence is rejected** (`rq-acceptanceRecovery01.2`)
+**Missing approval or machine evidence blocks recovery** (`rq-acceptanceRecovery01.2`)
 
 **Given:**
-- An acceptance recovery mutation is requested
+- An acceptance recovery mutation is considered
 
-**When:** Precise recovery evidence, rationale, or prior user approval evidence is missing
+**When:** Structured completed/poisoned evidence, prior user approval evidence, or deterministic readiness proof is missing
 
 **Then:**
 - No disk projection repair occurs
-- The response identifies the missing audit field
-- The acceptance gate remains pending or stuck
+- A typed blocker identifies the missing authority
+- Machine evidence never fabricates human approval
+
+**Reachable disagreement is not overwritten** (`rq-acceptanceRecovery01.3`)
+
+**Given:**
+- The workflow is reachable and its acceptance state disagrees with disk
+
+**When:** Automatic recovery evaluates the state
+
+**Then:**
+- Disk does not replace reachable workflow authority
+- A typed operator-required conflict is returned
 
 ---
 
@@ -4198,7 +4211,7 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 
 **ID:** `rq-archiveBranchCleanup01` | **Priority:** **[MUST]**
 
-PR-mode ADV archives that survive through PR creation must be cleanable post-merge via an operator-explicit tool. Local deletion uses safe `git branch -d` semantics (refuses unmerged). The cleanup tool is the `archived_branches` mode of the `adv_worktree_cleanup` MCP tool; merged-branch cleanup is git-branch hygiene, not ADV recovery state, so it does not live on `adv_archive_repair`. It is operator-explicit (no background sweeps, no daemons, no session-start auto-cleanup per P37). Detection is squash-merge-safe via tree-SHA match (primary) with `git cherry` diff-equivalence fallback.
+PR-mode ADV archives that survive through PR creation must be cleanable post-merge via an operator-explicit tool. Local deletion uses safe `git branch -d` semantics (refuses unmerged). The cleanup tool is the `archived_branches` mode of the `adv_worktree_cleanup` MCP tool; merged-branch cleanup is git-branch hygiene, not ADV recovery state, so it does not live on archive recovery tools. It is operator-explicit (no background sweeps, no daemons, no session-start auto-cleanup per P37). Detection is squash-merge-safe via tree-SHA match (primary) with `git cherry` diff-equivalence fallback.
 
 **Tags:** `workflow`, `archive`, `branch-cleanup`, `release-finalization`
 
@@ -5788,20 +5801,20 @@ When multiple OpenCode sessions are active on the same ADV-enabled project, each
 
 **ID:** `rq-isolSessionTaskQueue04` | **Priority:** **[MUST]**
 
-ADV diagnostics (`adv_temporal_diagnose`, `adv_status view:health`, and the underlying `health-probe`) MUST distinguish session-queue serviceability from project-queue serviceability and identify the owning session for each session-queue. Under per-session routing, probing only the project queue would miss active session work and report false 'no fresh pollers' results. The health-probe accepts a list of `{queueName, queueType}` tuples and returns per-queue results; consumers render each queue with its type label and owning session.
+ADV diagnostics (`adv_doctor`, `adv_status view:health`, and the underlying `health-probe`) MUST distinguish session-queue serviceability from project-queue serviceability and identify the owning session for each session-queue. Under per-session routing, probing only the project queue would miss active session work and report false 'no fresh pollers' results. The health-probe accepts a list of `{queueName, queueType}` tuples and returns per-queue results; consumers render each queue with its type label and owning session.
 
 **Tags:** `diagnostics`, `health`, `task-queue`, `observability`, `multi-session`
 
 #### Scenarios
 
-**adv_temporal_diagnose shows per-queue serviceability with type labels** (`rq-isolSessionTaskQueue04.1`)
+**adv_doctor shows per-queue serviceability with type labels** (`rq-isolSessionTaskQueue04.1`)
 
 **Given:**
 - Per-session task-queue routing is active
 - Session S1 owns queue `advance-{P}-{sessA}`
 - Project queue `advance-{P}` is also active
 
-**When:** adv_temporal_diagnose runs
+**When:** adv_doctor runs
 
 **Then:**
 - The output contains a `session` queue row for `advance-{P}-{sessA}`
@@ -6220,6 +6233,113 @@ ADV auto-surfaces relevant wisdom and creates typed WisdomDraft entries on SEMAN
 - No new error paths are triggered
 - No new required arguments exist
 - Existing tests for these tools continue to pass without modification of their core assertions
+
+---
+
+### Proven Ambiguous Mutations Resolve Without Duplicate Application
+
+**ID:** `rq-provenMutationOutcome01` | **Priority:** **[MUST]**
+
+Mutation paths with a reproduced or structurally proven unknown-commit risk MUST use stable existing entity identity and a separate canonical request hash to resolve retry outcomes. The same identity and request hash MUST be idempotent; the same identity with a different request hash MUST fail before domain mutation. No global operation-ID argument, generic ledger, tombstone, or parallel persistence layer is required for unrelated mutations.
+
+**Tags:** `temporal`, `mutations`, `idempotency`, `timeouts`, `simplicity`
+
+#### Scenarios
+
+**Post-commit timeout resolves existing result** (`rq-provenMutationOutcome01.1`)
+
+**Given:**
+- A mutation commits to its authoritative entity
+- The caller times out before observing the response
+
+**When:** The same logical request is retried or read back
+
+**Then:**
+- The existing committed outcome is returned
+- The domain mutation is not applied twice
+- The response does not require manual duplicate-avoidance investigation
+
+**Different payload under same identity conflicts** (`rq-provenMutationOutcome01.2`)
+
+**Given:**
+- An authoritative entity records a canonical request hash
+- A later request uses the same business identity with a different canonical hash
+
+**When:** The request is evaluated
+
+**Then:**
+- A typed payload conflict is returned before domain mutation
+- Existing state remains unchanged
+
+**Retry protection remains proof-scoped** (`rq-provenMutationOutcome01.3`)
+
+**Given:**
+- A mutation path has no reproduced or structurally proven ambiguous-commit or duplicate-effect risk
+
+**When:** The change evaluates whether to add retry identity machinery
+
+**Then:**
+- No new mandatory operation identifier or generic ledger is added solely for uniformity
+- Existing behavior remains unless independent evidence justifies change
+
+---
+
+### Machine-Resolvable Recovery Runs Directly
+
+**ID:** `rq-directMonotonicRecovery01` | **Priority:** **[MUST]**
+
+When ADV already holds structured machine evidence for an unambiguous monotonic convergence action, the normal operation MUST apply and verify that convergence without requiring callers to select a repair tool or transcribe machine errors into recovery arguments. Reachable authority disagreement, malformed durable state, non-monotonic mutation, destructive action, or missing human approval MUST fail closed with a typed operator-required result.
+
+**Tags:** `recovery`, `self-healing`, `temporal`, `audit`, `operator-boundary`
+
+#### Scenarios
+
+**Machine evidence authorizes safe direct convergence** (`rq-directMonotonicRecovery01.1`)
+
+**Given:**
+- A normal operation detects completed, missing, poisoned, or stale derived state through structured system evidence
+- A mutation-specific validator proves one monotonic convergence result
+
+**When:** The operation handles the failure
+
+**Then:**
+- The convergence runs internally
+- Post-state is verified before success
+- The caller does not provide recoveryMode, recoveryEvidence, or recoveryReason
+
+**Authority conflict remains explicit** (`rq-directMonotonicRecovery01.2`)
+
+**Given:**
+- Reachable Temporal authority disagrees with disk or two durable authorities conflict
+
+**When:** Automatic recovery classifies the incident
+
+**Then:**
+- No authority is overwritten automatically
+- A typed operator-required or conflict result is returned
+- The response identifies the conflicting states without prescribing a repair-tool decision tree
+
+**Human approval is not inferred from machine evidence** (`rq-directMonotonicRecovery01.3`)
+
+**Given:**
+- A recovery action also requires acceptance, destructive, or other human approval
+
+**When:** Machine failure evidence is present but human approval is absent
+
+**Then:**
+- The operation remains blocked
+- Machine evidence does not fabricate or replace approval evidence
+
+**No recovery infrastructure cruft** (`rq-directMonotonicRecovery01.4`)
+
+**Given:**
+- Direct convergence can be completed in the operation that observes the inconsistency
+
+**When:** The implementation is designed
+
+**Then:**
+- No tombstone, compatibility record, generic ledger, periodic reconciliation daemon, or new persistence layer is introduced
+- Existing authoritative entities carry only required state
 
 ---
 

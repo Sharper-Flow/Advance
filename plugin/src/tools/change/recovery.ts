@@ -50,12 +50,12 @@ export async function getGateDivergenceHint(
   }
   const diskGates = diskResult.data.gates ?? createDefaultGates();
   if (allGatesSatisfied(diskGates)) {
-    return `Disk shows gates done but Temporal sees them incomplete. Run \`adv_change_show changeId: ${changeId}\` and \`adv_gate_status changeId: ${changeId}\` to inspect, then \`adv_temporal_diagnose changeId: ${changeId}\` for recovery guidance.`;
+    return `Disk shows gates done but Temporal sees them incomplete. Run \`adv_change_show changeId: ${changeId}\` and \`adv_gate_status changeId: ${changeId}\` to inspect, then \`adv_doctor\` for recovery guidance.`;
   }
   return null; // Both agree gates are incomplete
 }
 export const ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT =
-  "Run adv_temporal_diagnose. If search attributes are missing or unverified, run adv_temporal_register_search_attributes, then adv_temporal_worker_restart (worker process only), then retry archive. Restart OpenCode for plugin tool-code drift; worker restart does not reload plugin/src/tools/*.ts.";
+  "Run adv_doctor. If search attributes are missing or unverified, adv_doctor registers the safe subset; suspect lock or wrong-type mutations return a typed approval-required proposal. Retry archive after adv_doctor converges. Restart OpenCode for plugin tool-code drift; adv_doctor does not reload plugin/src/tools/*.ts.";
 export function isSearchAttributeArchiveFailure(errorText: string): boolean {
   return /search attribute|SearchAttribute|upsertSearchAttributes|AdvChangeStatus|AdvChangeId/i.test(
     errorText,
@@ -90,7 +90,7 @@ export async function verifyStatusRepairReadAfterWrite(input: {
    * rq-shippedWorkflowTermination01 D6: when true (caller is converging
    * terminal authority after a pinned-run termination), the readback also
    * asserts `showLifecycleState === "archived"`. Existing callers
-   * (adv_change_status_repair) omit this flag and retain status-only
+   * (internal recovery writers) omit this flag and retain status-only
    * assertions.
    */
   requireLifecycleState?: boolean;
@@ -541,7 +541,6 @@ export async function closeLinkedIssue(options: {
   }
   return { close_eligible: true, issue_closed: [issueNumber] };
 }
-export type ChangeCloseRecoveryMode = "normal" | "poisoned_history";
 export interface ChangeClosePayloadInput {
   approvalEvidence: string;
   reason: "cancelled" | "superseded" | "not_planned";
@@ -567,72 +566,4 @@ export function buildChangeClosure(
     approved_at: input.cancelledAt,
     superseded_by: input.supersededBy,
   };
-}
-export async function validateChangeCloseRecoveryArgs(input: {
-  changeId?: string;
-  recoveryMode?: ChangeCloseRecoveryMode;
-  recoveryEvidence?: string;
-}): Promise<Record<string, unknown> | null> {
-  if (input.recoveryMode !== "poisoned_history") return null;
-  const { isPreciseWorkflowRecoveryEvidence } =
-    await import("../../temporal/recovery-classification");
-  if (!input.recoveryEvidence?.trim()) {
-    return {
-      error:
-        "change close recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
-      ...(input.changeId ? { changeId: input.changeId } : {}),
-    };
-  }
-  if (!isPreciseWorkflowRecoveryEvidence(input.recoveryEvidence)) {
-    return {
-      error:
-        "change close recoveryEvidence must cite precise poisoned-history or completed-workflow evidence",
-      ...(input.changeId ? { changeId: input.changeId } : {}),
-    };
-  }
-  return null;
-}
-export async function recoverCompletedWorkflowClose(input: {
-  store: Store;
-  change: Change;
-  closeInput: ChangeClosePayloadInput;
-  recoveryMode?: ChangeCloseRecoveryMode;
-  recoveryEvidence?: string;
-  signalError: unknown;
-}): Promise<{
-  recovered: boolean;
-  error?: string;
-}> {
-  if (input.recoveryMode !== "poisoned_history") {
-    return {
-      recovered: false,
-      error:
-        input.signalError instanceof Error
-          ? input.signalError.message
-          : String(input.signalError),
-    };
-  }
-  const { isWorkflowCompletedError } =
-    await import("../../temporal/recovery-classification");
-  if (!isWorkflowCompletedError(input.signalError)) {
-    return {
-      recovered: false,
-      error:
-        input.signalError instanceof Error
-          ? input.signalError.message
-          : String(input.signalError),
-    };
-  }
-  const { saveRecoveredChangeStatus } = await import("../_recovery-writers");
-  await saveRecoveredChangeStatus({
-    store: input.store,
-    change: input.change,
-    authorization: {
-      reason: "completed_workflow_close_recovery",
-      evidence: input.recoveryEvidence ?? String(input.signalError),
-    },
-    status: "closed",
-    closure: buildChangeClosure(input.closeInput),
-  });
-  return { recovered: true };
 }

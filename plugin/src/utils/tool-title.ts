@@ -42,16 +42,8 @@ const STATIC_TITLES: Record<
   adv_status: { title: "Show ADV status", titleKind: "read" },
   adv_project_context: { title: "Show project context", titleKind: "read" },
   adv_task_ready: { title: "Show ready tasks", titleKind: "read" },
-  adv_temporal_register_search_attributes: {
-    title: "Register Temporal search attributes",
-    titleKind: "operator",
-  },
-  adv_temporal_reconnect: {
-    title: "Reconnect Temporal",
-    titleKind: "operator",
-  },
-  adv_temporal_worker_restart: {
-    title: "Restart Temporal worker",
+  adv_doctor: {
+    title: "Run ADV doctor",
     titleKind: "operator",
   },
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
@@ -105,12 +97,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     read(`Validate change${suffix(args, "changeId")}`),
   adv_change_archive: (args) =>
     write(`Archive change${suffix(args, "changeId")}`),
-  adv_archive_repair: (args) =>
-    operator(`Repair archive${suffix(args, "changeId", "action")}`),
   adv_archive_purge: (args) =>
     operator(`Purge archived change${suffix(args, "changeId")}`),
-  adv_change_status_repair: (args) =>
-    operator(`Repair change status${suffix(args, "changeId")}`),
   adv_change_workflow_terminate: (args) =>
     operator(`Terminate change workflow${suffix(args, "changeId")}`),
   adv_change_update_issues: (args) =>
@@ -119,8 +107,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Repair change origin${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
-  adv_change_forget: (args) =>
-    operator(`Forget change pointer${suffix(args, "changeId")}`),
   adv_epic_create: (args) => write(`Create Epic${suffix(args, "epic_id")}`),
   adv_epic_show: (args) => read(`Show Epic${suffix(args, "epic_id")}`),
   adv_epic_list: () => read("List Epics"),
@@ -135,8 +121,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Unlink Epic change${suffix(args, "epic_id")}`),
   adv_epic_move_change: (args) =>
     write(`Move Epic change${suffix(args, "change_id")}`),
-  adv_epic_repair_membership: (args) =>
-    write(`Repair Epic membership${suffix(args, "epic_id")}`),
   adv_epic_reorder: (args) => write(`Reorder Epic${suffix(args, "epic_id")}`),
   adv_epic_retire: (args) => write(`Retire Epic${suffix(args, "epic_id")}`),
   adv_followup_promote: (args) =>
@@ -193,8 +177,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
       write: `Write project metadata${suffix(args, "key")}`,
       list: "List project metadata",
     }),
-  adv_temporal_diagnose: (args) =>
-    operator(`Diagnose Temporal${suffix(args, "changeId")}`),
+  adv_doctor: (args) =>
+    operator(`Run ADV doctor${suffix(args, "target_path")}`),
   adv_gate_status: (args) =>
     read(`Show gate status${suffix(args, "changeId")}`),
   adv_gate_complete: (args) => write(`Complete gate${suffix(args, "gateId")}`),

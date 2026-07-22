@@ -700,9 +700,6 @@ describe("deploy-local.sh", () => {
       const restartScenario = timeoutOverride?.scenarios?.find(
         (s) => s.id === "rq-toolTimeoutOverride01.2",
       );
-      expect(restartScenario?.title).toBe(
-        "adv_temporal_worker_restart uses bounded verified recovery",
-      );
       expect(restartScenario?.then.join("\n")).toContain(
         "returns success:true only when serviceability is proven",
       );
@@ -917,8 +914,6 @@ describe("deploy-local.sh", () => {
       // state invariant in the canonical ADV prompt.
       // Ceiling raised from 365 → 368 after adding compact adv-temporal-repair
       // routing markers and packet anchors.
-      // Ceiling raised from 363 → 365 after adding adv_archive_repair and
-      // adv_change_status_repair to the adv.md allowlist.
       // Ceiling raised from 362 → 363 after adding the release-stage
       // adv-reviewer phase mapping needed for typed worker packets.
       // Ceiling raised from 361 → 362 after adding explicit typed worker

@@ -1,7 +1,7 @@
 # Advance Epics
 
-> **Version:** 1.12.0
-> **Updated:** 2026-07-10
+> **Version:** 1.13.0
+> **Updated:** 2026-07-22
 
 ## Purpose
 
@@ -46,9 +46,9 @@ An Epic MUST be represented by a typed record containing a stable ID, title, nar
 
 **ID:** `rq-epicEntries01` | **Priority:** **[MUST]**
 
-An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change and `shell` entries that represent future work. Change entries MUST remain backward-compatible with legacy same-project `change_id` rows and MUST support a project-aware `change_ref` carrying change ID, project ID, optional repo ID, and optional target path. Every shell entry MUST have a title and a rough success/AC hint. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.
+An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change and `shell` entries that represent future work. Change entries MUST remain backward-compatible with legacy same-project `change_id` rows and MUST support a project-aware `change_ref` carrying change ID, project ID, optional repo ID, and optional target path. Every shell entry MUST have a title and a rough success/AC hint; when a shell is imported from a repo backlog item via `backlog_ref`, these fields MAY be derived from the backlog item. Shell entries imported from the repo backlog MUST record `imported_from: { backlog_id, imported_at }` provenance and are one-way bound to the backlog item. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.
 
-**Tags:** `epics`, `entries`, `shell`, `change`
+**Tags:** `epics`, `entries`, `shell`, `change`, `backlog`
 
 #### Scenarios
 
@@ -85,6 +85,18 @@ An Epic's ordered entries MUST support exactly two kinds: `change` entries that 
 **Then:**
 - Validation requires title, membership_status, linked_at, linked_by, and link_evidence
 - Validation preserves repo/project identity
+
+**Shell imported from backlog carries one-way provenance** (`rq-epicEntries01.4`)
+
+**Given:**
+- A shell entry created with backlog_ref
+
+**When:** The entry is validated
+
+**Then:**
+- Validation succeeds when title and success_hint are present or derived
+- `imported_from.backlog_id` and `imported_from.imported_at` are preserved
+- Subsequent backlog edits do not update the shell
 
 ---
 
@@ -139,13 +151,13 @@ The `/adv-epic` command MUST guide users through creating or updating Epics with
 
 **ID:** `rq-epicCoordinateCommand01` | **Priority:** **[MUST]**
 
-The `/adv-coordinate` command MUST inventory active Epics through typed reads before proposing durable mutations. It MUST report ownership-boundary, narrative accuracy, cross-Epic dependency, advisory sequencing, capstone placement, and membership-health findings while distinguishing evidence-backed facts from judgment calls. Epic order findings MUST remain advisory and MUST NOT block gates, tasks, promotion, or change progress. Narrative updates, reorders, and membership repairs MUST use typed Epic tools and require explicit user approval before mutation. The command MUST NOT introduce mandatory Epic membership, auto-enrollment, Jira-like planning primitives, direct ADV state edits, or CLI mutation verbs.
+The `/adv-coordinate` command MUST inventory active Epics through typed reads before proposing intent-bearing durable mutations. It MUST report ownership-boundary, narrative accuracy, cross-Epic dependency, advisory sequencing, capstone placement, and membership-health findings while distinguishing evidence-backed facts from judgment calls. Epic order findings MUST remain advisory and MUST NOT block gates, tasks, promotion, or change progress. Narrative updates, reorders, retargeting, removal, and competing-authority resolution MUST use typed Epic tools and require explicit user approval. Missing or stale matching derived membership MUST converge directly under rq-epicMembershipConvergence01 and MUST NOT require separate operator approval or repair-tool selection. The command MUST NOT introduce mandatory Epic membership, auto-enrollment, Jira-like planning primitives, direct ADV state edits, or CLI mutation verbs.
 
 **Tags:** `epics`, `command`, `coordination`, `approval`
 
 #### Scenarios
 
-**Coordination report reads before mutation** (`rq-epicCoordinateCommand01.1`)
+**Coordination report reads before intent mutation** (`rq-epicCoordinateCommand01.1`)
 
 **Given:**
 - One or more active Epics exist
@@ -153,7 +165,7 @@ The `/adv-coordinate` command MUST inventory active Epics through typed reads be
 **When:** `/adv-coordinate` prepares a coordination report
 
 **Then:**
-- Epics are inventoried through typed Epic reads before any mutation is proposed
+- Epics are inventoried through typed Epic reads before intent-bearing mutation is proposed
 - The report covers alignment, narrative accuracy, dependencies, sequencing, capstone placement, and membership health
 - Evidence-backed facts are separated from judgment calls
 
@@ -166,19 +178,19 @@ The `/adv-coordinate` command MUST inventory active Epics through typed reads be
 
 **Then:**
 - The reorder is presented as advisory
-- No gate, task, promotion, or change progress is blocked solely due to Epic order
+- No gate, task, promotion, or change progress is blocked solely due to order
 
-**Durable actions require approval and typed tools** (`rq-epicCoordinateCommand01.3`)
+**Intent-bearing actions require approval while derived convergence is direct** (`rq-epicCoordinateCommand01.3`)
 
 **Given:**
-- Narrative edits, reorders, or membership repairs are proposed
+- Narrative edits, reorders, retargeting, removal, competing authority, or missing matching derived projection is observed
 
-**When:** The user has not explicitly approved the proposed durable action
+**When:** The state is handled
 
 **Then:**
-- No Epic mutation tool is executed
-- Approved mutations use typed Epic tools such as adv_epic_update, adv_epic_reorder, or adv_epic_repair_membership
-- Required expected_version and audit evidence fields are preserved
+- Intent-bearing mutations require explicit user approval and typed Epic tools
+- Missing or stale matching derived membership converges directly under rq-epicMembershipConvergence01
+- No dedicated membership-repair tool is required
 
 **Coordination adds no new planning primitive** (`rq-epicCoordinateCommand01.4`)
 
@@ -649,6 +661,53 @@ Existing ADV changes MAY be linked into an Epic after creation, unlinked, moved 
 
 ---
 
+### Epic Search-Attribute Repair Backfills Legacy Visibility
+
+**ID:** `rq-epicSearchAttributeRepair01` | **Priority:** **[MUST]**
+
+Epic repair tooling MUST provide an audited `refresh_search_attributes` path for running legacy Epic workflows whose immutable start input disabled initial search-attribute upserts. The repair MUST derive `AdvEpicStatus` from structural Epic workflow progress state, MUST be able to force the upsert after the namespace search attribute is registered, and MUST NOT require operators to restart or recreate legacy Epic workflows. Repair reports MUST distinguish confirmed search-attribute refresh proof from skipped, unreachable, or unverified signal-delivery outcomes; successful signal dispatch alone MUST NOT be reported as a confirmed refresh. Synchronous confirmation MAY use workflow describe point-value evidence and MUST NOT rely solely on eventually consistent active-list visibility propagation.
+
+**Tags:** `epics`, `repair`, `search-attributes`, `visibility`, `legacy`
+
+#### Scenarios
+
+**Legacy Epic refresh forces status upsert** (`rq-epicSearchAttributeRepair01.1`)
+
+**Given:**
+- A running Epic workflow was started with search-attribute upserts disabled in immutable workflow input
+- The namespace has registered `AdvEpicStatus`
+
+**When:** An operator runs audited `refresh_search_attributes` repair
+
+**Then:**
+- The workflow upserts `AdvEpicStatus` from structural Epic progress state
+- The repair does not require restarting or recreating the Epic workflow
+
+**Repair report separates confirmed and unverified outcomes** (`rq-epicSearchAttributeRepair01.2`)
+
+**Given:**
+- A repair signal is delivered to a running Epic workflow
+
+**When:** The repair report is returned
+
+**Then:**
+- Confirmed refresh count includes only Epics with structural search-attribute proof
+- Missing proof is reported as unverified, skipped, or unreachable instead of confirmed refreshed
+- Successful signal dispatch alone is not counted as confirmed refresh
+
+**Describe proof is sufficient before visibility propagation** (`rq-epicSearchAttributeRepair01.3`)
+
+**Given:**
+- Temporal active-list visibility may be eventually consistent after an upsert
+
+**When:** Repair confirmation checks the workflow after signal delivery
+
+**Then:**
+- Workflow describe point-value evidence may confirm the search attribute synchronously
+- Eventually consistent list-query visibility is not the sole synchronous success proof
+
+---
+
 ### Epic Product Scope Is Derived from Typed Scope Breadth
 
 **ID:** `rq-epicScopeDerivation01` | **Priority:** **[MUST]**
@@ -807,7 +866,7 @@ Active duplicate Epics MAY be merged into one survivor Epic through a typed, aud
 
 **ID:** `rq-epicArchiveSync01` | **Priority:** **[MUST]**
 
-When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through typed Epic tools such as `adv_epic_repair_membership`; direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.
+When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through `adv_epic_show`, which performs automatic bounded direct convergence (rq-epicMembershipConvergence01); direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.
 
 **Tags:** `epics`, `archive`, `release`, `membership`
 
@@ -834,7 +893,7 @@ When an ADV change with `epic_membership` is archived, the archive/release flow 
 **When:** Archive verification inspects the parent Epic
 
 **Then:**
-- The flow uses `adv_epic_repair_membership` or another typed Epic tool to repair or mark the projection
+- The flow uses `adv_epic_show` to trigger automatic bounded direct convergence
 - No direct ADV state files are read or edited
 - Unresolved repair status is surfaced in archive evidence
 
@@ -843,12 +902,12 @@ When an ADV change with `epic_membership` is archived, the archive/release flow 
 **Given:**
 - An Epic entry remains active even though the linked child change is already `archived` or `closed`
 
-**When:** `adv_epic_repair_membership mode=sync_child_projection` runs with canonical child/archive evidence
+**When:** `adv_epic_show` runs with canonical child/archive evidence and performs automatic convergence
 
 **Then:**
 - The existing Epic entry receives terminal summary state
 - Epic progress recomputes completed entries and next entry from terminal summaries
-- The repair result reports terminal projection evidence
+- The convergence result reports terminal projection evidence
 
 **Non-Epic archive remains unchanged** (`rq-epicArchiveSync01.4`)
 
@@ -874,6 +933,127 @@ When an ADV change with `epic_membership` is archived, the archive/release flow 
 - The earlier incomplete entry may be reported as advisory context
 - The archive is not blocked solely by Epic order
 - Phase 9 release proof remains the archive authority
+
+---
+
+### Product Epics Carry Repo and Project Scope Metadata
+
+**ID:** `rq-epicProductScope01` | **Priority:** **[MUST]**
+
+An Epic MAY be scoped to a single repo or to a product spanning multiple repositories/projects. Product Epic scope metadata MUST include the owner ADV project ID and a typed repo list containing repo ID, repo project ID, role, required flag, and optional path. Product Epics MUST NOT require duplicate repo-local Epics for one initiative.
+
+**Tags:** `epics`, `product`, `scope`, `cross-project`
+
+#### Scenarios
+
+**Product scope spans multiple repos** (`rq-epicProductScope01.1`)
+
+**Given:**
+- An Epic scope includes two configured repositories
+
+**When:** The Epic is validated
+
+**Then:**
+- Validation succeeds
+- Owner project ID and each repo_project_id are preserved
+- No duplicate repo-local Epic is required
+
+**Scope repo requires project identity** (`rq-epicProductScope01.2`)
+
+**Given:**
+- An Epic scope repo is missing repo_project_id
+
+**When:** The scope is validated
+
+**Then:**
+- Validation fails with a clear schema error
+
+---
+
+### Epic Membership Tools Separate Owner Routing from Child target_path
+
+**ID:** `rq-epicOwnerRouting01` | **Priority:** **[MUST]**
+
+Epic membership mutation tools (adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change) MUST support explicit owner project routing separate from the child change target_path. The owner Epic MUST be resolved through an epic_owner_target_path parameter or the current project when omitted, and the child change MUST be resolved through target_path or the owner project when omitted. The supported routing matrix is: owner local + child local; owner local + child remote; owner remote + child same remote; owner remote + child different remote. Ambiguous or partial shapes—such as supplying only a child target_path when the Epic is not in the current project, or supplying an owner route without a distinct child route when the child is not in the owner project—MUST fail before durable mutation with typed OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED errors. Existing child-only target_path behavior MUST remain valid when the Epic owner is the current project.
+
+**Tags:** `epics`, `routing`, `cross-project`, `target_path`
+
+#### Scenarios
+
+**Same-project membership routing** (`rq-epicOwnerRouting01.1`)
+
+**Given:**
+- An Epic and child change both live in the current project
+
+**When:** The membership tool is called with no routing parameters
+
+**Then:**
+- The tool resolves owner and child in the current project
+- The operation succeeds
+
+**Owner local and child remote** (`rq-epicOwnerRouting01.2`)
+
+**Given:**
+- An Epic lives in the current project
+- A child change lives in another ADV project
+
+**When:** The membership tool is called with target_path for the child project and no owner route
+
+**Then:**
+- The owner Epic resolves in the current project
+- The child change resolves in the target project
+- The operation succeeds
+
+**Owner remote and child same remote** (`rq-epicOwnerRouting01.3`)
+
+**Given:**
+- An Epic and child change both live in the same remote ADV project
+
+**When:** The membership tool is called with epic_owner_target_path and either the same target_path or a structural same-owner proof
+
+**Then:**
+- Both owner and child resolve in the remote project
+- The operation succeeds
+
+**Owner remote and child different remote** (`rq-epicOwnerRouting01.4`)
+
+**Given:**
+- An Epic lives in remote project A
+- A child change lives in remote project C
+
+**When:** The membership tool is called with epic_owner_target_path=A and target_path=C
+
+**Then:**
+- Owner resolves in project A
+- Child resolves in project C
+- Trust confirmation is enforced for each remote project
+- The operation succeeds
+
+**Ambiguous child-only routing fails before mutation** (`rq-epicOwnerRouting01.5`)
+
+**Given:**
+- A caller provides only target_path for a child project
+- The Epic owner is not in the current project
+
+**When:** The membership tool resolves the owner Epic
+
+**Then:**
+- The tool fails before durable mutation
+- The error code is OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED
+- No remote Epic is mutated
+
+**Partial owner-only routing fails when child is not locatable** (`rq-epicOwnerRouting01.6`)
+
+**Given:**
+- A caller provides only epic_owner_target_path
+- The child change does not exist in the owner project
+
+**When:** The membership tool resolves the child change
+
+**Then:**
+- The tool fails before durable mutation
+- The error identifies the missing child route
+- No Epic is mutated with an orphan entry
 
 ---
 
@@ -928,144 +1108,6 @@ Operations referencing a missing Epic, a stale child change link, a duplicate pr
 
 **Then:**
 - A typed conflict or stale-state response is returned
-
----
-
-### Product Epics Carry Repo and Project Scope Metadata
-
-**ID:** `rq-epicProductScope01` | **Priority:** **[MUST]**
-
-An Epic MAY be scoped to a single repo or to a product spanning multiple repositories/projects. Product Epic scope metadata MUST include the owner ADV project ID and a typed repo list containing repo ID, repo project ID, role, required flag, and optional path. Product Epics MUST NOT require duplicate repo-local Epics for one initiative.
-
-**Tags:** `epics`, `product`, `scope`, `cross-project`
-
-#### Scenarios
-
-**Product scope spans multiple repos** (`rq-epicProductScope01.1`)
-
-**Given:**
-- An Epic scope includes two configured repositories
-
-**When:** The Epic is validated
-
-**Then:**
-- Validation succeeds
-- Owner project ID and each repo_project_id are preserved
-- No duplicate repo-local Epic is required
-
-**Scope repo requires project identity** (`rq-epicProductScope01.2`)
-
-**Given:**
-- An Epic scope repo is missing repo_project_id
-
-**When:** The scope is validated
-
-**Then:**
-- Validation fails with a clear schema error
-
----
-
-### Epic Membership Tools Separate Owner Routing from Child target_path
-
-**ID:** `rq-epicOwnerRouting01` | **Priority:** **[MUST]**
-
-Epic membership mutation tools (`adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_epic_repair_membership`) MUST support explicit owner project routing separate from the child change `target_path`. The owner Epic MUST be resolved through an `epic_owner_target_path` parameter (or the current project when omitted), and the child change MUST be resolved through `target_path` (or the owner project when omitted). The supported shapes are: owner local + child local, owner local + child remote, owner remote + child same remote, owner remote + child different remote.
-
-The supported routing matrix is:
-
-| Shape | `epic_owner_target_path` | `target_path` | Meaning |
-| --- | --- | --- | --- |
-| Same project | omitted | omitted | Owner Epic and child change are both in the current project. Existing behavior unchanged. |
-| Owner local, child remote | omitted | provided | Epic stays in the current project; child projection is written to the target project. |
-| Owner remote, child same remote | provided | omitted or equal to owner | Epic and child are both in the remote owner project; the implementation must structurally prove same-owner child resolution. |
-| Owner remote, child different remote | provided | different project | Epic is resolved in the owner project; child projection is written to a different target project. |
-
-Ambiguous or partial shapes MUST fail before durable mutation with typed errors:
-
-- Child-only `target_path` when the Epic is not in the current project → `OWNER_ROUTING_AMBIGUOUS` or `OWNER_ROUTING_REQUIRED`.
-- `epic_owner_target_path` only, when the child change cannot be located in the owner project and no `target_path` is supplied → `OWNER_ROUTING_REQUIRED`.
-- Any remote mutation without required trust confirmation → existing `target_confirmed` / `confirmationEvidence` failure semantics apply.
-
-Existing child-only `target_path` behavior MUST remain valid when the Epic owner is the current project.
-
-**Tags:** `epics`, `routing`, `cross-project`, `target_path`
-
-#### Scenarios
-
-**Same-project membership routing** (`rq-epicOwnerRouting01.1`)
-
-**Given:**
-- An Epic and child change both live in the current project
-
-**When:** The membership tool is called with no routing parameters
-
-**Then:**
-- The tool resolves owner and child in the current project
-- The operation succeeds
-
-**Owner local and child remote** (`rq-epicOwnerRouting01.2`)
-
-**Given:**
-- An Epic lives in the current project
-- A child change lives in another ADV project
-
-**When:** The membership tool is called with `target_path` for the child project and no owner route
-
-**Then:**
-- The owner Epic resolves in the current project
-- The child change resolves in the target project
-- The operation succeeds
-
-**Owner remote and child same remote** (`rq-epicOwnerRouting01.3`)
-
-**Given:**
-- An Epic and child change both live in the same remote ADV project
-
-**When:** The membership tool is called with `epic_owner_target_path` and either the same `target_path` or a structural same-owner proof
-
-**Then:**
-- Both owner and child resolve in the remote project
-- The operation succeeds
-
-**Owner remote and child different remote** (`rq-epicOwnerRouting01.4`)
-
-**Given:**
-- An Epic lives in remote project A
-- A child change lives in remote project C
-
-**When:** The membership tool is called with `epic_owner_target_path=A` and `target_path=C`
-
-**Then:**
-- Owner resolves in project A
-- Child resolves in project C
-- Trust confirmation is enforced for each remote project
-- The operation succeeds
-
-**Ambiguous child-only routing fails before mutation** (`rq-epicOwnerRouting01.5`)
-
-**Given:**
-- A caller provides only `target_path` for a child project
-- The Epic owner is not in the current project
-
-**When:** The membership tool resolves the owner Epic
-
-**Then:**
-- The tool fails before durable mutation
-- The error code is `OWNER_ROUTING_AMBIGUOUS` or `OWNER_ROUTING_REQUIRED`
-- No remote Epic is mutated
-
-**Partial owner-only routing fails when child is not locatable** (`rq-epicOwnerRouting01.6`)
-
-**Given:**
-- A caller provides only `epic_owner_target_path`
-- The child change does not exist in the owner project
-
-**When:** The membership tool resolves the child change
-
-**Then:**
-- The tool fails before durable mutation
-- The error identifies the missing child route
-- No Epic is mutated with an orphan entry
 
 ---
 
@@ -1183,7 +1225,7 @@ Completed Epics MUST be retired through a typed `adv_epic_retire` lifecycle path
 
 **ID:** `rq-epicRetiredListing01` | **Priority:** **[MUST]**
 
-Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = "active"`, `ExecutionStatus = "Running"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state. Legacy running Epic workflows that started without `AdvEpicStatus` indexed MUST have an explicit audited index repair/backfill path (`adv_epic_repair_membership mode=refresh_search_attributes`) that enumerates running `epicWorkflow` executions without the `AdvEpicStatus` filter, hydrates each state, and signals reachable Epics to upsert their current `AdvEpicStatus`; the default active-only listing MUST remain unchanged and MUST NOT perform automatic mutation.
+Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = "active"`, `ExecutionStatus = "Running"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Missing compatible AdvEpicStatus indexing on reachable legacy workflows is machine-resolvable state: ADV initialization or direct Epic access MUST upsert the current typed status and verify it without requiring a dedicated repair mode. Wrong-type search attributes or unreachable conflicting state MUST fail closed through the doctor/operator boundary. Default listing remains read-only and MUST NOT perform per-Epic mutation fan-out.
 
 **Tags:** `epics`, `listing`, `cli`, `visibility`, `retirement`
 
@@ -1223,6 +1265,29 @@ Default Epic listing surfaces MUST represent active Epics only and MUST exclude 
 **Then:**
 - The report lists eligible candidates and blocked Epics with blocker details
 - The dry-run does not retire or archive any Epic
+
+**Compatible legacy index state converges directly** (`rq-epicRetiredListing01.4`)
+
+**Given:**
+- A reachable running Epic lacks compatible AdvEpicStatus indexing
+
+**When:** ADV initialization or direct Epic access observes the missing compatible attribute
+
+**Then:**
+- The workflow upserts and verifies its current typed AdvEpicStatus
+- No dedicated repair mode or operator evidence is required
+- Wrong-type or conflicting state routes to typed doctor/operator handling
+
+**Default list remains read-only** (`rq-epicRetiredListing01.5`)
+
+**Given:**
+- Legacy unindexed Epics may exist
+
+**When:** The default active-only listing runs
+
+**Then:**
+- It does not perform per-Epic mutation fan-out
+- It returns typed incomplete evidence when current index truth cannot be established
 
 ---
 
@@ -1434,5 +1499,67 @@ Epic creation and planning MUST include an explicit operational-work assessment 
 - Epic order remains advisory and does not gate release, promotion, or tasks by itself
 - ADV records and governs operational state without performing deployment execution as an Epic gate
 - No new data model, validator, relationship enum, or gate-readiness rule is introduced beyond the cited ops-follow-up semantics
+
+---
+
+### Epic Membership Converges Without Repair Routing
+
+**ID:** `rq-epicMembershipConvergence01` | **Priority:** **[MUST]**
+
+Epic change entries are authoritative for membership and child epic_membership is a derived projection. Link, promotion, move, unlink, terminal projection, and Epic show MUST directly converge missing or stale matching child projections within bounded execution. A conflicting child projection MUST NOT be overwritten and MUST return a typed conflict. Temporary target unavailability MUST preserve pending intent on the existing Epic entry and retry on the next relevant access without requiring a dedicated membership-repair tool.
+
+**Tags:** `epics`, `membership`, `projection`, `self-healing`, `idempotency`
+
+#### Scenarios
+
+**Missing child projection converges directly** (`rq-epicMembershipConvergence01.1`)
+
+**Given:**
+- An authoritative Epic entry references a child change
+- The matching child epic_membership projection is absent
+
+**When:** A supported link, promotion, or Epic show operation observes the state
+
+**Then:**
+- The child projection is written and verified against the Epic entry
+- The operation returns healthy membership state
+- No dedicated membership-repair tool is required
+
+**Matching child clears stale owner status** (`rq-epicMembershipConvergence01.2`)
+
+**Given:**
+- The child projection exactly matches the authoritative Epic entry
+- The Epic entry still reports pending or stale projection state
+
+**When:** Epic membership is read or mutated
+
+**Then:**
+- The Epic entry is converged to applied or terminal state
+- The response does not report projection_missing or recommend repair
+
+**Conflicting child projection is preserved** (`rq-epicMembershipConvergence01.3`)
+
+**Given:**
+- A child projection points to a different Epic or entry
+
+**When:** Automatic convergence evaluates the projection
+
+**Then:**
+- No child projection is overwritten
+- A typed conflict identifies both authorities
+- Operator intent is required before retargeting or removal
+
+**Unavailable target retains retryable intent** (`rq-epicMembershipConvergence01.4`)
+
+**Given:**
+- An Epic entry contains desired child projection state
+- The target project cannot be reached
+
+**When:** Direct projection fails due to target unavailability
+
+**Then:**
+- Pending intent remains on the existing Epic entry
+- Owner truth remains readable
+- The next relevant access retries convergence without a background daemon
 
 ---

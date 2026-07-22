@@ -5,7 +5,7 @@
  * `change/{id}` branch is fully merged into the default branch
  * (squash-merge-safe detection). This is git maintenance, not ADV recovery
  * state, so it lives behind `adv_worktree_cleanup mode=archived_branches`
- * rather than `adv_archive_repair`.
+ * rather than the retired archive-repair surface.
  *
  * Performance model (rq-archivedBranchCleanupInversion01): the archived-id
  * filter is built from LOCAL branch count — one `store.changes.get(id)` per

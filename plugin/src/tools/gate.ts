@@ -102,11 +102,8 @@ import {
   RECOVERY_RECONCILIATION_WARNING,
 } from "../temporal/recovery-classification";
 import { hasGateRecoveryAudit } from "./recovery-audit";
-import {
-  classifyCompletedOrPoisonedRecovery,
-  logRecoveryProbeDiagnostics,
-  shouldTakeRecoveryBranch,
-} from "./recovery-probe";
+import { logRecoveryProbeDiagnostics } from "./recovery-probe";
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
 import type { LightweightProfilePhase } from "../types";
@@ -1460,35 +1457,24 @@ export const gateTools = {
         .string()
         .optional()
         .describe("Optional notes about the gate completion"),
-      recoveryMode: z
-        .enum(["normal", "poisoned_history"])
-        .optional()
-        .describe(
-          "Recovery mode for acceptance/release gate recovery. Use 'poisoned_history' only when the workflow is poisoned or completed and precise recoveryEvidence is supplied. Defaults to 'normal'.",
-        ),
+      // rq-internalMonotonicRecovery01 / AC5 / D4: public recoveryMode /
+      // recoveryEvidence / recoveryReason removed. Acceptance/release gate
+      // recovery is classified internally from machine evidence
+      // (classifyMutationRecoveryDecision); routine callers no longer
+      // transcribe poisoned-history evidence. compatibilityReason and
+      // priorApprovalEvidence remain — they are human-checkpoint / audit
+      // fields (AC6), not poisoned-history ceremony.
       compatibilityReason: z
         .string()
         .optional()
         .describe(
-          "Legacy/replay compatibility rationale for poisoned-history gate recovery. Required for acceptance and release gate recovery; rejected for other gates.",
-        ),
-      recoveryReason: z
-        .string()
-        .optional()
-        .describe(
-          "Required when acceptance/release gate recovery is invoked. Must explain why disk-projection recovery is appropriate.",
-        ),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required when acceptance/release gate recovery is invoked. Must cite precise completed-workflow or poisoned-history evidence.",
+          "Optional legacy/replay compatibility rationale recorded on acceptance/release gate recovery. Auto-defaulted when omitted.",
         ),
       priorApprovalEvidence: z
         .string()
         .optional()
         .describe(
-          "Required for acceptance gate recovery only. Not required for release gate recovery. Must cite the prior user acceptance approval evidence.",
+          "Required for acceptance gate recovery only (human checkpoint, AC6). Not required for release gate recovery. Must cite the prior user acceptance approval evidence.",
         ),
       target_path: z
         .string()
@@ -1507,10 +1493,7 @@ export const gateTools = {
         completedBy = "agent",
         userApproved,
         notes,
-        recoveryMode,
         compatibilityReason,
-        recoveryReason,
-        recoveryEvidence,
         priorApprovalEvidence,
         target_path,
         target_confirmed,
@@ -1522,10 +1505,7 @@ export const gateTools = {
         completedBy?: string;
         userApproved?: boolean;
         notes?: string;
-        recoveryMode?: "normal" | "poisoned_history";
         compatibilityReason?: string;
-        recoveryReason?: string;
-        recoveryEvidence?: string;
         priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
@@ -1610,38 +1590,61 @@ export const gateTools = {
         }
         const handle = getChangeHandle(bundle.client, projectId, changeId);
 
-        // rq-fix-gate-tools-recovery probe-first: when the operator has
-        // supplied precise poisoned-history evidence, bypass the Temporal
-        // query/signal fire-and-forget path entirely and write the disk
-        // projection directly. Signals resolve on server acceptance, not
-        // workflow processing, so waiting for a signal throw would leave
-        // recovery unreachable for the common poison case. The catch-gated
-        // fallback below remains as defense-in-depth for the rare signal
-        // RPC error.
-        if (
-          (gateId === "acceptance" || gateId === "release") &&
-          shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence })
-        ) {
-          await logRecoveryProbeDiagnostics(handle, changeId);
-          const boundaryWarning = validateGateBoundary(gateId, completedBy);
-          return completeGateViaRecovery({
-            store: activeStore,
-            change,
-            changeId,
-            gateId,
-            gates,
-            completedBy,
-            notes,
-            compatibilityReason,
-            boundaryWarning,
-            diskDirect: true,
-            recoveryReason,
-            recoveryEvidence,
-            priorApprovalEvidence,
-            extraPayload: projectContext
-              ? { _projectContext: projectContext }
-              : {},
+        // D4 internal classification (rq-internalMonotonicRecovery01):
+        // acceptance/release gate recovery is classified from machine
+        // evidence via a probe-first describe() — no operator-supplied
+        // recoveryMode/evidence. The catch-gated fallback below re-classifies
+        // via the same unified classifier for the rare signal-RPC error.
+        // Removes evidence-copy ceremony from routine gate completion
+        // (AC5/SC3). Acceptance gate still requires priorApprovalEvidence
+        // (human checkpoint) per AC6 — destructive/competing-authority cases
+        // remain explicitly operator-controlled.
+        if (gateId === "acceptance" || gateId === "release") {
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
           });
+          if (internalDecision.kind === "recover_via_disk") {
+            if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
+              return formatToolOutput({
+                error:
+                  "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
+                code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
+                changeId,
+                gateId,
+                hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
+              });
+            }
+            await logRecoveryProbeDiagnostics(handle, changeId);
+            const boundaryWarning = validateGateBoundary(gateId, completedBy);
+            return completeGateViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason:
+                compatibilityReason ??
+                `D4 internal monotonic recovery (authority=${internalDecision.authority})`,
+              boundaryWarning,
+              diskDirect: internalDecision.authority === "workflow_completed",
+              recoveryReason: internalDecision.reason,
+              recoveryEvidence: internalDecision.evidence,
+              priorApprovalEvidence,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          } else if (internalDecision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely complete ${gateId} gate: ${internalDecision.detail}`,
+              code: "GATE_MUTATION_OPERATOR_REQUIRED",
+              cause: internalDecision.cause,
+              changeId,
+              gateId,
+            });
+          }
         }
 
         let queriedGates: Gates | undefined;
@@ -1652,15 +1655,27 @@ export const gateTools = {
             undefined,
           );
         } catch (error) {
-          // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
-          // accept poisoned-history acceptance/release recovery when either
-          // the raw error matches the legacy regex OR workflow describe
-          // carries poisoned evidence. compatibilityReason is still required
-          // inside completeGateViaRecovery.
+          // rq-internalMonotonicRecovery01 / AC5: signal-error recovery is
+          // classified internally from the signal error + describe() evidence
+          // via the unified classifier — no operator-supplied recovery args.
+          // Acceptance still requires priorApprovalEvidence (human checkpoint,
+          // AC6).
           if (gateId === "acceptance" || gateId === "release") {
-            const { completedWorkflow, recover } =
-              await classifyCompletedOrPoisonedRecovery(handle, error);
-            if (recover) {
+            const decision = await classifyMutationRecoveryDecision({
+              signalError: error,
+              handle,
+            });
+            if (decision.kind === "recover_via_disk") {
+              if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
+                return formatToolOutput({
+                  error:
+                    "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
+                  code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
+                  changeId,
+                  gateId,
+                  hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
+                });
+              }
               const boundaryWarning = validateGateBoundary(gateId, completedBy);
               return completeGateViaRecovery({
                 store: activeStore,
@@ -1670,15 +1685,25 @@ export const gateTools = {
                 gates,
                 completedBy,
                 notes,
-                compatibilityReason,
+                compatibilityReason:
+                  compatibilityReason ??
+                  `D4 internal monotonic recovery (authority=${decision.authority})`,
                 boundaryWarning,
-                diskDirect: completedWorkflow,
-                recoveryReason,
-                recoveryEvidence,
+                diskDirect: decision.authority === "workflow_completed",
+                recoveryReason: decision.reason,
+                recoveryEvidence: decision.evidence,
                 priorApprovalEvidence,
                 extraPayload: projectContext
                   ? { _projectContext: projectContext }
                   : {},
+              });
+            } else if (decision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely complete ${gateId} gate: ${decision.detail}`,
+                code: "GATE_MUTATION_OPERATOR_REQUIRED",
+                cause: decision.cause,
+                changeId,
+                gateId,
               });
             }
           }
@@ -1788,34 +1813,54 @@ export const gateTools = {
           if (blocker) return blocker;
         }
 
-        // Probe-first recovery for the signal path: if the operator already
-        // supplied precise poisoned-history evidence, do not rely on the
-        // fire-and-forget signal (which silently resolves on poisoned replay).
-        // Write the disk projection directly and emit recovery_audit. The
-        // catch-gated fallback below remains for the rare signal RPC error.
-        if (
-          (gateId === "acceptance" || gateId === "release") &&
-          shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence })
-        ) {
-          await logRecoveryProbeDiagnostics(handle, changeId);
-          return completeGateViaRecovery({
-            store: activeStore,
-            change,
-            changeId,
-            gateId,
-            gates,
-            completedBy,
-            notes,
-            compatibilityReason,
-            boundaryWarning,
-            diskDirect: true,
-            recoveryReason,
-            recoveryEvidence,
-            priorApprovalEvidence,
-            extraPayload: projectContext
-              ? { _projectContext: projectContext }
-              : {},
+        // D4 internal classification (rq-internalMonotonicRecovery01):
+        // probe describe() to auto-classify poison/missing workflow state.
+        // Acceptance still requires priorApprovalEvidence per AC6.
+        if (gateId === "acceptance" || gateId === "release") {
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
           });
+          if (internalDecision.kind === "recover_via_disk") {
+            if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
+              return formatToolOutput({
+                error:
+                  "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
+                code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
+                changeId,
+                gateId,
+                hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
+              });
+            }
+            await logRecoveryProbeDiagnostics(handle, changeId);
+            return completeGateViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason:
+                compatibilityReason ??
+                `D4 internal monotonic recovery (authority=${internalDecision.authority})`,
+              boundaryWarning,
+              diskDirect: internalDecision.authority === "workflow_completed",
+              recoveryReason: internalDecision.reason,
+              recoveryEvidence: internalDecision.evidence,
+              priorApprovalEvidence,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          } else if (internalDecision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely complete ${gateId} gate: ${internalDecision.detail}`,
+              code: "GATE_MUTATION_OPERATOR_REQUIRED",
+              cause: internalDecision.cause,
+              changeId,
+              gateId,
+            });
+          }
         }
 
         // Signal-driven mutation: fire gateCompletedSignal after
@@ -1837,13 +1882,25 @@ export const gateTools = {
             },
           );
         } catch (error) {
-          // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
-          // also recover release gate when workflow describe carries
-          // poisoned evidence.
+          // rq-internalMonotonicRecovery01 / AC5: signal-error recovery is
+          // classified internally via the unified classifier. Acceptance
+          // still requires priorApprovalEvidence (human checkpoint, AC6).
           if (gateId === "acceptance" || gateId === "release") {
-            const { completedWorkflow, recover } =
-              await classifyCompletedOrPoisonedRecovery(handle, error);
-            if (recover) {
+            const decision = await classifyMutationRecoveryDecision({
+              signalError: error,
+              handle,
+            });
+            if (decision.kind === "recover_via_disk") {
+              if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
+                return formatToolOutput({
+                  error:
+                    "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
+                  code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
+                  changeId,
+                  gateId,
+                  hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
+                });
+              }
               return completeGateViaRecovery({
                 store: activeStore,
                 change,
@@ -1852,15 +1909,25 @@ export const gateTools = {
                 gates,
                 completedBy,
                 notes,
-                compatibilityReason,
+                compatibilityReason:
+                  compatibilityReason ??
+                  `D4 internal monotonic recovery (authority=${decision.authority})`,
                 boundaryWarning,
-                diskDirect: completedWorkflow,
-                recoveryReason,
-                recoveryEvidence,
+                diskDirect: decision.authority === "workflow_completed",
+                recoveryReason: decision.reason,
+                recoveryEvidence: decision.evidence,
                 priorApprovalEvidence,
                 extraPayload: projectContext
                   ? { _projectContext: projectContext }
                   : {},
+              });
+            } else if (decision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely complete ${gateId} gate: ${decision.detail}`,
+                code: "GATE_MUTATION_OPERATOR_REQUIRED",
+                cause: decision.cause,
+                changeId,
+                gateId,
               });
             }
           }

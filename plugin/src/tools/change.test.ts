@@ -2307,27 +2307,6 @@ describe("change tools — signal-driven lifecycle", () => {
       );
     });
 
-    test("requires audited recovery fields for executive-summary metadata recovery", async () => {
-      const store = createMockStore();
-
-      const result = await changeTools.adv_change_update.execute(
-        {
-          changeId: "test-change",
-          executiveSummary: "# Executive Summary\n\nDurable proof.",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
-        },
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.error).toContain(
-        "recoveryReason and priorApprovalEvidence",
-      );
-      expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
-    });
-
     test("recovers executive-summary metadata without readable path when file is not materialized", async () => {
       const { createHash } = await import("crypto");
       const { mkdir, readFile, rm } = await import("fs/promises");
@@ -2346,7 +2325,9 @@ describe("change tools — signal-driven lifecycle", () => {
         (store.paths as { changes: string }).changes = changesDir;
         (store.paths as { root: string }).root = tempRoot;
         vi.mocked(store.changes.updateArtifacts).mockRejectedValueOnce(
-          new Error("workflow execution already completed"),
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowExecutionAlreadyCompleted",
+          }),
         );
 
         const executiveSummary = "# Executive Summary\n\nDurable proof.";
@@ -2354,12 +2335,6 @@ describe("change tools — signal-driven lifecycle", () => {
           {
             changeId: "test-change",
             executiveSummary,
-            recoveryMode: "poisoned_history",
-            recoveryEvidence:
-              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
-            recoveryReason:
-              "completed workflow accepted disk artifact but rejected metadata signal",
-            priorApprovalEvidence: "Prior user acceptance approval: accept",
           },
           store,
         );
@@ -2383,7 +2358,7 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
-    test("recovers executive-summary metadata from poisoned signal error without broadening completed-only recovery", async () => {
+    test("recovers executive-summary metadata via probe-first poisoned classification", async () => {
       const { mkdir, readFile, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");
       const { join: pathJoin } = await import("path");
@@ -2399,19 +2374,23 @@ describe("change tools — signal-driven lifecycle", () => {
         const store = createMockStore();
         (store.paths as { changes: string }).changes = changesDir;
         (store.paths as { root: string }).root = tempRoot;
-        vi.mocked(store.changes.updateArtifacts).mockRejectedValueOnce(
-          new Error("TMPRL1100 nondeterminism while recording metadata"),
-        );
+        (
+          mocks.handleMock as typeof mocks.handleMock & {
+            describe: ReturnType<typeof vi.fn>;
+          }
+        ).describe = vi.fn(async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "category=WorkflowTaskFailed",
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }));
 
         const result = await changeTools.adv_change_update.execute(
           {
             changeId: "test-change",
             executiveSummary: "# Executive Summary\n\nRecovered from poison.",
-            recoveryMode: "poisoned_history",
-            recoveryEvidence:
-              "TMPRL1100 nondeterminism while recording metadata",
-            recoveryReason: "poisoned workflow metadata signal recovery",
-            priorApprovalEvidence: "Prior user acceptance approval: accept",
           },
           store,
         );
@@ -2423,6 +2402,8 @@ describe("change tools — signal-driven lifecycle", () => {
           "test-project-id",
           "test-change",
         );
+        // Probe-first recovery should skip the signal path entirely.
+        expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
         const saved = JSON.parse(
           await readFile(pathJoin(changeDir, "change.json"), "utf-8"),
         );
@@ -2456,19 +2437,15 @@ describe("change tools — signal-driven lifecycle", () => {
         (store.paths as { changes: string }).changes = changesDir;
         (store.paths as { root: string }).root = tempRoot;
         vi.mocked(store.changes.updateArtifacts).mockRejectedValueOnce(
-          new Error("workflow execution already completed"),
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowExecutionAlreadyCompleted",
+          }),
         );
 
         const result = await changeTools.adv_change_update.execute(
           {
             changeId: "test-change",
             executiveSummary,
-            recoveryMode: "poisoned_history",
-            recoveryEvidence:
-              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
-            recoveryReason:
-              "completed workflow accepted disk artifact but rejected metadata signal",
-            priorApprovalEvidence: "Prior user acceptance approval: accept",
           },
           store,
         );
@@ -3008,33 +2985,10 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     });
 
-    test("rejects close recovery without precise evidence", async () => {
-      const store = createMockStore();
-
-      const result = await changeTools.adv_change_close.execute(
-        {
-          changeId: "test-change",
-          reason: "not_planned",
-          approvedByUser: true,
-          approvalEvidence: "user confirmed",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence: "something went wrong",
-        } as Parameters<typeof changeTools.adv_change_close.execute>[0],
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.error).toContain("recoveryEvidence");
-      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-      expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
-    });
-
-    test("does not recover completed-workflow close failure without recoveryMode", async () => {
+    test("does not recover close failure when signal error is unclassified", async () => {
       const store = createMockStore();
       mocks.fireSignalAndRefresh.mockRejectedValueOnce(
-        Object.assign(new Error("workflow execution already completed"), {
-          name: "WorkflowExecutionAlreadyCompleted",
-        }),
+        new Error("some transient query failure"),
       );
 
       const result = await changeTools.adv_change_close.execute(
@@ -3048,7 +3002,10 @@ describe("change tools — signal-driven lifecycle", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.error).toContain("workflow execution already completed");
+      expect(parsed.error).toContain(
+        "Cannot safely close change: Signal failed with an unclassified query error",
+      );
+      expect(parsed.code).toBe("CHANGE_CLOSE_MUTATION_OPERATOR_REQUIRED");
       expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
     });
 
@@ -3066,10 +3023,7 @@ describe("change tools — signal-driven lifecycle", () => {
           reason: "not_planned",
           approvedByUser: true,
           approvalEvidence: "user confirmed stale close",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
-        } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+        },
         store,
       );
 
@@ -3086,9 +3040,58 @@ describe("change tools — signal-driven lifecycle", () => {
             approval_evidence: "user confirmed stale close",
           }),
           authorization: expect.objectContaining({
-            reason: "completed_workflow_close_recovery",
+            reason: "missing_workflow",
             evidence:
               "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+          }),
+        }),
+      );
+      expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+    });
+
+    test("recovers close via probe-first poisoned classification", async () => {
+      const store = createMockStore();
+      (
+        mocks.handleMock as typeof mocks.handleMock & {
+          describe: ReturnType<typeof vi.fn>;
+        }
+      ).describe = vi.fn(async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "category=WorkflowTaskFailed",
+            "cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }));
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "test-change",
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "user confirmed poisoned close",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          store,
+          change: expect.objectContaining({ id: "test-change" }),
+          status: "closed",
+          closure: expect.objectContaining({
+            reason: "not_planned",
+            approval_evidence: "user confirmed poisoned close",
+          }),
+          authorization: expect.objectContaining({
+            reason: "poisoned_history",
+            evidence: expect.stringContaining(
+              "WorkflowTaskFailedCauseNonDeterministicError",
+            ),
           }),
         }),
       );
@@ -3249,10 +3252,7 @@ describe("change tools — signal-driven lifecycle", () => {
             target_path: "/tmp/target",
             target_confirmed: true,
             confirmationEvidence: "user approved target close",
-            recoveryMode: "poisoned_history",
-            recoveryEvidence:
-              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
-          } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+          },
           store,
         );
 
@@ -3526,10 +3526,7 @@ describe("change tools — signal-driven lifecycle", () => {
           reason: "not_planned",
           approvedByUser: true,
           approvalEvidence: "user approved bulk close",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
-        } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+        },
         store,
       );
 
@@ -3744,10 +3741,7 @@ describe("change tools — signal-driven lifecycle", () => {
             target_path: "/tmp/target",
             target_confirmed: true,
             confirmationEvidence: "user approved target bulk close",
-            recoveryMode: "poisoned_history",
-            recoveryEvidence:
-              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
-          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          },
           store,
         );
 
@@ -4353,9 +4347,6 @@ describe("change tools — signal-driven lifecycle", () => {
           {
             changeId: "test-change",
             phase9: "skip",
-            recoveryMode: "poisoned_history",
-            recoveryEvidence:
-              "workflow execution already completed | WorkflowNotFoundError",
           },
           store,
         );
@@ -4369,9 +4360,9 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
-    test("does not recover completed-workflow save failure without recoveryMode", async () => {
+    test("does not recover archive save failure when signal error is unclassified", async () => {
       const tempDir = await createTempDir(
-        "adv-change-archive-completed-no-recovery-",
+        "adv-change-archive-unclassified-no-recovery-",
       );
       try {
         await prepareNoRemoteReleaseProof(tempDir);
@@ -4380,9 +4371,7 @@ describe("change tools — signal-driven lifecycle", () => {
         store.paths.changes = `${tempDir}/changes`;
         store.paths.archive = `${tempDir}/archive`;
         vi.mocked(store.changes.save).mockRejectedValueOnce(
-          Object.assign(new Error("workflow execution already completed"), {
-            name: "WorkflowNotFoundError",
-          }),
+          new Error("some transient query failure"),
         );
         mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
@@ -4393,7 +4382,7 @@ describe("change tools — signal-driven lifecycle", () => {
         const parsed = JSON.parse(result);
 
         expect(parsed.success).toBe(false);
-        expect(parsed.error).toContain("workflow execution already completed");
+        expect(parsed.error).toContain("some transient query failure");
         expect(parsed._recoveryMutation).toBeUndefined();
       } finally {
         await cleanupTempDir(tempDir);
@@ -4416,7 +4405,9 @@ describe("change tools — signal-driven lifecycle", () => {
           JSON.stringify((await store.changes.get("test-change")).data),
         );
         vi.mocked(store.changes.save).mockRejectedValueOnce(
-          new Error("Failed to query Workflow"),
+          new Error(
+            "TMPRL1100 Nondeterminism error while saving archive status",
+          ),
         );
         (
           mocks.handleMock as typeof mocks.handleMock & {
@@ -4431,8 +4422,6 @@ describe("change tools — signal-driven lifecycle", () => {
           {
             changeId: "test-change",
             phase9: "skip",
-            recoveryMode: "poisoned_history",
-            recoveryEvidence: "TMPRL1100 Nondeterminism error",
           },
           store,
         );
@@ -4445,13 +4434,12 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
-    test("recovers archive status from poisoned signal-error class without describe evidence (C2)", async () => {
-      // C2 (fixPoisonedRecovery reviewer-block remediation): describe() is NOT
-      // required for recovery. Poisoned-history error class in saveError text
-      // + precise recoveryEvidence is sufficient authority. The previous
-      // behavior required describe() confirmation — that violated C2.
+    test("refuses poisoned archive recovery when signal error and describe disagree", async () => {
+      // D4 (rq-internalMonotonicRecovery01): the signal-error classifier
+      // requires describe() poison confirmation. A poisoned signal-error class
+      // without describe confirmation is operator_required.
       const tempDir = await createTempDir(
-        "adv-change-archive-poisoned-signal-only-recovery-",
+        "adv-change-archive-poisoned-disagree-",
       );
       try {
         await prepareNoRemoteReleaseProof(tempDir);
@@ -4478,25 +4466,23 @@ describe("change tools — signal-driven lifecycle", () => {
           {
             changeId: "test-change",
             phase9: "skip",
-            recoveryMode: "poisoned_history",
-            recoveryEvidence:
-              "TMPRL1100 nondeterminism while saving archive status",
           },
           store,
         );
         const parsed = JSON.parse(result);
 
-        expect(parsed.success).toBe(true);
-        expect(parsed._recoveryMutation).toBe(true);
-        expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalled();
+        expect(parsed.success).toBe(false);
+        expect(parsed._recoveryMutation).toBeUndefined();
+        expect(parsed.code).toBe("ARCHIVE_MUTATION_OPERATOR_REQUIRED");
+        expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
       } finally {
         await cleanupTempDir(tempDir);
       }
     });
 
-    test("does not recover archive status when saveError is generic and evidence is missing (C2)", async () => {
-      // C2: without precise operator evidence AND without poisoned/completed
-      // error class, recovery MUST NOT fire. describe() cannot authorize.
+    test("does not recover archive status when saveError is generic even if describe shows poisoned", async () => {
+      // D4: a generic signal error (query_failed) never authorizes mutation,
+      // regardless of describe() state.
       const tempDir = await createTempDir(
         "adv-change-archive-no-recovery-generic-error-",
       );
@@ -4527,8 +4513,6 @@ describe("change tools — signal-driven lifecycle", () => {
           {
             changeId: "test-change",
             phase9: "skip",
-            recoveryMode: "poisoned_history",
-            recoveryEvidence: "Failed to query Workflow",
           },
           store,
         );
@@ -4537,7 +4521,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(parsed.success).toBeFalsy();
         expect(parsed._recoveryMutation).toBeUndefined();
         expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
-        expect(parsed.error).toMatch(/Failed to query Workflow|TMPRL1100/i);
+        expect(parsed.error).toMatch(/Failed to query Workflow/i);
       } finally {
         await cleanupTempDir(tempDir);
       }
@@ -5043,51 +5027,6 @@ describe("change tools — signal-driven lifecycle", () => {
   });
 });
 
-import { z } from "zod";
-
-describe("adv_change_forget", () => {
-  test("emits expected success output shape", async () => {
-    const store = createMockStore();
-    const result = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange" },
-      store,
-    );
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.changeId).toBe("testChange");
-    expect(parsed.action).toBe("forget");
-    expect(parsed.cleared).toBe(true);
-  });
-
-  test("requires changeId via Zod validation", async () => {
-    await expect(
-      z.object(changeTools.adv_change_forget.args).parseAsync({}),
-    ).rejects.toThrow();
-  });
-
-  test("does not accept target_path", async () => {
-    const store = createMockStore();
-    const result = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange", target_path: "/some/other/project" },
-      store,
-    );
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.changeId).toBe("testChange");
-    expect(parsed.action).toBe("forget");
-    expect(parsed.target_path).toBeUndefined();
-  });
-
-  test("is idempotent", async () => {
-    const store = createMockStore();
-    const first = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange" },
-      store,
-    );
-    const second = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange" },
-      store,
-    );
-    expect(JSON.parse(first)).toEqual(JSON.parse(second));
-  });
-});
+// rq-recoverySurfaceParity01: adv_change_forget was retired; its
+// phantom-pointer clearing moved to adv_doctor (option B). Pointer-clear
+// behavior is now covered by doctor.test.ts and _adapters.test.ts.

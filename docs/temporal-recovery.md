@@ -125,20 +125,20 @@ missing. Missing sidecar files are not proof of lost ADV state.
    `readable:false`, artifact content must come from `adv_change_show` include
    fields or from an inline worker packet.
 
-4. Use `adv_change_forget` only for current-session active-pointer cleanup when
-   the pointer matches the exact phantom change ID. It is in-memory session
-   recovery; it does not close, archive, delete, or repair persistent change
-   state.
+4. Use `adv_doctor` for phantom-pointer cleanup when the session active pointer
+    is confirmed absent. The tool clears it automatically when safe; it is
+    in-memory session recovery only and does not close, archive, delete, or
+    repair persistent change state.
 
 5. If `adv_change_show` / `adv_gate_status` cannot reach the workflow, run
-   `adv_temporal_diagnose changeId: "<change-id>"` and follow its structured
-   next action. Approval-gated repairs such as search-attribute registration or
-   suspect worker-lock reclaim still require explicit approval evidence.
+    `adv_doctor` and follow its structured next action. Approval-gated repairs
+    such as wrong-type search-attribute correction or suspect worker-lock
+    reclaim still require explicit approval evidence.
 
 ### Restart boundary
 
-`adv_temporal_worker_restart` restarts the Temporal worker process only. A
-worker restart does not reload host-loaded plugin tool code or agent prompt
+`adv_doctor` can restart the Temporal worker process as one of its safe fixes.
+A worker restart does not reload host-loaded plugin tool code or agent prompt
 assets. After changing `.opencode/agents/*`, `ADV_INSTRUCTIONS.md`,
 `plugin/src/tools/*`, or deploy-synced prompt surfaces, run the deploy flow and
 restart OpenCode before expecting live sessions to see the new behavior.
@@ -150,14 +150,14 @@ alive because they coordinate their own reload; legacy workers (missing or
 malformed marker) are sent `SIGTERM`. If any legacy worker cannot be refreshed,
 the deploy fails closed with a multi-line `[ADV:ACTION_REQUIRED]` block. In
 read-only modes (`--check`, `--dry-run`) no worker is signaled. Route recovery
-through `adv_temporal_worker_restart` rather than manually terminating workers.
+through `adv_doctor` rather than manually terminating workers.
 
-For cross-project work, `adv_temporal_worker_restart` may be invoked with
-`target_path` to ensure or restart the target project's worker. It derives the
-target project ID, external state root, and expected queue from the target
-repository, requires explicit trust confirmation for untrusted targets,
-preserves approval-gated worker-lock reclaim semantics, verifies target queue
-serviceability within a bounded budget, and returns structured evidence.
+For cross-project work, `adv_doctor` may be invoked with `target_path` to run its
+diagnose→safe-fix→verify cycle against the target project's expected task queue.
+It derives the target project ID, external state root, and expected queue from
+the target repository, requires explicit trust confirmation for untrusted
+targets, preserves approval-gated worker-lock reclaim semantics, verifies target
+queue serviceability within a bounded budget, and returns structured evidence.
 Snapshot-ok target reads (for example `adv_change_show` with `target_path`) must
 not start, restart, register, reclaim, or signal target workers; authoritative
 target mutations must route through temporal-required `target_path` tools.
@@ -231,16 +231,16 @@ crash, especially:
 
 ### Step 1 — Diagnose, do not loop retries
 
-Run the read-only classifier first:
+Run the recovery classifier first:
 
 ```bash
-adv_temporal_diagnose
+adv_doctor
 ```
 
-If a specific change is failing, include it:
+For cross-project work, route the diagnosis through `target_path`:
 
 ```bash
-adv_temporal_diagnose changeId: "<change-id>"
+adv_doctor target_path: "</path/to/project>"
 ```
 
 The diagnostic output reports:
@@ -292,7 +292,7 @@ After upgrade, verify:
 ### Worker lock heartbeat fields
 
 `adv_status view: "health"` exposes the raw `temporal_health.worker_lock`
-object. `adv_temporal_diagnose` also renders a compact `worker_lock` string when
+object. `adv_doctor` also renders a compact `worker_lock` string when
 the lock exists.
 
 | Field                           | Meaning                                                    | Operator interpretation                                                                                                              |
@@ -326,7 +326,7 @@ Emit once:
 Suppress repeats:
 
 - identical `adv_status` snapshots
-- identical `adv_temporal_diagnose` recommendations
+- identical `adv_doctor` recommendations
 - repeated worker restart attempts with the same `last_error`
 - generic “trying again” progress messages without new evidence
 
@@ -363,7 +363,7 @@ Recovery:
 
 1. Run `adv_status view: "health"` and confirm `search_attributes.ok=false`.
 2. Get explicit user approval.
-3. Run `adv_temporal_register_search_attributes` with approval evidence.
+3. Run `adv_doctor` with approval evidence.
 4. Re-run `adv_status view: "health"` or the blocked ADV command.
 
 The registration tool creates missing attributes only. It refuses wrong-type
@@ -436,27 +436,23 @@ initialization.
 ### Stale STSL connection
 
 If Temporal is serving and workers are alive but ADV tools still fail with
-connection or service-layer errors, reconnect the shared Temporal service layer:
-
-```bash
-adv_temporal_reconnect
-```
-
-This does not mutate workflow state and does not restart workers. It replaces
-the cached STSL connection/client and reports reconnect counters before/after.
+connection or service-layer errors, run `adv_doctor`. It will detect the stale
+STSL connection, reinitialize the service layer automatically, and report the
+new connection state. This does not mutate workflow state and does not restart
+workers.
 
 ### Worker restart
 
-If diagnose reports `worker_process_alive=false` or no worker queues are
-registered, restart the worker only when the expected queue is not blocked by a
-live suspect lock:
+If `adv_doctor` reports `worker_process_alive=false` or no worker queues are
+registered, it will attempt an owned worker restart automatically when the
+expected queue is not blocked by a live suspect lock:
 
 ```bash
-adv_temporal_worker_restart
+adv_doctor
 ```
 
-`adv_temporal_worker_restart` is **verified, not fire-and-forget**: it spawns a
-new worker, then awaits queue serviceability proof (default 10 s budget) before
+`adv_doctor` is **verified, not fire-and-forget**: when it applies a worker
+restart, it awaits queue serviceability proof (default 10 s budget) before
 returning `success: true`. Failure responses include a structured envelope —
 expected queue, registered queues, worker lock, queue serviceability snapshot,
 stale running workflow count, worker diagnostics, and `recommendedNextAction` —
@@ -466,47 +462,39 @@ Restart verification force-refreshes serviceability probes. Cached stale probe
 data can explain the recommendation but cannot by itself make restart return
 `success: true`.
 
-The restart output includes STSL status and recommends `adv_temporal_diagnose`
-if tools still fail. Keep worker restart and STSL reconnect conceptually
-separate: restart owns worker lifecycle; reconnect owns the client connection.
-`adv_temporal_reconnect` is STSL/client-only and is not a worker-registration or
-queue-serviceability recovery path.
+The `adv_doctor` output includes STSL status and recommends re-running
+`adv_doctor` if tools still fail. Keep worker restart and STSL reconnect
+conceptually separate: restart owns worker lifecycle; reconnect owns the client
+connection. STSL reconnect is a client-only operation; it will be applied
+automatically when `adv_doctor` finds a stale transport, but it cannot restart
+a worker or reclaim a suspect lock.
 
 #### Approval-gated suspect live legacy v1 lock
 
 A live PID holding a v1-schema `worker.lock` with no heartbeat is **suspect**:
-it might be a wedged owner or a peer that genuinely owns the queue. The
-restart tool refuses to silently reclaim it. The failure envelope sets
+it might be a wedged owner or a peer that genuinely owns the queue. `adv_doctor`
+refuses to silently reclaim it. The failure envelope sets
 `reason: "suspect_live_legacy_lock"`, `approvalRequired: true`, and the
 `recommendedNextAction` asks for explicit approval evidence or an OpenCode
 session restart.
 
-To reclaim with explicit approval (rare; only when the owner is known wedged):
-
-```bash
-adv_temporal_worker_restart \
-  approvedLockReclaim: true \
-  approvalEvidence: "<how the user approved>"
-```
-
-Approved reclaim records prior PID, schema version, expected queue, and the
-approval evidence in the lock audit trail. Healthy serviceable v2 locks
-(heartbeat fresh) are never reclaimed by this path; their stale-heartbeat path
-is described below.
+Do not reclaim suspect locks silently. Provide explicit approval evidence and
+follow the recovery path surfaced by `adv_doctor`, or restart the owning OpenCode
+session.
 
 #### Approval-gated fresh v2 unserviceable lock
 
 A fresh v2 heartbeat proves the lock holder process is still renewing the lock;
 it does **not** prove the expected Temporal task queue is serviceable. If
-diagnose reports `worker_lock.schema_version=2`, a fresh heartbeat, and
+`adv_doctor` reports `worker_lock.schema_version=2`, a fresh heartbeat, and
 `queue_serviceability.status="not_serviceable"`, the lock is suspect rather than
 healthy.
 
-The restart tool refuses blind reclaim and returns
+`adv_doctor` refuses blind reclaim and returns
 `reason: "suspect_live_unserviceable_lock"`, `approvalRequired: true`, and a
-recommendation to restart the owning OpenCode session or rerun with explicit
-approval evidence. Do not use `adv_temporal_reconnect` for this shape; reconnect
-only refreshes the STSL/client plane and cannot make a worker poll a queue.
+recommendation to restart the owning OpenCode session or provide explicit
+approval evidence. Do not use blind restart loops; follow the approval proposal
+from `adv_doctor`.
 
 #### Bounded recovery at the change-workflow access seam
 
@@ -522,7 +510,7 @@ recommends in-place edits as fallback.
   in-place edits as fallback.
 - If the change workflow is unreachable for any other reason, the helper returns `unavailable` with
   a `queueServiceability` snapshot and asks the caller to run
-  `adv_temporal_diagnose`.
+  `adv_doctor`.
 
 #### Poller rows are freshness evidence, not durable worker records
 
@@ -551,10 +539,10 @@ and start a fresh worker.
 
 Operator playbook:
 
-1. Run `adv_temporal_diagnose`.
+1. Run `adv_doctor`.
 2. If `server_alive=true`, `worker_alive=false`, and `worker_lock.heartbeat_age_ms > 60000`, treat `recommendedNextAction: "normal recovery — peer worker spawn pending"` as informational.
 3. Start or retry the blocked ADV command in the peer session. The peer should reclaim the lock during plugin init / worker startup.
-4. Re-run `adv_temporal_diagnose` only if tools still time out or the recommendation does not change after one fresh startup.
+4. Re-run `adv_doctor` only if tools still time out or the recommendation does not change after one fresh startup.
 5. If `last_worker_run_error` is populated, inspect it before repeated restarts; repeated identical failures are not transient.
 
 Do not manually delete `worker.lock` while a healthy heartbeat is fresh. Healthy
@@ -581,24 +569,24 @@ operators.
 Restart OpenCode only when diagnostics cannot run, the plugin is fully degraded
 to `ADV_PLUGIN_INIT_FAILED` stubs, the host process itself is wedged, or edited
 plugin tool code must be reloaded. If ADV tools are live, prefer
-`adv_temporal_diagnose` first so recovery preserves evidence and avoids noisy
+`adv_doctor` first so recovery preserves evidence and avoids noisy
 retry loops.
 
 Reload paths are intentionally separate:
 
 | Changed or failed surface                                                             | Correct reload / recovery                                                                                                                                              |
 | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin/src/tools/*.ts` tool code                                                     | Run `pnpm run build` in `plugin/`, then restart OpenCode. `adv_temporal_worker_restart` does not reload host-loaded tool modules.                                      |
-| `plugin/src/temporal/*` workflow, activity, or worker harness code                    | Run `pnpm run build:worker` in `plugin/`, then run `adv_temporal_worker_restart`. The worker loads from `dist/temporal/`.                                              |
-| Wedged/exhausted Temporal worker process with unchanged source                        | Run `adv_temporal_worker_restart`, then verify with `adv_status` or `adv_temporal_diagnose`.                                                                           |
-| Suspect live legacy v1 `worker.lock` (alive PID, no heartbeat, queue not serviceable) | Restart the owning OpenCode session (preferred), or rerun `adv_temporal_worker_restart` with `approvedLockReclaim: true` + `approvalEvidence`. Never reclaim silently. |
+| `plugin/src/tools/*.ts` tool code                                                     | Run `pnpm run build` in `plugin/`, then restart OpenCode. `adv_doctor` does not reload host-loaded tool modules.                                      |
+| `plugin/src/temporal/*` workflow, activity, or worker harness code                    | Run `pnpm run build:worker` in `plugin/`, then run `adv_doctor`. The worker loads from `dist/temporal/`.                                              |
+| Wedged/exhausted Temporal worker process with unchanged source                        | Run `adv_doctor`, then verify with `adv_status` or by re-running `adv_doctor`.                                                                           |
+| Suspect live legacy v1 `worker.lock` (alive PID, no heartbeat, queue not serviceable) | Restart the owning OpenCode session (preferred), or provide explicit approval evidence and follow the recovery proposal surfaced by `adv_doctor`. Never reclaim silently. |
 | Diagnose unchanged after worker restart                                               | Stop repeating restart; inspect stale worker lock, stale queues, and change workflow state.                                                                            |
 
 ## Failed migration recovery
 
 Use this when a project's import ledger is not `done`.
 
-1. Run `adv_status` and `adv_temporal_diagnose`, then inspect:
+1. Run `adv_status` and `adv_doctor`, then inspect:
    - `migration_status.status`
    - `migration_status.detail`
    - `temporal_health.server_alive`
@@ -612,11 +600,10 @@ Use this when a project's import ledger is not `done`.
    - `migration_status.status: failed` with detail → workflow reached a terminal failure state
    - `migration_status.status: empty|unknown|null` → no usable import ledger yet; treat as incomplete bootstrap / recovery state
 3. Recover in order:
-   - Register missing search attributes with `adv_temporal_register_search_attributes` when diagnosed
-   - Reconnect stale STSL with `adv_temporal_reconnect` when diagnosed
-   - Restart the worker with `adv_temporal_worker_restart` for worker liveness failures; if worker code changed, run `pnpm run build:worker` first
-   - Re-check `adv_status`
-   - If worker/STSL/search attributes are healthy but change workflow state is still wrong, investigate the specific change with `adv_change_show` and `adv_temporal_diagnose`
+    - Run `adv_doctor`; it will register missing search attributes, reinitialize a stale STSL connection, or restart an owned worker automatically when diagnosed safe
+    - If worker code under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first
+    - Re-check `adv_status`
+    - If worker/STSL/search attributes are healthy but change workflow state is still wrong, investigate the specific change with `adv_change_show` and `adv_doctor`
 4. Re-verify with `adv_status` until `migration_status.status` returns to `done`.
 
 ### Expected ledger meanings
@@ -645,12 +632,12 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 | Health shape                                                                                                            | Likely cause                                                                            | Fix                                                                                                                                                                                                         |
 | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server_alive=false`                                                                                                    | Temporal dev server unreachable                                                         | Start / restore Temporal runtime first                                                                                                                                                                      |
-| `server_alive=true`, `search_attributes.ok=false`                                                                        | Required ADV search attributes missing or wrong type                                    | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs                                                                                                               |
-| `server_alive=true`, workers alive, service errors persist                                                              | Stale STSL connection/client                                                            | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose`                                                                                                                                                  |
+| `server_alive=true`, `search_attributes.ok=false`                                                                        | Required ADV search attributes missing or wrong type                                    | Run `adv_doctor`; missing attributes are registered automatically. Wrong-type attributes must be fixed manually on the server.                                                                                                               |
+| `server_alive=true`, workers alive, service errors persist                                                              | Stale STSL connection/client                                                            | Run `adv_doctor`; it will reinitialize the STSL connection and re-verify.                                                                                                                                                  |
 | `server_alive=true`, `worker_alive=false`, `worker_lock.heartbeat_age_ms > 60000`                                       | Stale heartbeat; peer worker spawn/reclaim is pending                                   | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out                                                                  |
-| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false`                                                  | OOP child crashed and exhausted restart budget                                          | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first.                                    |
-| `worker_alive=false`, `worker_lock.schema_version=1`, alive `holder_pid`, no `last_heartbeat_at`, queue not serviceable | Suspect live legacy v1 worker.lock — wedged owner OR peer that genuinely owns the queue | `adv_temporal_worker_restart` returns `approvalRequired: true`. Either restart the owning OpenCode session, or rerun with `approvedLockReclaim: true` + `approvalEvidence`. Do not run blind restart loops. |
-| `worker_alive=false`, `worker_lock.schema_version=2`, fresh heartbeat, queue not serviceable                            | Suspect live v2 worker.lock — holder is alive but not serving expected queue            | `adv_temporal_worker_restart` returns `approvalRequired: true`. Restart the owning session or rerun with approval evidence. Do not run `adv_temporal_reconnect` or blind restart loops.                     |
+| `server_alive=true`, `worker_alive=true`, `worker_process_alive=false`                                                  | OOP child crashed and exhausted restart budget                                          | Run `adv_doctor`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first.                                    |
+| `worker_alive=false`, `worker_lock.schema_version=1`, alive `holder_pid`, no `last_heartbeat_at`, queue not serviceable | Suspect live legacy v1 worker.lock — wedged owner OR peer that genuinely owns the queue | `adv_doctor` returns `approvalRequired: true`. Either restart the owning OpenCode session, or provide explicit approval evidence and follow the recovery proposal surfaced by `adv_doctor`. Do not run blind restart loops. |
+| `worker_alive=false`, `worker_lock.schema_version=2`, fresh heartbeat, queue not serviceable                            | Suspect live v2 worker.lock — holder is alive but not serving expected queue            | `adv_doctor` returns `approvalRequired: true`. Restart the owning session or provide explicit approval evidence. Do not run blind restart loops.                     |
 | `worker_alive=false`, `last_worker_run_error` populated                                                                 | Worker.run failure or restart exhaustion already observed                               | Inspect the run-error message; fix the root cause before repeated restarts                                                                                                                                  |
 | `worker_alive=false`                                                                                                    | No worker registered (init failure or early bootstrap abort)                            | Check init logs, Node availability, and Temporal server reachability                                                                                                                                        |
 | Bun host + init error about Node                                                                                        | Node binary not found                                                                   | Install Node or set `ADV_NODE_PATH`                                                                                                                                                                         |
@@ -699,10 +686,10 @@ Keep their core poisoned-history markers aligned (`TMPRL1100`, `NonDeterministic
 1. Confirm the error in logs or `last_error`.
 2. Do **not** keep restarting the same worker hoping it clears.
 3. Get explicit user approval.
-4. Run `adv_status view: "health"` for search-attribute health, then `adv_temporal_diagnose` for server/STSL/worker/queue-serviceability health.
-5. Investigate the affected change with `adv_change_show` and `adv_temporal_diagnose`.
+4. Run `adv_status view: "health"` for search-attribute health, then `adv_doctor` for server/STSL/worker/queue-serviceability health.
+5. Investigate the affected change with `adv_change_show` and `adv_doctor`.
 6. If the change workflow is terminally corrupted, terminate it via Temporal CLI and let the next access reseed from disk.
-7. Re-run `adv_temporal_diagnose` and confirm the change workflow is healthy again.
+7. Re-run `adv_doctor` and confirm the change workflow is healthy again.
 
 ## Stale `adv/change/*` workflows
 
@@ -783,7 +770,7 @@ These usually appear as secondary symptoms:
 - Confirm free space on the host
 - Check the plugin's external state directory and runtime/cache locations
 - Re-run the blocked command only after space is restored
-- If workflow state and derived exports diverged, investigate with `adv_change_show` and `adv_temporal_diagnose`
+- If workflow state and derived exports diverged, investigate with `adv_change_show` and `adv_doctor`
 
 ### OOM checklist
 

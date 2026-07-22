@@ -66,7 +66,7 @@ describe("ADV_INSTRUCTIONS.md framing (T32 — multi-session-first)", () => {
       expect(section).toMatch(/adv_status/);
       expect(section).toMatch(/adv_session_list/);
       expect(section).toMatch(/adv_session_show/);
-      expect(section).toMatch(/adv_temporal_diagnose/);
+      expect(section).toMatch(/adv_doctor/);
     });
   });
 });

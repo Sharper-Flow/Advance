@@ -266,7 +266,6 @@ export const REALM_PREFIXES: ReadonlyArray<readonly [string, ToolRealm]> = [
   ["adv_session_", "session"],
   ["adv_store_", "store"],
   ["adv_task_", "task"],
-  ["adv_temporal_", "temporal"],
   ["adv_tool_", "tool"],
   ["adv_worktree_", "worktree"],
   ["adv_wisdom_", "wisdom"],
@@ -284,15 +283,11 @@ export function deriveToolRealm(name: string): ToolRealm {
 export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   // Repair / operator-only recovery surface
   adv_archive_purge: "repair",
-  adv_archive_repair: "repair",
   adv_change_repair_origin: "repair",
-  adv_change_status_repair: "repair",
   adv_change_workflow_terminate: "repair",
+  adv_doctor: "repair",
   adv_store_cleanup: "repair",
   adv_store_consolidate: "repair",
-  adv_temporal_reconnect: "repair",
-  adv_temporal_register_search_attributes: "repair",
-  adv_temporal_worker_restart: "repair",
 
   // Diagnostics / read-heavy analysis surface
   adv_change_validate: "diagnostics",
@@ -301,7 +296,6 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_lightweight_profile_evaluate: "diagnostics",
   adv_run_test: "diagnostics",
   adv_snapshot_health: "diagnostics",
-  adv_temporal_diagnose: "diagnostics",
   adv_verification_evidence_disposition: "diagnostics",
 
   // Metadata / submission surface

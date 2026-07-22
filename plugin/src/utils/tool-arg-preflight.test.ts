@@ -98,18 +98,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   },
   {
     toolName: "adv_change_update",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_change_update",
-    field: "recoveryReason",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_change_update",
     field: "priorApprovalEvidence",
     policy: "blank",
     action: "omit",
@@ -129,12 +117,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
     toolName: "adv_change_archive",
     field: "confirmationEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_change_archive",
-    field: "recoveryEvidence",
     policy: "blank",
     action: "omit",
   },
@@ -193,28 +175,10 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
-    toolName: "adv_task_update",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_task_add",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
     // Optional review proof: strict-mode blank fills must not masquerade as a
     // real conclusion; route-specific evidence validation remains authoritative.
     toolName: "adv_task_add",
     field: "review_conclusion",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_task_cancel",
-    field: "recoveryEvidence",
     policy: "blank",
     action: "omit",
   },
@@ -238,25 +202,19 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   },
   {
     toolName: "adv_gate_complete",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_gate_complete",
-    field: "recoveryReason",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_gate_complete",
     field: "priorApprovalEvidence",
     policy: "blank",
     action: "omit",
   },
   {
     toolName: "adv_contract_mint",
-    field: "recoveryEvidence",
+    field: "priorApprovalEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_contract_review_matrix_set",
+    field: "priorApprovalEvidence",
     policy: "blank",
     action: "omit",
   },
@@ -704,72 +662,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
-    toolName: "adv_epic_repair_membership",
-    field: "epic_id",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "entry_id",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "change_id",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "new_change_id",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "new_title",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "target_path",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "target_confirmed",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "confirmationEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "epic_owner_target_path",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "epic_owner_target_confirmed",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_epic_repair_membership",
-    field: "epic_owner_confirmationEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
     toolName: "adv_epic_reorder",
     field: "epic_owner_target_path",
     policy: "blank",
@@ -1130,16 +1022,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["reason"],
   },
   {
-    // rq-toolPlaceholderPolicy01.6: recoveryEvidence is contextually validated
-    // by the handler (only when recoveryMode=poisoned_history), so blank
-    // normalizes to omitted at preflight.
-    label: "blank contract recovery evidence normalizes to omitted",
-    toolName: "adv_contract_mint",
-    rawArgs: { changeId: "c", recoveryEvidence: " " },
-    ok: true,
-    normalizedArgs: { changeId: "c" },
-  },
-  {
     // T2: target_path is optional on read tools — blank normalizes to omitted.
     label: "blank target path normalizes to omitted on read tools",
     toolName: "adv_change_show",
@@ -1435,30 +1317,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       to_epic_id: "epicB",
       change_id: "c",
       move_evidence: "real evidence",
-    },
-  },
-  {
-    label: "blank epic repair-membership optional fields normalize to omitted",
-    toolName: "adv_epic_repair_membership",
-    rawArgs: {
-      mode: "refresh_search_attributes",
-      evidence: "real evidence",
-      epic_id: " ",
-      entry_id: " ",
-      change_id: " ",
-      new_change_id: " ",
-      new_title: " ",
-      target_path: " ",
-      target_confirmed: " ",
-      confirmationEvidence: " ",
-      epic_owner_target_path: " ",
-      epic_owner_target_confirmed: " ",
-      epic_owner_confirmationEvidence: " ",
-    },
-    ok: true,
-    normalizedArgs: {
-      mode: "refresh_search_attributes",
-      evidence: "real evidence",
     },
   },
   {
@@ -1804,10 +1662,9 @@ describe("tool arg preflight", () => {
     // T2: adv_gate_complete.target_path, adv_gate_complete.notes,
     // adv_gate_complete.compatibilityReason flipped to blank: "omit".
     // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
-    // recoveryEvidence, recoveryReason, priorApprovalEvidence,
-    // confirmationEvidence also flipped to blank: "omit".
+    // priorApprovalEvidence, confirmationEvidence also flipped to blank: "omit".
     // adv_run_test.target_path, adv_status.target_path,
-    // adv_temporal_reconnect.target_path, adv_contract_mint.{approvedAt,target_path}
+    // adv_doctor.target_path, adv_contract_mint.{approvedAt,target_path}
     // similarly flipped. Coverage of the omit semantics for these fields
     // lives in `normalizes representative blank placeholder` below.
     ["adv_worktree_create", { branch: " " }, "branch"],
@@ -1815,11 +1672,6 @@ describe("tool arg preflight", () => {
     ["adv_worktree_delete", { branch: " " }, "branch"],
     ["adv_worktree_cleanup", { reason: " " }, "reason"],
     ["adv_conformance", { action: "unlock", user: " " }, "user"],
-    [
-      "adv_temporal_register_search_attributes",
-      { approvedByUser: true, approvalEvidence: " " },
-      "approvalEvidence",
-    ],
   ])(
     "rejects representative blank placeholder for %s.%s",
     (toolName, rawArgs, field) => {
@@ -1859,16 +1711,6 @@ describe("tool arg preflight", () => {
     ],
     [
       "adv_gate_complete",
-      { changeId: "c", gateId: "design", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_gate_complete",
-      { changeId: "c", gateId: "design", recoveryReason: " " },
-      "recoveryReason",
-    ],
-    [
-      "adv_gate_complete",
       { changeId: "c", gateId: "design", priorApprovalEvidence: " " },
       "priorApprovalEvidence",
     ],
@@ -1884,23 +1726,8 @@ describe("tool arg preflight", () => {
     ],
     [
       "adv_change_update",
-      { changeId: "c", proposal: "real", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_change_update",
-      { changeId: "c", proposal: "real", recoveryReason: " " },
-      "recoveryReason",
-    ],
-    [
-      "adv_change_update",
       { changeId: "c", proposal: "real", priorApprovalEvidence: " " },
       "priorApprovalEvidence",
-    ],
-    [
-      "adv_change_archive",
-      { changeId: "c", recoveryEvidence: " " },
-      "recoveryEvidence",
     ],
     [
       "adv_run_test",
@@ -1913,19 +1740,9 @@ describe("tool arg preflight", () => {
       "confirmationEvidence",
     ],
     [
-      "adv_task_update",
-      { taskId: "tk-1", status: "done", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
       "adv_task_add",
       { changeId: "c", content: "do thing", confirmationEvidence: " " },
       "confirmationEvidence",
-    ],
-    [
-      "adv_task_add",
-      { changeId: "c", content: "do thing", recoveryEvidence: " " },
-      "recoveryEvidence",
     ],
     [
       "adv_task_cancel",
@@ -1936,16 +1753,6 @@ describe("tool arg preflight", () => {
         confirmationEvidence: " ",
       },
       "confirmationEvidence",
-    ],
-    [
-      "adv_task_cancel",
-      {
-        taskIds: ["t"],
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryEvidence: " ",
-      },
-      "recoveryEvidence",
     ],
     [
       "adv_task_reclassify_tdd",
@@ -1959,38 +1766,27 @@ describe("tool arg preflight", () => {
     ],
     [
       "adv_contract_mint",
-      { changeId: "c", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_contract_mint",
       { changeId: "c", confirmationEvidence: " " },
-      "confirmationEvidence",
-    ],
-    [
-      "adv_contract_review_matrix_set",
-      { changeId: "c", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_temporal_reconnect",
-      { confirmationEvidence: " " },
       "confirmationEvidence",
     ],
     ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
     ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
     [
+      "adv_contract_mint",
+      { changeId: "c", priorApprovalEvidence: " " },
+      "priorApprovalEvidence",
+    ],
+    [
+      "adv_contract_review_matrix_set",
+      { changeId: "c", priorApprovalEvidence: " " },
+      "priorApprovalEvidence",
+    ],
+    [
       "adv_run_test",
       { taskId: "tk-1", command: "test", target_path: " " },
       "target_path",
     ],
-    ["adv_temporal_reconnect", { target_path: " " }, "target_path"],
-    ["adv_temporal_worker_restart", { target_path: " " }, "target_path"],
-    [
-      "adv_temporal_worker_restart",
-      { confirmationEvidence: " " },
-      "confirmationEvidence",
-    ],
+    ["adv_doctor", { target_path: " " }, "target_path"],
     ["adv_status", { target_path: " " }, "target_path"],
     [
       "adv_change_close",
@@ -2003,39 +1799,7 @@ describe("tool arg preflight", () => {
       },
       "supersededBy",
     ],
-    [
-      "adv_change_close",
-      {
-        changeId: "c",
-        reason: "cancelled",
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryEvidence: " ",
-      },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_change_close",
-      {
-        changeId: "c",
-        reason: "cancelled",
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryMode: " ",
-      },
-      "recoveryMode",
-    ],
-    [
-      "adv_change_bulk_close",
-      {
-        selector: { kind: "explicit", changeIds: ["c"] },
-        reason: "cancelled",
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryEvidence: " ",
-      },
-      "recoveryEvidence",
-    ],
+
     [
       "adv_worktree_cleanup",
       { reason: "archived branch cleanup", mode: " " },
@@ -2518,8 +2282,6 @@ describe("tool arg preflight", () => {
           userApproved: false,
           notes: "",
           compatibilityReason: "",
-          recoveryReason: "",
-          recoveryEvidence: "",
           priorApprovalEvidence: "",
           target_path: "",
           target_confirmed: true,
@@ -2537,9 +2299,9 @@ describe("tool arg preflight", () => {
       });
     });
 
-    test("full strict-mode adv_temporal_worker_restart payload normalizes blanks and preserves target_confirmed", () => {
+    test("full strict-mode adv_doctor payload normalizes blanks and preserves target_confirmed (rq-doctorConsolidation01)", () => {
       const result = preflightToolArgs(
-        "adv_temporal_worker_restart",
+        "adv_doctor",
         {},
         {
           target_path: "",
@@ -2599,19 +2361,17 @@ describe("tool arg preflight", () => {
         "approvalEvidence",
       ],
       // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
-      // confirmationEvidence, recoveryEvidence, recoveryReason,
-      // priorApprovalEvidence moved from reject to omit — no longer here.
-      // adv_change_update.confirmationEvidence, recoveryEvidence,
-      // recoveryReason, priorApprovalEvidence also moved.
-      // adv_contract_mint.recoveryEvidence, confirmationEvidence moved.
-      // adv_contract_review_matrix_set.recoveryEvidence moved.
-      // adv_temporal_reconnect.confirmationEvidence moved.
+      // confirmationEvidence, priorApprovalEvidence moved from reject to omit
+      // — no longer here. adv_change_update.confirmationEvidence,
+      // priorApprovalEvidence also moved.
+      // adv_contract_mint.confirmationEvidence, priorApprovalEvidence moved.
+      // adv_contract_review_matrix_set.confirmationEvidence, priorApprovalEvidence moved.
+      // adv_doctor.confirmationEvidence moved (rq-doctorConsolidation01).
       // adv_run_test.confirmationEvidence moved.
-      // adv_task_update confirmationEvidence, recoveryEvidence moved.
-      // adv_task_add confirmationEvidence, recoveryEvidence moved.
-      // adv_task_cancel confirmationEvidence, recoveryEvidence moved.
+      // adv_task_update confirmationEvidence moved.
+      // adv_task_add confirmationEvidence moved.
+      // adv_task_cancel confirmationEvidence moved.
       // adv_task_reclassify_tdd confirmationEvidence moved.
-      // adv_change_archive recoveryEvidence moved.
       ["adv_worktree_create", { branch: " " }, "branch"],
       ["adv_worktree_create", { branch: "x", base: " " }, "base"],
       ["adv_worktree_resume", { changeId: " " }, "changeId"],
@@ -2619,16 +2379,6 @@ describe("tool arg preflight", () => {
       ["adv_worktree_cleanup", { reason: " " }, "reason"],
       ["adv_conformance", { action: "unlock", user: " " }, "user"],
       ["adv_conformance", { action: "unlock", reason: " " }, "reason"],
-      [
-        "adv_temporal_register_search_attributes",
-        { approvedByUser: true, approvalEvidence: " " },
-        "approvalEvidence",
-      ],
-      [
-        "adv_temporal_worker_restart",
-        { approvedLockReclaim: true, approvalEvidence: " " },
-        "approvalEvidence",
-      ],
     ])("%s.%s blank still rejects", (toolName, rawArgs, field) => {
       const result = preflightToolArgs(toolName, {}, rawArgs);
       expect(result.invalid).toContainEqual({

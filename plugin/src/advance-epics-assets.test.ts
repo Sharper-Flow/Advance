@@ -322,7 +322,7 @@ describe("/adv-coordinate command contract", () => {
 
     expect(content).toContain("adv_epic_update");
     expect(content).toContain("adv_epic_reorder");
-    expect(content).toContain("adv_epic_repair_membership");
+    expect(content).toContain("adv_epic_show");
     expect(content).toContain("expected_version");
     expect(content).toContain("evidence");
     expect(content).toMatch(/approval-gated|after approval|explicit approval/i);
@@ -415,7 +415,7 @@ describe("/adv-epic command contract", () => {
     expect(content).toContain("adv_epic_unlink_change");
     expect(content).toMatch(/refine entries|consolidate/i);
     expect(content).toMatch(/No single merge tool exists/i);
-    expect(content).toContain("adv_epic_repair_membership");
+    expect(content).toContain("adv_epic_show");
     expect(content).toMatch(
       /update\/clarify existing|update an existing Epic/i,
     );
@@ -482,17 +482,17 @@ describe("ADV_INSTRUCTIONS.md Epic contract", () => {
     expect(instructions).toContain("adv_epic_show epic_id:");
   });
 
-  test("documents audited retrofit, move, and repair tools", () => {
+  test("documents audited retrofit, move, and convergence tools", () => {
     expect(instructions).toContain("adv_epic_link_change");
     expect(instructions).toContain("adv_epic_move_change");
-    expect(instructions).toContain("adv_epic_repair_membership");
+    expect(instructions).toContain("adv_epic_show");
     expect(instructions).toMatch(/projection_pending|projection_stale/i);
     expect(instructions).toMatch(/target_unreachable/i);
   });
 
   test("documents Epic target_path support for cross-project membership", () => {
     expect(instructions).toMatch(
-      /adv_epic_link_change.*adv_epic_unlink_change.*adv_epic_move_change.*adv_epic_repair_membership/,
+      /adv_epic_link_change.*adv_epic_unlink_change.*adv_epic_move_change.*adv_epic_show/,
     );
     expect(instructions).toMatch(/Product Epics[\s\S]{0,600}target_path/i);
     expect(instructions).toMatch(
@@ -569,12 +569,6 @@ describe("Epic tool descriptions describe target_path membership accurately", ()
     expect(description).not.toMatch(/same-project/i);
     expect(description).toMatch(/target_path|target-project|cross-project/i);
   });
-
-  test("adv_epic_repair_membership documents target routing", () => {
-    expect(epicTools.adv_epic_repair_membership.description).toMatch(
-      /target-path|target_path|cross-project/i,
-    );
-  });
 });
 
 describe("Sub-agent context packets include Epic guidance", () => {
@@ -631,7 +625,7 @@ describe("Command docs wire Epic context into workflow", () => {
       required: [
         "epic_membership",
         "adv_epic_show epic_id:",
-        "adv_epic_repair_membership",
+        "adv_epic_show",
         "terminal_summary",
         "Epic:",
       ],

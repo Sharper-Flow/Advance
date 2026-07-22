@@ -358,7 +358,22 @@ describe("gate tools — signal-driven lifecycle", () => {
       mocks.querySignal.mockRejectedValueOnce(
         new Error("TMPRL1100: Nondeterminism error"),
       );
+      // rq-internalMonotonicRecovery01 / AC5 + D4: the signal-error classifier
+      // requires describe() confirmation (reachable-authority agreement) before
+      // recovering — stricter than the retired error-text-only path. Inject a
+      // describe() carrying poison markers so recovery is authorized.
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "category=WorkflowTaskFailed",
+            "cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }));
+      mocks.handleMock.describe = describeMock;
 
+      // No operator-supplied recovery args. priorApprovalEvidence remains
+      // (acceptance human checkpoint, AC6).
       const result = await gateTools.adv_gate_complete.execute(
         {
           changeId: "test-change",
@@ -366,13 +381,11 @@ describe("gate tools — signal-driven lifecycle", () => {
           completedBy: "agent",
           notes: "Recovered gate after poisoned workflow",
           compatibilityReason: "legacy replay lacks contract proof",
-          recoveryReason: "acceptance gate recovery after poisoned workflow",
-          recoveryEvidence:
-            "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
           priorApprovalEvidence: "Prior user acceptance approval: approve",
         },
         store,
       );
+      delete (mocks.handleMock as { describe?: unknown }).describe;
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
@@ -465,7 +478,11 @@ describe("gate tools — signal-driven lifecycle", () => {
       }
     });
 
-    test("poisoned-history acceptance recovery rejects missing audit fields", async () => {
+    test("acceptance internal recovery still requires priorApprovalEvidence (AC6 human checkpoint)", async () => {
+      // rq-internalMonotonicRecovery01 / AC6: even when a poisoned workflow is
+      // auto-classified for disk recovery, the acceptance gate refuses without
+      // the human approval evidence. Operators no longer supply recovery args,
+      // but the acceptance human checkpoint is preserved.
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -482,6 +499,18 @@ describe("gate tools — signal-driven lifecycle", () => {
       mocks.querySignal.mockRejectedValueOnce(
         new Error("TMPRL1100: Nondeterminism error"),
       );
+      // describe() confirms poison so the classifier reaches recover_via_disk;
+      // the acceptance human-checkpoint guard (AC6) then refuses without
+      // priorApprovalEvidence.
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "category=WorkflowTaskFailed",
+            "cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }));
+      mocks.handleMock.describe = describeMock;
 
       const result = await gateTools.adv_gate_complete.execute(
         {
@@ -489,55 +518,14 @@ describe("gate tools — signal-driven lifecycle", () => {
           gateId: "acceptance",
           completedBy: "agent",
           compatibilityReason: "legacy replay lacks contract proof",
+          // priorApprovalEvidence intentionally omitted
         },
         store,
       );
+      delete (mocks.handleMock as { describe?: unknown }).describe;
 
       const parsed = JSON.parse(result);
-      expect(parsed.error).toContain(
-        "recoveryEvidence, recoveryReason, priorApprovalEvidence",
-      );
-      expect(parsed.missingAuditFields).toEqual([
-        "recoveryEvidence",
-        "recoveryReason",
-        "priorApprovalEvidence",
-      ]);
-      expect(store.changes.save).not.toHaveBeenCalled();
-    });
-
-    test("poisoned-history acceptance recovery rejects imprecise recovery evidence", async () => {
-      const gates = {
-        proposal: { status: "done" },
-        discovery: { status: "done" },
-        design: { status: "done" },
-        planning: { status: "done" },
-        execution: { status: "done" },
-        acceptance: { status: "pending" },
-        release: { status: "pending" },
-      } as import("../types").Gates;
-      const store = createMockStore({
-        gates,
-        change: { gates } as Partial<import("../types").Change>,
-      });
-      mocks.querySignal.mockRejectedValueOnce(
-        new Error("TMPRL1100: Nondeterminism error"),
-      );
-
-      const result = await gateTools.adv_gate_complete.execute(
-        {
-          changeId: "test-change",
-          gateId: "acceptance",
-          completedBy: "agent",
-          compatibilityReason: "legacy replay lacks contract proof",
-          recoveryReason: "acceptance gate recovery after poisoned workflow",
-          recoveryEvidence: "generic operator note",
-          priorApprovalEvidence: "Prior user acceptance approval: approve",
-        },
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.error).toContain("must cite precise");
+      expect(parsed.code).toBe("GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED");
       expect(store.changes.save).not.toHaveBeenCalled();
     });
 
@@ -581,9 +569,19 @@ describe("gate tools — signal-driven lifecycle", () => {
           }),
         );
 
-        // fireSignalAndRefresh is hoisted to resolve silently by default,
-        // simulating the fire-and-forget poison case where the signal RPC
-        // does NOT throw.
+        // rq-internalMonotonicRecovery01 / AC5: no operator-supplied recovery
+        // args. The internal probe-first path detects poison via describe()
+        // and takes the disk-direct recovery path WITHOUT firing the signal.
+        const describeMock = vi.fn(async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "category=WorkflowTaskFailed",
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }));
+        mocks.handleMock.describe = describeMock;
+
         const result = await gateTools.adv_gate_complete.execute(
           {
             changeId: "test-change",
@@ -591,10 +589,6 @@ describe("gate tools — signal-driven lifecycle", () => {
             completedBy: "agent",
             notes: "Recovered gate after poisoned workflow",
             compatibilityReason: "legacy replay lacks contract proof",
-            recoveryMode: "poisoned_history",
-            recoveryReason: "acceptance gate recovery after poisoned workflow",
-            recoveryEvidence:
-              "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
             priorApprovalEvidence: "Prior user acceptance approval: approve",
           },
           store,
@@ -604,21 +598,19 @@ describe("gate tools — signal-driven lifecycle", () => {
         expect(parsed.success).toBe(true);
         expect(parsed.recovered).toBe(true);
         expect(parsed._recoveryMutation).toBe(true);
+        expect(describeMock).toHaveBeenCalled();
         expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-        expect(mocks.querySignal).not.toHaveBeenCalled();
-
-        const persisted = JSON.parse(
-          await readFile(join(changeDir, "change.json"), "utf8"),
+        // Poisoned (not completed) recovery persists via store.changes.save,
+        // not a disk-direct write (authority=workflow_poisoned_describe).
+        expect(store.changes.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            gates: expect.objectContaining({
+              acceptance: expect.objectContaining({ status: "done" }),
+            }),
+          }),
         );
-        expect(persisted.gates.acceptance.status).toBe("done");
-        expect(persisted.gates.acceptance.recovery_audit).toMatchObject({
-          reason: "acceptance gate recovery after poisoned workflow",
-          evidence: expect.stringContaining(
-            "WorkflowTaskFailedCauseNonDeterministicError",
-          ),
-          recovered_at: expect.any(String),
-        });
       } finally {
+        delete (mocks.handleMock as { describe?: unknown }).describe;
         await rm(tmp, { recursive: true, force: true });
       }
     });
@@ -658,6 +650,19 @@ describe("gate tools — signal-driven lifecycle", () => {
           }),
         );
 
+        // rq-internalMonotonicRecovery01 / AC5: no operator-supplied recovery
+        // args. Release recovery is auto-classified from describe() poison
+        // evidence (release has no acceptance-style human checkpoint).
+        const describeMock = vi.fn(async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "category=WorkflowTaskFailed",
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }));
+        mocks.handleMock.describe = describeMock;
+
         const result = await gateTools.adv_gate_complete.execute(
           {
             changeId: "test-change",
@@ -665,10 +670,6 @@ describe("gate tools — signal-driven lifecycle", () => {
             completedBy: "agent",
             notes: "Recovered release after poisoned workflow",
             compatibilityReason: "legacy replay lacks contract proof",
-            recoveryMode: "poisoned_history",
-            recoveryReason: "release gate recovery after poisoned workflow",
-            recoveryEvidence:
-              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
           },
           store,
         );
@@ -677,21 +678,18 @@ describe("gate tools — signal-driven lifecycle", () => {
         expect(parsed.success).toBe(true);
         expect(parsed.recovered).toBe(true);
         expect(parsed._recoveryMutation).toBe(true);
+        expect(describeMock).toHaveBeenCalled();
         expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-        expect(mocks.querySignal).not.toHaveBeenCalled();
-
-        const persisted = JSON.parse(
-          await readFile(join(changeDir, "change.json"), "utf8"),
+        // Poisoned (not completed) recovery persists via store.changes.save.
+        expect(store.changes.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            gates: expect.objectContaining({
+              release: expect.objectContaining({ status: "done" }),
+            }),
+          }),
         );
-        expect(persisted.gates.release.status).toBe("done");
-        expect(persisted.gates.release.recovery_audit).toMatchObject({
-          reason: "release gate recovery after poisoned workflow",
-          evidence: expect.stringContaining(
-            "WorkflowExecutionAlreadyCompleted",
-          ),
-          recovered_at: expect.any(String),
-        });
       } finally {
+        delete (mocks.handleMock as { describe?: unknown }).describe;
         await rm(tmp, { recursive: true, force: true });
       }
     });
@@ -799,6 +797,17 @@ describe("gate tools — signal-driven lifecycle", () => {
         mocks.querySignal.mockRejectedValueOnce(
           new Error("TMPRL1100: Nondeterminism error"),
         );
+        // describe() confirms poison so the internal classifier authorizes
+        // recovery (rq-internalMonotonicRecovery01 / AC5 — no operator args).
+        const describeMock = vi.fn(async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "category=WorkflowTaskFailed",
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }));
+        mocks.handleMock.describe = describeMock;
 
         const result = await gateTools.adv_gate_complete.execute(
           {
@@ -807,12 +816,10 @@ describe("gate tools — signal-driven lifecycle", () => {
             completedBy: "agent",
             notes: "Recovered release after poisoned workflow",
             compatibilityReason: "legacy replay lacks contract proof",
-            recoveryReason: "release gate recovery after poisoned workflow",
-            recoveryEvidence:
-              "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
           },
           store,
         );
+        delete (mocks.handleMock as { describe?: unknown }).describe;
 
         const parsed = JSON.parse(result);
         expect(parsed.success).toBe(true);
@@ -1263,8 +1270,11 @@ describe("gate tools — signal-driven lifecycle", () => {
     });
 
     test("poisoned-history acceptance recovery covers WorkflowTaskFailedCauseNonDeterministicError describe", async () => {
-      // rq-fix-gate-tools-recovery AC2: probe-based recovery for generic
-      // signal errors when workflow describe carries poisoned evidence.
+      // rq-fix-gate-tools-recovery AC2 + D4 internal monotonic recovery:
+      // describe() carrying poisoned evidence now triggers recovery via the
+      // internal probe-first path (rq-internalMonotonicRecovery01) without
+      // attempting the signal (which silently resolves on poisoned replay).
+      // The operator-supplied recoveryEvidence path remains as back-compat.
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -1286,12 +1296,9 @@ describe("gate tools — signal-driven lifecycle", () => {
         } as Partial<import("../types").Change>,
       });
 
-      // Healthy gates query succeeds (no isPoisonedHistoryError(error)
-      // signal — workflow signal will fail with a generic error instead).
+      // Healthy gates query succeeds; signal is NOT attempted because the
+      // internal probe-first path detects poison via describe() first.
       mocks.querySignal.mockResolvedValueOnce(gates);
-      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
-        new Error("Failed to send signal"),
-      );
 
       // Inject describe() that reports nondeterminism via TemporalReportedProblems.
       const describeMock = vi.fn(async () => ({
@@ -1311,9 +1318,6 @@ describe("gate tools — signal-driven lifecycle", () => {
           completedBy: "agent",
           notes: "Prior user acceptance approval: approve",
           compatibilityReason: "legacy replay lacks contract proof",
-          recoveryReason: "acceptance gate recovery after poisoned workflow",
-          recoveryEvidence:
-            "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
           priorApprovalEvidence: "Prior user acceptance approval: approve",
         },
         store,

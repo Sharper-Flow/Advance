@@ -27,16 +27,13 @@ approval-gated recovery family that shares the same posture.
 | Tool | Class | Approval gate | Rationale |
 |---|---|---|---|
 | `adv_archive_purge` | operator-only | `approvedByUser` + `approvalEvidence` | Terminates archived workflows; opt-in `includeDiskBundle` recursively deletes the archive bundle (`rq-archivePurge01`) |
-| `adv_archive_repair` | operator-only | action-scoped evidence (`reconcile` requires `approvedByUser`) | Archived-change recovery: scan, redrive, reconcile of wedged terminal projections |
+| `adv_doctor` | operator-only | `approvedByUser` + `approvalEvidence` for unsafe escalations; safe fixes (STSL reinit, missing search attributes, owned worker restart, confirmed-phantom pointer clear) apply automatically | Single diagnose→safe-fix→verify entry for infrastructure recovery. Refuses approval-gated escalations (wrong-type search attributes, suspect lock reclaim, ambiguous ownership) with typed operator proposals |
 | `adv_store_cleanup` | operator-only | `approvedByUser` + `approvalEvidence` + dry-run `plan_hash` | Deletes legacy agenda stores; manifest-before-delete, retained indefinitely as operator-only maintenance (`rq-storeCleanupCoupling01`) |
 | `adv_store_consolidate` | operator-only | `approvedByUser` + `approvalEvidence` + dry-run plan | Consolidates orphaned identity stores into the true-root store; mutually serialized with cleanup |
 | `adv_snapshot_health` (`#repair`) | operator-only | `approvedByUser` + `approvalEvidence` + `repair_actions` whitelist | Deletes corrupt OpenCode snapshot-store objects; `scan`/`audit_history` remain agent-readable diagnostics |
-| `adv_temporal_worker_restart` | operator-only | explicit operator invocation | Restarts the project Temporal worker; disruptive to in-flight tool calls |
 | `adv_conformance` (`#override`) | operator-only | audit fields `user` + `reason` + `re_verify_deadline` | Overrides a locked conformance verdict; audit-escape hatch only. Other actions (`status`, `init`, `lock`, `unlock`, `run`) stay orchestrator-reachable |
-| `adv_change_status_repair` | operator-only | `approvedByUser` + `approvalEvidence` + recovery evidence | Single-change wedged-status flip. Decision matrix vs `adv_archive_repair action=reconcile`: status repair is the targeted single-change path gated on precise workflow evidence (no branch requirement, `target_path` routing); reconcile is the batch path gated on branch-merge evidence |
 | `adv_change_repair_origin` | operator-only | `approvedByUser` + `approvalEvidence` + `reason` | Repairs origin provenance linkage on an open change; claim-safe audited repair |
 | `adv_change_workflow_terminate` | operator-only | `approvedByUser` + `approvalEvidence` + shipped acceptance/release gate proof + (poisoned-history describe evidence OR shipped-terminal structural proof) | Terminates the exact describe-pinned (`runId`) wedged run of a shipped change's workflow — NOT a Temporal Reset; dry-run pin assessment, idempotent completed/not-found handling only after eligibility, failure before any projection-cache refresh. Two eligibility classes (rq-shippedWorkflowTermination01): `poisoned_history` (existing — describe carries poisoned-history evidence, terminate + cache refresh only) and `shipped_terminal` (new — describe shows RUNNING/PAUSED with no poison but disk carries all 7 gates done + phase9 done + schema-valid archive bundle matching changeId; terminate + atomic status/lifecycleState=archived convergence write + read-after-write verification). Shipped-terminal refusal codes: PROOF_INVALID_DISK_PROJECTION, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE, PROOF_BUNDLE_ID_MISMATCH. Convergence failure shape: `success:false, partialRecovery:true, pinnedRunTerminated:true, converged:false` with typed `successorRace` (pre-write), `lateSuccessorRace` (post-readback TOCTOU), or `readback`+`remediation`. Archived changes route to `adv_archive_purge` (rq-archivePurge01 semantics preserved) |
-| `adv_temporal_register_search_attributes` | operator-only | `approvedByUser` + `approvalEvidence` | Registers missing Temporal search attributes on the server; one-time metadata mutation |
 
 ## Dual Tools
 
@@ -91,7 +88,6 @@ class rather than operator-only.
 | `adv_change_archive` | orchestrator | Release-gate archive workflow |
 | `adv_change_update_issues` | orchestrator | Issue linkage update |
 | `adv_change_reenter` | orchestrator | Gate re-entry |
-| `adv_change_forget` | orchestrator | In-memory session active-change pointer clear; no persistent mutation |
 
 ### Lightweight change profile
 
@@ -112,7 +108,6 @@ class rather than operator-only.
 | `adv_epic_link_change` | orchestrator | Link existing change |
 | `adv_epic_unlink_change` | orchestrator | Unlink change entry |
 | `adv_epic_move_change` | orchestrator | Move change between Epics |
-| `adv_epic_repair_membership` | orchestrator | Membership projection repair; evidence-audited, orchestrator-driven hygiene |
 | `adv_epic_reorder` | orchestrator | Advisory reorder |
 | `adv_epic_retire` | orchestrator | Terminal Epic retirement with evidence |
 
@@ -166,8 +161,6 @@ class rather than operator-only.
 
 | Tool | Class | Notes |
 |---|---|---|
-| `adv_temporal_diagnose` | orchestrator | Read-only Temporal recovery diagnostic |
-| `adv_temporal_reconnect` | orchestrator | STSL reconnect without workflow-state mutation |
 | `adv_worktree_create` | orchestrator | Tool-owned worktree creation |
 | `adv_worktree_resume` | orchestrator | Worktree resume/materialize |
 | `adv_worktree_delete` | orchestrator | Worktree deletion (merge-before-delete) |

@@ -25,19 +25,14 @@ import type { WarrantLookup } from "../validator/warrant";
 import {
   RECOVERY_RECONCILIATION_WARNING,
   isFailingContractReviewStatus,
-  isPreciseWorkflowRecoveryEvidence,
 } from "../temporal/recovery-classification";
 import {
   fireSignalAndRefresh,
   getChangeHandle,
   MutationApplicationUnconfirmedError,
 } from "./_adapters";
-import {
-  classifyCompletedOrPoisonedRecovery,
-  logRecoveryProbeDiagnostics,
-  shouldTakeRecoveryBranch,
-  workflowHasPoisonedRecoveryEvidence,
-} from "./recovery-probe";
+import { logRecoveryProbeDiagnostics } from "./recovery-probe";
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -49,11 +44,13 @@ const targetArgs = {
   confirmationEvidence: z.string().optional(),
 };
 
-const recoveryArgs = {
-  recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
-  recoveryEvidence: z.string().optional(),
-  recoveryReason: z.string().optional(),
-  priorApprovalEvidence: z.string().optional(),
+const priorApprovalEvidenceArg = {
+  priorApprovalEvidence: z
+    .string()
+    .optional()
+    .describe(
+      "Optional prior approval evidence for audit continuity when recovery follows a gate/acceptance approval.",
+    ),
 };
 
 async function withContractStore<T>(
@@ -157,28 +154,6 @@ async function healthySignalHandle(store: Store, changeId: string) {
   const projectId = await getProjectId(store.paths.root);
   if (!projectId) throw new Error("Could not resolve project ID");
   return getChangeHandle(bundle.client, projectId, changeId);
-}
-
-function recoveryEvidenceError(input: {
-  recoveryMode?: "normal" | "poisoned_history";
-  recoveryEvidence?: string;
-  recoveryReason?: string;
-  priorApprovalEvidence?: string;
-}): string | undefined {
-  if (
-    input.recoveryMode === "poisoned_history" &&
-    !input.recoveryEvidence?.trim()
-  ) {
-    return "poisoned_history recovery requires non-empty recoveryEvidence";
-  }
-  if (
-    input.recoveryMode === "poisoned_history" &&
-    input.recoveryEvidence &&
-    !isPreciseWorkflowRecoveryEvidence(input.recoveryEvidence)
-  ) {
-    return "poisoned_history recoveryEvidence must cite precise poisoned-history or completed-workflow evidence";
-  }
-  return undefined;
 }
 
 async function bestEffortRefresh(
@@ -290,7 +265,7 @@ function hasSuppliedReviewMatrix(
 export const contractTools = {
   adv_contract_mint: {
     description:
-      "Mint a typed ChangeContract from the approved agreement artifact and persist it through the contractSetSignal path. Recovery mode is explicit/audited and reserved for poisoned-history repair.",
+      "Mint a typed ChangeContract from the approved agreement artifact and persist it through the contractSetSignal path. Recovery is classified internally from machine evidence (D4/AC5).",
     args: {
       changeId: z.string().describe("Change ID to mint a contract for"),
       rigor: ContractRigorSchema.optional().describe(
@@ -312,7 +287,7 @@ export const contractTools = {
         .describe(
           "Optional ISO approval timestamp for the approved agreement. Defaults to discovery completion timestamp, or now when minting before discovery completion.",
         ),
-      ...recoveryArgs,
+      ...priorApprovalEvidenceArg,
       ...targetArgs,
     },
     execute: async (
@@ -322,9 +297,6 @@ export const contractTools = {
         dryRun?: boolean;
         force?: boolean;
         approvedAt?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
-        recoveryReason?: string;
         priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
@@ -334,8 +306,6 @@ export const contractTools = {
     ) =>
       withContractStore(store, args, async (activeStore, projectContext) => {
         try {
-          const recoveryError = recoveryEvidenceError(args);
-          if (recoveryError) return formatToolOutput({ error: recoveryError });
           const change = await loadChange(activeStore, args.changeId);
           if (change.contract && !args.dryRun && !args.force) {
             return formatToolOutput({
@@ -367,34 +337,42 @@ export const contractTools = {
             });
           }
           const handle = await healthySignalHandle(activeStore, args.changeId);
-          // rq-extend-poisoned-recovery AC5 (probe-first): when the operator
-          // supplies precise poisoned-history evidence, take the disk-direct
-          // recovery branch BEFORE firing the signal. Temporal signals are
-          // fire-and-forget server-acceptance; they silently resolve on
-          // poisoned replay, so the catch-branch below is unreachable for the
-          // common poison case (issue #198, #253). describe() diagnostics are
-          // advisory only; recovery authority comes solely from operator-
-          // supplied recoveryEvidence (validated by shouldTakeRecoveryBranch).
-          if (shouldTakeRecoveryBranch(args)) {
-            await logRecoveryProbeDiagnostics(handle, args.changeId);
-            await saveRecoveredContract({
-              store: activeStore,
-              change,
-              contract,
-              diskDirect: true,
+          // D4 internal classification (rq-internalMonotonicRecovery01):
+          // probe describe() to auto-classify poison/missing workflow without
+          // operator-supplied recoveryMode/evidence (AC5/SC3).
+          {
+            const internalDecision = await classifyMutationRecoveryDecision({
+              handle,
             });
-            return formatToolOutput({
-              success: true,
-              changeId: args.changeId,
-              itemCount: contract.items.length,
-              contractIds: contract.items.map((item) => item.id),
-              _recoveryMutation: true,
-              recovered: true,
-              recoveryMode: "poisoned_history",
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
+            if (internalDecision.kind === "recover_via_disk") {
+              await logRecoveryProbeDiagnostics(handle, args.changeId);
+              await saveRecoveredContract({
+                store: activeStore,
+                change,
+                contract,
+                diskDirect: internalDecision.authority === "workflow_completed",
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                itemCount: contract.items.length,
+                contractIds: contract.items.map((item) => item.id),
+                _recoveryMutation: true,
+                recovered: true,
+                recoveryMode: "poisoned_history",
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            if (internalDecision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely mint contract: ${internalDecision.detail}`,
+                code: "CONTRACT_MINT_OPERATOR_REQUIRED",
+                cause: internalDecision.cause,
+                changeId: args.changeId,
+              });
+            }
           }
           try {
             await fireSignalAndRefresh(
@@ -405,55 +383,43 @@ export const contractTools = {
               { contract, updatedAt: new Date().toISOString() },
             );
           } catch (signalError) {
-            // rq-fix-gate-tools-recovery AC3: poisoned-history mint recovers
-            // when EITHER the signal error matches the legacy regex OR the
-            // workflow's own describe carries poisoned evidence.
-            if (args.recoveryMode === "poisoned_history") {
-              const { completedWorkflow, recover } =
-                await classifyCompletedOrPoisonedRecovery(handle, signalError);
-              if (recover) {
-                await saveRecoveredContract({
-                  store: activeStore,
-                  change,
-                  contract,
-                  diskDirect: completedWorkflow,
-                });
-                return formatToolOutput({
-                  success: true,
-                  changeId: args.changeId,
-                  itemCount: contract.items.length,
-                  contractIds: contract.items.map((item) => item.id),
-                  _recoveryMutation: true,
-                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                  ...(projectContext
-                    ? { _projectContext: projectContext }
-                    : {}),
-                });
-              }
+            // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+            // signal-error recovery is classified internally from the signal
+            // error + describe() evidence via the unified classifier — no
+            // operator-supplied recovery args.
+            const decision = await classifyMutationRecoveryDecision({
+              signalError,
+              handle,
+            });
+            if (decision.kind === "recover_via_disk") {
+              await saveRecoveredContract({
+                store: activeStore,
+                change,
+                contract,
+                diskDirect: decision.authority === "workflow_completed",
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                itemCount: contract.items.length,
+                contractIds: contract.items.map((item) => item.id),
+                _recoveryMutation: true,
+                recovered: true,
+                recoveryMode: "poisoned_history",
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            if (decision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely mint contract: ${decision.detail}`,
+                code: "CONTRACT_MINT_OPERATOR_REQUIRED",
+                cause: decision.cause,
+                changeId: args.changeId,
+              });
             }
             throw signalError;
-          }
-          // rq-fix-gate-tools-recovery AC3: if signal "succeeded" but the
-          // workflow is in fact poisoned (signal silently ignored), persist
-          // the contract to the disk projection so subsequent reads see it.
-          if (
-            args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedRecoveryEvidence(handle))
-          ) {
-            await saveRecoveredContract({
-              store: activeStore,
-              change,
-              contract,
-            });
-            return formatToolOutput({
-              success: true,
-              changeId: args.changeId,
-              itemCount: contract.items.length,
-              contractIds: contract.items.map((item) => item.id),
-              _recoveryMutation: true,
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
           }
           return formatToolOutput({
             success: true,
@@ -492,7 +458,7 @@ export const contractTools = {
         .boolean()
         .optional()
         .describe("Preview the review matrix without writing or signaling."),
-      ...recoveryArgs,
+      ...priorApprovalEvidenceArg,
       ...targetArgs,
     },
     execute: async (
@@ -502,9 +468,6 @@ export const contractTools = {
         rows?: z.infer<typeof reviewMatrixRowSchema>[];
         reviewMatrix?: ContractReviewMatrix;
         dryRun?: boolean;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
-        recoveryReason?: string;
         priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
@@ -514,20 +477,6 @@ export const contractTools = {
     ) =>
       withContractStore(store, args, async (activeStore, projectContext) => {
         try {
-          const recoveryError = recoveryEvidenceError(args);
-          if (recoveryError) return formatToolOutput({ error: recoveryError });
-          if (
-            args.recoveryMode === "poisoned_history" &&
-            (!args.recoveryReason?.trim() ||
-              !args.priorApprovalEvidence?.trim())
-          ) {
-            return formatToolOutput({
-              error:
-                "review matrix recovery requires recoveryReason and priorApprovalEvidence",
-              changeId: args.changeId,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          }
           const change = await loadChange(activeStore, args.changeId);
           if (!change.contract) {
             return formatToolOutput({
@@ -581,40 +530,46 @@ export const contractTools = {
           }
           const handle = await healthySignalHandle(activeStore, args.changeId);
           const mutationReceiptId = `mrec_${randomUUID()}`;
-          // rq-extend-poisoned-recovery AC5 (probe-first): when the operator
-          // supplies precise poisoned-history evidence, take the disk-direct
-          // recovery branch BEFORE firing the signal. See the matching block
-          // in adv_contract_mint for the full rationale. review-matrix
-          // recovery already required recoveryReason + priorApprovalEvidence
-          // upstream, so authorization is fully populated here.
-          if (shouldTakeRecoveryBranch(args)) {
-            await logRecoveryProbeDiagnostics(handle, args.changeId);
-            await saveRecoveredReviewMatrix({
-              store: activeStore,
-              change,
-              reviewMatrix,
-              authorization: {
-                reason: args.recoveryReason ?? "review_matrix_recovery",
-                evidence:
-                  args.recoveryEvidence ??
-                  "operator-supplied poisoned evidence",
-              },
-              diskDirect: true,
+          // D4 internal classification (rq-internalMonotonicRecovery01).
+          {
+            const internalDecision = await classifyMutationRecoveryDecision({
+              handle,
             });
-            return formatToolOutput({
-              success: true,
-              changeId: args.changeId,
-              rowCount: reviewMatrix.rows.length,
-              failingRows: reviewMatrix.rows.filter((row) =>
-                isFailingContractReviewStatus(row.status),
-              ).length,
-              _recoveryMutation: true,
-              recovered: true,
-              recoveryMode: "poisoned_history",
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
+            if (internalDecision.kind === "recover_via_disk") {
+              await logRecoveryProbeDiagnostics(handle, args.changeId);
+              await saveRecoveredReviewMatrix({
+                store: activeStore,
+                change,
+                reviewMatrix,
+                authorization: {
+                  reason: internalDecision.reason,
+                  evidence: internalDecision.evidence,
+                },
+                diskDirect: internalDecision.authority === "workflow_completed",
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                rowCount: reviewMatrix.rows.length,
+                failingRows: reviewMatrix.rows.filter((row) =>
+                  isFailingContractReviewStatus(row.status),
+                ).length,
+                _recoveryMutation: true,
+                recovered: true,
+                recoveryMode: "poisoned_history",
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            if (internalDecision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely set review matrix: ${internalDecision.detail}`,
+                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
+                cause: internalDecision.cause,
+                changeId: args.changeId,
+              });
+            }
           }
           try {
             await fireSignalAndRefresh(
@@ -638,67 +593,48 @@ export const contractTools = {
                 ...(projectContext ? { _projectContext: projectContext } : {}),
               });
             }
-            // rq-fix-gate-tools-recovery AC4: review-matrix poisoned recovery
-            // also runs when describe carries poisoned evidence.
-            if (args.recoveryMode === "poisoned_history") {
-              const { completedWorkflow, recover } =
-                await classifyCompletedOrPoisonedRecovery(handle, signalError);
-              if (recover) {
-                await saveRecoveredReviewMatrix({
-                  store: activeStore,
-                  change,
-                  reviewMatrix,
-                  authorization: {
-                    reason: args.recoveryReason ?? "review_matrix_recovery",
-                    evidence: args.recoveryEvidence ?? String(signalError),
-                  },
-                  diskDirect: completedWorkflow,
-                });
-                return formatToolOutput({
-                  success: true,
-                  changeId: args.changeId,
-                  rowCount: reviewMatrix.rows.length,
-                  failingRows: reviewMatrix.rows.filter((row) =>
-                    isFailingContractReviewStatus(row.status),
-                  ).length,
-                  _recoveryMutation: true,
-                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                  ...(projectContext
-                    ? { _projectContext: projectContext }
-                    : {}),
-                });
-              }
+            // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+            // signal-error recovery is classified internally from the signal
+            // error + describe() evidence via the unified classifier.
+            const decision = await classifyMutationRecoveryDecision({
+              signalError,
+              handle,
+            });
+            if (decision.kind === "recover_via_disk") {
+              await saveRecoveredReviewMatrix({
+                store: activeStore,
+                change,
+                reviewMatrix,
+                authorization: {
+                  reason: decision.reason,
+                  evidence: decision.evidence,
+                },
+                diskDirect: decision.authority === "workflow_completed",
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                rowCount: reviewMatrix.rows.length,
+                failingRows: reviewMatrix.rows.filter((row) =>
+                  isFailingContractReviewStatus(row.status),
+                ).length,
+                _recoveryMutation: true,
+                recovered: true,
+                recoveryMode: "poisoned_history",
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            if (decision.kind === "operator_required") {
+              return formatToolOutput({
+                error: `Cannot safely set review matrix: ${decision.detail}`,
+                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
+                cause: decision.cause,
+                changeId: args.changeId,
+              });
             }
             throw signalError;
-          }
-          // rq-fix-gate-tools-recovery AC4: persist when signal "succeeded"
-          // but workflow is in fact poisoned.
-          if (
-            args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedRecoveryEvidence(handle))
-          ) {
-            await saveRecoveredReviewMatrix({
-              store: activeStore,
-              change,
-              reviewMatrix,
-              authorization: {
-                reason: args.recoveryReason ?? "review_matrix_recovery",
-                evidence:
-                  args.recoveryEvidence ??
-                  "poisoned workflow describe evidence",
-              },
-            });
-            return formatToolOutput({
-              success: true,
-              changeId: args.changeId,
-              rowCount: reviewMatrix.rows.length,
-              failingRows: reviewMatrix.rows.filter((row) =>
-                isFailingContractReviewStatus(row.status),
-              ).length,
-              _recoveryMutation: true,
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
           }
           return formatToolOutput({
             success: true,

@@ -78,6 +78,7 @@ import type {
   ChangeWorkflowState,
   SignalRejection,
 } from "../../temporal/contracts";
+import { computeCreationRequestHash } from "./creation-hash";
 
 const logger = createLogger("store-temporal-changes");
 
@@ -253,6 +254,25 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const initialMetadata = options?.initialMetadata;
       const epicMembership = initialMetadata?.epic_membership;
 
+      // rq-creationRequestHash01 (tk-74c358188ffb, design D2 / AC4 / AC11):
+      // compute the canonical creation-request hash from stable identity
+      // fields. Threaded into seedState (so the workflow records it once at
+      // start) and into ChangeWorkflowInput.creationRequestHash (so the
+      // "already started" recovery path can reconcile retries against the
+      // original request — closes the post-commit-timeout duplicate-
+      // creation defect class). The hash is also stamped on the disk
+      // projection below so disk-first readers see it without a workflow
+      // query round-trip.
+      const creationRequestHash = computeCreationRequestHash({
+        summary,
+        capability,
+        origin: initialMetadata?.origin,
+        fast_follow_of: initialMetadata?.fast_follow_of,
+        cross_project_origin: initialMetadata?.cross_project_origin,
+        scope_repos: initialMetadata?.scope_repos,
+        epic_membership_seed: epicMembership,
+      });
+
       // Layer 1 size validation (KD-8 layer 1). Fails fast before any
       // disk write or signal fires. Layer 2 (signal-handler state-mutation
       // rejection) in T8 enforces structurally inside the workflow.
@@ -315,6 +335,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           // ensureChangeWorkflowStarted can route to advance-{projectId}-{sess}.
           // Undefined falls back to project queue (legacy / pre-init / tests).
           sessionId: getCurrentSessionId(),
+          // rq-creationRequestHash01: enables the "already started" hash
+          // reconciliation. Without this, the existing workflow's handle
+          // is returned silently on retry — masking any divergence between
+          // the original and retried request.
+          creationRequestHash,
           seedState: {
             status: created.data.status,
             tasks: created.data.tasks,
@@ -330,10 +355,18 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             // first read sees it; lazy migration (A4) covers legacy changes
             // that pre-date this field.
             worktree_auto_managed: true,
+            // rq-creationRequestHash01: stamp the hash onto the workflow
+            // state so future retries / Continue-As-New can reconcile.
+            creation_request_hash: creationRequestHash,
             ...(epicMembership ? { epic_membership: epicMembership } : {}),
           },
         });
       } catch (err) {
+        // rq-creationRequestHash01: a hash conflict is a deterministic,
+        // caller-induced refusal — the just-written disk scaffold must be
+        // rolled back so a subsequent same-summary create with the ORIGINAL
+        // request can still succeed. Treat the same as any Temporal-start
+        // failure for P1.4 purposes.
         try {
           await removeChangeDir(legacy.paths.changes, created.data.id);
         } catch (rollbackErr) {
@@ -358,6 +391,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // handler projection writes it back. Sticky on the workflow side
         // via applyWorktreeAutoManagedToState.
         worktree_auto_managed: true,
+        // rq-creationRequestHash01: persist hash on the disk projection so
+        // disk-first readers (legacy fallback, archive bundle hydration)
+        // can reconcile without a workflow query round-trip.
+        creation_request_hash: creationRequestHash,
       };
       try {
         await legacy.changes.save(changeWithOwner);
@@ -1271,7 +1308,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // rq-crossSessionCacheConsistency01 / status-repair-parity: warm-path
       // summaries must not serve stale active cache/memo entries after an
       // archive bundle has been written (e.g. adv_change_archive or
-      // adv_change_status_repair). Mirror the Layer A1 pre-scan from
+      // adv_doctor). Mirror the Layer A1 pre-scan from
       // listResolvedChanges: invalidate any non-terminal cached/memo entry
       // whose change now has an archive bundle, so the next read rehydrates
       // from the durable terminal record.

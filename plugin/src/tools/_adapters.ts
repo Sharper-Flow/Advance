@@ -561,3 +561,76 @@ export async function isChangeReachable(
 
   return false;
 }
+
+// rq-activeChangePointer01 / rq-doctorConsolidation01 (option B):
+/**
+ * Tri-state phantom probe result. Unlike {@link isChangeReachable} which
+ * collapses "confirmed absent" and "probe failed" into `false`, this type
+ * preserves the distinction so the doctor can clear a phantom pointer ONLY
+ * on confirmed-absent evidence and refuse on indeterminate.
+ */
+export type PhantomProbeResult =
+  | { status: "confirmed_absent"; evidence: string }
+  | { status: "confirmed_present"; evidence: string }
+  | { status: "indeterminate"; evidence: string };
+
+/**
+ * Tri-state phantom probe for a changeId.
+ *
+ * Returns `confirmed_absent` only when ALL three tiers EXPLICITLY report
+ * absence (not-found / empty result). If ANY tier throws an error (transport
+ * failure, timeout, schema error), returns `indeterminate` — the change may
+ * exist but the probe couldn't confirm it, so the caller must NOT clear.
+ *
+ * Short-circuits to `confirmed_present` on the first tier that finds the
+ * change.
+ *
+ * Pure: all I/O is injected via `deps`.
+ */
+export async function probeChangePhantomStatus(
+  projectId: string,
+  changeId: string,
+  deps: ReachabilityDeps,
+  changesDir: string,
+): Promise<PhantomProbeResult> {
+  const tiers = [
+    {
+      name: "visibility",
+      probe: () => deps.visibilityLister(projectId, changeId),
+    },
+    {
+      name: "disk",
+      probe: () => deps.diskChecker(changesDir, changeId),
+    },
+    {
+      name: "workflow-state",
+      probe: () => deps.workflowStateGetter(changeId),
+    },
+  ];
+
+  const absentEvidence: string[] = [];
+
+  for (const tier of tiers) {
+    let result: boolean;
+    try {
+      result = await tier.probe();
+    } catch {
+      return {
+        status: "indeterminate",
+        evidence: `tier '${tier.name}' threw — cannot confirm absence`,
+      };
+    }
+    if (result) {
+      return {
+        status: "confirmed_present",
+        evidence: `tier '${tier.name}' confirmed change exists`,
+      };
+    }
+    absentEvidence.push(tier.name);
+  }
+
+  return {
+    status: "confirmed_absent",
+    evidence: `all tiers reported absent: ${absentEvidence.join(", ")}`,
+  };
+}

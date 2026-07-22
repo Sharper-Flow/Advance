@@ -79,7 +79,7 @@ describe("appendArchivedBranchHygieneRecommendations", () => {
       "archived_branches",
     );
     expect(status.archived_branch_hygiene.recommendation).not.toContain(
-      "adv_archive_repair",
+      "retired_archive_repair_marker",
     );
   });
 

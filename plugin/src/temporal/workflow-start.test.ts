@@ -3,6 +3,10 @@ import {
   ensureChangeWorkflowStarted,
   reImportChangeState,
 } from "./workflow-start";
+import {
+  ChangeCreationHashConflictError,
+  CREATION_HASH_CONFLICT_CODE,
+} from "../storage/store-temporal/creation-hash";
 import type { Change } from "../types";
 
 const contract: NonNullable<Change["contract"]> = {
@@ -122,7 +126,7 @@ describe("ensureChangeWorkflowStarted", () => {
       projectId: "pid-abc",
       changeId: "legacyRoute",
       title: "Legacy route",
-      initializedAt: "2026-07-21T00:00:00.000Z",
+      initializedAt: "2026-07-21T00:00:00Z",
       // sessionId intentionally omitted
     });
 
@@ -132,6 +136,153 @@ describe("ensureChangeWorkflowStarted", () => {
         taskQueue: "advance-pid-abc",
       }),
     );
+  });
+
+  describe("creation_request_hash idempotency on already-started path (rq-creationRequestHash01, tk-74c358188ffb)", () => {
+    function buildClient(existingState: { creation_request_hash?: string }) {
+      const existingHandle = {
+        query: vi.fn().mockResolvedValue(existingState),
+      };
+      // Start throws "already started" → ensureChangeWorkflowStarted must
+      // fall through to getHandle().query(getStateQuery).
+      const start = vi.fn().mockImplementation(() => {
+        const err = new Error(
+          "Workflow execution already started as 'changeId', runId 'run-1'",
+        );
+        err.name = "WorkflowExecutionAlreadyStarted";
+        throw err;
+      });
+      const getHandle = vi.fn().mockReturnValue(existingHandle);
+      return {
+        client: { workflow: { start, getHandle } },
+        existingHandle,
+        start,
+        getHandle,
+      };
+    }
+
+    test("idempotent match: same hash returns the existing handle, does not start a new workflow", async () => {
+      const hash =
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+      const { client, existingHandle, start, getHandle } = buildClient({
+        creation_request_hash: hash,
+      });
+
+      const returned = await ensureChangeWorkflowStarted(client, {
+        projectId: "pid-abc",
+        changeId: "retryAfterTimeout",
+        title: "Retry after timeout",
+        initializedAt: "2026-07-22T00:00:00.000Z",
+        creationRequestHash: hash,
+      });
+
+      expect(getHandle).toHaveBeenCalledTimes(1);
+      expect(existingHandle.query).toHaveBeenCalledTimes(1);
+      expect(returned).toBe(existingHandle);
+      // The original start attempt threw already-started; no second start.
+      expect(start).toHaveBeenCalledTimes(1);
+    });
+
+    test("hash conflict: differing hash throws ChangeCreationHashConflictError before any state mutation", async () => {
+      const existingHash =
+        "1111111111111111111111111111111111111111111111111111111111111111";
+      const computedHash =
+        "2222222222222222222222222222222222222222222222222222222222222222";
+      const { client } = buildClient({
+        creation_request_hash: existingHash,
+      });
+
+      await expect(
+        ensureChangeWorkflowStarted(client, {
+          projectId: "pid-abc",
+          changeId: "sameSummaryDiffCapability",
+          title: "Same summary diff capability",
+          initializedAt: "2026-07-22T00:00:00.000Z",
+          creationRequestHash: computedHash,
+        }),
+      ).rejects.toMatchObject({
+        code: CREATION_HASH_CONFLICT_CODE,
+        existingHash,
+        computedHash,
+        changeId: "sameSummaryDiffCapability",
+      });
+
+      // Also satisfies instanceof for callers that key off the typed Error.
+      await expect(
+        ensureChangeWorkflowStarted(client, {
+          projectId: "pid-abc",
+          changeId: "sameSummaryDiffCapability",
+          title: "Same summary diff capability",
+          initializedAt: "2026-07-22T00:00:00.000Z",
+          creationRequestHash: computedHash,
+        }),
+      ).rejects.toBeInstanceOf(ChangeCreationHashConflictError);
+    });
+
+    test("backward compat: existing workflow with no hash is treated as first-creation (no conflict)", async () => {
+      // Legacy workflows predating this field have undefined creation_request_hash.
+      // Idempotency check should not block — treat as first_creation.
+      const computedHash =
+        "3333333333333333333333333333333333333333333333333333333333333333";
+      const { client, existingHandle } = buildClient({
+        // creation_request_hash omitted
+      });
+
+      const returned = await ensureChangeWorkflowStarted(client, {
+        projectId: "pid-abc",
+        changeId: "legacyWorkflowRetry",
+        title: "Legacy workflow retry",
+        initializedAt: "2026-07-22T00:00:00.000Z",
+        creationRequestHash: computedHash,
+      });
+
+      expect(returned).toBe(existingHandle);
+    });
+
+    test("omits hash check when caller does not supply creationRequestHash (backward compat)", async () => {
+      const { client, existingHandle } = buildClient({
+        creation_request_hash: "some-legacy-hash",
+      });
+
+      const returned = await ensureChangeWorkflowStarted(client, {
+        projectId: "pid-abc",
+        changeId: "callerDidNotCompute",
+        title: "Caller did not compute",
+        initializedAt: "2026-07-22T00:00:00.000Z",
+        // creationRequestHash intentionally omitted
+      });
+
+      // Pre-existing behavior preserved: silent reuse, no state query.
+      expect(returned).toBe(existingHandle);
+      expect(existingHandle.query).not.toHaveBeenCalled();
+    });
+
+    test("query failure surfaces (does not silently mask as idempotent)", async () => {
+      const hash =
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+      const existingHandle = {
+        query: vi.fn().mockRejectedValue(new Error("query timeout")),
+      };
+      const start = vi.fn().mockImplementation(() => {
+        const err = new Error("Workflow execution already started");
+        err.name = "WorkflowExecutionAlreadyStarted";
+        throw err;
+      });
+      const getHandle = vi.fn().mockReturnValue(existingHandle);
+      const client = { workflow: { start, getHandle } };
+
+      // A query failure must not be swallowed as "idempotent match".
+      // Surface so the caller / P1.4 rollback can react.
+      await expect(
+        ensureChangeWorkflowStarted(client, {
+          projectId: "pid-abc",
+          changeId: "queryFailureSurfaces",
+          title: "Query failure surfaces",
+          initializedAt: "2026-07-22T00:00:00.000Z",
+          creationRequestHash: hash,
+        }),
+      ).rejects.toThrow(/query timeout/);
+    });
   });
 });
 

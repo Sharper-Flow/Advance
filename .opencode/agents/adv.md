@@ -34,24 +34,21 @@ tools:
   # Specs + project context
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_archive_purge: true
-  adv_archive_repair: true
   adv_backlog_add: true
   adv_backlog_archive: true
   adv_backlog_list: true
   adv_backlog_promote: true
-  # Roadmap
   adv_backlog_show: true
+  # Roadmap
   adv_change_archive: true
   adv_change_bulk_close: true
   adv_change_close: true
   adv_change_create: true
-  adv_change_forget: true
-  # Changes
   adv_change_list: true
   adv_change_reenter: true
+  # Changes
   adv_change_repair_origin: true
   adv_change_show: true
-  adv_change_status_repair: true
   adv_change_update: true
   adv_change_update_issues: true
   adv_change_validate: true
@@ -66,65 +63,60 @@ tools:
   adv_delta_remove: true
   adv_delta_rename: true
   adv_delta_retract: true
-  # Tasks
   adv_delta_show: true
   adv_design_concern_disposition: true
+  adv_doctor: true
+  # Tasks
   adv_epic_add_shell: true
   adv_epic_create: true
   adv_epic_link_change: true
   adv_epic_list: true
   adv_epic_move_change: true
   adv_epic_promote_shell: true
-  # Wisdom
   adv_epic_reorder: true
-  adv_epic_repair_membership: true
-  # Gates
   adv_epic_retire: true
+  # Wisdom
   adv_epic_show: true
   adv_epic_unlink_change: true
+  # Gates
   adv_epic_update: true
   adv_followup_promote: true
   adv_gate_complete: true
-  # Sub-agent reports
   adv_gate_status: true
-  # Ops follow-ups
   adv_lightweight_profile_evaluate: true
   adv_ops_evidence_add: true
+  # Sub-agent reports
   adv_ops_run_evidence_add: true
+  # Ops follow-ups
   adv_ops_run_upsert: true
   adv_project_context: true
-  # Temporal / workflow ops
   adv_project_metadata: true
   adv_reflect: true
   adv_reflection_list: true
+  # Temporal / workflow ops
   adv_report_followup_promote: true
-  # Store maintenance (operator-only)
   adv_run_test: true
   adv_session_list: true
-  # Snapshot health diagnostics
   adv_session_show: true
-  # Reflection
+  # Store maintenance (operator-only)
   adv_snapshot_health: true
   adv_spec: true
+  # Snapshot health diagnostics
   adv_status: true
-  # Project metadata
+  # Reflection
   adv_store_cleanup: true
   adv_store_consolidate: true
-  # === Epics — optional initiative containers ===
   adv_subagent_report_submit: true
+  # Project metadata
   adv_task_add: true
   adv_task_cancel: true
+  # === Epics — optional initiative containers ===
   adv_task_checkpoint: true
   adv_task_list: true
   adv_task_ready: true
   adv_task_reclassify_tdd: true
   adv_task_show: true
   adv_task_update: true
-  adv_temporal_diagnose: true
-  adv_temporal_reconnect: true
-  adv_temporal_register_search_attributes: true
-  adv_temporal_worker_restart: true
-  # === Worktree — orchestrator owns lifecycle ===
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
@@ -132,6 +124,7 @@ tools:
   adv_wip_state: true
   adv_wisdom_add: true
   adv_wisdom_list: true
+  # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_cleanup: true
   adv_worktree_create: true
   adv_worktree_delete: true

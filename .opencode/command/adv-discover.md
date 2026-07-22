@@ -545,7 +545,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
    - × Do NOT hard-block discovery solely because this advisory guard fired.
 2b. Run the **Capability-Warrant Declaration** step (rq-acWarrant01) over each draft criterion:
    - A **capability-presuming** criterion — one asserting that a specific tool, tool argument, or spec requirement exists or must work — MUST carry a typed warrant tag appended to its text: `[warrant: <ref>]`, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. Comma-separate multiple refs.
-   - Example: `AC2: Cross-project repair routes through the target namespace. [warrant: tool:adv_change_status_repair#target_path]`
+   - Example: `AC2: Cross-project repair routes through the target namespace. [warrant: tool:adv_doctor#target_path]`
    - At contract mint, each declared warrant is verified against the live tool surface / spec ids; an unresolved warrant fails the mint with `CONTRACT_UNRESOLVED_WARRANT`. Declaring a warrant for a surface that does not exist (the unwarranted-criterion failure class) is therefore caught structurally.
    - **Behavioral criteria** that presume no capability surface (e.g. "returns an error when input is invalid") require **no** warrant tag — do not add ceremony (proportionality, DONT4).
    - If a criterion would presume a capability that a Phase 1.8 finding classified `unwarranted_operation`/`unverified`, do not write the criterion — resolve the classification first.
@@ -644,7 +644,7 @@ Contract rules:
   - `OOS1..n` — out-of-scope boundaries.
 - Initial items use `sourceArtifact: "agreement"`.
 - Evidence policies: `SC*` → `review`; `AC*` → `test`; `C*` → `static_check`; `DONT*` → `review`; `OOS*` → `not_applicable`.
-- Poisoned-history repair only: `adv_contract_mint recoveryMode: "poisoned_history"` + explicit `recoveryEvidence`. Repairs disk projection only; does not heal workflow history.
+- Poisoned-history recovery is internalized: `adv_contract_mint` auto-classifies the workflow state and records machine evidence internally. No public `recoveryMode` or `recoveryEvidence` arguments are required. Repairs disk projection only; does not heal workflow history.
 
 Discovery completion blocked when approved agreement lacks contract spine or projected `acceptanceCriteria` drifts from approved `AC*` items.
 

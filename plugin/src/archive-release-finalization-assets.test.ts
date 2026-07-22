@@ -50,8 +50,8 @@ describe("archive release-finalization docs/spec assets", () => {
       expect(content).toMatch(/phase9:(\\?")skip\1/);
       expect(content).toContain("release recovery");
       expect(content).toContain("archived-but-unmerged");
-      expect(content).toContain("adv_archive_repair");
     }
+    expect(specJson).toContain("adv_archive_repair");
   });
 
   test("archive command and voice expose honest remote-backed terminals", () => {
@@ -86,7 +86,7 @@ describe("archive release-finalization docs/spec assets", () => {
     expect(instructions).toContain("origin/{default-branch}");
     expect(instructions).toContain("PR + GitHub auto-merge");
     expect(instructions).toContain("Pending auto-merge.");
-    expect(instructions).toContain("adv_archive_repair");
+    expect(instructions).toContain("adv_doctor");
     expect(instructions).not.toMatch(/PR-mode branch-push handoff/i);
   });
 

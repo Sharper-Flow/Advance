@@ -1,0 +1,28 @@
+{
+  "archived_at": "2026-07-22T23:12:57.005Z",
+  "capabilities": [
+    "advance-epics",
+    "advance-meta",
+    "advance-workflow"
+  ],
+  "change_hash": "3f37e6e83ee503cbd91c4d01ae6b31b1362ac2ded07c39d4877f93314690fa4c",
+  "change_id": "replaceRecoveryToolSprawl",
+  "completed_tasks": 7,
+  "created_at": "2026-07-20T21:34:13.221Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "shell-1784579358021-wq5oxn",
+    "epic_id": "hardenTemporalReliability",
+    "linked_at": "2026-07-21T17:17:49.822Z",
+    "order": 9,
+    "source": "link_existing",
+    "title": "Replace recovery tool sprawl"
+  },
+  "last_activity_at": "2026-07-22T23:06:08.178Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "15910a1320976607292c6e303460756e1620438c221995ba5a63106528449793",
+  "task_count": 7,
+  "title": "Replace recovery tool sprawl",
+  "version": "1"
+}

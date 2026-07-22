@@ -244,7 +244,7 @@ async function executeWorktreeDelete(
         error: `adv_worktree_delete timed out after ${effectiveTimeoutMs}ms. Delete likely blocked on a stuck git operation or poisoned workflow signal.`,
         effectiveTimeoutMs,
         remediation:
-          "Retry the deletion after the underlying operation resolves. Use adv_temporal_diagnose to check workflow health.",
+          "Retry the deletion after the underlying operation resolves. Use adv_doctor to check workflow health.",
       }),
       context,
     );
@@ -368,9 +368,9 @@ async function executeWorktreeCleanup(
         success: false,
         timedOut: true,
         effectiveTimeoutMs,
-        error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote}. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_temporal_diagnose).`,
+        error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote}. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_doctor).`,
         remediation:
-          "Pass a larger timeoutMs (clamped to the safe budget) to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
+          "Pass a larger timeoutMs (clamped to the safe budget) to retry, or run adv_doctor to classify and repair the poisoned workflow first.",
       }),
       context,
     );
@@ -729,7 +729,7 @@ export const advWorktreeTools = {
 
   adv_worktree_cleanup: {
     description:
-      "Discover terminal cleanup candidates and retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued. Opt-in mode=archived_branches instead scans local change/* branches tied to archived ADV changes, detects fully-merged ones (squash-merge-safe), and deletes the safe ones — post-merge branch hygiene moved here from adv_archive_repair so every archive_repair action has a single recovery purpose.",
+      "Discover terminal cleanup candidates and retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued. Opt-in mode=archived_branches instead scans local change/* branches tied to archived ADV changes, detects fully-merged ones (squash-merge-safe), and deletes the safe ones — post-merge branch hygiene moved here from the retired archive-repair surface so worktree cleanup has a single recovery purpose.",
     args: {
       reason: z
         .string()

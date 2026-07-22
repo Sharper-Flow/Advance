@@ -66,11 +66,9 @@ describe("archive branch-cleanup surface assets", () => {
 
     const doc = read(SPEC_DOC);
     expect(doc).toMatch(/branch-merge evidence/i);
-    expect(doc).toContain("adv_change_status_repair");
 
     const instructions = read(ADV_INSTRUCTIONS);
     expect(instructions).toContain("archived_branches");
-    expect(instructions).toContain("adv_change_status_repair");
   });
 
   test("runtime surface: archive_repair drops cleanup_merged; worktree cleanup exposes archived_branches", () => {

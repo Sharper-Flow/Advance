@@ -166,8 +166,6 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_task_checkpoint",
   // Gate mutation
   "adv_gate_complete",
-  // Temporal
-  "adv_temporal_worker_restart",
   // Worktree mutations
   "adv_worktree_create",
   "adv_worktree_delete",

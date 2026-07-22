@@ -126,7 +126,7 @@ Use these tools to see other sessions working in the same project:
 | `adv_status`                    | Includes Peer Sessions section with session_id + started_at + worktree-basename (privacy-defensive — no PID, no full path) |
 | `adv_session_list`              | List all peer sessions in same project                                                                                     |
 | `adv_session_show <session_id>` | Own-session details (full info for current session only)                                                                   |
-| `adv_temporal_diagnose`         | Includes peer count, worker-lock holder PID, project workflow presence                                                     |
+| `adv_doctor`                    | Includes peer count, worker-lock holder PID, project workflow presence, plus automatic safe-fix/verify                       |
 
 ## Triaging Drift
 

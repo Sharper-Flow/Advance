@@ -192,7 +192,7 @@ export async function saveRecoveredArtifactMetadata(input: {
  * Without this, a stale literal `lifecycleState:"open"` on disk would
  * survive `status:"archived"` writes because `normalizeChangeLifecycleState`
  * trusts the stored literal before deriving from status. Existing status-only
- * callers (adv_change_status_repair) continue to omit `lifecycleState` and
+ * callers (internal recovery writers) continue to omit `lifecycleState` and
  * remain compatible; their recovery does not converge live-workflow
  * authority.
  */

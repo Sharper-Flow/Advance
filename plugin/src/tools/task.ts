@@ -80,52 +80,13 @@ import {
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
 import type { Change } from "../types";
-import {
-  RECOVERY_RECONCILIATION_WARNING,
-  isPrecisePoisonedHistoryEvidence,
-} from "../temporal/recovery-classification";
-import {
-  workflowHasPoisonedRecoveryEvidence,
-  shouldTakeRecoveryBranch,
-  logRecoveryProbeDiagnostics,
-} from "./recovery-probe";
+import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
+import { logRecoveryProbeDiagnostics } from "./recovery-probe";
 import {
   saveRecoveredTaskAdd,
   saveRecoveredTaskMutation,
 } from "./_recovery-writers";
-
-/**
- * rq-extend-poisoned-recovery: validate that callers using
- * `recoveryMode: poisoned_history` provide non-empty, precise evidence.
- * Returns an error message or undefined if validation passes.
- */
-function validateTaskRecoveryArgs(args: {
-  recoveryMode?: "normal" | "poisoned_history";
-  recoveryEvidence?: string;
-}): string | undefined {
-  if (args.recoveryMode !== "poisoned_history") return undefined;
-  if (!args.recoveryEvidence || !args.recoveryEvidence.trim()) {
-    return "poisoned_history recovery requires non-empty recoveryEvidence";
-  }
-  if (!isPrecisePoisonedHistoryEvidence(args.recoveryEvidence)) {
-    return "poisoned_history recoveryEvidence must cite precise poisoned-history evidence (TMPRL1100 / Nondeterminism / NonDeterministic / WorkflowExecutionUpdateAccepted / No command scheduled)";
-  }
-  return undefined;
-}
-
-const RecoveryModeSchema = z
-  .enum(["normal", "poisoned_history"])
-  .optional()
-  .describe(
-    "Optional recovery mode for poisoned-history workflows. Default 'normal'. 'poisoned_history' authorizes a disk-projection fallback when the workflow signal fails AND workflow describe reports poisoned evidence; requires recoveryEvidence.",
-  );
-
-const RecoveryEvidenceSchema = z
-  .string()
-  .optional()
-  .describe(
-    "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history evidence (e.g. cause=WorkflowTaskFailedCauseNonDeterministicError or TMPRL1100).",
-  );
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 
 // =============================================================================
 // Helpers
@@ -746,8 +707,6 @@ export const taskTools = {
         .describe(
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
-      recoveryMode: RecoveryModeSchema,
-      recoveryEvidence: RecoveryEvidenceSchema,
       ...includeSnapshotSchema.shape,
     },
     execute: async (
@@ -762,8 +721,6 @@ export const taskTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
         evidence_policy?: import("../types").ContractEvidencePolicy;
         evidence_rationale?: string;
         proof_target?: string;
@@ -771,10 +728,6 @@ export const taskTools = {
       },
       store: Store,
     ) => {
-      const recoveryError = validateTaskRecoveryArgs(args);
-      if (recoveryError) {
-        return formatToolOutput({ error: recoveryError });
-      }
       const evidenceRepairRequested =
         args.evidence_policy !== undefined ||
         args.evidence_rationale !== undefined ||
@@ -981,29 +934,38 @@ export const taskTools = {
           };
         }
 
-        if (
-          args.status === "done" &&
-          !shouldPatchExistingDoneTask &&
-          args.recoveryMode !== "poisoned_history"
-        ) {
-          return formatToolOutput({
-            error:
-              "Normal task completion must go through adv_task_checkpoint so git checkpoint metadata, touched files, and verification are recorded before the task is marked done.",
-            code: "TASK_DONE_REQUIRES_CHECKPOINT",
-            hint: "Run adv_task_checkpoint with mode:'complete'. Use adv_task_update status:'done' only for explicit poisoned-history recovery with recovery evidence, or to patch an already-done task's metadata/contract refs.",
-            changeId,
-            taskId: args.taskId,
+        if (args.status === "done" && !shouldPatchExistingDoneTask) {
+          // D4 internal classification (rq-internalMonotonicRecovery01):
+          // allow the done-check to be bypassed when describe() confirms the
+          // workflow is poisoned/completed. The probe is only paid on
+          // recovery-shaped calls (status:done via adv_task_update); normal
+          // completion routes through adv_task_checkpoint.
+          const internalDecision = await classifyMutationRecoveryDecision({
+            handle,
           });
+          if (internalDecision.kind !== "recover_via_disk") {
+            return formatToolOutput({
+              error:
+                "Normal task completion must go through adv_task_checkpoint so git checkpoint metadata, touched files, and verification are recorded before the task is marked done.",
+              code: "TASK_DONE_REQUIRES_CHECKPOINT",
+              hint: "Run adv_task_checkpoint with mode:'complete'. Use adv_task_update status:'done' only to patch an already-done task's metadata/contract refs, or after recovering workflow reachability via adv_doctor.",
+              changeId,
+              taskId: args.taskId,
+              ...(internalDecision.kind === "operator_required"
+                ? {
+                    cause: internalDecision.cause,
+                    detail: internalDecision.detail,
+                  }
+                : {}),
+            });
+          }
         }
 
-        // rq-extend-poisoned-recovery AC1 (probe-first): when the operator
-        // supplies precise poisoned-history evidence, take the disk-direct
-        // recovery branch BEFORE firing the signal. Temporal signals are
-        // fire-and-forget server-acceptance; they silently resolve on poisoned
-        // replay, so the catch-branch below is unreachable for the common
-        // poison case (issue #198, #253). describe() diagnostics are advisory
-        // only; recovery authority comes solely from operator-supplied
-        // recoveryEvidence (validated by shouldTakeRecoveryBranch).
+        // D4 internal classification (rq-internalMonotonicRecovery01):
+        // probe describe() to detect poisoned/completed workflows automatically.
+        // Removes the evidence-copy ceremony from routine callers (AC5/SC3);
+        // destructive/competing-authority cases still refuse with a typed
+        // operator-required result (AC6).
         let recoveredViaPoisoned = false;
         const mutateRecoveredTask = (task: Task) => {
           const patch: Partial<Task> = {
@@ -1051,7 +1013,10 @@ export const taskTools = {
           }
           return { ...task, ...patch } as Task;
         };
-        if (shouldTakeRecoveryBranch(args)) {
+        const internalDecision = await classifyMutationRecoveryDecision({
+          handle,
+        });
+        if (internalDecision.kind === "recover_via_disk") {
           await logRecoveryProbeDiagnostics(handle, changeId);
           const changeResult = await activeStore.changes.get(changeId);
           if (!changeResult.success || !changeResult.data) {
@@ -1066,6 +1031,15 @@ export const taskTools = {
             mutate: mutateRecoveredTask,
           });
           recoveredViaPoisoned = true;
+        } else if (internalDecision.kind === "operator_required") {
+          return formatToolOutput({
+            error: `Cannot safely mutate task ${args.taskId}: ${internalDecision.detail}`,
+            code: "TASK_MUTATION_OPERATOR_REQUIRED",
+            cause: internalDecision.cause,
+            hint: "Re-run after recovering workflow reachability via adv_doctor.",
+            changeId,
+            taskId: args.taskId,
+          });
         }
 
         if (!recoveredViaPoisoned) {
@@ -1206,13 +1180,14 @@ export const taskTools = {
               );
             }
           } catch (signalError) {
-            // rq-extend-poisoned-recovery AC1: disk-projection fallback when
-            // workflow is poisoned. Requires explicit recoveryMode + precise
-            // evidence + describe-confirmed signature.
-            if (
-              args.recoveryMode === "poisoned_history" &&
-              (await workflowHasPoisonedRecoveryEvidence(handle))
-            ) {
+            // D4 internal classification (rq-internalMonotonicRecovery01):
+            // signal-error recovery is classified from the signal error +
+            // describe() evidence via the unified classifier.
+            const decision = await classifyMutationRecoveryDecision({
+              signalError,
+              handle,
+            });
+            if (decision.kind === "recover_via_disk") {
               const changeResult = await activeStore.changes.get(changeId);
               if (!changeResult.success || !changeResult.data) {
                 throw signalError;
@@ -1364,8 +1339,6 @@ export const taskTools = {
         .string()
         .optional()
         .describe("Section header (e.g., 'Testing')"),
-      recoveryMode: RecoveryModeSchema,
-      recoveryEvidence: RecoveryEvidenceSchema,
       ...targetPathSchema.shape,
       ...includeSnapshotSchema.shape,
     },
@@ -1384,16 +1357,10 @@ export const taskTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
         include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
-      const recoveryError = validateTaskRecoveryArgs(args);
-      if (recoveryError) {
-        return formatToolOutput({ error: recoveryError });
-      }
       const runAdd = async (
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
@@ -1567,15 +1534,15 @@ export const taskTools = {
 
         let recoveredViaPoisoned = false;
 
-        // rq-extend-poisoned-recovery AC2 (probe-first): when the operator
-        // supplies precise poisoned-history evidence, take the disk-direct
-        // recovery branch BEFORE firing the signal. Temporal signals are
-        // fire-and-forget server-acceptance; they silently resolve on poisoned
-        // replay, so the catch-branch below is unreachable for the common
-        // poison case (issue #198, #253). describe() diagnostics are advisory
-        // only; recovery authority comes solely from operator-supplied
-        // recoveryEvidence (validated by shouldTakeRecoveryBranch).
-        if (shouldTakeRecoveryBranch(args)) {
+        // D4 internal classification (rq-internalMonotonicRecovery01):
+        // probe describe() to detect poisoned/completed workflows
+        // automatically. Removes the evidence-copy ceremony from routine
+        // callers (AC5/SC3); destructive/competing-authority cases still refuse
+        // with a typed operator-required result (AC6).
+        const internalDecision = await classifyMutationRecoveryDecision({
+          handle,
+        });
+        if (internalDecision.kind === "recover_via_disk") {
           await logRecoveryProbeDiagnostics(handle, changeId);
           const changeResult = await activeStore.changes.get(changeId);
           if (!changeResult.success || !changeResult.data) {
@@ -1589,6 +1556,14 @@ export const taskTools = {
             task,
           });
           recoveredViaPoisoned = true;
+        } else if (internalDecision.kind === "operator_required") {
+          return formatToolOutput({
+            error: `Cannot safely add task to ${changeId}: ${internalDecision.detail}`,
+            code: "TASK_ADD_OPERATOR_REQUIRED",
+            cause: internalDecision.cause,
+            hint: "Re-run after recovering workflow reachability via adv_doctor.",
+            changeId,
+          });
         }
 
         if (!recoveredViaPoisoned) {
@@ -1604,11 +1579,14 @@ export const taskTools = {
               },
             );
           } catch (signalError) {
-            // rq-extend-poisoned-recovery AC2: disk-projection fallback for add.
-            if (
-              args.recoveryMode === "poisoned_history" &&
-              (await workflowHasPoisonedRecoveryEvidence(handle))
-            ) {
+            // D4 internal classification (rq-internalMonotonicRecovery01):
+            // signal-error recovery is classified from the signal error +
+            // describe() evidence via the unified classifier.
+            const decision = await classifyMutationRecoveryDecision({
+              signalError,
+              handle,
+            });
+            if (decision.kind === "recover_via_disk") {
               const changeResult = await activeStore.changes.get(changeId);
               if (!changeResult.success || !changeResult.data) {
                 throw signalError;
@@ -1720,8 +1698,6 @@ export const taskTools = {
         .describe(
           "Preview cancellation without firing task cancellation signals.",
         ),
-      recoveryMode: RecoveryModeSchema,
-      recoveryEvidence: RecoveryEvidenceSchema,
       ...targetPathSchema.shape,
       ...includeSnapshotSchema.shape,
     },
@@ -1733,8 +1709,6 @@ export const taskTools = {
         approvalEvidence: string;
         supersededBy?: Record<string, string>;
         dryRun?: boolean;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -1742,10 +1716,6 @@ export const taskTools = {
       },
       store: Store,
     ) => {
-      const recoveryError = validateTaskRecoveryArgs(args);
-      if (recoveryError) {
-        return formatToolOutput({ error: recoveryError });
-      }
       const runCancel = async (
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
@@ -1852,63 +1822,40 @@ export const taskTools = {
                 notes: reasons[taskId],
               }) as Task;
 
-            // rq-extend-poisoned-recovery AC3 (probe-first): when the operator
-            // supplies precise poisoned-history evidence, take the disk-direct
-            // recovery branch BEFORE firing the signal. Temporal signals are
-            // fire-and-forget server-acceptance; they silently resolve on
-            // poisoned replay, so the catch-branch below is unreachable for the
-            // common poison case (issue #198, #253). describe() diagnostics are
-            // advisory only; recovery authority comes solely from
-            // operator-supplied recoveryEvidence (validated by
-            // shouldTakeRecoveryBranch).
-            if (shouldTakeRecoveryBranch(args)) {
-              await logRecoveryProbeDiagnostics(handle, changeId);
-              const changeResult = await activeStore.changes.get(changeId);
-              if (!changeResult.success || !changeResult.data) {
-                throw new Error(
-                  `Cannot recover-cancel task ${taskId}: change ${changeId} not found`,
-                );
-              }
-              await saveRecoveredTaskMutation({
-                store: activeStore,
-                change: changeResult.data,
-                taskId,
-                mutate: mutateCancelledTask,
+            // D4 internal classification (rq-internalMonotonicRecovery01):
+            // signal-error recovery is classified from the signal error +
+            // describe() evidence via the unified classifier.
+            try {
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                changeId,
+                taskCancelledSignal,
+                {
+                  taskId,
+                  approvalEvidence,
+                  reason: reasons[taskId],
+                  cancelledAt: now,
+                },
+              );
+            } catch (signalError) {
+              const decision = await classifyMutationRecoveryDecision({
+                signalError,
+                handle,
               });
-            } else {
-              try {
-                await fireSignalAndRefresh(
-                  handle,
-                  activeStore,
-                  changeId,
-                  taskCancelledSignal,
-                  {
-                    taskId,
-                    approvalEvidence,
-                    reason: reasons[taskId],
-                    cancelledAt: now,
-                  },
-                );
-              } catch (signalError) {
-                // rq-extend-poisoned-recovery AC3: disk-projection fallback
-                // for cancel when workflow is poisoned.
-                if (
-                  args.recoveryMode === "poisoned_history" &&
-                  (await workflowHasPoisonedRecoveryEvidence(handle))
-                ) {
-                  const changeResult = await activeStore.changes.get(changeId);
-                  if (!changeResult.success || !changeResult.data) {
-                    throw signalError;
-                  }
-                  await saveRecoveredTaskMutation({
-                    store: activeStore,
-                    change: changeResult.data,
-                    taskId,
-                    mutate: mutateCancelledTask,
-                  });
-                } else {
+              if (decision.kind === "recover_via_disk") {
+                const changeResult = await activeStore.changes.get(changeId);
+                if (!changeResult.success || !changeResult.data) {
                   throw signalError;
                 }
+                await saveRecoveredTaskMutation({
+                  store: activeStore,
+                  change: changeResult.data,
+                  taskId,
+                  mutate: mutateCancelledTask,
+                });
+              } else {
+                throw signalError;
               }
             }
             results.push({ taskId, success: true });

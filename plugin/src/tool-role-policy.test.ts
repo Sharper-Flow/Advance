@@ -320,7 +320,7 @@ describe("tool role policy — runtime blockable set derivation (AC5)", () => {
     "adv_wisdom_add",
     "adv_wisdom_list",
     "adv_session_list",
-    "adv_temporal_diagnose",
+    "adv_doctor",
     "adv_wip_state",
   ]);
 

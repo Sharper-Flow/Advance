@@ -7,7 +7,8 @@ const mocks = vi.hoisted(() => {
   const saveRecoveredVerificationEvidenceDisposition = vi.fn(
     async () => undefined,
   );
-  const workflowHandle = { signal: vi.fn(), query: vi.fn() };
+  const describe = vi.fn(async () => ({ searchAttributes: {} }));
+  const workflowHandle = { signal: vi.fn(), query: vi.fn(), describe };
   const withTargetPathStore = vi.fn(async (_input: unknown, _fn: unknown) => {
     throw new Error("withTargetPathStore not configured for this test");
   });
@@ -94,6 +95,15 @@ const validArgs = {
   evidence: "adv_run_test evidence captured under run id tr_abc123.",
 };
 
+const poisonedDescription = () => ({
+  searchAttributes: {
+    TemporalReportedProblems: [
+      "category=WorkflowTaskFailed",
+      "cause=WorkflowTaskFailedCauseNonDeterministicError",
+    ],
+  },
+});
+
 describe("adv_verification_evidence_disposition", () => {
   beforeEach(() => {
     // mockReset (not mockClear) clears one-time implementations set via
@@ -111,6 +121,8 @@ describe("adv_verification_evidence_disposition", () => {
         throw new Error("withTargetPathStore not configured for this test");
       },
     );
+    mocks.workflowHandle.describe.mockReset();
+    mocks.workflowHandle.describe.mockResolvedValue({ searchAttributes: {} });
   });
 
   test("fires verificationEvidenceDispositionedSignal with the typed disposition", async () => {
@@ -189,7 +201,7 @@ describe("adv_verification_evidence_disposition", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("recovers through disk projection when completed workflow evidence is explicit", async () => {
+  test("recovers via disk projection when signal fails with completed workflow", async () => {
     const store = storeFor(change());
     const completedError = new Error("workflow execution already completed");
     completedError.name = "WorkflowNotFoundError";
@@ -201,11 +213,6 @@ describe("adv_verification_evidence_disposition", () => {
           ...validArgs,
           disposition: "fixed",
           evidence: "verification re-run and captured in commit abc123",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason:
-            "Completed workflow cannot accept verificationEvidenceDispositionedSignal; durable evidence proves the gap is resolved.",
         },
         store,
       ),
@@ -224,9 +231,10 @@ describe("adv_verification_evidence_disposition", () => {
       store,
       change: expect.objectContaining({ id: "change-1" }),
       authorization: {
-        reason:
-          "Completed workflow cannot accept verificationEvidenceDispositionedSignal; durable evidence proves the gap is resolved.",
-        evidence: "WorkflowNotFoundError: workflow execution already completed",
+        reason: "missing_workflow",
+        evidence: expect.stringContaining(
+          "workflow execution already completed",
+        ),
       },
       disposition: expect.objectContaining({
         taskId: "tk-1",
@@ -237,44 +245,70 @@ describe("adv_verification_evidence_disposition", () => {
     });
   });
 
-  test("AC5: takes probe-first recovery path when fireSignalAndRefresh would silently resolve", async () => {
-    // Setup: default mock for fireSignalAndRefresh RESOLVES (set in beforeEach).
-    // This simulates a fire-and-forget signal on a poisoned workflow: the
-    // server accepts the signal, but the workflow silently drops it during
-    // replay. The catch-branch is unreachable; only the probe-first path
-    // can save the disposition via the disk-direct writer.
-    const store = storeFor(change());
+  test("recovers via D4 internal classification when describe shows poisoned", async () => {
+    // Probe-first path: no signal is fired; the disk-direct writer saves the
+    // disposition based on machine-confirmed poisoned-history evidence.
+    mocks.workflowHandle.describe.mockResolvedValue(poisonedDescription());
 
+    const store = storeFor(change());
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         {
           ...validArgs,
           disposition: "fixed",
           evidence: "verification re-run and captured in commit abc123",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason: "poisoned workflow",
         },
         store,
       ),
     );
 
-    expect(output.success).toBe(true);
-    expect(output.recoveryMode).toBe("poisoned_history");
-    // CRITICAL: probe-first path was taken; fireSignalAndRefresh was NOT called.
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    // Disk-direct writer WAS called with the operator-supplied evidence.
     expect(
       mocks.saveRecoveredVerificationEvidenceDisposition,
     ).toHaveBeenCalledTimes(1);
+    expect(output.success).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
     expect(
-      mocks.saveRecoveredVerificationEvidenceDisposition.mock.calls[0][0]
-        .authorization.evidence,
-    ).toContain("WorkflowNotFoundError");
+      mocks.saveRecoveredVerificationEvidenceDisposition,
+    ).toHaveBeenCalledWith({
+      store,
+      change: expect.objectContaining({ id: "change-1" }),
+      authorization: {
+        reason: "poisoned_history",
+        evidence: expect.stringContaining(
+          "WorkflowTaskFailedCauseNonDeterministicError",
+        ),
+      },
+      disposition: expect.objectContaining({
+        taskId: "tk-1",
+        concernKey: "verification",
+        disposition: "fixed",
+        evidence: "verification re-run and captured in commit abc123",
+      }),
+    });
   });
 
-  test("does not recover generic signal failures when recovery is not requested", async () => {
+  test("proceeds with signal when describe is healthy", async () => {
+    const store = storeFor(change());
+    mocks.workflowHandle.describe.mockResolvedValue({
+      searchAttributes: { TemporalReportedProblems: [] },
+    });
+
+    const output = parse(
+      await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
+        validArgs,
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.saveRecoveredVerificationEvidenceDisposition,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("does not recover generic signal failures", async () => {
     const store = storeFor(change());
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(
       new Error("task queue unavailable"),
@@ -282,60 +316,49 @@ describe("adv_verification_evidence_disposition", () => {
 
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
-        {
-          ...validArgs,
-          // recoveryMode omitted: probe-first does not fire, and the
-          // catch-branch's recovery gate (recoveryMode === "poisoned_history")
-          // is false, so the generic signal error must propagate.
-        },
+        validArgs,
         store,
       ),
     );
 
-    expect(output.error).toContain("task queue unavailable");
+    expect(output.code).toBe(
+      "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
+    );
+    expect(output.cause).toBe("query_failed");
     expect(
       mocks.saveRecoveredVerificationEvidenceDisposition,
     ).not.toHaveBeenCalled();
   });
 
-  test("requires precise recovery evidence and reason before recovery", async () => {
+  test("requires operator review when poisoned signal error is not confirmed by describe", async () => {
     const store = storeFor(change());
+    const poisonedError = new Error("Nondeterminism error detected");
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(poisonedError);
+    // describe() returns a healthy workflow — two authorities disagree.
+    mocks.workflowHandle.describe.mockResolvedValue({
+      searchAttributes: { TemporalReportedProblems: [] },
+    });
+
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
-        {
-          ...validArgs,
-          recoveryMode: "poisoned_history",
-          recoveryEvidence: "it failed",
-          recoveryReason: "completed workflow recovery",
-        },
+        validArgs,
         store,
       ),
     );
 
-    expect(output.error).toContain("precise poisoned-history");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-  });
-
-  test("requires recovery reason before recovery", async () => {
-    const store = storeFor(change());
-    const output = parse(
-      await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
-        {
-          ...validArgs,
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason: "   ",
-        },
-        store,
-      ),
+    expect(output.error).toContain("operator review");
+    expect(output.code).toBe(
+      "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
     );
-
-    expect(output.error).toContain("requires recoveryReason");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(output.cause).toBe("reachable_authority_disagrees");
+    expect(
+      mocks.saveRecoveredVerificationEvidenceDisposition,
+    ).not.toHaveBeenCalled();
   });
 
-  test("AC3: target_path routes probe-first recovery write to the target disk projection", async () => {
+  test("AC3: target_path routes D4 recovery write to the target disk projection", async () => {
+    mocks.workflowHandle.describe.mockResolvedValue(poisonedDescription());
+
     const drivingStore = storeFor(change());
     const targetChange = change();
     const targetStore = storeFor(targetChange);
@@ -374,10 +397,6 @@ describe("adv_verification_evidence_disposition", () => {
           target_confirmed: true,
           confirmationEvidence:
             "User approved target mutation via question tool",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason: "target_path routing regression test",
         },
         drivingStore,
       ),

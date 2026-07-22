@@ -75,7 +75,7 @@
 | `adv_change_list` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_show` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_validate` | `mcp+cli-additive` | Gates/archive need MCP; CLI/CI verdict additive (C5 path) |
-| `adv_temporal_diagnose` | `mcp+cli-additive` | Add CLI `doctor`; MCP kept for in-recovery use |
+| `adv_doctor` | `no-cli-dangerous` | Infrastructure recovery; approval-gated safe-fix/verify entry, never exposed to ungated CLI |
 | `adv_snapshot_health` | `mcp+cli-additive` | CLI scan additive; repair remains approval-gated MCP-only |
 | `adv_store_consolidate` | `keep-mcp-only` | Ops recovery tool; scan/dry_run read-only, execute approval-gated |
 | `adv_store_cleanup` | `keep-mcp-only` | Maintenance-only legacy agenda cleanup; scan/dry_run read-only, execute approval-gated |
@@ -104,15 +104,12 @@
 | `adv_change_create` | `no-cli-dangerous` | Change mutation |
 | `adv_change_update` | `no-cli-dangerous` | Change mutation |
 | `adv_change_close` | `no-cli-dangerous` | Change mutation |
-| `adv_change_forget` | `keep-mcp-only` | Session pointer clear (in-memory only) |
 | `adv_followup_promote` | `no-cli-dangerous` | Promotes a linked ops follow-up change; mutation |
 | `adv_report_followup_promote` | `no-cli-dangerous` | Promotes a report follow-up into a task or fast-follow child; mutation |
 | `adv_ops_evidence_add` | `no-cli-dangerous` | Appends ops evidence and updates follow-up status; mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |
-| `adv_archive_repair` | `no-cli-dangerous` | Archive release repair mutation |
 | `adv_archive_purge` | `no-cli-dangerous` | Operator-only archived-change purge; terminates workflow, opt-in disk-bundle removal |
-| `adv_change_status_repair` | `no-cli-dangerous` | Change status repair mutation |
 | `adv_change_workflow_terminate` | `no-cli-dangerous` | Operator-only pinned wedged-workflow termination; run pinned via describe, shipped-gate eligibility |
 | `adv_change_update_issues` | `no-cli-dangerous` | Issue linkage mutation |
 | `adv_change_repair_origin` | `no-cli-dangerous` | Origin-linkage repair mutation |
@@ -131,9 +128,6 @@
 | `adv_worktree_create` | `no-cli-dangerous` | Worktree mutation |
 | `adv_worktree_resume` | `no-cli-dangerous` | Worktree mutation |
 | `adv_worktree_delete` | `no-cli-dangerous` | Worktree mutation |
-| `adv_temporal_register_search_attributes` | `no-cli-dangerous` | Runtime mutation |
-| `adv_temporal_reconnect` | `no-cli-dangerous` | Runtime mutation |
-| `adv_temporal_worker_restart` | `no-cli-dangerous` | Runtime mutation |
 | `adv_wisdom_add` | `no-cli-dangerous` | Wisdom mutation |
 | `adv_epic_create` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_show` | `keep-mcp-only` | Agent-workflow read |
@@ -144,7 +138,6 @@
 | `adv_epic_link_change` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_unlink_change` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_move_change` | `no-cli-dangerous` | Epic membership mutation across Epics |
-| `adv_epic_repair_membership` | `no-cli-dangerous` | Epic/child projection repair mutation |
 | `adv_epic_reorder` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_retire` | `no-cli-dangerous` | Epic retirement mutation |
 

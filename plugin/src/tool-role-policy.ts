@@ -57,20 +57,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Terminates archived workflows; opt-in includeDiskBundle recursively deletes the archive bundle (approvedByUser + approvalEvidence).",
   },
-  adv_archive_repair: {
-    class: "operator-only",
-    rationale:
-      "Archived-change recovery (scan/redrive/reconcile of wedged terminal projections); reconcile requires approvedByUser.",
-  },
   adv_change_repair_origin: {
     class: "operator-only",
     rationale:
       "Repairs origin provenance linkage on an open change; claim-safe audited repair (approvedByUser + approvalEvidence + reason).",
-  },
-  adv_change_status_repair: {
-    class: "operator-only",
-    rationale:
-      "Single-change wedged-status flip gated on precise workflow evidence; approval + recovery evidence required.",
   },
   adv_change_workflow_terminate: {
     class: "operator-only",
@@ -86,16 +76,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "operator-only",
     rationale:
       "Consolidates orphaned identity stores into the true-root store; approval-gated, mutually serialized with cleanup.",
-  },
-  adv_temporal_register_search_attributes: {
-    class: "operator-only",
-    rationale:
-      "Registers missing Temporal search attributes on the server; one-time metadata mutation with approvedByUser + approvalEvidence.",
-  },
-  adv_temporal_worker_restart: {
-    class: "operator-only",
-    rationale:
-      "Restarts the project Temporal worker; disruptive to in-flight tool calls; explicit operator invocation only.",
   },
 
   // ── Dual (8) ─────────────────────────────────────────────────────────
@@ -201,11 +181,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Change creation.",
   },
-  adv_change_forget: {
-    class: "orchestrator",
-    rationale:
-      "In-memory session active-change pointer clear; no persistent mutation.",
-  },
   adv_change_list: {
     class: "orchestrator",
     rationale: "Change inventory read.",
@@ -307,11 +282,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_epic_reorder: {
     class: "orchestrator",
     rationale: "Advisory reorder.",
-  },
-  adv_epic_repair_membership: {
-    class: "orchestrator",
-    rationale:
-      "Membership projection repair; evidence-audited, orchestrator-driven hygiene.",
   },
   adv_epic_retire: {
     class: "orchestrator",
@@ -418,13 +388,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Task mutation.",
   },
-  adv_temporal_diagnose: {
+  adv_doctor: {
     class: "orchestrator",
-    rationale: "Read-only Temporal recovery diagnostic.",
-  },
-  adv_temporal_reconnect: {
-    class: "orchestrator",
-    rationale: "STSL reconnect without workflow-state mutation.",
+    rationale:
+      "Single diagnose→safe-fix→verify entry point for routine infrastructure recovery. Orchestrator-reachable because every fix is gated on a proven safe-subset and every escalation refuses with a typed approval-required proposal.",
   },
   adv_verification_evidence_disposition: {
     class: "orchestrator",
@@ -530,7 +497,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
     agent: "adv",
     allowed: [
       "adv_archive_purge",
-      "adv_archive_repair",
       "adv_backlog_add",
       "adv_backlog_archive",
       "adv_backlog_list",
@@ -540,12 +506,10 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_change_bulk_close",
       "adv_change_close",
       "adv_change_create",
-      "adv_change_forget",
       "adv_change_list",
       "adv_change_reenter",
       "adv_change_repair_origin",
       "adv_change_show",
-      "adv_change_status_repair",
       "adv_change_update",
       "adv_change_update_issues",
       "adv_change_validate",
@@ -569,7 +533,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_epic_move_change",
       "adv_epic_promote_shell",
       "adv_epic_reorder",
-      "adv_epic_repair_membership",
       "adv_epic_retire",
       "adv_epic_show",
       "adv_epic_unlink_change",
@@ -603,10 +566,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_reclassify_tdd",
       "adv_task_show",
       "adv_task_update",
-      "adv_temporal_diagnose",
-      "adv_temporal_reconnect",
-      "adv_temporal_register_search_attributes",
-      "adv_temporal_worker_restart",
+      "adv_doctor",
       "adv_tool_catalog",
       "adv_tool_describe",
       "adv_tool_invoke",
@@ -667,7 +627,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_checkpoint",
       "adv_task_reclassify_tdd",
       "adv_task_update",
-      "adv_temporal_worker_restart",
       "adv_worktree_cleanup",
       "adv_worktree_create",
       "adv_worktree_delete",
@@ -710,7 +669,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_checkpoint",
       "adv_task_reclassify_tdd",
       "adv_task_update",
-      "adv_temporal_worker_restart",
       "adv_worktree_cleanup",
       "adv_worktree_create",
       "adv_worktree_delete",
@@ -774,7 +732,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_checkpoint",
       "adv_task_reclassify_tdd",
       "adv_task_update",
-      "adv_temporal_worker_restart",
       "adv_worktree_cleanup",
       "adv_worktree_create",
       "adv_worktree_delete",
@@ -795,7 +752,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_spec",
       "adv_status",
       "adv_subagent_report_submit",
-      "adv_temporal_diagnose",
+      "adv_doctor",
       "adv_tool_catalog",
       "adv_tool_describe",
       "adv_tool_invoke",
@@ -806,8 +763,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_change_update",
       "adv_gate_complete",
       "adv_task_update",
-      "adv_temporal_register_search_attributes",
-      "adv_temporal_worker_restart",
       "adv_worktree_delete",
     ],
     denyWildcard: true,

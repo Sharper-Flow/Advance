@@ -20,6 +20,7 @@ tools:
   # ADV state reads and classifier tools
   adv_change_list: true
   adv_change_show: true
+  adv_doctor: true
   adv_gate_status: true
   adv_project_context: true
   adv_session_list: true
@@ -27,7 +28,6 @@ tools:
   adv_spec: true
   adv_status: true
   adv_subagent_report_submit: true
-  adv_temporal_diagnose: true
   adv_tool_catalog: true
   # Blocked: no nested delegation, writes, shell, lifecycle, or approval-gated repairs
   task: false
@@ -42,8 +42,6 @@ tools:
   adv_change_update: false
   adv_gate_complete: false
   adv_task_update: false
-  adv_temporal_register_search_attributes: false
-  adv_temporal_worker_restart: false
   adv_worktree_delete: false
   # <<< ADV-GENERATED adv_* tools <<<
 ---
@@ -66,9 +64,9 @@ Use this order. Do not skip to Temporal repair because a file path is missing.
 2. If `adv_change_show` + `adv_gate_status` load state, classify `state_reachable_not_phantom`; tell primary ADV to resume from gate state.
 3. If target project is ambiguous, compare packet `TARGET_PATH` with `_projectContext` from ADV tools. Classify `target_path_confusion` when the wrong project/shard was queried.
 4. If artifact metadata says `readable:false`, or a presumed sidecar is missing, classify `artifact_readability_mismatch`. Artifact content must come from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet content, not filesystem fallback.
-5. Use `adv_temporal_diagnose` for worker/STSL/change-workflow reachability evidence. If the queue is peer-serviceable while the local worker is down, classify `peer_serviceable_local_worker_dead` and do not recommend blind restart.
+5. Use `adv_doctor` for worker/STSL/change-workflow reachability evidence. It diagnoses, applies safe fixes automatically, and verifies. If the queue is peer-serviceable while the local worker is down, classify `peer_serviceable_local_worker_dead` and do not recommend blind restart.
 6. Use `adv_wip_state` when broad worktree/poisoned-workflow evidence is needed.
-7. Recommend `adv_change_forget` only as a primary-ADV action for the exact current-session active pointer. It is current-session in-memory cleanup only, not persistent state repair.
+7. Recommend `adv_doctor` only as a primary-ADV action for phantom-pointer cleanup. The tool clears a confirmed-phantom session active pointer automatically; it is current-session cleanup only, not persistent state repair.
 8. If evidence is only a failed filesystem read, classify `inconclusive_filesystem_only` and rerun with ADV tools.
 
 ## ADV State Access Policy

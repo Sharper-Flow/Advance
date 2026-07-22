@@ -12,19 +12,17 @@ import { buildContractFromAgreement } from "./validator/contract-mint";
 describe("getToolSurface (live surface)", () => {
   const surface = getToolSurface();
 
-  test("exposes a known real tool arg (adv_change_status_repair#target_path)", () => {
-    expect(surface.get("adv_change_status_repair")?.has("target_path")).toBe(
-      true,
-    );
+  test("exposes a known real tool arg (adv_change_create#target_path)", () => {
+    expect(surface.get("adv_change_create")?.has("target_path")).toBe(true);
   });
 
-  test("exposes design-concern recovery args for contract warrants", () => {
+  test("does not expose removed public recovery args on routine mutation tools", () => {
     const args = surface.get("adv_design_concern_disposition");
     expect(args).toBeDefined();
     expect(args?.has("target_path")).toBe(true);
-    expect(args?.has("recoveryMode")).toBe(true);
-    expect(args?.has("recoveryEvidence")).toBe(true);
-    expect(args?.has("recoveryReason")).toBe(true);
+    expect(args?.has("recoveryMode")).toBe(false);
+    expect(args?.has("recoveryEvidence")).toBe(false);
+    expect(args?.has("recoveryReason")).toBe(false);
   });
 
   test("exposes adv_change_archive#target_path for cross-project archive", () => {
@@ -40,13 +38,13 @@ describe("getToolSurface (live surface)", () => {
   test("mint succeeds for a warrant resolving against the live surface (AC2)", () => {
     const contract = buildContractFromAgreement({
       agreement: `## Acceptance Criteria
-- AC1: Cross-project repair routes through target. [warrant: tool:adv_change_status_repair#target_path]
+- AC1: Cross-project work routes through target. [warrant: tool:adv_change_create#target_path]
 `,
       approvedAt: "2026-06-25T00:00:00.000Z",
       warrantLookup: { toolSurface: surface, specIds: new Set() },
     });
     expect(contract.items[0]?.warrants).toEqual([
-      "tool:adv_change_status_repair#target_path",
+      "tool:adv_change_create#target_path",
     ]);
   });
 
@@ -117,14 +115,6 @@ describe("getToolSurface (live surface)", () => {
     expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
   });
 
-  test("exposes Epic owner routing args on adv_epic_repair_membership", () => {
-    const args = surface.get("adv_epic_repair_membership");
-    expect(args).toBeDefined();
-    expect(args?.has("epic_owner_target_path")).toBe(true);
-    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
-    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
-  });
-
   test("exposes Epic owner routing args on adv_epic_create", () => {
     const args = surface.get("adv_epic_create");
     expect(args).toBeDefined();
@@ -189,8 +179,8 @@ describe("getToolSurface (live surface)", () => {
     expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
   });
 
-  test("exposes target worker lifecycle args on adv_temporal_worker_restart", () => {
-    const args = surface.get("adv_temporal_worker_restart");
+  test("exposes target_path lifecycle args on adv_doctor (rq-doctorConsolidation01)", () => {
+    const args = surface.get("adv_doctor");
     expect(args).toBeDefined();
     expect(args?.has("target_path")).toBe(true);
     expect(args?.has("target_confirmed")).toBe(true);

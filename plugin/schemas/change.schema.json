@@ -461,6 +461,9 @@
     "created_by": {
       "type": "string"
     },
+    "creation_request_hash": {
+      "type": "string"
+    },
     "cross_project_links": {
       "items": {
         "additionalProperties": false,

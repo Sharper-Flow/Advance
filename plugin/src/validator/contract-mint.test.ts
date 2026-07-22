@@ -124,7 +124,7 @@ describe("buildContractFromAgreement", () => {
   // addAcWarrantGuard — capability-warrant verification at mint
   const warrantLookup = {
     toolSurface: new Map([
-      ["adv_change_status_repair", new Set(["changeId", "target_path"])],
+      ["adv_change_create", new Set(["summary", "target_path"])],
       ["adv_change_archive", new Set(["changeId", "phase9", "target_path"])],
       ["adv_task_checkpoint", new Set(["taskId", "target_path"])],
     ]),

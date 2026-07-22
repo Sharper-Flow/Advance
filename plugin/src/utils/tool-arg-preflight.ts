@@ -93,19 +93,12 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     target_confirmed: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
-    // Contextually-validated (rq-toolPlaceholderPolicy01.6). The handler
-    // rejects poisoned_history without precise evidence and refuses any
-    // disk-projection write even with valid evidence.
-    recoveryEvidence: { blank: "omit" },
-    recoveryReason: { blank: "omit" },
   },
   adv_delta_modify: {
     modifiedBy: { blank: "omit" },
     target_path: { blank: "omit" },
     target_confirmed: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
-    recoveryEvidence: { blank: "omit" },
-    recoveryReason: { blank: "omit" },
   },
   adv_delta_amend: {
     amendedBy: { blank: "omit" },
@@ -190,14 +183,12 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     executiveSummary: { blank: "omit" },
     target_path: { blank: "omit" },
     // Contextually-validated audit fields. Strict-mode providers fill all
-    // optional fields with "". These are only required when target_path is
-    // present (confirmationEvidence) or recoveryMode is poisoned_history
-    // (recoveryEvidence/recoveryReason/priorApprovalEvidence). The handler
+    // optional fields with "". confirmationEvidence is only required when
+    // target_path is present. priorApprovalEvidence is an optional human-
+    // checkpoint audit field (AC6), not a poisoned_history arg. The handler
     // validates them contextually, so blank → omit at preflight is safe and
     // necessary to avoid strict-mode deadlock (rq-toolPlaceholderPolicy01.6).
     confirmationEvidence: { blank: "omit" },
-    recoveryEvidence: { blank: "omit" },
-    recoveryReason: { blank: "omit" },
     priorApprovalEvidence: { blank: "omit" },
   },
   adv_change_archive: {
@@ -205,12 +196,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     // Contextually-validated: handler checks only when target_path present.
     confirmationEvidence: { blank: "omit" },
-    // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
-    recoveryEvidence: { blank: "omit" },
-  },
-  adv_archive_repair: {
-    // Required only when action='redrive'; handler validates cross-field.
-    changeId: { blank: "omit" },
   },
   adv_run_test: {
     command: { blank: "reject" }, // required-when-present
@@ -231,10 +216,8 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_task_update: {
     proof_target: { blank: "omit" },
     target_path: { blank: "omit" },
-    // Contextually-validated: handler checks only when target_path present or
-    // recoveryMode=poisoned_history (rq-toolPlaceholderPolicy01.6).
+    // Contextually-validated: handler checks only when target_path present.
     confirmationEvidence: { blank: "omit" },
-    recoveryEvidence: { blank: "omit" },
   },
   adv_task_add: {
     content: { blank: "reject" }, // required-when-present
@@ -245,7 +228,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     // Contextually-validated (rq-toolPlaceholderPolicy01.6).
     confirmationEvidence: { blank: "omit" },
-    recoveryEvidence: { blank: "omit" },
   },
   adv_wisdom_add: {
     content: { blank: "reject" }, // required-when-present
@@ -253,23 +235,16 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_change_bulk_close: {
     approvalEvidence: { blank: "reject" }, // audit
     supersededBy: { blank: "omit" }, // optional reference
-    // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
-    recoveryMode: { blank: "omit" },
-    recoveryEvidence: { blank: "omit" },
   },
   adv_change_close: {
     approvalEvidence: { blank: "reject" }, // audit
     supersededBy: { blank: "omit" }, // optional reference
-    // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
-    recoveryMode: { blank: "omit" },
-    recoveryEvidence: { blank: "omit" },
   },
   adv_task_cancel: {
     approvalEvidence: { blank: "reject" }, // audit
     target_path: { blank: "omit" },
     // Contextually-validated (rq-toolPlaceholderPolicy01.6).
     confirmationEvidence: { blank: "omit" },
-    recoveryEvidence: { blank: "omit" },
     reasons: { recordValuesBlank: "reject" }, // per-task audit
     supersededBy: { recordValuesBlank: "reject" }, // required-when-present
   },
@@ -298,9 +273,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     completedBy: { blank: "omit" }, // handler defaults to "agent"
     notes: { blank: "omit" }, // optional descriptive
     compatibilityReason: { blank: "omit" }, // optional descriptive
-    recoveryEvidence: { blank: "omit" }, // handler validates in recovery path
-    recoveryReason: { blank: "omit" }, // handler validates in recovery path
-    priorApprovalEvidence: { blank: "omit" }, // handler validates in recovery path
+    // rq-internalMonotonicRecovery01 / AC5: recoveryMode/recoveryEvidence/
+    // recoveryReason removed — recovery is classified internally.
+    priorApprovalEvidence: { blank: "omit" }, // acceptance human checkpoint (AC6)
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" }, // handler validates when target_path present
   },
@@ -332,15 +307,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_contract_mint: {
     approvedAt: { blank: "omit" }, // optional ISO timestamp
-    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
-    recoveryEvidence: { blank: "omit" },
+    priorApprovalEvidence: { blank: "omit" }, // optional audit context
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
   adv_contract_review_matrix_set: {
     reviewedAt: { blank: "omit" }, // optional ISO timestamp
-    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
-    recoveryEvidence: { blank: "omit" },
+    priorApprovalEvidence: { blank: "omit" }, // optional audit context
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
@@ -351,16 +324,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
-  adv_temporal_register_search_attributes: {
-    approvalEvidence: { blank: "reject" }, // audit
-  },
-  adv_temporal_reconnect: {
-    target_path: { blank: "omit" },
-    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_temporal_worker_restart: {
-    approvalEvidence: { blank: "reject" }, // audit
+  adv_doctor: {
     target_path: { blank: "omit" },
     target_confirmed: { blank: "omit" },
     confirmationEvidence: { blank: "omit" }, // handler validates when target_path present
@@ -535,23 +499,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     epic_owner_target_confirmed: { blank: "omit" },
     epic_owner_confirmationEvidence: { blank: "omit" },
   },
-  adv_epic_repair_membership: {
-    // epic_id is optional only because mode='refresh_search_attributes'
-    // requires it to be omitted; for all other modes the handler validates
-    // presence. Blank normalizes to omitted so the handler can apply its
-    // contextual requirement checks (rq-toolPlaceholderPolicy01.6 style).
-    epic_id: { blank: "omit" },
-    entry_id: { blank: "omit" },
-    change_id: { blank: "omit" },
-    new_change_id: { blank: "omit" },
-    new_title: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
   adv_epic_reorder: {
     epic_owner_target_path: { blank: "omit" },
     epic_owner_target_confirmed: { blank: "omit" },
@@ -681,29 +628,7 @@ function applyFieldPolicies(
   return { invalid, normalizedArgs };
 }
 
-function validatePoisonedRecoveryEvidence(
-  args: Record<string, unknown>,
-): ToolArgPreflightIssue[] {
-  if (args.recoveryMode !== "poisoned_history") return [];
-  if (
-    typeof args.recoveryEvidence === "string" &&
-    args.recoveryEvidence.trim()
-  ) {
-    return [];
-  }
-  return [
-    {
-      field: "recoveryEvidence",
-      message:
-        "recoveryEvidence is required when recoveryMode='poisoned_history'.",
-    },
-  ];
-}
-
 const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
-  adv_task_update: (args) => validatePoisonedRecoveryEvidence(args),
-  adv_task_add: (args) => validatePoisonedRecoveryEvidence(args),
-  adv_task_cancel: (args) => validatePoisonedRecoveryEvidence(args),
   adv_change_create: (args) => {
     const invalid: ToolArgPreflightIssue[] = [];
 

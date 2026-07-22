@@ -4,7 +4,7 @@
  * Pure functions for the declared-warrant mechanism. A capability-presuming
  * acceptance/success criterion may declare an inline warrant tag:
  *
- *   - AC2: Cross-project repair routes through target. [warrant: tool:adv_change_status_repair#target_path]
+ *   - AC2: Cross-project work routes through target. [warrant: tool:adv_change_create#target_path]
  *
  * Grammar:
  *   [warrant: <ref>(, <ref>)*]

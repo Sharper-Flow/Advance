@@ -75,6 +75,7 @@ import {
   type TrunkWriteFirewallDeps,
 } from "./tools/trunk-write-firewall";
 import { isChangeReachable, type ReachabilityDeps } from "./tools/_adapters";
+import { setDoctorPointerRepairProvider } from "./tools/doctor";
 import { parseWorktreePaths } from "./utils/worktree-paths";
 import { getWorktreeBase } from "./utils/project-id";
 import {
@@ -639,9 +640,26 @@ const advancePluginImpl: Plugin = async (input) => {
 
   // rq-activeChangePointer01: session active-change pointer hygiene.
   // Related hooks: recordCreatedChange (set on create), recordTerminalChange
-  // (clear on close/archive), recordForgetChange (clear on forget).
+  // (clear on close/archive). Phantom-pointer clearing is owned by adv_doctor
+  // (rq-doctorConsolidation01 option B) via the injected pointer-repair
+  // provider below — the former adv_change_forget tool was retired.
   // Reachability gate via isChangeReachable prevents phantom re-pointing.
   // Spec: .adv/specs/advance-meta/spec.json rq-activeChangePointer01
+  //
+  // rq-doctorConsolidation01 option B: inject the session pointer-repair
+  // provider so adv_doctor can clear a confirmed-phantom pointer. This is
+  // the plugin-host wiring only; tests and the MCP server never set a
+  // provider, so their adv_doctor skips the phantom-pointer check.
+  setDoctorPointerRepairProvider({
+    getActivePointer: () => state.activeChange.id,
+    clearActivePointer: () => {
+      const prev = state.activeChange.id;
+      state.activeChange.id = null;
+      setActiveChange(null);
+      debugLog(`adv_doctor: cleared phantom session pointer (was ${prev})`);
+    },
+  });
+
   const handleToolExecuteBefore = async (
     toolName: string,
     args: Record<string, unknown>,
@@ -674,22 +692,6 @@ const advancePluginImpl: Plugin = async (input) => {
             worktreeExistsForChange(worktreeStateAccess, changeId),
         });
       }
-    }
-    // rq-activeChangePointer01.6: adv_change_forget early-return (KD6)
-    // Also validates mismatch (refuse-with-hint per AC1/AD2)
-    if (toolName === "adv_change_forget") {
-      const forgetChangeId = args.changeId as string | undefined;
-      if (!forgetChangeId) return; // Tool's own validation will handle
-      if (
-        state.activeChange.id !== null &&
-        state.activeChange.id !== forgetChangeId
-      ) {
-        throw new Error(
-          `FORGET_MISMATCH: changeId ${forgetChangeId} does not match current active pointer ${state.activeChange.id}. ` +
-            `Call adv_change_forget changeId:${state.activeChange.id}`,
-        );
-      }
-      return; // Skip reachability check (forget intentionally clears)
     }
 
     if (shouldRepointActiveChange(toolName, args)) {
@@ -1213,27 +1215,6 @@ const advancePluginImpl: Plugin = async (input) => {
           } catch (err) {
             hooksLogger.warn(
               `Failed to process ${input.tool} output for pointer clear: ${(err as Error).message}`,
-            );
-          }
-        }
-
-        // Forget pointer clear (AC1)
-        if (input.tool === "adv_change_forget" && output.output) {
-          try {
-            // Before-hook already validated match; clear unconditionally
-            if (state.activeChange.id) {
-              const prev = state.activeChange.id;
-              state.activeChange.id = null;
-              setActiveChange(null);
-              debugLog(`recordForgetChange: cleared pointer (was ${prev})`);
-            } else {
-              debugLog(
-                "recordForgetChange: no active pointer; idempotent no-op",
-              );
-            }
-          } catch (err) {
-            hooksLogger.warn(
-              `Failed to process adv_change_forget output: ${(err as Error).message}`,
             );
           }
         }

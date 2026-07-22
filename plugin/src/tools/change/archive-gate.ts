@@ -478,7 +478,7 @@ export async function reconcileArchivedBundleRetry(input: {
   // recovered via disk projection, the change workflow has already completed
   // and CANNOT accept the phase9 signal — recording there would throw a
   // completed-workflow error and break the poisoned-recovery path. In that case
-  // phase9 reconciliation is the adv_change_status_repair concern, not this
+  // phase9 reconciliation is the internalized recovery concern, not this
   // signal. When the workflow is live (no recovery mutation), record normally.
   if (
     input.change.phase9_status?.status !== "done" &&
@@ -726,7 +726,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       autoMergeArmed: false,
       blocked: {
         reason: "PR_MERGE_PROOF_MISSING",
-        remediation: `Unable to verify a merged PR for change/${input.changeId}. If a PR exists, ensure it is merged and retry; if the branch was squash-merged and deleted, run \`adv_change_status_repair\` with gates-done + bundle-present evidence (rq-releaseFinalization01).`,
+        remediation: `Unable to verify a merged PR for change/${input.changeId}. If a PR exists, ensure it is merged and retry; if the branch was squash-merged and deleted, run adv_doctor to diagnose the wedged projection (rq-releaseFinalization01; status-flip recovery being internalized per design D4).`,
         details: reachability.details,
       },
     };
@@ -743,10 +743,10 @@ export function verifyReleaseEvidenceFromMain(input: {
           ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
           : "CHANGE_BRANCH_NOT_REACHABLE",
       // rq-fixPhase9SquashMergeRedetect AC4: when reachability cannot be
-      // established, surface adv_change_status_repair as the recovery path
+      // established, surface adv_doctor as the recovery path
       // for changes whose branch was legitimately squash-merged and deleted
       // after shipping (gates-done + bundle-present invariant).
-      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01). If the branch was squash-merged and deleted after the change shipped, run \`adv_change_status_repair\` with gates-done + bundle-present evidence to project the release gate to done.`,
+      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01). If the branch was squash-merged and deleted after the change shipped, run adv_doctor to diagnose the wedged projection (status-flip recovery being internalized per design D4).`,
       details: reachability.details,
     },
   };
