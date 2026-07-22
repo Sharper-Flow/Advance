@@ -238,18 +238,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   },
   {
     toolName: "adv_gate_complete",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_gate_complete",
-    field: "recoveryReason",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_gate_complete",
     field: "priorApprovalEvidence",
     policy: "blank",
     action: "omit",
@@ -1764,16 +1752,6 @@ describe("tool arg preflight", () => {
     ],
     [
       "adv_gate_complete",
-      { changeId: "c", gateId: "design", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_gate_complete",
-      { changeId: "c", gateId: "design", recoveryReason: " " },
-      "recoveryReason",
-    ],
-    [
-      "adv_gate_complete",
       { changeId: "c", gateId: "design", priorApprovalEvidence: " " },
       "priorApprovalEvidence",
     ],
@@ -2412,8 +2390,6 @@ describe("tool arg preflight", () => {
           userApproved: false,
           notes: "",
           compatibilityReason: "",
-          recoveryReason: "",
-          recoveryEvidence: "",
           priorApprovalEvidence: "",
           target_path: "",
           target_confirmed: true,

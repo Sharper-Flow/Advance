@@ -257,9 +257,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     completedBy: { blank: "omit" }, // handler defaults to "agent"
     notes: { blank: "omit" }, // optional descriptive
     compatibilityReason: { blank: "omit" }, // optional descriptive
-    recoveryEvidence: { blank: "omit" }, // handler validates in recovery path
-    recoveryReason: { blank: "omit" }, // handler validates in recovery path
-    priorApprovalEvidence: { blank: "omit" }, // handler validates in recovery path
+    // rq-internalMonotonicRecovery01 / AC5: recoveryMode/recoveryEvidence/
+    // recoveryReason removed — recovery is classified internally.
+    priorApprovalEvidence: { blank: "omit" }, // acceptance human checkpoint (AC6)
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" }, // handler validates when target_path present
   },
