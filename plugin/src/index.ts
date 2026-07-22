@@ -623,6 +623,8 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_delta_remove",
     "adv_delta_rename",
     "adv_delta_retract",
+    "adv_delta_list",
+    "adv_delta_show",
     "adv_contract_mint",
     "adv_contract_review_matrix_set",
     "adv_subagent_report_submit",

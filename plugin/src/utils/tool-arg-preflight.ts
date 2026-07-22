@@ -139,6 +139,11 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     recoveryEvidence: { blank: "omit" },
     recoveryReason: { blank: "omit" },
   },
+  adv_delta_list: {
+    capability: { blank: "omit" },
+    offset: { blank: "omit" },
+    limit: { blank: "omit" },
+  },
   adv_change_create: {
     // Optional artifact content — strict-mode providers fill with "" defaults.
     proposal: { blank: "omit" },

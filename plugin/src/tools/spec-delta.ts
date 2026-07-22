@@ -633,6 +633,126 @@ async function runRetract(
   }
 }
 
+// Read-only: enumerate staged deltas as bounded summary rows. Reads
+// change.deltas[] disk-first (survives orphaned workflows); no mutation.
+// Fixes the adv_change_show truncation gap for delta-heavy changes and
+// surfaces the delta ids that adv_delta_amend/retract require.
+async function runList(
+  activeStore: Store,
+  input: {
+    changeId: string;
+    capability?: string;
+    offset?: number;
+    limit?: number;
+  },
+): Promise<string> {
+  try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) throw new Error(`Change ${input.changeId} not found`);
+    const deltasByCap = change.data.deltas ?? {};
+    const rows: Array<{
+      id: string;
+      operation: string;
+      capability: string;
+      target?: string;
+      title?: string;
+    }> = [];
+    for (const [cap, entries] of Object.entries(deltasByCap)) {
+      if (input.capability && cap !== input.capability) continue;
+      for (const d of entries) {
+        rows.push({
+          id: d.id,
+          operation: d.operation,
+          capability: cap,
+          target:
+            "target_id" in d
+              ? d.target_id
+              : "requirement" in d
+                ? d.requirement.id
+                : undefined,
+          title:
+            "requirement" in d
+              ? d.requirement.title
+              : "new_title" in d
+                ? d.new_title
+                : "changes" in d
+                  ? d.changes.title
+                  : undefined,
+        });
+      }
+    }
+    const total = rows.length;
+    const offset = input.offset ?? 0;
+    const limit = Math.min(input.limit ?? 25, 100);
+    const page = rows.slice(offset, offset + limit);
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      ...(input.capability ? { capability: input.capability } : {}),
+      rows: page,
+      pagination: {
+        total,
+        returned: page.length,
+        offset,
+        limit,
+        hasMore: offset + page.length < total,
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to list spec deltas";
+    return formatToolOutput({
+      success: false,
+      error: message,
+      changeId: input.changeId,
+    });
+  }
+}
+
+// Read-only: return the full staged delta by id under a capability. Typed
+// not-found on unknown id; no mutation.
+async function runShow(
+  activeStore: Store,
+  input: { changeId: string; capability: string; deltaId: string },
+): Promise<string> {
+  try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) throw new Error(`Change ${input.changeId} not found`);
+    const capabilityDeltas = change.data.deltas?.[input.capability] ?? [];
+    const delta = capabilityDeltas.find((entry) => entry.id === input.deltaId);
+    if (!delta) {
+      throw new Error(
+        `Spec delta ${input.deltaId} not found under capability ${input.capability}`,
+      );
+    }
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      capability: input.capability,
+      delta,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to show spec delta";
+    return formatToolOutput({
+      success: false,
+      error: message,
+      changeId: input.changeId,
+      capability: input.capability,
+    });
+  }
+}
+
 async function runRemove(
   activeStore: Store,
   input: {
@@ -1595,6 +1715,76 @@ export const specDeltaTools = {
         recoveryEvidence,
         recoveryReason,
       });
+    },
+  },
+  adv_delta_list: {
+    description:
+      "List staged spec deltas on a change as bounded, paginated summary rows under `change.deltas[capability]`. Read-only: surfaces each staged delta's id, operation, capability, target (requirement id), and title so their ids can be passed to adv_delta_amend/retract. Fixes the adv_change_show truncation gap for delta-heavy changes. Reads disk-first and works even when the change workflow is orphaned.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID whose staged deltas to list"),
+      capability: CapabilityKeySchema.optional().describe(
+        "Optional capability filter; when omitted, lists deltas across all capabilities.",
+      ),
+      offset: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Pagination offset (default 0)."),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Max rows to return (default 25, cap 100)."),
+    },
+    execute: async (
+      {
+        changeId,
+        capability,
+        offset,
+        limit,
+      }: {
+        changeId: string;
+        capability?: string;
+        offset?: number;
+        limit?: number;
+      },
+      store: Store,
+    ) => {
+      return runList(store, { changeId, capability, offset, limit });
+    },
+  },
+  adv_delta_show: {
+    description:
+      "Show the full content of a single staged spec delta by id under `change.deltas[capability]`. Read-only: returns the complete delta object for exact-postimage verification; typed not-found error on unknown delta id. Reads disk-first and works even when the change workflow is orphaned.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID whose staged delta to show"),
+      capability: CapabilityKeySchema.describe(
+        "Capability key containing the delta.",
+      ),
+      deltaId: z.string().min(1).describe("Id of the staged delta to show."),
+    },
+    execute: async (
+      {
+        changeId,
+        capability,
+        deltaId,
+      }: {
+        changeId: string;
+        capability: string;
+        deltaId: string;
+      },
+      store: Store,
+    ) => {
+      return runShow(store, { changeId, capability, deltaId });
     },
   },
 };

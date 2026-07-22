@@ -378,6 +378,16 @@ export function createToolMap(
       "adv_delta_rename",
       store,
     ),
+    adv_delta_list: bindTool(
+      specDeltaTools.adv_delta_list,
+      "adv_delta_list",
+      store,
+    ),
+    adv_delta_show: bindTool(
+      specDeltaTools.adv_delta_show,
+      "adv_delta_show",
+      store,
+    ),
 
     // adv_wip_state — fixTriageTimeouts.
     //
