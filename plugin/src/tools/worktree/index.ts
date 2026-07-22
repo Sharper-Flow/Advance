@@ -1238,8 +1238,7 @@ export async function advWorktreeCreate(
 }
 
 export type AdvWorktreeResumeTarget =
-  | { branch: string; changeId?: string }
-  | { changeId: string; branch?: string };
+  { branch: string; changeId?: string } | { changeId: string; branch?: string };
 
 export type AdvWorktreeResumeResult =
   | {
@@ -1250,6 +1249,12 @@ export type AdvWorktreeResumeResult =
       headSha: string;
       reused: boolean;
       materialized: true;
+      /** Pre-execution rebase result (best-effort, only for reused worktrees). */
+      rebase?: {
+        status: "up_to_date" | "rebased" | "conflict" | "failed";
+        detail?: string;
+        conflictFiles?: string[];
+      };
     }
   | {
       ok: false;
@@ -1307,6 +1312,52 @@ export async function advWorktreeResume(
       const headSha = (
         await execGit(["rev-parse", "HEAD"], record.path)
       ).trim();
+
+      // Best-effort pre-execution rebase for reused worktrees.
+      // Fresh materializations skip this (created from trunk HEAD).
+      let rebaseInfo:
+        | {
+            status: "up_to_date" | "rebased" | "conflict" | "failed";
+            detail?: string;
+            conflictFiles?: string[];
+          }
+        | undefined;
+      try {
+        const { preExecutionRebase } =
+          await import("../apply-helpers/pre-rebase");
+        const rebaseResult = await preExecutionRebase(record.path);
+        if (rebaseResult.ok) {
+          // Refresh headSha after successful rebase
+          const newHeadSha = (
+            await execGit(["rev-parse", "HEAD"], record.path)
+          ).trim();
+          return {
+            ok: true,
+            branch,
+            path: record.path,
+            baseRef: record.baseRef,
+            headSha: newHeadSha,
+            reused: true,
+            materialized: true,
+            rebase: {
+              status: rebaseResult.status,
+              ...(rebaseResult.commits
+                ? { detail: `${rebaseResult.commits} commits applied` }
+                : {}),
+            },
+          };
+        }
+        rebaseInfo = {
+          status: rebaseResult.reason === "conflict" ? "conflict" : "failed",
+          detail: rebaseResult.detail,
+          ...(rebaseResult.conflictFiles
+            ? { conflictFiles: rebaseResult.conflictFiles }
+            : {}),
+        };
+      } catch {
+        // Best-effort: if import or rebase throws, skip silently
+      }
+
       return {
         ok: true,
         branch,
@@ -1315,6 +1366,7 @@ export async function advWorktreeResume(
         headSha,
         reused: true,
         materialized: true,
+        ...(rebaseInfo ? { rebase: rebaseInfo } : {}),
       };
     }
   }
@@ -1992,8 +2044,7 @@ export async function advWorktreeDelete(
   // 1. Resolve registry entry and worktree path. Registry wins over path
   // derivation so missing-from-disk cleanup can operate on stale records.
   let registryEntry:
-    | { branch: string; changeId?: string; path: string }
-    | undefined;
+    { branch: string; changeId?: string; path: string } | undefined;
   try {
     registryEntry = await getWorktreeRegistryEntry(branch, deps);
   } catch (error) {
