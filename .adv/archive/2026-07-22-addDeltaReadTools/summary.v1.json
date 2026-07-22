@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-22T22:49:29.624Z",
+  "capabilities": [],
+  "change_hash": "5c69dd98936084ccd864025760b2f71cabe2116da126f767195a562cdcd595fb",
+  "change_id": "addDeltaReadTools",
+  "completed_tasks": 2,
+  "created_at": "2026-07-22T22:29:38.080Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-22T22:49:20.822Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "dbeee4fdf4a271bb8c0d38f5b6b83f492a4331131383786d29e98eefacb2d862",
+  "task_count": 2,
+  "title": "Add delta read tools",
+  "version": "1"
+}
