@@ -277,6 +277,7 @@ check_rsync() {
 }
 
 PLUGIN_BUNDLE_MANIFEST_BASENAME="plugin-bundle-manifest.json"
+TEMPORAL_BUNDLE_MANIFEST_BASENAME="bundle-manifest.json"
 
 # Validate that the copied plugin bundle artifacts match the SHA-256s recorded
 # in the manifest. Requires jq and sha256sum (or shasum on macOS). Returns
@@ -338,6 +339,59 @@ validate_plugin_bundle_manifest() {
 			return 1
 		fi
 	fi
+
+	return 0
+}
+
+# Validate the Temporal worker bundle manifest and its worker payload. The
+# manifest is a runtime publication marker and must only be copied after both
+# worker files were copied and validated against its recorded hashes.
+validate_temporal_bundle_manifest() {
+	local manifest_path="$1"
+	local temporal_dist_dir="$2"
+	local expected_worker_hash actual_hash
+
+	if [ ! -f "$manifest_path" ]; then
+		echo "    ✗  Temporal bundle manifest missing: $manifest_path"
+		return 1
+	fi
+
+	if ! command -v jq &>/dev/null; then
+		echo "    ✗  jq not found — Temporal bundle manifest validation requires jq"
+		echo "    Install: sudo apt-get install -y jq  (or brew install jq)"
+		return 1
+	fi
+
+	if ! jq -e '.schema_version == 1 and (.generation | type == "string" and length > 0)' "$manifest_path" >/dev/null 2>&1; then
+		echo "    ✗  Temporal bundle manifest has invalid schema or generation: $manifest_path"
+		return 1
+	fi
+
+	for file_name in worker.js workflows.js; do
+		expected_worker_hash="$(jq -r --arg file_name "$file_name" '.files[$file_name] // empty' "$manifest_path" 2>/dev/null)"
+		if [ -z "$expected_worker_hash" ] || ! [[ "$expected_worker_hash" =~ ^[0-9a-f]{64}$ ]]; then
+			echo "    ✗  Temporal bundle manifest has no valid files.$file_name hash: $manifest_path"
+			return 1
+		fi
+		if [ ! -f "$temporal_dist_dir/$file_name" ]; then
+			echo "    ✗  Temporal bundle payload missing: $temporal_dist_dir/$file_name"
+			return 1
+		fi
+		if command -v sha256sum &>/dev/null; then
+			actual_hash="$(sha256sum "$temporal_dist_dir/$file_name" | awk '{print $1}')"
+		elif command -v shasum &>/dev/null; then
+			actual_hash="$(shasum -a 256 "$temporal_dist_dir/$file_name" | awk '{print $1}')"
+		else
+			echo "    ✗  sha256sum or shasum required to validate Temporal bundle"
+			return 1
+		fi
+		if [ "$expected_worker_hash" != "$actual_hash" ]; then
+			echo "    ✗  Temporal bundle $file_name hash mismatch"
+			echo "       manifest: $expected_worker_hash"
+			echo "       actual:   $actual_hash"
+			return 1
+		fi
+	done
 
 	return 0
 }
@@ -1395,12 +1449,17 @@ ensure_plugin_dist_fresh
 # Guard: a production build must produce the plugin bundle manifest before we
 # publish the bundle. The manifest is the LAST file published (see below).
 PLUGIN_BUNDLE_MANIFEST="$ADV_SOURCE_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
+TEMPORAL_BUNDLE_MANIFEST="$ADV_SOURCE_PLUGIN_PATH/dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME"
 if [ "$DRY_RUN" != true ] && [ ! -f "$PLUGIN_BUNDLE_MANIFEST" ]; then
 	echo "    ✗  plugin bundle manifest missing: $PLUGIN_BUNDLE_MANIFEST"
 	echo "       Run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build) and retry."
 	exit 1
 fi
-
+if [ "$DRY_RUN" != true ] && [ ! -f "$TEMPORAL_BUNDLE_MANIFEST" ]; then
+	echo "    ✗  Temporal bundle manifest missing: $TEMPORAL_BUNDLE_MANIFEST"
+	echo "       Run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build) and retry."
+	exit 1
+fi
 # Tracks the post-sync worker bounce so a stuck deployed worker stays loud
 # (nonzero final exit, named in the summary) without aborting the remaining
 # independent asset/config sync under `set -e`.
@@ -1414,7 +1473,7 @@ if [ "$DRY_RUN" = true ]; then
 else
 	check_rsync || exit 1
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
-	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
+	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" --exclude="dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin payload: $ADV_RUNTIME_PLUGIN_PATH"
 	if ! validate_plugin_bundle_manifest "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist"; then
 		echo "    ✗  refusing to publish plugin bundle manifest: copied index validation failed"
@@ -1431,6 +1490,18 @@ else
 	fi
 	mv -f "$plugin_manifest_tmp" "$ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
 	echo "    published plugin bundle manifest: $ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
+	if ! validate_temporal_bundle_manifest "$TEMPORAL_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist/temporal"; then
+		echo "    ✗  refusing to publish Temporal bundle manifest: copied worker validation failed"
+		exit 1
+	fi
+	temporal_manifest_tmp="$(mktemp "$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/.bundle-manifest.XXXXXX.tmp")"
+	if ! cp "$TEMPORAL_BUNDLE_MANIFEST" "$temporal_manifest_tmp"; then
+		rm -f "$temporal_manifest_tmp"
+		echo "    ✗  refusing to publish Temporal bundle manifest: temporary copy failed"
+		exit 1
+	fi
+	mv -f "$temporal_manifest_tmp" "$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME"
+	echo "    published Temporal bundle manifest: $ADV_RUNTIME_PLUGIN_PATH/dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME"
 	refresh_deployed_temporal_workers "after-sync" || worker_refresh_exit=$?
 fi
 

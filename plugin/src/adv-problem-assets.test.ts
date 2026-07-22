@@ -63,3 +63,23 @@ describe("adv-problem spec-law impact contract", () => {
     ]);
   });
 });
+
+/**
+ * RCA output structure (rq-defectOriginRca01) — added by sequenceTriageProposal.
+ *
+ * Verifies that /adv-problem surfaces a "Root cause (if defect origin)" line
+ * in the triage summary Output section. The same RCA content is the required
+ * attachment for defect-origin /adv-proposal and /adv-task invocations.
+ */
+describe("adv-problem RCA output structure (rq-defectOriginRca01)", () => {
+  const command = readFileSync(COMMAND_PATH, "utf8");
+
+  test("Output section lists 'Root cause (if defect origin)'", () => {
+    // Semantic anchor per design DDC1 — compact phrase, machine-grep-able.
+    expect(command).toMatch(/Root cause \(if defect origin\)/i);
+  });
+
+  test("command mentions Root Cause Analysis as a required artifact for defects", () => {
+    expect(command).toMatch(/Root Cause Analysis|RCA/i);
+  });
+});

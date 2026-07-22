@@ -46,7 +46,6 @@ import {
   isPoisonedHistoryError,
   isWorkflowCompletedError,
 } from "../../temporal/recovery-classification";
-import { workflowPoisonedDescriptionEvidence } from "../recovery-probe";
 import {
   escapeVisibilityValue,
   openLifecycleVisibilityClauses,
@@ -282,13 +281,11 @@ async function classifyWorktreeWorkflowFailure(
   recoveryReason?: WorktreeWorkflowRecoveryReason;
   evidenceSummary?: string;
 }> {
-  const describeEvidence = await workflowPoisonedDescriptionEvidence(handle);
-  if (describeEvidence) {
-    return {
-      recoveryReason: "poisoned_history",
-      evidenceSummary: describeEvidence,
-    };
-  }
+  // C2 (fixPoisonedRecovery reviewer-block remediation): describe() must NOT
+  // be the sole poison authority. Error class is primary; describe() no
+  // longer classifies alone. The `handle` param is retained for signature
+  // stability but no longer probed for poison evidence here.
+  void handle;
   if (isPoisonedHistoryError(error)) {
     return {
       recoveryReason: "poisoned_history",

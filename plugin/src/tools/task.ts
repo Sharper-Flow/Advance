@@ -55,6 +55,10 @@ import {
 } from "./_adapters";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 import {
+  appendDraft,
+  maybeCreateWisdomDraftFromErrorRecovery,
+} from "../utils/wisdom-draft";
+import {
   taskAddedSignal,
   taskUpdatedSignal,
   taskAssignedSignal,
@@ -466,6 +470,44 @@ export const taskTools = {
             output.formatted_doom_loop = formatDoomLoopDiagnostics(
               task.error_recovery,
             );
+          }
+          // rq-wisdomAutoSurfacing01 / D1+D2: advisory-only enrichment.
+          // Trigger: task.contract_refs.implements is non-empty.
+          // D1: FTS-filtered wisdom (via wisdom.search) sorted by recorded_at
+          //     DESC, top 5. Falls back to [] on FTS failure.
+          // D2: Emit episode recall hint — plugin emits hint only, agent
+          //     runtime executes the actual MCP call (DONT2: no plugin↔MCP).
+          // AC10: Enrichment is advisory-only — never used to complete gates,
+          // override specs/contracts, or replace task evidence.
+          const implementsRefs = task.contract_refs?.implements ?? [];
+          if (implementsRefs.length > 0) {
+            const queryStr = implementsRefs.join(" ");
+            try {
+              const ftsResults = await activeStore.wisdom.search(queryStr, {
+                changeId,
+              });
+              // Coerce missing recorded_at to '' so entries without
+              // timestamps sort last (oldest) instead of throwing TypeError.
+              // Prevents a data-quality bug from being silently masked as an
+              // FTS failure by the surrounding try/catch.
+              const sorted = [...ftsResults]
+                .sort((a, b) =>
+                  (b.recorded_at || "").localeCompare(a.recorded_at || ""),
+                )
+                .slice(0, 5);
+              output._relevantWisdom = sorted;
+            } catch {
+              // D1 fallback: empty list on FTS failure (advisory-only).
+              output._relevantWisdom = [];
+            }
+            const projectId = await getProjectId(activeStore.paths.root);
+            output._episodeRecallHint = {
+              namespace: projectId ?? activeStore.paths.root,
+              query: queryStr,
+              top_k: 3,
+            };
+          } else {
+            output._relevantWisdom = [];
           }
           return formatToolOutput(output);
         },
@@ -982,6 +1024,20 @@ export const taskTools = {
               evidence_plan: evidencePlanRepair,
             }),
           };
+          // rq-wisdomAutoSurfacing01 / D4: when error_recovery carries a
+          // SEMANTIC class with non-empty attempts and the task has no
+          // existing suggested draft, auto-create one WisdomDraft and merge
+          // into the task's wisdom_drafts[] (task-scoped per AC7).
+          if (args.error_recovery) {
+            const newDraft = maybeCreateWisdomDraftFromErrorRecovery(
+              task,
+              args.error_recovery,
+              now,
+            );
+            if (newDraft) {
+              patch.wisdom_drafts = appendDraft(task.wisdom_drafts, newDraft);
+            }
+          }
           if (args.status === "in_progress") {
             patch.assignedTo = "agent";
             patch.started_at = task.started_at ?? now;
@@ -1041,6 +1097,20 @@ export const taskTools = {
                 },
               );
             } else if (args.status === "blocked") {
+              // rq-wisdomAutoSurfacing01.3 / correctness-4: a SEMANTIC
+              // error_recovery accompanying a blocked-status update still
+              // creates a WisdomDraft. Computed against currentTask so the
+              // dedup check (one suggested draft per task) sees the
+              // pre-update task state. The blocked-signal payload carries
+              // the new wisdom_drafts array atomically with the blocked
+              // transition.
+              const blockedDraft = args.error_recovery
+                ? maybeCreateWisdomDraftFromErrorRecovery(
+                    currentTask,
+                    args.error_recovery,
+                    now,
+                  )
+                : null;
               await fireSignalAndRefresh(
                 handle,
                 activeStore,
@@ -1051,6 +1121,12 @@ export const taskTools = {
                   reason: args.notes ?? "Task blocked",
                   attempts: args.error_recovery?.attempts ?? [],
                   blockedAt: now,
+                  ...(blockedDraft && {
+                    wisdom_drafts: appendDraft(
+                      currentTask?.wisdom_drafts,
+                      blockedDraft,
+                    ),
+                  }),
                 },
               );
             } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
@@ -1084,6 +1160,17 @@ export const taskTools = {
                 },
               );
             } else {
+              // rq-wisdomAutoSurfacing01 / D4: auto-create a WisdomDraft when
+              // error_recovery signals a SEMANTIC failure with attempts.
+              // Computed against currentTask so the dedup check (one suggested
+              // draft per task) sees the pre-update task state.
+              const newDraft = args.error_recovery
+                ? maybeCreateWisdomDraftFromErrorRecovery(
+                    currentTask,
+                    args.error_recovery,
+                    now,
+                  )
+                : null;
               await fireSignalAndRefresh(
                 handle,
                 activeStore,
@@ -1106,6 +1193,12 @@ export const taskTools = {
                     ...(evidencePlanRepair && {
                       evidence_policy: evidencePlanRepair.policy,
                       evidence_plan: evidencePlanRepair,
+                    }),
+                    ...(newDraft && {
+                      wisdom_drafts: appendDraft(
+                        currentTask?.wisdom_drafts,
+                        newDraft,
+                      ),
                     }),
                   },
                   updatedAt: now,

@@ -294,31 +294,82 @@ describe("assembleSystemBlock", () => {
     });
   });
 
-  describe("wisdom-prompt section (volatile)", () => {
-    it("emits wisdom prompt when lastCompletedTask is set", () => {
+  describe("wisdom-prompt section (volatile, rq-wisdomAutoSurfacing01 / AC8)", () => {
+    it("emits draft-aware prompt when pendingWisdomDraftTasks is non-empty", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
             activeChange: { id: "c1" },
-            lastCompletedTask: { id: "tk-1", title: "Implement foo" },
+            pendingWisdomDraftTasks: [
+              { id: "tk-1", title: "Implement foo", count: 1 },
+            ],
           }),
         }),
       );
-      expect(block).toContain("[ADV:RECORD_WISDOM]");
+      expect(block).toContain("[ADV:WISDOM_DRAFTS]");
       expect(block).toContain("tk-1");
       expect(block).toContain("Implement foo");
+      expect(block).toContain("1 draft(s) pending review");
+      expect(block).toContain("adv_wisdom_add from_draft_id");
+      // Retired sentinel must NOT appear anymore.
+      expect(block).not.toContain("[ADV:RECORD_WISDOM]");
     });
 
-    it("does NOT emit when lastCompletedTask is null", () => {
+    it("aggregates drafts across multiple tasks", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
             activeChange: { id: "c1" },
-            lastCompletedTask: null,
+            pendingWisdomDraftTasks: [
+              { id: "tk-a", title: "Task A", count: 2 },
+              { id: "tk-b", title: "Task B", count: 3 },
+            ],
+          }),
+        }),
+      );
+      expect(block).toContain(
+        "5 wisdom draft(s) pending review across 2 task(s)",
+      );
+      expect(block).toContain("tk-a");
+      expect(block).toContain("tk-b");
+    });
+
+    it("does NOT emit when pendingWisdomDraftTasks is empty", () => {
+      const block = assembleSystemBlock(
+        cleanInput({
+          state: cleanState({
+            activeChange: { id: "c1" },
+            pendingWisdomDraftTasks: [],
+          }),
+        }),
+      );
+      expect(block).not.toContain("[ADV:WISDOM_DRAFTS]");
+    });
+
+    it("does NOT emit when pendingWisdomDraftTasks is undefined (legacy callers)", () => {
+      const block = assembleSystemBlock(
+        cleanInput({
+          state: cleanState({
+            activeChange: { id: "c1" },
+          }),
+        }),
+      );
+      expect(block).not.toContain("[ADV:WISDOM_DRAFTS]");
+    });
+
+    it("retired [ADV:RECORD_WISDOM]: lastCompletedTask no longer drives the nudge", () => {
+      // AC8 retires the old prompt. Even when lastCompletedTask is set,
+      // no wisdom-section output fires unless drafts are pending.
+      const block = assembleSystemBlock(
+        cleanInput({
+          state: cleanState({
+            activeChange: { id: "c1" },
+            lastCompletedTask: { id: "tk-1", title: "Completed" },
           }),
         }),
       );
       expect(block).not.toContain("[ADV:RECORD_WISDOM]");
+      expect(block).not.toContain("[ADV:WISDOM_DRAFTS]");
     });
   });
 
@@ -328,7 +379,7 @@ describe("assembleSystemBlock", () => {
         cleanInput({
           state: cleanState({
             activeChange: { id: "c1" },
-            lastCompletedTask: { id: "tk-1", title: "Foo" },
+            pendingWisdomDraftTasks: [{ id: "tk-1", title: "Foo", count: 1 }],
           }),
         }),
       );
@@ -337,7 +388,7 @@ describe("assembleSystemBlock", () => {
       // Stable comes before sentinel
       const sentinelIdx = block!.indexOf(VOLATILE_SENTINEL);
       const activeIdx = block!.indexOf("[ADV] Active change");
-      const wisdomIdx = block!.indexOf("[ADV:RECORD_WISDOM]");
+      const wisdomIdx = block!.indexOf("[ADV:WISDOM_DRAFTS]");
       expect(activeIdx).toBeLessThan(sentinelIdx);
       expect(sentinelIdx).toBeLessThan(wisdomIdx);
     });
@@ -347,7 +398,7 @@ describe("assembleSystemBlock", () => {
         cleanInput({
           state: cleanState({
             activeChange: { id: "c1" },
-            lastCompletedTask: null,
+            pendingWisdomDraftTasks: [],
           }),
         }),
       );
@@ -356,20 +407,19 @@ describe("assembleSystemBlock", () => {
     });
 
     it("does NOT insert sentinel when only volatile content exists", () => {
-      // Volatile-only: completed task without active change is impossible by
-      // section logic (wisdom only fires when state.lastCompletedTask !== null,
-      // independent of activeChange). Force this scenario directly.
+      // Volatile-only: pending drafts without active change. Force this
+      // scenario directly.
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
             activeChange: { id: null },
-            lastCompletedTask: { id: "tk-1", title: "Foo" },
+            pendingWisdomDraftTasks: [{ id: "tk-1", title: "Foo", count: 1 }],
           }),
         }),
       );
       // Wisdom prompt fires; no stable content; no sentinel.
       expect(block).not.toBeNull();
-      expect(block).toContain("[ADV:RECORD_WISDOM]");
+      expect(block).toContain("[ADV:WISDOM_DRAFTS]");
       expect(block).not.toContain(VOLATILE_SENTINEL);
     });
   });
@@ -506,7 +556,11 @@ describe("applyAdvSystemBlock", () => {
     expect(output.system).toEqual([]);
   });
 
-  it("flags consumedWisdomPrompt when lastCompletedTask was set", () => {
+  it("flags consumedWisdomPrompt when lastCompletedTask was set (legacy tracking)", () => {
+    // AC8 retired the lastCompletedTask-driven nudge but the
+    // consumedWisdomPrompt flag still tracks legacy state so callers can
+    // clear lastCompletedTask after emission. The flag fires even though
+    // no [ADV:RECORD_WISDOM] section emits anymore.
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
       state: cleanState({
@@ -518,7 +572,23 @@ describe("applyAdvSystemBlock", () => {
     });
     expect(result.emitted).toBe(true);
     expect(result.consumedWisdomPrompt).toBe(true);
-    expect(output.system[0]).toContain("[ADV:RECORD_WISDOM]");
+    // Retired prompt must NOT appear
+    expect(output.system[0]).not.toContain("[ADV:RECORD_WISDOM]");
+  });
+
+  it("flags consumedWisdomPrompt when pendingWisdomDraftTasks is non-empty (rq-wisdomAutoSurfacing01)", () => {
+    const output = { system: [] as string[] };
+    const result = applyAdvSystemBlock(output, {
+      state: cleanState({
+        activeChange: { id: "c1" },
+        pendingWisdomDraftTasks: [{ id: "tk-1", title: "Foo", count: 2 }],
+      }),
+      initError: null,
+      storeAvailable: true,
+    });
+    expect(result.emitted).toBe(true);
+    expect(result.consumedWisdomPrompt).toBe(true);
+    expect(output.system[0]).toContain("[ADV:WISDOM_DRAFTS]");
   });
 
   it("does NOT flag consumedWisdomPrompt when no task just completed", () => {
@@ -530,6 +600,102 @@ describe("applyAdvSystemBlock", () => {
     });
     expect(result.emitted).toBe(true);
     expect(result.consumedWisdomPrompt).toBe(false);
+  });
+
+  // ─── session-health banner one-shot (fixSessionHealthBannerNoise) ─────────
+  describe("session-health banner one-shot", () => {
+    it("AC2: fresh message-history issue emits the banner and flags surfacedMessageHistoryHealth", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted 33 oversized diff(s)",
+            detectedAt: 0,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(result.emitted).toBe(true);
+      expect(output.system[0]).toContain("[ADV:SESSION_HEALTH]");
+      expect(output.system[0]).toContain("message-history");
+      expect(result.surfacedMessageHistoryHealth).toBe(true);
+    });
+
+    it("AC1: already-surfaced message-history issue does NOT re-emit the banner", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted 33 oversized diff(s)",
+            detectedAt: 0,
+            surfaced: true,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0] ?? "").not.toContain("[ADV:SESSION_HEALTH]");
+      expect(result.surfacedMessageHistoryHealth).toBe(false);
+    });
+
+    it("AC1: surfaced message-history is suppressed but other sections still emit", () => {
+      const output = { system: [] as string[] };
+      applyAdvSystemBlock(output, {
+        state: cleanState({
+          activeChange: { id: "c1" },
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted diffs",
+            detectedAt: 0,
+            surfaced: true,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0]).toContain("[ADV] Active change: c1");
+      expect(output.system[0]).not.toContain("[ADV:SESSION_HEALTH]");
+    });
+
+    it("AC3: session.error banner is sticky — emits even when surfaced=true", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "session.error",
+            message: "session crashed",
+            detectedAt: 0,
+            surfaced: true,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0]).toContain("[ADV:SESSION_HEALTH]");
+      expect(output.system[0]).toContain("session.error");
+      // session.error never counts as message-history surfacing
+      expect(result.surfacedMessageHistoryHealth).toBe(false);
+    });
+
+    it("AC4: absent surfaced flag behaves as unsurfaced (emits + flags)", () => {
+      const output = { system: [] as string[] };
+      const result = applyAdvSystemBlock(output, {
+        state: cleanState({
+          lastSessionHealthIssue: {
+            kind: "message-history",
+            message: "compacted diffs",
+            detectedAt: 0,
+          },
+        }),
+        initError: null,
+        storeAvailable: true,
+      });
+      expect(output.system[0]).toContain("[ADV:SESSION_HEALTH]");
+      expect(result.surfacedMessageHistoryHealth).toBe(true);
+    });
   });
 
   it("emits degraded banner via single entry when storeAvailable is false", () => {

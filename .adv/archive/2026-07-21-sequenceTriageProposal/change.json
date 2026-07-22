@@ -1,0 +1,1133 @@
+{
+  "id": "sequenceTriageProposal",
+  "title": "Sequence triage before proposal",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T05:01:34.099Z",
+  "tasks": [
+    {
+      "id": "tk-aa07da436cf5",
+      "title": "Add rq-defectOriginRca01 requirement to .adv/specs/advance-workflow/spec.json",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T05:23:46.931Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec requirement additions are validated by pnpm run schemas:check (Zod schema validation against spec.schema.json). No runtime behavior to test; structural correctness is the proof target.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T05:27:53.066Z",
+      "verification": "Spec delta dl-defectOriginRca01add recorded against advance-workflow capability. Adds rq-defectOriginRca01 with 3 scenarios covering defect-origin /adv-proposal (scenario 1), /adv-task deferral (scenario 2), and ambiguous-defaults-to-defect (scenario 3). Baseline schemas:check (RED runId tr_mru7qcqw_d2d994d8) passed; post-delta schemas:check (GREEN runId tr_mru7siib_97c7e4ad) passes. Spec schema integrity preserved. Delta will be applied to global spec file at archive time.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f67334bba11b10013f4599200772ea19857ee60f",
+      "completedAt": "2026-07-21T05:30:18.838Z",
+      "completed_at": "2026-07-21T05:30:18.838Z"
+    },
+    {
+      "id": "tk-def2ae080007",
+      "title": "Final verification: pnpm run check exits 0",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T05:24:40.748Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC9",
+          "AC7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "pnpm run check exit code + targeted asset-test pass/fail are the proof targets. No source content reference needed.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T05:54:29.415Z",
+      "verification": "Final verification: pnpm run check passes (exitCode=0, runId tr_mru8pl09_b276e4bf, 38.7s duration). All sub-checks green: schemas:check, typecheck, generate:manifests:check, check-test-isolation, check-lockfile-policy, lint, format:check. No regressions in post-proposal chain (DONT5 preserved). Targeted asset-test suites also pass per tk-f223b7f5afe0 + tk-748ccc3d60a5 + tk-15e3a2a5f103 GREEN runs (48/48 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "93cc25b18bc96736d8ca1f0351e91ccb3c29ca08",
+      "completedAt": "2026-07-21T05:56:18.443Z",
+      "completed_at": "2026-07-21T05:56:18.443Z",
+      "updatedAt": "2026-07-21T14:31:36.442Z"
+    },
+    {
+      "id": "tk-15e3a2a5f103",
+      "title": "Update orchestrator prose with defect-trigger disambiguation (GREEN phase for tk-tests)",
+      "type": "docs",
+      "section": "Orchestrator prose (GREEN)",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-21T05:24:40.797Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C5"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Markdown prose changes verified by tk-tests regex assertions (TDD GREEN phase). artifact_reference is the file content + passing asset tests.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T05:36:03.593Z",
+      "verification": "Orchestrator prose updated: adv.md Step 1 routing table gains footnote with defect/non-defect trigger lists + fallback rule (unintended behavior → defect; ambiguous → defect per rq-defectOriginRca01.3) + RCA requirement for defect-origin proposals/tasks. ADV_INSTRUCTIONS.md HITL Boundary table /adv-problem row extended to mention RCA evidence carried forward. GREEN verified via adv-instructions-assets.test.ts (48/48 pass, runId tr_mru85pyl_d6c10ace). Commit b60982e1. Advisory only; /adv-idea and /adv-epic routing untouched (C5).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "93cc25b18bc96736d8ca1f0351e91ccb3c29ca08",
+      "completedAt": "2026-07-21T05:43:47.703Z",
+      "completed_at": "2026-07-21T05:43:47.703Z"
+    },
+    {
+      "id": "tk-f223b7f5afe0",
+      "title": "Add regex assertions for RCA-requirement language in 3 asset-test files",
+      "type": "code",
+      "section": "Tests (RED)",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-21T05:24:42.265Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Test additions follow TDD discipline — RED state first (assertions fail because prose lacks language), then prose tasks flip to GREEN. Evidence is test pass/fail, not source content.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T05:32:18.316Z",
+      "verification": "RED state recorded via adv_run_test runId tr_mru7yepw_f66402e7 (exitCode=1, classification=failed). Three test files updated with new describe blocks asserting RCA-requirement language that does not yet exist in target prose. Commit 2fa872d8 on branch change/sequenceTriageProposal. Tests use semantic anchors per design DDC1. Subsequent prose-update tasks (tk-748ccc3d60a5, tk-15e3a2a5f103) will flip tests to GREEN.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "2fa872d86ba3f1310bd0165b4bdfca8043d72ef6",
+      "completedAt": "2026-07-21T05:35:17.999Z",
+      "completed_at": "2026-07-21T05:35:17.999Z"
+    },
+    {
+      "id": "tk-748ccc3d60a5",
+      "title": "Update 3 ADV command contracts with RCA-requirement language (GREEN phase for tk-tests)",
+      "type": "docs",
+      "section": "Command contracts (GREEN)",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-21T05:24:42.582Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "DONT1",
+          "DONT4"
+        ],
+        "verifies": [
+          "SC1",
+          "SC4"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Markdown prose changes verified by tk-tests regex assertions (TDD GREEN phase). artifact_reference evidence is the file content + passing asset tests; no separate runtime proof needed for advisory docs.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T05:36:03.561Z",
+      "verification": "3 command contracts updated with RCA-requirement language: adv-problem.md (Output adds 'Root cause (if defect origin)' bullet + RCA mention), adv-proposal.md (Pre-flight step 5: defect-origin detection + trigger lists + fallback rule + persisted RCA template per KD5/DDC4), adv-task.md (Quick Contract ORIGIN class + Phase 1 defect-origin guard rejecting invocations lacking RCA or deferring to /adv-problem; fast-track does NOT bypass RCA). GREEN verified: 48/48 tests pass (runId tr_mru85pyl_d6c10ace). Commit f955fb11. Advisory only — no runtime enforcement (C1/DONT1). /adv-idea and /adv-epic NOT touched (C5).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "93cc25b18bc96736d8ca1f0351e91ccb3c29ca08",
+      "completedAt": "2026-07-21T05:43:47.701Z",
+      "completed_at": "2026-07-21T05:43:47.701Z"
+    },
+    {
+      "id": "tk-60eaa596c95f",
+      "title": "Add doc-comment to plugin/src/manifest.ts prerequisites field (KD4)",
+      "type": "code",
+      "section": "Manifest doc-comment",
+      "status": "cancelled",
+      "priority": 5,
+      "created_at": "2026-07-21T05:24:42.728Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "respects": [
+          "C2"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "No behavioral change; TypeScript compilation is the proof target. manifest.test.ts schema/cross-reference checks continue to pass.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T05:36:03.594Z",
+      "cancelApproval": "User approved via question tool: 'Cancel + recreate as docs (Recommended)' — stage-v2 static_check+code type requires reviewer-owned review_evidence_ref disproportionate for a 5-line doc-comment.",
+      "cancelledAt": "2026-07-21T12:11:18.682Z",
+      "completed_at": "2026-07-21T12:11:18.682Z",
+      "cancellation": {
+        "reason": "Stage-v2 static_check + code type requires reviewer-owned review_evidence_ref disproportionate for a 5-line doc-comment. The actual change is shipped (commit 93cc25b1) and pnpm run check passes. Recreating as type:docs + evidence_policy:test for clean metadata fit.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: 'Cancel + recreate as docs (Recommended)' — stage-v2 static_check+code type requires reviewer-owned review_evidence_ref disproportionate for a 5-line doc-comment.",
+        "approved_at": "2026-07-21T12:11:18.682Z"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "sequenceTriageProposal",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: sequence triage before proposal",
+      "sources": [
+        {
+          "label": "Canonical advance-workflow spec",
+          "locator": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/.adv/specs/advance-workflow/spec.json",
+          "summary": "rq-problemSpecLaw01 requires triage assessment and proposal handoff; rq-taskSpecLaw01 requires tracked fast-path assessment and stops unresolved scope before task generation."
+        },
+        {
+          "label": "Current /adv-task command and executable asset tests",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.opencode/command/adv-task.md",
+          "summary": "The exempt fast path has documented pre-planning safeguards; its asset test asserts command/spec text, not runtime behavior."
+        },
+        {
+          "label": "Current /adv-problem command and executable asset tests",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/.opencode/command/adv-problem.md",
+          "summary": "Problem triage is read-only and routes unresolved impact to proposal/deeper investigation; analogous tests are instruction-text assertions."
+        },
+        {
+          "label": "Canonical workflow instructions",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/ADV_INSTRUCTIONS.md",
+          "summary": "Command boundaries define /adv-task as exempt but prohibit skipping its spec-law assessment."
+        }
+      ],
+      "architecture_assessment": "WORKING DIRECTORY: /home/jon/dev/advance\nCHANGE: sequenceTriageProposal | Sequence triage before proposal\nSCOPE KEY: researcher:design-validation\nATTEMPT: 1\nTASK_SCOPE: validate the proposed design against agreement, specs, and external evidence\nIN_SCOPE:\n  - inline design.md content\n  - inline agreement objectives/AC/constraints/avoidances\n  - relevant specs (use adv_spec action:\"search\" / action:\"show\" capability:\"advance-workflow\")\n  - official docs/examples where ADV spec law is cited\nOUT_OF_SCOPE:\n  - rewriting the design\n  - adding unapproved scope\n  - user-value tradeoff decisions (those are locked)\nDONE_WHEN:\n  - Architecture Judgement is supported by sources or explicit inconclusive notes for each of the 4 dimensions\nSTOP_WHEN:\n  - contract compromise, security/release blocker, or conflict requiring orchestrator decision\nVERIFICATION:\n  required_when_possible:\n    - cite spec/doc/source evidence for each caution or conflict\n  optional_additional_checks: true\n\nThe advisory documentation/spec/asset-test pattern matches existing rq-problemSpecLaw01 and rq-taskSpecLaw01 enforcement, but source-text checks cannot guarantee every bypass rationale was persisted. The conservative ambiguity rule needs an explicit, testable predicate instead of an open-ended trigger list.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "CORRECTNESS: SC1/SC3/SC4 have covered command surfaces: /adv-problem produces triage and is read-only; /adv-task performs a pre-planning assessment and routes uncertainty before tasks. https://github.com/Sharper-Flow/Advance/blob/trunk/.opencode/command/adv-problem.md ; https://github.com/Sharper-Flow/Advance/blob/trunk/.opencode/command/adv-task.md . SC2 remains advisory: proposed spec/prose/regex tests can require an RCA/bypass-rationale instruction, but analogous tests only assert file text, not artifact persistence or gate behavior. https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/adv-problem-assets.test.ts . This honors C1/C2 but cannot substantiate 'never silent.' KD3 aligns with the existing no-unresolved-fast-track rule, but 'etc.' trigger language is subjective and lacks a deterministic rule. https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/.adv/specs/advance-workflow/spec.json ; https://github.com/Sharper-Flow/Advance/blob/trunk/.opencode/command/adv-task.md . SPEC-LAW: no conflict found with rq-problemSpecLaw01, rq-taskSpecLaw01, or seven-gate ordering; proposed law is additive and distinct. https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/.adv/specs/advance-workflow/spec.json . SIMPLICITY: AC1-AC8 explicitly require the named command/instruction, manifest, spec, and asset-test surfaces, so pure-spec-plus-test or proposal-only variants would not meet contract. Provider hints conflict with C4/OOS1; origin_kind extension conflicts with C3/OOS5. I do not know of applicable external library/API documentation because this is a documentation/spec/asset-test-only change."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Advisory source contracts preserve C1/C2 and avoid schema/runtime scope, but cannot mechanically guarantee an agent persisted every bypass rationale.",
+          "Ten touched files add maintenance surface, yet the agreement explicitly names these command, instruction, manifest, spec, and test surfaces."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Pure spec plus tests",
+            "disposition": "rejected",
+            "rationale": "Would omit required AC1-AC5 operator-facing guidance."
+          },
+          {
+            "option": "Only /adv-proposal command contract",
+            "disposition": "rejected",
+            "rationale": "Would leave /adv-task's exempt fast path without SC4/AC2 RCA coverage."
+          },
+          {
+            "option": "Provider hints as primary lever",
+            "disposition": "rejected",
+            "rationale": "Conflicts with C4 and OOS1."
+          },
+          {
+            "option": "origin_kind schema extension",
+            "disposition": "rejected",
+            "rationale": "Conflicts with C3/OOS5 and is more invasive."
+          },
+          {
+            "option": "Runtime validation or hard block",
+            "disposition": "rejected",
+            "rationale": "Conflicts with C1, DONT1, and OOS2."
+          }
+        ],
+        "recommendation": "Proceed only after source text and asset tests explicitly require a defect-origin path to record either an RCA section or a bypass rationale in the artifact before advancement, and replace KD2's 'etc.' with a concise predicate: incorrect existing behavior, failure, regression, or repair is defect-origin; unresolved classification defaults to defect-origin. This stays documentation/spec/test-only and reduces the SC2/KD3 ambiguity."
+      },
+      "recommendation": "Proceed with caution. Keep advisory spec-plus-command-contract enforcement: it is the least invasive approach meeting the locked AC surfaces. Before planning, make the RCA/bypass artifact location and defect-origin fallback predicate explicit semantic anchors in command prose and regex tests; do not add runtime checks, provider hints, or origin schema changes.",
+      "follow_ups": [
+        "No external library/API documentation applies; evidence is canonical spec, command contracts, and executable asset-test examples.",
+        "No in-scope contract compromise found; caution is limited to non-mechanical SC2 enforcement and open-ended KD2 wording."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "sequenceTriageProposal",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/sequenceTriageProposal",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git show --format=fuller --stat --patch 93cc25b1",
+          "bin/oc-test targeted -- src/manifest.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Static review for task tk-60eaa596c95f / AC7: commit 93cc25b1 changes only plugin/src/manifest.ts, replacing one comment with a five-line JSDoc comment; no executable code or type change. Line 54 remains prerequisites: string[]. manifest.test.ts asserts Array.isArray(def.prerequisites) (line 76) and validates prerequisite command references (lines 126-134). Targeted test passed: 1 file, 40 tests, exit 0. Typecheck was externally verified as passing per review request. An initial incorrectly scoped test invocation ran the full suite and exposed unrelated existing failures; corrected targeted invocation passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git show --format=fuller --stat --patch 93cc25b1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/manifest.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-aa07da436cf5": [
+      {
+        "runId": "tr_mru7qcqw_d2d994d8",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run schemas:check 2>&1 | tail -20",
+        "durationMs": 2387.316268999595,
+        "recordedAt": "2026-07-21T05:28:25.381Z"
+      },
+      {
+        "runId": "tr_mru7siib_97c7e4ad",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run schemas:check 2>&1 | tail -10",
+        "durationMs": 1003.2514019999653,
+        "recordedAt": "2026-07-21T05:30:06.191Z"
+      }
+    ],
+    "tk-f223b7f5afe0": [
+      {
+        "runId": "tr_mru7xak6_149d95af",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- plugin/src/adv-problem-assets.test.ts plugin/src/adv-task-assets.test.ts plugin/src/adv-instructions-assets.test.ts 2>&1 | tail -60",
+        "durationMs": 1072.1670880001038,
+        "assertionDensity": 2.3333333333333335,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-21T05:33:49.186Z"
+      },
+      {
+        "runId": "tr_mru7xwbh_d3363d76",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-problem-assets.test.ts src/adv-task-assets.test.ts src/adv-instructions-assets.test.ts 2>&1 | tail -80",
+        "durationMs": 1456.3672660002485,
+        "recordedAt": "2026-07-21T05:34:17.350Z"
+      },
+      {
+        "runId": "tr_mru7yepw_f66402e7",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/adv-problem-assets.test.ts src/adv-task-assets.test.ts src/adv-instructions-assets.test.ts",
+        "durationMs": 1327.8385009998456,
+        "recordedAt": "2026-07-21T05:34:41.201Z"
+      }
+    ],
+    "tk-748ccc3d60a5": [
+      {
+        "runId": "tr_mru85pyl_d6c10ace",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-problem-assets.test.ts src/adv-task-assets.test.ts src/adv-instructions-assets.test.ts",
+        "durationMs": 1334.512488000095,
+        "recordedAt": "2026-07-21T05:40:22.344Z"
+      }
+    ],
+    "tk-60eaa596c95f": [
+      {
+        "runId": "tr_mru8bh4n_164a6ad9",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck 2>&1 | tail -5",
+        "durationMs": 8172.757894999813,
+        "recordedAt": "2026-07-21T05:44:50.848Z"
+      },
+      {
+        "runId": "tr_mru8jpkg_5dfd27c4",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/manifest.test.ts",
+        "durationMs": 266396.4930190006,
+        "recordedAt": "2026-07-21T05:51:15.040Z"
+      },
+      {
+        "runId": "tr_mru8jwqq_0fa666df",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/manifest.test.ts",
+        "durationMs": 1032.231122000143,
+        "assertionDensity": 0.99,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-21T05:51:24.328Z"
+      },
+      {
+        "runId": "tr_mru8k1y6_526f302a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/manifest.test.ts",
+        "durationMs": 1327.7557439999655,
+        "recordedAt": "2026-07-21T05:51:31.075Z"
+      }
+    ],
+    "tk-def2ae080007": [
+      {
+        "runId": "tr_mru8oipp_d7ec7a8e",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm run check 2>&1 | tail -25",
+        "durationMs": 30017.999865000136,
+        "recordedAt": "2026-07-21T05:54:59.432Z"
+      },
+      {
+        "runId": "tr_mru8pl09_b276e4bf",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run check 2>&1 | tail -25",
+        "durationMs": 38715.58071700018,
+        "recordedAt": "2026-07-21T05:55:49.063Z"
+      },
+      {
+        "runId": "tr_mrum5y67_a9689903",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/manifest.test.ts 2>&1 | tail -10",
+        "durationMs": 1673.7391879968345,
+        "recordedAt": "2026-07-21T12:12:27.678Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:02:01.381Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal created from /adv-problem triage finding (structural enforcement gap). All 4 B/F/S categories PASS, one LOW advisory S finding (soft language appropriate at proposal stage). Scope section complete with In Scope (7), Out of Scope (4), Must Not (5). Discovery agenda carries 6 firm-decision items: enforcement level, /adv-task criteria, spec shape, intent boundary, provider hints scope, test strategy. Origin: adhoc (no upstream artifact; triage output from prior /adv-problem session).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "60abd22a75f1451eae40e17921c0b48bbb5a9b16efd7b5cc7142d47b63b6c134",
+        "non_whitespace_chars": 6950,
+        "checked_at": "2026-07-21T05:01:34.139Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:13:28.819Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete with current-state recon (explore subagent mapped RCA insertion points across 7 surfaces: adv-problem.md, adv-proposal.md, adv-task.md, adv.md, ADV_INSTRUCTIONS.md, manifest.ts, advance-workflow spec). Agreement persisted with 4 SC, 9 AC, 6 C, 6 DONT, 5 OOS. Contract minted: 30 items. User Decisions: light but meaningful (UD1), defect-origin scope only (UD2), /adv-task does not bypass RCA for defects (UD3). Agent Decisions: RCA attachment in proposal.md (AD1), spec home = advance-workflow (AD2), RCA shape reuses /adv-problem output (AD3), prerequisites doc-only (AD4). 4 open design questions carried to /adv-design.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "non_whitespace_chars": 6904,
+        "checked_at": "2026-07-21T05:01:34.140Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:21:56.653Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. 5 key decisions: KD1 advisory tier (no runtime), KD2 defect triggers + fallback predicate, KD3 spec shape with 3 scenarios (incl. ambiguous→defect), KD4 single-line manifest doc-comment, KD5 persisted RCA template. Scout skipped (trivially scoped). Validator verdict: CAUTION (advisory-only, does NOT block gate). Two cautions addressed: (1) SC2 advisory limitation → DDC4 persisted-artifact guarantee; (2) KD2 \"etc.\" ambiguity → explicit fallback predicate. No contract compromise, no spec-law conflict, no user-value tradeoff. 5-task implementation strategy (spec law → command contracts → orchestrator prose → manifest+tests → verify). 10 files, ~140 lines estimated.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b95380df837c1abfd9b659e02a3dbc45d401edb1fb0a6e719799db79778d8001",
+        "non_whitespace_chars": 13682,
+        "checked_at": "2026-07-21T05:01:34.141Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T05:26:19.730Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep task graph approved by user (Tier A whitelist: \"approve\"). 6 tasks covering all 9 AC. TDD shape: tk-f223b7f5afe0 RED → tk-748ccc3d60a5 + tk-15e3a2a5f103 GREEN. Routing: spec + verify inline_required; prose/tests/manifest delegate_allowed. Worktree: change/sequenceTriageProposal materialized. Validation passed (1 advisory NO_DELTAS warning, expected — deltas recorded during execution via adv_delta_add)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T12:14:30.927Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete. 5 tasks done, 1 cancelled (tk-60eaa596c95f: stage-v2 static_check+code reviewer-evidence disproportionate for 5-line doc-comment; user approved cancellation after question tool). AC7 functionally covered by manifest.test.ts regex assertion (commit 8f3406d3 + 2c9c1d3d + 908559cf) verifying doc-comment language. All 41 manifest tests pass; 48 asset tests pass; pnpm run check passes (runId tr_mru8pl09_b276e4bf)."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-21T14:12:36.528Z",
+      "completed_at": "2026-07-21T14:14:33.953Z",
+      "completed_by": "user",
+      "approval_evidence": "Acceptance approved.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "54f06f17b14e38a329af5bdd1bc291d91bd83299e4d771fe53ce2750bd87d221",
+        "non_whitespace_chars": 5208,
+        "checked_at": "2026-07-21T05:01:34.148Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+      "approvedAt": "2026-07-21T05:13:16.352Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1**: Defect-origin change proposals carry an explicit Root Cause Analysis section before the proposal gate completes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2**: Bypass of RCA on defect-origin changes is documented and visible, never silent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3**: Non-defect origins (idea shaping, planned features, Epic promotion, backlog promotion) are unaffected by the new requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4**: `/adv-task` fast-track retains its purpose for well-understood changes but explicitly refuses to skip RCA for undiagnosed defects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1**: `.opencode/command/adv-proposal.md` Pre-flight section contains language requiring defect-origin RCA evidence (or explicit bypass rationale) before Phase 1 problem statement agreement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2**: `.opencode/command/adv-task.md` Quick Contract and Phase 1 contain language rejecting defect-origin invocations that lack RCA, with a hint to run `/adv-problem` first.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3**: `.opencode/agents/adv.md` Step 1 \"Understand Intent\" routing table clarifies defect/bug triggers that route to `/adv-problem` before any proposal-creation path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4**: `.opencode/command/adv-problem.md` Output section lists \"Root cause (if defect origin)\" as part of the triage summary structure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5**: `ADV_INSTRUCTIONS.md` HITL Boundary table and pre-implementation phase section reflect the RCA requirement for defect-origin work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6**: `.adv/specs/advance-workflow/spec.json` adds a new requirement `rq-defectOriginRca01` with at least 2 scenarios covering: (a) defect-origin `/adv-proposal` invocation must carry RCA evidence or document explicit rationale; (b) `/adv-task` defect-origin invocation must carry RCA or defer to `/adv-problem` first.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-problemSpecLaw01",
+          "spec:rq-taskSpecLaw01"
+        ]
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7**: `plugin/src/manifest.ts` documentation comment on the `prerequisites` field clarifies that the array is metadata-only (no runtime enforcement); no behavioral code change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8**: Instruction-text regex tests (`adv-instructions-assets.test.ts`, `adv-problem-assets.test.ts`, `adv-task-assets.test.ts`) updated to assert presence of RCA-requirement language.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9**: `pnpm run check` exits 0; targeted asset-test suites pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1**: Light touch (user direction) — advisory + manifest documentation level only; no runtime hard-block; no Temporal/workflow-level enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2**: `prerequisites` field in `plugin/src/manifest.ts` remains pure metadata; no runtime gate added; only documentation updated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3**: `origin_kind` schema on `adv_change_create` remains optional; no Zod schema tightening (avoid breaking legacy writes).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4**: Provider hints package (`~/.local/share/opencode-provider-hints/providers/*.md`) is NOT modified in this change — cross-repo; tracked as separate follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5**: `/adv-idea` and `/adv-epic` entry-point disambiguation is NOT in scope — different intents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6**: Spec extension must integrate with existing `advance-workflow` requirements (e.g., `rq-problemSpecLaw01`, `rq-taskSpecLaw01`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1**: Do NOT add a runtime hard-block or new Temporal/workflow enforcement layer for RCA — light touch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2**: Do NOT modify provider hints content in this change — cross-repo follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3**: Do NOT tighten `origin_kind` Zod schema (would break legacy writes and require recovery paths).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4**: Do NOT silently extend RCA requirement to non-defect origins (idea shaping, planned features, Epics, backlog promotion).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5**: Do NOT regress post-proposal chain (clarify/research/discover/design/prep already strict).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "**DONT6**: Do NOT modify `tool-registry.ts`, `tool-role-policy.ts`, or agent manifests — out of scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1**: Provider hints content updates (cross-repo follow-up change to `opencode-provider-hints` package).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2**: Runtime hard-block on command invocation (excluded by user \"light\" direction).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3**: Routing table refactor for non-defect intents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "**OOS4**: `/adv-idea` and `/adv-epic` disambiguation work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "**OOS5**: `origin_kind` schema additions (e.g., `defect_repair` enum value) — would require migration story.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T12:50:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-problem.md, adv-proposal.md, adv-task.md updated."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Bypass rationale template in adv-proposal.md."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "No changes to /adv-idea, /adv-epic."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-task.md Phase 1 guard."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-problem-assets.test.ts."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-task-assets.test.ts."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-instructions-assets.test.ts."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-problem.md Output bullet."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ADV_INSTRUCTIONS.md HITL extended."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec delta recorded."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "manifest.test.ts regex."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "8 new regex tests."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check exit 0."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No runtime hard-block."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "manifest.ts doc-comment only."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Zod schema edits."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No provider hints modified."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No /adv-idea or /adv-epic changes."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "rq-defectOriginRca01 alongside existing."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No runtime hard-block."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Provider hints unchanged."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No schema tightening."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Defect-origin scope only."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No workflow chain regressions."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No tool-registry edits."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1**: `.opencode/command/adv-proposal.md` Pre-flight section contains language requiring defect-origin RCA evidence (or explicit bypass rationale) before Phase 1 problem statement agreement.",
+    "**AC2**: `.opencode/command/adv-task.md` Quick Contract and Phase 1 contain language rejecting defect-origin invocations that lack RCA, with a hint to run `/adv-problem` first.",
+    "**AC3**: `.opencode/agents/adv.md` Step 1 \"Understand Intent\" routing table clarifies defect/bug triggers that route to `/adv-problem` before any proposal-creation path.",
+    "**AC4**: `.opencode/command/adv-problem.md` Output section lists \"Root cause (if defect origin)\" as part of the triage summary structure.",
+    "**AC5**: `ADV_INSTRUCTIONS.md` HITL Boundary table and pre-implementation phase section reflect the RCA requirement for defect-origin work.",
+    "**AC6**: `.adv/specs/advance-workflow/spec.json` adds a new requirement `rq-defectOriginRca01` with at least 2 scenarios covering: (a) defect-origin `/adv-proposal` invocation must carry RCA evidence or document explicit rationale; (b) `/adv-task` defect-origin invocation must carry RCA or defer to `/adv-problem` first.",
+    "**AC7**: `plugin/src/manifest.ts` documentation comment on the `prerequisites` field clarifies that the array is metadata-only (no runtime enforcement); no behavioral code change.",
+    "**AC8**: Instruction-text regex tests (`adv-instructions-assets.test.ts`, `adv-problem-assets.test.ts`, `adv-task-assets.test.ts`) updated to assert presence of RCA-requirement language.",
+    "**AC9**: `pnpm run check` exits 0; targeted asset-test suites pass."
+  ],
+  "documents": {
+    "proposal": "# Sequence triage before proposal\n\n## Why\n\nADV instructions tell agents to route bug reports through `/adv-problem` (triage before fix), but no structural layer enforces this. The Step 1 \"Understand Intent\" routing table in `.opencode/agents/adv.md:180-195`, the HITL boundary table in `ADV_INSTRUCTIONS.md:34`, and the `/adv-problem` command contract all describe triage-first as **advisory prose only**. The command DAG treats `/adv-problem`, `/adv-idea`, `/adv-epic`, `/adv-backlog`, `/adv-proposal`, and `/adv-task` as siblings — all carry `prerequisites: []` in `plugin/src/manifest.ts`. The `prerequisites` field is pure metadata: no runtime layer reads it to block invocation (`manifest.test.ts:76-77, 126-134` only validates array shape and valid command-name cross-references).\n\nAs a result, agents interpret bug reports as \"Start a change\" intent and proceed directly to `/adv-proposal` or `/adv-task` without producing a Root Cause Analysis (RCA), and nothing in the stack stops them. This produces proposals for symptoms rather than causes, and lets `/adv-task` fast-track mask untriaged defects as \"well-understood.\"\n\n`ADV_INSTRUCTIONS.md:29` explicitly admits: \"Only planning is machine-enforced. Other phase boundaries rely on command-doc adherence.\" Provider hints for all 6 model families at `~/.local/share/opencode-provider-hints/providers/` contain zero triage-first or RCA directives.\n\n## User Outcomes\n\n- Bug-origin change proposals attach a Root Cause Analysis (RCA) before advancing\n- `/adv-task` fast-track bypasses full proposal ceremony but does NOT bypass RCA — fast-tracking a defect still requires root-cause evidence\n- Bypass is **intentional and visible** — agents cannot silently skip RCA on defects\n- No regression for non-defect origins (idea shaping, Epic promotion, backlog promotion, planned features)\n\n## What Changes\n\n**Direction: light but meaningful.** Advisory tightening + manifest semantics, NOT runtime hard-block. No new Temporal/workflow enforcement layer.\n\n1. **Intent routing disambiguation** — tighten Step 1 \"Understand Intent\" table in `.opencode/agents/adv.md` so \"Problem triage\" / bug / defect triggers route to `/adv-problem` (or otherwise produce RCA evidence) before any proposal-creation path\n2. **RCA requirement in command contracts** — `.opencode/command/adv-proposal.md` and `.opencode/command/adv-task.md` acknowledge the RCA requirement for bug/defect origins; contracts explain when RCA is satisfied by `/adv-problem` output vs by inline evidence\n3. **Manifest semantics** — `plugin/src/manifest.ts` documentation on `prerequisites` clarifies that bug-origin proposals expect prior `/adv-problem`; no runtime enforcement added (the field remains pure metadata, intentionally)\n4. **Spec-law coverage** — extend `advance-workflow` capability spec (existing home of `/adv-problem` requirements) with a requirement that defect-origin `/adv-proposal` and `/adv-task` invocations carry RCA evidence or document explicit rationale\n5. **`/adv-task` fast-track clarification** — explicit criteria: `/adv-task` is legitimate bypass of proposal ceremony for **well-understood** changes; it is NOT a bypass of RCA for defects. Operationalize \"well-understood\" to exclude \"defect I haven't diagnosed yet.\"\n6. **Provider hints follow-up** — add RCA-first directive to provider hints (cross-repo; tracked as separate follow-up change to `opencode-provider-hints` package)\n\n## Scope\n\n### In Scope\n\n- `.opencode/agents/adv.md` Step 1 routing table disambiguation (lines 180-195)\n- `ADV_INSTRUCTIONS.md` pre-implementation phase boundary strengthening\n- `.opencode/command/adv-problem.md`, `.opencode/command/adv-proposal.md`, `.opencode/command/adv-task.md` contract updates for RCA requirement\n- `plugin/src/manifest.ts` — documentation comment update on `prerequisites`; **no runtime change**\n- Spec deltas: `.adv/specs/advance-workflow/spec.json` — extend with RCA-requirement scenario(s)\n- Tests: instruction-text regex tests (existing pattern in `adv-instructions-assets.test.ts`, `adv-problem-assets.test.ts`, `adv-task-assets.test.ts`); manifest doc-comment test if applicable\n\n### Out of Scope\n\n- **Runtime hard-block on command invocation** — explicitly excluded; advisory + manifest level only (light touch per user direction)\n- **Temporal/workflow-level enforcement** — full prerequisite gate is over-engineering for this problem class\n- **Provider hints content** (`~/.local/share/opencode-provider-hints/providers/*.md`) — cross-repo package; tracked as follow-up\n- **`origin_kind` schema tightening on `adv_change_create`** — could break legacy writes; advisory route preferred\n- **`/adv-idea` and `/adv-epic` entry-point disambiguation** — those commands serve different intents; only defect-vs-proposal routing is in scope\n- **Routing table refactor for other intents** — Step 1 table covers 11 intents; only the defect-vs-build boundary is in scope\n\n### Must Not\n\n- Must not add a runtime hard-block or new Temporal enforcement layer (light touch)\n- Must not break existing flows where users intentionally skip ceremony for non-defect work (planned features, ideas, Epics)\n- Must not regress post-proposal chain (clarify/research/discover/design/prep already strict)\n- Must not silently extend rules beyond defect-origin scope (per provider hint guidance) — RCA requirement is bug/defect only\n- Must not modify provider hints in this change (cross-repo; separate follow-up)\n- Must not require `origin_kind` schema changes (advisory route only)\n\n## Constraints\n\n- **Light touch (user direction)**: advisory + manifest documentation level; no new runtime enforcement\n- `prerequisites` field in `manifest.ts` remains pure metadata; no runtime gate added\n- `origin_kind` on `adv_change_create` remains optional; no schema tightening\n- Provider hints live in separate installed package (`opencode-provider-hints`); changes there require separate cross-repo change\n- ADV spec law: `.adv/specs/advance-workflow/spec.json` already covers `/adv-problem` read-only contract and spec-law impact assessment; new RCA requirement must integrate cleanly\n- Test surface: no runtime behavior change → tests are primarily instruction-text regex and contract-asset checks\n\n## Impact\n\n- **Agent behavior:** defect-origin requests produce RCA before proposal/task creation; less silent skipping of root-cause work\n- **User experience:** bug reports yield visible RCA before change creation; intentional bypass remains available for non-defects\n- **Spec law:** `advance-workflow` capability gains RCA-requirement scenario(s)\n- **Test surface:** instruction-text regex tests + adv-problem/adv-task contract tests updated; no runtime layer added\n- **Cross-repo follow-up:** provider hints package gains RCA-first directive (separate change)\n- **Risk profile:** low — advisory changes are reversible; no breaking API/contract change\n\n## Context\n\n- Triage source: `/adv-problem` session 2026-07-21 — classified as structural enforcement gap, not behavioral\n- User direction (proposal approval): \"light but meaningful. require a root cause analysis for bugs/defects etc\"\n- Related shipped: `gateAgentToolsRole` (archived — role-scoped tool exposure); no direct overlap\n- Related active: `tightenToolOutputDefaults`, `slimMutationToolSurface` — different concerns, no overlap\n- Adjacent Epic candidate: `systemizeAdvOrchestration` — touches orchestration surfaces; possible membership if discovery firms Epic fit\n\n## Discovery Agenda\n\n1. **Operationalize \"defect/bug origin\" trigger language** — what user phrasings classify as defect-origin requiring RCA? (e.g., \"fix X\", \"X is broken\", \"X fails when...\") vs feature work (\"add X\", \"build X\", \"support X\")\n2. **RCA shape** — what does \"Root Cause Analysis\" mean operationally in this context? Minimum content: symptom, evidence gathered, leading hypothesis, ruled-out paths. Likely reuses `/adv-problem` output structure.\n3. **RCA attachment point** — where does RCA evidence live? Carried into `adv_change_create` `proposal` content? New optional field? Persisted in proposal.md as a section?\n4. **`/adv-task` narrow bypass criteria** — operationalize \"well-understood change that is NOT a defect\" so `/adv-task` cannot be used to skip RCA on undiagnosed bugs\n5. **Spec-law shape** — confirm: extend `advance-workflow` (existing home of `/adv-problem` spec) rather than new capability. Draft requirement text.\n6. **Provider hints cross-repo coordination** — confirm scope boundary: in-repo only for this change; separate cross-repo change follows\n7. **Test strategy for advisory enforcement** — instruction-text regex patterns; contract-asset tests verifying RCA-requirement language present in `/adv-proposal.md` and `/adv-task.md`\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add advisory requirement that defect-origin change proposals (via `/adv-proposal` or `/adv-task`) carry an explicit Root Cause Analysis (RCA) before advancing.\n2. Operationalize defect-vs-feature trigger language so agents route bug/defect reports through `/adv-problem` (or otherwise produce RCA evidence) before any proposal-creation path.\n3. Update command contracts (`adv-problem.md`, `adv-proposal.md`, `adv-task.md`), orchestrator prose (`adv.md`, `ADV_INSTRUCTIONS.md`), and spec law (`advance-workflow`) to make bypass of RCA on defects **visible** rather than silent.\n4. Keep the change light: no runtime hard-block, no Temporal/workflow-level enforcement, no schema tightening, no provider-hints edits (cross-repo).\n\n## Success Criteria\n\n- **SC1**: Defect-origin change proposals carry an explicit Root Cause Analysis section before the proposal gate completes.\n- **SC2**: Bypass of RCA on defect-origin changes is documented and visible, never silent.\n- **SC3**: Non-defect origins (idea shaping, planned features, Epic promotion, backlog promotion) are unaffected by the new requirement.\n- **SC4**: `/adv-task` fast-track retains its purpose for well-understood changes but explicitly refuses to skip RCA for undiagnosed defects.\n\n## Acceptance Criteria\n\n- **AC1**: `.opencode/command/adv-proposal.md` Pre-flight section contains language requiring defect-origin RCA evidence (or explicit bypass rationale) before Phase 1 problem statement agreement.\n- **AC2**: `.opencode/command/adv-task.md` Quick Contract and Phase 1 contain language rejecting defect-origin invocations that lack RCA, with a hint to run `/adv-problem` first.\n- **AC3**: `.opencode/agents/adv.md` Step 1 \"Understand Intent\" routing table clarifies defect/bug triggers that route to `/adv-problem` before any proposal-creation path.\n- **AC4**: `.opencode/command/adv-problem.md` Output section lists \"Root cause (if defect origin)\" as part of the triage summary structure.\n- **AC5**: `ADV_INSTRUCTIONS.md` HITL Boundary table and pre-implementation phase section reflect the RCA requirement for defect-origin work.\n- **AC6**: `.adv/specs/advance-workflow/spec.json` adds a new requirement `rq-defectOriginRca01` with at least 2 scenarios covering: (a) defect-origin `/adv-proposal` invocation must carry RCA evidence or document explicit rationale; (b) `/adv-task` defect-origin invocation must carry RCA or defer to `/adv-problem` first. [warrant: spec:rq-problemSpecLaw01, spec:rq-taskSpecLaw01]\n- **AC7**: `plugin/src/manifest.ts` documentation comment on the `prerequisites` field clarifies that the array is metadata-only (no runtime enforcement); no behavioral code change.\n- **AC8**: Instruction-text regex tests (`adv-instructions-assets.test.ts`, `adv-problem-assets.test.ts`, `adv-task-assets.test.ts`) updated to assert presence of RCA-requirement language.\n- **AC9**: `pnpm run check` exits 0; targeted asset-test suites pass.\n\n## Constraints\n\n- **C1**: Light touch (user direction) — advisory + manifest documentation level only; no runtime hard-block; no Temporal/workflow-level enforcement.\n- **C2**: `prerequisites` field in `plugin/src/manifest.ts` remains pure metadata; no runtime gate added; only documentation updated.\n- **C3**: `origin_kind` schema on `adv_change_create` remains optional; no Zod schema tightening (avoid breaking legacy writes).\n- **C4**: Provider hints package (`~/.local/share/opencode-provider-hints/providers/*.md`) is NOT modified in this change — cross-repo; tracked as separate follow-up.\n- **C5**: `/adv-idea` and `/adv-epic` entry-point disambiguation is NOT in scope — different intents.\n- **C6**: Spec extension must integrate with existing `advance-workflow` requirements (e.g., `rq-problemSpecLaw01`, `rq-taskSpecLaw01`).\n\n## Avoidances\n\n- **DONT1**: Do NOT add a runtime hard-block or new Temporal/workflow enforcement layer for RCA — light touch.\n- **DONT2**: Do NOT modify provider hints content in this change — cross-repo follow-up.\n- **DONT3**: Do NOT tighten `origin_kind` Zod schema (would break legacy writes and require recovery paths).\n- **DONT4**: Do NOT silently extend RCA requirement to non-defect origins (idea shaping, planned features, Epics, backlog promotion).\n- **DONT5**: Do NOT regress post-proposal chain (clarify/research/discover/design/prep already strict).\n- **DONT6**: Do NOT modify `tool-registry.ts`, `tool-role-policy.ts`, or agent manifests — out of scope.\n\n## Out of Scope\n\n- **OOS1**: Provider hints content updates (cross-repo follow-up change to `opencode-provider-hints` package).\n- **OOS2**: Runtime hard-block on command invocation (excluded by user \"light\" direction).\n- **OOS3**: Routing table refactor for non-defect intents.\n- **OOS4**: `/adv-idea` and `/adv-epic` disambiguation work.\n- **OOS5**: `origin_kind` schema additions (e.g., `defect_repair` enum value) — would require migration story.\n\n## Preview Applicability\n\n- **visual_surface**: `false` — ADV plugin docs/specs/tests change; no front-end, browser, or visual output affected.\n- **preview_expectation**:\n  - `exact_route_required`: `not_applicable`\n  - `data_state_expectation`: `not_applicable`\n  - `viewport_expectation`: `not_applicable`\n- **Rationale**: Pure ADV plugin docs/specs/instruction-text change; no UI surface touched.\n\n## Decisions\n\n### User Decisions\n\n- **UD1 — Direction \"light but meaningful\"**: User selected advisory tightening + manifest documentation over runtime hard-block (over-engineering) or schema tightening (breaking-change risk). Direction set at proposal approval: \"light but meaningful. require a root cause analysis for bugs/defects etc\".\n- **UD2 — RCA trigger scope = defect origins only**: User selected narrow scope (defects/bugs) over broad scope (all change origins). Non-defects (idea shaping, planned features, Epic promotion, backlog promotion) intentionally unaffected.\n- **UD3 — `/adv-task` does NOT bypass RCA for defects**: User confirmed fast-track bypass is for ceremony only, not for root-cause. `/adv-task` defect-origin invocations must carry RCA or defer to `/adv-problem`.\n\n### Agent Decisions (LBP)\n\n- **AD1 — RCA attachment point**: Section in `proposal.md` (e.g., `## Root Cause Analysis`) carried into `adv_change_create proposal:` content. Chosen over new schema field (would require `origin_kind` schema change) or separate artifact (would require new artifact kind in `gate-readiness.ts`).\n- **AD2 — Spec home = `advance-workflow`**: Existing home of `rq-problemSpecLaw01` and `rq-taskSpecLaw01`; natural extension point. New `triage-routing` capability rejected as redundant.\n- **AD3 — RCA shape reuses `/adv-problem` output**: Symptom, evidence by tier, leading hypothesis + ruled-out paths, spec-law impact, exit path. If `/adv-problem` already ran, its output IS the RCA — no duplicate work.\n- **AD4 — `prerequisites` documentation update only**: Field remains pure metadata. Adding runtime enforcement would be a separate hardening change beyond user \"light\" direction.\n\n## Deferred Questions\n\nFour open design questions carry to `/adv-design`:\n\n1. Exact phrasing of defect-origin trigger language in Step 1 routing table (compact vs verbose).\n2. Whether `rq-defectOriginRca01` should have a third scenario for \"ambiguous origin defaults to defect\" (conservative routing) or remain neutral.\n3. Whether `manifest.ts` doc-comment update is one line or short paragraph.\n4. Whether to add an explicit \"defect bypass rationale\" template snippet in `/adv-proposal.md`.\n\n## Sign-Off\n\nUser approved acceptance and success criteria via Tier A whitelist (`approve`) on 2026-07-21 following Phase 4.5.1 Acceptance Criteria Checkpoint. Direction set at proposal approval as \"light but meaningful, require a root cause analysis for bugs/defects etc\"; AC set firms the operational meaning of that direction across the 4 affected ADV command contracts, orchestrator prompt, and `advance-workflow` spec law.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nThe change adds an **advisory** Root Cause Analysis (RCA) requirement to the ADV pre-implementation phase. The requirement flows through five layers, each enforcing the same contract from a different angle:\n\n```\nUser intent classification (adv.md Step 1)\n    ↓ (defect triggers routed to /adv-problem)\nDefect-origin detection (/adv-proposal Pre-flight, /adv-task Quick Contract)\n    ↓ (defect origin requires RCA evidence OR explicit bypass rationale)\nRCA attachment (proposal.md ## Root Cause Analysis section — persisted artifact)\n    ↓ (RCA content carried into adv_change_create proposal: arg; verified by Phase 1 confirmation)\nSpec-law enforcement (advance-workflow rq-defectOriginRca01)\n    ↓ (spec requirement + scenarios codify the contract)\nTest verification (instruction-text regex in 3 asset-test files)\n    ↓ (CI asserts language present in each source surface)\n```\n\nAll five layers are advisory. No runtime hard-block, no schema enforcement, no workflow-level gate. The contract is enforced by:\n1. Agent-readable prose (commands, agents/adv.md, ADV_INSTRUCTIONS.md)\n2. Spec law (advance-workflow requirements)\n3. CI regex assertions (asset-test files — verify source wording, not agent persistence)\n\nThis matches the existing enforcement tier for `rq-problemSpecLaw01` (spec-law impact assessment) and `rq-taskSpecLaw01` (`/adv-task` spec-law impact). `ADV_INSTRUCTIONS.md:29` self-admits only planning is machine-enforced; this change intentionally stays within the agent-enforced tier.\n\n**Known limitation (validator caution):** Advisory enforcement cannot mechanically prove every agent persists RCA in actual proposals — only that the source wording exists. This is identical to the existing `rq-problemSpecLaw01` tier. Closing this gap would require runtime enforcement (rejected per C1, DONT1). Visibility is improved by requiring the RCA section in the persisted `proposal.md` artifact (not just chat discussion), which is reviewable by users and future agents.\n\n## Key Decisions\n\n### KD1: Advisory enforcement tier (no runtime layer)\n\n**Decision:** Stay at advisory + spec-law + CI-regex tier. Do not add Temporal/workflow enforcement.\n\n**Rationale:**\n- User direction \"light but meaningful\" rules out runtime hard-block\n- Existing ADV enforcement pattern for spec-law impact (`rq-problemSpecLaw01`) is advisory-only and works in practice\n- Runtime enforcement would require:\n  - New gate or precondition check in `adv_gate_complete`\n  - Schema extension to `ChangeOriginKindSchema` (rejected per C3)\n  - Migration story for existing flows\n- The defect-origin problem is behavioral (agents skip evidence-gathering), not structural; advisory + CI-regex addresses the behavior without infrastructure cost\n\n**Alternatives considered:**\n- (a) Runtime hard-block via `adv_change_create` precondition — rejected (C1, DONT1)\n- (b) Schema tightening on `origin_kind` to require `defect_repair` enum — rejected (C3, DONT3, OOS5)\n- (c) New `triage-routing` capability spec — rejected (AD2; advance-workflow already houses `/adv-problem` requirements)\n- (d) Pure spec + test only (no command-contract prose updates) — rejected; simpler but fails AC1-AC5 coverage (command contracts must contain the language)\n- (e) Provider hints directive as primary lever — rejected (cross-repo coordination; C4)\n\n### KD2: Defect-origin trigger language (compact list + fallback predicate)\n\n**Decision:** Use compact bullet list of trigger phrases plus an explicit fallback predicate for ambiguous cases. Resolve Deferred Question #1.\n\n**Defect triggers (RCA required):**\n- \"fix X\", \"X is broken\", \"X fails when...\", \"X doesn't work\", \"bug in X\", \"error in X\", \"regression in X\", \"X crashes\", \"X is wrong\", \"defect in X\"\n\n**Non-defect triggers (RCA not required):**\n- \"add X\", \"build X\", \"support X\", \"refactor X\", \"improve X\", \"optimize X\", \"migrate X\", \"create X\", \"design X\"\n\n**Fallback predicate (resolves \"etc.\" ambiguity per validator caution):**\n- Default rule: **if user describes unintended behavior → defect; if user describes desired new behavior → not defect**\n- Tie-breaker: **if ambiguous after applying default rule → treat as defect (conservative routing per KD3 scenario 3)**\n- Concrete operationalization: agent must classify origin explicitly in proposal; ambiguous classification defaults to defect.\n\n**Rationale:** Compact list is machine-grep-able for asset tests; explicit fallback closes the \"etc.\" loophole the validator flagged. List lives in `adv.md` Step 1 routing table footnote and is referenced (not duplicated) from `/adv-proposal.md` and `/adv-task.md`.\n\n### KD3: Spec requirement shape (3 scenarios, including ambiguous default)\n\n**Decision:** `rq-defectOriginRca01` carries 3 scenarios. Resolve Deferred Question #2 (conservative routing).\n\n**Scenarios:**\n1. Defect-origin `/adv-proposal` invocation carries RCA evidence (or explicit rationale in proposal)\n2. Defect-origin `/adv-task` invocation carries RCA OR defers to `/adv-problem` first\n3. **Ambiguous origin defaults to defect** (conservative routing — agent must produce RCA or ask user to clarify non-defect status)\n\n**Rationale:** Conservative default closes the \"is this really a defect?\" loophole. Without scenario 3, agents can relabel bugs as features to skip RCA. The cost of asking the user (one clarification turn) is far less than the cost of building the wrong fix. Validator confirmed this scenario is sound.\n\n### KD4: manifest.ts doc-comment shape (single line)\n\n**Decision:** Single-line JSDoc-style comment on the `prerequisites` field. Resolve Deferred Question #3.\n\n**Text:**\n```ts\n/**\n * Command prerequisites — metadata describing expected prior commands.\n * NOT runtime-enforced: no layer reads this array to block invocation.\n * Advisory routing hints live in .opencode/agents/adv.md Step 1.\n */\nprerequisites: string[];\n```\n\n**Rationale:** Multi-paragraph doc risks scope creep into rewriting all manifest documentation. Single-line clarifies the contract for future contributors without bloating the file.\n\n### KD5: Defect bypass rationale template (yes, include; persisted artifact)\n\n**Decision:** Include a short template snippet in `/adv-proposal.md`. Resolve Deferred Question #4.\n\n**Template (persisted in proposal.md artifact, not just chat discussion):**\n```md\n## Root Cause Analysis\n\n**Defect origin:** {brief description of unintended behavior}\n\n**Evidence gathered:**\n- Tier 1 (local): {findings}\n- Tier 2 (external): {findings or \"not applicable\"}\n\n**Leading hypothesis:** {root cause}\n**Ruled-out paths:** {alternatives considered and rejected}\n\n**Spec-law impact:** {per /adv-problem Phase 5 assessment}\n\n—\n\n**Bypass rationale (if RCA produced inline rather than via /adv-problem):**\n{one sentence explaining why /adv-problem was not used}\n```\n\n**Rationale:** Template makes the bypass visible (SC2) **in the persisted artifact** — addressing validator caution about SC2's advisory limitation. Agents filling the template surface the decision in proposal.md (reviewable by users, future agents, and AC checks); agents skipping the template fail the asset-test regex (AC1). Template lives in `/adv-proposal.md` and is referenced from `/adv-task.md`. Persisted-artifact requirement is the strongest guarantee available within C1 (advisory tier).\n\n## Implementation Strategy\n\nOrdered task graph (5 tasks — firm in `/adv-prep`):\n\n1. **Spec law first** — `rq-defectOriginRca01` added to `.adv/specs/advance-workflow/spec.json` with 3 scenarios (KD3). Establishes the contract before any prose references it.\n\n2. **Command contracts** — three files updated in parallel:\n   - `/adv-problem.md` Output section adds \"Root cause (if defect origin)\" line (AC4)\n   - `/adv-proposal.md` Pre-flight adds defect-origin detection + RCA requirement + bypass rationale template (AC1, KD5)\n   - `/adv-task.md` Quick Contract adds ORIGIN class; Phase 1 rejects defect-origin without RCA with hint to run `/adv-problem` (AC2)\n\n3. **Orchestrator prose** — two files updated in parallel:\n   - `adv.md` Step 1 routing table footnote with defect/non-defect trigger lists + fallback predicate (AC3, KD2)\n   - `ADV_INSTRUCTIONS.md` HITL Boundary table row for `/adv-problem` extended; pre-implementation phase section notes RCA requirement (AC5)\n\n4. **Manifest doc-comment + tests** — two parallel:\n   - `manifest.ts` `prerequisites` field gains single-line doc-comment (AC7, KD4)\n   - Three asset-test files gain regex assertions for RCA-requirement language (AC8)\n\n5. **Verify** — `pnpm run check` exits 0 (AC9); targeted asset-test suites pass.\n\nTasks 1→2 has a soft dependency (spec law before prose). Tasks 2/3/4 are largely independent and can run in parallel by different workers. Task 5 is final verification.\n\n## LBP Analysis\n\n**Why this approach is preferred long-term:**\n\n- **Matches existing enforcement tier.** ADV already enforces spec-law impact assessment (`rq-problemSpecLaw01`) at the advisory + spec + CI-regex tier. This change extends the same pattern, not introducing a new enforcement mechanism. Future hardening (if needed) can layer runtime checks on top without rip-up.\n\n- **Reversible.** Advisory changes are docs/specs/tests. If the requirement proves ineffective or overly rigid, rolling back is a single commit (vs. rolling back a runtime gate would require migration).\n\n- **Industry alignment.** \"Diagnose before solving\" is universal across incident management (ITIL, SRE), quality disciplines (Toyota A3, 5 Whys), and software root-cause traditions. The RCA shape mirrors `/adv-problem` output, which itself mirrors industry triage methodology.\n\n- **Right-sized scope.** C3 (no schema tightening) avoids the migration cost. C4 (no provider hints) avoids cross-repo coordination. C1 (no runtime block) avoids infrastructure cost. Total surface: 7 files, ~135-200 lines of prose + spec + tests.\n\n- **Does not preclude future hardening.** If advisory proves insufficient (e.g., telemetry shows agents still skip RCA), a follow-up change can add runtime enforcement without renegotiating this design. The spec requirement `rq-defectOriginRca01` provides the anchor for any future enforcement layer.\n\n**Why not the alternatives:**\n\n- **Runtime hard-block** — over-engineering for a behavioral problem. The existing advisory tier works for `rq-problemSpecLaw01`; consistency argues against divergence.\n- **Schema tightening** — breaking-change risk for legacy writes. Recovery paths add complexity disproportionate to the behavioral fix.\n- **Provider hints directive as primary lever** — cross-repo coordination cost. Better as follow-up after in-repo enforcement is stable.\n- **Pure spec + test (no command prose updates)** — simpler but fails AC1-AC5 coverage; command contracts must contain the language for agent readability.\n\n## Affected Components\n\n| File | Change type | Lines (est.) |\n|---|---|---|\n| `.adv/specs/advance-workflow/spec.json` | Add requirement | ~40 (new rq-defectOriginRca01 with 3 scenarios) |\n| `.opencode/command/adv-problem.md` | Add output line | ~3 |\n| `.opencode/command/adv-proposal.md` | Add Pre-flight block + template | ~25 |\n| `.opencode/command/adv-task.md` | Add Quick Contract ORIGIN + Phase 1 check | ~15 |\n| `.opencode/agents/adv.md` | Add routing table footnote + fallback predicate | ~10 |\n| `ADV_INSTRUCTIONS.md` | Extend HITL row + phase section | ~10 |\n| `plugin/src/manifest.ts` | Add doc-comment | ~5 |\n| `plugin/src/adv-problem-assets.test.ts` | Add regex test | ~10 |\n| `plugin/src/adv-task-assets.test.ts` | Add regex test | ~10 |\n| `plugin/src/adv-instructions-assets.test.ts` | Add regex test | ~10 |\n\n**Total estimated:** ~140 lines across 10 files.\n\n## Design-Derived Criteria\n\nTechnical criteria caused by the chosen architecture:\n\n- **DDC1 — Regex anchor stability:** Instruction-text regex tests must use semantic anchors (e.g., `Root Cause Analysis`, `defect origin`), not literal long phrases, to avoid brittleness when phrasing evolves. Each test asserts a stable substring present in the target file.\n- **DDC2 — Spec requirement ID stability:** `rq-defectOriginRca01` follows the existing naming convention (`rq-<camelCase>`). Stable IDs are required for spec-delta operations during archive.\n- **DDC3 — No behavioral code change:** `plugin/src/manifest.ts` doc-comment is the only `.ts` file change in the production code path; no runtime behavior modification. Test files are the only other `.ts` changes.\n- **DDC4 — Persisted-artifact guarantee (validator-driven):** RCA content and bypass rationale must live in the `proposal.md` artifact (via `adv_change_create proposal:` or `adv_change_update proposal:`), not just in chat discussion. Persisted artifacts are reviewable; chat is ephemeral.\n\n## Risks / Mitigations\n\n| Risk | Likelihood | Impact | Mitigation |\n|---|---|---|\n| Advisory enforcement ignored by future agents | Medium | Medium | Persisted-artifact requirement (DDC4); cross-repo provider hints follow-up; CI regex catches missing language in source files but cannot enforce agent behavior at runtime |\n| Regex tests brittle to phrasing changes | Low | Low | DDC1 — semantic anchors, not literal text; tests fail loudly on drift, easy to update |\n| Scope creep toward `/adv-idea` / `/adv-epic` | Low | Medium | Agreement OOS3/OOS4 explicit; deferred to separate change if needed |\n| Agents relabel bugs as features to skip RCA | Medium | Medium | KD2 fallback predicate + KD3 scenario 3 — ambiguous origin defaults to defect (conservative routing) |\n| Spec requirement duplicates `rq-problemSpecLaw01` | Low | Low | Distinct surface: `rq-problemSpecLaw01` covers `/adv-problem` output; `rq-defectOriginRca01` covers `/adv-proposal` and `/adv-task` consumption |\n| Template snippet in `/adv-proposal.md` bloats command file | Low | Low | Template is ~15 lines; command file is currently 167 lines → ~10% growth, acceptable |\n| SC2 mechanically unverifiable at advisory tier (validator caution) | Medium | Low | Known limitation; DDC4 persisted-artifact is strongest available guarantee within C1 |\n\n## Design Leverage Scout\n\n**Scout: skipped — trivially scoped.** Per `/adv-design` Phase 2.5 opt-out: opportunity surface is effectively zero because:\n\n- Direction is locked by user (\"light but meaningful\", advisory-only) — no architectural leverage to discover\n- Reuse pattern already identified (AD3: RCA = `/adv-problem` output verbatim)\n- Scope boundary is firm (defect origins only; provider hints OOS; schema tightening OOS)\n- Cross-cutting improvements (extending to `/adv-idea`, `/adv-epic`, provider hints) are explicitly Out of Scope per agreement\n\nA scout dispatch would return zero non-trivial candidates. Skipped per contract opt-out clause.\n\n## Validator Result\n\n**Validator: caution** (legacy label CAUTION). Advisory-only; does NOT block design gate.\n\nTwo cautions surfaced and addressed in design revisions above:\n\n1. **SC2 advisory limitation** — regex tests prove source wording but cannot prove every agent persisted RCA in actual proposals. Addressed by DDC4 (persisted-artifact guarantee): RCA content and bypass rationale must live in `proposal.md` artifact, not just chat. Reviewable post-hoc; strongest guarantee available within advisory tier (C1).\n\n2. **KD2 \"etc.\" predicate ambiguity** — closed trigger lists left \"etc.\" unoperationalized. Addressed by KD2 fallback predicate: default rule (unintended behavior → defect) + tie-breaker (ambiguous → defect per KD3 scenario 3).\n\nValidator confirmed: no spec-law conflict with `rq-problemSpecLaw01`, `rq-taskSpecLaw01`, or gate ordering. Alternatives (pure spec/test, provider hints primary, schema changes) either fail AC coverage or violate C1-C4.\n\nValidator sources cited:\n- `.adv/specs/advance-workflow/spec.json` (existing requirements; no conflict)\n- `.opencode/command/adv-task.md` (existing fast-track safeguards — proposal extends analogous RCA guidance)\n- `plugin/src/adv-problem-assets.test.ts` (existing asset-test pattern — proposal follows)\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThis change closes a structural enforcement gap in ADV: agents were skipping `/adv-problem` triage and jumping straight to `/adv-proposal` or `/adv-task` for bug reports. Now defect-origin changes (bugs, regressions, failures) require a Root Cause Analysis (RCA) before advancing, with bypass visible rather than silent. The approver is deciding whether to ship this advisory enforcement layer.\n\n## Why It Matters\n\nPreviously, ADV instructions described triage-before-fix as advisory prose only — no structural layer enforced it, so agents could interpret bug reports as \"Start a change\" and proceed without root-cause evidence. This produced proposals for symptoms rather than causes and let `/adv-task` fast-track mask undiagnosed defects as \"well-understood.\" This change makes the requirement durable: spec law, command contracts, orchestrator prompt, and CI regex tests all carry the same contract.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. **Spec law** — `rq-defectOriginRca01` added to `advance-workflow` capability with 3 scenarios covering defect-origin `/adv-proposal`, `/adv-task` deferral, and ambiguous-defaults-to-defect routing (will apply to global spec at archive).\n2. **Command contracts** — `/adv-problem.md` Output adds \"Root cause (if defect origin)\" line; `/adv-proposal.md` Pre-flight adds step 5 with defect-origin detection, trigger lists, fallback rule, and persisted RCA template; `/adv-task.md` Quick Contract adds ORIGIN class and Phase 1 guard rejecting defect-origin invocations lacking RCA.\n3. **Orchestrator prompt** — `adv.md` Step 1 routing table gains footnote with defect/non-defect trigger lists and fallback predicate; `ADV_INSTRUCTIONS.md` HITL row for `/adv-problem` extended to mention RCA evidence carried forward.\n4. **Manifest documentation** — `plugin/src/manifest.ts` `prerequisites` field doc-comment clarifies the field is metadata-only (no runtime enforcement).\n5. **CI regex tests** — three asset-test files updated with RED→GREEN regex assertions (8 new tests across `adv-problem-assets.test.ts`, `adv-task-assets.test.ts`, `adv-instructions-assets.test.ts`); plus `manifest.test.ts` regex test for the doc-comment.\n\n## What Was Verified\n\n- Verdict: APPROVED with 1 suggestion (non-blocking, deferred to `/adv-harden`)\n- Tests: 89 total tests pass (48 asset + 41 manifest); `pnpm run check` exit 0 (runId tr_mru8pl09_b276e4bf)\n- Preview URL: not_applicable — pure ADV plugin docs/specs/instruction-text change; no UI surface touched\n- Contract matrix: 30/30 rows passed or respected (0 failing)\n\n## Remaining Concerns\n\n- **Advisory-only limitation (known)**: per design DDC4 and validator caution, advisory enforcement cannot mechanically guarantee every agent persists RCA in actual proposals — only that the source wording exists. This matches the existing `rq-problemSpecLaw01` tier. Persisted-artifact requirement (DDC4) is the strongest guarantee available within the user-approved \"light touch\" direction (C1).\n- **1 suggestion deferred**: stage-v2 `static_check` + `code` type route required reviewer evidence disproportionate for 5-line doc-comment changes. Future prep tasks for docs-shaped work should default to `type: docs` + `evidence_policy: artifact_reference` or `test`. Surfaced during tk-60eaa596c95f metadata friction (task cancelled; AC7 verified independently via manifest.test.ts).\n- **Cross-repo follow-up tracked**: provider hints package (`opencode-provider-hints`) at `~/.local/share/opencode-provider-hints/providers/*.md` intentionally NOT modified in this change (C4/OOS1). Separate follow-up needed.\n\n## Supporting Evidence\n\n- Spec delta: `dl-defectOriginRca01add` recorded against `advance-workflow` capability\n- Contract matrix: 30 rows persisted (runId embedded in `adv_contract_review_matrix_set` response)\n- Asset tests: 48/48 pass (runId tr_mru85pyl_d6c10ace)\n- Manifest tests: 41/41 pass (runId tr_mrum5y67_a9689903)\n- Static checks: pnpm run check exit 0 (runId tr_mru8pl09_b276e4bf)\n- Commits: 2fa872d8 (tests RED), f955fb11 (cmd contracts GREEN), b60982e1 (orchestrator GREEN), 93cc25b1 (manifest doc-comment), 8f3406d3 + 2c9c1d3d + 908559cf (manifest test)\n- Validator report: `sequenceTriageProposal|change:researcher:design-validation|adv-researcher|1` (caution, advisory-only, no contract compromise)\n- Reviewer report: `sequenceTriageProposal|change:review:acceptance|adv-reviewer|1` (manifest task verdict pass)\n\n## Consequence Context\n\n1. **Delivered value**: Defect-origin bug reports now produce Root Cause Analysis evidence before reaching `/adv-proposal` or `/adv-task`. Bypass is intentional and visible, never silent. Sources: SC1-SC4 (pass), AC1-AC5 (pass).\n2. **Enabling-only/follow-up dependency**: Provider hints cross-repo follow-up (opencode-provider-hints package) tracked but NOT blocking; depends on separate cross-repo change. Source: OOS1.\n3. **Ops readiness**: pending — harden owns release/deploy/production/docs/cleanup readiness. No ops/deploy work in this change (advisory docs/specs/tests only). Source: agreement Preview Applicability `visual_surface: false`.\n4. **Migration/data impact**: n/a — pure docs/specs/tests change; no data path, no migration. Source: agreement Preview Applicability.\n5. **Frontend/preview impact**: n/a — no UI surface touched. Source: agreement `visual_surface: false`; no front-end, browser-visible, or visual-output work.\n6. **Collision/release risk**: low — advisory change is reversible (single commit rollback); no breaking API/contract change. Source: design LBP Analysis section.\n7. **Open follow-ups**: 1 cross-repo follow-up (provider hints package); 1 advisory limitation known (DDC4 persisted-artifact is strongest available guarantee within C1). Neither blocking.\n8. **Next action**: acceptance approval proceeds inline to `/adv-harden sequenceTriageProposal`; reply `accept`/`approve`/`continue`/`lgtm` to accept, or describe fixes needed.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T12:50:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1**: Defect-origin change proposals carry an explicit Root Cause Analysis section before the proposal gate completes. | pass | adv-problem.md, adv-proposal.md, adv-task.md updated. |\n| SC2 | success_criterion | **SC2**: Bypass of RCA on defect-origin changes is documented and visible, never silent. | pass | Bypass rationale template in adv-proposal.md. |\n| SC3 | success_criterion | **SC3**: Non-defect origins (idea shaping, planned features, Epic promotion, backlog promotion) are unaffected by the new requirement. | pass | No changes to /adv-idea, /adv-epic. |\n| SC4 | success_criterion | **SC4**: `/adv-task` fast-track retains its purpose for well-understood changes but explicitly refuses to skip RCA for undiagnosed defects. | pass | adv-task.md Phase 1 guard. |\n| AC1 | acceptance_criterion | **AC1**: `.opencode/command/adv-proposal.md` Pre-flight section contains language requiring defect-origin RCA evidence (or explicit bypass rationale) before Phase 1 problem statement agreement. | pass | adv-problem-assets.test.ts. |\n| AC2 | acceptance_criterion | **AC2**: `.opencode/command/adv-task.md` Quick Contract and Phase 1 contain language rejecting defect-origin invocations that lack RCA, with a hint to run `/adv-problem` first. | pass | adv-task-assets.test.ts. |\n| AC3 | acceptance_criterion | **AC3**: `.opencode/agents/adv.md` Step 1 \"Understand Intent\" routing table clarifies defect/bug triggers that route to `/adv-problem` before any proposal-creation path. | pass | adv-instructions-assets.test.ts. |\n| AC4 | acceptance_criterion | **AC4**: `.opencode/command/adv-problem.md` Output section lists \"Root cause (if defect origin)\" as part of the triage summary structure. | pass | adv-problem.md Output bullet. |\n| AC5 | acceptance_criterion | **AC5**: `ADV_INSTRUCTIONS.md` HITL Boundary table and pre-implementation phase section reflect the RCA requirement for defect-origin work. | pass | ADV_INSTRUCTIONS.md HITL extended. |\n| AC6 | acceptance_criterion | **AC6**: `.adv/specs/advance-workflow/spec.json` adds a new requirement `rq-defectOriginRca01` with at least 2 scenarios covering: (a) defect-origin `/adv-proposal` invocation must carry RCA evidence or document explicit rationale; (b) `/adv-task` defect-origin invocation must carry RCA or defer to `/adv-problem` first. | pass | Spec delta recorded. |\n| AC7 | acceptance_criterion | **AC7**: `plugin/src/manifest.ts` documentation comment on the `prerequisites` field clarifies that the array is metadata-only (no runtime enforcement); no behavioral code change. | pass | manifest.test.ts regex. |\n| AC8 | acceptance_criterion | **AC8**: Instruction-text regex tests (`adv-instructions-assets.test.ts`, `adv-problem-assets.test.ts`, `adv-task-assets.test.ts`) updated to assert presence of RCA-requirement language. | pass | 8 new regex tests. |\n| AC9 | acceptance_criterion | **AC9**: `pnpm run check` exits 0; targeted asset-test suites pass. | pass | pnpm run check exit 0. |\n| C1 | constraint | **C1**: Light touch (user direction) — advisory + manifest documentation level only; no runtime hard-block; no Temporal/workflow-level enforcement. | respected | No runtime hard-block. |\n| C2 | constraint | **C2**: `prerequisites` field in `plugin/src/manifest.ts` remains pure metadata; no runtime gate added; only documentation updated. | respected | manifest.ts doc-comment only. |\n| C3 | constraint | **C3**: `origin_kind` schema on `adv_change_create` remains optional; no Zod schema tightening (avoid breaking legacy writes). | respected | No Zod schema edits. |\n| C4 | constraint | **C4**: Provider hints package (`~/.local/share/opencode-provider-hints/providers/*.md`) is NOT modified in this change — cross-repo; tracked as separate follow-up. | respected | No provider hints modified. |\n| C5 | constraint | **C5**: `/adv-idea` and `/adv-epic` entry-point disambiguation is NOT in scope — different intents. | respected | No /adv-idea or /adv-epic changes. |\n| C6 | constraint | **C6**: Spec extension must integrate with existing `advance-workflow` requirements (e.g., `rq-problemSpecLaw01`, `rq-taskSpecLaw01`). | respected | rq-defectOriginRca01 alongside existing. |\n| DONT1 | avoidance | **DONT1**: Do NOT add a runtime hard-block or new Temporal/workflow enforcement layer for RCA — light touch. | respected | No runtime hard-block. |\n| DONT2 | avoidance | **DONT2**: Do NOT modify provider hints content in this change — cross-repo follow-up. | respected | Provider hints unchanged. |\n| DONT3 | avoidance | **DONT3**: Do NOT tighten `origin_kind` Zod schema (would break legacy writes and require recovery paths). | respected | No schema tightening. |\n| DONT4 | avoidance | **DONT4**: Do NOT silently extend RCA requirement to non-defect origins (idea shaping, planned features, Epics, backlog promotion). | respected | Defect-origin scope only. |\n| DONT5 | avoidance | **DONT5**: Do NOT regress post-proposal chain (clarify/research/discover/design/prep already strict). | respected | No workflow chain regressions. |\n| DONT6 | avoidance | **DONT6**: Do NOT modify `tool-registry.ts`, `tool-role-policy.ts`, or agent manifests — out of scope. | respected | No tool-registry edits. |\n| OOS1 | out_of_scope | **OOS1**: Provider hints content updates (cross-repo follow-up change to `opencode-provider-hints` package). | missing |  |\n| OOS2 | out_of_scope | **OOS2**: Runtime hard-block on command invocation (excluded by user \"light\" direction). | missing |  |\n| OOS3 | out_of_scope | **OOS3**: Routing table refactor for non-defect intents. | missing |  |\n| OOS4 | out_of_scope | **OOS4**: `/adv-idea` and `/adv-epic` disambiguation work. | missing |  |\n| OOS5 | out_of_scope | **OOS5**: `origin_kind` schema additions (e.g., `defect_repair` enum value) — would require migration story. | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T05:04:43.385Z",
+      "contentHash": "b6fc3333b6decbfdda2935432f1415d1b52cf7f3f6613599ec2448b0ff399829",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T05:15:54.117Z",
+      "contentHash": "524df995098903311d3ded03e403164030c89ad32e73691951a2039766556da1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T05:21:41.146Z",
+      "contentHash": "b95380df837c1abfd9b659e02a3dbc45d401edb1fb0a6e719799db79778d8001",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T13:27:25.496Z",
+      "contentHash": "54f06f17b14e38a329af5bdd1bc291d91bd83299e4d771fe53ce2750bd87d221",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T14:31:36.442Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

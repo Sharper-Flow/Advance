@@ -196,8 +196,13 @@ Before doing anything, classify what the user is asking for:
 
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
+> **Defect-origin routing footnote (rq-defectOriginRca01):** When the user's intent describes unintended behavior, route through `/adv-problem` to produce Root Cause Analysis (RCA) evidence before any proposal-creation path. Defect triggers: "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X". Non-defect triggers (proceed normally to `/adv-proposal` or `/adv-task`): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X". Rule of thumb: user describes unintended behavior → defect; user describes desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3). Defect-origin `/adv-proposal` and `/adv-task` invocations MUST carry a `## Root Cause Analysis` section in the persisted proposal.md artifact. `/adv-task` fast-track does NOT bypass RCA for defects.
+
 ## Step 2: Load State
-Before every gate transition: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot` (opt-in via `include.snapshot:true`); resume at the first incomplete gate. During discovery, make at most one advisory `episode_recall` when available. Pass the active project namespace and `top_k: 5`; shared global results remain advisory. If unavailable, continue with native ADV context and record the limitation. Never use recalled content to complete gates, override specs/contracts, or replace task evidence. Do not call Episode write/delete tools.
+Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot` (opt-in via `include.snapshot:true`); resume first incomplete. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
+
+### Step 2.5: Resume Freshness Advisory
+Resumes >60m: apply `ADV_INSTRUCTIONS.md § Resume Freshness Advisory`; read-only/current-project/proceed-default; fresh skip. One archived duplicate: one-command accept (copy-paste and run), user evidence; never auto-close.
 
 ## Step 3: Gate Machine
 Drive gates sequentially. Each gate has an owning workflow contract; execute it inline, verify, then advance.
@@ -306,7 +311,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
 | `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + persisted ENGINEER_REPORT via `adv_subagent_report_submit` |
-| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation; acceptance reviews use `review` | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom diagnosis; packet includes WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT | Classification + primary-ADV next actions |
 | `adv-verifier`   | Need verify-only bursts, local command classification, or structured verification triage | Strict Verification Triage Result JSON for orchestrator persistence |
@@ -329,7 +334,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Context-bound problem | Keep inline; don't delegate context understanding |
 | Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
-| Typed worker packet contract | For `adv-engineer` and `adv-reviewer`, always include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT. `adv-reviewer` typed workers must also include PHASE using schema values only (`prep`, `review`, `harden`): acceptance reviews use `review`, release hardening uses `harden`. These identity fields are orchestrator-owned; never ask the user for them. If a spawned worker reports a missing packet identity field, treat it as an internal packet-defect: retry with a corrected packet or continue inline. |
+| Typed worker packet contract | For every typed-worker lane (`adv-engineer`, `adv-designer`, `adv-reviewer`, `adv-researcher`, `adv-tron`, `adv-visual-review`), always include the required packet anchors from `delegation-defaults/spec.json`. Template: `WORKING DIRECTORY`, `CHANGE`, `TASK` or `SCOPE KEY`, `ATTEMPT` (plus `PHASE` for `adv-reviewer`). **Read-only lanes** (`adv-researcher`, `adv-tron`, `adv-visual-review`) MUST still complete the work and return findings as a final message if anchors are missing — they just skip `adv_subagent_report_submit` and prepend a `## PACKET DEFECT` section listing missing anchors. **Mutating lanes** (`adv-engineer`, `adv-designer`, `adv-reviewer`) refuse to begin when `WORKING DIRECTORY` is missing. These identity fields are orchestrator-owned; never ask the user for them. If a spawned worker reports a missing packet identity field, treat it as an internal packet-defect: retry with a corrected packet or continue inline. |
 | Epic context | When `adv_change_show` / `adv_status` / `adv_worktree_resume` surfaces `epic_membership`, include compact Epic context (id, title, entry order) in the current change context and in sub-agent prompts. Use `adv_epic_show epic_id: ...` to load it. Epic membership is optional; do not force unrelated changes into Epics. |
 | Nesting | Forbidden — do not spawn nested agents |
 
@@ -385,28 +390,8 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 
 ## ADV State Access Policy
 
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes change/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance files and any path matching:
+**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool: change.json/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance artifacts under `~/.local/share/opencode/plugins/advance/**` (legacy agenda), or locked sibling conformance dirs (`advance-conformance-{pid}/`). Path guards also block glob/grep/lgrep on locked sibling paths.
 
-- `~/.local/share/opencode/plugins/advance/**/change.json`
-- `~/.local/share/opencode/plugins/advance/**/proposal.md`
-- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/conformance.json`
-
-**Additionally**, sibling-repo conformance mode: NEVER read locked conformance dir (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
-
-**ALWAYS** use the ADV MCP tools instead:
-
-| You want                       | Use this tool         |
-| ------------------------------ | --------------------- |
-| Change details + tasks         | `adv_change_show`     |
-| Lightweight change context     | `adv_change_show`     |
-| A specific task + its changeId | `adv_task_show`       |
-| Tasks ready to work            | `adv_task_ready`      |
-| All tasks for a change         | `adv_task_list`       |
-| List all active changes        | `adv_change_list`     |
-| Validate a change              | `adv_change_validate` |
-| Wisdom / learnings             | `adv_wisdom_list`     |
-| Conformance state              | `adv_conformance action: "status"` |
+**ALWAYS** use ADV tools: change details/context → `adv_change_show`; task → `adv_task_show`; ready/all tasks → `adv_task_ready`/`adv_task_list`; active changes → `adv_change_list`; validation → `adv_change_validate`; wisdom → `adv_wisdom_list`; conformance → `adv_conformance action: "status"`.
 
 If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead. Artifact content comes from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet inline content, not `artifacts.*.path` unless explicitly `readable:true`.

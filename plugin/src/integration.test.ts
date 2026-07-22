@@ -98,13 +98,21 @@ describe("Wisdom Lifecycle Integration", () => {
       { args: { taskId, status: "done" }, output: completeOutput } as any,
     );
 
-    // 4. Hook should now inject recording prompt
+    // 4. Hook should NOT inject retired [ADV:RECORD_WISDOM] prompt.
+    // rq-wisdomAutoSurfacing01.10 / AC8: the generic nudge is retired; the
+    // draft-aware [ADV:WISDOM_DRAFTS] prompt fires only when
+    // state.pendingWisdomDraftTasks is non-empty, which requires a task with
+    // a suggested wisdom_drafts entry. This lifecycle test completes a task
+    // without SEMANTIC error_recovery, so no draft is created and no
+    // wisdom nudge fires.
     const out3 = { system: [] as string[] };
     await transformHook({ sessionID: "test" } as any, out3 as any);
     expect(out3.system.some((s) => s.includes("[ADV:RECORD_WISDOM]"))).toBe(
-      true,
+      false,
     );
-    expect(out3.system.some((s) => s.includes("Initial Task"))).toBe(true);
+    expect(out3.system.some((s) => s.includes("[ADV:WISDOM_DRAFTS]"))).toBe(
+      false,
+    );
 
     // 5. Add wisdom
     await hooks.tool!.adv_wisdom_add.execute(
@@ -313,10 +321,18 @@ describe("Active Change Title Update on adv_change_create", () => {
       out as any,
     );
 
+    // rq-wisdomAutoSurfacing01.10 / AC8: [ADV:RECORD_WISDOM] is retired;
+    // [ADV:WISDOM_DRAFTS] fires only when state.pendingWisdomDraftTasks is
+    // non-empty. This test completes a task without SEMANTIC error_recovery,
+    // so no draft exists and neither nudge fires. (Completed-task tracking
+    // still happens internally via state.lastCompletedTask; the public
+    // observable here is that the retired nudge no longer appears.)
     expect(out.system.some((s) => s.includes("[ADV:RECORD_WISDOM]"))).toBe(
-      true,
+      false,
     );
-    expect(out.system.some((s) => s.includes("Object Output Task"))).toBe(true);
+    expect(out.system.some((s) => s.includes("[ADV:WISDOM_DRAFTS]"))).toBe(
+      false,
+    );
   });
 
   test("after adv_change_create with braces inside path string, activeChangeId is still set", async () => {

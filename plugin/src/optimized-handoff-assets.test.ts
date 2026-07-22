@@ -195,3 +195,82 @@ describe("optimized handoff command packets", () => {
     );
   });
 });
+
+describe("read-only lane packet-defect policy (lane-aware)", () => {
+  // Read-only typed-worker lanes MUST complete their work and return findings
+  // even when packet anchors are missing. They only skip adv_subagent_report_submit
+  // (which requires identity fields). Mutating lanes (engineer/designer/reviewer)
+  // keep refuse-to-begin for missing WORKING DIRECTORY — those tests live in
+  // adv-engineer-assets.test.ts / adv-designer-assets.test.ts / adv-reviewer-asset.test.ts.
+  const READ_ONLY_LANES = [
+    "adv-researcher.md",
+    "adv-tron.md",
+    "adv-visual-review.md",
+  ] as const;
+
+  for (const file of READ_ONLY_LANES) {
+    test(`${file}: missing anchors do not cause work-discard`, () => {
+      const content = readFileSync(join(AGENT_DIR, file), "utf8");
+
+      // Lane-aware clauses that MUST appear alongside the existing packet-defect
+      // policy. Without these, a worker that hits a missing anchor will return
+      // a packet-defect failure and discard completed work — the observed bug.
+      expect(content).toContain("PACKET DEFECT");
+      // Each lane uses its own task-type noun (research, reconnaissance, visual review, etc).
+      // The invariant is "complete the <task> anyway" — work continues despite the defect.
+      expect(content).toMatch(/complete the [a-z ]+ anyway/i);
+      expect(content).toMatch(/never discard completed work/i);
+      expect(content).toContain("adv_subagent_report_submit");
+
+      // The worker must not pester the user for orchestrator-owned identity.
+      expect(content).toMatch(/do not call `question`/i);
+    });
+
+    test(`${file}: packet-defect policy mentions skipping typed submission`, () => {
+      const content = readFileSync(join(AGENT_DIR, file), "utf8");
+
+      // The new policy explicitly directs the worker to skip the typed
+      // submission call when anchors are missing (rather than submit a
+      // malformed persisted report).
+      expect(content).toMatch(
+        /do not call `adv_subagent_report_submit`|do NOT call `adv_subagent_report_submit`/i,
+      );
+    });
+  }
+});
+
+describe("main agent typed-worker contract scope", () => {
+  // adv.md's typed-worker packet contract row MUST list every lane the
+  // delegation-defaults spec covers — not just adv-engineer and adv-reviewer.
+  // Under-scoping is what made the orchestrator think it could spawn
+  // adv-researcher without packet anchors.
+  test("adv.md typed-worker contract row lists all spec-covered lanes", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+
+    // The contract row must mention every typed-worker lane.
+    for (const lane of [
+      "adv-engineer",
+      "adv-designer",
+      "adv-reviewer",
+      "adv-researcher",
+      "adv-tron",
+      "adv-visual-review",
+    ]) {
+      expect(
+        content,
+        `adv.md typed-worker contract must mention ${lane}`,
+      ).toContain(lane);
+    }
+  });
+
+  test("adv.md contract documents read-only lane completion requirement", () => {
+    const content = readFileSync(join(AGENT_DIR, "adv.md"), "utf8");
+
+    // The broadened contract must call out that read-only lanes still
+    // complete the work and only skip typed submission.
+    expect(content).toMatch(/read-only lane/i);
+    expect(content).toMatch(
+      /skip `adv_subagent_report_submit`|skip adv_subagent_report_submit/i,
+    );
+  });
+});

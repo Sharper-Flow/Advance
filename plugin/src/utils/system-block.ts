@@ -43,6 +43,15 @@ export interface SessionHealthIssue {
   kind: "session.error" | "message-history";
   message: string;
   detectedAt: number;
+  /**
+   * True once the banner for this issue has been surfaced in a system block.
+   * `message-history` banners are one-shot: after they surface once, they are
+   * suppressed on subsequent turns (fixSessionHealthBannerNoise). A new
+   * compaction event replaces the issue with a fresh (unsurfaced) one, which
+   * re-emits once. `session.error` banners ignore this flag and stay sticky.
+   * Absent/false means "not yet surfaced" (backward-compatible default).
+   */
+  surfaced?: boolean;
 }
 
 /** State shape this module reads from. Subset of plugin state. */
@@ -54,6 +63,18 @@ export interface AssembleSystemBlockState {
     id: string;
     title: string;
   } | null;
+  /**
+   * Tasks carrying wisdom drafts in the `suggested` state, populated by the
+   * plugin from live task state. Drives the rq-wisdomAutoSurfacing01 /
+   * AC8 draft-aware nudge. When non-empty, the assembler emits a
+   * `[ADV:WISDOM_DRAFTS]` prompt that replaces the retired
+   * `[ADV:RECORD_WISDOM]` lastCompletedTask-based nudge.
+   */
+  pendingWisdomDraftTasks?: Array<{
+    id: string;
+    title: string;
+    count: number;
+  }>;
   isWorktree: boolean;
   lastSessionHealthIssue: SessionHealthIssue | null;
 }
@@ -179,6 +200,10 @@ function degradedSection(input: AssembleSystemBlockInput): string | null {
 function healthSection(input: AssembleSystemBlockInput): string | null {
   const issue = input.state.lastSessionHealthIssue;
   if (!issue) return null;
+  // fixSessionHealthBannerNoise: `message-history` banners are one-shot —
+  // once surfaced they are suppressed so they don't repeat every turn.
+  // `session.error` stays sticky (safety-critical; drives BLOCKED status).
+  if (issue.kind === "message-history" && issue.surfaced) return null;
   return formatSessionHealthBanner(issue, input.state.activeChange.id);
 }
 
@@ -212,15 +237,41 @@ function activeChangeSection(input: AssembleSystemBlockInput): string | null {
   return `[ADV] Active change: ${activeChange.id}`;
 }
 
-/** Volatile: wisdom-recording prompt. Fires when a task just finished
- *  (`state.lastCompletedTask` is set). The caller is responsible for
- *  clearing `state.lastCompletedTask` after a successful emission. */
+/**
+ * Volatile: wisdom-draft review prompt (rq-wisdomAutoSurfacing01 / AC8).
+ *
+ * Retires the generic `[ADV:RECORD_WISDOM]` lastCompletedTask nudge and
+ * replaces it with a draft-aware prompt that fires ONLY when one or more
+ * tasks carry wisdom drafts in the `suggested` state. The prompt is
+ * idempotent — it keeps firing as long as drafts are pending review and
+ * disappears the moment they are promoted or auto-dismissed at checkpoint.
+ *
+ * The caller is NOT required to clear any per-turn state when this prompt
+ * fires (unlike the retired lastCompletedTask path); the section naturally
+ * goes null when the pending-drafts list empties.
+ *
+ * `consumedWisdomPrompt: true` on the assembly result still signals that
+ * a wisdom prompt was emitted this turn so callers can perform any
+ * per-turn bookkeeping. Callers that previously cleared
+ * `state.lastCompletedTask` based on this flag should keep doing so —
+ * lastCompletedTask is still tracked for other consumers (e.g. context
+ * snapshots) even though it no longer drives this nudge.
+ */
 function wisdomPromptSection(input: AssembleSystemBlockInput): string | null {
-  const completed = input.state.lastCompletedTask;
-  if (!completed) return null;
+  const pending = input.state.pendingWisdomDraftTasks ?? [];
+  if (pending.length === 0) return null;
+  const totalDrafts = pending.reduce((acc, t) => acc + t.count, 0);
+  const taskLines = pending
+    .map(
+      (t) =>
+        `  - Task "${t.title}" (${t.id}): ${t.count} draft(s) pending review`,
+    )
+    .join("\n");
   return (
-    `[ADV:RECORD_WISDOM] You just completed task "${completed.title}" (${completed.id}). ` +
-    `If you learned anything (gotchas, patterns, successes), please record it using 'adv_wisdom_add'.`
+    `[ADV:WISDOM_DRAFTS] ${totalDrafts} wisdom draft(s) pending review across ${pending.length} task(s).\n` +
+    `${taskLines}\n` +
+    `Promote via adv_wisdom_add from_draft_id, or dismiss explicitly. ` +
+    `Unreviewed drafts will be auto-dismissed at checkpoint.`
   );
 }
 
@@ -236,6 +287,11 @@ export interface ApplyAdvSystemBlockResult {
    *  `state.lastCompletedTask` after a successful emission so the prompt
    *  doesn't repeat on subsequent turns. */
   consumedWisdomPrompt: boolean;
+  /** True when a `message-history` session-health banner was emitted this
+   *  assembly; caller should set `lastSessionHealthIssue.surfaced = true`
+   *  so the one-shot banner does not repeat on subsequent turns
+   *  (fixSessionHealthBannerNoise). Never true for `session.error` (sticky). */
+  surfacedMessageHistoryHealth: boolean;
 }
 
 /**
@@ -254,12 +310,24 @@ export function applyAdvSystemBlock(
   const existingSystem = output.system[0] ?? null;
   const block = assembleSystemBlock({ ...input, existingSystem });
   if (block === null) {
-    return { emitted: false, consumedWisdomPrompt: false };
+    return {
+      emitted: false,
+      consumedWisdomPrompt: false,
+      surfacedMessageHistoryHealth: false,
+    };
   }
   output.system[0] = existingSystem ? `${existingSystem}\n\n${block}` : block;
+  const healthIssue = input.state.lastSessionHealthIssue;
   return {
     emitted: true,
-    consumedWisdomPrompt: input.state.lastCompletedTask !== null,
+    consumedWisdomPrompt:
+      input.state.lastCompletedTask !== null ||
+      (input.state.pendingWisdomDraftTasks?.length ?? 0) > 0,
+    // Mirrors healthSection's message-history one-shot gate: the banner
+    // emitted this assembly iff the issue is message-history and not yet
+    // surfaced. (block !== null here, so the section was included.)
+    surfacedMessageHistoryHealth:
+      healthIssue?.kind === "message-history" && !healthIssue.surfaced,
   };
 }
 

@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-07-21T16:10:39.991Z",
+  "capabilities": [],
+  "change_hash": "f868920c5b15c660c8f48595f2943dac9a21cd481bc1d983f648b61ea69a7a7d",
+  "change_id": "fixPoisonedRecovery",
+  "completed_tasks": 12,
+  "created_at": "2026-07-16T22:55:58.987Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784579307949-wy1fag",
+    "epic_id": "hardenTemporalReliability",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-20T20:28:27.949Z",
+    "order": 2,
+    "source": "link_existing",
+    "title": "Fix poisoned recovery reachability"
+  },
+  "last_activity_at": "2026-07-21T15:31:30.182Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "18be353d2a8a752fce932645f9ec3e5cf193c3341148394c7dc85fb2c21328d3",
+  "task_count": 12,
+  "title": "Fix poisoned recovery reachability",
+  "version": "1"
+}

@@ -1,0 +1,25 @@
+# Acceptance
+
+Reviewed at: 2026-07-21T23:49:00.000Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | A genuinely-shipped change (git merged + all gates done + bundle present) archives cleanly on the first `adv_change_archive` call with no `adv_change_status_repair` fallback — even when the release gate was completed manually and even after `--admin --squash` merge HEAD movement. | pass | change.archive-phase9.test.ts 'archives a shipped change whose done release gate lacks matching Phase 9 evidence' → success:true. Removes the status_repair fallback for shipped changes. Green tr_mrvaz2er. |
+| SC2 | success_criterion | The protective invariant is preserved: a change whose Phase 9 finalization is NOT shipped (unpushed / unmerged / unreachable) still fails the durable release-gate proof. | pass | AC2 unit test 'non-matching evidence + NOT shipped still fails'; safety analysis: finalization.status==='shipped' returned only on confirmed reachability/merge (git-finalize.ts 1739/2363/3034/3054). Unshipped → guard holds. |
+| AC1 | acceptance_criterion | When the release gate is `done` AND the fresh `finalization.status === "shipped"`, the archive completes without the `rq-releaseProjectionDurability01` false-negative, regardless of whether the stored gate `approval_evidence` substring-contains the archive's built evidence. | pass | change.archive-phase9.test.ts AC4 'manual free-text gate evidence + finalizationShipped accepts the durable proof' → ok:true (was RED pre-fix, tr_mrvavah1). |
+| AC2 | acceptance_criterion | When `finalization.status !== "shipped"`, the durable release-gate proof still fails (guard preserved) — no regression in protection. | pass | AC2 'non-matching evidence + NOT shipped still fails' → ok:false with 'lacks matching Phase 9 evidence'. Guard preserved at verify level. |
+| AC3 | acceptance_criterion | The existing evidence-match path continues to work when the archive itself completed the release gate (backward compatible). | pass | AC3 'matching structured evidence accepts even when finalizationShipped is false' → ok:true. Archive-completed-gate path unchanged (backward compatible). |
+| AC4 | acceptance_criterion | A regression test reproduces the manual-completion + admin/squash-merge false-negative — fails against current code, passes after the fix. | pass | Red→green evidenced: AC4 + squash-supersession regression failed pre-fix (tr_mrvavah1), pass post-fix (tr_mrvaz2er). Reproduces the manual-completion + admin/squash false-negative. |
+| AC5 | acceptance_criterion | `pnpm run check` green and existing archive-gate / git-finalize tests pass. | pass | pnpm run check green (typecheck confirms 3 call-site wiring). 41/41 change.archive-phase9 + 155/155 archive-gate+change tests pass. |
+| C1 | constraint | Do NOT weaken the guard. Accepting the durable proof MUST be tied to authoritative shipped evidence (`finalization.status === "shipped"` with reachability confirmed), never merely `gate.status === "done"`. | respected | Acceptance tied to finalizationShipped (authoritative shipped evidence), not gate.status alone. AC2 proves unshipped still blocked. Safety analysis in design confirms shipped ⟹ reachable. |
+| C2 | constraint | Preserve backward compatibility with the archive-completes-the-gate path (structured evidence still matches by construction). | respected | finalizationShipped optional (default false → strict evidence match preserved); AC3 confirms archive-completed-gate path unchanged. Existing disk-recovery test unaffected. |
+| C3 | constraint | No new recovery tool or recovery mode — this removes a `status_repair` trigger; it must not add one. | respected | No new recovery tool or recovery mode added; removes a status_repair trigger. Only verify logic + 3 call-site wiring changed. |
+| DONT1 | avoidance | Do NOT accept the durable proof based solely on `gate.status === "done"` without shipped finalization evidence. | respected | Acceptance requires finalizationShipped===true (from finalization.status==='shipped'), never gate.status==='done' alone. AC2 guard test confirms. |
+| DONT2 | avoidance | Do NOT require operators to write structured evidence in manual gate completion. | respected | No operator-facing change; manual free-text gate completion is accepted as-is (AC4). Operators need not write structured evidence. |
+| DONT3 | avoidance | Do NOT break the poisoned-history / disk-projection fallback recovery path. | respected | loadAuditedDiskReleaseGate (release!=done branch) unchanged — poisoned-history/disk-projection recovery path preserved with its hasGateRecoveryAudit + evidence-match requirement. |
+| OOS1 | out_of_scope | The broader recovery-tool consolidation (`replaceRecoveryToolSprawl` / issue #255). | missing |  |
+| OOS2 | out_of_scope | The cross-session state bleed (`fixConcurrentSessionStateBleed`). | missing |  |
+| OOS3 | out_of_scope | The phase-9 git-call optimization (`optimizeArchivePhase9GitCalls`). | missing |  |
+

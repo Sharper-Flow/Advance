@@ -3507,6 +3507,7 @@ export const changeTools = {
             store,
             changeId,
             evidence: releaseEvidence,
+            finalizationShipped: finalization.status === "shipped",
           });
           if (!durableProof.ok) {
             return formatToolOutput({
@@ -3658,25 +3659,28 @@ export const changeTools = {
               // rq-extend-poisoned-recovery AC5: poisoned-workflow disk fallback
               // for final status. Bundle is already written; only the workflow
               // signal that flips the status field fails. Probe + recover.
+              //
+              // C2 (fixPoisonedRecovery reviewer-block remediation): describe()
+              // must NOT be the sole poison authority. Operator-supplied
+              // precise recoveryEvidence is primary; signal saveError class
+              // is secondary. describe() is NOT consulted here.
               if (recoveryMode === "poisoned_history") {
                 try {
                   const {
                     RECOVERY_RECONCILIATION_WARNING,
+                    isPoisonedHistoryError,
                     isWorkflowCompletedError,
+                    isPreciseWorkflowRecoveryEvidence,
                   } = await import("../temporal/recovery-classification");
                   const completedWorkflow = isWorkflowCompletedError(saveError);
-                  let poisoned = false;
-                  if (!completedWorkflow) {
-                    const { workflowHasPoisonedRecoveryEvidence } =
-                      await import("./recovery-probe");
-                    const handle = await getChangeWorkflowHandleForStore(
-                      store,
-                      changeId,
-                    );
-                    poisoned = handle
-                      ? await workflowHasPoisonedRecoveryEvidence(handle)
-                      : false;
-                  }
+                  const operatorEvidenceAuthority =
+                    typeof recoveryEvidence === "string" &&
+                    isPreciseWorkflowRecoveryEvidence(recoveryEvidence);
+                  // C2: error class OR operator evidence — never describe alone.
+                  const poisoned =
+                    !completedWorkflow &&
+                    (operatorEvidenceAuthority ||
+                      isPoisonedHistoryError(saveError));
                   if (completedWorkflow || poisoned) {
                     const { saveRecoveredChangeStatus } =
                       await import("./_recovery-writers");
