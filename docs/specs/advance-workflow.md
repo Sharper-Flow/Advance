@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.33.0
-> **Updated:** 2026-07-21
+> **Version:** 1.35.0
+> **Updated:** 2026-07-22
 
 ## Purpose
 
@@ -5915,5 +5915,381 @@ When per-session routing is enabled, in-flight workflows already started on the 
 **Then:**
 - The session's worker still polls `advance-{P}` (epics require it permanently)
 - No dynamic 'stop polling project queue' state exists
+
+---
+
+### Resume Freshness Advisory at ADV Step 2 Load State
+
+**ID:** `rq-resumeFreshness01` | **Priority:** **[MUST]**
+
+When an agent resumes a change whose `lastActivityAgeMinutes` exceeds the resume-freshness band (default 60 minutes), the agent MUST emit a bounded Resume Freshness advisory before the Gate Machine proceeds. The advisory MUST surface one or more stable finding codes (`resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`) using the `/adv-coordinate` taxonomy (`repo_backed_fact | adv_backed_fact | judgment_call | freshness_limited`). The advisory MUST NOT block any gate transition. The advisory MUST NOT mutate ADV state. The advisory MUST stay within a bounded tool-call cost ceiling (~5 calls per stale resume) and MUST invoke the resolver at most once per `adv_status` call (primary candidate only). Fresh changes (`lastActivityAgeMinutes <= 60`) MUST skip the advisory entirely. Missing or stale evidence MUST degrade to `freshness_limited`, not block. User dismissal of findings is NOT persisted — the advisory re-raises on every resume. The advisory scope is current-project only.
+
+**Tags:** `workflow`, `resume`, `freshness`, `advisory`
+
+#### Scenarios
+
+**Stale change triggers advisory** (`rq-resumeFreshness01.1`)
+
+**Given:**
+- An agent loads state for change C at Step 2 with C.lastActivityAgeMinutes = 120
+
+**When:** Step 2 Load State runs
+
+**Then:**
+- A bounded Resume Freshness advisory is emitted before Step 3 Gate Machine proceeds
+- At least one finding code from the stable set is present (or freshness_limited)
+- The advisory carries a label from the inherited /adv-coordinate taxonomy
+
+**Fresh change skips advisory** (`rq-resumeFreshness01.2`)
+
+**Given:**
+- An agent loads state for change C at Step 2 with C.lastActivityAgeMinutes = 30
+
+**When:** Step 2 Load State runs
+
+**Then:**
+- No Resume Freshness advisory is emitted
+- No resolver sub-routine is invoked (zero cost)
+
+**Trigger boundary at 60/61 minutes** (`rq-resumeFreshness01.3`)
+
+**Given:**
+- An agent loads state for change C at Step 2
+
+**When:** C.lastActivityAgeMinutes = 60 then = 61
+
+**Then:**
+- At 60 minutes the advisory is skipped (60 <= band)
+- At 61 minutes the advisory fires (61 > band)
+
+**Stable finding codes only** (`rq-resumeFreshness01.4`)
+
+**Given:**
+- A Resume Freshness advisory is emitted
+
+**When:** Findings are rendered
+
+**Then:**
+- Each finding code is one of: resume:sibling_overlap, resume:archived_duplicate, resume:codebase_drift, resume:freshness_limited
+- No LLM-classified labels are used
+
+**Advisory does not block gate transitions** (`rq-resumeFreshness01.5`)
+
+**Given:**
+- A Resume Freshness advisory has been emitted
+
+**When:** The user proceeds (or the agent proceed-defaults)
+
+**Then:**
+- Step 3 Gate Machine advances normally
+- No gate is held pending advisory resolution
+
+**Advisory does not mutate ADV state** (`rq-resumeFreshness01.6`)
+
+**Given:**
+- A Resume Freshness resolver is running
+
+**When:** The resolver executes its sub-resolvers
+
+**Then:**
+- No close/supersede/task/gate mutations are performed by the advisory itself
+- The resolver is read-only against the store
+
+**freshness_limited fallback on budget or evidence failure** (`rq-resumeFreshness01.7`)
+
+**Given:**
+- A Resume Freshness resolver exceeds its 8s wall-clock budget
+- OR evidence is unavailable (Temporal timeout, git ENOENT)
+
+**When:** The advisory is emitted
+
+**Then:**
+- A finding with code resume:freshness_limited appears
+- The resolver never throws or silently fails
+
+**Stateless — no dismissal memory** (`rq-resumeFreshness01.8`)
+
+**Given:**
+- A user dismissed a resume:sibling_overlap finding for pair (A, B) in a prior resume
+
+**When:** Change A is resumed again later
+
+**Then:**
+- The same sibling_overlap finding re-raises
+- No persisted dismissal memory is consulted
+
+**Primary-only invocation bounds cost** (`rq-resumeFreshness01.9`)
+
+**Given:**
+- An adv_status call processes N recent changes
+
+**When:** Status enrichments are computed
+
+**Then:**
+- The resolver is invoked at most once — for the primary candidate only
+- Non-primary candidates use the ticker path which never invokes the resolver
+
+**Archived-duplicate one-command suggestion** (`rq-resumeFreshness01.10`)
+
+**Given:**
+- A Resume Freshness advisory finds exactly one HIGH-confidence (repo_backed_fact) resume:archived_duplicate
+
+**When:** The recommendation is emitted
+
+**Then:**
+- A copy-pasteable adv_change_close ... supersededBy snippet is surfaced
+- The snippet requires the user to run it explicitly with their own approval evidence
+- The advisory itself does NOT auto-execute close
+- The wording uses 'one-command accept (copy-paste and run)' — never 'one-click' or any phrasing implying button-click auto-execution
+
+---
+
+### Advisory Wisdom Auto-Surfacing and Draft Lifecycle
+
+**ID:** `rq-wisdomAutoSurfacing01` | **Priority:** **[MUST]**
+
+ADV auto-surfaces relevant wisdom and creates typed WisdomDraft entries on SEMANTIC error_recovery attempts to lower the friction of capturing cross-task learnings. All enrichment is advisory-only: it MUST NOT be used to complete gates, override specs/contracts, or replace task evidence. WisdomDrafts follow a strict one-way lifecycle: suggested → promoted (via adv_wisdom_add from_draft_id) | dismissed (auto at adv_task_checkpoint with reason auto_checkpoint OR explicit user dismiss with reason user_dismissed). Drafts are task-scoped: cancelled tasks' drafts do not appear in change-level wisdom queries. The generic [ADV:RECORD_WISDOM] system-block nudge is retired; it is replaced by a draft-aware [ADV:WISDOM_DRAFTS] nudge that fires only when drafts are pending review. The plugin emits a capabilities-gated episode recall hint only — it never executes MCP calls directly (preserves plugin↔MCP isolation). Existing callers of affected tools MUST observe byte-identical behavior when new optional fields/features are absent (backward-compat invariant).
+
+**Tags:** `workflow`, `wisdom`, `advisory`, `task-show`, `task-update`, `task-checkpoint`, `wisdom-add`, `system-block`
+
+#### Scenarios
+
+**_relevantWisdom is top 5 by recency when contract_refs.implements is non-empty** (`rq-wisdomAutoSurfacing01.1`)
+
+**Given:**
+- adv_task_show is invoked on a task whose contract_refs.implements is non-empty
+
+**When:** The tool computes _relevantWisdom
+
+**Then:**
+- FTS-filter candidate wisdom entries via the project's wisdom.search path using the joined implements[] IDs as the query
+- Sort filtered entries deterministically by recorded_at DESC
+- Return at most the top 5 entries
+- Return [] when FTS fails (advisory-only — never throw)
+- Return [] when contract_refs.implements is empty or undefined
+
+**_episodeRecallHint is emitted capabilities-gated; plugin never calls MCP** (`rq-wisdomAutoSurfacing01.2`)
+
+**Given:**
+- adv_task_show is invoked on a task whose contract_refs.implements is non-empty
+
+**When:** The tool emits the hint
+
+**Then:**
+- The hint object carries { namespace, query, top_k: 3 }
+- namespace is the project id (or paths.root fallback)
+- query is the joined implements[] IDs
+- The plugin does NOT execute any MCP call to populate the hint
+- The hint is omitted entirely when contract_refs.implements is empty
+
+**SEMANTIC error_recovery with attempts auto-creates exactly one WisdomDraft** (`rq-wisdomAutoSurfacing01.3`)
+
+**Given:**
+- adv_task_update is invoked with error_recovery.error_class === 'SEMANTIC'
+- error_recovery.attempts[] is non-empty
+- The task does not already carry a draft in the 'suggested' state
+
+**When:** The update is applied
+
+**Then:**
+- Exactly one WisdomDraft is appended to task.wisdom_drafts[]
+- The draft's id matches dr-<8hex>
+- suggested_type is 'failure'
+- suggested_content is the attempts concatenated as '{diagnosis} → {fix_tried}' joined by '; '
+- status is 'suggested'
+- source_attempts references the triggering attempt_numbers
+
+**Non-SEMANTIC or empty-attempts recovery does NOT create a draft** (`rq-wisdomAutoSurfacing01.4`)
+
+**Given:**
+- adv_task_update is invoked with error_recovery.error_class in {TRANSIENT, ENVIRONMENTAL, FATAL}
+- Or error_recovery.attempts[] is empty
+
+**When:** The update is applied
+
+**Then:**
+- No WisdomDraft is created
+- task.wisdom_drafts is not modified
+
+**Dedup: at most one suggested draft per task** (`rq-wisdomAutoSurfacing01.5`)
+
+**Given:**
+- A task already has a WisdomDraft in the 'suggested' state
+
+**When:** Another SEMANTIC error_recovery update is applied
+
+**Then:**
+- No additional WisdomDraft is created
+- The existing suggested draft remains unchanged
+
+**Lifecycle: suggested → promoted | dismissed is one-way** (`rq-wisdomAutoSurfacing01.6`)
+
+**Given:**
+- A WisdomDraft exists in any state
+
+**When:** A transition is attempted
+
+**Then:**
+- suggested → promoted is the only path to promoted (via adv_wisdom_add from_draft_id)
+- suggested → dismissed is the only path to dismissed (with reason auto_checkpoint OR user_dismissed)
+- promoted and dismissed are terminal — no revival path
+- No 'rejected' state exists in the lifecycle vocabulary
+
+**adv_wisdom_add from_draft_id atomically promotes** (`rq-wisdomAutoSurfacing01.7`)
+
+**Given:**
+- adv_wisdom_add is invoked with from_draft_id and sourceTask
+- The referenced draft exists on the sourceTask in the 'suggested' state
+
+**When:** The wisdom entry is added successfully
+
+**Then:**
+- taskUpdatedSignal fires with the draft's status set to 'promoted'
+- The draft's promoted_wisdom_id is set to the new wisdom entry id
+- If the draft is missing: DRAFT_NOT_FOUND
+- If the draft is already promoted: DRAFT_ALREADY_PROMOTED
+- If the draft is dismissed: DRAFT_DISMISSED
+- If from_draft_id is supplied without sourceTask: FROM_DRAFT_ID_REQUIRES_SOURCE_TASK
+
+**adv_task_checkpoint auto-dismisses suggested drafts with counts** (`rq-wisdomAutoSurfacing01.8`)
+
+**Given:**
+- adv_task_checkpoint is invoked in 'complete' mode
+- The task carries one or more drafts in the 'suggested' state
+
+**When:** The checkpoint completion signal fires and readback succeeds
+
+**Then:**
+- taskUpdatedSignal fires with each suggested draft transitioned to 'dismissed'
+- Each dismissed draft carries dismiss_reason 'auto_checkpoint' and a dismissed_at timestamp
+- Terminal drafts (promoted/dismissed) are NOT re-dismissed (idempotent)
+- The checkpoint output includes drafts_pending_review (count before dismissal) and drafts_auto_dismissed (count transitioned)
+- Draft dismissal is best-effort: signal failure does not roll back completion or block the checkpoint
+
+**Task-scoped: cancelled tasks' drafts do not surface in change-level queries** (`rq-wisdomAutoSurfacing01.9`)
+
+**Given:**
+- A task is cancelled carrying wisdom_drafts
+- A change-level wisdom query runs
+
+**When:** The change-level query aggregates wisdom
+
+**Then:**
+- Drafts from cancelled tasks are not promoted to change-level wisdom entries
+- Drafts only become real Wisdom entries via explicit adv_wisdom_add from_draft_id
+
+**System-block nudge is draft-aware; [ADV:RECORD_WISDOM] retired** (`rq-wisdomAutoSurfacing01.10`)
+
+**Given:**
+- The system block is assembled
+- One or more tasks carry drafts in the 'suggested' state
+
+**When:** The block is emitted
+
+**Then:**
+- An [ADV:WISDOM_DRAFTS] prompt fires listing each task with its pending draft count
+- The prompt references adv_wisdom_add from_draft_id and notes auto-dismiss-at-checkpoint
+- The retired [ADV:RECORD_WISDOM] prompt does NOT fire even when lastCompletedTask is set
+- When no drafts are pending, neither prompt fires
+
+**Advisory-only enrichment never gates or overrides** (`rq-wisdomAutoSurfacing01.11`)
+
+**Given:**
+- adv_task_show returns _relevantWisdom and/or _episodeRecallHint
+- Or adv_task_update auto-creates a WisdomDraft
+- Or adv_task_checkpoint reports drafts_pending_review/drafts_auto_dismissed counts
+
+**When:** Any downstream gate, contract validation, or evidence evaluation runs
+
+**Then:**
+- Enrichment data is ignored for gate completion decisions
+- Enrichment data cannot override specs or contracts
+- Enrichment data cannot replace task evidence
+- A task with zero drafts or zero relevant wisdom still completes normally
+
+**Backward-compat: existing callers unaffected when new optional fields are absent** (`rq-wisdomAutoSurfacing01.12`)
+
+**Given:**
+- An existing caller invokes adv_task_show, adv_task_update, adv_wisdom_add, or adv_task_checkpoint
+- The caller does not pass any new optional field (from_draft_id, pendingWisdomDraftTasks, etc.)
+
+**When:** The tool executes
+
+**Then:**
+- Output shape is byte-identical to pre-change behavior except for added top-level advisory fields
+- No new error paths are triggered
+- No new required arguments exist
+- Existing tests for these tools continue to pass without modification of their core assertions
+
+---
+
+### Staged spec-delta records support amend, retract, and full operation vocabulary
+
+**ID:** `rq-stagedDeltaCrud01` | **Priority:** **[SHOULD]**
+
+The change-owned staged spec-delta record (change.deltas[capability][]) supports the complete write vocabulary through public tools: adv_delta_add (add), adv_delta_modify (first modify), adv_delta_amend (replace an already-staged delta, preserving its id), adv_delta_retract (remove a staged delta), adv_delta_remove (stage an operation:remove delta), and adv_delta_rename (stage an operation:rename delta). Amend is full-replace (deterministic — the caller supplies the complete corrected delta; no heuristic merge). Every write returns explicit failure rather than false success when the post-signal readback cannot confirm the intended change (mutation-safety readback proof). Archive remains the sole global-spec writer; these tools only mutate the change-owned staged record. New signal handlers are additive and replay-safe.
+
+**Tags:** `spec-delta`, `tooling`, `workflow`
+
+#### Scenarios
+
+**Amend replaces a staged delta preserving its id** (`rq-stagedDeltaCrud01.1`)
+
+**Given:**
+- A modify-delta dl-x is staged under a capability with a set of scenarios
+
+**When:** adv_delta_amend(changeId, capability, dl-x, correctedDelta) is called with the complete corrected delta
+
+**Then:**
+- The staged entry dl-x is atomically replaced with the corrected postimage
+- The delta id dl-x is preserved
+- adv_change_show exposes the amended postimage before success is returned
+- A second amend of dl-x succeeds (no first-modify-only limit)
+
+**Amend of an invalid payload is atomically rejected** (`rq-stagedDeltaCrud01.2`)
+
+**Given:**
+- A modify-delta dl-x is staged
+
+**When:** adv_delta_amend is called with an invalid corrected delta (unknown modify target, bad scenario-id parenting, or malformed)
+
+**Then:**
+- The operation is atomically rejected
+- The previously-staged delta dl-x is unchanged
+
+**Retract removes a staged delta** (`rq-stagedDeltaCrud01.3`)
+
+**Given:**
+- A delta dl-x is staged under a capability
+
+**When:** adv_delta_retract(changeId, capability, dl-x) is called
+
+**Then:**
+- dl-x is removed from the change-owned delta record
+- adv_change_show no longer lists dl-x
+- Readback confirms absence before success is returned
+
+**Remove and rename operation deltas can be staged** (`rq-stagedDeltaCrud01.4`)
+
+**Given:**
+- A capability whose global spec contains a target requirement
+
+**When:** adv_delta_remove (target_id + reason) or adv_delta_rename is called with a valid delta
+
+**Then:**
+- The operation:remove or operation:rename delta is staged under change.deltas[capability]
+- Readback confirms the staged delta before success
+- Archive applies it through the existing apply path
+
+**Amend or retract of an unknown delta id is rejected without mutation** (`rq-stagedDeltaCrud01.5`)
+
+**Given:**
+- A capability with some staged deltas
+
+**When:** adv_delta_amend or adv_delta_retract is called with a deltaId that is not staged
+
+**Then:**
+- A typed not-found error is returned
+- No mutation occurs
 
 ---

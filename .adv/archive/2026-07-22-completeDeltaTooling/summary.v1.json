@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-07-22T21:35:44.539Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "e7b2e065c7e6c14224625a4f0fceef7ad7cc5369a44720cc2cc1048ffa586976",
+  "change_id": "completeDeltaTooling",
+  "completed_tasks": 6,
+  "created_at": "2026-07-22T20:52:33.982Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-22T21:35:33.235Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "bdafdc63a6937b7168014d2c3cefce74fc216bb70c023ae7befb1cb5c11e5934",
+  "task_count": 6,
+  "title": "Complete delta tooling",
+  "version": "1"
+}
