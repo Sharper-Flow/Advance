@@ -1,0 +1,28 @@
+{
+  "archived_at": "2026-07-22T19:06:43.655Z",
+  "capabilities": [
+    "advance-meta",
+    "chat-output-display"
+  ],
+  "change_hash": "24d172bbf68152aca538bc2500615e0ab45fc180eef926b7ac03cbf0f8cf1784",
+  "change_id": "tightenToolOutputDefaults",
+  "completed_tasks": 9,
+  "created_at": "2026-07-21T01:54:38.534Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784640345128-wbp4ys",
+    "epic_id": "systemizeAdvOrchestration",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-21T13:25:45.129Z",
+    "order": 6,
+    "source": "link_existing",
+    "title": "Tighten tool output defaults (mutation auto-emit → opt-in)"
+  },
+  "last_activity_at": "2026-07-22T19:06:35.006Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "d861c4520d8a3deab9f60ed43dd61204994a595bd6f633c57689e18b59b7d5c4",
+  "task_count": 13,
+  "title": "Tighten tool output defaults",
+  "version": "1"
+}
