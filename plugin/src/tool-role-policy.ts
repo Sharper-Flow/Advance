@@ -260,11 +260,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Advisory reorder.",
   },
-  adv_epic_repair_membership: {
-    class: "orchestrator",
-    rationale:
-      "Membership projection repair; evidence-audited, orchestrator-driven hygiene.",
-  },
   adv_epic_retire: {
     class: "orchestrator",
     rationale: "Terminal Epic retirement with evidence.",
@@ -510,7 +505,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_epic_move_change",
       "adv_epic_promote_shell",
       "adv_epic_reorder",
-      "adv_epic_repair_membership",
       "adv_epic_retire",
       "adv_epic_show",
       "adv_epic_unlink_change",

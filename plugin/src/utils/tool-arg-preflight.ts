@@ -485,23 +485,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     epic_owner_target_confirmed: { blank: "omit" },
     epic_owner_confirmationEvidence: { blank: "omit" },
   },
-  adv_epic_repair_membership: {
-    // epic_id is optional only because mode='refresh_search_attributes'
-    // requires it to be omitted; for all other modes the handler validates
-    // presence. Blank normalizes to omitted so the handler can apply its
-    // contextual requirement checks (rq-toolPlaceholderPolicy01.6 style).
-    epic_id: { blank: "omit" },
-    entry_id: { blank: "omit" },
-    change_id: { blank: "omit" },
-    new_change_id: { blank: "omit" },
-    new_title: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
   adv_epic_reorder: {
     epic_owner_target_path: { blank: "omit" },
     epic_owner_target_confirmed: { blank: "omit" },

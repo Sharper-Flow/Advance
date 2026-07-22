@@ -571,11 +571,6 @@ export function createToolMap(
       "adv_epic_move_change",
       store,
     ),
-    adv_epic_repair_membership: bindTool(
-      epicTools.adv_epic_repair_membership,
-      "adv_epic_repair_membership",
-      store,
-    ),
     adv_epic_reorder: bindTool(
       epicTools.adv_epic_reorder,
       "adv_epic_reorder",

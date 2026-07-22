@@ -69,49 +69,48 @@ tools:
   # Tasks
   adv_epic_promote_shell: true
   adv_epic_reorder: true
-  adv_epic_repair_membership: true
   adv_epic_retire: true
   adv_epic_show: true
   adv_epic_unlink_change: true
   adv_epic_update: true
   adv_followup_promote: true
-  # Wisdom
   adv_gate_complete: true
+  # Wisdom
   adv_gate_status: true
-  # Gates
   adv_lightweight_profile_evaluate: true
+  # Gates
   adv_ops_evidence_add: true
   adv_ops_run_evidence_add: true
   adv_ops_run_upsert: true
   adv_project_context: true
   adv_project_metadata: true
-  # Sub-agent reports
   adv_reflect: true
-  # Ops follow-ups
+  # Sub-agent reports
   adv_reflection_list: true
+  # Ops follow-ups
   adv_report_followup_promote: true
   adv_run_test: true
   adv_session_list: true
   adv_session_show: true
-  # Temporal / workflow ops
   adv_snapshot_health: true
+  # Temporal / workflow ops
   adv_spec: true
   adv_status: true
   adv_store_cleanup: true
-  # Store maintenance (operator-only)
   adv_store_consolidate: true
+  # Store maintenance (operator-only)
   adv_subagent_report_submit: true
-  # Snapshot health diagnostics
   adv_task_add: true
-  # Reflection
+  # Snapshot health diagnostics
   adv_task_cancel: true
+  # Reflection
   adv_task_checkpoint: true
   adv_task_list: true
-  # Project metadata
   adv_task_ready: true
+  # Project metadata
   adv_task_reclassify_tdd: true
-  # === Epics — optional initiative containers ===
   adv_task_show: true
+  # === Epics — optional initiative containers ===
   adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
@@ -124,8 +123,8 @@ tools:
   adv_worktree_create: true
   adv_worktree_delete: true
   adv_worktree_resume: true
-  # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_triage: true
+  # === Worktree — orchestrator owns lifecycle ===
   # <<< ADV-GENERATED adv_* tools <<<
   # === Research MCP tools ===
   context7_*: true

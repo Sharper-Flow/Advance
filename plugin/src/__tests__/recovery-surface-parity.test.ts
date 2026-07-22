@@ -14,10 +14,10 @@
  * deletion, and is excluded here to keep this guard focused on the
  * availability surface an operator/agent actually touches.
  *
- * The remaining two retirements (adv_epic_repair_membership,
- * adv_change_forget) and the poisoned_history public-arg removal are
- * tracked separately — they have deeper subsystem integration and
- * require dedicated scope.
+ * The remaining retirement (adv_change_forget) and the poisoned_history
+ * public-arg removal are tracked separately — adv_change_forget has the
+ * deepest subsystem integration (index.ts session-pointer clearing) and
+ * requires dedicated scope.
  */
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "node:fs";
@@ -33,6 +33,7 @@ const RETIRED_TOOLS = [
   "adv_temporal_worker_restart",
   "adv_archive_repair",
   "adv_change_status_repair",
+  "adv_epic_repair_membership",
 ] as const;
 
 /**

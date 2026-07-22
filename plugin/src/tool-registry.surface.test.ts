@@ -115,14 +115,6 @@ describe("getToolSurface (live surface)", () => {
     expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
   });
 
-  test("exposes Epic owner routing args on adv_epic_repair_membership", () => {
-    const args = surface.get("adv_epic_repair_membership");
-    expect(args).toBeDefined();
-    expect(args?.has("epic_owner_target_path")).toBe(true);
-    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
-    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
-  });
-
   test("exposes Epic owner routing args on adv_epic_create", () => {
     const args = surface.get("adv_epic_create");
     expect(args).toBeDefined();
