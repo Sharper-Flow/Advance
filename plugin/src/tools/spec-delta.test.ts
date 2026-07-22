@@ -1121,3 +1121,164 @@ describe("adv_delta_rename — schema + target validation", () => {
     expect(mocks.specDeltasRename).not.toHaveBeenCalled();
   });
 });
+
+describe("adv_delta_list — read staged deltas", () => {
+  function storeWithDeltas(): Store {
+    return makeStore({
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            id: "addFeature",
+            title: "Add feature",
+            status: "draft",
+            deltas: {
+              "cap-one": [
+                {
+                  id: "dl-AAA11111",
+                  operation: "add",
+                  requirement: {
+                    id: "rq-one01",
+                    title: "One",
+                    body: "b",
+                    priority: "must",
+                  },
+                },
+                {
+                  id: "dl-MOD11111",
+                  operation: "modify",
+                  target_id: "rq-existing01",
+                  changes: { title: "Updated" },
+                },
+              ],
+              "cap-two": [
+                {
+                  id: "dl-REM11111",
+                  operation: "remove",
+                  target_id: "rq-two01",
+                  reason: "obsolete",
+                },
+              ],
+            },
+          },
+        })),
+      },
+    });
+  }
+
+  it("lists staged deltas across capabilities with ids, operation, target, title", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).toBe(true);
+    const rows = parsed.rows as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(3);
+    const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+    expect(byId["dl-AAA11111"]).toMatchObject({
+      operation: "add",
+      capability: "cap-one",
+      target: "rq-one01",
+      title: "One",
+    });
+    expect(byId["dl-MOD11111"]).toMatchObject({
+      operation: "modify",
+      target: "rq-existing01",
+      title: "Updated",
+    });
+    expect(byId["dl-REM11111"]).toMatchObject({
+      operation: "remove",
+      capability: "cap-two",
+      target: "rq-two01",
+    });
+    expect((parsed.pagination as Record<string, unknown>).total).toBe(3);
+  });
+
+  it("filters by capability", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature", capability: "cap-two" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    const rows = parsed.rows as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe("dl-REM11111");
+  });
+
+  it("paginates with offset + limit and reports hasMore", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature", offset: 0, limit: 2 },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect((parsed.rows as unknown[]).length).toBe(2);
+    const pg = parsed.pagination as Record<string, unknown>;
+    expect(pg.total).toBe(3);
+    expect(pg.returned).toBe(2);
+    expect(pg.hasMore).toBe(true);
+  });
+
+  it("returns empty rows for a change with no deltas", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature" },
+      makeStore(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.rows).toEqual([]);
+    expect((parsed.pagination as Record<string, unknown>).total).toBe(0);
+  });
+});
+
+describe("adv_delta_show — read one staged delta", () => {
+  function storeWithDeltas(): Store {
+    return makeStore({
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            id: "addFeature",
+            title: "Add feature",
+            status: "draft",
+            deltas: {
+              "cap-one": [
+                {
+                  id: "dl-AAA11111",
+                  operation: "add",
+                  requirement: {
+                    id: "rq-one01",
+                    title: "One",
+                    body: "b",
+                    priority: "must",
+                  },
+                },
+              ],
+            },
+          },
+        })),
+      },
+    });
+  }
+
+  it("returns the full staged delta by id", async () => {
+    const result = await specDeltaTools.adv_delta_show.execute(
+      { changeId: "addFeature", capability: "cap-one", deltaId: "dl-AAA11111" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).toBe(true);
+    expect((parsed.delta as Record<string, unknown>).id).toBe("dl-AAA11111");
+    expect((parsed.delta as Record<string, unknown>).operation).toBe("add");
+  });
+
+  it("returns typed not-found for an unknown delta id", async () => {
+    const result = await specDeltaTools.adv_delta_show.execute(
+      { changeId: "addFeature", capability: "cap-one", deltaId: "dl-UNKNOWN0" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).not.toBe(true);
+    expect(String(parsed.error)).toContain("dl-UNKNOWN0");
+  });
+});

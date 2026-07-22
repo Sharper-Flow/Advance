@@ -237,6 +237,8 @@ export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
   adv_delta_remove: "spec",
   adv_delta_rename: "spec",
   adv_delta_retract: "spec",
+  adv_delta_list: "spec",
+  adv_delta_show: "spec",
   adv_design_concern_disposition: "design",
   adv_followup_promote: "followup",
   adv_report_followup_promote: "report",
