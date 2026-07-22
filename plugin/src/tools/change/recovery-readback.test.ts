@@ -4,7 +4,7 @@
  *
  * The `requireLifecycleState` flag adds a `showLifecycleState === "archived"`
  * assertion alongside the existing `showStatus === "archived"` check. Existing
- * callers (adv_change_status_repair) omit the flag and retain status-only
+ * callers (internal recovery writers) omit the flag and retain status-only
  * semantics.
  */
 

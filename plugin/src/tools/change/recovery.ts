@@ -90,7 +90,7 @@ export async function verifyStatusRepairReadAfterWrite(input: {
    * rq-shippedWorkflowTermination01 D6: when true (caller is converging
    * terminal authority after a pinned-run termination), the readback also
    * asserts `showLifecycleState === "archived"`. Existing callers
-   * (adv_change_status_repair) omit this flag and retain status-only
+   * (internal recovery writers) omit this flag and retain status-only
    * assertions.
    */
   requireLifecycleState?: boolean;

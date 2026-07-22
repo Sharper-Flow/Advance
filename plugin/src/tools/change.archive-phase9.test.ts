@@ -1032,9 +1032,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
   });
 
   // rq-fixPhase9SquashMergeRedetect AC4: when reachability cannot be
-  // established, the blocked result must point to adv_change_status_repair
-  // as the recovery path for squash-merged-and-deleted-branch scenarios.
-  test("blocked reachability remediation includes adv_change_status_repair pointer", async () => {
+  // established, the blocked result must point to adv_doctor as the
+  // recovery path for squash-merged-and-deleted-branch scenarios.
+  test("blocked reachability remediation includes adv_doctor pointer", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.resolveReleaseReachability.mockReturnValueOnce({
       reachable: false,
@@ -1051,7 +1051,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain("Archive finalization blocked");
-    expect(parsed.remediation).toContain("adv_change_status_repair");
+    expect(parsed.remediation).toContain("adv_doctor");
     expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
     expect(store.changes.save).not.toHaveBeenCalled();
   });

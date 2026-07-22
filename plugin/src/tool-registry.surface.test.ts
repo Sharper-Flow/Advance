@@ -12,10 +12,8 @@ import { buildContractFromAgreement } from "./validator/contract-mint";
 describe("getToolSurface (live surface)", () => {
   const surface = getToolSurface();
 
-  test("exposes a known real tool arg (adv_change_status_repair#target_path)", () => {
-    expect(surface.get("adv_change_status_repair")?.has("target_path")).toBe(
-      true,
-    );
+  test("exposes a known real tool arg (adv_change_create#target_path)", () => {
+    expect(surface.get("adv_change_create")?.has("target_path")).toBe(true);
   });
 
   test("exposes design-concern recovery args for contract warrants", () => {
@@ -40,13 +38,13 @@ describe("getToolSurface (live surface)", () => {
   test("mint succeeds for a warrant resolving against the live surface (AC2)", () => {
     const contract = buildContractFromAgreement({
       agreement: `## Acceptance Criteria
-- AC1: Cross-project repair routes through target. [warrant: tool:adv_change_status_repair#target_path]
+- AC1: Cross-project work routes through target. [warrant: tool:adv_change_create#target_path]
 `,
       approvedAt: "2026-06-25T00:00:00.000Z",
       warrantLookup: { toolSurface: surface, specIds: new Set() },
     });
     expect(contract.items[0]?.warrants).toEqual([
-      "tool:adv_change_status_repair#target_path",
+      "tool:adv_change_create#target_path",
     ]);
   });
 

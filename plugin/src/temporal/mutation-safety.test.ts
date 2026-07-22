@@ -321,14 +321,14 @@ describe("enforceMutationEligibilityForError", () => {
   });
 
   test("passes through non-mutation-ineligible classes (not_found/poisoned_history)", () => {
-    // not_found: required for adv_change_status_repair to authorize disk-projection recovery.
+    // not_found: required for internal status-repair to authorize disk-projection recovery.
     expect(
       enforceMutationEligibilityForError(
         new Error("workflow execution already completed"),
       ),
     ).toMatchObject({ class: "not_found" });
 
-    // poisoned_history: required for adv_archive_repair action=reconcile to authorize recovery.
+    // poisoned_history: required for internal batch reconcile to authorize recovery.
     expect(
       enforceMutationEligibilityForError(
         new Error("TMPRL1100 No command scheduled for event"),

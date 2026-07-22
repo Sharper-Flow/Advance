@@ -1308,7 +1308,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // rq-crossSessionCacheConsistency01 / status-repair-parity: warm-path
       // summaries must not serve stale active cache/memo entries after an
       // archive bundle has been written (e.g. adv_change_archive or
-      // adv_change_status_repair). Mirror the Layer A1 pre-scan from
+      // adv_doctor). Mirror the Layer A1 pre-scan from
       // listResolvedChanges: invalidate any non-terminal cached/memo entry
       // whose change now has an archive bundle, so the next read rehydrates
       // from the durable terminal record.

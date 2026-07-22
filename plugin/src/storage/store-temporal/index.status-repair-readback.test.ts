@@ -115,7 +115,7 @@ describe("status repair public read-path parity", () => {
       JSON.stringify(archivedChange("statusRepairedChange"), null, 2),
     );
 
-    // Simulate adv_change_status_repair: disk-only status flip to archived.
+    // Simulate internal status-repair disk-only status flip to archived.
     const repaired = await saveRecoveredChangeStatus({
       store,
       change: warmGet.data!,

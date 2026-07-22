@@ -8,7 +8,10 @@ import {
 
 const lookup: WarrantLookup = {
   toolSurface: new Map([
-    ["adv_change_status_repair", new Set(["changeId", "target_path"])],
+    [
+      "adv_change_create",
+      new Set(["summary", "target_path", "target_confirmed"]),
+    ],
     [
       "adv_change_archive",
       new Set(["changeId", "phase9", "worktreePath", "target_path"]),
@@ -28,10 +31,10 @@ describe("parseWarrantTag", () => {
 
   test("extracts and strips a single tool#arg ref", () => {
     const parsed = parseWarrantTag(
-      "Cross-project repair routes through target. [warrant: tool:adv_change_status_repair#target_path]",
+      "Cross-project work routes through target. [warrant: tool:adv_change_create#target_path]",
     );
-    expect(parsed.refs).toEqual(["tool:adv_change_status_repair#target_path"]);
-    expect(parsed.text).toBe("Cross-project repair routes through target.");
+    expect(parsed.refs).toEqual(["tool:adv_change_create#target_path"]);
+    expect(parsed.text).toBe("Cross-project work routes through target.");
     expect(parsed.text).not.toContain("[warrant:");
   });
 
@@ -61,7 +64,7 @@ describe("parseWarrantTag", () => {
 describe("resolveWarrants", () => {
   test("ok when tool#arg exists", () => {
     expect(
-      resolveWarrants(["tool:adv_change_status_repair#target_path"], lookup),
+      resolveWarrants(["tool:adv_change_create#target_path"], lookup),
     ).toEqual({ ok: true, unresolved: [] });
   });
 

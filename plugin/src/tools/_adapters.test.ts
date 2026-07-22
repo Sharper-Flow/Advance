@@ -242,7 +242,7 @@ describe("_adapters", () => {
         await import("../temporal/mutation-safety");
       // Must NOT be an ineligibility error: not_found is intentionally
       // not blocked by SC4 — the caller is responsible for surgical
-      // recovery (e.g. adv_change_status_repair / adv_archive_repair).
+      // recovery (e.g. internal status-repair writers).
       await expect(
         fireSignal(handle, { name: "sc4-pass-not-found" }, {}),
       ).rejects.not.toBeInstanceOf(TemporalMutationIneligibleError);

@@ -57,20 +57,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Terminates archived workflows; opt-in includeDiskBundle recursively deletes the archive bundle (approvedByUser + approvalEvidence).",
   },
-  adv_archive_repair: {
-    class: "operator-only",
-    rationale:
-      "Archived-change recovery (scan/redrive/reconcile of wedged terminal projections); reconcile requires approvedByUser.",
-  },
   adv_change_repair_origin: {
     class: "operator-only",
     rationale:
       "Repairs origin provenance linkage on an open change; claim-safe audited repair (approvedByUser + approvalEvidence + reason).",
-  },
-  adv_change_status_repair: {
-    class: "operator-only",
-    rationale:
-      "Single-change wedged-status flip gated on precise workflow evidence; approval + recovery evidence required.",
   },
   adv_change_workflow_terminate: {
     class: "operator-only",
@@ -489,7 +479,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
     agent: "adv",
     allowed: [
       "adv_archive_purge",
-      "adv_archive_repair",
       "adv_backlog_add",
       "adv_backlog_archive",
       "adv_backlog_list",
@@ -504,7 +493,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_change_reenter",
       "adv_change_repair_origin",
       "adv_change_show",
-      "adv_change_status_repair",
       "adv_change_update",
       "adv_change_update_issues",
       "adv_change_validate",

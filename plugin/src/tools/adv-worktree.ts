@@ -729,7 +729,7 @@ export const advWorktreeTools = {
 
   adv_worktree_cleanup: {
     description:
-      "Discover terminal cleanup candidates and retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued. Opt-in mode=archived_branches instead scans local change/* branches tied to archived ADV changes, detects fully-merged ones (squash-merge-safe), and deletes the safe ones — post-merge branch hygiene moved here from adv_archive_repair so every archive_repair action has a single recovery purpose.",
+      "Discover terminal cleanup candidates and retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued. Opt-in mode=archived_branches instead scans local change/* branches tied to archived ADV changes, detects fully-merged ones (squash-merge-safe), and deletes the safe ones — post-merge branch hygiene moved here from the retired archive-repair surface so worktree cleanup has a single recovery purpose.",
     args: {
       reason: z
         .string()

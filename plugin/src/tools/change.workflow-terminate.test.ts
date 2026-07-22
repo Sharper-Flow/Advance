@@ -307,7 +307,7 @@ describe("adv_change_workflow_terminate", () => {
     // describe-throws-not-found with no poison evidence cannot establish
     // terminal authority. Legacy refresh+idempotent-success masked
     // half-shipped states; the new contract requires typed refusal so the
-    // operator uses adv_change_status_repair or completes the proof.
+    // operator uses adv_doctor or completes the proof.
     const store = createMockStore(wedgedChange());
     mocks.describe.mockRejectedValue(notFoundError());
 
@@ -1267,7 +1267,7 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(parsed.pinnedRunTerminated).toBe(true);
     expect(parsed.converged).toBe(false);
     expect(parsed.error).toMatch(/post-readback successor describe failed/);
-    expect(parsed.remediation).toMatch(/adv_change_status_repair/);
+    expect(parsed.remediation).toMatch(/adv_doctor/);
   });
 
   test("readback failure returns typed partialRecovery with attempted fields and remediation", async () => {
@@ -1310,7 +1310,7 @@ describe("adv_change_workflow_terminate — shipped_terminal eligibility (rq-shi
     expect(parsed.attemptedStatus).toBe("archived");
     expect(parsed.attemptedLifecycleState).toBe("archived");
     expect(parsed.readback).toBeDefined();
-    expect(parsed.remediation).toMatch(/adv_change_status_repair/);
+    expect(parsed.remediation).toMatch(/adv_doctor/);
   });
 
   // ===========================================================================

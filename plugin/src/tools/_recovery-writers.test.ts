@@ -359,7 +359,7 @@ describe("saveRecoveredChangeStatus", () => {
     const change = { ...baseChange(), lifecycleState: "open" } as Change;
     (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
 
-    // adv_change_status_repair continues to call without lifecycleState.
+    // Internal status-repair writers continue to call without lifecycleState.
     const updated = await saveRecoveredChangeStatus({
       store,
       change,
