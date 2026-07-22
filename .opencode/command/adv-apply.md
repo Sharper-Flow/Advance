@@ -264,7 +264,7 @@ adv_change_show changeId: <target> include: { ledger: true, snapshot: true, read
 This returns:
 
 - `tasks` (paginated) and `_taskPagination` — total/completed/in-progress counts
-- `_contextSnapshot` — rendered gate row + counts (matches live emission)
+- `_contextSnapshot` — rendered gate row + counts; opt-in via `include.snapshot:true` on mutation tools or `adv_change_show include.snapshot:true`
 - `_ledger` — durable run state for the in-progress task (or `null`)
 - `_readyTasks` + `_readyTasksMeta` — unblocked queue (top-10; override with `readyTasksLimit`)
 
@@ -295,7 +295,7 @@ Verify that the prep gate was completed with user approval. The prep gate is the
 
 ## Phase 2: Display Contract
 
-Emit a purpose line: `Working on: {change-id}`. State is visible via `_contextSnapshot` and `adv_change_show` — do not duplicate it in a banner.
+Emit a purpose line: `Working on: {change-id}`. State is visible via `adv_change_show` (use `include.snapshot:true` to request `_contextSnapshot`) — do not duplicate it in a banner.
 
 Retry policy (advisory): see § Retry Protocol below.
 
@@ -671,7 +671,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 
 ## Phase 4: Progress Tracking
 
-Task state is visible via `_contextSnapshot` and `adv_task_list` — do not emit a per-task status block. TodoWrite projection is exempt — it is a UI surface over the task graph, not a chat status block.
+Task state is visible via `adv_task_list`. Use `include.snapshot:true` on mutation tools or `adv_change_show include.snapshot:true` to request `_contextSnapshot` — do not emit a per-task status block. TodoWrite projection is exempt — it is a UI surface over the task graph, not a chat status block.
 
 ---
 

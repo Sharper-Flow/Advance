@@ -26,8 +26,12 @@ import {
   validateTaskEvidenceForStage,
 } from "../validator/task-classifier";
 import { projectContractCoverage } from "../validator/contract";
-import { formatToolOutput, paginate } from "../utils/tool-output";
-import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
+import {
+  formatToolOutput,
+  paginate,
+  resolveOutputMode,
+} from "../utils/tool-output";
+import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
 import {
   buildTodoProjection,
   formatTaskReadyOutput,
@@ -41,6 +45,7 @@ import {
   withOptionalTargetPathStore,
   withTargetPathStore,
 } from "./target-project";
+import { includeSnapshotSchema } from "./shared-args";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import {
@@ -545,6 +550,12 @@ export const taskTools = {
         .describe(
           "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
         ),
+      outputMode: z
+        .enum(["compact", "pretty"])
+        .optional()
+        .describe(
+          "Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call.",
+        ),
     },
     execute: async (
       args: {
@@ -554,10 +565,19 @@ export const taskTools = {
         limit?: number;
         offset?: number;
         target_path?: string;
+        outputMode?: "compact" | "pretty";
       },
       store: Store,
     ) => {
-      const { changeId, status, filter, limit, offset, target_path } = args;
+      const {
+        changeId,
+        status,
+        filter,
+        limit,
+        offset,
+        target_path,
+        outputMode,
+      } = args;
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
@@ -574,11 +594,14 @@ export const taskTools = {
             tool: "adv_task_list",
             args: `changeId: "${changeId}"${status ? `, status: "${status}"` : ""}${filter ? `, filter: "${filter}"` : ""}`,
           });
-          return formatToolOutput({
-            tasks: paged.items,
-            pagination: paged.pagination,
-            ...(projectContext ? { _projectContext: projectContext } : {}),
-          });
+          return formatToolOutput(
+            {
+              tasks: paged.items,
+              pagination: paged.pagination,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            },
+            { pretty: resolveOutputMode(outputMode) },
+          );
         },
       );
     },
@@ -598,9 +621,18 @@ export const taskTools = {
         .describe(
           "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
         ),
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
-      { changeId, target_path }: { changeId: string; target_path?: string },
+      {
+        changeId,
+        target_path,
+        include,
+      }: {
+        changeId: string;
+        target_path?: string;
+        include?: { snapshot?: boolean };
+      },
       store: Store,
     ) => {
       return withOptionalTargetPathStore(
@@ -611,10 +643,6 @@ export const taskTools = {
             ready: Task[];
             blocked: Array<{ task: Task; blockedBy: string[] }>;
           };
-          const snapshot = await fetchChangeContextTicker(
-            activeStore,
-            changeId,
-          );
           const formatted = formatTaskReadyOutput({
             ready: result.ready.map((t) => ({
               id: t.id,
@@ -637,7 +665,7 @@ export const taskTools = {
                 (task) => task.status === "in_progress",
               )
             : undefined;
-          return formatToolOutput({
+          const output: Record<string, unknown> = {
             ...result,
             _todoProjection: buildTodoProjection({
               current: currentTask ?? null,
@@ -648,9 +676,10 @@ export const taskTools = {
               })),
             }),
             formatted,
-            ...(snapshot ? { _contextSnapshot: snapshot } : {}),
             ...(projectContext ? { _projectContext: projectContext } : {}),
-          });
+          };
+          await maybeAttachChangeTicker(output, include, activeStore, changeId);
+          return formatToolOutput(output);
         },
       );
     },
@@ -719,6 +748,7 @@ export const taskTools = {
         ),
       recoveryMode: RecoveryModeSchema,
       recoveryEvidence: RecoveryEvidenceSchema,
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       args: {
@@ -737,6 +767,7 @@ export const taskTools = {
         evidence_policy?: import("../types").ContractEvidencePolicy;
         evidence_rationale?: string;
         proof_target?: string;
+        include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
@@ -1254,13 +1285,12 @@ export const taskTools = {
           (args.status === "in_progress" || args.status === "done") &&
           !recoveredViaPoisoned
         ) {
-          const snapshot = await fetchChangeContextTicker(
+          await maybeAttachChangeTicker(
+            output,
+            args.include,
             activeStore,
             changeId,
           );
-          if (snapshot) {
-            output._contextSnapshot = snapshot;
-          }
         }
         return formatToolOutput(output);
       };
@@ -1337,6 +1367,7 @@ export const taskTools = {
       recoveryMode: RecoveryModeSchema,
       recoveryEvidence: RecoveryEvidenceSchema,
       ...targetPathSchema.shape,
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       args: {
@@ -1355,6 +1386,7 @@ export const taskTools = {
         confirmationEvidence?: string;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
+        include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
@@ -1593,10 +1625,7 @@ export const taskTools = {
           }
         }
 
-        const snapshot = recoveredViaPoisoned
-          ? null
-          : await fetchChangeContextTicker(activeStore, changeId);
-        return formatToolOutput({
+        const output: Record<string, unknown> = {
           taskId: task.id,
           task,
           ...(changeForGuard
@@ -1610,14 +1639,22 @@ export const taskTools = {
               }
             : {}),
           ...(projectContext ? { _projectContext: projectContext } : {}),
-          ...(snapshot ? { _contextSnapshot: snapshot } : {}),
           ...(recoveredViaPoisoned
             ? {
                 _recoveryMutation: true,
                 reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
               }
             : {}),
-        });
+        };
+        if (!recoveredViaPoisoned) {
+          await maybeAttachChangeTicker(
+            output,
+            args.include,
+            activeStore,
+            changeId,
+          );
+        }
+        return formatToolOutput(output);
       };
 
       try {
@@ -1686,6 +1723,7 @@ export const taskTools = {
       recoveryMode: RecoveryModeSchema,
       recoveryEvidence: RecoveryEvidenceSchema,
       ...targetPathSchema.shape,
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       args: {
@@ -1700,6 +1738,7 @@ export const taskTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
@@ -1899,13 +1938,12 @@ export const taskTools = {
           const firstTask = await activeStore.tasks.show(cancelledTasks[0].id);
           const changeId = firstTask?.changeId;
           if (changeId) {
-            const snapshot = await fetchChangeContextTicker(
+            await maybeAttachChangeTicker(
+              output,
+              args.include,
               activeStore,
               changeId,
             );
-            if (snapshot) {
-              output._contextSnapshot = snapshot;
-            }
           }
         }
 

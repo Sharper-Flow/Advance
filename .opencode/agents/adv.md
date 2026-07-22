@@ -199,7 +199,7 @@ If the user's intent is ambiguous or no change-id is provided, check `adv_change
 > **Defect-origin routing footnote (rq-defectOriginRca01):** When the user's intent describes unintended behavior, route through `/adv-problem` to produce Root Cause Analysis (RCA) evidence before any proposal-creation path. Defect triggers: "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X". Non-defect triggers (proceed normally to `/adv-proposal` or `/adv-task`): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X". Rule of thumb: user describes unintended behavior → defect; user describes desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3). Defect-origin `/adv-proposal` and `/adv-task` invocations MUST carry a `## Root Cause Analysis` section in the persisted proposal.md artifact. `/adv-task` fast-track does NOT bypass RCA for defects.
 
 ## Step 2: Load State
-Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume first incomplete. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
+Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot` (opt-in via `include.snapshot:true`); resume first incomplete. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
 
 ### Step 2.5: Resume Freshness Advisory
 Resumes >60m: apply `ADV_INSTRUCTIONS.md § Resume Freshness Advisory`; read-only/current-project/proceed-default; fresh skip. One archived duplicate: one-command accept (copy-paste and run), user evidence; never auto-close.
@@ -384,7 +384,7 @@ After any workflow emits a user-facing gate-transition message, use **Gate Hando
 > → `/adv-{next-command} {change-id}`
 ```
 
-Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
+Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`), not chat. Use `include.snapshot:true` on any tool to request `_contextSnapshot`. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
 
 Decision rationale (major decisions only): when `docs/command-voice-standard.md` classifies a decision as major, place its bounded rationale block inside `## Chosen direction`. Do not add a `## Decision rationale` heading, do not put rationale after `## Delivered`, and do not emit rationale for routine decisions.
 

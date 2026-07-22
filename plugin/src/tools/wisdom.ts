@@ -26,7 +26,7 @@ import {
   changeStateQuery,
 } from "../temporal/messages";
 import { formatToolOutput } from "../utils/tool-output";
-import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
+import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import {
@@ -35,6 +35,7 @@ import {
   getChangeHandle,
 } from "./_adapters";
 import { withOptionalTargetPathStore } from "./target-project";
+import { includeSnapshotSchema } from "./shared-args";
 import { findDraft, promoteDraft } from "../utils/wisdom-draft";
 
 async function getChangeHandleForChangeId(
@@ -131,6 +132,7 @@ export const wisdomTools = {
         .describe(
           "Promote a WisdomDraft into a real wisdom entry. Requires sourceTask. Validates draft exists on the same task in the 'suggested' state, pre-populates type/content from the draft (caller may override), and atomically marks the draft 'promoted' after the wisdom add succeeds (rq-wisdomAutoSurfacing01 / AC6 / DDC5).",
         ),
+      ...includeSnapshotSchema.shape,
     },
     execute: async (
       {
@@ -140,6 +142,7 @@ export const wisdomTools = {
         sourceTask,
         promote,
         from_draft_id,
+        include,
       }: {
         changeId: string;
         type: "pattern" | "success" | "failure" | "gotcha" | "convention";
@@ -147,6 +150,7 @@ export const wisdomTools = {
         sourceTask?: string;
         promote?: boolean;
         from_draft_id?: string;
+        include?: { snapshot?: boolean };
       },
       store: Store,
     ) => {
@@ -329,21 +333,16 @@ export const wisdomTools = {
           }
         }
 
-        let snapshot: string | undefined;
-        try {
-          snapshot = await fetchChangeContextTicker(store, changeId);
-        } catch {
-          // Snapshot emission is best-effort; never fail the tool
-        }
-        return formatToolOutput({
+        const output: Record<string, unknown> = {
           success: true,
           entry,
           promoted,
-          ...(snapshot ? { _contextSnapshot: snapshot } : {}),
           message: promote
             ? `Added and promoted ${type} wisdom for change ${changeId}`
             : `Added ${type} wisdom to change ${changeId}`,
-        });
+        };
+        await maybeAttachChangeTicker(output, include, store, changeId);
+        return formatToolOutput(output);
       } catch (error) {
         return formatToolOutput({
           error:

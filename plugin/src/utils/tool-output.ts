@@ -27,6 +27,23 @@ const MAX_CHARS =
     ? ENV_MAX_CHARS
     : DEFAULT_MAX_CHARS;
 
+/**
+ * Resolve output mode with explicit precedence: caller arg > env > "compact".
+ *
+ * The naive `{ pretty: args.outputMode === "pretty" }` wiring fails when the
+ * caller passes `outputMode: "compact"` while `ADV_TOOL_OUTPUT_MODE=pretty`
+ * because `formatToolOutput` uses OR-semantics (`pretty || env === "pretty"`).
+ * This resolver makes the precedence explicit and testable.
+ *
+ * Per DDC5 — precedence is `arg > env > "compact"` and must be testable for
+ * all 4 `(arg, env)` combinations.
+ */
+export function resolveOutputMode(arg?: "compact" | "pretty"): boolean {
+  if (arg === "pretty") return true;
+  if (arg === "compact") return false;
+  return OUTPUT_MODE === "pretty";
+}
+
 // =============================================================================
 // Types
 // =============================================================================

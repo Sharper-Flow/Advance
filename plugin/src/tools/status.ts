@@ -13,7 +13,7 @@ import {
   classifyTemporalError,
   getTemporalRetryTelemetry,
 } from "../temporal/retry-wrapper";
-import { formatToolOutput } from "../utils/tool-output";
+import { formatToolOutput, resolveOutputMode } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
 import { listPeerSessions } from "./session/index";
 import {
@@ -243,6 +243,12 @@ export const statusTools = {
         .describe(
           "Refresh advisory status health probe caches for the selected view. Does not refresh or cache gate/task/change/contract/archive truth.",
         ),
+      outputMode: z
+        .enum(["compact", "pretty"])
+        .optional()
+        .describe(
+          "Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call.",
+        ),
     },
     execute: async (
       {
@@ -250,11 +256,13 @@ export const statusTools = {
         view = "summary",
         scope = "repo",
         forceRefresh = false,
+        outputMode,
       }: {
         target_path?: string;
         view?: "summary" | "health" | "changes" | "hygiene";
         scope?: "repo" | "product";
         forceRefresh?: boolean;
+        outputMode?: "compact" | "pretty";
       },
       store: Store,
     ) => {
@@ -1058,7 +1066,9 @@ export const statusTools = {
           };
 
           const output = applyStatusView(fullOutput, view);
-          return formatToolOutput(output);
+          return formatToolOutput(output, {
+            pretty: resolveOutputMode(outputMode),
+          });
         },
       );
     },

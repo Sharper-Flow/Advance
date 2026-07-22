@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import {
   fetchChangeContextSnapshot,
   fetchChangeContextTicker,
+  maybeAttachChangeTicker,
 } from "./context-snapshot-fetch";
 import { createLegacyStore, type Store } from "./store";
 import {
@@ -87,5 +88,93 @@ describe("fetchChangeContextSnapshot", () => {
     const ticker = await fetchChangeContextTicker(store, "nonExistent");
 
     expect(ticker).toBeUndefined();
+  });
+});
+
+describe("maybeAttachChangeTicker", () => {
+  let tempDir: string;
+  let store: Store;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createLegacyStore(tempDir);
+  });
+
+  afterEach(async () => {
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("no-op when include is undefined (default-OFF)", async () => {
+    const output: Record<string, unknown> = { success: true };
+    await maybeAttachChangeTicker(output, undefined, store, "addFeature");
+    expect(output._contextSnapshot).toBeUndefined();
+  });
+
+  test("no-op when include.snapshot is false", async () => {
+    const output: Record<string, unknown> = { success: true };
+    await maybeAttachChangeTicker(
+      output,
+      { snapshot: false },
+      store,
+      "addFeature",
+    );
+    expect(output._contextSnapshot).toBeUndefined();
+  });
+
+  test("no-op when include.snapshot is undefined", async () => {
+    const output: Record<string, unknown> = { success: true };
+    await maybeAttachChangeTicker(output, {}, store, "addFeature");
+    expect(output._contextSnapshot).toBeUndefined();
+  });
+
+  test("attaches ticker when include.snapshot is true for existing change", async () => {
+    const output: Record<string, unknown> = { success: true };
+    await maybeAttachChangeTicker(
+      output,
+      { snapshot: true },
+      store,
+      "addFeature",
+    );
+    expect(output._contextSnapshot).toBeDefined();
+    expect(typeof output._contextSnapshot).toBe("string");
+    expect((output._contextSnapshot as string).length).toBeLessThanOrEqual(80);
+  });
+
+  test("does not attach ticker for non-existent change (undefined snapshot)", async () => {
+    const output: Record<string, unknown> = { success: true };
+    await maybeAttachChangeTicker(
+      output,
+      { snapshot: true },
+      store,
+      "nonExistent",
+    );
+    expect(output._contextSnapshot).toBeUndefined();
+  });
+
+  test("does not throw when store operations fail (best-effort)", async () => {
+    // Use a store-like object that throws on changes.get to simulate failure.
+    // The helper MUST swallow the error and not propagate it.
+    const throwingStore = {
+      ...store,
+      changes: {
+        ...store.changes,
+        get: async () => {
+          throw new Error("simulated store failure");
+        },
+      },
+    } as unknown as Store;
+    const output: Record<string, unknown> = { success: true };
+    // Should NOT throw — best-effort per DDC4
+    await expect(
+      maybeAttachChangeTicker(
+        output,
+        { snapshot: true },
+        throwingStore,
+        "addFeature",
+      ),
+    ).resolves.toBeUndefined();
+    expect(output._contextSnapshot).toBeUndefined();
   });
 });

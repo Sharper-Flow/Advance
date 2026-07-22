@@ -214,7 +214,7 @@ Tab title: active ADV change identity only. With an active change the title is e
 
 - Change ID/title, gate progress (`[✓ proposal] [○ execution] ...`), task counts, current task, workdir
 
-Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv_status` primary change, and task-state ticker tools (`adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`). Read tools omit it by default, except `adv_change_show include: { snapshot: true }`, which returns `_contextSnapshot` on request.
+Emitted by mutation/ticker tools (`adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`, `adv_wisdom_add`) only when the caller passes `include.snapshot:true`. When omitted (default), no snapshot is emitted. `adv_change_show include: { snapshot: true }` also returns `_contextSnapshot` on request. `adv_status` recommendation-list snapshots follow `rq-ctxticker2.5` (unchanged — advisory multi-change display, MCP-contract-bound).
 
 **Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`.
 
