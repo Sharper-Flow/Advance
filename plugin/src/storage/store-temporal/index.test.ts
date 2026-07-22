@@ -1652,10 +1652,12 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     const result = await store.changes.listSummary!({});
     const found = result.changes.find((c) => c.id === "fastPathActive");
     expect(found).toBeDefined();
-    expect(found!.status).toBe("active");
-    // Active-only summary path should not have needed terminal reconciliation.
+    // bl-HiZJbUuy: listSummary serves the active change disk-first — canonical
+    // "draft" (legacy "active" normalizes at the disk load path) with NO
+    // workflow query. Active-only summary needs no terminal reconciliation.
+    expect(found!.status).toBe("draft");
     expect(result.hydrationStats?.fromHydration).toBeGreaterThan(0);
-    expect(queryCount).toBe(1);
+    expect(queryCount).toBe(0);
   });
 });
 
