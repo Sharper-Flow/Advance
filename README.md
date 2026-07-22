@@ -1,8 +1,7 @@
 <h1 align="center">Advance</h1>
 
 <p align="center">
-  <strong>Spec-driven engineering infrastructure for AI-assisted development.</strong><br>
-  <em>Vibe coding does not scale. Durable engineering loops do.</em>
+  <strong>Spec-driven engineering infrastructure for AI-assisted development.</strong><br></em>
 </p>
 
 <p align="center">
@@ -30,11 +29,11 @@
 ---
 
 > [!NOTE]
-> Advance targets OpenCode. Claude Code support remains future work. ACP-first work is paused until upstream OpenCode ACP fixes land.
+> Advance targets OpenCode. 
 
 ## What Advance is
 
-Advance is an [OpenCode](https://github.com/anomalyco/opencode) plugin that turns AI coding from a chat-driven activity into a governed engineering system.
+Advance is an [OpenCode](https://github.com/anomalyco/opencode) plugin that turns AI coding into a governed engineering system.
 
 It combines:
 
@@ -146,132 +145,10 @@ This is why Advance is more than durable functions, more than a memory layer, mo
 
 Advance keeps the core workflow in this repository and exposes runtime-safe seams for developers who want to build their own operators, dashboards, or editor integrations:
 
-### Local dashboard
-
-`bin/adv dashboard` runs a local read-only web dashboard for explicitly configured projects. It binds to `127.0.0.1` by default and exposes only `GET /` plus `GET /api/state`.
-
-For the PokeEdge workspace, preview the mutating install step first:
-
-```bash
-bin/adv dashboard install --profile pokeedge --dry-run
-```
-
-Then install the always-on local user service when the planned writes look right:
-
-```bash
-bin/adv dashboard install --profile pokeedge
-```
-
-This mutating install writes local user configuration/service files:
-
-- `~/.config/advance/dashboard/pokeedge.json`
-- `~/.config/systemd/user/adv-dashboard-pokeedge.service`
-
-Then it runs:
-
-```bash
-systemctl --user daemon-reload
-systemctl --user enable --now adv-dashboard-pokeedge.service
-```
-
-Open the dashboard at:
-
-```text
-http://127.0.0.1:8765/
-```
-
-The PokeEdge profile contains:
-
-| Project | Path | GitHub repo |
-| ------- | ---- | ----------- |
-| PokeEdge | `/home/jon/dev/pokeedge` | `Sharper-Flow/PokeEdge` |
-| PokeEdge Web | `/home/jon/dev/pokeedge-web` | `Sharper-Flow/PokeEdge-Web` |
-
-Health and logs:
-
-```bash
-bin/adv dashboard doctor --profile pokeedge
-systemctl --user status adv-dashboard-pokeedge.service
-journalctl --user -u adv-dashboard-pokeedge.service
-```
-
-Logged-out startup depends on user lingering. Check it with:
-
-```bash
-loginctl show-user "$USER" --property=Linger
-```
-
-If disabled, enable it with:
-
-```bash
-loginctl enable-linger "$USER"
-```
-
-To disable or uninstall:
-
-```bash
-systemctl --user disable --now adv-dashboard-pokeedge.service
-rm ~/.config/systemd/user/adv-dashboard-pokeedge.service
-systemctl --user daemon-reload
-```
-
-The service uses fixed port `8765`. If another process already owns the port, startup fails loudly and systemd does not restart-loop on the dashboard's port-collision exit code.
-
-GitHub auth resolution is local-only: `GITHUB_TOKEN` first, then `gh auth token`. If neither is available, the page shows an inline setup card and keeps local/ADV state visible.
-
-Example config (`schema_version: 1`):
-
-```json
-{
-  "schema_version": 1,
-  "refresh_seconds": 45,
-  "projects": [
-    {
-      "id": "advance",
-      "label": "Advance",
-      "path": "/home/jon/dev/advance",
-      "github": { "owner": "Sharper-Flow", "repo": "Advance" }
-    },
-    {
-      "id": "toolbox",
-      "label": "Toolbox",
-      "path": "/home/jon/dev/toolbox",
-      "github": { "owner": "Sharper-Flow", "repo": "toolbox" }
-    }
-  ]
-}
-```
-
-Run:
-
-```bash
-bin/adv dashboard --config ./dashboard.json --port 8765
-```
-
-V1 is observation-only: no rerun, approval, merge, deployment, cancellation, archive, or other mutation controls. Source failures are shown per project/source as degraded instead of blanking the whole page. Non-loopback hosts require explicit `--allow-network-host`.
-
-The dashboard does not open a browser automatically, does not host anything externally by default, and does not provide write controls for ADV, GitHub, deployments, repositories, or services.
-
-- `scripts/maintenance/inspect.mjs --project-root <path>` emits `schema_version: 1`, archived change summaries, release-gate eligibility, and a verification summary so external tools can inspect release readiness without mutating ADV state.
-- `adv_change_update_issues` accepts full GitHub issue URLs only (`https://github.com/<owner>/<repo>/issues/<number>`). Shorthand refs are rejected before persistence so invalid state cannot be saved.
-- `adv_status view=health` includes `plugin_runtime`, reporting the loaded module path, process start time, build marker path/data when present, worker script path, and the caveat that host-loaded tool code requires restarting OpenCode after rebuild.
-
-Maintenance remains offline by design. External tools should close/refuse active sessions before merge/rebuild/cleanup work; Temporal recovery is report-only unless a future Advance standalone script exposes a safe executor.
-
 ## Core workflow
 
-```text
-/adv-proposal -> define problem, user outcomes, constraints
-/adv-discover -> gather evidence, agree objectives and acceptance criteria
-/adv-design   -> design implementation strategy and validate architecture
-/adv-prep     -> synthesize task graph and close gaps
-/adv-apply    -> implement autonomously with TDD evidence and checkpoints
-/adv-review   -> verify delivered work against the contract
-/adv-harden   -> production-readiness and quality pass
-/adv-archive  -> promote deltas to specs, preserve wisdom, finalize release
-```
 
-The command count is not the point. The point is that every phase produces artifacts that later phases can verify.
+Every phase produces artifacts that later phases can verify.
 
 ## The 7 gates
 
@@ -300,20 +177,6 @@ Advance narrows “done” to evidence:
 - Specs are updated when behavior becomes law.
 - Wisdom and reflection are recorded for the next change.
 
-## Without Advance / With Advance
-
-| Without Advance                                       | With Advance                                                         |
-| ----------------------------------------------------- | -------------------------------------------------------------------- |
-| Requirements live in chat history                     | Requirements live in specs, proposals, and agreements                |
-| Work expands silently                                 | Scope is tied to explicit gates and acceptance criteria              |
-| Durable execution is separate from engineering policy | Temporal state is integrated with specs, tasks, evidence, and gates  |
-| Memory is unstructured                                | Context snapshots, wisdom, agenda, and task ledgers are structured   |
-| “Tests passed” is a claim                             | Red/green output is captured as task evidence                        |
-| Review is optional or generic                         | Review and harden are required workflow stages                       |
-| Agent retries are invisible                           | Failures are classified; doom loops escalate after 3 failed attempts |
-| Worktrees fragment state                              | Worktrees share external ADV state while specs stay branch-local     |
-| Completion disappears after merge                     | Archive promotes decisions and learnings back into the project       |
-
 ## Key capabilities
 
 ### Spec-driven changes
@@ -339,14 +202,6 @@ Mutating work runs in per-change worktrees. ADV state is external and shared acr
 > [!TIP]
 > Use worktrees for any agent run that will edit files. Advance materializes or resumes a `change/<change-id>` worktree, routes mutating tools there, and leaves the main checkout available for review, merge, and release. This pattern is inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), which showed how worktrees make OpenCode agent sessions safer and easier to parallelize. Advance adds gate ownership, Temporal state, task checkpoints, branch-local specs, and archive finalization.
 
-### ACP-first work paused
-
-ACP-first work, including the local `acp-mux/` experiment, is archived for now. Do not install, document as current setup, or build new workflow around it until upstream OpenCode ACP fixes land. The main blocker for ADV-style workflows remains reliable human checkpoint round-trips — especially [`anomalyco/opencode#17920`](https://github.com/anomalyco/opencode/issues/17920), where the `question` tool hangs in ACP mode.
-
-`acp-mux/` stays in the repository as historical design material and a possible restart point after ACP is viable again. It is not part of the supported Advance install path or release surface.
-
-Shoutout Zed editor. Can't wait to use you.
-
 ### Bounded autonomy
 
 Advance lets agents work autonomously only inside approved boundaries. It stops for human checkpoints, design conflicts, doom loops, cancellation approval, archive sign-off, and scope drift that changes the agreement.
@@ -371,26 +226,6 @@ Advance separates workflow ownership from reusable methodology.
 - **Skills** own reusable guidance and checklists.
 - **Sub-agents** handle bounded research, validation, and implementation work when context can be safely shed.
 - **The ADV orchestrator** keeps sequencing, approvals, and state consistent.
-
-This keeps methodology reusable without letting random helper prompts mutate workflow state.
-
-## Why one ADV agent, not one agent per role
-
-Advance exposes one canonical orchestrator agent (`adv`) instead of role-based lifecycle agents like `planner`, `coder`, or `reviewer`. This is deliberate.
-
-**The problem with role agents:** Splitting the 7-gate lifecycle across agents means each agent only sees a slice of the workflow. The planner never sees how its design survives implementation. The coder never sees the acceptance criteria that govern review. The reviewer never sees the discovery evidence that shaped the agreement. Every handoff loses context.
-
-**The ADV orchestrator model:** A single ADV agent carries the full change lifecycle from proposal through archive. It sees the problem statement, agreement, design, task graph, implementation evidence, and review findings. Provider-specific guidance is injected at runtime from structured provider/model identity. When specialized work is needed, the orchestrator delegates to bounded sub-agents for one task — not an entire lifecycle phase.
-
-| Aspect             | Role agents (planner / coder / reviewer)     | Single ADV orchestrator                                  |
-| ------------------ | -------------------------------------------- | -------------------------------------------------------- |
-| Context continuity | Lost at every handoff                        | Full lifecycle in one agent                              |
-| Gate coherence     | Each agent sees a phase slice                | One agent owns all 7 gates                               |
-| Model tuning       | One prompt fits all models                   | Runtime provider hints when structured identity is known |
-| Model comparison   | Hard — different agents run different phases | Same workflow, different models, directly comparable     |
-| User model         | "Which agent handles this phase?"            | Use `adv`, get the full lifecycle                        |
-| Tool surface       | Per-role tool subsets to maintain            | Shared MCP tools, one policy layer                       |
-| Delegation         | Role-to-role handoffs, no recovery           | Scoped sub-agent tasks with structured reports           |
 
 The sub-agent system still exists: `adv-engineer` implements backend/state/API work, `adv-designer` is the apply-phase frontend/component specialist (write-only, never review/harden owner), `adv-researcher` validates architecture/docs/examples, `adv-reviewer` remediates review/harden findings (with a `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes), and `explore` scans code. They are context-engineering tools, not owners of the lifecycle.
 
@@ -523,14 +358,6 @@ scripts/             sync, migration, maintenance, blind-test helpers
 | [`docs/temporal-recovery.md`](docs/temporal-recovery.md) | Temporal worker recovery model                               |
 | [`docs/store-consolidation.md`](docs/store-consolidation.md) | Orphan identity-store recovery (`adv_store_consolidate`) |
 | [`docs/specs/`](docs/specs/)                             | Generated/spec-facing documentation                          |
-
-## Philosophy
-
-Advance is not trying to make AI coding slower. It is trying to make fast work finish cleanly.
-
-For throwaway scripts, raw chat may be enough. For serious projects, speed without durable scope, evidence, review, recovery, and archive is not speed. It is deferred cleanup.
-
-Advance makes the cleanup part of the system.
 
 ## License
 
