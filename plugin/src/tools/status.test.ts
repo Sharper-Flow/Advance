@@ -1106,8 +1106,7 @@ Vague in-flight work.
 
         const saRec = (health.recommendations as string[] | undefined)?.find(
           (r: string) =>
-            r.includes("search attributes") ||
-            r.includes("adv_temporal_register_search_attributes"),
+            r.includes("search attributes") || r.includes("adv_doctor"),
         );
         expect(saRec).toBeDefined();
       });

@@ -111,7 +111,7 @@ interface CheckpointRecordingResult {
 }
 
 const CHECKPOINT_RECORDING_REMEDIATION =
-  "Workflow task completion was not recorded. Retry adv_task_checkpoint before declaring the task done; if it persists, run adv_temporal_diagnose and repair worker connectivity.";
+  "Workflow task completion was not recorded. Retry adv_task_checkpoint before declaring the task done; if it persists, run adv_doctor and repair worker connectivity.";
 
 export type RepoState =
   | "ok"

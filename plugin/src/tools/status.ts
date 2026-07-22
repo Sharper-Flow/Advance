@@ -553,14 +553,14 @@ export const statusTools = {
               if (!searchAttributes.ok) {
                 const message =
                   "⚠️ Temporal search attributes not verified — " +
-                  "run `adv_temporal_register_search_attributes` to register missing search attributes.";
+                  "run `adv_doctor` to register missing search attributes.";
                 pushStatusRecommendation(status, {
                   kind: "health",
                   priority: "high",
                   title: "Temporal search attributes not verified",
                   detail: "required search attributes may be missing",
                   action:
-                    "run `adv_temporal_register_search_attributes` to register missing search attributes",
+                    "run `adv_doctor` to register missing search attributes",
                   source: "health",
                   message,
                 });
@@ -828,14 +828,14 @@ export const statusTools = {
             if (searchAttributes && !searchAttributes.ok) {
               const message =
                 "⚠️ Temporal search attributes not verified — " +
-                "run `adv_temporal_register_search_attributes` to register missing search attributes.";
+                "run `adv_doctor` to register missing search attributes.";
               pushStatusRecommendation(status, {
                 kind: "health",
                 priority: "high",
                 title: "Temporal search attributes not verified",
                 detail: "required search attributes may be missing",
                 action:
-                  "run `adv_temporal_register_search_attributes` to register missing search attributes",
+                  "run `adv_doctor` to register missing search attributes",
                 source: "health",
                 message,
               });

@@ -314,16 +314,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
-  adv_temporal_register_search_attributes: {
-    approvalEvidence: { blank: "reject" }, // audit
-  },
-  adv_temporal_reconnect: {
-    target_path: { blank: "omit" },
-    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_temporal_worker_restart: {
-    approvalEvidence: { blank: "reject" }, // audit
+  adv_doctor: {
     target_path: { blank: "omit" },
     target_confirmed: { blank: "omit" },
     confirmationEvidence: { blank: "omit" }, // handler validates when target_path present

@@ -20,6 +20,7 @@ tools:
   # ADV state reads and classifier tools
   adv_change_list: true
   adv_change_show: true
+  adv_doctor: true
   adv_gate_status: true
   adv_project_context: true
   adv_session_list: true
@@ -27,7 +28,6 @@ tools:
   adv_spec: true
   adv_status: true
   adv_subagent_report_submit: true
-  adv_temporal_diagnose: true
   adv_tool_catalog: true
   # Blocked: no nested delegation, writes, shell, lifecycle, or approval-gated repairs
   task: false
@@ -42,8 +42,6 @@ tools:
   adv_change_update: false
   adv_gate_complete: false
   adv_task_update: false
-  adv_temporal_register_search_attributes: false
-  adv_temporal_worker_restart: false
   adv_worktree_delete: false
   # <<< ADV-GENERATED adv_* tools <<<
 ---

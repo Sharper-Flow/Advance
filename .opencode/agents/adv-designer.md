@@ -75,7 +75,6 @@ tools:
   adv_task_checkpoint: false
   adv_task_reclassify_tdd: false
   adv_task_update: false
-  adv_temporal_worker_restart: false
   adv_worktree_cleanup: false
   adv_worktree_create: false
   adv_worktree_delete: false

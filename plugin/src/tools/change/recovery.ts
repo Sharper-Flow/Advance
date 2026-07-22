@@ -50,12 +50,12 @@ export async function getGateDivergenceHint(
   }
   const diskGates = diskResult.data.gates ?? createDefaultGates();
   if (allGatesSatisfied(diskGates)) {
-    return `Disk shows gates done but Temporal sees them incomplete. Run \`adv_change_show changeId: ${changeId}\` and \`adv_gate_status changeId: ${changeId}\` to inspect, then \`adv_temporal_diagnose changeId: ${changeId}\` for recovery guidance.`;
+    return `Disk shows gates done but Temporal sees them incomplete. Run \`adv_change_show changeId: ${changeId}\` and \`adv_gate_status changeId: ${changeId}\` to inspect, then \`adv_doctor\` for recovery guidance.`;
   }
   return null; // Both agree gates are incomplete
 }
 export const ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT =
-  "Run adv_temporal_diagnose. If search attributes are missing or unverified, run adv_temporal_register_search_attributes, then adv_temporal_worker_restart (worker process only), then retry archive. Restart OpenCode for plugin tool-code drift; worker restart does not reload plugin/src/tools/*.ts.";
+  "Run adv_doctor. If search attributes are missing or unverified, adv_doctor registers the safe subset; suspect lock or wrong-type mutations return a typed approval-required proposal. Retry archive after adv_doctor converges. Restart OpenCode for plugin tool-code drift; adv_doctor does not reload plugin/src/tools/*.ts.";
 export function isSearchAttributeArchiveFailure(errorText: string): boolean {
   return /search attribute|SearchAttribute|upsertSearchAttributes|AdvChangeStatus|AdvChangeId/i.test(
     errorText,

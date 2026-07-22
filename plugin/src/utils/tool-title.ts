@@ -42,16 +42,8 @@ const STATIC_TITLES: Record<
   adv_status: { title: "Show ADV status", titleKind: "read" },
   adv_project_context: { title: "Show project context", titleKind: "read" },
   adv_task_ready: { title: "Show ready tasks", titleKind: "read" },
-  adv_temporal_register_search_attributes: {
-    title: "Register Temporal search attributes",
-    titleKind: "operator",
-  },
-  adv_temporal_reconnect: {
-    title: "Reconnect Temporal",
-    titleKind: "operator",
-  },
-  adv_temporal_worker_restart: {
-    title: "Restart Temporal worker",
+  adv_doctor: {
+    title: "Run ADV doctor",
     titleKind: "operator",
   },
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
@@ -181,8 +173,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
       write: `Write project metadata${suffix(args, "key")}`,
       list: "List project metadata",
     }),
-  adv_temporal_diagnose: (args) =>
-    operator(`Diagnose Temporal${suffix(args, "changeId")}`),
+  adv_doctor: (args) =>
+    operator(`Run ADV doctor${suffix(args, "target_path")}`),
   adv_gate_status: (args) =>
     read(`Show gate status${suffix(args, "changeId")}`),
   adv_gate_complete: (args) => write(`Complete gate${suffix(args, "gateId")}`),

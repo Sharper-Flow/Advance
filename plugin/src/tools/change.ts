@@ -2828,7 +2828,7 @@ export const changeTools = {
           hint:
             "Validation input load exceeded its internal time budget (below the 10s tool ceiling). " +
             "No validation verdict was produced and authoritative state is untouched. " +
-            "Likely a slow Temporal query or peer hydration — retry; if persistent, run adv_status and adv_temporal_diagnose to check worker/workflow health.",
+            "Likely a slow Temporal query or peer hydration — retry; if persistent, run adv_status and adv_doctor to check worker/workflow health.",
         });
       }
       if (inputs.kind === "response") {
@@ -4496,7 +4496,7 @@ export const changeTools = {
           error:
             "Temporal service not available — cannot terminate the change workflow",
           changeId,
-          hint: "Restore the Temporal service (adv_temporal_diagnose) and retry the purge.",
+          hint: "Restore the Temporal service (adv_doctor) and retry the purge.",
         });
       }
       let alreadyTerminated = false;
@@ -4680,7 +4680,7 @@ export const changeTools = {
           error:
             "Temporal service not available — cannot describe or terminate the change workflow",
           changeId,
-          hint: "Restore the Temporal service (adv_temporal_diagnose) and retry the termination.",
+          hint: "Restore the Temporal service (adv_doctor) and retry the termination.",
         });
       }
       const { getChangeHandle } = await import("./_adapters");
@@ -5551,7 +5551,7 @@ export const changeTools = {
           result.data.status === "closed"
         ) {
           return formatToolOutput({
-            error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_temporal_diagnose if workflow recovery is needed.`,
+            error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_doctor if workflow recovery is needed.`,
             changeId,
           });
         }

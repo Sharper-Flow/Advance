@@ -583,23 +583,6 @@ describe("safeExecute timeout overrides for slow-subprocess tools", () => {
     expect(value).toBeGreaterThanOrEqual(35_000);
   });
 
-  test("adv_temporal_worker_restart registers safeExecute with timeoutMs override ≥ 15s (rq-toolTimeoutOverride01.2)", () => {
-    const block = extractRegistrationBlock(
-      registrySrc,
-      "adv_temporal_worker_restart",
-    );
-    expect(
-      block,
-      "adv_temporal_worker_restart registration block not found",
-    ).not.toBeNull();
-    expect(block!).toContain("rq-toolTimeoutOverride01");
-    expect(block!).toMatch(/timeoutMs:\s*\d/);
-    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
-    expect(valueMatch).toBeTruthy();
-    const value = Number(valueMatch![1].replace(/_/g, ""));
-    expect(value).toBeGreaterThanOrEqual(15_000);
-  });
-
   // fixArchiveTerminalProjection SC3/AC4 + fixTemporalTimeoutsWorker AC2:
   // adv_change_archive must declare a heavy-tier timeoutMs override (its
   // inner git push budget alone defaults to 300s) plus an onToolTimeout

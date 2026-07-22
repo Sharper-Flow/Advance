@@ -1807,7 +1807,7 @@ describe("tool arg preflight", () => {
     // recoveryEvidence, recoveryReason, priorApprovalEvidence,
     // confirmationEvidence also flipped to blank: "omit".
     // adv_run_test.target_path, adv_status.target_path,
-    // adv_temporal_reconnect.target_path, adv_contract_mint.{approvedAt,target_path}
+    // adv_doctor.target_path, adv_contract_mint.{approvedAt,target_path}
     // similarly flipped. Coverage of the omit semantics for these fields
     // lives in `normalizes representative blank placeholder` below.
     ["adv_worktree_create", { branch: " " }, "branch"],
@@ -1815,11 +1815,6 @@ describe("tool arg preflight", () => {
     ["adv_worktree_delete", { branch: " " }, "branch"],
     ["adv_worktree_cleanup", { reason: " " }, "reason"],
     ["adv_conformance", { action: "unlock", user: " " }, "user"],
-    [
-      "adv_temporal_register_search_attributes",
-      { approvedByUser: true, approvalEvidence: " " },
-      "approvalEvidence",
-    ],
   ])(
     "rejects representative blank placeholder for %s.%s",
     (toolName, rawArgs, field) => {
@@ -1972,11 +1967,6 @@ describe("tool arg preflight", () => {
       { changeId: "c", recoveryEvidence: " " },
       "recoveryEvidence",
     ],
-    [
-      "adv_temporal_reconnect",
-      { confirmationEvidence: " " },
-      "confirmationEvidence",
-    ],
     ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
     ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
     [
@@ -1984,13 +1974,7 @@ describe("tool arg preflight", () => {
       { taskId: "tk-1", command: "test", target_path: " " },
       "target_path",
     ],
-    ["adv_temporal_reconnect", { target_path: " " }, "target_path"],
-    ["adv_temporal_worker_restart", { target_path: " " }, "target_path"],
-    [
-      "adv_temporal_worker_restart",
-      { confirmationEvidence: " " },
-      "confirmationEvidence",
-    ],
+    ["adv_doctor", { target_path: " " }, "target_path"],
     ["adv_status", { target_path: " " }, "target_path"],
     [
       "adv_change_close",
@@ -2537,9 +2521,9 @@ describe("tool arg preflight", () => {
       });
     });
 
-    test("full strict-mode adv_temporal_worker_restart payload normalizes blanks and preserves target_confirmed", () => {
+    test("full strict-mode adv_doctor payload normalizes blanks and preserves target_confirmed (rq-doctorConsolidation01)", () => {
       const result = preflightToolArgs(
-        "adv_temporal_worker_restart",
+        "adv_doctor",
         {},
         {
           target_path: "",
@@ -2605,7 +2589,7 @@ describe("tool arg preflight", () => {
       // recoveryReason, priorApprovalEvidence also moved.
       // adv_contract_mint.recoveryEvidence, confirmationEvidence moved.
       // adv_contract_review_matrix_set.recoveryEvidence moved.
-      // adv_temporal_reconnect.confirmationEvidence moved.
+      // adv_doctor.confirmationEvidence moved (rq-doctorConsolidation01).
       // adv_run_test.confirmationEvidence moved.
       // adv_task_update confirmationEvidence, recoveryEvidence moved.
       // adv_task_add confirmationEvidence, recoveryEvidence moved.
@@ -2619,16 +2603,6 @@ describe("tool arg preflight", () => {
       ["adv_worktree_cleanup", { reason: " " }, "reason"],
       ["adv_conformance", { action: "unlock", user: " " }, "user"],
       ["adv_conformance", { action: "unlock", reason: " " }, "reason"],
-      [
-        "adv_temporal_register_search_attributes",
-        { approvedByUser: true, approvalEvidence: " " },
-        "approvalEvidence",
-      ],
-      [
-        "adv_temporal_worker_restart",
-        { approvedLockReclaim: true, approvalEvidence: " " },
-        "approvalEvidence",
-      ],
     ])("%s.%s blank still rejects", (toolName, rawArgs, field) => {
       const result = preflightToolArgs(toolName, {}, rawArgs);
       expect(result.invalid).toContainEqual({

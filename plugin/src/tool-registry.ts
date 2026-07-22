@@ -83,7 +83,6 @@ import { statusTools } from "./tools/status";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
-import { temporalOpsTools } from "./tools/temporal-ops";
 import { doctorTools } from "./tools/doctor";
 import { checkpointTools } from "./tools/checkpoint";
 import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
@@ -775,49 +774,14 @@ export function createToolMap(
     ),
 
     // Temporal operator tools
-    adv_temporal_diagnose: bindTool(
-      temporalOpsTools.adv_temporal_diagnose,
-      "adv_temporal_diagnose",
-      store,
-    ),
-    // rq-doctorConsolidation01 (tk-dc21b6a3658d): single diagnose→safe-
-    // fix→verify entry point. Orchestrator-reachable; refuses unsafe
-    // escalations with typed approval-required proposals.
+    // rq-doctorConsolidation01 / rq-recoverySurfaceParity01
+    // (tk-dc21b6a3658d / tk-0528be678596): the four adv_temporal_*
+    // operator tools (diagnose / reconnect / register_search_attributes /
+    // worker_restart) are retired. adv_doctor is the single diagnose→safe-
+    // fix→verify entry point; unsafe escalations (suspect lock reclaim,
+    // wrong-type SAs, ambiguous ownership) return typed approval-required
+    // proposals instead of being separate tool surfaces.
     adv_doctor: bindTool(doctorTools.adv_doctor, "adv_doctor", store),
-    adv_temporal_register_search_attributes: bindTool(
-      temporalOpsTools.adv_temporal_register_search_attributes,
-      "adv_temporal_register_search_attributes",
-      store,
-    ),
-    adv_temporal_reconnect: bindTool(
-      temporalOpsTools.adv_temporal_reconnect,
-      "adv_temporal_reconnect",
-      store,
-    ),
-    // adv_temporal_worker_restart — rq-toolTimeoutOverride01.2.
-    // Inner verified recovery waits up to 10s for queue serviceability;
-    // 15s outer budget gives modest wrapper headroom while preserving a
-    // bounded failure envelope instead of fire-and-forget ambiguity.
-    adv_temporal_worker_restart: registerTool(
-      // rq-toolTimeoutOverride01.2: inner verification budget is 10s.
-      temporalOpsTools.adv_temporal_worker_restart.description,
-      temporalOpsTools.adv_temporal_worker_restart.args,
-      namedExecute(
-        "adv_temporal_worker_restart",
-        safeExecute(
-          async (args) =>
-            temporalOpsTools.adv_temporal_worker_restart.execute(
-              args as Parameters<
-                typeof temporalOpsTools.adv_temporal_worker_restart.execute
-              >[0],
-              store,
-            ),
-          "adv_temporal_worker_restart",
-          undefined,
-          { timeoutMs: 15_000 },
-        ),
-      ),
-    ),
 
     // Gate Tools
     adv_gate_status: bindTool(
@@ -1243,7 +1207,6 @@ const PUBLIC_TOOL_GROUPS = [
   projectTools,
   gateTools,
   testTools,
-  temporalOpsTools,
   doctorTools,
   checkpointTools,
   reflectionTools,

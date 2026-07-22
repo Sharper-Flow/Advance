@@ -62,11 +62,12 @@ tools:
   adv_delta_add: true
   adv_delta_modify: true
   adv_design_concern_disposition: true
+  adv_doctor: true
   adv_epic_add_shell: true
   adv_epic_create: true
   adv_epic_link_change: true
-  adv_epic_list: true
   # Tasks
+  adv_epic_list: true
   adv_epic_move_change: true
   adv_epic_promote_shell: true
   adv_epic_reorder: true
@@ -74,60 +75,56 @@ tools:
   adv_epic_retire: true
   adv_epic_show: true
   adv_epic_unlink_change: true
-  adv_epic_update: true
   # Wisdom
+  adv_epic_update: true
   adv_followup_promote: true
-  adv_gate_complete: true
   # Gates
+  adv_gate_complete: true
   adv_gate_status: true
   adv_lightweight_profile_evaluate: true
   adv_ops_evidence_add: true
   adv_ops_run_evidence_add: true
   adv_ops_run_upsert: true
-  adv_project_context: true
   # Sub-agent reports
-  adv_project_metadata: true
+  adv_project_context: true
   # Ops follow-ups
+  adv_project_metadata: true
   adv_reflect: true
   adv_reflection_list: true
   adv_report_followup_promote: true
   adv_run_test: true
-  adv_session_list: true
   # Temporal / workflow ops
+  adv_session_list: true
   adv_session_show: true
   adv_snapshot_health: true
   adv_spec: true
-  adv_status: true
   # Store maintenance (operator-only)
+  adv_status: true
   adv_store_cleanup: true
-  adv_store_consolidate: true
   # Snapshot health diagnostics
-  adv_subagent_report_submit: true
+  adv_store_consolidate: true
   # Reflection
+  adv_subagent_report_submit: true
   adv_task_add: true
   adv_task_cancel: true
-  adv_task_checkpoint: true
   # Project metadata
+  adv_task_checkpoint: true
   adv_task_list: true
-  adv_task_ready: true
   # === Epics — optional initiative containers ===
+  adv_task_ready: true
   adv_task_reclassify_tdd: true
   adv_task_show: true
   adv_task_update: true
-  adv_temporal_diagnose: true
-  adv_temporal_reconnect: true
-  adv_temporal_register_search_attributes: true
-  adv_temporal_worker_restart: true
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
   adv_verification_evidence_disposition: true
   adv_wip_state: true
   adv_wisdom_add: true
-  # === Worktree — orchestrator owns lifecycle ===
   adv_wisdom_list: true
   adv_worktree_cleanup: true
   adv_worktree_create: true
+  # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_delete: true
   adv_worktree_resume: true
   adv_worktree_triage: true

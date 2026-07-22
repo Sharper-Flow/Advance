@@ -87,16 +87,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Consolidates orphaned identity stores into the true-root store; approval-gated, mutually serialized with cleanup.",
   },
-  adv_temporal_register_search_attributes: {
-    class: "operator-only",
-    rationale:
-      "Registers missing Temporal search attributes on the server; one-time metadata mutation with approvedByUser + approvalEvidence.",
-  },
-  adv_temporal_worker_restart: {
-    class: "operator-only",
-    rationale:
-      "Restarts the project Temporal worker; disruptive to in-flight tool calls; explicit operator invocation only.",
-  },
 
   // ── Dual (8) ─────────────────────────────────────────────────────────
   // Read actions agent-reachable; mutation/refresh surfaces operator-owned.
@@ -390,18 +380,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Task mutation.",
   },
-  adv_temporal_diagnose: {
-    class: "orchestrator",
-    rationale: "Read-only Temporal recovery diagnostic.",
-  },
   adv_doctor: {
     class: "orchestrator",
     rationale:
       "Single diagnose→safe-fix→verify entry point for routine infrastructure recovery. Orchestrator-reachable because every fix is gated on a proven safe-subset and every escalation refuses with a typed approval-required proposal.",
-  },
-  adv_temporal_reconnect: {
-    class: "orchestrator",
-    rationale: "STSL reconnect without workflow-state mutation.",
   },
   adv_verification_evidence_disposition: {
     class: "orchestrator",
@@ -574,10 +556,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_reclassify_tdd",
       "adv_task_show",
       "adv_task_update",
-      "adv_temporal_diagnose",
-      "adv_temporal_reconnect",
-      "adv_temporal_register_search_attributes",
-      "adv_temporal_worker_restart",
+      "adv_doctor",
       "adv_tool_catalog",
       "adv_tool_describe",
       "adv_tool_invoke",
@@ -638,7 +617,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_checkpoint",
       "adv_task_reclassify_tdd",
       "adv_task_update",
-      "adv_temporal_worker_restart",
       "adv_worktree_cleanup",
       "adv_worktree_create",
       "adv_worktree_delete",
@@ -681,7 +659,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_checkpoint",
       "adv_task_reclassify_tdd",
       "adv_task_update",
-      "adv_temporal_worker_restart",
       "adv_worktree_cleanup",
       "adv_worktree_create",
       "adv_worktree_delete",
@@ -745,7 +722,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_task_checkpoint",
       "adv_task_reclassify_tdd",
       "adv_task_update",
-      "adv_temporal_worker_restart",
       "adv_worktree_cleanup",
       "adv_worktree_create",
       "adv_worktree_delete",
@@ -766,7 +742,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_spec",
       "adv_status",
       "adv_subagent_report_submit",
-      "adv_temporal_diagnose",
+      "adv_doctor",
       "adv_tool_catalog",
       "adv_tool_describe",
       "adv_tool_invoke",
@@ -777,8 +753,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_change_update",
       "adv_gate_complete",
       "adv_task_update",
-      "adv_temporal_register_search_attributes",
-      "adv_temporal_worker_restart",
       "adv_worktree_delete",
     ],
     denyWildcard: true,

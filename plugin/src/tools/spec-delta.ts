@@ -277,7 +277,7 @@ async function runAdd(
     if (input.recoveryMode === "poisoned_history") {
       return formatToolOutput({
         success: false,
-        error: `Spec delta add failed and recovery was requested, but adv_delta_add refuses the disk-projection recovery write because it would bypass the workflow reducer's duplicate-detection invariants and the archive-as-sole-global-writer boundary. Recover the workflow (see adv_temporal_diagnose / adv_change_status_repair) and retry the add from a healthy workflow. Underlying error: ${message}`,
+        error: `Spec delta add failed and recovery was requested, but adv_delta_add refuses the disk-projection recovery write because it would bypass the workflow reducer's duplicate-detection invariants and the archive-as-sole-global-writer boundary. Recover the workflow (see adv_doctor) and retry the add from a healthy workflow. Underlying error: ${message}`,
         changeId: input.changeId,
         capability: input.capability,
         recoveryMode: input.recoveryMode,
