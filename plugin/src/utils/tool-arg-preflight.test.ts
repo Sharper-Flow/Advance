@@ -98,18 +98,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   },
   {
     toolName: "adv_change_update",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_change_update",
-    field: "recoveryReason",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_change_update",
     field: "priorApprovalEvidence",
     policy: "blank",
     action: "omit",
@@ -129,12 +117,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
     toolName: "adv_change_archive",
     field: "confirmationEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_change_archive",
-    field: "recoveryEvidence",
     policy: "blank",
     action: "omit",
   },
@@ -193,28 +175,10 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
-    toolName: "adv_task_update",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_task_add",
-    field: "recoveryEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
     // Optional review proof: strict-mode blank fills must not masquerade as a
     // real conclusion; route-specific evidence validation remains authoritative.
     toolName: "adv_task_add",
     field: "review_conclusion",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    toolName: "adv_task_cancel",
-    field: "recoveryEvidence",
     policy: "blank",
     action: "omit",
   },
@@ -244,7 +208,13 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   },
   {
     toolName: "adv_contract_mint",
-    field: "recoveryEvidence",
+    field: "priorApprovalEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_contract_review_matrix_set",
+    field: "priorApprovalEvidence",
     policy: "blank",
     action: "omit",
   },
@@ -1052,16 +1022,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["reason"],
   },
   {
-    // rq-toolPlaceholderPolicy01.6: recoveryEvidence is contextually validated
-    // by the handler (only when recoveryMode=poisoned_history), so blank
-    // normalizes to omitted at preflight.
-    label: "blank contract recovery evidence normalizes to omitted",
-    toolName: "adv_contract_mint",
-    rawArgs: { changeId: "c", recoveryEvidence: " " },
-    ok: true,
-    normalizedArgs: { changeId: "c" },
-  },
-  {
     // T2: target_path is optional on read tools — blank normalizes to omitted.
     label: "blank target path normalizes to omitted on read tools",
     toolName: "adv_change_show",
@@ -1702,8 +1662,7 @@ describe("tool arg preflight", () => {
     // T2: adv_gate_complete.target_path, adv_gate_complete.notes,
     // adv_gate_complete.compatibilityReason flipped to blank: "omit".
     // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
-    // recoveryEvidence, recoveryReason, priorApprovalEvidence,
-    // confirmationEvidence also flipped to blank: "omit".
+    // priorApprovalEvidence, confirmationEvidence also flipped to blank: "omit".
     // adv_run_test.target_path, adv_status.target_path,
     // adv_doctor.target_path, adv_contract_mint.{approvedAt,target_path}
     // similarly flipped. Coverage of the omit semantics for these fields
@@ -1767,23 +1726,8 @@ describe("tool arg preflight", () => {
     ],
     [
       "adv_change_update",
-      { changeId: "c", proposal: "real", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_change_update",
-      { changeId: "c", proposal: "real", recoveryReason: " " },
-      "recoveryReason",
-    ],
-    [
-      "adv_change_update",
       { changeId: "c", proposal: "real", priorApprovalEvidence: " " },
       "priorApprovalEvidence",
-    ],
-    [
-      "adv_change_archive",
-      { changeId: "c", recoveryEvidence: " " },
-      "recoveryEvidence",
     ],
     [
       "adv_run_test",
@@ -1796,19 +1740,9 @@ describe("tool arg preflight", () => {
       "confirmationEvidence",
     ],
     [
-      "adv_task_update",
-      { taskId: "tk-1", status: "done", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
       "adv_task_add",
       { changeId: "c", content: "do thing", confirmationEvidence: " " },
       "confirmationEvidence",
-    ],
-    [
-      "adv_task_add",
-      { changeId: "c", content: "do thing", recoveryEvidence: " " },
-      "recoveryEvidence",
     ],
     [
       "adv_task_cancel",
@@ -1819,16 +1753,6 @@ describe("tool arg preflight", () => {
         confirmationEvidence: " ",
       },
       "confirmationEvidence",
-    ],
-    [
-      "adv_task_cancel",
-      {
-        taskIds: ["t"],
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryEvidence: " ",
-      },
-      "recoveryEvidence",
     ],
     [
       "adv_task_reclassify_tdd",
@@ -1842,21 +1766,21 @@ describe("tool arg preflight", () => {
     ],
     [
       "adv_contract_mint",
-      { changeId: "c", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_contract_mint",
       { changeId: "c", confirmationEvidence: " " },
       "confirmationEvidence",
     ],
-    [
-      "adv_contract_review_matrix_set",
-      { changeId: "c", recoveryEvidence: " " },
-      "recoveryEvidence",
-    ],
     ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
     ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
+    [
+      "adv_contract_mint",
+      { changeId: "c", priorApprovalEvidence: " " },
+      "priorApprovalEvidence",
+    ],
+    [
+      "adv_contract_review_matrix_set",
+      { changeId: "c", priorApprovalEvidence: " " },
+      "priorApprovalEvidence",
+    ],
     [
       "adv_run_test",
       { taskId: "tk-1", command: "test", target_path: " " },
@@ -1875,39 +1799,7 @@ describe("tool arg preflight", () => {
       },
       "supersededBy",
     ],
-    [
-      "adv_change_close",
-      {
-        changeId: "c",
-        reason: "cancelled",
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryEvidence: " ",
-      },
-      "recoveryEvidence",
-    ],
-    [
-      "adv_change_close",
-      {
-        changeId: "c",
-        reason: "cancelled",
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryMode: " ",
-      },
-      "recoveryMode",
-    ],
-    [
-      "adv_change_bulk_close",
-      {
-        selector: { kind: "explicit", changeIds: ["c"] },
-        reason: "cancelled",
-        approvedByUser: true,
-        approvalEvidence: "ok",
-        recoveryEvidence: " ",
-      },
-      "recoveryEvidence",
-    ],
+
     [
       "adv_worktree_cleanup",
       { reason: "archived branch cleanup", mode: " " },
@@ -2469,19 +2361,17 @@ describe("tool arg preflight", () => {
         "approvalEvidence",
       ],
       // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
-      // confirmationEvidence, recoveryEvidence, recoveryReason,
-      // priorApprovalEvidence moved from reject to omit — no longer here.
-      // adv_change_update.confirmationEvidence, recoveryEvidence,
-      // recoveryReason, priorApprovalEvidence also moved.
-      // adv_contract_mint.recoveryEvidence, confirmationEvidence moved.
-      // adv_contract_review_matrix_set.recoveryEvidence moved.
+      // confirmationEvidence, priorApprovalEvidence moved from reject to omit
+      // — no longer here. adv_change_update.confirmationEvidence,
+      // priorApprovalEvidence also moved.
+      // adv_contract_mint.confirmationEvidence, priorApprovalEvidence moved.
+      // adv_contract_review_matrix_set.confirmationEvidence, priorApprovalEvidence moved.
       // adv_doctor.confirmationEvidence moved (rq-doctorConsolidation01).
       // adv_run_test.confirmationEvidence moved.
-      // adv_task_update confirmationEvidence, recoveryEvidence moved.
-      // adv_task_add confirmationEvidence, recoveryEvidence moved.
-      // adv_task_cancel confirmationEvidence, recoveryEvidence moved.
+      // adv_task_update confirmationEvidence moved.
+      // adv_task_add confirmationEvidence moved.
+      // adv_task_cancel confirmationEvidence moved.
       // adv_task_reclassify_tdd confirmationEvidence moved.
-      // adv_change_archive recoveryEvidence moved.
       ["adv_worktree_create", { branch: " " }, "branch"],
       ["adv_worktree_create", { branch: "x", base: " " }, "base"],
       ["adv_worktree_resume", { changeId: " " }, "changeId"],

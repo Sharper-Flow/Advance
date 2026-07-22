@@ -85,7 +85,7 @@ export interface ClassifyMutationRecoveryArgs {
    * a handle (e.g. tests or paths where the workflow is known unreachable)
    * always get `proceed_with_signal` on the probe-first path.
    */
-  handle?: PoisonedDescribeProbeTarget;
+  handle?: PoisonedDescribeProbeTarget | undefined;
   /**
    * Bypass the describe probe on the probe-first path. Used by callers that
    * have already decided to attempt the signal optimistically and will

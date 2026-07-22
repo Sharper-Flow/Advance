@@ -12,8 +12,8 @@
  * - AC2: malformed capability / malformed requirement / duplicate delta id /
  *   duplicate requirement id refuse with typed error and no state mutation.
  * - AC4: target_path mutations require explicit target confirmation.
- * - AC5: poisoned-history recovery either follows audited semantics or
- *   refuses without modifying state (this tool refuses disk workarounds).
+ * - AC5: public recoveryMode/recoveryEvidence/recoveryReason args removed
+ *   under D4; this tool never performs disk-projection recovery writes.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -644,75 +644,5 @@ describe("adv_delta_add — target_path confirmation contract", () => {
     expect(parsed.success).not.toBe(true);
     expect(parsed.error).toMatch(/target/i);
     expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
-  });
-});
-
-describe("adv_delta_add — recovery contract", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("rejects recoveryMode='poisoned_history' without recoveryEvidence", async () => {
-    const store = makeStore();
-    const result = await specDeltaTools.adv_delta_add.execute(
-      {
-        changeId: "addFeature",
-        capability: "test-capability",
-        delta: makeValidDelta(),
-        recoveryMode: "poisoned_history",
-      },
-      store,
-    );
-    const parsed = parse(result);
-
-    expect(parsed.success).not.toBe(true);
-    expect(parsed.error).toMatch(/recoveryEvidence/i);
-    expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
-  });
-
-  it("rejects recoveryMode='poisoned_history' when evidence is not precise poisoned-history evidence", async () => {
-    const store = makeStore();
-    const result = await specDeltaTools.adv_delta_add.execute(
-      {
-        changeId: "addFeature",
-        capability: "test-capability",
-        delta: makeValidDelta(),
-        recoveryMode: "poisoned_history",
-        recoveryEvidence: "things are broken",
-        recoveryReason: "wanted to recover",
-      },
-      store,
-    );
-    const parsed = parse(result);
-
-    expect(parsed.success).not.toBe(true);
-    expect(parsed.error).toMatch(
-      /precise poisoned-history|completed-workflow/i,
-    );
-    expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
-  });
-
-  it("refuses the disk-workaround recovery path even with valid evidence, preserving the no-direct-disk-write constraint", async () => {
-    const store = makeStore();
-    mocks.specDeltasAdd.mockRejectedValueOnce(
-      new Error("WorkflowExecutionAlreadyCompleted"),
-    );
-
-    const result = await specDeltaTools.adv_delta_add.execute(
-      {
-        changeId: "addFeature",
-        capability: "test-capability",
-        delta: makeValidDelta(),
-        recoveryMode: "poisoned_history",
-        recoveryEvidence: "WorkflowExecutionAlreadyCompleted",
-        recoveryReason: "workflow already completed before delta recorded",
-      },
-      store,
-    );
-    const parsed = parse(result);
-
-    expect(parsed.success).not.toBe(true);
-    expect(parsed.error).toMatch(/recover|disk|workflow/i);
-    expect(mocks.specDeltasAdd).toHaveBeenCalledTimes(1);
   });
 });

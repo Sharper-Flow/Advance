@@ -1502,15 +1502,24 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const loadChangeSpy = vi
       .spyOn(storageJson, "loadChange")
       .mockResolvedValue({ success: true, data: change });
+    (
+      mocks.workflow.handle as typeof mocks.workflow.handle & {
+        describe: ReturnType<typeof vi.fn>;
+      }
+    ).describe = vi.fn(async () => ({
+      searchAttributes: {
+        TemporalReportedProblems: [
+          "category=WorkflowTaskFailed",
+          "cause=WorkflowTaskFailedCauseNonDeterministicError",
+        ],
+      },
+    }));
 
     const result = await changeTools.adv_change_archive.execute(
       {
         changeId: "example",
         worktreePath: "/tmp/worktree",
         phase9: "run",
-        recoveryMode: "poisoned_history",
-        recoveryEvidence:
-          "WorkflowNotFoundError: workflow execution already completed",
       },
       store,
     );
@@ -1529,6 +1538,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     loadChangeSpy.mockRestore();
+    delete (mocks.workflow.handle as { describe?: unknown }).describe;
   });
 
   test("absent workflow without recovery mode still throws on archive read", async () => {

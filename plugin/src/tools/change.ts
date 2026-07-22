@@ -96,14 +96,12 @@ import {
   loadSpecsMap,
   buildReentryResult,
   closeLinkedIssue,
-  ChangeCloseRecoveryMode,
   buildChangeClosePayload,
-  validateChangeCloseRecoveryArgs,
-  recoverCompletedWorkflowClose,
   computeShippedTerminalProof,
   type ShippedTerminalProofResult,
 } from "./change/recovery";
-import { shouldTakeRecoveryBranch } from "./recovery-probe";
+import { logRecoveryProbeDiagnostics } from "./recovery-probe";
+import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { reconcileRecoveredGates } from "./gate";
 
 const logger = createLogger("change");
@@ -435,24 +433,6 @@ async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
   if (!service || !projectId) return undefined;
   const { getChangeHandle } = await import("./_adapters");
   return getChangeHandle(service.client, projectId, changeId);
-}
-
-async function classifyCompletedOrPoisonedChangeRecovery(
-  store: Store,
-  changeId: string,
-  error: unknown,
-): Promise<{ completedWorkflow: boolean; recover: boolean }> {
-  const { isWorkflowCompletedError } =
-    await import("../temporal/recovery-classification");
-  const completedWorkflow = isWorkflowCompletedError(error);
-  if (completedWorkflow) return { completedWorkflow, recover: true };
-
-  const handle = await getChangeWorkflowHandleForStore(store, changeId);
-  if (!handle) return { completedWorkflow: false, recover: false };
-
-  const { classifyCompletedOrPoisonedRecovery } =
-    await import("./recovery-probe");
-  return classifyCompletedOrPoisonedRecovery(handle, error);
 }
 
 function subagentReportTaskId(
@@ -1980,22 +1960,11 @@ export const changeTools = {
         .describe(
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
-      recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history or completed-workflow evidence.",
-        ),
-      recoveryReason: z
-        .string()
-        .optional()
-        .describe("Required recovery rationale for artifact metadata repair."),
       priorApprovalEvidence: z
         .string()
         .optional()
         .describe(
-          "Required prior user approval evidence for acceptance-proof artifact recovery.",
+          "Optional prior user approval evidence for audit continuity when recovery follows a gate/acceptance approval.",
         ),
     },
     execute: async (
@@ -2009,9 +1978,6 @@ export const changeTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
         priorApprovalEvidence,
       }: {
         changeId: string;
@@ -2023,9 +1989,6 @@ export const changeTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
-        recoveryReason?: string;
         priorApprovalEvidence?: string;
       },
       store: Store,
@@ -2088,55 +2051,23 @@ export const changeTools = {
             hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
           });
         }
-        if (recoveryMode === "poisoned_history") {
-          const { isPreciseWorkflowRecoveryEvidence } =
-            await import("../temporal/recovery-classification");
-          if (!recoveryEvidence?.trim()) {
-            return formatToolOutput({
-              error:
-                "artifact metadata recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
-              changeId,
-            });
-          }
-          if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
-            return formatToolOutput({
-              error:
-                "artifact metadata recoveryEvidence must cite precise poisoned-history or completed-workflow evidence",
-              changeId,
-            });
-          }
-          if (!recoveryReason?.trim() || !priorApprovalEvidence?.trim()) {
-            return formatToolOutput({
-              error:
-                "artifact metadata recovery requires recoveryReason and priorApprovalEvidence",
-              changeId,
-            });
-          }
-        }
-        let result;
-        try {
-          result = await activeStore.changes.updateArtifacts(changeId, {
-            ...(proposal !== undefined ? { proposal } : {}),
-            ...(problemStatement !== undefined ? { problemStatement } : {}),
-            ...(agreement !== undefined ? { agreement } : {}),
-            ...(design !== undefined ? { design } : {}),
-            ...(executiveSummary !== undefined ? { executiveSummary } : {}),
-          });
-        } catch (error) {
-          if (
-            recoveryMode !== "poisoned_history" ||
-            executiveSummary === undefined
-          ) {
-            throw error;
-          }
+        // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+        // probe describe() to auto-detect poisoned/completed workflows without
+        // operator-supplied recoveryMode/evidence ceremony.
+        const handle = await getChangeWorkflowHandleForStore(
+          activeStore,
+          changeId,
+        );
+        const internalDecision = await classifyMutationRecoveryDecision({
+          handle,
+        });
+        if (
+          internalDecision.kind === "recover_via_disk" &&
+          executiveSummary !== undefined
+        ) {
+          await logRecoveryProbeDiagnostics(handle, changeId);
           const { RECOVERY_RECONCILIATION_WARNING } =
             await import("../temporal/recovery-classification");
-          const { recover } = await classifyCompletedOrPoisonedChangeRecovery(
-            activeStore,
-            changeId,
-            error,
-          );
-          if (!recover) throw error;
           const { saveRecoveredArtifactMetadata } =
             await import("./_recovery-writers");
           const executiveSummaryPath = join(
@@ -2150,8 +2081,8 @@ export const changeTools = {
             store: activeStore,
             change: existing.data,
             authorization: {
-              reason: recoveryReason ?? "artifact_metadata_recovery",
-              evidence: recoveryEvidence ?? String(error),
+              reason: internalDecision.reason,
+              evidence: internalDecision.evidence,
             },
             kind: "executiveSummary",
             metadata: {
@@ -2171,11 +2102,90 @@ export const changeTools = {
             ...(executiveSummaryReadable ? { executiveSummaryPath } : {}),
             executiveSummaryReadable,
             _recoveryMutation: true,
-            recoveryReason,
             priorApprovalEvidence,
             reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           });
+        }
+        if (internalDecision.kind === "operator_required") {
+          return formatToolOutput({
+            error: `Cannot safely update artifact metadata: ${internalDecision.detail}`,
+            code: "ARTIFACT_METADATA_MUTATION_OPERATOR_REQUIRED",
+            cause: internalDecision.cause,
+            changeId,
+          });
+        }
+        let result;
+        try {
+          result = await activeStore.changes.updateArtifacts(changeId, {
+            ...(proposal !== undefined ? { proposal } : {}),
+            ...(problemStatement !== undefined ? { problemStatement } : {}),
+            ...(agreement !== undefined ? { agreement } : {}),
+            ...(design !== undefined ? { design } : {}),
+            ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+          });
+        } catch (error) {
+          if (executiveSummary === undefined) {
+            throw error;
+          }
+          // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+          // signal-error recovery is classified internally from the signal error +
+          // describe() evidence via the unified classifier.
+          const decision = await classifyMutationRecoveryDecision({
+            signalError: error,
+            handle,
+          });
+          if (decision.kind === "recover_via_disk") {
+            const { RECOVERY_RECONCILIATION_WARNING } =
+              await import("../temporal/recovery-classification");
+            const { saveRecoveredArtifactMetadata } =
+              await import("./_recovery-writers");
+            const executiveSummaryPath = join(
+              activeStore.paths.changes,
+              changeId,
+              "executive-summary.md",
+            );
+            const executiveSummaryReadable =
+              await fileExists(executiveSummaryPath);
+            await saveRecoveredArtifactMetadata({
+              store: activeStore,
+              change: existing.data,
+              authorization: {
+                reason: decision.reason,
+                evidence: decision.evidence,
+              },
+              kind: "executiveSummary",
+              metadata: {
+                ...(executiveSummaryReadable
+                  ? { path: executiveSummaryPath }
+                  : {}),
+                updatedAt: new Date().toISOString(),
+                contentHash: createHash("sha256")
+                  .update(executiveSummary)
+                  .digest("hex"),
+                source: "recovery",
+                readable: executiveSummaryReadable,
+              },
+            });
+            return formatToolOutput({
+              changeId,
+              ...(executiveSummaryReadable ? { executiveSummaryPath } : {}),
+              executiveSummaryReadable,
+              _recoveryMutation: true,
+              priorApprovalEvidence,
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          if (decision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely update artifact metadata: ${decision.detail}`,
+              code: "ARTIFACT_METADATA_MUTATION_OPERATOR_REQUIRED",
+              cause: decision.cause,
+              changeId,
+            });
+          }
+          throw error;
         }
         if (!result.success) {
           return formatToolOutput({ error: result.error });
@@ -2228,18 +2238,6 @@ export const changeTools = {
         .boolean()
         .optional()
         .describe("Preview close without firing signals or removing files."),
-      recoveryMode: z
-        .enum(["normal", "poisoned_history"])
-        .optional()
-        .describe(
-          "Optional completed-workflow recovery mode. Default 'normal'. 'poisoned_history' authorizes an audited disk-projection close only after the normal signal path fails with completed-workflow evidence; requires recoveryEvidence.",
-        ),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
-        ),
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
@@ -2252,8 +2250,6 @@ export const changeTools = {
         approvalEvidence,
         supersededBy,
         dryRun,
-        recoveryMode,
-        recoveryEvidence,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -2264,8 +2260,6 @@ export const changeTools = {
         approvalEvidence: string;
         supersededBy?: string;
         dryRun?: boolean;
-        recoveryMode?: ChangeCloseRecoveryMode;
-        recoveryEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -2296,14 +2290,6 @@ export const changeTools = {
             hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
           });
         }
-        const recoveryValidation = await validateChangeCloseRecoveryArgs({
-          changeId,
-          recoveryMode,
-          recoveryEvidence,
-        });
-        if (recoveryValidation) {
-          return formatToolOutput(recoveryValidation);
-        }
         if (dryRun) {
           return formatToolOutput({
             success: true,
@@ -2315,30 +2301,69 @@ export const changeTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         }
-        try {
-          const bundle = getService();
-          if (!bundle) {
-            return formatToolOutput({
-              error: "Temporal service not available",
-              changeId,
-            });
-          }
-          const projectId =
-            projectContext?.projectId ??
-            (await getProjectId(activeStore.paths.root));
-          if (!projectId) {
-            return formatToolOutput({
-              error: "Could not resolve project ID",
-              changeId,
-            });
-          }
-          const handle = getChangeHandle(bundle.client, projectId, changeId);
-          const closeInput = {
-            approvalEvidence,
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            error: "Temporal service not available",
+            changeId,
+          });
+        }
+        const projectId =
+          projectContext?.projectId ??
+          (await getProjectId(activeStore.paths.root));
+        if (!projectId) {
+          return formatToolOutput({
+            error: "Could not resolve project ID",
+            changeId,
+          });
+        }
+        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        const closeInput = {
+          approvalEvidence,
+          reason,
+          supersededBy,
+          cancelledAt: new Date().toISOString(),
+        };
+        // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+        // probe describe() to auto-detect poisoned/completed workflows without
+        // operator-supplied recoveryMode/evidence ceremony.
+        const internalDecision = await classifyMutationRecoveryDecision({
+          handle,
+        });
+        if (internalDecision.kind === "recover_via_disk") {
+          await logRecoveryProbeDiagnostics(handle, changeId);
+          const { saveRecoveredChangeStatus } =
+            await import("./_recovery-writers");
+          const { buildChangeClosure } = await import("./change/recovery");
+          await saveRecoveredChangeStatus({
+            store: activeStore,
+            change: result.data,
+            authorization: {
+              reason: internalDecision.reason,
+              evidence: internalDecision.evidence,
+            },
+            status: "closed",
+            closure: buildChangeClosure(closeInput),
+          });
+          return formatToolOutput({
+            success: true,
+            _recoveryMutation: true,
+            diskProjectionRetained: true,
+            changeId,
             reason,
-            supersededBy,
-            cancelledAt: new Date().toISOString(),
-          };
+            message: `Closed change ${changeId} as ${reason} via D4 internal monotonic recovery (authority=${internalDecision.authority}). Retained closed disk projection for stale-visibility reconciliation.`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
+        if (internalDecision.kind === "operator_required") {
+          return formatToolOutput({
+            error: `Cannot safely close change: ${internalDecision.detail}`,
+            code: "CHANGE_CLOSE_MUTATION_OPERATOR_REQUIRED",
+            cause: internalDecision.cause,
+            changeId,
+          });
+        }
+        try {
           // rq-cacheRefresh01: refresh AFTER cancel so subsequent reads
           // see the closed/cancelled state, not the stale active state.
           await fireSignalAndRefresh(
@@ -2368,29 +2393,43 @@ export const changeTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         } catch (error) {
-          const closeInput = {
-            approvalEvidence,
-            reason,
-            supersededBy,
-            cancelledAt: new Date().toISOString(),
-          };
-          const recovery = await recoverCompletedWorkflowClose({
-            store: activeStore,
-            change: result.data,
-            closeInput,
-            recoveryMode,
-            recoveryEvidence,
+          // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+          // signal-error recovery is classified internally from the signal error +
+          // describe() evidence via the unified classifier.
+          const decision = await classifyMutationRecoveryDecision({
             signalError: error,
+            handle,
           });
-          if (recovery.recovered) {
+          if (decision.kind === "recover_via_disk") {
+            const { saveRecoveredChangeStatus } =
+              await import("./_recovery-writers");
+            const { buildChangeClosure } = await import("./change/recovery");
+            await saveRecoveredChangeStatus({
+              store: activeStore,
+              change: result.data,
+              authorization: {
+                reason: decision.reason,
+                evidence: decision.evidence,
+              },
+              status: "closed",
+              closure: buildChangeClosure(closeInput),
+            });
             return formatToolOutput({
               success: true,
               _recoveryMutation: true,
               diskProjectionRetained: true,
               changeId,
               reason,
-              message: `Closed change ${changeId} as ${reason} via completed-workflow recovery. Retained closed disk projection for stale-visibility reconciliation.`,
+              message: `Closed change ${changeId} as ${reason} via D4 internal monotonic recovery (authority=${decision.authority}). Retained closed disk projection for stale-visibility reconciliation.`,
               ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          if (decision.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely close change: ${decision.detail}`,
+              code: "CHANGE_CLOSE_MUTATION_OPERATOR_REQUIRED",
+              cause: decision.cause,
+              changeId,
             });
           }
           const contextMismatch = extractContextMismatch(error);
@@ -2456,18 +2495,6 @@ export const changeTools = {
         .describe(
           "Preview bulk close without firing signals or removing files.",
         ),
-      recoveryMode: z
-        .enum(["normal", "poisoned_history"])
-        .optional()
-        .describe(
-          "Optional completed-workflow recovery mode. Default 'normal'. 'poisoned_history' authorizes audited disk-projection close for each selected change only after its normal signal path fails with completed-workflow evidence; requires recoveryEvidence.",
-        ),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
-        ),
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
@@ -2480,8 +2507,6 @@ export const changeTools = {
         approvalEvidence,
         supersededBy,
         dryRun,
-        recoveryMode,
-        recoveryEvidence,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -2492,8 +2517,6 @@ export const changeTools = {
         approvalEvidence: string;
         supersededBy?: string;
         dryRun?: boolean;
-        recoveryMode?: ChangeCloseRecoveryMode;
-        recoveryEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -2527,16 +2550,6 @@ export const changeTools = {
         if (!selection.ok) {
           return formatToolOutput({
             error: selection.error,
-            ...contextOutput,
-          });
-        }
-        const recoveryValidation = await validateChangeCloseRecoveryArgs({
-          recoveryMode,
-          recoveryEvidence,
-        });
-        if (recoveryValidation) {
-          return formatToolOutput({
-            ...recoveryValidation,
             ...contextOutput,
           });
         }
@@ -2596,6 +2609,47 @@ export const changeTools = {
                 supersededBy,
                 cancelledAt: new Date().toISOString(),
               };
+              // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+              // probe describe() per change to auto-detect poisoned/completed
+              // workflows without operator-supplied recoveryMode/evidence ceremony.
+              const internalDecision = await classifyMutationRecoveryDecision({
+                handle,
+              });
+              if (internalDecision.kind === "recover_via_disk") {
+                await logRecoveryProbeDiagnostics(handle, id);
+                const existing = await activeStore.changes.get(id);
+                if (existing.success && existing.data) {
+                  const { saveRecoveredChangeStatus } =
+                    await import("./_recovery-writers");
+                  const { buildChangeClosure } =
+                    await import("./change/recovery");
+                  await saveRecoveredChangeStatus({
+                    store: activeStore,
+                    change: existing.data,
+                    authorization: {
+                      reason: internalDecision.reason,
+                      evidence: internalDecision.evidence,
+                    },
+                    status: "closed",
+                    closure: buildChangeClosure(closeInput),
+                  });
+                  results.push({
+                    changeId: id,
+                    success: true,
+                    recovered: true,
+                  });
+                  closed++;
+                  continue;
+                }
+              }
+              if (internalDecision.kind === "operator_required") {
+                results.push({
+                  changeId: id,
+                  success: false,
+                  error: `Cannot safely close change: ${internalDecision.detail}`,
+                });
+                continue;
+              }
               // rq-cacheRefresh01: refresh per-change after each cancel
               // so subsequent reads of any cancelled change see closed state.
               await fireSignalAndRefresh(
@@ -2628,21 +2682,43 @@ export const changeTools = {
                   supersededBy,
                   cancelledAt: new Date().toISOString(),
                 };
-                const recovery = await recoverCompletedWorkflowClose({
-                  store: activeStore,
-                  change: existing.data,
-                  closeInput,
-                  recoveryMode,
-                  recoveryEvidence,
+                // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+                // signal-error recovery is classified internally from the signal error +
+                // describe() evidence via the unified classifier.
+                const handle = getChangeHandle(bundle.client, projectId, id);
+                const decision = await classifyMutationRecoveryDecision({
                   signalError: err,
+                  handle,
                 });
-                if (recovery.recovered) {
+                if (decision.kind === "recover_via_disk") {
+                  const { saveRecoveredChangeStatus } =
+                    await import("./_recovery-writers");
+                  const { buildChangeClosure } =
+                    await import("./change/recovery");
+                  await saveRecoveredChangeStatus({
+                    store: activeStore,
+                    change: existing.data,
+                    authorization: {
+                      reason: decision.reason,
+                      evidence: decision.evidence,
+                    },
+                    status: "closed",
+                    closure: buildChangeClosure(closeInput),
+                  });
                   results.push({
                     changeId: id,
                     success: true,
                     recovered: true,
                   });
                   closed++;
+                  continue;
+                }
+                if (decision.kind === "operator_required") {
+                  results.push({
+                    changeId: id,
+                    success: false,
+                    error: `Cannot safely close change: ${decision.detail}`,
+                  });
                   continue;
                 }
               }
@@ -2908,18 +2984,6 @@ export const changeTools = {
         .describe(
           "Phase 9 git finalization mode. Defaults to run. 'skip' is a compatibility/manual-recovery escape hatch; release gate completion must happen only after reachability/push evidence exists.",
         ),
-      recoveryMode: z
-        .enum(["normal", "poisoned_history"])
-        .optional()
-        .describe(
-          "Optional recovery mode. 'poisoned_history' authorizes a disk-projection fallback for the final status transition when the workflow is poisoned or already completed and the archive bundle is already present/written. Requires recoveryEvidence.",
-        ),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history evidence.",
-        ),
       ...targetPathSchema.shape,
     },
     execute: async (
@@ -2930,8 +2994,6 @@ export const changeTools = {
         noCloseIssue,
         closeIssue: _closeIssue,
         phase9,
-        recoveryMode,
-        recoveryEvidence,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -2942,8 +3004,6 @@ export const changeTools = {
         noCloseIssue?: boolean;
         closeIssue?: boolean;
         phase9?: "run" | "skip";
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -2952,21 +3012,25 @@ export const changeTools = {
     ) => {
       const runArchive = async (activeStore: Store): Promise<string> => {
         const store = activeStore;
-        if (recoveryMode === "poisoned_history") {
-          if (!recoveryEvidence || !recoveryEvidence.trim()) {
-            return formatToolOutput({
-              error:
-                "archive recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
-            });
-          }
-          const { isPreciseWorkflowRecoveryEvidence } =
-            await import("../temporal/recovery-classification");
-          if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
-            return formatToolOutput({
-              error:
-                "archive recoveryEvidence must cite precise poisoned-history or completed-workflow evidence (TMPRL1100 / Nondeterminism / NonDeterministic / WorkflowExecutionUpdateAccepted / No command scheduled / WorkflowNotFoundError / workflow execution already completed)",
-            });
-          }
+        // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+        // probe describe() to auto-detect poisoned/completed workflows and read
+        // the durable disk projection directly, avoiding "Failed to query Workflow"
+        // on workflows that are already completed or poisoned.
+        const handle = await getChangeWorkflowHandleForStore(store, changeId);
+        const internalDecision = await classifyMutationRecoveryDecision({
+          handle,
+        });
+        if (internalDecision.kind === "operator_required") {
+          return formatToolOutput({
+            error: `Cannot safely archive change: ${internalDecision.detail}`,
+            code: "ARCHIVE_MUTATION_OPERATOR_REQUIRED",
+            cause: internalDecision.cause,
+            changeId,
+          });
+        }
+        const readFromDisk = internalDecision.kind === "recover_via_disk";
+        if (readFromDisk) {
+          await logRecoveryProbeDiagnostics(handle, changeId);
         }
         // rq-harden-archive-flow AC1: refresh the change from the workflow
         // before reading. Earlier signals (release-gate completion, review
@@ -2975,12 +3039,12 @@ export const changeTools = {
         // through to the existing read (which still has its own poisoned-
         // history fallback) so we don't mask real outages.
         //
-        // rq-poisonedArchiveRead01: when operator evidence is precise, skip the
-        // live Temporal round-trip entirely and read the durable disk projection
-        // directly. This prevents "Failed to query Workflow" on workflows that
-        // are already completed or poisoned.
+        // rq-poisonedArchiveRead01: when the classifier detects a completed or
+        // poisoned workflow, skip the live Temporal round-trip entirely and read
+        // the durable disk projection directly. This prevents "Failed to query
+        // Workflow" on workflows that are already completed or poisoned.
         let change: Change;
-        if (shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence })) {
+        if (readFromDisk) {
           const diskResult = await loadChange(store.paths.changes, changeId);
           if (!diskResult.success) {
             return formatToolOutput({ error: diskResult.error });
@@ -3624,77 +3688,70 @@ export const changeTools = {
                   ...contextMismatch,
                 });
               }
-              // rq-extend-poisoned-recovery AC5: poisoned-workflow disk fallback
-              // for final status. Bundle is already written; only the workflow
-              // signal that flips the status field fails. Probe + recover.
-              //
-              // C2 (fixPoisonedRecovery reviewer-block remediation): describe()
-              // must NOT be the sole poison authority. Operator-supplied
-              // precise recoveryEvidence is primary; signal saveError class
-              // is secondary. describe() is NOT consulted here.
-              if (recoveryMode === "poisoned_history") {
-                try {
-                  const {
-                    RECOVERY_RECONCILIATION_WARNING,
-                    isPoisonedHistoryError,
-                    isWorkflowCompletedError,
-                    isPreciseWorkflowRecoveryEvidence,
-                  } = await import("../temporal/recovery-classification");
-                  const completedWorkflow = isWorkflowCompletedError(saveError);
-                  const operatorEvidenceAuthority =
-                    typeof recoveryEvidence === "string" &&
-                    isPreciseWorkflowRecoveryEvidence(recoveryEvidence);
-                  // C2: error class OR operator evidence — never describe alone.
-                  const poisoned =
-                    !completedWorkflow &&
-                    (operatorEvidenceAuthority ||
-                      isPoisonedHistoryError(saveError));
-                  if (completedWorkflow || poisoned) {
-                    const { saveRecoveredChangeStatus } =
-                      await import("./_recovery-writers");
-                    await saveRecoveredChangeStatus({
-                      store,
-                      change,
-                      authorization: {
-                        reason: completedWorkflow
-                          ? "completed_workflow_status_recovery"
-                          : "poisoned_history_status_recovery",
-                        evidence: recoveryEvidence ?? saveErrorText,
-                      },
-                      status: "archived",
-                    });
-                    return formatToolOutput({
-                      success: true,
-                      archivePath: archiveResult.archivePath,
-                      ...(finalization ? { finalization } : {}),
-                      ...(finalization
-                        ? {
-                            continueFrom: {
-                              path: finalization.mainCheckout,
-                              branch: finalization.defaultBranch,
-                            },
-                          }
-                        : {}),
-                      ...(releaseGateCompletion
-                        ? {
-                            releaseGate: releaseGateCompletion.gate,
-                            releaseGateAlreadyDone:
-                              releaseGateCompletion.alreadyDone,
-                          }
-                        : {}),
-                      specsUpdated: archiveResult.specsUpdated.map((s) => ({
-                        capability: s.capability,
-                        version: `${s.originalVersion} → ${s.newVersion}`,
-                        deltas: s.deltaResults.length,
-                      })),
-                      ...openOpsObligationsPayload,
-                      _recoveryMutation: true,
-                      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                    });
-                  }
-                } catch {
-                  // Fall through to the standard error response.
-                }
+              // rq-extend-poisoned-recovery AC5: poisoned-workflow / completed-
+              // workflow disk fallback for final status. Bundle is already written;
+              // only the workflow signal that flips the status field fails.
+              // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+              // signal-error recovery is classified internally from the signal
+              // error + describe() evidence via the unified classifier — no
+              // operator-supplied recoveryMode/evidence.
+              const decision = await classifyMutationRecoveryDecision({
+                signalError: saveError,
+                handle,
+              });
+              if (decision.kind === "recover_via_disk") {
+                const { RECOVERY_RECONCILIATION_WARNING } =
+                  await import("../temporal/recovery-classification");
+                const { saveRecoveredChangeStatus } =
+                  await import("./_recovery-writers");
+                await saveRecoveredChangeStatus({
+                  store,
+                  change,
+                  authorization: {
+                    reason: decision.reason,
+                    evidence: decision.evidence,
+                  },
+                  status: "archived",
+                });
+                return formatToolOutput({
+                  success: true,
+                  archivePath: archiveResult.archivePath,
+                  ...(finalization ? { finalization } : {}),
+                  ...(finalization
+                    ? {
+                        continueFrom: {
+                          path: finalization.mainCheckout,
+                          branch: finalization.defaultBranch,
+                        },
+                      }
+                    : {}),
+                  ...(releaseGateCompletion
+                    ? {
+                        releaseGate: releaseGateCompletion.gate,
+                        releaseGateAlreadyDone:
+                          releaseGateCompletion.alreadyDone,
+                      }
+                    : {}),
+                  specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                    capability: s.capability,
+                    version: `${s.originalVersion} → ${s.newVersion}`,
+                    deltas: s.deltaResults.length,
+                  })),
+                  ...openOpsObligationsPayload,
+                  _recoveryMutation: true,
+                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                });
+              }
+              if (decision.kind === "operator_required") {
+                return formatToolOutput({
+                  success: false,
+                  error: `Failed to update change status to archived: ${saveErrorText}`,
+                  archivePath: archiveResult.archivePath,
+                  code: "ARCHIVE_MUTATION_OPERATOR_REQUIRED",
+                  cause: decision.cause,
+                  changeId,
+                  hint: `Archive status transition is unsafe: ${decision.detail}. Run adv_doctor to diagnose the wedged projection.`,
+                });
               }
               const searchAttributeRecovery = isSearchAttributeArchiveFailure(
                 saveErrorText,

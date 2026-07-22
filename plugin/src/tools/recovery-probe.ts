@@ -116,9 +116,9 @@ export function poisonedDescriptionEvidence(
  * classification path.
  */
 export async function workflowPoisonedDescriptionEvidence(
-  handle: PoisonedDescribeProbeTarget,
+  handle: PoisonedDescribeProbeTarget | undefined,
 ): Promise<string | null> {
-  if (typeof handle.describe !== "function") return null;
+  if (!handle || typeof handle.describe !== "function") return null;
   try {
     return poisonedDescriptionEvidence(await handle.describe());
   } catch {
@@ -169,7 +169,7 @@ export function shouldTakeRecoveryBranch(args: {
  * Best-effort: describe() failures are swallowed (returns void).
  */
 export async function logRecoveryProbeDiagnostics(
-  handle: PoisonedDescribeProbeTarget,
+  handle: PoisonedDescribeProbeTarget | undefined,
   changeId: string,
 ): Promise<void> {
   try {

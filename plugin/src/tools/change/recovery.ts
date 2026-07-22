@@ -540,7 +540,6 @@ export async function closeLinkedIssue(options: {
   }
   return { close_eligible: true, issue_closed: [issueNumber] };
 }
-export type ChangeCloseRecoveryMode = "normal" | "poisoned_history";
 export interface ChangeClosePayloadInput {
   approvalEvidence: string;
   reason: "cancelled" | "superseded" | "not_planned";
@@ -566,72 +565,4 @@ export function buildChangeClosure(
     approved_at: input.cancelledAt,
     superseded_by: input.supersededBy,
   };
-}
-export async function validateChangeCloseRecoveryArgs(input: {
-  changeId?: string;
-  recoveryMode?: ChangeCloseRecoveryMode;
-  recoveryEvidence?: string;
-}): Promise<Record<string, unknown> | null> {
-  if (input.recoveryMode !== "poisoned_history") return null;
-  const { isPreciseWorkflowRecoveryEvidence } =
-    await import("../../temporal/recovery-classification");
-  if (!input.recoveryEvidence?.trim()) {
-    return {
-      error:
-        "change close recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
-      ...(input.changeId ? { changeId: input.changeId } : {}),
-    };
-  }
-  if (!isPreciseWorkflowRecoveryEvidence(input.recoveryEvidence)) {
-    return {
-      error:
-        "change close recoveryEvidence must cite precise poisoned-history or completed-workflow evidence",
-      ...(input.changeId ? { changeId: input.changeId } : {}),
-    };
-  }
-  return null;
-}
-export async function recoverCompletedWorkflowClose(input: {
-  store: Store;
-  change: Change;
-  closeInput: ChangeClosePayloadInput;
-  recoveryMode?: ChangeCloseRecoveryMode;
-  recoveryEvidence?: string;
-  signalError: unknown;
-}): Promise<{
-  recovered: boolean;
-  error?: string;
-}> {
-  if (input.recoveryMode !== "poisoned_history") {
-    return {
-      recovered: false,
-      error:
-        input.signalError instanceof Error
-          ? input.signalError.message
-          : String(input.signalError),
-    };
-  }
-  const { isWorkflowCompletedError } =
-    await import("../../temporal/recovery-classification");
-  if (!isWorkflowCompletedError(input.signalError)) {
-    return {
-      recovered: false,
-      error:
-        input.signalError instanceof Error
-          ? input.signalError.message
-          : String(input.signalError),
-    };
-  }
-  const { saveRecoveredChangeStatus } = await import("../_recovery-writers");
-  await saveRecoveredChangeStatus({
-    store: input.store,
-    change: input.change,
-    authorization: {
-      reason: "completed_workflow_close_recovery",
-      evidence: input.recoveryEvidence ?? String(input.signalError),
-    },
-    status: "closed",
-    closure: buildChangeClosure(input.closeInput),
-  });
-  return { recovered: true };
 }

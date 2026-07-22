@@ -967,8 +967,10 @@ describe("task tools — signal/query adapters", () => {
       expect(signalCall[4]).not.toHaveProperty("verification");
     });
 
-    // rq-extend-poisoned-recovery AC1
-    test("recovers via disk projection when workflow is poisoned and recoveryMode=poisoned_history", async () => {
+    // D4 internal monotonic recovery (rq-internalMonotonicRecovery01 / AC5):
+    // signal-error path auto-classifies a completed-workflow error and falls
+    // back to the disk-projection writer without operator-supplied evidence.
+    test("recovers via signal-error classification when workflow is already completed", async () => {
       const store = createMockStore({
         change: {
           id: "test-change",
@@ -978,7 +980,7 @@ describe("task tools — signal/query adapters", () => {
           tasks: [
             {
               id: "tk-abc",
-              title: "Done Task",
+              title: "In-progress Task",
               status: "pending",
               type: "code",
               section: "Implementation",
@@ -994,7 +996,7 @@ describe("task tools — signal/query adapters", () => {
           show: vi.fn(async (taskId: string) => ({
             task: {
               id: taskId,
-              title: "Done Task",
+              title: "In-progress Task",
               status: "pending",
               priority: 0,
               created_at: "2026-01-01T00:00:00Z",
@@ -1004,27 +1006,14 @@ describe("task tools — signal/query adapters", () => {
         },
       });
       mocks.fireSignalAndRefresh.mockRejectedValueOnce(
-        new Error("Failed to query Workflow"),
-      );
-      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
-        async () => ({
-          searchAttributes: {
-            TemporalReportedProblems: [
-              "cause=WorkflowTaskFailedCauseNonDeterministicError",
-            ],
-          },
-        }),
+        new Error("workflow execution already completed"),
       );
 
       const result = await taskTools.adv_task_update.execute(
         {
           taskId: "tk-abc",
-          status: "done",
-          implementation_summary: "Recovered legacy work",
-          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+          status: "in_progress",
+          notes: "Recovered legacy work",
         },
         store,
       );
@@ -1033,72 +1022,6 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.success).toBe(true);
       expect(parsed._recoveryMutation).toBe(true);
       expect(parsed.reconciliationWarning).toContain("not healed");
-      expect(store.changes.save).toHaveBeenCalled();
-      delete (mocks.handleMock as { describe?: unknown }).describe;
-    });
-
-    // rq-extend-poisoned-recovery AC5: probe-first path must recover even when
-    // fireSignalAndRefresh resolves silently (fire-and-forget server acceptance).
-    test("recovers via probe-first path when fireSignalAndRefresh silently resolves", async () => {
-      const store = createMockStore({
-        change: {
-          id: "test-change",
-          title: "Test Change",
-          status: "draft",
-          created_at: "2026-01-01T00:00:00Z",
-          tasks: [
-            {
-              id: "tk-abc",
-              title: "Done Task",
-              status: "pending",
-              type: "code",
-              section: "Implementation",
-              priority: 0,
-              created_at: "2026-01-01T00:00:00Z",
-            } as import("../types").Task,
-          ],
-          deltas: {},
-          wisdom: [],
-          gates: {},
-        } as import("../types").Change,
-        tasks: {
-          show: vi.fn(async (taskId: string) => ({
-            task: {
-              id: taskId,
-              title: "Done Task",
-              status: "pending",
-              priority: 0,
-              created_at: "2026-01-01T00:00:00Z",
-            } as import("../types").Task,
-            changeId: "test-change",
-          })),
-        },
-      });
-      mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
-
-      const result = await taskTools.adv_task_update.execute(
-        {
-          taskId: "tk-abc",
-          status: "done",
-          implementation_summary: "Recovered via probe-first",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError",
-        },
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed._recoveryMutation).toBe(true);
-      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-      expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledTimes(1);
-      expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledWith(
-        expect.objectContaining({
-          store,
-          change: expect.objectContaining({ id: "test-change" }),
-          taskId: "tk-abc",
-        }),
-      );
       expect(store.changes.save).toHaveBeenCalled();
     });
 
@@ -1120,10 +1043,9 @@ describe("task tools — signal/query adapters", () => {
     });
 
     // D4 internal monotonic recovery (rq-internalMonotonicRecovery01 / AC5):
-    // when operator does NOT supply recoveryMode but describe() shows the
-    // workflow is poisoned, recovery happens automatically via disk projection
-    // without evidence-copy ceremony.
-    test("recovers via D4 internal classification when describe shows poisoned and operator args absent", async () => {
+    // when describe() shows the workflow is poisoned, recovery happens
+    // automatically via disk projection without operator-supplied evidence.
+    test("recovers via D4 internal classification when describe shows poisoned", async () => {
       const store = createMockStore({
         change: {
           id: "test-change",
@@ -1174,7 +1096,6 @@ describe("task tools — signal/query adapters", () => {
           taskId: "tk-abc",
           status: "done",
           implementation_summary: "Recovered via D4 internal classification",
-          // Note: NO recoveryMode or recoveryEvidence supplied.
         },
         store,
       );
@@ -1242,24 +1163,6 @@ describe("task tools — signal/query adapters", () => {
       expect(
         (taskTools as Record<string, unknown>).adv_task_completed,
       ).toBeUndefined();
-    });
-
-    // rq-extend-poisoned-recovery validation
-    test("rejects poisoned_history mode without precise evidence", async () => {
-      const store = createMockStore();
-
-      const result = await taskTools.adv_task_update.execute(
-        {
-          taskId: "tk-abc",
-          status: "done",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence: "some vague excuse",
-        },
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.error).toContain("precise poisoned-history evidence");
     });
 
     test("rejects task contract_refs that do not reference the change contract", async () => {
@@ -2185,9 +2088,10 @@ describe("task tools — signal/query adapters", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
-    // rq-extend-poisoned-recovery AC5: probe-first path must recover even when
-    // fireSignalAndRefresh resolves silently (fire-and-forget server acceptance).
-    test("recovers via probe-first path when fireSignalAndRefresh silently resolves", async () => {
+    // D4 internal monotonic recovery (rq-internalMonotonicRecovery01 / AC5):
+    // probe-first path auto-classifies a poisoned workflow from describe() and
+    // recovers via disk projection without operator-supplied evidence.
+    test("recovers via probe-first classification when describe shows poisoned", async () => {
       const store = createMockStore({
         change: {
           id: "test-change",
@@ -2202,13 +2106,20 @@ describe("task tools — signal/query adapters", () => {
       });
       mocks.querySignal.mockResolvedValue([]);
       mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
+        async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }),
+      );
 
       const result = await taskTools.adv_task_add.execute(
         {
           changeId: "test-change",
           content: "Probe-first task",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError",
         },
         store,
       );
@@ -2226,6 +2137,7 @@ describe("task tools — signal/query adapters", () => {
         }),
       );
       expect(store.changes.save).toHaveBeenCalled();
+      delete (mocks.handleMock as { describe?: unknown }).describe;
     });
   });
 
@@ -2400,9 +2312,11 @@ describe("task tools — signal/query adapters", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
-    // rq-extend-poisoned-recovery AC5: probe-first path must recover even when
-    // fireSignalAndRefresh resolves silently (fire-and-forget server acceptance).
-    test("recovers via probe-first path when fireSignalAndRefresh silently resolves", async () => {
+    // D4 internal monotonic recovery (rq-internalMonotonicRecovery01 / AC5):
+    // signal-error path auto-classifies a poisoned workflow from the error +
+    // describe() and recovers via disk projection without operator-supplied
+    // evidence.
+    test("recovers via signal-error classification when workflow is poisoned", async () => {
       const store = createMockStore({
         change: {
           id: "test-change",
@@ -2423,7 +2337,18 @@ describe("task tools — signal/query adapters", () => {
           gates: {},
         } as import("../types").Change,
       });
-      mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100]"),
+      );
+      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
+        async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }),
+      );
 
       const result = await taskTools.adv_task_cancel.execute(
         {
@@ -2431,15 +2356,13 @@ describe("task tools — signal/query adapters", () => {
           reasons: { "tk-abc": "No longer needed" },
           approvedByUser: true,
           approvalEvidence: "User approved",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence: "WorkflowTaskFailedCauseNonDeterministicError",
         },
         store,
       );
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledTimes(1);
       expect(mocks.saveRecoveredTaskMutation).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -2449,6 +2372,7 @@ describe("task tools — signal/query adapters", () => {
         }),
       );
       expect(store.changes.save).toHaveBeenCalled();
+      delete (mocks.handleMock as { describe?: unknown }).describe;
     });
   });
 
