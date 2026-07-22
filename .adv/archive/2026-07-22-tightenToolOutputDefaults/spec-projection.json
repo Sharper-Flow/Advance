@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "change_id": "tightenToolOutputDefaults",
+  "delta_set_sha256": "34838c21bc5c4ca8f93c25b9fcd46dc4024e92d578c4197456b46e77083bdb2b",
+  "capabilities": [
+    {
+      "capability": "chat-output-display",
+      "base_version": "1.7.0",
+      "target_version": "1.7.1",
+      "spec_sha256": "f539991d069e37aaaed2e74d025c7ac0fd966cf1fe8ff1dfce1fb56d94680e08",
+      "document_sha256": "5ca2e9afa7e13fde3808b062c8c20a761cd1a7445f6e4df93e8c694195d49d44",
+      "requirement_sha256": {
+        "rq-ctxsnap1": "56da98d2f471ee4c7a415f41f220dc3ec24db723f923d9c43e26ed0db90e244f",
+        "rq-ctxsnap2": "7a3f0dc2d71c7be6b2e1fe4ec7d0b70915c5e95044a27dae8a3f731b800ea29e",
+        "rq-ctxticker1": "e07e7ecbf3c44fc16870e8b607a357ce9af70cc07f7c2ed8d4a3a829005da5d4",
+        "rq-ctxticker2": "369afdf324ab5e60c911a89b78ec1d9810d94364ff4312a6352ede9604819212",
+        "rq-idleMarker01": "1591100f1ece010d22e5ccbd14cde1b0af4b61280a0236a7f39d4ea98d34a411",
+        "rq-idleMarker02": "a942dadc948b10ceb46e713a51f19da35235dbecd71e6c8331b0c2d01bdcf720",
+        "rq-idleMarker03": "edfad22cb1932e4b916ef7527d1ec79396ce830daac1906105ab49c63f123246",
+        "rq-titleBell01": "42ffdc8a23652ae2a45ee7b4703e3f70206296b52ae871665b6591518c355d5a",
+        "rq-titleIdentity01": "077b16248f8df27ba1b6690b00ebd51da414b1afac51e078a8c6ea48197f692b",
+        "rq-ctxswitch": "469c43041ad61b513ad8ea599249fae727fb4fa858468b0dff3fe26304ec9bed",
+        "rq-ctxformat": "86dc5a33853bf2dcf8680307353e7a6b8765aae1b069951d13a93ad78fdf1146",
+        "rq-ctxfallback": "b99c6c25b475c7b4bc61b032b94f52b811e8b9c682316dcd8df4fd062ee93f9f",
+        "rq-toolTitle01": "d673f3ced8468dc797cb2d3f961755b055aa7991596a7ad47f266ed9266e13bf",
+        "rq-toolTitle02": "18dfce58709b17503aaba4f50a0e7596461bf401ef30edafc1c00875d55fb292",
+        "rq-toolTitle03": "9e9e47ea12516c6e628c5d8b6d03a759f417df6b94518e85f8aada603d89b79f"
+      },
+      "dispositions": [
+        {
+          "deltaId": "dl-tb1q3HJWCv2u",
+          "operation": "modify",
+          "status": "missing",
+          "targetId": "rq-ctxticker2"
+        },
+        {
+          "deltaId": "dl-xtxFRdk1ybRO",
+          "operation": "modify",
+          "status": "missing",
+          "targetId": "rq-ctxsnap2"
+        }
+      ]
+    },
+    {
+      "capability": "advance-meta",
+      "base_version": "1.29.1",
+      "target_version": "1.29.2",
+      "spec_sha256": "5e1b70a14121f4dfaf126dac54e49f5475e3e4171de89357ba1daf97788ded83",
+      "document_sha256": "77cb259bae2b40760add85c615fd1c8af296f34ca575f6353170b4eb466a9f34",
+      "requirement_sha256": {
+        "rq-synthstate01": "0e12d1270490e2db47e1086e59b58774842849dc7af5ba788f943a1ec032e095",
+        "rq-advcfg01": "3fe15569f94de0b82effae37cbe29521242a0bf7d47e85ec37f5168561bfd8bb",
+        "rq-statusCliBridge01": "581771094b34870af3d4945ef82e3974b98b29a797ad24d2a54b410f904bca59",
+        "rq-advCliLocalInstall01": "d3b604c16fc4cd870d4e7337847ccbbf568772aa086fa8770dc29e4c19ec7f2c",
+        "rq-deployWorkerBounce01": "edb941ad7336d0ee345af766913bcffc6873f65a56c31a2b59e4fc75ced59455",
+        "rq-deployWorkerBounce02": "5fb86654edb0d94439b1a93830ea4185770d2740fa9414f82cfe586b3f474eca",
+        "rq-cliSourceBoundary01": "1613b38392fc29d5c9e72155abec923c2ff1a28f7dccd732d98f64a427753b2e",
+        "rq-statusCliWorkerFree01": "213506915fcbf53657579dc8c188ec0352eed2cbc97ed941dd4b7006259bb2f0",
+        "rq-dashboardWorkerFree01": "81bf56a240104ba0abba9564a7fac37302cfebc5165612e8d952ecaafc593b8a",
+        "rq-roadmapCliBridge01": "c1c7c4e4b44dc43f04e73813e7c2d50c3f83ae013224c02862f15b9927d0da9e",
+        "rq-statusProbeCache01": "edcca8debcee1dd64084608ea784fb0339de448a3fee27fd25ea7db32b39c9a9",
+        "rq-statusSummaryLazy01": "97d42106d7a9f87b9c22f4216e39850670b0f757b71808ee57ec3688343ec95c",
+        "rq-opencodeDebt01": "60ff442f3e0bd550be87916b0b820d388a021f63dde26b236f057d7bc0973f4c",
+        "rq-advmeta01": "6d2e66eb0be3495b1d1faa234cae31e6adf09178a06ab892b56de3dccfbbe454",
+        "rq-advshut1": "c18973b9fe439f0ae53a05fd5a200f4e09a03d784e944d4152a4b4c73478fce0",
+        "rq-dueDiligence01": "89057e3d7e591d54545ac7d8d7bacb52bf13998484f96ab457e1602943fb743e",
+        "rq-proseReduction01": "9d912f37776e305e2b877907c2778e9a4c8459a0fc971136f30053ccc5a1b00d",
+        "rq-providerAdvSkinny01": "dcc64e660c65256050599c58ea273e011b4feb215e9f7bd1424af84ec9c1ce60",
+        "rq-providerAdvMetrics01": "f0fad246422074be5ba27386f85313b28a5e936a1be22c45f469c0f41f65c0c7",
+        "rq-proseReduction02": "5fa0ac816ac46e2f7a2c424ea83046d69f2993e48405b6dcacbf4408f8912084",
+        "rq-proseReduction03": "b2c89f2bdde3fd51d7b9b5be78bdfa91a09aa8e6e12c54d58d36c1983db7a917",
+        "rq-proseReduction04": "3ba3aa7921afae38e666f36b5f2eb10893a9583097c973742f6c26d59aa46c59",
+        "rq-skillProseCompression01": "d37efda41b892d8fbd6256bb279217fc0dbab62e6acb28acbcdca411fc958056",
+        "rq-skillClassification01": "e182e49a4e2597df459a120a8e37a6725b0e4810fb1ff8d3796026dc66e5aee7",
+        "rq-noSourceChecklistReads01": "9eb725da08851c58a93f09ff30e1209640157dc59351fdcdb80f9aa0da78855d",
+        "rq-contextShed01": "defcd88629d2d17c5df93473e6148814c2b3eef31ede491f772767b7e3d296e1",
+        "rq-contextShed02": "a6814e18c4b19911d9cd612ffa6b6f3e9ce4d65b4d061e5cdb852162379a7e16",
+        "rq-orchestratorOpsDelegation01": "f584880d4306a22395b398a13d2b29197a5de073eb0767ae6a205e8cb2864da6",
+        "rq-archivePurge01": "f2c1fe9a07b217ba38797da0cca0fc720179167661d3fdc2bb763a79719c066f",
+        "rq-toolTimeoutOverride01": "454e4e14b960ae8029a0a65f96b7603a2e796d3936bfd717267acbb968793c7e",
+        "rq-bulkCloseDiskSweep01": "13b9d0da6fcf8b068b1f5d7c936630a8a0b6759c505ccdcaccef71b1379bc6fb",
+        "rq-testFixtureProjectId01": "bca0c7c896e47dfde4917c22f4ec0e16e7a64c30656921035f31b3d4e81e2cf4",
+        "rq-workerSingleton01": "ca4135a28182950f08bf1f4939fc89ff4e1818000fd1eca8bfcaaea2a3eded24",
+        "rq-workerHealth01": "408896b6639700ac10ce7db3d61694759f6b9499297b3304b69bf237299e1669",
+        "rq-targetWorkerLifecycle01": "0397dd32342427433054462aef8dbba65572df17db89a5fdbff80174392b558a",
+        "rq-multiSessionCoordination01": "1185c90895942a437dbefd44562d2374c206d05f23d4a745e75f5c46e6dcde1f",
+        "rq-worktreeRegistry01": "bba2e6fc6addbad2020d2efbaa1e7f67c003453323812b24e4e5662b4f4c64e3",
+        "rq-worktreeReuse01": "2bb23fed683ad71ed563929a294338715669a3aa9fe7b9c00e6c329a0a9c208a",
+        "rq-multiSessionFraming01": "a42b8f9b3d9b67da80f67d1c701d268974902fd48352075d0dddf2ee7935b9df",
+        "rq-temporalConcurrentLoad01": "d48b1b592de4b0a74155f895991b9692b2585102e1a6331384694ffed406da57",
+        "rq-scopedAdvInstructions01": "133364749a1fbf3e1b27f1cd2a6b6665f05fdc017705842335e1e0031120e315",
+        "rq-twf01": "d4fb96556708549adaa222d302fc637d08aa4f37df8f4347fd7a4e99435fbfe8",
+        "rq-clarifyEnforcementAudit01": "2b2af35c1c992e320cb0e2bf7e4b172dea33ee3f7e270f31b7ee5dfc2ce24a62",
+        "rq-advStatusLazyView01": "d6fd902a5aa03c975364616a933d674f951045e3423f0e8e76f5b64db66d9ff5",
+        "rq-advStatusBoundedSummary01": "6abdcf3087af218f34a1da71eba7635def633893196c3059dd94aa4f3eb82339",
+        "rq-changeSummaryReadModel01": "ebbf5bc21c08798e0a32a055a9fd983cdcbf460c21b628921fad2e30681993bf",
+        "rq-advLatencyTelemetry01": "d92cd065eeecc53c4a4786748f9e9189d25f8fe16201123151aed49a0646645a",
+        "rq-advLatencyBench01": "40a1ed878df9b53b5480d42d33d02976ec43ba5daf172d308c618bf38aaf1b32",
+        "rq-visibilityProjectScope01": "a6be076d1e853d9260b4b9dfa7a62822ffdac314fdccf45d1553fc317d66531f",
+        "rq-advRunTestLatency01": "255b0c8b247a0606dbae690c030dc0a0b0b570487f19cc443c9c852a128222bc",
+        "rq-toolPlaceholderPolicy01.6": "36c5d49632d35ba16f6d1891ac1888992f17aa8bbbd902f910ddf0387f792bc0",
+        "rq-activeChangePointer01": "cd33b531d0f358191bb7155344d2c00a7ad9d35ec826740449c46aa184c1a45e",
+        "rq-projectIdentityStability01": "4f63e7ab46f06400dc1e06e3d5960f95436968ace79bf9493e1a41d6e42a2d42",
+        "rq-toolOwnership01": "12d27cd4fe60cb8330c50a37a0f23111679bb2e5a4e5bc462ef1950e2748fc63",
+        "rq-deployAssetContinuation01": "145f4dcff9237af65813972dd89f2b1f6a10dbb613d8bc310f8de83efded195d",
+        "rq-crossProjectTrunkFirewall01": "f3f101a80c77a12f65f44916b0e796a0a38ab010424224b176dbb724841bd59e",
+        "rq-statusHealthTypedDegradation01": "0eb283e8b694e31fdfac3720caca7d6243c126b0543d68adfb2133de0254c6f0",
+        "rq-sessionPrincipal01": "f282181dabf6aab92ec578809aea65ebeb2d3461d08960d1060bf87b67fc3f8c"
+      },
+      "dispositions": [
+        {
+          "deltaId": "dl-dExfd5Lb947l",
+          "operation": "modify",
+          "status": "missing",
+          "targetId": "rq-advStatusLazyView01"
+        }
+      ]
+    }
+  ]
+}

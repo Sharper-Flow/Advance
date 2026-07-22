@@ -1,8 +1,7 @@
 # Chat Output Display
 
-> **Version:** 1.7.0
-> **Updated:** 2026-07-13
-> **Supersedes:** `context-display` v1.2.0
+> **Version:** 1.7.1
+> **Updated:** 2026-07-22
 
 ## Purpose
 
@@ -14,9 +13,9 @@ Unified formatting for the chat-output surface — context snapshots (full box),
 
 **ID:** `rq-ctxsnap1` | **Priority:** **[MUST]**
 
-The Context Snapshot (full box) MUST display: change ID and title, success criteria count, gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning.
+The Context Snapshot (full box) MUST display: change ID and title, user outcome count from proposal.md, gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning. When a `resumeFreshness` value is present (per rq-resumeFreshness01 in advance-workflow), the snapshot renders an optional `Freshness:` line itemizing finding count and top code; the line participates in the staged budget-shed rule (Outcomes sheds first at ≥2 optionals, Current sheds at ≥3, blank spacer or Wisdom sheds at ≥4 so Freshness is always retained as the last-shed row).
 
-**Tags:** `chat-output-display`, `snapshot`
+**Tags:** `chat-output-display`, `snapshot`, `resume`, `freshness`
 
 #### Scenarios
 
@@ -43,47 +42,60 @@ The Context Snapshot (full box) MUST display: change ID and title, success crite
 **Then:**
 - The total output is 10 lines or fewer
 
+**Optional Freshness line participates in 10-line budget** (`rq-ctxsnap1.3`)
+
+**Given:**
+- A stale change with directive + wisdom + current task + resumeFreshness (4 optional rows)
+
+**When:** A context snapshot is rendered
+
+**Then:**
+- The Freshness line is present (retained as last-shed per D6 rule)
+- The total output is 10 lines or fewer
+- If no Epic line: blank spacer sheds
+- If Epic line present: Wisdom sheds before Freshness
+
 ---
 
 ### Context Snapshot Emission Triggers
 
 **ID:** `rq-ctxsnap2` | **Priority:** **[MUST]**
 
-The Context Snapshot (full box) MUST be emitted by tools that represent major state transitions: `adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status` (primary change only — see `rq-ctxticker2.4`), and on session resume with an active change. `adv_change_show` provides structured JSON for direct LLM consumption and does NOT emit a snapshot. Transient task-state tools emit a Context Ticker instead — see `rq-ctxticker2`.
+The Context Snapshot (full box) MUST be emitted only when the caller passes `include.snapshot:true` by tools that represent major state transitions: adv_change_create, adv_gate_complete, adv_change_reenter. When `include.snapshot` is omitted (default), no snapshot is emitted. adv_status primary-change snapshot follows rq-ctxticker2.5 (unchanged — advisory multi-change display, MCP-contract-bound). adv_change_show provides structured JSON for direct LLM consumption and does NOT emit a snapshot.
 
 **Tags:** `chat-output-display`, `snapshot`, `triggers`
 
 #### Scenarios
 
-**Snapshot emitted on change creation** (`rq-ctxsnap2.1`)
+**Snapshot emitted on change creation (opt-in)** (`rq-ctxsnap2.1`)
 
 **Given:**
-- An agent creates a new change via `adv_change_create`
+- An agent creates a new change via adv_change_create with include.snapshot:true
 
 **When:** The change data is created
 
 **Then:**
 - A context snapshot (full box) is included in the tool output
 
-**Snapshot emitted on gate transition** (`rq-ctxsnap2.2`)
+**Snapshot emitted on gate transition (opt-in)** (`rq-ctxsnap2.2`)
 
 **Given:**
-- A gate is marked complete via `adv_gate_complete`
+- A gate is marked complete via adv_gate_complete with include.snapshot:true
 
 **When:** The gate status changes
 
 **Then:**
-- The updated gate progress is visible in subsequent tool output as a full-box snapshot
+- The updated gate progress is visible as a full-box snapshot in the tool output
 
-**Snapshot emitted on gate re-entry** (`rq-ctxsnap2.6`)
+**Snapshot emitted on gate re-entry (opt-in)** (`rq-ctxsnap2.6`)
 
 **Given:**
-- A change with completed gates
+- A change with completed gates, adv_change_reenter called with include.snapshot:true
 
-**When:** `adv_change_reenter` reopens gates from a specified point
+**When:** adv_change_reenter reopens gates from a specified point
 
 **Then:**
-- The tool output includes an updated `_contextSnapshot` (full box)
+- The tool output includes an updated _contextSnapshot (full box)
 - The snapshot gate progress shows the reset gate state
 
 ---
@@ -92,7 +104,7 @@ The Context Snapshot (full box) MUST be emitted by tools that represent major st
 
 **ID:** `rq-ctxticker1` | **Priority:** **[MUST]**
 
-The Context Ticker MUST be a single-line, ≤80-column compact summary with three segments separated by middle dots: change ID (truncated to ≤20 characters with `…` suffix on overflow), gate arrow (`{prev} ✓→{next}`, `release ✓` if all gates done, or `proposal ○→discovery` if none done), and task progress in `{done}/{total}` form. The ticker uses box-drawing rails (`║ … ║`) to share visual vocabulary with the full snapshot and remain deterministic.
+The Context Ticker MUST be a single-line, ≤80-column compact summary with three segments separated by middle dots: change ID (truncated to ≤20 characters with `…` suffix on overflow), gate arrow (`{prev} ✓→{next}`, `release ✓` if all gates done, or `proposal ○→discovery` if none done), and task progress in `{done}/{total}` form. The ticker uses box-drawing rails (`║ ... ║`) to share visual vocabulary with the full snapshot and remain deterministic (identical input → identical output).
 
 **Tags:** `chat-output-display`, `ticker`
 
@@ -108,7 +120,7 @@ The Context Ticker MUST be a single-line, ≤80-column compact summary with thre
 **Then:**
 - The output contains exactly one line
 - The output is no more than 80 columns wide
-- The output contains the box-drawing rail character `║`
+- The output contains the box-drawing rail character ║
 
 **Ticker truncates long change IDs** (`rq-ctxticker1.2`)
 
@@ -119,7 +131,7 @@ The Context Ticker MUST be a single-line, ≤80-column compact summary with thre
 
 **Then:**
 - The change ID segment is truncated to at most 20 characters
-- The truncated segment ends with the ellipsis character `…`
+- The truncated segment ends with the ellipsis character …
 
 **Ticker shows compact gate arrow** (`rq-ctxticker1.3`)
 
@@ -138,63 +150,63 @@ The Context Ticker MUST be a single-line, ≤80-column compact summary with thre
 
 **ID:** `rq-ctxticker2` | **Priority:** **[MUST]**
 
-The Context Ticker MUST be emitted (instead of the full snapshot) by transient task-state tools: `adv_task_update` transitioning to `in_progress` or `done`, `adv_task_ready`, `adv_task_add`, and `adv_task_cancel`. Other emission sites (`adv_change_create`, `adv_gate_complete`, `adv_change_reenter`, `adv_status`) MUST continue to emit the full snapshot per `rq-ctxsnap2`.
+The Context Ticker MUST be emitted only when the caller passes `include.snapshot:true` (instead of the full snapshot) by transient task-state tools: adv_task_update transitioning to in_progress or done, adv_task_ready, adv_task_add, and adv_task_cancel. When `include.snapshot` is omitted (default), no ticker is emitted. Other emission sites (adv_change_create, adv_gate_complete, adv_change_reenter) follow rq-ctxsnap2 (also default-OFF, opt-in). adv_status recommendation-list snapshots follow rq-ctxticker2.5 (unchanged).
 
 **Tags:** `chat-output-display`, `ticker`, `triggers`
 
 #### Scenarios
 
-**Ticker emitted by adv_task_update** (`rq-ctxticker2.1`)
+**Ticker emitted by adv_task_update on in_progress / done transitions (opt-in)** (`rq-ctxticker2.1`)
 
 **Given:**
-- An active change with a pending task
+- An active change with a pending task, adv_task_update called with include.snapshot:true
 
-**When:** `adv_task_update` transitions the task to `in_progress` or `done`
+**When:** adv_task_update transitions the task to in_progress or done
 
 **Then:**
-- The tool output includes a single-line context ticker as `_contextSnapshot`
+- The tool output includes a single-line context ticker as _contextSnapshot
 - The output is not a multi-line full-box snapshot
 
-**Ticker emitted by adv_task_ready** (`rq-ctxticker2.2`)
+**Ticker emitted by adv_task_ready (opt-in)** (`rq-ctxticker2.2`)
 
 **Given:**
-- An active change
+- An active change, adv_task_ready called with include.snapshot:true
 
-**When:** `adv_task_ready` is invoked
+**When:** adv_task_ready is invoked
 
 **Then:**
-- The tool output includes a single-line context ticker as `_contextSnapshot`
+- The tool output includes a single-line context ticker as _contextSnapshot
 
-**Ticker emitted by adv_task_add and adv_task_cancel** (`rq-ctxticker2.3`)
+**Ticker emitted by adv_task_add and adv_task_cancel (opt-in)** (`rq-ctxticker2.3`)
 
 **Given:**
-- An active change
+- An active change, adv_task_add or adv_task_cancel called with include.snapshot:true
 
-**When:** `adv_task_add` successfully creates a task or `adv_task_cancel` cancels one or more tasks
+**When:** adv_task_add successfully creates a task or adv_task_cancel cancels one or more tasks
 
 **Then:**
-- The tool output includes a single-line context ticker as `_contextSnapshot`
+- The tool output includes a single-line context ticker as _contextSnapshot
 
-**Full-box snapshot still emitted by gate / change tools** (`rq-ctxticker2.4`)
+**Full-box snapshot emitted by gate / change tools (opt-in per rq-ctxsnap2)** (`rq-ctxticker2.4`)
 
 **Given:**
-- An active change
+- An active change, adv_change_create/adv_gate_complete/adv_change_reenter called with include.snapshot:true
 
-**When:** `adv_change_create`, `adv_gate_complete`, or `adv_change_reenter` is invoked
+**When:** adv_change_create, adv_gate_complete, or adv_change_reenter is invoked
 
 **Then:**
-- The tool output includes a multi-line context snapshot (full box) as `_contextSnapshot`
+- The tool output includes a multi-line context snapshot (full box) as _contextSnapshot
 
-**adv_status emits full-box for primary change, ticker for non-primary** (`rq-ctxticker2.5`)
+**adv_status emits full-box for primary change, ticker for non-primary (unchanged — advisory multi-change display)** (`rq-ctxticker2.5`)
 
 **Given:**
-- `adv_status` with multiple active/draft/pending changes in `recentChanges`
+- adv_status with multiple active/draft/pending changes in recentChanges
 
-**When:** `adv_status` is invoked
+**When:** adv_status is invoked
 
 **Then:**
-- The first active/draft/pending change (primary) includes a multi-line full-box `_contextSnapshot`
-- Subsequent changes (non-primary) include a single-line context ticker as `_contextSnapshot`
+- The first active/draft/pending change (primary) includes a multi-line full-box _contextSnapshot
+- Subsequent changes (non-primary) include a single-line context ticker as _contextSnapshot
 
 ---
 
@@ -202,7 +214,7 @@ The Context Ticker MUST be emitted (instead of the full snapshot) by transient t
 
 **ID:** `rq-idleMarker01` | **Priority:** **[MUST]**
 
-The status resolver MUST distinguish two distinct user-visible states: ATTN (user must act — permission pending, approval, or question) and IDLE (agent finished, no user action needed — session start or completed work). `resolveStatus` MUST return ATTN only when `permissionPending` is set, and IDLE when the session is idle without sub-agents or long tools. The initial status state MUST be IDLE so a fresh session is not falsely flagged as needing user attention.
+The status resolver MUST distinguish two distinct user-visible states: ATTN (user must act — permission pending, approval, or question) and IDLE (agent finished, no user action needed — session start or completed work). resolveStatus MUST return ATTN only when permissionPending is set, and IDLE when the session is idle without sub-agents or long tools. The initial status state MUST be IDLE so a fresh session is not falsely flagged as needing user attention.
 
 **Tags:** `chat-output-display`, `status-marker`
 
@@ -211,32 +223,32 @@ The status resolver MUST distinguish two distinct user-visible states: ATTN (use
 **sessionIdle resolves to IDLE** (`rq-idleMarker01.1`)
 
 **Given:**
-- Plugin state where `sessionIdle` is true and `permissionPending` is false and no sub-agents are active
+- Plugin state where sessionIdle is true and permissionPending is false and no sub-agents are active
 
-**When:** `resolveStatus` is called
+**When:** resolveStatus is called
 
 **Then:**
-- The returned marker is `IDLE`
+- The returned marker is IDLE
 
 **permissionPending resolves to ATTN** (`rq-idleMarker01.2`)
 
 **Given:**
-- Plugin state where `permissionPending` is true
+- Plugin state where permissionPending is true
 
-**When:** `resolveStatus` is called
+**When:** resolveStatus is called
 
 **Then:**
-- The returned marker is `ATTN` regardless of other flags
+- The returned marker is ATTN regardless of other flags
 
 **Initial state is IDLE** (`rq-idleMarker01.3`)
 
 **Given:**
 - A freshly initialised plugin status state
 
-**When:** `getStatus` is called before any transitions
+**When:** getStatus is called before any transitions
 
 **Then:**
-- `currentStatus` is `IDLE`
+- currentStatus is IDLE
 
 ---
 
@@ -244,7 +256,7 @@ The status resolver MUST distinguish two distinct user-visible states: ATTN (use
 
 **ID:** `rq-idleMarker02` | **Priority:** **[MUST]**
 
-The `STATUS_MARKERS` enum MUST contain an `IDLE` entry mapping to the textual marker `[ADV:IDLE]`. The IDLE emoji MUST be the white square (⬜) — visually distinct from ATTN's red square (🟥) and color-blind safe paired with the textual marker.
+The STATUS_MARKERS enum MUST contain an IDLE entry mapping to the textual marker `[ADV:IDLE]`. The IDLE emoji MUST be the white square (⬜) — visually distinct from ATTN's red square (🟥) and color-blind safe paired with the textual marker.
 
 **Tags:** `chat-output-display`, `status-marker`, `enum`
 
@@ -253,23 +265,23 @@ The `STATUS_MARKERS` enum MUST contain an `IDLE` entry mapping to the textual ma
 **STATUS_MARKERS contains IDLE** (`rq-idleMarker02.1`)
 
 **Given:**
-- The `STATUS_MARKERS` constant is loaded
+- The STATUS_MARKERS constant is loaded
 
-**When:** The `IDLE` key is read
+**When:** The IDLE key is read
 
 **Then:**
-- The value is the literal string `[ADV:IDLE]`
+- The value is the literal string [ADV:IDLE]
 
 **IDLE emoji is distinct from ATTN** (`rq-idleMarker02.2`)
 
 **Given:**
 - The terminal status emoji map
 
-**When:** `getStatusEmoji` is called for `IDLE` and `ATTN`
+**When:** getStatusEmoji is called for IDLE and ATTN
 
 **Then:**
-- `IDLE` returns `⬜`
-- `ATTN` returns `🟥`
+- IDLE returns ⬜
+- ATTN returns 🟥
 - The two values are not equal
 
 ---
@@ -278,7 +290,7 @@ The `STATUS_MARKERS` enum MUST contain an `IDLE` entry mapping to the textual ma
 
 **ID:** `rq-idleMarker03` | **Priority:** **[MUST]**
 
-ADV status transitions MUST NOT emit BEL (U+0007 / `\x07`) or any replacement terminal notification protocol. IDLE completion visibility is provided by deterministic status markers and by host/tool integrations outside ADV's correctness path. `WORK→IDLE`, `TOOLING→IDLE`, `BLOCKED→IDLE`, `IDLE→IDLE`, and `IDLE↔ATTN` transitions MUST remain non-audible from ADV itself.
+ADV status transitions MUST NOT emit BEL (U+0007 / `\x07`) or any replacement terminal notification protocol. IDLE completion visibility is provided by deterministic status markers and by host/tool integrations outside ADV's correctness path. WORK→IDLE, TOOLING→IDLE, BLOCKED→IDLE, IDLE→IDLE, and IDLE↔ATTN transitions MUST remain non-audible from ADV itself.
 
 **Tags:** `chat-output-display`, `status-marker`, `notification`
 
@@ -287,20 +299,20 @@ ADV status transitions MUST NOT emit BEL (U+0007 / `\x07`) or any replacement te
 **WORK → IDLE does not emit BEL** (`rq-idleMarker03.1`)
 
 **Given:**
-- Previous status is `WORK`
+- Previous status is WORK
 
-**When:** Status transitions to `IDLE`
+**When:** Status transitions to IDLE
 
 **Then:**
 - ADV emits no BEL byte
-- The visible status marker still resolves to `IDLE`
+- The visible status marker still resolves to IDLE
 
 **BLOCKED → IDLE remains non-audible** (`rq-idleMarker03.2`)
 
 **Given:**
-- Previous status is `BLOCKED`
+- Previous status is BLOCKED
 
-**When:** Status transitions to `IDLE`
+**When:** Status transitions to IDLE
 
 **Then:**
 - ADV emits no BEL byte
@@ -311,7 +323,7 @@ ADV status transitions MUST NOT emit BEL (U+0007 / `\x07`) or any replacement te
 **Given:**
 - A host or tool integration provides its own completion notification
 
-**When:** ADV status transitions into `IDLE`
+**When:** ADV status transitions into IDLE
 
 **Then:**
 - ADV correctness does not depend on that host notification
@@ -357,7 +369,7 @@ Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title seque
 
 **ID:** `rq-titleIdentity01` | **Priority:** **[MUST]**
 
-Terminal title identity MUST show the active ADV change id when a change is active, and MUST prefix it with the parent Epic id when the change has Epic membership (`epicId | changeId`). When no reachable active ADV change exists, ADV MUST NOT write, clear, or replace the pane title; the pane retains its last intentional ADV title. The active title MUST NOT include a project prefix, project name fallback, worktree path, git branch, trunk/main checkout marker, status marker, progress text, blocked marker, or emoji. Title identity changes MUST remain subject to `rq-titleBell01` sanitization and non-audible emission rules.
+Terminal title identity MUST show the active ADV change id when a change is active, and MUST prefix it with the parent Epic id when the change has Epic membership (`epicId | changeId`). When no reachable active ADV change exists, ADV MUST NOT write, clear, or replace the pane title; the pane retains its last intentional ADV title. The active title MUST NOT include a project prefix, project name fallback, worktree path, git branch, trunk/main checkout marker, status marker, progress text, blocked marker, or emoji. Title identity changes MUST remain subject to rq-titleBell01 sanitization and non-audible emission rules.
 
 **Tags:** `chat-output-display`, `terminal-title`, `identity`
 
@@ -418,7 +430,7 @@ Terminal title identity MUST show the active ADV change id when a change is acti
 **When:** ADV emits the terminal title
 
 **Then:**
-- Control bytes are normalized per `rq-titleBell01`
+- Control bytes are normalized per rq-titleBell01
 - The emitted title sequence contains no BEL byte and terminates with ST
 
 ---
@@ -451,10 +463,10 @@ When the agent switches workdir to a different repository during a change, a for
 **Given:**
 - A cross-repo switch with typical from-path, to-path, and task title
 
-**When:** `formatCrossRepoSwitch` renders the indicator
+**When:** formatCrossRepoSwitch renders the indicator
 
 **Then:**
-- The rendered output has no more than 3 content lines (excluding `╔` and `╚` box borders)
+- The rendered output has no more than 3 content lines (excluding ╔ and ╚ box borders)
 
 ---
 
@@ -462,7 +474,7 @@ When the agent switches workdir to a different repository during a change, a for
 
 **ID:** `rq-ctxformat` | **Priority:** **[MUST]**
 
-All context display formatting (snapshot, ticker, cross-repo switch) MUST use box-drawing characters consistent with existing ADV patterns (`banner.ts`). The format MUST be deterministic — identical state produces identical output. The compact ticker and the cross-repo switch indicator MUST stay within 80 columns; long content (change IDs, paths, task titles) is truncated rather than wrapped. The full Context Snapshot prioritises gate-progress visibility (`rq-ctxsnap1`) over the 80-column budget — its box grows naturally to fit the inline gate row, and only the `CONTEXT` line truncates the change ID to keep the overall budget bounded. The output MUST NOT include interactive prompts or block execution.
+All context display formatting (snapshot, ticker, cross-repo switch) MUST use box-drawing characters consistent with existing ADV patterns (banner.ts). The format MUST be deterministic — identical state produces identical output. The compact ticker and the cross-repo switch indicator MUST stay within 80 columns; long content (change IDs, paths, task titles) is truncated rather than wrapped. The full Context Snapshot prioritises gate-progress visibility (rq-ctxsnap1) over the 80-column budget — its box grows naturally to fit the inline gate row, and only the CONTEXT line truncates the change ID to keep the overall budget bounded. The output MUST NOT include interactive prompts or block execution.
 
 **Tags:** `chat-output-display`, `format`
 
@@ -492,20 +504,20 @@ All context display formatting (snapshot, ticker, cross-repo switch) MUST use bo
 **Compact surfaces never exceed 80 columns** (`rq-ctxformat.3`)
 
 **Given:**
-- A long change ID and a long combined cross-repo `from → to` path
+- A long change ID and a long combined cross-repo from→to path
 
 **When:** The compact ticker or cross-repo switch indicator is rendered
 
 **Then:**
 - Each emitted line is ≤80 columns wide
-- The full snapshot box is exempt — its width is driven by the gate-progress row (`rq-ctxsnap1`) and may exceed 80 cols when all 7 gates are displayed
+- The full snapshot box is exempt — its width is driven by the gate-progress row (rq-ctxsnap1) and may exceed 80 cols when all 7 gates are displayed
 
 **Snapshot CONTEXT line truncates long change IDs** (`rq-ctxformat.4`)
 
 **Given:**
 - A change ID longer than the available width on the CONTEXT line
 
-**When:** `formatContextSnapshot` renders the box
+**When:** formatContextSnapshot renders the box
 
 **Then:**
 - The CONTEXT line displays the change ID truncated with an ellipsis suffix
