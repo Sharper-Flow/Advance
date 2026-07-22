@@ -394,6 +394,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Read-only Temporal recovery diagnostic.",
   },
+  adv_doctor: {
+    class: "orchestrator",
+    rationale:
+      "Single diagnose→safe-fix→verify entry point for routine infrastructure recovery. Orchestrator-reachable because every fix is gated on a proven safe-subset and every escalation refuses with a typed approval-required proposal.",
+  },
   adv_temporal_reconnect: {
     class: "orchestrator",
     rationale: "STSL reconnect without workflow-state mutation.",

@@ -84,6 +84,7 @@ import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { temporalOpsTools } from "./tools/temporal-ops";
+import { doctorTools } from "./tools/doctor";
 import { checkpointTools } from "./tools/checkpoint";
 import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
 import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
@@ -779,6 +780,10 @@ export function createToolMap(
       "adv_temporal_diagnose",
       store,
     ),
+    // rq-doctorConsolidation01 (tk-dc21b6a3658d): single diagnose→safe-
+    // fix→verify entry point. Orchestrator-reachable; refuses unsafe
+    // escalations with typed approval-required proposals.
+    adv_doctor: bindTool(doctorTools.adv_doctor, "adv_doctor", store),
     adv_temporal_register_search_attributes: bindTool(
       temporalOpsTools.adv_temporal_register_search_attributes,
       "adv_temporal_register_search_attributes",
@@ -1239,6 +1244,7 @@ const PUBLIC_TOOL_GROUPS = [
   gateTools,
   testTools,
   temporalOpsTools,
+  doctorTools,
   checkpointTools,
   reflectionTools,
   snapshotHealthTools,
