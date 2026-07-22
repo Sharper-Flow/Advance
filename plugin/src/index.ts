@@ -42,8 +42,18 @@ import {
   recordSystemBlockBytes,
   resetMetrics,
 } from "./utils/metrics";
+import { initializeToolSchemaTelemetry } from "./utils/tool-schema-telemetry";
+import {
+  recordStepFinishTokens,
+  resetCacheTokenTelemetry,
+} from "./utils/cache-token-telemetry";
+import { resetLaneProjectionsCache } from "./utils/tool-lane-projection";
 
-import { createToolMap, createDegradedToolMap } from "./tool-registry";
+import {
+  createToolMap,
+  createDegradedToolMap,
+  getRegisteredAdvToolEntries,
+} from "./tool-registry";
 import { loadProjectConfigWithDiagnostics } from "./storage/json";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
@@ -463,6 +473,15 @@ const advancePluginImpl: Plugin = async (input) => {
   // AC6 — reset session-scoped metrics on every plugin init. JC-1 keeps
   // metrics in-memory only; no persistence across plugin restarts.
   resetMetrics();
+  resetCacheTokenTelemetry();
+  resetLaneProjectionsCache();
+  // AC1 — schema conversion is amortized at init; request hooks only read the
+  // retained manifest through the status health surface.
+  // Map PublicToolEntry (object form, consolidateAdvToolSurface2) to the
+  // [name, args] tuple the telemetry module expects.
+  initializeToolSchemaTelemetry(
+    getRegisteredAdvToolEntries().map((e) => [e.name, e.args] as const),
+  );
 
   // No handoff.json hydration: session startup is now workflow-backed.
   // The old external handoff file is transitional legacy state and will be
@@ -600,7 +619,13 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_change_update_issues",
     "adv_change_repair_origin",
     "adv_delta_add",
+    "adv_delta_amend",
     "adv_delta_modify",
+    "adv_delta_remove",
+    "adv_delta_rename",
+    "adv_delta_retract",
+    "adv_delta_list",
+    "adv_delta_show",
     "adv_contract_mint",
     "adv_contract_review_matrix_set",
     "adv_subagent_report_submit",
@@ -1112,6 +1137,10 @@ const advancePluginImpl: Plugin = async (input) => {
 
         if (eventType === "session.status") {
           handleSessionStatusEvent(event as { properties: unknown });
+        } else if (eventType === "message.part.updated") {
+          const properties = (event as { properties?: { part?: unknown } })
+            .properties;
+          recordStepFinishTokens(properties?.part);
         } else if (eventType === "session.deleted") {
           await handleSessionDeletedEvent();
         } else if (
@@ -1297,6 +1326,19 @@ const advancePluginImpl: Plugin = async (input) => {
         // are promoted or auto-dismissed at checkpoint.
         if (result.consumedWisdomPrompt) {
           state.lastCompletedTask = null;
+        }
+
+        // fixSessionHealthBannerNoise: mark a message-history session-health
+        // issue as surfaced once its banner has been emitted, so the one-shot
+        // banner does not repeat every turn. A subsequent compaction event
+        // replaces lastSessionHealthIssue with a fresh (unsurfaced) issue,
+        // which re-emits once. session.error banners stay sticky and are
+        // never marked surfaced here.
+        if (
+          result.surfacedMessageHistoryHealth &&
+          state.lastSessionHealthIssue?.kind === "message-history"
+        ) {
+          state.lastSessionHealthIssue.surfaced = true;
         }
       } catch (e) {
         debugLog(`experimental.chat.system.transform error: ${e}`);

@@ -2200,13 +2200,13 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 
 **ID:** `rq-advStatusLazyView01` | **Priority:** **[MUST]**
 
-`adv_status` MUST execute only the provider groups required by the selected `view`. `view: "summary"` MUST NOT invoke detailed-only providers (queue serviceability, search-attribute probe, worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: "summary"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. Required `_contextSnapshot` emission (chat-output-display `rq-ctxsnap2`, `rq-ctxticker2.5`) MUST be preserved across all views.
+`adv_status` MUST execute only the provider groups required by the selected `view`. `view: "summary"` MUST NOT invoke detailed-only providers (queue serviceability, search-attribute probe, worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: "summary"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. The recommendation-list `_contextSnapshot` emission (chat-output-display `rq-ctxticker2.5` — advisory multi-change display) MUST be preserved across all views. The default-OFF opt-in behavior of `rq-ctxsnap2` and `rq-ctxticker2` (applied to mutation/ready tools) does NOT affect `adv_status` recommendation-list snapshots.
 
 **Tags:** `adv_status`, `latency`
 
 #### Scenarios
 
-**Summary skips detailed providers** (`rq-advStatusLazyView01.1`)
+**Summary skips detailed providers but preserves recommendation-list snapshots** (`rq-advStatusLazyView01.1`)
 
 **Given:**
 - adv_status is called with view: "summary"
@@ -2216,7 +2216,7 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 **Then:**
 - Detailed-only providers are not invoked
 - Formatted summary omits health/worktree/session-debt/peer detail sections
-- Required `_contextSnapshot` is still emitted per chat-output-display
+- Recommendation-list `_contextSnapshot` per `rq-ctxticker2.5` is still emitted (advisory multi-change display, MCP-contract-bound)
 
 **Detailed views retain their providers** (`rq-advStatusLazyView01.2`)
 

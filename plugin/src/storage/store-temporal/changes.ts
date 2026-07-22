@@ -1429,6 +1429,74 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           markDeadline("workflow_query");
           continue;
         }
+
+        // bl-HiZJbUuy: disk-first summary hydration. On a cache+memo miss,
+        // resolve the row from the durable active change.json projection BEFORE
+        // any per-workflow Temporal query. This is the path adv_change_list /
+        // adv_status take; keeping it disk-first makes enumeration O(disk) and
+        // off the single shared worker under multi-session load (the N+1 query
+        // here was the residual change-list timeout after the listResolvedChanges
+        // fix). The getTemporalChange query below is retained ONLY as a bounded
+        // fallback for Temporal/memo-only IDs with no active disk projection.
+        // Mutation preconditions still call getTemporalChange directly
+        // (Temporal-fresh); this reorder is scoped to the read-only listSummary.
+        try {
+          const diskLoaded = await raceWithTemporalDeadline(
+            loadChange(legacy.paths.changes, id),
+            ctx.deadline,
+          );
+          if (isSchemaError(diskLoaded)) {
+            throw new Error(diskLoaded.error);
+          }
+          if (diskLoaded.success && diskLoaded.data) {
+            let change = diskLoaded.data;
+            // Archive-bundle terminal override: a non-terminal disk status with
+            // a present bundle IS archived; it is filtered from the warm path.
+            // (Properly-archived changes have their active dir removed, so they
+            // miss the disk read above and fall through to getTemporalChange;
+            // this covers the rare best-effort removeChangeDir residue.)
+            if (
+              change.status !== "archived" &&
+              change.status !== "closed" &&
+              legacy.paths.archive &&
+              (await hasArchiveBundle(legacy.paths.archive, id))
+            ) {
+              change = { ...change, status: "archived" as const };
+            }
+            fromHydration += 1;
+            rows.push({
+              id: change.id,
+              title: change.title,
+              status: change.status,
+              currentGate: firstOpenGate(change.gates),
+              lifecycleState: change.lifecycleState,
+              created_at: change.created_at,
+              lastActivityAt: computeLastActivity(change),
+              taskCount: change.tasks.length,
+              completedTasks: change.tasks.filter((t) => t.status === "done")
+                .length,
+              fast_follow_of: change.fast_follow_of,
+              ops_followup: change.ops_followup,
+              ops_followup_links: change.ops_followup_links,
+              epic_membership: change.epic_membership,
+            });
+            continue;
+          }
+        } catch (err) {
+          if (err instanceof TemporalQueryTimeoutError || expired()) {
+            markDeadline("workflow_query");
+            continue;
+          }
+          // Disk miss / unreadable (not a deadline) — fall through to the
+          // bounded workflow-query fallback below.
+        }
+
+        // If the disk-first read exhausted the budget, do not begin a workflow
+        // query (which would reject expired and orphan its rejection).
+        if (expired()) {
+          markDeadline("workflow_query");
+          continue;
+        }
         try {
           const loaded = await raceWithTemporalDeadline(
             getTemporalChange(id, { context: ctx }),

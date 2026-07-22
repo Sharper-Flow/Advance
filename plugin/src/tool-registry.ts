@@ -358,6 +358,36 @@ export function createToolMap(
       "adv_delta_modify",
       store,
     ),
+    adv_delta_amend: bindTool(
+      specDeltaTools.adv_delta_amend,
+      "adv_delta_amend",
+      store,
+    ),
+    adv_delta_retract: bindTool(
+      specDeltaTools.adv_delta_retract,
+      "adv_delta_retract",
+      store,
+    ),
+    adv_delta_remove: bindTool(
+      specDeltaTools.adv_delta_remove,
+      "adv_delta_remove",
+      store,
+    ),
+    adv_delta_rename: bindTool(
+      specDeltaTools.adv_delta_rename,
+      "adv_delta_rename",
+      store,
+    ),
+    adv_delta_list: bindTool(
+      specDeltaTools.adv_delta_list,
+      "adv_delta_list",
+      store,
+    ),
+    adv_delta_show: bindTool(
+      specDeltaTools.adv_delta_show,
+      "adv_delta_show",
+      store,
+    ),
 
     // adv_wip_state — fixTriageTimeouts.
     //
@@ -1206,6 +1236,14 @@ const PUBLIC_TOOL_GROUPS = [
 export const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(
   collectPublicToolEntries(PUBLIC_TOOL_GROUPS),
 );
+
+/**
+ * Registered ADV tool definitions for init-time schema telemetry. The entries
+ * intentionally reuse the inventory that parity-tests against createToolMap.
+ */
+export function getRegisteredAdvToolEntries(): readonly PublicToolEntry[] {
+  return PUBLIC_TOOL_ENTRIES;
+}
 
 /**
  * Live tool-surface lookup (addAcWarrantGuard): tool name → set of declared

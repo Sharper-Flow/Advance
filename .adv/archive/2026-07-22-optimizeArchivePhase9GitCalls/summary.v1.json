@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-22T19:11:41.514Z",
+  "capabilities": [],
+  "change_hash": "dcf6f7f9503bcfc8a4c4519f04ee1d3387f4997c8c1c047e7b1f29ee72b8c225",
+  "change_id": "optimizeArchivePhase9GitCalls",
+  "completed_tasks": 3,
+  "created_at": "2026-07-20T21:50:54.266Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-22T19:05:44.822Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "bea37ca0967589ee003b8ffb9eae3a56d0feb3bfbe1cf9556d8a3d8367fafa35",
+  "task_count": 3,
+  "title": "Optimize archive phase9 git calls",
+  "version": "1"
+}

@@ -555,10 +555,102 @@ describe("adv_change_archive Phase 9 behavior", () => {
     }
   });
 
-  test("blocks existing-bundle retry when stored release done lacks matching Phase 9 evidence", async () => {
+  describe("finalizationShipped reconciliation (fixReleaseDurabilityFalse)", () => {
+    const structuredEvidence =
+      "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
+
+    const makeReleaseDoneStore = (approvalEvidence: string): Store =>
+      ({
+        paths: { changes: "/nonexistent-durability-test" },
+        gates: {
+          get: async () => ({
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "done" },
+            execution: { status: "done" },
+            acceptance: { status: "done" },
+            release: {
+              status: "done",
+              completed_at: "2026-01-01T00:00:00Z",
+              completed_by: "user",
+              approval_evidence: approvalEvidence,
+            },
+          }),
+        },
+      }) as unknown as Store;
+
+    test("AC4: manual free-text gate evidence + finalizationShipped accepts the durable proof", async () => {
+      // The operator completed the release gate manually with a free-text
+      // note that does NOT contain the structured completion evidence.
+      const store = makeReleaseDoneStore(
+        "PR #282 admin-merged to trunk (commit a10f2bc1)",
+      );
+      const proof = await verifyReleaseGateDurableForArchive({
+        store,
+        changeId: "example",
+        evidence: structuredEvidence,
+        finalizationShipped: true,
+      });
+      expect(proof.ok).toBe(true);
+    });
+
+    test("AC2 (guard preserved): non-matching evidence + NOT shipped still fails", async () => {
+      const store = makeReleaseDoneStore(
+        "PR #282 admin-merged to trunk (commit a10f2bc1)",
+      );
+      const proof = await verifyReleaseGateDurableForArchive({
+        store,
+        changeId: "example",
+        evidence: structuredEvidence,
+        finalizationShipped: false,
+      });
+      expect(proof.ok).toBe(false);
+      expect(proof).toMatchObject({
+        error: expect.stringContaining("lacks matching Phase 9 evidence"),
+      });
+    });
+
+    test("AC3 (backward compat): matching structured evidence accepts even when finalizationShipped is false", async () => {
+      // archive-completed gate: stored approval_evidence contains the
+      // structured completion string, so the evidence path matches.
+      const store = makeReleaseDoneStore(`release done; ${structuredEvidence}`);
+      const proof = await verifyReleaseGateDurableForArchive({
+        store,
+        changeId: "example",
+        evidence: structuredEvidence,
+        finalizationShipped: false,
+      });
+      expect(proof.ok).toBe(true);
+    });
+
+    test("squash-supersession regression: superseded SHA in gate evidence + finalizationShipped accepts", async () => {
+      const store = makeReleaseDoneStore(
+        "release done; mergeCommitSha=OLDSQUASHSHA111",
+      );
+      const proof = await verifyReleaseGateDurableForArchive({
+        store,
+        changeId: "example",
+        evidence:
+          "Phase 9 finalization shipped; mergeCommitSha=NEWBUNDLEMERGE222",
+        finalizationShipped: true,
+      });
+      expect(proof.ok).toBe(true);
+    });
+  });
+
+  test("archives a shipped change whose done release gate lacks matching Phase 9 evidence (fixReleaseDurabilityFalse — no false-negative)", async () => {
     // T10 readArtifact fallback may call findArchiveBundle before the archive
     // flow; use a stable default so the existing-bundle path is actually hit.
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    // Genuinely-shipped change (default finalizeRelease → status: "shipped")
+    // whose release gate is done but carries NO matching structured evidence
+    // (createMockStore sets release done with no approval_evidence — the same
+    // shape produced by a manual free-text gate completion or a squash-merge
+    // SHA supersession). Pre-fix this produced the rq-releaseProjectionDurability01
+    // false-negative that forced an adv_change_status_repair fallback. The
+    // fresh shipped finalization is authoritative proof the change reached the
+    // default branch, so archival now succeeds on the first call.
     const store = createMockStore({ status: "archived", releaseDone: true });
 
     const result = await changeTools.adv_change_archive.execute(
@@ -567,11 +659,8 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(false);
-    expect(parsed.requirement).toBe("rq-releaseProjectionDurability01");
-    expect(parsed.error).toContain("durable release gate proof");
-    expect(store.changes.save).not.toHaveBeenCalled();
-    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+    expect(parsed.success).toBe(true);
+    expect(parsed.error).toBeUndefined();
   });
 
   test("skips finalization when phase9=skip", async () => {

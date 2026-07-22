@@ -927,8 +927,14 @@ describe("deploy-local.sh", () => {
       // adv_design_concern_disposition and we added it to the allowlists.
       // Ceiling raised from 400 → 411 after adding adv_change_repair_origin and
       // adv_delta_modify to the canonical ADV agent allowlist.
+      // Ceiling raised from 411 → 412 after trunk added adv_tool_invoke,
+      // adv_archive_purge, adv_contract_mint, and adv_snapshot_health to the
+      // canonical ADV agent allowlist.
+      // Ceiling raised from 412 → 416 after adding adv_delta_amend,
+      // adv_delta_retract, adv_delta_remove, and adv_delta_rename to the
+      // canonical ADV agent allowlist.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(411);
+      expect(lines).toBeLessThanOrEqual(416);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

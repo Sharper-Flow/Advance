@@ -78,7 +78,11 @@ import {
   applyTestRunRecordedToState,
   applyWisdomAddedToState,
   applySpecDeltaAddedToState,
+  applySpecDeltaAmendedToState,
   applySpecDeltaModifiedToState,
+  applySpecDeltaRemovedToState,
+  applySpecDeltaRenamedToState,
+  applySpecDeltaRetractedToState,
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
@@ -378,6 +382,18 @@ const specDeltaAddedSignal = wf.defineSignal<
 const specDeltaModifiedSignal = wf.defineSignal<
   [import("../types").SpecDeltaModifiedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaModified);
+const specDeltaAmendedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaAmendedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAmended);
+const specDeltaRetractedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaRetractedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaRetracted);
+const specDeltaRemovedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaRemovedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaRemoved);
+const specDeltaRenamedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaRenamedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaRenamed);
 const reflectionRecordedSignal = wf.defineSignal<
   [import("../types").ReflectionRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
@@ -1552,6 +1568,30 @@ export async function changeWorkflow(
     specDeltaModifiedSignal,
     signalMutation("specDeltaModified", (payload) =>
       applySpecDeltaModifiedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    specDeltaAmendedSignal,
+    signalMutation("specDeltaAmended", (payload) =>
+      applySpecDeltaAmendedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    specDeltaRetractedSignal,
+    signalMutation("specDeltaRetracted", (payload) =>
+      applySpecDeltaRetractedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    specDeltaRemovedSignal,
+    signalMutation("specDeltaRemoved", (payload) =>
+      applySpecDeltaRemovedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    specDeltaRenamedSignal,
+    signalMutation("specDeltaRenamed", (payload) =>
+      applySpecDeltaRenamedToState(state, payload),
     ),
   );
   wf.setHandler(

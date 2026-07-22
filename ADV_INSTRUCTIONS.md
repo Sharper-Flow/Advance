@@ -214,7 +214,7 @@ Tab title: active ADV change identity only. With an active change the title is e
 
 - Change ID/title, gate progress (`[✓ proposal] [○ execution] ...`), task counts, current task, workdir
 
-Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv_status` primary change, and task-state ticker tools (`adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`). Read tools omit it by default, except `adv_change_show include: { snapshot: true }`, which returns `_contextSnapshot` on request.
+Emitted by mutation/ticker tools (`adv_change_create`, `adv_change_reenter`, `adv_gate_complete`, `adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`, `adv_wisdom_add`) only when the caller passes `include.snapshot:true`. When omitted (default), no snapshot is emitted. `adv_change_show include: { snapshot: true }` also returns `_contextSnapshot` on request. `adv_status` recommendation-list snapshots follow `rq-ctxticker2.5` (unchanged — advisory multi-change display, MCP-contract-bound).
 
 **Cross-Repo Switch** — emit via `formatCrossRepoSwitch()`.
 
@@ -243,6 +243,8 @@ Each finding carries a label from `/adv-coordinate`'s inherited taxonomy: `repo_
 - Spec law: `rq-resumeFreshness01` under `advance-workflow`.
 
 **Single HIGH-confidence `resume:archived_duplicate` action:** surface a copy-pasteable `adv_change_close ... supersededBy: <current>` snippet. User must run explicitly with their own approval evidence. **ADV does not auto-execute close.** Wording: "one-command accept (copy-paste and run)" — never "one-click" or any phrasing implying button-click auto-execution.
+
+**Session hygiene — one session per major change.** Prefer a fresh OpenCode session for each major change rather than chaining multiple `/adv-archive` cycles in one long-lived session. Long sessions accumulate large tool outputs and diffs; ADV compacts any prompt entry over the size threshold and surfaces a one-shot `[ADV:SESSION_HEALTH]` banner (`message-history` kind) warning that prior chat history is truncated and not a source of truth. The banner is informational (fires once per compaction event), but its appearance is the signal to start fresh and resume by `changeId` — durable ADV state (changes, tasks, gates, contracts) is the source of truth, not chat scrollback.
 
 
 ### MCP Tool Name Contract

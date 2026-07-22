@@ -24,9 +24,19 @@ import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import { GATE_ORDER, createDefaultGates } from "../types";
 import {
+  initializeToolSchemaTelemetry,
+  resetToolSchemaTelemetry,
+} from "../utils/tool-schema-telemetry";
+import {
+  recordStepFinishTokens,
+  resetCacheTokenTelemetry,
+} from "../utils/cache-token-telemetry";
+import { z } from "zod";
+import {
   clearPendingDelete,
   incrementPendingDeleteAttempts,
   initStateDb as initWorktreeStateDb,
+  recordPendingDeleteFailure,
   setPendingDelete,
 } from "./worktree/state";
 
@@ -106,6 +116,12 @@ vi.mock("../temporal/service", () => ({
   getService: vi.fn().mockReturnValue(null),
 }));
 
+const mockGetLaneProjections = vi.hoisted(() => vi.fn());
+vi.mock("../utils/tool-lane-projection", () => ({
+  getLaneProjections: mockGetLaneProjections,
+  resetLaneProjectionsCache: () => {},
+}));
+
 describe("Status Tools", () => {
   let tempDir: string;
   let store: Store;
@@ -183,6 +199,23 @@ describe("Status Tools", () => {
       branches: new Set<string>(),
       worktreePaths: {},
     });
+    mockGetLaneProjections.mockReset();
+    mockGetLaneProjections.mockResolvedValue({
+      "adv-ci-waiter": {
+        availability: "unavailable" as const,
+        enabled_tools: 0,
+        schema_bytes: 0,
+        approx_tokens_4char_rule: 0,
+        conversion_errors: 0,
+      },
+      "adv-engineer": {
+        availability: "unavailable" as const,
+        enabled_tools: 0,
+        schema_bytes: 0,
+        approx_tokens_4char_rule: 0,
+        conversion_errors: 0,
+      },
+    });
     await createTestProject(tempDir);
     store = await createLegacyStore(tempDir);
   });
@@ -190,6 +223,8 @@ describe("Status Tools", () => {
   afterEach(async () => {
     store.close();
     await cleanupTempDir(tempDir);
+    resetToolSchemaTelemetry();
+    resetCacheTokenTelemetry();
     vi.useRealTimers();
   });
 
@@ -278,6 +313,16 @@ describe("Status Tools", () => {
       for (let i = 0; i < 5; i++) {
         await incrementPendingDeleteAttempts(access, "change/status-retained");
       }
+      // Record the typed blocker so production classification is deterministic:
+      // classifyPendingDelete returns lastErrorClass first, then falls back to
+      // the reason string. Without this, the shared drain could classify the
+      // fixture as worktree_not_found depending on runtime state.
+      await recordPendingDeleteFailure(
+        access,
+        "change/status-retained",
+        "WORKTREE_IN_USE",
+        "worktree_in_use",
+      );
 
       try {
         const result = await statusTools.adv_status.execute(
@@ -1451,7 +1496,89 @@ Vague in-flight work.
         expect(parsed.opencode_session_debt).toBeUndefined();
         expect(parsed.diagnostics).toBeDefined();
 
+        // T4: tool-context telemetry is surfaced in health view.
+        expect(parsed.tool_context_telemetry).toBeDefined();
+        expect(parsed.tool_context_telemetry.manifest).toBeDefined();
+        expect(parsed.tool_context_telemetry.cache_tokens).toBeDefined();
+        expect(parsed.tool_context_telemetry.limitations).toEqual(
+          expect.arrayContaining([
+            "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
+          ]),
+        );
+
         // Summary-only fields are absent from health view.
+        expect(parsed.temporal_health_ok).toBeUndefined();
+        expect(parsed.worktree_count).toBeUndefined();
+      });
+
+      test("health view surfaces tool_context_telemetry with manifest, cache tokens, lane projections, and limitation", async () => {
+        // Seed the init-time schema manifest with a representative, measurable set.
+        resetToolSchemaTelemetry();
+        const manifest = initializeToolSchemaTelemetry([
+          [
+            "adv_status",
+            { view: z.enum(["summary", "health", "changes", "hygiene"]) },
+          ],
+          ["adv_engineer", { taskId: z.string() }],
+        ]);
+
+        // Seed bounded numeric cache-token samples.
+        resetCacheTokenTelemetry();
+        recordStepFinishTokens({
+          type: "step-finish",
+          tokens: { input: 100, cache: { read: 10, write: 20 } },
+        });
+        recordStepFinishTokens({
+          type: "step-finish",
+          tokens: { input: 200, cache: { read: 20, write: 40 } },
+        });
+
+        // Mock the two representative lane projections: one available, one unavailable.
+        mockGetLaneProjections.mockResolvedValue({
+          "adv-ci-waiter": {
+            availability: "available" as const,
+            enabled_tools: 1,
+            schema_bytes: manifest.tools.adv_status.schema_bytes,
+            approx_tokens_4char_rule:
+              manifest.tools.adv_status.approx_tokens_4char_rule,
+            conversion_errors: 0,
+          },
+          "adv-engineer": {
+            availability: "unavailable" as const,
+            enabled_tools: 0,
+            schema_bytes: 0,
+            approx_tokens_4char_rule: 0,
+            conversion_errors: 0,
+          },
+        });
+
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.view).toBe("health");
+        expect(parsed.tool_context_telemetry).toBeDefined();
+        expect(parsed.tool_context_telemetry.manifest.total_tools).toBe(2);
+        expect(parsed.tool_context_telemetry.manifest.total_schema_bytes).toBe(
+          manifest.total_schema_bytes,
+        );
+        expect(parsed.tool_context_telemetry.cache_tokens.sample_count).toBe(2);
+        expect(
+          parsed.tool_context_telemetry.cache_tokens.total_input_tokens,
+        ).toBe(300);
+        expect(parsed.tool_context_telemetry.lane_projections).toMatchObject({
+          "adv-ci-waiter": { availability: "available" },
+          "adv-engineer": { availability: "unavailable" },
+        });
+        expect(parsed.tool_context_telemetry.limitations).toEqual(
+          expect.arrayContaining([
+            "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
+          ]),
+        );
+
+        // Summary-only fields remain absent.
         expect(parsed.temporal_health_ok).toBeUndefined();
         expect(parsed.worktree_count).toBeUndefined();
       });

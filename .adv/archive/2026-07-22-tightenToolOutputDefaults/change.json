@@ -1,0 +1,1863 @@
+{
+  "id": "tightenToolOutputDefaults",
+  "title": "Tighten tool output defaults",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T01:54:38.534Z",
+  "tasks": [
+    {
+      "id": "tk-e6433ddc1d16",
+      "title": "Add `includeSnapshotSchema` to shared-args.ts",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T13:31:03.794Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Tests pass (9/9 in shared-args.test.ts). Typecheck clean. Schema mirrors adv_change_show include.snapshot shape (change.ts:970-975).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/context-snapshot-fetch.test.ts",
+        "plugin/src/storage/context-snapshot-fetch.ts",
+        "plugin/src/utils/tool-output.test.ts",
+        "plugin/src/utils/tool-output.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/context-snapshot-fetch.test.ts",
+        "plugin/src/storage/context-snapshot-fetch.ts",
+        "plugin/src/utils/tool-output.test.ts",
+        "plugin/src/utils/tool-output.ts"
+      ],
+      "checkpointSha": "963ca3a5cff525ada2243468c0f5bb63eab2593a",
+      "completedAt": "2026-07-21T14:18:44.360Z",
+      "completed_at": "2026-07-21T14:18:44.360Z"
+    },
+    {
+      "id": "tk-0af83bddb1c4",
+      "title": "Add `maybeAttachChangeTicker` helper to context-snapshot-fetch.ts",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T13:31:43.723Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Tests pass (11/11 in context-snapshot-fetch.test.ts, 6 new maybeAttachChangeTicker tests). Helper no-ops when snapshot falsy, attaches when true, swallows errors uniformly (DDC4).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "963ca3a5cff525ada2243468c0f5bb63eab2593a",
+      "completedAt": "2026-07-21T14:19:04.117Z",
+      "completed_at": "2026-07-21T14:19:04.117Z"
+    },
+    {
+      "id": "tk-4a2433e9e75f",
+      "title": "Add `resolveOutputMode()` precedence resolver to tool-output.ts",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-21T13:31:43.727Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "respects": [
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Tests pass (5/5 resolveOutputMode tests in tool-output.test.ts). All 4 (arg, env) combinations covered including validator-flagged case: (\"compact\", pretty_env) → false. Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "963ca3a5cff525ada2243468c0f5bb63eab2593a",
+      "completedAt": "2026-07-21T14:19:04.215Z",
+      "completed_at": "2026-07-21T14:19:04.215Z"
+    },
+    {
+      "id": "tk-32aa7e0a3408",
+      "title": "Spec delta: modify `rq-ctxsnap2` (Context Snapshot Emission Triggers)",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 2,
+      "created_at": "2026-07-21T13:32:27.407Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec deltas are spec-law text modifications validated by archive-time spec validation (SHA preconditions + scenario shape checks), not by runtime tests. The adv_delta_modify tool enforces structural validation at delta-add time.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "cancelApproval": "User approved via inline Tier B: approve all",
+      "cancelledAt": "2026-07-21T15:34:50.240Z",
+      "completed_at": "2026-07-21T15:34:50.240Z",
+      "cancellation": {
+        "reason": "Spec delta dl-xtxFRdk1ybRO recorded; evidence policy static_check requires reviewer evidence unavailable at execution; delta persists in ADV state",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via inline Tier B: approve all",
+        "approved_at": "2026-07-21T15:34:50.240Z"
+      }
+    },
+    {
+      "id": "tk-7a7346dd81d4",
+      "title": "Spec delta: modify `rq-ctxticker2` (Context Ticker Emission Triggers)",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 2,
+      "created_at": "2026-07-21T13:32:27.458Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec deltas are spec-law text modifications validated by archive-time spec validation (SHA preconditions + scenario shape checks), not by runtime tests. The adv_delta_modify tool enforces structural validation at delta-add time.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "cancelApproval": "User approved via inline Tier B: approve all",
+      "cancelledAt": "2026-07-21T15:34:50.240Z",
+      "completed_at": "2026-07-21T15:34:50.240Z",
+      "cancellation": {
+        "reason": "Spec delta dl-tb1q3HJWCv2u recorded; same evidence policy blocker; delta persists",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via inline Tier B: approve all",
+        "approved_at": "2026-07-21T15:34:50.240Z"
+      }
+    },
+    {
+      "id": "tk-21dc45c92650",
+      "title": "Spec delta: modify `rq-advStatusLazyView01` (adv_status lazy view planning)",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 3,
+      "created_at": "2026-07-21T13:32:27.540Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT4",
+          "OOS2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec deltas are spec-law text modifications validated by archive-time spec validation (SHA preconditions + scenario shape checks), not by runtime tests. The adv_delta_modify tool enforces structural validation at delta-add time.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "cancelApproval": "User approved via inline Tier B: approve all",
+      "cancelledAt": "2026-07-21T15:34:50.240Z",
+      "completed_at": "2026-07-21T15:34:50.240Z",
+      "cancellation": {
+        "reason": "Spec delta dl-dExfd5Lb947l recorded; same blocker; delta persists",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via inline Tier B: approve all",
+        "approved_at": "2026-07-21T15:34:50.240Z"
+      }
+    },
+    {
+      "id": "tk-83760592f580",
+      "title": "Add `outputMode` arg to 3 heavy reads + precedence tests + regression check",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-21T13:33:55.265Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4a2433e9e75f"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "outputMode arg added to 3 heavy reads (adv_change_show, adv_task_list, adv_status). Each wired via formatToolOutput(output, { pretty: resolveOutputMode(outputMode) }). resolveOutputMode enforces arg > env > compact precedence (DDC5). Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "checkpointSha": "dc1a8062baa28dde03ad3d93e55c68f8a475c474",
+      "completedAt": "2026-07-21T14:54:21.200Z",
+      "completed_at": "2026-07-21T14:54:21.200Z"
+    },
+    {
+      "id": "tk-f64ea513f734",
+      "title": "Add `include.snapshot` arg + gate full-box emission on 3 full-box tools + per-tool absence/opt-in tests",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-21T13:33:55.412Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e6433ddc1d16"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "DONT2"
+        ],
+        "verifies": [
+          "AC7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "updatedAt": "2026-07-21T13:35:21.971Z",
+      "verification": "3 full-box tools gated (change_create, change_reenter, gate_complete). Gate_complete threads includeSnapshot through completeGateAndBuildResponse + handlePlanningGateCompletion. Change_create wraps emission in if(include?.snapshot). Change_reenter passes include?.snapshot to buildReentryResult 4th param. Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "5df15743959060d75273275fac41b28b4f5a212d",
+      "completedAt": "2026-07-21T14:49:38.530Z",
+      "completed_at": "2026-07-21T14:49:38.530Z"
+    },
+    {
+      "id": "tk-878b67f87827",
+      "title": "Update command docs + agent prompt to teach opt-in + update asset test assertions",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-21T13:33:56.810Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5",
+          "AC8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T15:08:16.274Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-21T15:12:48.757Z",
+      "verification": "6 doc sites updated + ADV_INSTRUCTIONS.md updated. 30/30 asset tests pass including new opt-in assertion.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c824354403310485ea24a5579971c3ab69f2d6bd",
+      "completedAt": "2026-07-21T15:13:02.149Z",
+      "completed_at": "2026-07-21T15:13:02.149Z"
+    },
+    {
+      "id": "tk-775dfac8e67a",
+      "title": "Add `include.snapshot` arg + gate ticker emission on 5 ticker tools + per-tool absence/opt-in tests",
+      "type": "code",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-21T13:33:57.195Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e6433ddc1d16"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0af83bddb1c4"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT5"
+        ],
+        "verifies": [
+          "AC7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "updatedAt": "2026-07-21T13:35:21.934Z",
+      "verification": "5 ticker tools gated (task_ready, task_update in_progress/done, task_add, task_cancel, wisdom_add). All use maybeAttachChangeTicker helper with include.snapshot opt-in. Typecheck clean, 53/53 task.test.ts + all wisdom tests pass. Mock factory updated to include maybeAttachChangeTicker.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "checkpointSha": "ddc40bbdc6493f8eab3dd5870ef5879b4227f27f",
+      "completedAt": "2026-07-21T14:33:56.785Z",
+      "completed_at": "2026-07-21T14:33:56.785Z"
+    },
+    {
+      "id": "tk-14a8e307034d",
+      "title": "Measure schema-byte regression via `adv_status view:\"health\"` before/after",
+      "type": "verification",
+      "status": "cancelled",
+      "priority": 8,
+      "created_at": "2026-07-21T13:34:50.004Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-775dfac8e67a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f64ea513f734"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-83760592f580"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "C8"
+        ],
+        "respects": [
+          "C8"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Measurement task — evidence is a captured `adv_status view:\"health\"` output snapshot, not a pass/fail test. The decision criterion (DDC6 threshold) is a design-derived check, not a runtime test.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T15:17:05.844Z",
+      "cancelApproval": "User approved via inline Tier B: approve all",
+      "cancelledAt": "2026-07-21T15:34:50.240Z",
+      "completed_at": "2026-07-21T15:34:50.240Z",
+      "cancellation": {
+        "reason": "Byte budget analysis complete (~2140 bytes, DDC6 decision: keep); evidence policy artifact_reference requires reviewer evidence",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via inline Tier B: approve all",
+        "approved_at": "2026-07-21T15:34:50.240Z"
+      }
+    },
+    {
+      "id": "tk-6318a7bb7b83",
+      "title": "Run `pnpm run check` + targeted command-asset suites",
+      "type": "verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-07-21T13:34:50.037Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-775dfac8e67a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f64ea513f734"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-83760592f580"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-878b67f87827"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC9",
+          "AC4",
+          "AC8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-21T15:13:19.150Z",
+      "verification": "pnpm run check exits 0 (schemas + typecheck + manifests + isolation + lockfile + lint + format). 371/371 tests pass across 11 targeted suites (task, change, gate, wisdom, status, tool-output, context-snapshot-fetch, shared-args, adv-task-assets, adv-status-assets, adv-instructions-assets).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/shared-args.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/shared-args.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "checkpointSha": "c6e66bdd325341e3870c07047bb2d29746a96c4f",
+      "completedAt": "2026-07-21T15:16:32.553Z",
+      "completed_at": "2026-07-21T15:16:32.553Z"
+    },
+    {
+      "id": "tk-27324dfdeacc",
+      "title": "Verify AC6 spec-delta coverage recorded and applicable",
+      "type": "verification",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-07-22T18:56:40.707Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC6"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "AC6 deliverable is the recording of 3 spec-delta modifications. These were authored and persisted to change.deltas during the original (later cancelled) tasks. Verification is by artifact reference to the recorded delta IDs + confirmation their modify targets exist in current specs — not a runtime test. Archive applies the deltas to global specs at release.",
+        "review_evidence_ref": {
+          "report_key": "tightenToolOutputDefaults|tk-27324dfdeacc|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-22T18:57:03.628Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "tightenToolOutputDefaults",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/tightenToolOutputDefaults",
+          "task_id": "tk-27324dfdeacc",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-27324dfdeacc"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "ac6-delta-1",
+              "label": "praise",
+              "file": ".adv/specs/chat-output-display/spec.json",
+              "line": 53,
+              "what": "Delta dl-xtxFRdk1ybRO is a modify delta targeting existing rq-ctxsnap2 in chat-output-display; its body and child scenarios make full snapshots default-OFF and opt-in through include.snapshot:true.",
+              "why": "Recorded delta is archive-applicable because target requirement exists."
+            },
+            {
+              "id": "ac6-delta-2",
+              "label": "praise",
+              "file": ".adv/specs/chat-output-display/spec.json",
+              "line": 134,
+              "what": "Delta dl-tb1q3HJWCv2u is a modify delta targeting existing rq-ctxticker2 in chat-output-display; its body and child scenarios make ticker output default-OFF and opt-in.",
+              "why": "Recorded delta is archive-applicable because target requirement exists."
+            },
+            {
+              "id": "ac6-delta-3",
+              "label": "praise",
+              "file": ".adv/specs/advance-meta/spec.json",
+              "line": 2391,
+              "what": "Delta dl-dExfd5Lb947l is a modify delta targeting existing rq-advStatusLazyView01 in advance-meta and explicitly preserves advisory recommendation-list _contextSnapshot behavior across views.",
+              "why": "Recorded delta is archive-applicable because target requirement exists."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "adv_change_show changeId:tightenToolOutputDefaults",
+              "adv_spec show chat-output-display",
+              "adv_spec show advance-meta",
+              "grep rq-advStatusLazyView01 .adv/specs/advance-meta/spec.json",
+              "adv_change_validate changeId:tightenToolOutputDefaults"
+            ],
+            "results": "pass",
+            "evidence": "adv_change_show returned all three required modify deltas with correct capability/target IDs and default-OFF/opt-in bodies. Shipped specs contain rq-ctxsnap2 (line 53), rq-ctxticker2 (line 134), and rq-advStatusLazyView01 (line 2391). adv_change_validate passed with errors:[]; only three non-fatal OVERLAPPING_CAPABILITY warnings for advance-meta remained."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Three existing OVERLAPPING_CAPABILITY warnings on advance-meta require normal merge/archive coordination, but are not delta-application or conflict errors."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_show changeId:tightenToolOutputDefaults"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_spec show chat-output-display"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_spec show advance-meta"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: grep rq-advStatusLazyView01 .adv/specs/advance-meta/spec.json"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_validate changeId:tightenToolOutputDefaults"
+            }
+          ]
+        }
+      ],
+      "verification": "AC6 spec-delta coverage verified by adv-reviewer (report tightenToolOutputDefaults|tk-27324dfdeacc|adv-reviewer|1, verdict PASS): 3 deltas recorded, all 3 modify targets exist in current specs, adv_change_validate 0 delta errors. Verification only — clean tree.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "2907d659fa38e33494ad39bde2565fdd819b8c9a",
+      "completedAt": "2026-07-22T18:59:02.213Z",
+      "completed_at": "2026-07-22T18:59:02.213Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenToolOutputDefaults",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — tighter tool output defaults",
+      "sources": [
+        {
+          "label": "ADV context snapshot emission spec",
+          "locator": "file:///home/jon/dev/advance/.adv/specs/chat-output-display.md#rq-ctxsnap2",
+          "summary": "Retrieved through adv_spec: major transitions emit full snapshots; transient task-state tools use tickers."
+        },
+        {
+          "label": "Local ticker implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/storage/context-snapshot-fetch.ts#L60-L83",
+          "summary": "Single fetchChangeContextTicker implementation builds the ticker after change and gate reads."
+        },
+        {
+          "label": "Zod official API",
+          "locator": "https://zod.dev/api",
+          "summary": "Zod object schemas expose reusable shapes and composition methods; Context7 sourced from the official Zod repository."
+        },
+        {
+          "label": "OpenAI Agents SDK context guide",
+          "locator": "https://openai.github.io/openai-agents-python/context/",
+          "summary": "Official guide identifies function tools as the on-demand mechanism for context the model does not always need."
+        }
+      ],
+      "architecture_assessment": "Five production ticker emissions were found: task.ts:572, 1164, 1505, 1809 and wisdom.ts:210. SC-1 [AUTO-ADOPT/execution]: gate ticker fetch/attachment in maybeAttachChangeTicker(output, store, changeId, include?.snapshot); evidence task.ts:572-610, 1159-1172, 1503-1527, 1805-1819; wisdom.ts:208-222; context-snapshot-fetch.ts:60-83; tie rq-ctxticker2/KD1; low risk—preserve wisdom's current catch policy. SC-2 [AUTO-ADOPT/execution]: reusable nested includeSnapshotSchema for eight mutation/ready args; evidence change.ts:942-975, target-project.ts:74-93, task.ts:1244-1247, https://zod.dev/api; tie rq-advChangeShowInclude01/KD1; low risk—do not extract change_show's unrelated flags. SC-3 [AUTO-ADOPT/execution]: table-drive default absent vs include.snapshot:true ticker tests with existing hoisted mock; evidence task.test.ts:12-42, 87-126, change.ts:970-975; tie rq-ctxsnap2/rq-ctxticker2/KD3; low risk—keep KD3 full-box tests separate. SC-4 [AUTO-ADOPT/execution]: table-driven semantic asset assertions for adv-apply.md, adv-prep.md, adv.md; evidence adv-instructions-assets.test.ts:143-150 and briefing-packets-command-assets.test.ts:40-58,70-173; tie rq-ctxsnap2/rq-ctxticker2; low-medium risk—avoid prose-exact assertions. SC-5 [SURFACE/planning]: author spec deltas and test matrix concurrently; evidence task.test.ts:12-42 and change.ts:942-975; tie rq-ctxsnap2/rq-ctxticker2/rq-advStatusLazyView01; medium risk—names must remain locked and integration follows wiring. No status-enrich.ts or tool-registry.ts recommendation.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Five bounded opportunities found. No proposal touches status-enrich.ts recommendation snapshots or tool-registry.ts."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Shared helper/schema adds a small export and fixture contract, but removes repeated policy from five fetch sites and eight argument sites.",
+          "Table-driven asset tests protect stable semantics but should avoid exact prose coupling."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "One generalized context-output framework",
+            "disposition": "rejected",
+            "rationale": "Would expand beyond KD2/KD3 and add abstraction where a narrow helper plus reusable nested schema covers repeated policy."
+          }
+        ],
+        "recommendation": "Adopt SC-1 through SC-4; surface SC-5 in phase planning. Preserve KD3 bespoke full-box sites and OOS2/C3 status-enrich.ts boundary."
+      },
+      "recommendation": "Implement the two small shared units, then table-drive behavioral and asset coverage. Do not introduce a docs generator, alter output environment behavior, touch status-enrich.ts, or edit tool-registry.ts.",
+      "follow_ups": [
+        "Report schema rejected a top-level scout_candidates array and architecture_judgement.summary; the five structured candidates are retained in architecture_assessment. Schema also requires a non-empty alternatives_considered array, so persistence could not retain the packet's requested empty array."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenToolOutputDefaults",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: tighten tool output defaults",
+      "sources": [
+        {
+          "label": "Chat Output Display specs",
+          "locator": "file:///home/jon/dev/advance/.adv/specs/chat-output-display/spec.json#rq-ctxsnap2,rq-ctxticker2",
+          "summary": "Current MUST rules require full snapshots for three major transition tools and tickers for four task tools; proposed inversion therefore requires the planned spec deltas."
+        },
+        {
+          "label": "Advance Meta spec",
+          "locator": "file:///home/jon/dev/advance/.adv/specs/advance-meta/spec.json#rq-advStatusLazyView01",
+          "summary": "Current lazy-view requirement explicitly preserves required status snapshot emission across views; status recommendation snapshots must remain untouched under C3."
+        },
+        {
+          "label": "Advance Delivery spec",
+          "locator": "file:///home/jon/dev/advance/.adv/specs/advance-delivery/spec.json#rq-advChangeShowInclude01",
+          "summary": "adv_change_show already uses an opt-in include.snapshot pattern and preserves no-snapshot default behavior."
+        },
+        {
+          "label": "Current tool implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/change.ts#L942-L975",
+          "summary": "adv_change_show defines snapshot as an optional boolean inside a broader include object."
+        },
+        {
+          "label": "Current output formatter",
+          "locator": "file:///home/jon/dev/advance/plugin/src/utils/tool-output.ts#L34-L96",
+          "summary": "The pretty option is truthy-only; false falls through to ADV_TOOL_OUTPUT_MODE, so it cannot force compact against a pretty environment setting."
+        },
+        {
+          "label": "Current status enrichment and test",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/status-enrich.ts#L222-L243",
+          "summary": "Status enrichment always attaches primary full-box/non-primary ticker snapshots; status.test.ts:1959 tests this status-specific behavior."
+        },
+        {
+          "label": "Current status test",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/status.test.ts#L1947-L1963",
+          "summary": "The cited AC7 assertion is on adv_status recent rows, not any of the eight proposed inversion tools."
+        },
+        {
+          "label": "Zod official documentation",
+          "locator": "https://zod.dev/api?id=extend",
+          "summary": "Zod documents object schema composition via extend and exposes object shapes; reusing one field-schema value is a sound way to prevent drift."
+        }
+      ],
+      "architecture_assessment": "Correctness: default-off plus explicit include.snapshot is sound when every emission fetch/build is inside the guard. KD4 needs correction: the present `pretty` option cannot honor explicit outputMode:'compact' when ADV_TOOL_OUTPUT_MODE=pretty. Simplicity: a shared snapshot field schema and ticker helper are the least-complex approach; do not generalize bespoke full-box directive derivation. Spec-law: current rq-ctxsnap2/rq-ctxticker2 require automatic emission, so target-hash-protected modify deltas are mandatory; retain rq-advStatusLazyView01 status emission because C3 preserves it. AC7 is a genuine agreement citation compromise, not a reason to expand status-enrichment scope.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          {
+            "finding": "KD4 cannot implement an explicit compact override with the existing `formatToolOutput({ pretty })` contract: `pretty:false` evaluates through `options?.pretty || OUTPUT_MODE === \"pretty\"`, so an environment value of pretty still serializes pretty output.",
+            "contract_ids": [
+              "AC3",
+              "C2"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Replace/extend the formatter option with an explicit per-call `mode?: \"compact\" | \"pretty\"` resolved as `mode ?? OUTPUT_MODE`; pass it from the three tools and add a four-case test matrix for omitted/pretty/compact under both environment modes.",
+            "source": {
+              "label": "Current output formatter",
+              "locator": "file:///home/jon/dev/advance/plugin/src/utils/tool-output.ts#L34-L96",
+              "summary": "Lines 87-90 use a truthy OR rather than explicit per-call mode precedence."
+            }
+          }
+        ],
+        "notes": "KD2 intentionally changes four ticker-fetch failure paths from mutation-result failure to best-effort success; make that observable behavior explicit and test it. AC7's cited assertion is a status-enrichment assertion (status.test.ts:1959), while AC1 names eight different tools and C3 excludes status enrichment. Amend AC7's citation to the in-scope test locations; preserve the existing status assertion."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Default-off reduces routine context volume but requires command/agent guidance at orientation boundaries.",
+          "A shared ticker helper removes duplication but intentionally changes ticker-fetch failures on four tools into best-effort omissions.",
+          "A per-call output mode requires a small formatter API extension and truth-table tests rather than reuse of the truthy-only pretty flag."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep automatic snapshots and only compact their formatter",
+            "disposition": "rejected",
+            "rationale": "Does not meet AC1 and leaves the eight routine outputs automatically carrying context."
+          },
+          {
+            "option": "Duplicate optional snapshot boolean schema in all eight tools",
+            "disposition": "rejected",
+            "rationale": "Permits schema-description and validation drift; Zod supports composable object shapes (https://zod.dev/api?id=extend)."
+          },
+          {
+            "option": "Use current `pretty?: boolean` for outputMode",
+            "disposition": "rejected",
+            "rationale": "It cannot force compact when the environment selects pretty (file:///home/jon/dev/advance/plugin/src/utils/tool-output.ts#L83-L90)."
+          },
+          {
+            "option": "Invert adv_status recommendation snapshots too",
+            "disposition": "deferred",
+            "rationale": "C3 preserves status-enrichment behavior, and rq-advStatusLazyView01 currently requires it across views (file:///home/jon/dev/advance/.adv/specs/advance-meta/spec.json#rq-advStatusLazyView01)."
+          }
+        ],
+        "recommendation": "Revise KD4 to add explicit compact/pretty precedence in formatToolOutput and test it. Amend AC7's misattributed citation without changing status-enrichment scope. Then proceed with guarded opt-in emissions, shared schema/helper, and ticker-fetch error tests."
+      },
+      "recommendation": "Proceed only after KD4 explicit-mode remediation and the AC7 citation amendment. Ensure include guards enclose snapshot/ticker retrieval and directive work, retain adv_status snapshots per C3, and verify every opt-in/absence pair plus ticker-fetch-throws behavior.",
+      "follow_ups": [
+        "WORKING DIRECTORY: /home/jon/dev/advance",
+        "CHANGE: tightenToolOutputDefaults | Tighten tool output defaults",
+        "SCOPE KEY: researcher:design-validation",
+        "ATTEMPT: 1",
+        "TASK_SCOPE: validate the proposed design against agreement, specs, and external evidence",
+        "IN_SCOPE: inline design/agreement, named specs, and optional docs/examples research.",
+        "OUT_OF_SCOPE: design rewriting, unapproved scope, and user-value decisions including adv_status snapshot inversion.",
+        "DONE_WHEN: sourced findings or explicit inconclusive notes cover correctness, simplicity, spec-law compliance, and key alternatives.",
+        "STOP_WHEN: contract compromise, security/release blocker, or conflict requiring orchestrator decision.",
+        "VERIFICATION: official/local source evidence for each caution or conflict where possible; additional checks optional."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenToolOutputDefaults",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/tightenToolOutputDefaults",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "review-evidence-1",
+          "label": "issue",
+          "file": "<ADV state>",
+          "line": 1,
+          "what": "No recorded spec deltas are exposed for rq-ctxsnap2, rq-ctxticker2, or rq-advStatusLazyView01.",
+          "why": "The required artifact-only read confirms artifact metadata but does not expose deltas; the full change projection explicitly returns `deltas: {}` while all three delta tasks remain pending.",
+          "fix": "Record the three specified spec deltas, then rerun evidence review."
+        },
+        {
+          "id": "review-evidence-2",
+          "label": "issue",
+          "file": "<ADV state>",
+          "line": 1,
+          "what": "Byte-budget task has no verification summary in its task record.",
+          "why": "tk-14a8e307034d remains in_progress and adv_task_show returns its evidence plan but no captured analysis, measurement, or KD1 decision.",
+          "fix": "Persist the before/after byte-budget measurement and KEEP nested-shape decision in the task verification summary, then rerun evidence review."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "Evidence-only review. adv_task_show confirmed task policies/statuses. adv_change_show artifactOnly returned artifact metadata; full change projection reported `deltas: {}`. No repository changes or executable checks applicable."
+      },
+      "scope_drift": null,
+      "risks": [
+        "AC6 evidence cannot be signed off while recorded deltas are absent.",
+        "C8/KD1 measurement decision remains unreviewable until task evidence is persisted."
+      ],
+      "required_main_agent_actions": [
+        "Record spec deltas dl-xtxFRdk1ybRO, dl-tb1q3HJWCv2u, and dl-dExfd5Lb947l in change state.",
+        "Persist tk-14a8e307034d verification summary with ~2140-byte measurement, exceeded DDC6 threshold, and KEEP nested-shape KD1 decision.",
+        "Request a new reviewer evidence pass after state is visible."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenToolOutputDefaults",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/tightenToolOutputDefaults",
+      "task_id": "tk-27324dfdeacc",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-27324dfdeacc"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "ac6-delta-1",
+          "label": "praise",
+          "file": ".adv/specs/chat-output-display/spec.json",
+          "line": 53,
+          "what": "Delta dl-xtxFRdk1ybRO is a modify delta targeting existing rq-ctxsnap2 in chat-output-display; its body and child scenarios make full snapshots default-OFF and opt-in through include.snapshot:true.",
+          "why": "Recorded delta is archive-applicable because target requirement exists."
+        },
+        {
+          "id": "ac6-delta-2",
+          "label": "praise",
+          "file": ".adv/specs/chat-output-display/spec.json",
+          "line": 134,
+          "what": "Delta dl-tb1q3HJWCv2u is a modify delta targeting existing rq-ctxticker2 in chat-output-display; its body and child scenarios make ticker output default-OFF and opt-in.",
+          "why": "Recorded delta is archive-applicable because target requirement exists."
+        },
+        {
+          "id": "ac6-delta-3",
+          "label": "praise",
+          "file": ".adv/specs/advance-meta/spec.json",
+          "line": 2391,
+          "what": "Delta dl-dExfd5Lb947l is a modify delta targeting existing rq-advStatusLazyView01 in advance-meta and explicitly preserves advisory recommendation-list _contextSnapshot behavior across views.",
+          "why": "Recorded delta is archive-applicable because target requirement exists."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "adv_change_show changeId:tightenToolOutputDefaults",
+          "adv_spec show chat-output-display",
+          "adv_spec show advance-meta",
+          "grep rq-advStatusLazyView01 .adv/specs/advance-meta/spec.json",
+          "adv_change_validate changeId:tightenToolOutputDefaults"
+        ],
+        "results": "pass",
+        "evidence": "adv_change_show returned all three required modify deltas with correct capability/target IDs and default-OFF/opt-in bodies. Shipped specs contain rq-ctxsnap2 (line 53), rq-ctxticker2 (line 134), and rq-advStatusLazyView01 (line 2391). adv_change_validate passed with errors:[]; only three non-fatal OVERLAPPING_CAPABILITY warnings for advance-meta remained."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Three existing OVERLAPPING_CAPABILITY warnings on advance-meta require normal merge/archive coordination, but are not delta-application or conflict errors."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_show changeId:tightenToolOutputDefaults"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_spec show chat-output-display"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_spec show advance-meta"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: grep rq-advStatusLazyView01 .adv/specs/advance-meta/spec.json"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_validate changeId:tightenToolOutputDefaults"
+        }
+      ]
+    }
+  ],
+  "deltas": {
+    "chat-output-display": [
+      {
+        "id": "dl-tb1q3HJWCv2u",
+        "operation": "modify",
+        "target_id": "rq-ctxticker2",
+        "changes": {
+          "body": "The Context Ticker MUST be emitted only when the caller passes `include.snapshot:true` (instead of the full snapshot) by transient task-state tools: adv_task_update transitioning to in_progress or done, adv_task_ready, adv_task_add, and adv_task_cancel. When `include.snapshot` is omitted (default), no ticker is emitted. Other emission sites (adv_change_create, adv_gate_complete, adv_change_reenter) follow rq-ctxsnap2 (also default-OFF, opt-in). adv_status recommendation-list snapshots follow rq-ctxticker2.5 (unchanged).",
+          "scenarios": [
+            {
+              "id": "rq-ctxticker2.1",
+              "title": "Ticker emitted by adv_task_update on in_progress / done transitions (opt-in)",
+              "given": [
+                "An active change with a pending task, adv_task_update called with include.snapshot:true"
+              ],
+              "when": "adv_task_update transitions the task to in_progress or done",
+              "then": [
+                "The tool output includes a single-line context ticker as _contextSnapshot",
+                "The output is not a multi-line full-box snapshot"
+              ]
+            },
+            {
+              "id": "rq-ctxticker2.2",
+              "title": "Ticker emitted by adv_task_ready (opt-in)",
+              "given": [
+                "An active change, adv_task_ready called with include.snapshot:true"
+              ],
+              "when": "adv_task_ready is invoked",
+              "then": [
+                "The tool output includes a single-line context ticker as _contextSnapshot"
+              ]
+            },
+            {
+              "id": "rq-ctxticker2.3",
+              "title": "Ticker emitted by adv_task_add and adv_task_cancel (opt-in)",
+              "given": [
+                "An active change, adv_task_add or adv_task_cancel called with include.snapshot:true"
+              ],
+              "when": "adv_task_add successfully creates a task or adv_task_cancel cancels one or more tasks",
+              "then": [
+                "The tool output includes a single-line context ticker as _contextSnapshot"
+              ]
+            },
+            {
+              "id": "rq-ctxticker2.4",
+              "title": "Full-box snapshot emitted by gate / change tools (opt-in per rq-ctxsnap2)",
+              "given": [
+                "An active change, adv_change_create/adv_gate_complete/adv_change_reenter called with include.snapshot:true"
+              ],
+              "when": "adv_change_create, adv_gate_complete, or adv_change_reenter is invoked",
+              "then": [
+                "The tool output includes a multi-line context snapshot (full box) as _contextSnapshot"
+              ]
+            },
+            {
+              "id": "rq-ctxticker2.5",
+              "title": "adv_status emits full-box for primary change, ticker for non-primary (unchanged — advisory multi-change display)",
+              "given": [
+                "adv_status with multiple active/draft/pending changes in recentChanges"
+              ],
+              "when": "adv_status is invoked",
+              "then": [
+                "The first active/draft/pending change (primary) includes a multi-line full-box _contextSnapshot",
+                "Subsequent changes (non-primary) include a single-line context ticker as _contextSnapshot"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "dl-xtxFRdk1ybRO",
+        "operation": "modify",
+        "target_id": "rq-ctxsnap2",
+        "changes": {
+          "body": "The Context Snapshot (full box) MUST be emitted only when the caller passes `include.snapshot:true` by tools that represent major state transitions: adv_change_create, adv_gate_complete, adv_change_reenter. When `include.snapshot` is omitted (default), no snapshot is emitted. adv_status primary-change snapshot follows rq-ctxticker2.5 (unchanged — advisory multi-change display, MCP-contract-bound). adv_change_show provides structured JSON for direct LLM consumption and does NOT emit a snapshot.",
+          "scenarios": [
+            {
+              "id": "rq-ctxsnap2.1",
+              "title": "Snapshot emitted on change creation (opt-in)",
+              "given": [
+                "An agent creates a new change via adv_change_create with include.snapshot:true"
+              ],
+              "when": "The change data is created",
+              "then": [
+                "A context snapshot (full box) is included in the tool output"
+              ]
+            },
+            {
+              "id": "rq-ctxsnap2.2",
+              "title": "Snapshot emitted on gate transition (opt-in)",
+              "given": [
+                "A gate is marked complete via adv_gate_complete with include.snapshot:true"
+              ],
+              "when": "The gate status changes",
+              "then": [
+                "The updated gate progress is visible as a full-box snapshot in the tool output"
+              ]
+            },
+            {
+              "id": "rq-ctxsnap2.6",
+              "title": "Snapshot emitted on gate re-entry (opt-in)",
+              "given": [
+                "A change with completed gates, adv_change_reenter called with include.snapshot:true"
+              ],
+              "when": "adv_change_reenter reopens gates from a specified point",
+              "then": [
+                "The tool output includes an updated _contextSnapshot (full box)",
+                "The snapshot gate progress shows the reset gate state"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "advance-meta": [
+      {
+        "id": "dl-dExfd5Lb947l",
+        "operation": "modify",
+        "target_id": "rq-advStatusLazyView01",
+        "changes": {
+          "body": "`adv_status` MUST execute only the provider groups required by the selected `view`. `view: \"summary\"` MUST NOT invoke detailed-only providers (queue serviceability, search-attribute probe, worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: \"summary\"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. The recommendation-list `_contextSnapshot` emission (chat-output-display `rq-ctxticker2.5` — advisory multi-change display) MUST be preserved across all views. The default-OFF opt-in behavior of `rq-ctxsnap2` and `rq-ctxticker2` (applied to mutation/ready tools) does NOT affect `adv_status` recommendation-list snapshots.",
+          "scenarios": [
+            {
+              "id": "rq-advStatusLazyView01.1",
+              "title": "Summary skips detailed providers but preserves recommendation-list snapshots",
+              "given": [
+                "adv_status is called with view: \"summary\""
+              ],
+              "when": "The tool builds output",
+              "then": [
+                "Detailed-only providers are not invoked",
+                "Formatted summary omits health/worktree/session-debt/peer detail sections",
+                "Recommendation-list `_contextSnapshot` per `rq-ctxticker2.5` is still emitted (advisory multi-change display, MCP-contract-bound)"
+              ]
+            },
+            {
+              "id": "rq-advStatusLazyView01.2",
+              "title": "Detailed views retain their providers",
+              "given": [
+                "adv_status is called with view: \"health\" or view: \"hygiene\""
+              ],
+              "when": "The tool builds output",
+              "then": [
+                "The corresponding detailed providers run",
+                "The detailed payload exposes the required diagnostic fields"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T01:55:26.671Z",
+      "completed_by": "agent",
+      "approval_evidence": "Created with full proposal: Why, User Outcomes, What Changes, Scope (In/Out/Must Not), Constraints, Impact, Discovery Agenda. B/F/S scan: PASS (no CRITICAL findings). Pre-existing CLARIFY_MISSING_ERROR_HANDLING warning carried into discovery agenda items 1-2 (test enumeration + protocol dependency audit) which firm the rollback path.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "48d807f19bc31e232021d0436f8278e4deff03d0cc624fc814a5489aeb43f394",
+        "non_whitespace_chars": 3701,
+        "checked_at": "2026-07-21T01:54:38.930Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T13:26:01.720Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "non_whitespace_chars": 10929,
+        "checked_at": "2026-07-21T01:54:38.932Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T13:27:35.594Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "997dfb5472917e5ac3d48af19dcd967ec597c3c5d6addae42415e7d9ebb6c812",
+        "non_whitespace_chars": 19992,
+        "checked_at": "2026-07-21T01:54:38.933Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-22T18:56:49.223Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-entry planning: added AC6 verification task tk-27324dfdeacc (verifies AC6 via artifact_reference to 3 recorded delta IDs). Contract coverage complete — uncoveredAcceptanceCriteria empty. No code/spec scope change; deltas already recorded + validated."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-22T18:59:07.212Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-walk execution: AC6 verification task tk-27324dfdeacc done (reviewer-backed artifact_reference evidence). All tasks done/cancelled. Original 8 implementation tasks unchanged from prior execution."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-22T19:05:16.074Z",
+      "completed_at": "2026-07-22T19:06:35.006Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-walk acceptance: 25-row review matrix (0 failing), AC6 dispositioned. Byte-identical delivered work.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "1cb07c83a928b33964191c83c1772a206672cb2b3ae142f250298843fdefa2d4",
+        "non_whitespace_chars": 4498,
+        "checked_at": "2026-07-21T01:54:38.943Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Phase 4.1 contract-compromise resolution: user selected \"revisit discovery\" over \"keep with compromise\" for AC7 citation conflict. AC7 cites status.test.ts:1959 (status-enrich recommendation-list snapshot path) which sits in the OOS2/C3 exclusion zone — literal enforcement would require expanding scope to status-enrich.ts, violating OOS2/C3. User direction: align with sibling Epic changes (slimMutationToolSurface active, addAdvMcpReadSurface active, replaceRecoveryToolSprawl) before locking design scope, then either (a) reaffirm OOS2/C3 boundary and amend AC7 citation, or (b) renegotiate whether adv_status recommendation-list snapshots should join the inversion scope.",
+      "scope_delta": "Pending discovery alignment: review sibling-change state (slimMutationToolSurface, addAdvMcpReadSurface) for any tool-surface or arg-shape precedents that should reshape KD1 (shared includeSnapshotSchema), KD6 (status-enrich exclusion), or the AC7 test-scope question. Validator Phase 3.5 caution findings (KD4 resolveOutputMode precedence + AC7 misattribution) carry forward as inputs.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-21T05:33:41.117Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "planning",
+      "reason": "Restore honest AC6 task coverage: the 3 tasks implementing AC6 (spec deltas rq-ctxsnap2/rq-ctxticker2/rq-advStatusLazyView01) were cancelled at execution due to a static_check evidence-policy mismatch, though the deltas were recorded. Archive CONTRACT_AC_UNCOVERED requires a non-cancelled task covering AC6. Add one verification task citing the 3 recorded delta IDs, then re-walk to release.",
+      "scope_delta": "Add one AC6 verification task (artifact_reference evidence = recorded delta IDs dl-xtxFRdk1ybRO, dl-tb1q3HJWCv2u, dl-dExfd5Lb947l). No code/spec changes; deltas already recorded and validated against current specs.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-22T18:56:22.761Z",
+      "gates_reset": [
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session-2026-07-21-output-investigation"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+      "approvedAt": "2026-07-21T13:26:01.720Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1**: Chat context volume per typical 10-task `/adv-apply` session drops by ~3.4 KB (snapshot emits eliminated)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2**: No documented regression in mid-workflow agent orientation (verified via apply-loop dry runs)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3**: Pattern aligns with industry LBP for agent context visibility (concise result + JIT retrieval, matching Anthropic/LangChain/OpenAI published guidance)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1**: The 8 tools `adv_task_update` (in_progress/done), `adv_task_add`, `adv_task_cancel`, `adv_change_create`, `adv_change_reenter`, `adv_wisdom_add`, `adv_gate_complete`, and `adv_task_ready` do NOT auto-emit `_contextSnapshot` by default; emit only when caller passes `include.snapshot:true`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2**: Each of those 8 tools gains an `include.snapshot` boolean arg matching `adv_change_show`'s existing opt-in pattern (the existing read-tool surface).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3**: Heavy read tools `adv_change_show`, `adv_task_list`, and `adv_status` accept a new `outputMode` arg accepting values from the existing `ADV_TOOL_OUTPUT_MODE` env var domain (`compact` | `pretty`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4**: `adv_change_show include.snapshot:true` behavior unchanged (already opt-in — no regression).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5**: Command docs (`adv-apply.md`, `adv-prep.md`) and agent prompt (`.opencode/agents/adv.md`) updated to teach opt-in at meaningful workflow boundaries (gate transitions, resumption, unexpected results); informational references to `_contextSnapshot` paired with the `adv_change_show include.snapshot:true` opt-in pattern.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6**: Spec deltas modify `rq-ctxsnap2`, `rq-ctxticker2`, and `rq-advStatusLazyView01` (and their child scenarios) to reflect new default-OFF behavior; preserve existing opt-in semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-ctxsnap2",
+          "spec:rq-ctxticker2",
+          "spec:rq-advStatusLazyView01"
+        ]
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** *(AMENDED per UD5 — citation corrected)*: Per-tool absence-by-default + opt-in test pairs added for each of the 8 in-scope tools in their respective test files: `task.test.ts` (task_ready, task_update, task_add, task_cancel), `wisdom.test.ts` (wisdom_add), `change.test.ts` (change_create, change_reenter), `gate.test.ts` (gate_complete). The `adv_status` recommendation-list snapshot assertion at `status.test.ts:1959` stays green and untouched (OOS2/C3 boundary — path is now MCP-contract-bound per archived `addAdvMcpReadSurface`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8**: Instruction-text regex tests (`plugin/src/adv-instructions-assets.test.ts:147-148`) updated to match new opt-in wording.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9**: `pnpm run check` exits 0; targeted command-asset suites (`adv-task-assets.test.ts`, `adv-status-assets.test.ts`, `adv-instructions-assets.test.ts`) pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1**: `_contextSnapshot` formatter output shape (`plugin/src/utils/context-snapshot.ts`) unchanged — only emission default changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2**: Read tools keep current behavior except the new `outputMode` arg on the 3 heaviest.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3**: `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) are advisory multi-change displays — different problem class, left untouched. Boundary reaffirmed: path is now MCP-contract-bound (Tier-4 surface).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4**: Truncation thresholds (`MAX_PROMPT_TOOL_OUTPUT_CHARS` 24k, `DEFAULT_MAX_CHARS` 21k, legacy 30k) — out of scope; separate concern.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5**: Must sequence with `slimMutationToolSurface` (same Epic, different concern — non-conflicting per its C2). Sibling shipped Tier reclassification; 3 of 8 inverted tools are Tier 3 (invoke-only) — `include.snapshot` works uniformly through `adv_tool_invoke` dispatch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6**: Must NOT collide with `addAdvMcpReadSurface`. Sibling shipped; `adv_status` is MCP-exposed (`HANDSHAKE_TIER4_TOOLS`); AC3 `outputMode` propagates via `PUBLIC_TOOL_ENTRIES` automatically — no MCP code changes required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "**C7** *(NEW per re-discovery)*: Coordinate arg-shape additions with `replaceRecoveryToolSprawl` (active, execution). Both touch arg definitions on 6 of 8 inverted tools but on different fields (`include.snapshot` vs `recoveryMode`/`recoveryEvidence`). Share `includeSnapshotSchema` so merges stay clean; proceed in parallel.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "**C8** *(NEW per re-discovery)*: Schema-byte regression budget deferred to design. Current estimate: ~640–960 bytes added to orchestrator-loaded schema (8 tools × nested `include.snapshot` object). Visible in `adv_status view:\"health\"` (per archived `addToolContextTelemetry`). Design records baseline + post-change measurement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1**: Do NOT change `_contextSnapshot` formatter output shape (box width, content fields, ordering).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2**: Do NOT remove the `include.snapshot:true` opt-in path — only change the default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3**: Do NOT invert `adv_change_show include.snapshot` (already correct opt-in).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4**: Do NOT silently break any spec requirement without a modify-operation spec delta (per spec-as-laws discipline).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5**: Do NOT introduce tool registration changes that conflict with `slimMutationToolSurface` (no tool-registry.ts edits).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1**: `adv_change_show include.snapshot` (already opt-in — no change needed).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2**: `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) — advisory multi-change displays, different problem class. **Reaffirmed**: path is now MCP-contract-bound via `addAdvMcpReadSurface` shipment; inverting would change behavior for all Code Mode clients.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3**: Truncation threshold unification (24k vs 21k vs 30k triple stack).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "**OOS4**: Command body trimming (sibling Change B: `tightenAdvChatVoice`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "**OOS5**: Voice standard changes (Change B).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "**OOS6**: `addAdvMcpReadSurface` territory (MCP read surface — shipped).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS7",
+        "kind": "out_of_scope",
+        "text": "**OOS7**: `slimMutationToolSurface` territory (manifest exposure only — shipped).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS8",
+        "kind": "out_of_scope",
+        "text": "**OOS8**: `replaceRecoveryToolSprawl` territory (recovery-arg removal — coordinate via C7).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-22T19:05:58.365Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Executive summary records ~3.4 KB/session snapshot-volume reduction; tk-14a8e307034d byte-budget analysis completed (~2140 bytes schema impact, keep decision)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "AC1 default/opt-in behavior covered by tk-775dfac8e67a and tk-f64ea513f734; docs and agent workflow guidance updated by tk-878b67f87827; 371/371 original and 406 current targeted tests pass."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Recorded adv-researcher design report documents concise-result plus JIT-retrieval alignment with cited Anthropic/LangChain/OpenAI guidance."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-775dfac8e67a gates 5 ticker tools; tk-f64ea513f734 gates 3 full-box tools; per-tool absence-by-default and include.snapshot opt-in tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-e6433ddc1d16 adds shared includeSnapshotSchema; tk-0af83bddb1c4, tk-775dfac8e67a, and tk-f64ea513f734 wire it across all 8 tools; shared-args and behavioral tests pass."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-4a2433e9e75f adds resolveOutputMode precedence tests; tk-83760592f580 adds outputMode to adv_change_show, adv_task_list, and adv_status; explicit arg > env > compact behavior verified."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-83760592f580 verifies existing adv_change_show include.snapshot opt-in behavior remains unchanged; tk-6318a7bb7b83 targeted suite passes."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-878b67f87827 updates adv-apply.md, adv-prep.md, .opencode/agents/adv.md, related docs, and ADV_INSTRUCTIONS.md; 30/30 asset tests pass."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "tk-27324dfdeacc verifies recorded modify deltas dl-xtxFRdk1ybRO→rq-ctxsnap2, dl-tb1q3HJWCv2u→rq-ctxticker2, and dl-dExfd5Lb947l→rq-advStatusLazyView01; all targets confirmed present in current specs; adv-reviewer report PASS."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-775dfac8e67a and tk-f64ea513f734 add absence/opt-in pairs in task.test.ts, wisdom.test.ts, change.test.ts, and gate.test.ts; status recommendation-list assertion remains green and untouched."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-878b67f87827 updates opt-in wording assertions in plugin/src/adv-instructions-assets.test.ts; asset suite passes."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-6318a7bb7b83 records pnpm run check exit 0 and 371/371 targeted tests; executive summary records this session's 406 targeted tests and pnpm run check exit 0."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation gates emission only; formatter output shape remains outside touched behavior. Context-snapshot helper tests pass."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "tk-83760592f580 limits read-tool change to outputMode on the three named heavy reads; precedence tests pass."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "AC7 retains the status.test.ts recommendation-list assertion unchanged; status-enrich recommendation snapshots remain untouched."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No truncation-threshold change is recorded in implementation tasks; change scope stays emission/output-mode only."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Shared includeSnapshotSchema provides uniform dispatch shape; no tool-registry edits; task verification records invoke-path compatibility."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "tk-83760592f580 changes shared read-tool output formatting only; no MCP-surface code change recorded."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "tk-e6433ddc1d16 supplies shared includeSnapshotSchema; implementation remains isolated from recoveryMode/recoveryEvidence work."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "tk-14a8e307034d records completed schema-byte analysis (~2140 bytes) and DDC6 keep decision; executive summary records net-positive session savings."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only snapshot emission is gated; no formatter-shape change recorded."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "tk-775dfac8e67a and tk-f64ea513f734 verify include.snapshot:true attaches the expected ticker/full snapshot."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "tk-83760592f580 and tk-6318a7bb7b83 preserve and verify existing adv_change_show include.snapshot opt-in behavior."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "AC6 has three recorded modify deltas covering rq-ctxsnap2, rq-ctxticker2, and rq-advStatusLazyView01."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Shared includeSnapshotSchema implementation avoids tool-registry edits; no task records a tool-registration change."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1**: The 8 tools `adv_task_update` (in_progress/done), `adv_task_add`, `adv_task_cancel`, `adv_change_create`, `adv_change_reenter`, `adv_wisdom_add`, `adv_gate_complete`, and `adv_task_ready` do NOT auto-emit `_contextSnapshot` by default; emit only when caller passes `include.snapshot:true`.",
+    "**AC2**: Each of those 8 tools gains an `include.snapshot` boolean arg matching `adv_change_show`'s existing opt-in pattern (the existing read-tool surface).",
+    "**AC3**: Heavy read tools `adv_change_show`, `adv_task_list`, and `adv_status` accept a new `outputMode` arg accepting values from the existing `ADV_TOOL_OUTPUT_MODE` env var domain (`compact` | `pretty`).",
+    "**AC4**: `adv_change_show include.snapshot:true` behavior unchanged (already opt-in — no regression).",
+    "**AC5**: Command docs (`adv-apply.md`, `adv-prep.md`) and agent prompt (`.opencode/agents/adv.md`) updated to teach opt-in at meaningful workflow boundaries (gate transitions, resumption, unexpected results); informational references to `_contextSnapshot` paired with the `adv_change_show include.snapshot:true` opt-in pattern.",
+    "**AC6**: Spec deltas modify `rq-ctxsnap2`, `rq-ctxticker2`, and `rq-advStatusLazyView01` (and their child scenarios) to reflect new default-OFF behavior; preserve existing opt-in semantics.",
+    "**AC7** *(AMENDED per UD5 — citation corrected)*: Per-tool absence-by-default + opt-in test pairs added for each of the 8 in-scope tools in their respective test files: `task.test.ts` (task_ready, task_update, task_add, task_cancel), `wisdom.test.ts` (wisdom_add), `change.test.ts` (change_create, change_reenter), `gate.test.ts` (gate_complete). The `adv_status` recommendation-list snapshot assertion at `status.test.ts:1959` stays green and untouched (OOS2/C3 boundary — path is now MCP-contract-bound per archived `addAdvMcpReadSurface`).",
+    "**AC8**: Instruction-text regex tests (`plugin/src/adv-instructions-assets.test.ts:147-148`) updated to match new opt-in wording.",
+    "**AC9**: `pnpm run check` exits 0; targeted command-asset suites (`adv-task-assets.test.ts`, `adv-status-assets.test.ts`, `adv-instructions-assets.test.ts`) pass."
+  ],
+  "documents": {
+    "proposal": "# Tighten Tool Output Defaults\n\n## Why\n\nADV mutation tools (`adv_task_update`, `adv_task_add`, `adv_task_cancel`, `adv_change_create`, `adv_change_reenter`, `adv_wisdom_add`, `adv_gate_complete`) auto-emit a `_contextSnapshot` field (ticker ~80 chars or full box ~800 chars) on every state-changing call. In a typical 10-task `/adv-apply` session, this dumps ~4–6 KB of mostly-redundant snapshots into chat context. The asymmetry is inverted: high-frequency mutations auto-emit; low-frequency reads require opt-in (`include.snapshot:true`). Result: long sessions accumulate chat-context pressure that triggers reactive `[ADV:SESSION_HEALTH]` compaction warnings (observed in session 2026-07-21) which destroy original content destructively.\n\nSeparately, the plugin has an `ADV_TOOL_OUTPUT_MODE` env var (compact|pretty) and `ADV_TOOL_MAX_CHARS` budget knob, but both are undocumented outside tests and uncontrollable from chat — leaving operators no in-session lever to reduce tool output volume.\n\n## User Outcomes\n\n- Long ADV sessions stay coherent longer, with fewer reactive compaction warnings\n- Operator can control tool output verbosity from chat (no env-var restart)\n- Agent retains full state visibility on demand\n- No regression in mid-workflow orientation or gate transitions\n\n## What Changes\n\n1. Invert `_contextSnapshot` default for the 7 mutation emission sites: default OFF, opt-in via `include.snapshot:true` (matching read tools)\n2. Surface `ADV_TOOL_OUTPUT_MODE` as tool-arg `outputMode` on heavy read tools (`adv_change_show`, `adv_task_list`, `adv_status`)\n\n## Scope\n\n### In Scope\n\n**Mutation sites to invert (7)**:\n- `plugin/src/tools/task.ts:1130-1135` (`adv_task_update` in_progress/done)\n- `plugin/src/tools/task.ts:1444-1459` (`adv_task_add`)\n- `plugin/src/tools/task.ts:1721-1726` (`adv_task_cancel`)\n- `plugin/src/tools/change.ts:1894` (`adv_change_create`)\n- `plugin/src/tools/change/recovery.ts:409` (`adv_change_reenter`)\n- `plugin/src/tools/wisdom.ts:210` (`adv_wisdom_add`)\n- `plugin/src/tools/gate.ts:1004` (`adv_gate_complete`)\n\n**New `outputMode` tool arg** on heaviest read tools mirroring `ADV_TOOL_OUTPUT_MODE` env var.\n\n**Test updates** for affected mutation tools (none found pinning current behavior beyond fetcher mocks).\n\n**Documentation update** for the now-public `outputMode` arg.\n\n### Out of Scope\n\n- `adv_task_ready` (read tool that auto-emits ticker) — separate decision (open question Q3)\n- `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) — advisory multi-change displays, different problem class\n- `adv_change_show include.snapshot` (already opt-in — no change needed)\n- Truncation threshold unification (separate concern)\n- Command body trimming (Change B: `tightenAdvChatVoice`)\n- Voice standard changes (Change B)\n- `addAdvMcpReadSurface` territory (MCP read surface)\n- `slimMutationToolSurface` territory (manifest exposure only — constraint C2 confirms non-overlap)\n\n### Must Not\n\n- Must not change `_contextSnapshot` formatter output shape (only whether it auto-emits)\n- Must not regress mutation tool return shape beyond removing the auto-emit\n- Must not silently change behavior for agents/protocols that depend on auto-emit (commands already cite `adv_change_show` / `adv_task_list` as alternatives)\n- Must not collide with concurrent `slimMutationToolSurface` work in `tool-role-policy.ts`\n- Must not invert `adv_change_show include.snapshot` (already correct)\n\n## Constraints\n\n- `_contextSnapshot` formatter (`plugin/src/utils/context-snapshot.ts`) output shape unchanged\n- Read tools keep current behavior (except possibly `adv_task_ready` per Q3)\n- Must sequence with `slimMutationToolSurface` (same Epic, different concern — non-conflicting per that change's C2)\n\n## Impact\n\n- Chat volume: ~4–6 KB savings per 10-task apply session (estimated)\n- Agent orientation: small extra call cost when post-mutation state needed (now opt-in)\n- Operator control: new `outputMode` tool arg mirrors existing env var\n\n## Discovery Findings (2026-07-21)\n\n### Scope Correction\n\nProposal originally claimed \"8 mutation emission sites\". Verification via exhaustive grep (`_contextSnapshot\\s*=|fetchChangeContext`) found **11 total emission sites**:\n- 7 mutation sites (in scope)\n- 4 read sites (1 already opt-in correct; 1 candidate for inversion per Q3; 2 are advisory multi-change displays correctly excluded)\n\nPattern is **intentional**, not blanket — only 7 of ~30+ mutation tools auto-emit.\n\n### Test Surface\n\n- `context-snapshot-fetch.test.ts` tests fetch logic (unaffected by inversion)\n- `task.test.ts:41` mocks `fetchChangeContextTicker` (unaffected — mock returns null currently)\n- No tests found asserting presence of `_contextSnapshot` in mutation responses\n\n### Command File Dependencies\n\nReferences to `_contextSnapshot` in commands are informational, not behavioral:\n- `adv-apply.md:267, 298, 674` — describes it as info source, always paired with `adv_change_show` / `adv_task_list` as alternatives\n- `adv-prep.md:421` — lists it alongside `adv_task_list`\n\nNo critical dependency on auto-emit — all references already cite alternatives.\n\n## Discovery Agenda (Resolved)\n\n1. ✅ Enumerate tests pinning current always-on behavior — done; none found beyond mocks\n2. ✅ Audit protocol/commands for critical dependencies — done; all references cite alternatives\n3. ⏳ Full enumeration of tools that should gain `outputMode` arg — firmed: 3 heaviest (adv_change_show, adv_task_list, adv_status); adv_status special case per Q2\n4. ✅ Backward-compat: external consumers — none beyond command docs (covered above)\n5. ⏳ Decide inversion shape — open question Q1\n\n## Context\n\n- Recon source: in-session investigation 2026-07-21 (tron + adv-researcher sub-agent reports)\n- Sibling changes in Epic `systemizeAdvOrchestration`: `slimMutationToolSurface`, `addAdvMcpReadSurface`, `replaceRecoveryToolSprawl`\n- Related shipped: `addUserFocusVoiceRule`, `consolidateCommandRepetitions`\n\n---\n\n# Re-Discovery Findings (2026-07-21, post-design re-entry)\n\nRe-entry reason: Phase 4.1 contract-compromise on AC7 + user direction to align with sibling-agent updates before locking scope.\n\n## Discovery Checklist\n\n| # | Step | Status | Note |\n|---|---|---|---|\n| 1 | Skill Discovery | SKIP | Re-discovery (targeted); skills unchanged from initial discovery |\n| 2 | Prior Research Extension | PASS | Prior: this change's initial discovery + design draft (KD1-KD6, validator Phase 3.5 cautions). New finding: 5 sibling changes now mapped (see Sibling Alignment) |\n| 3 | Conflict & Related-Work Scan | PASS | 5 sibling changes enumerated; slimMutationToolSurface (Tier reclass) + addAdvMcpReadSurface (MCP shipped, adv_status exposed) + replaceRecoveryToolSprawl (active, recovery-arg removal) materially affect constraints |\n| 4 | Edge Case Investigation | PASS | New edge cases below (MCP propagation, recovery-arg coordination, telemetry regression) |\n| 5 | Design Question Depth | PASS | 4 user-facing questions resolved via Phase 4.5 loop |\n| 6 | Draft Spec Delta Shapes | UNCHANGED | rq-ctxsnap2, rq-ctxticker2, rq-advStatusLazyView01 (initial discovery) |\n| 7 | P25 Related-Pattern Scan | PASS | slimMutationToolSurface's Tier reclassification is the adjacent related pattern; replaceRecoveryToolSprawl's recovery-arg removal is the secondary |\n| 8 | LBP Check | PASS | Default-OFF + opt-in pattern re-affirmed; sibling alignment reinforces (MCP contract preserved, OOS2/C3 boundary stronger) |\n| 9 | Completeness Verification | PASS w/ finding | See Completeness below — sole-entry claim for `adv_status` recommendation-list snapshot path now verified as MCP-exposed |\n\n## Sibling Alignment\n\n| Sibling | Status | Discovery Impact |\n|---|---|---|\n| `slimMutationToolSurface` | execution (active) | Tier reclassification approved. 2 of 8 inverted tools are Tier 1 (`adv_task_update`, `adv_gate_complete`), 3 are Tier 2 (`adv_change_create`, `adv_task_add`, `adv_task_ready`), 3 are Tier 3 invoke-only (`adv_task_cancel`, `adv_change_reenter`, `adv_wisdom_add`). `include.snapshot` arg works uniformly through `adv_tool_invoke` dispatch (preserves `ToolDefinition.execute` path). DONT5 (no tool-registry.ts edits) holds. |\n| `addAdvMcpReadSurface` | **ARCHIVED** (shipped 2026-07-21) | MCP Tier-4 surface shipped. `adv_status` IS in `HANDSHAKE_TIER4_TOOLS` (handshake.ts:19) → MCP-exposed. AC3 `outputMode` arg propagates to MCP via `PUBLIC_TOOL_ENTRIES` + shared execute path. `adv_change_show` and `adv_task_list` are Tier 1 (plugin-only, not MCP-exposed). |\n| `replaceRecoveryToolSprawl` | execution (active) | Will remove `recoveryMode`/`recoveryEvidence` public args from 6 of 8 inverted tools once internal classification replaces them. **New constraint C7**: arg-shape additions proceed in parallel via shared `includeSnapshotSchema` (KD1); recovery-arg removal happens in sibling change's scope. Coordinate via shared schema to keep merges clean. |\n| `addToolContextTelemetry` | archived | Per-lane schema-byte telemetry in `adv_status view:\"health\"`. Adding `include.snapshot` arg to 8 tools grows orchestrator-loaded schema by ~640–960 bytes (nested object form). **New constraint C8**: defer detailed byte-budget decision to design; record baseline. |\n| `addResumeFreshnessAdvisory` | discovery (active) | Different concern (resume freshness); disjoint from inversion scope; flagged for awareness only. |\n| `tightenToolOutputDefaults` Epic membership | — | **NOT formally linked** to `systemizeAdvOrchestration` despite proposal's \"sibling changes\" claim. Epic's 5 entries are: structural-evidence, typed-orchestration, role-scoped-tools, mcp-read-surface, slimMutationToolSurface. **UD7**: link formally via `adv_epic_link_change` after agreement sign-off. |\n\n## AC7 Re-affirmation\n\nInitial design Phase 4.1 surfaced AC7 citation conflict (cited `status.test.ts:1959` is OOS path). With sibling alignment, the boundary is **stronger**:\n\n- `adv_status` is now MCP-exposed via `addAdvMcpReadSurface` shipment\n- Recommendation-list snapshots (`status-enrich.ts:238,612`) flow through MCP to all Code Mode clients\n- Inverting that path = changing MCP behavior for all clients = larger blast radius than initial discovery considered\n- OOS2/C3 boundary is principled (advisory multi-change display, caller explicitly asked for overview), not accidental\n\n**UD5 (final)**: Amend AC7 citation; preserve status-enrich path. If operators later want it inverted, that's a separate change with its own discovery (different problem class).\n\n## Completeness Verification\n\n- **Problem-completeness**: High confidence. The asymmetric auto-emit problem is fully bounded: 8 in-scope tools (7 mutations + `adv_task_ready`); 3 OOS classes correctly excluded (already-opt-in read; advisory multi-change display; truncation threshold).\n- **Solution-scope**: High confidence. Shared `includeSnapshotSchema` (KD1) + `maybeAttachChangeTicker` helper (KD2) + `resolveOutputMode()` resolver (KD4) cover the 8 inversions + 3 read-arg additions uniformly. No sole-entry claim relied upon.\n- **Sole-entry claims**: None. `adv_status` recommendation-list snapshot path was previously implicit; now explicit (MCP-exposed). Not relied upon as a single control surface.\n- **Secondary surfaces**: All explicit (5 sibling changes inventoried with dispositions).\n\n## Reproduction Finding Classification (rq-acWarrant01)\n\nPer Phase 1.8: every reproduction-sourced finding classified before seeding criteria.\n\n| Finding | Class | May seed \"must-work\" criterion? |\n|---|---|---|\n| Mutation tools auto-emit `_contextSnapshot` (chat volume pressure) | `broken_capability` | Yes — seeds AC1 |\n| `ADV_TOOL_OUTPUT_MODE` env var unconfigurable from chat | `broken_capability` | Yes — seeds AC3 |\n| `adv_status` recommendation-list snapshot auto-emits (potential chat volume) | `broken_capability` (symptom real) BUT different problem class — advisory multi-change display, MCP-contract-bound | No — explicit OOS2/C3; if revisited, separate change |\n\n## Recommended Objectives (Revised)\n\n1. Invert `_contextSnapshot` default to OFF on 8 ADV tools (7 mutations + `adv_task_ready`); require explicit `include.snapshot:true` opt-in matching the existing read-tool pattern. *(unchanged)*\n2. Surface `ADV_TOOL_OUTPUT_MODE` as a public `outputMode` tool arg on 3 heavy read tools. *(unchanged)*\n3. Update command docs, agent prompt, and spec requirements to teach the opt-in pattern. *(unchanged)*\n4. Align ADV with industry LBP for agent context management. *(unchanged)*\n5. **NEW**: Coordinate with sibling changes via shared schema (KD1) so `replaceRecoveryToolSprawl` recovery-arg removal and `slimMutationToolSurface` Tier reclassification don't conflict.\n6. **NEW**: Link `tightenToolOutputDefaults` formally to `systemizeAdvOrchestration` Epic (UD7).\n7. **NEW**: Defer detailed schema-byte budget to design (UD8); record ~640–960 byte estimate as input.\n\n## AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo CRITICAL or HIGH findings. AC7 citation conflict (initially caution) resolved by UD5 (amend citation, preserve status-enrich). Sibling alignment introduced no new blocking ambiguity — only new constraints (C7, C8) and coordination actions.\n\n## Decisions\n\n### User Decisions (Re-Discovery)\n\n- **UD5 (AC7 final)**: Don't invert status-enrich; amend AC7 citation to cite correct test files (task.test.ts/wisdom.test.ts/change.test.ts/gate.test.ts). Status-enrich is now MCP-contract-bound; inverting would change behavior for all Code Mode clients. OOS2/C3 boundary reaffirmed.\n- **UD6 (Recovery coordination)**: Proceed in parallel with `replaceRecoveryToolSprawl`. Both touch arg-shape definitions on 6 of 8 tools but on different fields; coordinate via shared `includeSnapshotSchema` (KD1).\n- **UD7 (Epic membership)**: Link `tightenToolOutputDefaults` formally to `systemizeAdvOrchestration` Epic after agreement sign-off via `adv_epic_link_change`.\n- **UD8 (Schema bytes)**: Defer detailed byte-budget decision to design; record current ~640–960 byte estimate as input against `addToolContextTelemetry` regression surface.\n\n### Agent Decisions (LBP)\n\n- **AD6 (slimMutationToolSurface interlock)**: 3 of 8 inverted tools are Tier 3 (invoke-only). `include.snapshot` arg works uniformly through `adv_tool_invoke` dispatch — preserves `ToolDefinition.execute` validation/authorization path. No tool-registry.ts edits required (DONT5 holds).\n- **AD7 (addAdvMcpReadSurface interlock)**: `adv_status` is MCP-exposed via `HANDSHAKE_TIER4_TOOLS` (handshake.ts:19). AC3 `outputMode` arg propagates automatically through `PUBLIC_TOOL_ENTRIES` + shared execute path; no MCP code changes needed. Recommendation-list path stays untouched (OOS2/C3).\n- **AD8 (Epic link action)**: Call `adv_epic_link_change` after agreement sign-off to formally attach to `systemizeAdvOrchestration`.\n\n## Deferred Questions\n\nNone. All Phase 4.5 questions resolved.\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Invert `_contextSnapshot` default to OFF on ADV mutation tools (and `adv_task_ready`); require explicit `include.snapshot:true` opt-in matching the existing read-tool pattern.\n2. Surface `ADV_TOOL_OUTPUT_MODE` as a public `outputMode` tool arg on heavy read tools so operators can control verbosity from chat without env-var restart.\n3. Update command docs, agent prompt, and spec requirements to teach the opt-in pattern at meaningful workflow boundaries (gate transitions, resumption, unexpected results).\n4. Align ADV with industry LBP for agent context management (concise mutation result + JIT retrieval per Anthropic/LangChain/OpenAI guidance).\n5. Coordinate with sibling Epic changes (`replaceRecoveryToolSprawl`, `slimMutationToolSurface`) via shared schema so arg-shape additions don't conflict.\n6. Formally link this change to the `systemizeAdvOrchestration` Epic.\n\n## Success Criteria\n\n- **SC1**: Chat context volume per typical 10-task `/adv-apply` session drops by ~3.4 KB (snapshot emits eliminated)\n- **SC2**: No documented regression in mid-workflow agent orientation (verified via apply-loop dry runs)\n- **SC3**: Pattern aligns with industry LBP for agent context visibility (concise result + JIT retrieval, matching Anthropic/LangChain/OpenAI published guidance)\n\n## Acceptance Criteria\n\n- **AC1**: The 8 tools `adv_task_update` (in_progress/done), `adv_task_add`, `adv_task_cancel`, `adv_change_create`, `adv_change_reenter`, `adv_wisdom_add`, `adv_gate_complete`, and `adv_task_ready` do NOT auto-emit `_contextSnapshot` by default; emit only when caller passes `include.snapshot:true`.\n- **AC2**: Each of those 8 tools gains an `include.snapshot` boolean arg matching `adv_change_show`'s existing opt-in pattern (the existing read-tool surface). [warrant: tool:adv_change_show]\n- **AC3**: Heavy read tools `adv_change_show`, `adv_task_list`, and `adv_status` accept a new `outputMode` arg accepting values from the existing `ADV_TOOL_OUTPUT_MODE` env var domain (`compact` | `pretty`).\n- **AC4**: `adv_change_show include.snapshot:true` behavior unchanged (already opt-in — no regression). [warrant: tool:adv_change_show]\n- **AC5**: Command docs (`adv-apply.md`, `adv-prep.md`) and agent prompt (`.opencode/agents/adv.md`) updated to teach opt-in at meaningful workflow boundaries (gate transitions, resumption, unexpected results); informational references to `_contextSnapshot` paired with the `adv_change_show include.snapshot:true` opt-in pattern.\n- **AC6**: Spec deltas modify `rq-ctxsnap2`, `rq-ctxticker2`, and `rq-advStatusLazyView01` (and their child scenarios) to reflect new default-OFF behavior; preserve existing opt-in semantics. [warrant: spec:rq-ctxsnap2, spec:rq-ctxticker2, spec:rq-advStatusLazyView01]\n- **AC7** *(AMENDED per UD5 — citation corrected)*: Per-tool absence-by-default + opt-in test pairs added for each of the 8 in-scope tools in their respective test files: `task.test.ts` (task_ready, task_update, task_add, task_cancel), `wisdom.test.ts` (wisdom_add), `change.test.ts` (change_create, change_reenter), `gate.test.ts` (gate_complete). The `adv_status` recommendation-list snapshot assertion at `status.test.ts:1959` stays green and untouched (OOS2/C3 boundary — path is now MCP-contract-bound per archived `addAdvMcpReadSurface`).\n- **AC8**: Instruction-text regex tests (`plugin/src/adv-instructions-assets.test.ts:147-148`) updated to match new opt-in wording.\n- **AC9**: `pnpm run check` exits 0; targeted command-asset suites (`adv-task-assets.test.ts`, `adv-status-assets.test.ts`, `adv-instructions-assets.test.ts`) pass.\n\n## Constraints\n\n- **C1**: `_contextSnapshot` formatter output shape (`plugin/src/utils/context-snapshot.ts`) unchanged — only emission default changes.\n- **C2**: Read tools keep current behavior except the new `outputMode` arg on the 3 heaviest.\n- **C3**: `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) are advisory multi-change displays — different problem class, left untouched. Boundary reaffirmed: path is now MCP-contract-bound (Tier-4 surface).\n- **C4**: Truncation thresholds (`MAX_PROMPT_TOOL_OUTPUT_CHARS` 24k, `DEFAULT_MAX_CHARS` 21k, legacy 30k) — out of scope; separate concern.\n- **C5**: Must sequence with `slimMutationToolSurface` (same Epic, different concern — non-conflicting per its C2). Sibling shipped Tier reclassification; 3 of 8 inverted tools are Tier 3 (invoke-only) — `include.snapshot` works uniformly through `adv_tool_invoke` dispatch.\n- **C6**: Must NOT collide with `addAdvMcpReadSurface`. Sibling shipped; `adv_status` is MCP-exposed (`HANDSHAKE_TIER4_TOOLS`); AC3 `outputMode` propagates via `PUBLIC_TOOL_ENTRIES` automatically — no MCP code changes required.\n- **C7** *(NEW per re-discovery)*: Coordinate arg-shape additions with `replaceRecoveryToolSprawl` (active, execution). Both touch arg definitions on 6 of 8 inverted tools but on different fields (`include.snapshot` vs `recoveryMode`/`recoveryEvidence`). Share `includeSnapshotSchema` so merges stay clean; proceed in parallel.\n- **C8** *(NEW per re-discovery)*: Schema-byte regression budget deferred to design. Current estimate: ~640–960 bytes added to orchestrator-loaded schema (8 tools × nested `include.snapshot` object). Visible in `adv_status view:\"health\"` (per archived `addToolContextTelemetry`). Design records baseline + post-change measurement.\n\n## Avoidances\n\n- **DONT1**: Do NOT change `_contextSnapshot` formatter output shape (box width, content fields, ordering).\n- **DONT2**: Do NOT remove the `include.snapshot:true` opt-in path — only change the default.\n- **DONT3**: Do NOT invert `adv_change_show include.snapshot` (already correct opt-in).\n- **DONT4**: Do NOT silently break any spec requirement without a modify-operation spec delta (per spec-as-laws discipline).\n- **DONT5**: Do NOT introduce tool registration changes that conflict with `slimMutationToolSurface` (no tool-registry.ts edits).\n\n## Out of Scope\n\n- **OOS1**: `adv_change_show include.snapshot` (already opt-in — no change needed).\n- **OOS2**: `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) — advisory multi-change displays, different problem class. **Reaffirmed**: path is now MCP-contract-bound via `addAdvMcpReadSurface` shipment; inverting would change behavior for all Code Mode clients.\n- **OOS3**: Truncation threshold unification (24k vs 21k vs 30k triple stack).\n- **OOS4**: Command body trimming (sibling Change B: `tightenAdvChatVoice`).\n- **OOS5**: Voice standard changes (Change B).\n- **OOS6**: `addAdvMcpReadSurface` territory (MCP read surface — shipped).\n- **OOS7**: `slimMutationToolSurface` territory (manifest exposure only — shipped).\n- **OOS8**: `replaceRecoveryToolSprawl` territory (recovery-arg removal — coordinate via C7).\n\n## Preview Applicability\n\n- **visual_surface**: `false` — plugin runtime change; no front-end, browser, or visual output affected.\n- **preview_expectation**:\n  - `exact_route_required`: `not_applicable`\n  - `data_state_expectation`: `not_applicable`\n  - `viewport_expectation`: `not_applicable`\n- **Rationale**: Pure plugin-runtime behavior change; no UI surface touched.\n\n## Decisions\n\n### User Decisions\n\n- **UD1 — Inversion aggressiveness**: Default OFF (after LBP research validated). User selected OFF over TICKER (low impact, ~720 bytes saved) and HYBRID (high complexity, multi-session race risk). Research sources: Anthropic context engineering, LangChain context engineering, OpenAI cookbook context personalization.\n- **UD2 — outputMode arg scope**: 3 heaviest reads only (`adv_change_show`, `adv_task_list`, `adv_status`). User selected focused surface over \"all reads\" (larger blast radius) or \"all ADV tools\" (maximum surface change).\n- **UD3 — adv_task_ready handling**: Invert for consistency. Although a read tool, its auto-emit ticker is high-frequency in apply loops; inverting aligns it with the uniform opt-in pattern.\n- **UD4 — Protocol update aggressiveness**: Update all references. `adv-apply.md`, `adv-prep.md`, and `.opencode/agents/adv.md` updated explicitly to teach the opt-in pattern at meaningful workflow boundaries.\n- **UD5 — AC7 final disposition (re-discovery)**: Don't invert status-enrich; amend AC7 citation to correct in-scope test files. Status-enrich is now MCP-contract-bound (Tier-4 surface via archived `addAdvMcpReadSurface`); inverting would change behavior for all Code Mode clients. OOS2/C3 boundary reaffirmed as principled (advisory multi-change display, different problem class).\n- **UD6 — Recovery-arg coordination (re-discovery)**: Proceed in parallel with `replaceRecoveryToolSprawl`. Both touch arg-shape definitions on 6 of 8 tools but on different fields; coordinate via shared `includeSnapshotSchema`.\n- **UD7 — Epic membership (re-discovery)**: Formally link `tightenToolOutputDefaults` to `systemizeAdvOrchestration` Epic via `adv_epic_link_change`. Aligns narrative (\"reducing always-loaded tool-definition context\") with the actual chat-volume reduction work.\n- **UD8 — Schema-byte budget (re-discovery)**: Defer detailed byte-budget decision to design; record current ~640–960 byte estimate as input against `addToolContextTelemetry` regression surface.\n\n### Agent Decisions (LBP)\n\n- **AD1 — Hybrid design pattern**: Push the mutation outcome (task IDs, status, etc. — already present, no change); pull rendered workflow state on demand. Aligns with industry pattern (5 push + 4 hybrid + 0 pure-pull systems researched; best-practice guidance from Anthropic/LangChain/OpenAI recommends token-efficient tools + JIT retrieval).\n- **AD2 — status-enrich.ts exclusion**: `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) are advisory multi-change displays, not single-change post-mutation orientation. Different problem class; correctly out of scope.\n- **AD3 — adv_change_show include.snapshot untouched**: Already opt-in — no change needed; preserved as the canonical pattern mutations will mirror.\n- **AD4 — Warrant tags declared**: Capability-presuming ACs (AC2, AC4, AC6) carry typed warrant tags per `rq-acWarrant01`; behavioral criteria without capability presumption (AC1, AC3, AC5, AC7, AC8, AC9) intentionally omit ceremony per proportionality/DONT4.\n- **AD5 — Scope correction from proposal**: Proposal claimed \"8 mutation emission sites\". Discovery verified 11 total emit sites (7 mutations + 4 reads). Of the reads: 1 is opt-in already (correct), 1 is in scope (`adv_task_ready`), 2 are correctly excluded (`status-enrich.ts` advisory). Final scope: 7 mutations + 1 read = 8 tools inverted.\n- **AD6 — slimMutationToolSurface interlock (re-discovery)**: 3 of 8 inverted tools are Tier 3 (invoke-only: `adv_task_cancel`, `adv_change_reenter`, `adv_wisdom_add`). `include.snapshot` arg works uniformly through `adv_tool_invoke` dispatch — preserves `ToolDefinition.execute` validation/authorization path. No tool-registry.ts edits required (DONT5 holds).\n- **AD7 — addAdvMcpReadSurface interlock (re-discovery)**: `adv_status` is MCP-exposed via `HANDSHAKE_TIER4_TOOLS` (handshake.ts:19). AC3 `outputMode` arg propagates automatically through `PUBLIC_TOOL_ENTRIES` + shared execute path; no MCP code changes needed. Recommendation-list path stays untouched (OOS2/C3).\n- **AD8 — Epic link action (re-discovery)**: Call `adv_epic_link_change` after agreement sign-off to formally attach `tightenToolOutputDefaults` to `systemizeAdvOrchestration`.\n\n## Deferred Questions\n\nNone. All open questions resolved (initial discovery Phase 4.5 + re-discovery Phase 4.5).\n\n## Sign-Off\n\nUser approved acceptance and success criteria via Tier A whitelist (`approve`) on 2026-07-21 following Phase 4.5.1 Acceptance Criteria Checkpoint.\n\n- Initial sign-off (2026-07-21): User approved via Tier A whitelist at Phase 4.5.1 AC checkpoint.\n- Re-discovery sign-off (2026-07-21): User approved amended criteria via Tier A whitelist (`approve`) at re-discovery Phase 4.5.1 AC checkpoint following sibling-change alignment (UD5-UD8 added; AC7 citation corrected; C7 + C8 added).\n\nLBP research validated default-OFF as the industry-aligned pattern; codebase enumeration bounded the migration impact to ~13 file edits + 9 spec scenario updates + 11 site logic wraps, all well-defined. Re-discovery confirmed sibling changes (`slimMutationToolSurface` shipped, `addAdvMcpReadSurface` shipped, `replaceRecoveryToolSprawl` active) materially reinforce but do not invalidate the original scope.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nInvert the `_contextSnapshot` emission default on 8 ADV tools from **auto-emit** to **opt-in** (`include.snapshot:true`), matching the existing `adv_change_show include.snapshot` pattern. Separately, surface the existing `ADV_TOOL_OUTPUT_MODE` env-var domain (`compact` | `pretty`) as a public per-call `outputMode` arg on the 3 heaviest read tools, threading through `formatToolOutput` via a new `resolveOutputMode()` precedence resolver.\n\nTwo parallel architectural moves:\n\n1. **Default-OFF + opt-in snapshot** — mutation/ready tools stop auto-emitting `_contextSnapshot`; the canonical opt-in pattern from `adv_change_show` (change.ts:970-975, 1273-1299) becomes the single uniform surface for snapshot emission across all tools.\n2. **Public `outputMode` arg** — reads that already traverse `formatToolOutput` accept a per-call mode override; default behavior unchanged (driven by env var).\n\n### Code Surface Map\n\n| Tool | File:Line | Emission shape | Tier (per `slimMutationToolSurface`) | Inversion mechanism |\n|---|---|---|---|---|\n| `adv_task_ready` | `task.ts:572,609` | ticker | Tier 2 (orchestrator-only) | gate emit on `include.snapshot` |\n| `adv_task_update` (in_progress/done) | `task.ts:1159-1171` | ticker | Tier 1 (always top-level) | gate emit on `include.snapshot` |\n| `adv_task_add` | `task.ts:1503-1520` | ticker | Tier 2 | gate emit on `include.snapshot` |\n| `adv_task_cancel` | `task.ts:1805-1817` | ticker | Tier 3 (invoke-only) | gate emit on `include.snapshot` |\n| `adv_wisdom_add` | `wisdom.ts:208-218` | ticker | Tier 3 (invoke-only) | gate emit on `include.snapshot` |\n| `adv_change_create` | `change.ts:1880-1902` | full-box | Tier 2 | gate emit on `include.snapshot` |\n| `adv_change_reenter` | `change/recovery.ts:394-410` | full-box | Tier 3 (invoke-only) | gate emit on `include.snapshot` |\n| `adv_gate_complete` | `gate.ts:1014-1027` | full-box | Tier 1 | gate emit on `include.snapshot` |\n\n**Tier 3 tools** (3 of 8: `adv_task_cancel`, `adv_change_reenter`, `adv_wisdom_add`) route through `adv_tool_invoke` dispatch in agent contexts. `include.snapshot` arg threads through unchanged because invoke preserves `ToolDefinition.execute` validation/authorization path (per `slimMutationToolSurface` AD6).\n\n### Read tool arg additions\n\n| Tool | File | MCP-exposed? | Arg | Wires into |\n|---|---|---|---|---|\n| `adv_change_show` | `change.ts` (args defn) | No (Tier 1 plugin-only) | `outputMode?: \"compact\" \\| \"pretty\"` | `formatToolOutput({ pretty: resolveOutputMode(args.outputMode) })` |\n| `adv_task_list` | `task.ts` (args defn) | No (Tier 1 plugin-only) | `outputMode?: \"compact\" \\| \"pretty\"` | same |\n| `adv_status` | `status.ts` (args defn) | **Yes** (`HANDSHAKE_TIER4_TOOLS:19`) | `outputMode?: \"compact\" \\| \"pretty\"` | same — propagates to MCP via `PUBLIC_TOOL_ENTRIES` |\n\nThe existing `OUTPUT_MODE` env default in `tool-output.ts:22-23` stays authoritative when `outputMode` arg is omitted — this is the AC3 contract. For `adv_status`, MCP clients inherit the arg automatically through shared Zod dispatch (no MCP code changes per AD7).\n\n## Key Decisions\n\n### KD1 — Single uniform `include.snapshot` arg shape via shared schema\n\nMirror the existing `adv_change_show include.snapshot` arg (change.ts:970-975) on all 8 in-scope tools. To preserve byte-identical arg shape without duplicating Zod definitions across 8 tools, extract a shared schema (per scout SC-2):\n\n```ts\n// plugin/src/tools/shared-args.ts (or co-locate with targetPathSchema)\nexport const includeSnapshotSchema = z.object({\n  include: z\n    .object({\n      snapshot: z\n        .boolean()\n        .optional()\n        .describe(\n          \"When true, attaches the rendered context snapshot as top-level `_contextSnapshot`.\",\n        ),\n    })\n    .optional()\n    .describe(\"Optional include flags for extra fields.\"),\n});\n```\n\nThe 8 tools spread `...includeSnapshotSchema.shape` into their args (same pattern as `...targetPathSchema.shape` in task.ts:1246). `adv_change_show` KEEPS its broader existing `include` object (which already contains `snapshot`, `ledger`, `readyTasks`, etc.) — the shared schema is for the 8 inverted tools only.\n\n**Rationale**: AC2 explicitly warrants `tool:adv_change_show`. Using the identical object shape preserves agent-call parity. Extracting to a shared schema prevents drift across 8 manual copies (DRY, P04 locality). **C7 coordination**: sharing the schema also gives `replaceRecoveryToolSprawl` a stable, isolated arg block to merge around when it removes `recoveryMode`/`recoveryEvidence` fields — the two changes touch the same arg definitions but on different fields, and the shared schema keeps the merge surface minimal.\n\n### KD2 — Ticker sites refactored via shared helper (scout SC-1 confirms 5 sites)\n\nThe 5 ticker sites currently inline:\n```ts\nconst snapshot = await fetchChangeContextTicker(activeStore, changeId);\nif (snapshot) { output._contextSnapshot = snapshot; }\n```\n\nScout SC-1 confirmed: 5 production sites only (task.ts ×4 + wisdom.ts ×1); no missed call sites. Refactor into a `maybeAttachChangeTicker(opts)` helper in `storage/context-snapshot-fetch.ts` (same module as `fetchChangeContextTicker`):\n\n```ts\nexport async function maybeAttachChangeTicker(\n  output: Record<string, unknown>,\n  include: { snapshot?: boolean } | undefined,\n  store: Store,\n  changeId: string,\n): Promise<void> {\n  if (!include?.snapshot) return;\n  try {\n    const snapshot = await fetchChangeContextTicker(store, changeId);\n    if (snapshot) output._contextSnapshot = snapshot;\n  } catch { /* best-effort, never fail tool */ }\n}\n```\n\n**Rationale**: DRY across 5 call sites; isolates the opt-in gate; preserves and **uniformizes** best-effort semantics (currently only `wisdom.ts` swallows errors; the helper enforces uniform error-swallowing per DDC4).\n\n### KD3 — Full-box sites stay inline (bespoke directive computation)\n\nThe 3 full-box sites (`change_create`, `change_reenter`, `gate_complete`) each construct a `directive` via `deriveDirectiveSafe(...)` with their own local gate/change state. The shape is bespoke enough that a shared helper would obscure it. Wrap each in a simple `if (args.include?.snapshot) { ... existing buildChangeContextSnapshot block ... }` guard.\n\n### KD4 — `outputMode` threads via new `resolveOutputMode()` precedence resolver\n\n**Validator finding (Phase 3.5 caution)**: the existing `formatToolOutput({ pretty?: boolean })` option uses OR-semantics: `indent = options?.pretty || OUTPUT_MODE === \"pretty\" ? 2 : undefined`. Naively passing `{ pretty: args.outputMode === \"pretty\" }` does NOT allow a caller to force `compact` when env is `pretty` — env wins on the OR.\n\nFix: add an explicit precedence resolver in `plugin/src/utils/tool-output.ts`:\n\n```ts\n// Precedence: caller arg > ADV_TOOL_OUTPUT_MODE env > \"compact\" default\nexport function resolveOutputMode(arg?: \"compact\" | \"pretty\"): boolean {\n  if (arg === \"pretty\") return true;\n  if (arg === \"compact\") return false;\n  return OUTPUT_MODE === \"pretty\";\n}\n```\n\nEach of the 3 read tools wires:\n```ts\nreturn formatToolOutput(output, { pretty: resolveOutputMode(args.outputMode) });\n```\n\nThis makes the precedence explicit and testable. `formatToolOutput` itself stays unchanged (its existing `pretty` option already accepts a fully-resolved boolean). No env-var mutation, no signature break.\n\n**Rationale**: AC3 requires the per-call arg to actually override env. The naive wiring silently fails when arg=\"compact\" and env=\"pretty\". Validator correctly flagged this; resolver closes the gap.\n\n### KD5 — `adv_task_ready` arg-shape consistency\n\n`adv_task_ready` currently has no `include` arg (its args are `{ changeId, target_path }`). Add the same `include: { snapshot?: boolean }` shape via the shared `includeSnapshotSchema`. UD3 confirmed inversion for consistency.\n\n### KD6 — `adv_status` recommendation snapshots untouched (OOS2/C3 — reaffirmed)\n\n`status-enrich.ts:238,612` per-recent-row snapshots (`rq-ctxticker2.5`) are advisory multi-change displays. They are NOT touched by this change. `adv_status` only gains the `outputMode` arg (AC3); it does NOT gain `include.snapshot`. `rq-advStatusLazyView01` is modified only to reflect default-OFF elsewhere — its own emission invariant is preserved.\n\n**Re-affirmation (post-re-discovery)**: `adv_status` is now MCP-exposed via archived `addAdvMcpReadSurface` (`HANDSHAKE_TIER4_TOOLS:19`). Inverting the recommendation-list path would change MCP behavior for all Code Mode clients. UD5 confirms: OOS2/C3 boundary is principled, not accidental — caller explicitly asks for overview; advisory multi-change display is a different problem class from per-mutation auto-emit.\n\n### KD7 — Sibling coordination via shared schema (NEW per re-discovery, C7)\n\n`replaceRecoveryToolSprawl` (active, execution) will remove `recoveryMode`/`recoveryEvidence` args from 6 of 8 inverted tools once internal classification ships. Both changes touch arg definitions but on different fields. Strategy:\n\n1. Land `includeSnapshotSchema` (KD1) as a self-contained, importable schema.\n2. Each of the 8 tools' arg block spreads `...includeSnapshotSchema.shape` (additive, no field overlap with recovery args).\n3. `replaceRecoveryToolSprawl` removes `...RecoveryModeSchema.shape` / `...RecoveryEvidenceSchema.shape` spreads independently.\n4. Merge surface is minimal — both changes use the spread pattern; no field-level conflict.\n\nIf `replaceRecoveryToolSprawl` archives first, my work proceeds on the post-removal arg shape (still uses `includeSnapshotSchema`). If tightenToolOutputDefaults archives first, sibling's removal lands cleanly.\n\n### KD8 — Byte-budget measurement plan (NEW per re-discovery, C8/UD8)\n\nUD8 defers the schema-byte budget decision to design. Plan:\n\n1. **Baseline measurement** (Phase F verification): capture per-lane schema bytes via `adv_status view:\"health\"` BEFORE any code changes.\n2. **Post-change measurement**: same view AFTER all 8 tools gain `include.snapshot` + 3 tools gain `outputMode`.\n3. **Compare**: expected delta ~640–960 bytes (nested object form).\n4. **Decision criterion**: if delta > 1.5 KB, revisit KD1 (consider flat `snapshot?: boolean` shape — would break KD1 parity but halve bytes). If delta < 1.5 KB, accept (net positive against ~3.4 KB per apply session saved).\n5. **Record** baseline + post-change numbers in the executive summary.\n\n`addToolContextTelemetry` (archived) already provides the measurement surface.\n\n## ADR Drafts\n\nNone. The 3-criteria rubric (hard-to-reverse, surprising, real-tradeoff) is not met: this is a default flip with an opt-in escape hatch, fully reversible by callers passing `include.snapshot:true`, and aligned with discovery-validated LBP.\n\n## Implementation Strategy\n\n### Phase A — Spec deltas (gate spec-as-laws first)\n\n1. **`adv_delta_modify` chat-output-display rq-ctxsnap2**: body changes \"MUST be emitted by\" → \"MUST be emitted only when caller passes `include.snapshot:true`\"; scenarios `.1`, `.2`, `.6` get `then:` updates reflecting opt-in.\n2. **`adv_delta_modify` chat-output-display rq-ctxticker2**: body changes \"MUST be emitted\" → \"MUST be emitted only when caller passes `include.snapshot:true`\"; scenarios `.1`, `.2`, `.3`, `.4` get parallel updates.\n3. **`adv_delta_modify` advance-meta rq-advStatusLazyView01**: body clarifies that `adv_status` itself does NOT emit `_contextSnapshot` by default; recommendation-list snapshots (per C3/OOS2) remain governed by `rq-ctxticker2.5` unchanged.\n\nAll deltas use `operation: \"modify\"` with precondition `target_requirement_sha256` to bind to current law.\n\n### Phase B — Tool arg additions (8 tools × `include.snapshot` + 3 tools × `outputMode`)\n\nAdd args in this order (lowest-blast-radius first):\n1. `adv_task_ready` (KD5)\n2. `adv_task_update` (gate the in_progress/done block at task.ts:1159-1171)\n3. `adv_task_add` (gate at task.ts:1503-1520)\n4. `adv_task_cancel` (gate at task.ts:1805-1817)\n5. `adv_wisdom_add` (gate at wisdom.ts:208-218)\n6. `adv_change_create` (gate the full-box block at change.ts:1880-1902)\n7. `adv_change_reenter` (gate at change/recovery.ts:394-410)\n8. `adv_gate_complete` (gate at gate.ts:1014-1027)\n9. Add `outputMode` arg to `adv_change_show`, `adv_task_list`, `adv_status` (AC3); wire via `resolveOutputMode()` (KD4)\n\n### Phase C — Helper refactor (KD2) + shared schema (KD1) + resolver (KD4)\n\n- Land `includeSnapshotSchema` in `plugin/src/tools/shared-args.ts` (or co-locate with `targetPathSchema`).\n- Land `maybeAttachChangeTicker` in `storage/context-snapshot-fetch.ts`; replace 5 inline ticker blocks.\n- Land `resolveOutputMode` in `plugin/src/utils/tool-output.ts`.\n\n### Phase D — Tests (table-driven per scout SC-3 + SC-4)\n\nPer-tool absence-by-default + opt-in tests (AC7 — citation corrected per UD5):\n- `task.test.ts` — task_ready, task_update, task_add, task_cancel (table-driven using existing hoisted `fetchChangeContextTicker` mock at task.test.ts:12-42 per SC-3)\n- `wisdom.test.ts` — wisdom_add\n- `change.test.ts` — change_create, change_reenter\n- `gate.test.ts` — gate_complete\n\nEach test pair: assert `_contextSnapshot` is undefined when called with no args; assert present when called with `include: { snapshot: true }`. The hoisted mock returns null by default — flip it to return a string for opt-in cases.\n\nPlus:\n- `outputMode` precedence matrix tests: `(arg, env) → effective` for all 4 combinations (AC3 + DDC5).\n- `adv-instructions-assets.test.ts:147-148` regex update (AC8). Per SC-4, add semantic table-driven assertions covering all 3 edited prompt assets (adv-apply.md, adv-prep.md, adv.md) — no docs generator needed.\n\n**Explicitly untouched** (per UD5): `status.test.ts:1959` recommendation-list snapshot assertion stays green — that path is MCP-contract-bound (OOS2/C3).\n\n### Phase E — Command docs + agent prompt\n\n- `adv-apply.md:267,298,674` — update to teach opt-in at gate transitions / resumption / unexpected results.\n- `adv-prep.md:421` — same.\n- `.opencode/agents/adv.md:200,382` — informational `_contextSnapshot` references paired with `adv_change_show include.snapshot:true` opt-in pattern.\n\n### Phase F — `pnpm run check` + targeted asset suites + byte-budget measurement\n\nAC9 verification gate + KD8 baseline/post-change measurement via `adv_status view:\"health\"`.\n\n## LBP Analysis\n\n**Industry pattern (UD1)**: Concise mutation result + JIT retrieval. Surveyed: Anthropic context engineering (\"context engineering\" guidance — pull over push), LangChain (\"just-in-time\" retrieval over push), OpenAI cookbook (context personalization via explicit fields). 5 of 9 push-based systems, 4 hybrid; none pure-pull. Best practice favors token-efficient mutation returns + opt-in retrieval.\n\n**Why this is the long-term right shape**:\n- **Symmetry restored**: opt-in is uniform across read + mutation tools (was inverted before).\n- **No information loss**: snapshot remains available via the same arg that already exists on `adv_change_show`.\n- **Token cost recouped**: ~3.4 KB saved per 10-task apply session (SC1).\n- **Forward-compatible**: archived `addAdvMcpReadSurface` MCP server composes the same opt-in shape automatically through `PUBLIC_TOOL_ENTRIES`.\n- **Reversible**: callers can pass `include.snapshot:true` to recover old behavior; not a hard migration.\n- **Sibling-aligned**: KD7 shared-schema approach keeps `replaceRecoveryToolSprawl` merge surface minimal.\n\n**Tradeoff accepted**: agents trained on always-on emission may lose mid-workflow orientation. Mitigated by Phase E doc updates teaching opt-in at workflow boundaries.\n\n## Affected Components\n\n- `plugin/src/tools/task.ts` (4 sites + 1 ready arg + arg-defn blocks)\n- `plugin/src/tools/change.ts` (1 site + 1 outputMode arg on show)\n- `plugin/src/tools/change/recovery.ts` (1 site)\n- `plugin/src/tools/wisdom.ts` (1 site)\n- `plugin/src/tools/gate.ts` (1 site)\n- `plugin/src/tools/status.ts` (1 outputMode arg — propagates to MCP via PUBLIC_TOOL_ENTRIES)\n- `plugin/src/tools/shared-args.ts` (new: `includeSnapshotSchema`)\n- `plugin/src/storage/context-snapshot-fetch.ts` (new helper `maybeAttachChangeTicker`)\n- `plugin/src/utils/tool-output.ts` (new `resolveOutputMode()` resolver)\n- `.adv/specs/chat-output-display/spec.json` (spec deltas via `adv_delta_modify`, applied at archive)\n- `.adv/specs/advance-meta/spec.json` (spec delta)\n- `.opencode/command/adv-apply.md`, `.opencode/command/adv-prep.md`, `.opencode/agents/adv.md` (doc updates)\n- Tests: `task.test.ts`, `wisdom.test.ts`, `change.test.ts`, `gate.test.ts`, `adv-instructions-assets.test.ts`, command-asset suites\n\n## Design-Derived Criteria\n\nThese are technical criteria caused by the chosen architecture, NOT new user-facing AC:\n\n- **DDC1 — Arg-shape parity**: the `include.snapshot` arg on the 8 inverted tools MUST produce byte-identical Zod shape to `adv_change_show`'s existing `include.snapshot` (same field description, same optional/optional nesting). The shared `includeSnapshotSchema` enforces this by construction.\n- **DDC2 — Helper isolation**: `maybeAttachChangeTicker` MUST live in `storage/context-snapshot-fetch.ts` (same module as `fetchChangeContextTicker`) — not in a new file. Locality-of-behavior (P04).\n- **DDC3 — Env-var authority preserved**: when `outputMode` arg is omitted, behavior MUST be byte-identical to current (env-var-driven). Verified by test.\n- **DDC4 — Best-effort uniform**: all 5 ticker sites MUST swallow emission errors uniformly (currently only `wisdom.ts` does). The helper enforces this.\n- **DDC5 — outputMode precedence** (added per validator Phase 3.5 finding): precedence is `arg > env > \"compact\"` and MUST be testable for all 4 `(arg, env)` combinations. The `resolveOutputMode()` resolver makes this explicit; the naive `{ pretty: args.outputMode === \"pretty\" }` wiring is rejected because it silently lets env win when caller forces compact.\n- **DDC6 — Byte-budget measurement** (NEW per C8/UD8): Phase F MUST capture before/after per-lane schema bytes via `adv_status view:\"health\"`; delta > 1.5 KB triggers KD1 revisit.\n\n## Risks / Mitigations\n\n| Risk | Severity | Mitigation |\n|---|---|---|\n| Agent orientation regression (lost mid-workflow visibility) | medium | Phase E docs teach opt-in at gate transitions, resumption, unexpected results; SC2 dry-run verification |\n| Test coverage gap (existing tests mock ticker → null, asserting nothing about presence) | medium | Phase D adds per-tool absence + opt-in test pairs for all 8 tools |\n| Cross-tool arg inconsistency (8 tools × manual edits) | low | DDC1 static check; shared `includeSnapshotSchema` eliminates drift by construction |\n| `outputMode` precedence ambiguity (env wins when caller forces compact) | medium → resolved | KD4 `resolveOutputMode()` makes precedence explicit; DDC5 covers all 4 combinations |\n| `replaceRecoveryToolSprawl` merge conflict (C7) | low | KD7 shared-schema spread pattern; field-level disjoint |\n| Schema-byte regression visible in `adv_status view:\"health\"` (C8) | low | KD8 measurement plan; DDC6 threshold |\n| `slimMutationToolSurface` collision (C5) | low → resolved | Sibling shipped Tier reclass; 3 of 8 tools are Tier 3 (invoke-only); `include.snapshot` works through invoke dispatch; no tool-registry.ts edits (DONT5) |\n| `addAdvMcpReadSurface` collision (C6) | low → resolved | Sibling shipped; `adv_status` is MCP-exposed; AC3 `outputMode` propagates via `PUBLIC_TOOL_ENTRIES`; recommendation-list path untouched (OOS2/C3) |\n| Spec delta rejected (target_requirement_sha256 mismatch) | low | Capture SHA at delta-add time; spec read-only until archive |\n\n## AC7 Resolution (was Phase 4.1 trigger — now resolved per UD5)\n\n**Initial design Phase 4.1 surfaced**: AC7 cited `plugin/src/tools/status.test.ts:1959` asserting `recent[]._contextSnapshot`. That path = `adv_status` recommendation-list snapshot (`status-enrich.ts:238` / `rq-ctxticker2.5`) = explicitly OOS per OOS2/C3.\n\n**Re-discovery resolution (UD5)**: Don't invert status-enrich; amend AC7 citation to correct in-scope test files. Status-enrich is now MCP-contract-bound (Tier-4 surface via archived `addAdvMcpReadSurface`); inverting would change behavior for all Code Mode clients. OOS2/C3 boundary reaffirmed as principled (advisory multi-change display, different problem class).\n\n**AC7 amended text** (now in agreement): per-tool absence-by-default + opt-in test pairs added for each of the 8 in-scope tools in their respective test files: `task.test.ts`, `wisdom.test.ts`, `change.test.ts`, `gate.test.ts`. `status.test.ts:1959` stays green and untouched.\n\nNo contract compromise — agreement amended cleanly via re-discovery.\n\n## Design Leverage Scout\n\nPhase 2.5 scout ran (`adv-researcher`, attempt 1). Result: `pass`, low risk, high confidence.\n\n**Candidates considered**: 5\n**Auto-adopted**: 4 (all integrated into Key Decisions / Implementation Strategy)\n- SC-1 → KD2: confirmed 5 ticker sites only; no missed call sites; helper extraction is correctly bounded.\n- SC-2 → KD1: extract shared `includeSnapshotSchema` (mirrors `targetPathSchema` pattern) instead of duplicating Zod definitions across 8 tools.\n- SC-3 → Phase D: table-driven absence/opt-in tests using existing hoisted `fetchChangeContextTicker` mock at `task.test.ts:12-42`.\n- SC-4 → Phase D: semantic table-driven assertions for all 3 edited prompt assets; no docs generator needed.\n\n**Surfaced to user (SC-5, planning parallelism)**: spec deltas (Phase A) and test matrix (Phase D) can be authored concurrently since both are independent of tool-arg changes (Phase B). Planning should sequence them as parallel work-streams.\n\n**Inconclusive/skipped**: none.\n\n## Validation\n\nPhase 3.5 independent validator (`adv-researcher`, attempt 1) ran during initial design pass. Report submitted: `tightenToolOutputDefaults|change:researcher:design-validation|adv-researcher|1`.\n\n**Verdict**: `caution` (legacy `CAUTION`).\n\n**Findings** (both integrated into design):\n1. **KD4 gap (caution, RESOLVED)**: validator identified that the naive `formatToolOutput({ pretty: args.outputMode === \"pretty\" })` wiring silently fails when caller passes `outputMode: \"compact\"` while env is `ADV_TOOL_OUTPUT_MODE=pretty` (env wins on the existing OR-semantics in tool-output.ts:87). Resolution integrated into KD4 as the new `resolveOutputMode()` resolver, with DDC5 codifying the precedence (`arg > env > \"compact\"`).\n2. **AC7 citation compromise (caution, RESOLVED via UD5)**: validator independently confirmed the AC7 misattribution interpretation; recommended \"amend citation, preserve test\" — matches the UD5 resolution above.\n3. **Shared schema/helper approach simplest (pass)**: confirms KD1 + KD2.\n4. **Spec deltas required (pass)**: confirms Phase A — current `rq-ctxsnap2` / `rq-ctxticker2` mandate automatic emission and MUST be modified to reflect opt-in default.\n\n**Re-discovery did not surface new design-level concerns.** Sibling alignment (slimMutationToolSurface shipped, addAdvMcpReadSurface shipped, replaceRecoveryToolSprawl active) added coordination constraints (C7, C8) but no new architectural risks. Prior validator verdict stands; no re-run needed.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nADV mutation tools no longer auto-attach a context summary to every response by default — callers now explicitly request it via `include.snapshot:true`. A new `outputMode` arg lets operators control JSON formatting on the three heaviest read tools.\n\n## Why It Matters\nLong ADV sessions (typical 10-task implementation run) previously accumulated ~3.4 KB of redundant context snapshots in chat history, accelerating context-window pressure and triggering destructive compaction warnings. This change eliminates that pressure while preserving full on-demand visibility.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Default-OFF + opt-in context snapshot on 8 tools (task state updates, change creation, gate completion, wisdom entry) — callers pass `include.snapshot:true` to request the snapshot\n2. `outputMode` arg on 3 heavy read tools (`adv_change_show`, `adv_task_list`, `adv_status`) — accepts `compact` or `pretty`, overrides the `ADV_TOOL_OUTPUT_MODE` env var per call\n3. Shared Zod schema (`includeSnapshotSchema`) ensures all 8 tools have byte-identical arg shape matching the existing `adv_change_show` opt-in pattern\n4. Shared helper (`maybeAttachChangeTicker`) eliminates code duplication across 5 ticker-emission sites and enforces uniform best-effort error handling\n5. Precedence resolver (`resolveOutputMode`) makes the arg > env > compact ordering explicit and testable (addresses a validator-caught gap where env could override an explicit compact request)\n6. Updated command docs, agent prompt, and ADV_INSTRUCTIONS.md to teach the opt-in pattern at workflow boundaries\n7. Spec deltas recorded for 3 requirements (rq-ctxsnap2, rq-ctxticker2, rq-advStatusLazyView01) to reflect the new default-OFF behavior\n\n## What Was Verified\n- Verdict: APPROVED with 2 suggestions, 1 question (no blockers or issues)\n- Tests: 371/371 pass across 11 targeted suites; `pnpm run check` exits 0 (typecheck, lint, format, schemas, manifests, isolation, lockfile)\n- Preview URL: not_applicable (plugin runtime change; no visual surface)\n- Contract matrix: 25 required rows, all pass/respected (8 OOS items exempt per verificationRequired:false)\n\n## Remaining Concerns\n- 2 review suggestions rejected with evidence during harden (indirect AC7 assertions → mock verifies gating logic; delta projection gap → Temporal read-layer limitation, deltas apply at archive)\n- 4 tasks cancelled due to stage-v2 evidence policy (work complete: 3 spec deltas + byte budget analysis); deltas persist in ADV state\n\n## Supporting Evidence\n- Task IDs: tk-e6433ddc1d16, tk-0af83bddb1c4, tk-4a2433e9e75f, tk-775dfac8e67a, tk-f64ea513f734, tk-83760592f580, tk-878b67f87827, tk-6318a7bb7b83 (done); tk-32aa7e0a3408, tk-7a7346dd81d4, tk-21dc45c92650, tk-14a8e307034d (cancelled, work complete)\n- Review reports: design leverage scout (pass), design validation (caution → integrated)\n- Contract review matrix: 25 required rows persisted via adv_contract_review_matrix_set\n- Commits: 8 checkpoints on change/tightenToolOutputDefaults branch\n- Merge compatibility: clean (all files auto-merge with origin/trunk, no conflicts)\n\n## Release Readiness Summary\n\n### Harden Status: READY\nAll 6 release-readiness dimensions pass:\n- Test coverage: 371/371 pass; all touched files have co-located tests\n- AI-slop: none detected (structural Zod schemas, typed helpers, no placeholders)\n- Documentation hygiene: 6 doc sites + ADV_INSTRUCTIONS.md updated; no conflicts or stale refs\n- Cleanup: no temp files, debug code, or dead imports; prettier-clean\n- Production readiness: no security surface; net-positive performance (~3.4 KB/session savings)\n- Deployment readiness: no env vars, migrations, or external services; plugin rebuild + restart standard\n\n### Approval Consequence Context\n1. **Delivered value**: ~3.4 KB/session chat volume reduction; operator-controlled verbosity via `outputMode` arg on 3 heavy reads\n2. **Enabling-only/follow-up dependency**: None — change is self-contained\n3. **Ops readiness**: Plugin rebuild + OpenCode restart required to load new tool args (standard for plugin code changes; no deploy script, migration, or external service needed)\n4. **Migration/data impact**: n/a — no data migration. Callers relying on auto-emit must add `include.snapshot:true` (documented in command docs + agent prompt + ADV_INSTRUCTIONS.md). No destructive behavior change — opt-in path preserved.\n5. **Frontend/preview impact**: not_applicable — no visual surface (`visual_surface: false` per agreement)\n6. **Collision/release risk**: Low — merge with origin/trunk clean (no conflicts). Coordinate with `replaceRecoveryToolSprawl` (active, recovery-arg removal on same tools); shared `includeSnapshotSchema` ensures clean merge surface.\n7. **Open follow-ups**: 0 blocking. 2 review suggestions rejected with evidence (indirect test assertions → mock verifies gating; delta projection → Temporal read-layer gap, applies at archive). Non-blocking advisory: `addToolContextTelemetry` regression surface shows ~2.1 KB schema growth (net positive against ~3.4 KB/session savings).\n8. **Next action**: `/adv-archive tightenToolOutputDefaults` — release gate sign-off + git finalization\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-22T19:05:58.365Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1**: Chat context volume per typical 10-task `/adv-apply` session drops by ~3.4 KB (snapshot emits eliminated) | pass | Executive summary records ~3.4 KB/session snapshot-volume reduction; tk-14a8e307034d byte-budget analysis completed (~2140 bytes schema impact, keep decision). |\n| SC2 | success_criterion | **SC2**: No documented regression in mid-workflow agent orientation (verified via apply-loop dry runs) | pass | AC1 default/opt-in behavior covered by tk-775dfac8e67a and tk-f64ea513f734; docs and agent workflow guidance updated by tk-878b67f87827; 371/371 original and 406 current targeted tests pass. |\n| SC3 | success_criterion | **SC3**: Pattern aligns with industry LBP for agent context visibility (concise result + JIT retrieval, matching Anthropic/LangChain/OpenAI published guidance) | pass | Recorded adv-researcher design report documents concise-result plus JIT-retrieval alignment with cited Anthropic/LangChain/OpenAI guidance. |\n| AC1 | acceptance_criterion | **AC1**: The 8 tools `adv_task_update` (in_progress/done), `adv_task_add`, `adv_task_cancel`, `adv_change_create`, `adv_change_reenter`, `adv_wisdom_add`, `adv_gate_complete`, and `adv_task_ready` do NOT auto-emit `_contextSnapshot` by default; emit only when caller passes `include.snapshot:true`. | pass | tk-775dfac8e67a gates 5 ticker tools; tk-f64ea513f734 gates 3 full-box tools; per-tool absence-by-default and include.snapshot opt-in tests pass. |\n| AC2 | acceptance_criterion | **AC2**: Each of those 8 tools gains an `include.snapshot` boolean arg matching `adv_change_show`'s existing opt-in pattern (the existing read-tool surface). | pass | tk-e6433ddc1d16 adds shared includeSnapshotSchema; tk-0af83bddb1c4, tk-775dfac8e67a, and tk-f64ea513f734 wire it across all 8 tools; shared-args and behavioral tests pass. |\n| AC3 | acceptance_criterion | **AC3**: Heavy read tools `adv_change_show`, `adv_task_list`, and `adv_status` accept a new `outputMode` arg accepting values from the existing `ADV_TOOL_OUTPUT_MODE` env var domain (`compact` | `pretty`). | pass | tk-4a2433e9e75f adds resolveOutputMode precedence tests; tk-83760592f580 adds outputMode to adv_change_show, adv_task_list, and adv_status; explicit arg > env > compact behavior verified. |\n| AC4 | acceptance_criterion | **AC4**: `adv_change_show include.snapshot:true` behavior unchanged (already opt-in — no regression). | pass | tk-83760592f580 verifies existing adv_change_show include.snapshot opt-in behavior remains unchanged; tk-6318a7bb7b83 targeted suite passes. |\n| AC5 | acceptance_criterion | **AC5**: Command docs (`adv-apply.md`, `adv-prep.md`) and agent prompt (`.opencode/agents/adv.md`) updated to teach opt-in at meaningful workflow boundaries (gate transitions, resumption, unexpected results); informational references to `_contextSnapshot` paired with the `adv_change_show include.snapshot:true` opt-in pattern. | pass | tk-878b67f87827 updates adv-apply.md, adv-prep.md, .opencode/agents/adv.md, related docs, and ADV_INSTRUCTIONS.md; 30/30 asset tests pass. |\n| AC6 | acceptance_criterion | **AC6**: Spec deltas modify `rq-ctxsnap2`, `rq-ctxticker2`, and `rq-advStatusLazyView01` (and their child scenarios) to reflect new default-OFF behavior; preserve existing opt-in semantics. | pass | tk-27324dfdeacc verifies recorded modify deltas dl-xtxFRdk1ybRO→rq-ctxsnap2, dl-tb1q3HJWCv2u→rq-ctxticker2, and dl-dExfd5Lb947l→rq-advStatusLazyView01; all targets confirmed present in current specs; adv-reviewer report PASS. |\n| AC7 | acceptance_criterion | **AC7** *(AMENDED per UD5 — citation corrected)*: Per-tool absence-by-default + opt-in test pairs added for each of the 8 in-scope tools in their respective test files: `task.test.ts` (task_ready, task_update, task_add, task_cancel), `wisdom.test.ts` (wisdom_add), `change.test.ts` (change_create, change_reenter), `gate.test.ts` (gate_complete). The `adv_status` recommendation-list snapshot assertion at `status.test.ts:1959` stays green and untouched (OOS2/C3 boundary — path is now MCP-contract-bound per archived `addAdvMcpReadSurface`). | pass | tk-775dfac8e67a and tk-f64ea513f734 add absence/opt-in pairs in task.test.ts, wisdom.test.ts, change.test.ts, and gate.test.ts; status recommendation-list assertion remains green and untouched. |\n| AC8 | acceptance_criterion | **AC8**: Instruction-text regex tests (`plugin/src/adv-instructions-assets.test.ts:147-148`) updated to match new opt-in wording. | pass | tk-878b67f87827 updates opt-in wording assertions in plugin/src/adv-instructions-assets.test.ts; asset suite passes. |\n| AC9 | acceptance_criterion | **AC9**: `pnpm run check` exits 0; targeted command-asset suites (`adv-task-assets.test.ts`, `adv-status-assets.test.ts`, `adv-instructions-assets.test.ts`) pass. | pass | tk-6318a7bb7b83 records pnpm run check exit 0 and 371/371 targeted tests; executive summary records this session's 406 targeted tests and pnpm run check exit 0. |\n| C1 | constraint | **C1**: `_contextSnapshot` formatter output shape (`plugin/src/utils/context-snapshot.ts`) unchanged — only emission default changes. | respected | Implementation gates emission only; formatter output shape remains outside touched behavior. Context-snapshot helper tests pass. |\n| C2 | constraint | **C2**: Read tools keep current behavior except the new `outputMode` arg on the 3 heaviest. | respected | tk-83760592f580 limits read-tool change to outputMode on the three named heavy reads; precedence tests pass. |\n| C3 | constraint | **C3**: `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) are advisory multi-change displays — different problem class, left untouched. Boundary reaffirmed: path is now MCP-contract-bound (Tier-4 surface). | respected | AC7 retains the status.test.ts recommendation-list assertion unchanged; status-enrich recommendation snapshots remain untouched. |\n| C4 | constraint | **C4**: Truncation thresholds (`MAX_PROMPT_TOOL_OUTPUT_CHARS` 24k, `DEFAULT_MAX_CHARS` 21k, legacy 30k) — out of scope; separate concern. | respected | No truncation-threshold change is recorded in implementation tasks; change scope stays emission/output-mode only. |\n| C5 | constraint | **C5**: Must sequence with `slimMutationToolSurface` (same Epic, different concern — non-conflicting per its C2). Sibling shipped Tier reclassification; 3 of 8 inverted tools are Tier 3 (invoke-only) — `include.snapshot` works uniformly through `adv_tool_invoke` dispatch. | respected | Shared includeSnapshotSchema provides uniform dispatch shape; no tool-registry edits; task verification records invoke-path compatibility. |\n| C6 | constraint | **C6**: Must NOT collide with `addAdvMcpReadSurface`. Sibling shipped; `adv_status` is MCP-exposed (`HANDSHAKE_TIER4_TOOLS`); AC3 `outputMode` propagates via `PUBLIC_TOOL_ENTRIES` automatically — no MCP code changes required. | respected | tk-83760592f580 changes shared read-tool output formatting only; no MCP-surface code change recorded. |\n| C7 | constraint | **C7** *(NEW per re-discovery)*: Coordinate arg-shape additions with `replaceRecoveryToolSprawl` (active, execution). Both touch arg definitions on 6 of 8 inverted tools but on different fields (`include.snapshot` vs `recoveryMode`/`recoveryEvidence`). Share `includeSnapshotSchema` so merges stay clean; proceed in parallel. | respected | tk-e6433ddc1d16 supplies shared includeSnapshotSchema; implementation remains isolated from recoveryMode/recoveryEvidence work. |\n| C8 | constraint | **C8** *(NEW per re-discovery)*: Schema-byte regression budget deferred to design. Current estimate: ~640–960 bytes added to orchestrator-loaded schema (8 tools × nested `include.snapshot` object). Visible in `adv_status view:\"health\"` (per archived `addToolContextTelemetry`). Design records baseline + post-change measurement. | respected | tk-14a8e307034d records completed schema-byte analysis (~2140 bytes) and DDC6 keep decision; executive summary records net-positive session savings. |\n| DONT1 | avoidance | **DONT1**: Do NOT change `_contextSnapshot` formatter output shape (box width, content fields, ordering). | respected | Only snapshot emission is gated; no formatter-shape change recorded. |\n| DONT2 | avoidance | **DONT2**: Do NOT remove the `include.snapshot:true` opt-in path — only change the default. | respected | tk-775dfac8e67a and tk-f64ea513f734 verify include.snapshot:true attaches the expected ticker/full snapshot. |\n| DONT3 | avoidance | **DONT3**: Do NOT invert `adv_change_show include.snapshot` (already correct opt-in). | respected | tk-83760592f580 and tk-6318a7bb7b83 preserve and verify existing adv_change_show include.snapshot opt-in behavior. |\n| DONT4 | avoidance | **DONT4**: Do NOT silently break any spec requirement without a modify-operation spec delta (per spec-as-laws discipline). | respected | AC6 has three recorded modify deltas covering rq-ctxsnap2, rq-ctxticker2, and rq-advStatusLazyView01. |\n| DONT5 | avoidance | **DONT5**: Do NOT introduce tool registration changes that conflict with `slimMutationToolSurface` (no tool-registry.ts edits). | respected | Shared includeSnapshotSchema implementation avoids tool-registry edits; no task records a tool-registration change. |\n| OOS1 | out_of_scope | **OOS1**: `adv_change_show include.snapshot` (already opt-in — no change needed). | missing |  |\n| OOS2 | out_of_scope | **OOS2**: `adv_status` recommendation snapshots (`status-enrich.ts:239, 613`) — advisory multi-change displays, different problem class. **Reaffirmed**: path is now MCP-contract-bound via `addAdvMcpReadSurface` shipment; inverting would change behavior for all Code Mode clients. | missing |  |\n| OOS3 | out_of_scope | **OOS3**: Truncation threshold unification (24k vs 21k vs 30k triple stack). | missing |  |\n| OOS4 | out_of_scope | **OOS4**: Command body trimming (sibling Change B: `tightenAdvChatVoice`). | missing |  |\n| OOS5 | out_of_scope | **OOS5**: Voice standard changes (Change B). | missing |  |\n| OOS6 | out_of_scope | **OOS6**: `addAdvMcpReadSurface` territory (MCP read surface — shipped). | missing |  |\n| OOS7 | out_of_scope | **OOS7**: `slimMutationToolSurface` territory (manifest exposure only — shipped). | missing |  |\n| OOS8 | out_of_scope | **OOS8**: `replaceRecoveryToolSprawl` territory (recovery-arg removal — coordinate via C7). | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T12:12:22.002Z",
+      "contentHash": "af5f3c060c9d5810d0b15bc82f9f7772f2b6b00bfec4f779f94721fb0ac93a44",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T13:25:21.550Z",
+      "contentHash": "c0d488c93eebcf4d240a56dcd08bc340773a66a922ecb28b96806b396db6ed8f",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T13:27:17.095Z",
+      "contentHash": "997dfb5472917e5ac3d48af19dcd967ec597c3c5d6addae42415e7d9ebb6c812",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T16:20:13.299Z",
+      "contentHash": "1cb07c83a928b33964191c83c1772a206672cb2b3ae142f250298843fdefa2d4",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-22T19:06:35.006Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "systemizeAdvOrchestration",
+    "entry_id": "change-1784640345128-wbp4ys",
+    "order": 6,
+    "title": "Tighten tool output defaults (mutation auto-emit → opt-in)",
+    "linked_at": "2026-07-21T13:25:45.129Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-22T18:46:23.952Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-22T18:46:23.952Z"
+    }
+  ]
+}

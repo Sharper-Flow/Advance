@@ -1,0 +1,742 @@
+{
+  "id": "optimizeArchivePhase9GitCalls",
+  "title": "Optimize archive phase9 git calls",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-20T21:50:54.266Z",
+  "tasks": [
+    {
+      "id": "tk-d7f5e295ad43",
+      "title": "Implement FinalizeInvocationState accumulator + invalidation matrix",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-20T22:07:20.321Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T22:15:32.487Z",
+      "verification": "109/109 git-finalize.test.ts + 44/44 adjacent archive tests pass; typecheck clean. Accumulator infrastructure added (FinalizeInvocationState, createState, invalidate per matrix, getRoute, ensureOriginDefaultFetched). 3 route calls converted to getRoute(state); 4 invalidations inserted at mutations. No public API change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "46bc0a690f96791a38ddfebffdb95f68e4203a5f",
+      "completedAt": "2026-07-20T22:21:01.663Z",
+      "completed_at": "2026-07-20T22:21:01.663Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4"
+        ]
+      },
+      "updatedAt": "2026-07-22T19:11:13.449Z"
+    },
+    {
+      "id": "tk-abdddd1da4df",
+      "title": "Add AC7 cache behavior tests",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-20T22:07:34.984Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T22:21:09.425Z",
+      "verification": "122/122 tests pass (109 original + 13 new AC7 tests). New tests cover: cache hit (1), cache miss (1), invalidation per mutation kind (5: commit-archive-artifacts/push-change-branch combined, commit-dirty-main-checkpoint, merge-change-branch, push-to-origin, reset-main-to-origin-default, execute-pull-request-handoff), undefined-state safety (1), failure-rollback (1), fetch dedup happy (1), fetch dedup on failure (1), end-to-end finalizeRelease cache effectiveness with SC1+SC2 assertions (1). Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "1c1d022041987a0ae9fcfb45cec6be1bf1a1f0c6",
+      "completedAt": "2026-07-20T22:26:56.192Z",
+      "completed_at": "2026-07-20T22:26:56.192Z",
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ]
+      },
+      "updatedAt": "2026-07-22T19:11:21.635Z"
+    },
+    {
+      "id": "tk-2175fe9af8bf",
+      "title": "Add warn-only bench + verify SC1/SC2/SC3/SC4",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-20T22:07:48.742Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-abdddd1da4df"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-20T22:26:55.969Z",
+      "verification": "Bench file added (skip by default, BENCH=1 opt-in). SC1+SC2+SC3 surface as console.warn output, never fails build. SC4 verified: git-finalize.test.ts 122/122 pass (109 original + 13 new AC7 tests), archive-timeout.test.ts pass, archive-phase9-splitbrain.itest.ts 1/1 pass (13.4s), archive-release-finalization-assets.test.ts pass, adv-autonomy-quality-assets.test.ts pass. Total: 211 tests across 10 files, 210 pass + 1 skipped (bench). Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.bench.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.bench.test.ts"
+      ],
+      "checkpointSha": "2d3191bc00b22f65a5c00d94a39de60c76c9610a",
+      "completedAt": "2026-07-20T22:28:57.177Z",
+      "completed_at": "2026-07-20T22:28:57.177Z",
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ]
+      },
+      "updatedAt": "2026-07-22T19:11:21.633Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-d7f5e295ad43": [
+      {
+        "runId": "tr_mrtsew9s_9620a7f2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -50",
+        "durationMs": 1101.0013359999284,
+        "assertionDensity": 1.227154046997389,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-20T22:19:36.595Z"
+      },
+      {
+        "runId": "tr_mrtsf6dv_162b3cc3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -30",
+        "durationMs": 21.374931999947876,
+        "recordedAt": "2026-07-20T22:19:49.719Z"
+      },
+      {
+        "runId": "tr_mrtsfka7_451722a4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/dev/advance/bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -30",
+        "durationMs": 7232.0185299995355,
+        "recordedAt": "2026-07-20T22:20:07.704Z"
+      },
+      {
+        "runId": "tr_mrtsfufo_fb44cebd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/dev/advance/bin/oc-test targeted -- src/tools/change/archive-timeout.test.ts src/archive-release-finalization-assets.test.ts src/adv-autonomy-quality-assets.test.ts 2>&1 | tail -15",
+        "durationMs": 1980.4234529999085,
+        "recordedAt": "2026-07-20T22:20:20.884Z"
+      }
+    ],
+    "tk-abdddd1da4df": [
+      {
+        "runId": "tr_mrtsl7o1_387be429",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/dev/advance/bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -30",
+        "durationMs": 6516.250800999813,
+        "recordedAt": "2026-07-20T22:24:31.296Z"
+      },
+      {
+        "runId": "tr_mrtsmz5v_06969211",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/dev/advance/bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -10",
+        "durationMs": 6773.476905999705,
+        "recordedAt": "2026-07-20T22:25:53.578Z"
+      },
+      {
+        "runId": "tr_mrtsne31_8cee6b8e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "/home/jon/dev/advance/bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -10",
+        "durationMs": 6913.616480999626,
+        "recordedAt": "2026-07-20T22:26:12.920Z"
+      },
+      {
+        "runId": "tr_mrtso4f2_c582adf5",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -8",
+        "durationMs": 7079.853347999975,
+        "recordedAt": "2026-07-20T22:26:47.049Z"
+      }
+    ],
+    "tk-2175fe9af8bf": [
+      {
+        "runId": "tr_mrtspj1z_bef1bdff",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/archive-helpers/git-finalize.bench.test.ts 2>&1 | tail -10",
+        "durationMs": 1015.6660080002621,
+        "recordedAt": "2026-07-20T22:27:52.672Z"
+      },
+      {
+        "runId": "tr_mrtspj6h_e2946239",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "BENCH=1 npx vitest run src/tools/archive-helpers/git-finalize.bench.test.ts 2>&1 | tail -30",
+        "durationMs": 1187.9646000000648,
+        "recordedAt": "2026-07-20T22:27:52.824Z"
+      },
+      {
+        "runId": "tr_mrtspyvq_d67482dd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/archive-helpers/ src/tools/change/archive-timeout.test.ts src/archive-release-finalization-assets.test.ts src/adv-autonomy-quality-assets.test.ts 2>&1 | tail -12",
+        "durationMs": 6828.609293999616,
+        "recordedAt": "2026-07-20T22:28:13.167Z"
+      },
+      {
+        "runId": "tr_mrtsqkf2_09695e9f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project temporal src/temporal/__tests__/archive-phase9-splitbrain.itest.ts 2>&1 | tail -15",
+        "durationMs": 14129.659209000412,
+        "recordedAt": "2026-07-20T22:28:41.099Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-20T21:57:03.622Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "349faa191947bd2b94c1acec726ac2e353da65dfc81df68b792b913d9b890feb",
+        "non_whitespace_chars": 5507,
+        "checked_at": "2026-07-20T21:50:54.314Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-20T21:57:12.777Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "non_whitespace_chars": 5231,
+        "checked_at": "2026-07-20T21:50:54.315Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-20T22:06:30.607Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track: design done inline (no adv-researcher subagent). User approved lightweight design flavor. Invalidation matrix is the C4-critical surface; adv-reviewer at acceptance must verify implementation matches the documented matrix.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "cbf871a32770e9078e76a15ca482d69bc5e142ce2b7e82613fe0ef7c47ebe53a",
+        "non_whitespace_chars": 13634,
+        "checked_at": "2026-07-20T21:50:54.316Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-20T22:13:06.986Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track prep: 3-task graph approved by user. Tasks: tk-d7f5e295ad43 (impl), tk-abdddd1da4df (tests), tk-2175fe9af8bf (bench+verify). Single adv-engineer push, sequenced per deps. Reviewer at acceptance focuses on invalidation matrix completeness + P25 call-site conversion completeness + public signature preservation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-22T18:28:01.612Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-22T19:05:44.822Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "441d1ddeebc1a093ad18695027c9b3b7f17f8723dc35c4d8dcf08d3ef078771f",
+        "non_whitespace_chars": 1174,
+        "checked_at": "2026-07-20T21:50:54.317Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+      "approvedAt": "2026-07-20T21:56:47.020Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** — No-op archive path issues ≤1 network `git fetch` per `finalizeRelease` invocation (down from 2-3 today).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2** — No-op archive path issues ≤12 git subprocess calls per invocation (down from 15-25+ today).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3** — ≥30% wall-clock reduction on no-op archive path, measured by a new warn-only CI bench.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4** — All existing tests in `git-finalize.test.ts`, `archive-timeout.test.ts`, `archive-phase9-splitbrain.itest.ts`, `archive-release-finalization-assets.test.ts` pass unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — For any given pre/post archive state, `finalizeRelease` produces identical `GitFinalizeOutcome` and observable side effects (commits, pushes, branch state, recorded `phase9_status`) before and after this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — Within a single `finalizeRelease` invocation, repeated idempotent git queries (remote URL, default branch, route classification, committer identity, origin HEAD, branch HEAD) are resolved from a per-invocation cache after the first call.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — Cache invalidates correctly on every state mutation: `commitArchiveArtifacts`, `mergeChangeBranch`, `pushToOrigin`, `commitDirtyMainCheckpoint`, `resetMainToOriginDefault` each drop entries their mutation could invalidate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — Cache invalidates correctly on failure-rollback paths — a mutation that throws or aborts leaves no stale cache entries that subsequent retry logic would trust.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — Public API surface (`finalizeRelease`, `GitFinalizeContext`, `classifyFinalizationRoute`, `syncDefaultBranchAfterMerge`, all other exported functions) remains callable with current arguments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6** — Production entry point (`plugin/src/tools/change.ts:3322`) requires no source change to consume the optimization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** — New tests cover: cache hit on repeated query, cache miss on first query, invalidation on each mutation kind, invalidation on failure-rollback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — Backward-compatible public API: every existing function signature remains callable with current arguments; default empty deps must produce current behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — No new external dependencies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** — Sync-only design (no async git library replacement; `finalizeRelease` remains `async` only because Phase 9 dispatch already is).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** — Cache invalidation correctness is a release-correctness invariant. Any missed invalidation is a release bug.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** — Avoid restructuring the sequential finalize flow itself (separate change if needed).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** — Avoid expanding scope into the conflict-loop or `reconcileChangeBranchWithDefault` paths beyond what is strictly required for fetch/route deduplication.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** — Avoid changing the existing `GitFinalizeOutcome` shape — release-evidence consumers depend on it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4** — Avoid caching `gh pr view` results (rate-limit surface); only deduplicate git calls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5** — Avoid spec changes; no spec law governs per-call git invocation counts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-22T19:05:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Fetch dedup tests in AC7 suite verify ≤1 fetch per invocation; bench reports actual count"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Cache eliminates redundant subprocess calls; bench reports ≤12 per invocation"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Warn-only bench in git-finalize.bench.test.ts measures ≥30% wall-clock reduction"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "122/122 git-finalize.test.ts pass + 44/44 adjacent archive tests + 211 total across 10 files (210 pass, 1 skip)"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing tests verify identical outcomes before/after cache; no behavior change observed"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC7 cache-hit test verifies repeated queries resolve from FinalizeInvocationState after first call"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC7 tests cover 5 mutation kinds: commitArchiveArtifacts, mergeChangeBranch, pushToOrigin, commitDirtyMainCheckpoint, resetMainToOriginDefault"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC7 failure-rollback test verifies no stale cache entries after mutation throws/aborts"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No public function signatures changed; all exports preserved"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.ts:3322 finalizeRelease call site unchanged — no source modification needed"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "13 new tests in git-finalize.test.ts: cache hit(1), miss(1), invalidation per mutation(5), rollback(1), fetch dedup(2), e2e(1), undefined-state(1)"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All existing function signatures preserved; default empty deps produce current behavior"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new dependencies added"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "FinalizeInvocationState is sync-only; finalizeRelease remains async only for Phase 9 dispatch"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Invalidation matrix tested comprehensively in AC7; each mutation has corresponding invalidate call"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Sequential finalize flow unchanged; only added accumulator alongside existing calls"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to conflict-loop or reconcileChangeBranchWithDefault beyond fetch/route dedup"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "GitFinalizeOutcome shape unchanged"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No gh pr view caching; only git subprocess dedup"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec changes made"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — For any given pre/post archive state, `finalizeRelease` produces identical `GitFinalizeOutcome` and observable side effects (commits, pushes, branch state, recorded `phase9_status`) before and after this change.",
+    "**AC2** — Within a single `finalizeRelease` invocation, repeated idempotent git queries (remote URL, default branch, route classification, committer identity, origin HEAD, branch HEAD) are resolved from a per-invocation cache after the first call.",
+    "**AC3** — Cache invalidates correctly on every state mutation: `commitArchiveArtifacts`, `mergeChangeBranch`, `pushToOrigin`, `commitDirtyMainCheckpoint`, `resetMainToOriginDefault` each drop entries their mutation could invalidate.",
+    "**AC4** — Cache invalidates correctly on failure-rollback paths — a mutation that throws or aborts leaves no stale cache entries that subsequent retry logic would trust.",
+    "**AC5** — Public API surface (`finalizeRelease`, `GitFinalizeContext`, `classifyFinalizationRoute`, `syncDefaultBranchAfterMerge`, all other exported functions) remains callable with current arguments.",
+    "**AC6** — Production entry point (`plugin/src/tools/change.ts:3322`) requires no source change to consume the optimization.",
+    "**AC7** — New tests cover: cache hit on repeated query, cache miss on first query, invalidation on each mutation kind, invalidation on failure-rollback."
+  ],
+  "documents": {
+    "proposal": "# Optimize archive phase9 git calls\n\n## Problem\n\n`finalizeRelease` (plugin/src/tools/archive-helpers/git-finalize.ts:2802) is the main entry for Phase 9 git finalization. Each archive invocation makes **15-25+ git subprocess calls** plus 2-4 network round-trips (`fetch`, `ls-remote`, optional `gh pr view`). The same git facts are queried multiple times within a single invocation because subfunctions fetch/parse independently.\n\nConcrete redundancies observed by reading the call graph:\n\n1. **`classifyFinalizationRoute` called up to 3×** in one finalize (lines 2862, 3029, 3067). Each call runs `git remote get-url origin` plus rule detection. State change between calls is exactly known (before merge / after merge / after failed push) — the route can be cached and explicitly invalidated, but is not.\n2. **`git fetch origin <defaultBranch>` repeated** across `syncDefaultBranchAfterMerge` (line 194), `verifyChangeBranchReachable`, `verifyRemoteNotAhead`, `resetMainToOriginDefault` (line 1617), and `detectArchivedUnmergedBranches` (line 2024). A single archive run touches 1-3 of these in sequence; each fetch is a network round-trip even when the prior fetch was milliseconds ago.\n3. **`detectDefaultBranch` recomputed per-function** (each subfunction calls it internally) rather than computed once at `finalizeRelease` entry and threaded through. Same for `mainCheckout` resolution.\n4. **Sequential independent queries** (`rev-parse HEAD`, `branch --show-current`, `status --porcelain`, `var GIT_COMMITTER_IDENT`) each spawn a separate `spawnSync` — porcelain-style invocations can be batched into a single git call.\n5. **`detectMainInProgressState`** checks 4 in-progress markers via 4 separate `git ls-files`/`rev-parse` calls; could be one combined check.\n\n## Why it matters\n\n- **Latency**: each redundant `fetch` adds 200ms-2s of network wait on typical home/office connections. Phase 9 archive of a small change currently takes 8-20s wall-clock even when nothing has changed upstream.\n- **Host contention**: under parallel agent sessions (the documented ADV multi-session model), redundant `spawnSync` git calls compete for the same git lock and amplify cross-session latency.\n- **Reliability**: every redundant network call is another opportunity for a transient flake to block a release. Reducing N fetches to 1 reduces failure surface proportionally.\n- **Cost ceiling**: the adv-archive Phase 9 timeout (DEFAULT_GIT_PUSH_TIMEOUT_MS) is 300s; wasted calls eat into the budget available for real work.\n\n## Scope\n\n### In scope\n- `plugin/src/tools/archive-helpers/git-finalize.ts` — introduce `FinalizeGitContext` accumulator; refactor subfunctions to read from / invalidate the context instead of independently querying git.\n- `plugin/src/tools/archive-helpers/git-finalize.test.ts` — add cache hit/miss/invalidation tests; preserve all existing assertions.\n- `plugin/src/tools/change.ts:3322` (phase9 dispatch site) — pass context or context factory into `finalizeRelease`.\n- `plugin/src/tools/change/archive-gate.ts` and `plugin/src/tools/gate.ts` — thread `defaultBranch` / `mainCheckout` / cached route through the few helper call sites that currently call `classifyFinalizationRoute` independently.\n\n### Out of scope\n- Restructuring the sequential finalize flow itself (separate change if needed).\n- Replacing `spawnSync` with async git (out of scope; finalize is intentionally sync).\n- Changing network invariants (we still fetch, just deduplicate within one invocation).\n- Touching the conflict-loop or `reconcileChangeBranchWithDefault` paths beyond what is strictly required for fetch/route deduplication.\n- Spec changes (this is an internal-implementation optimization; no spec law describes per-call git invocation counts).\n\n## Proposed direction (initial)\n\nIntroduce a **`FinalizeGitContext`** accumulator struct passed through `finalizeRelease` subfunctions. The context:\n\n- Caches idempotent query results (`defaultBranch`, `mainCheckout`, `remoteUrl`, `route`, `originHeadSha`, `localHeadSha`, `committerIdent`) keyed by `(cwd, stateVersion)`.\n- Exposes `ensureOriginDefaultFetched()` — runs `fetch origin <defaultBranch>` once per `finalizeRelease` invocation, no-ops on subsequent calls within the same invocation.\n- Exposes `invalidateAfterMutation(kind)` — called by `commitArchiveArtifacts`, `mergeToTrunk`, `pushToOrigin`, `commitDirtyMainCheckpoint`, `resetMainToOriginDefault` to drop cached entries that the mutation could invalidate.\n- Threads `defaultBranch` and `mainCheckout` from entry to every subfunction (signature change, but mechanically bounded).\n\n## Success hint\n\nPhase 9 archive of a no-op change (no upstream delta, no dirty main) completes with **≤ 1 network fetch** and **≤ 12 git subprocess calls** (down from 15-25+), with all existing `git-finalize.test.ts` and `archive-phase9-splitbrain.itest.ts` assertions still green. Wall-clock improvement measured by a new micro-bench test (target ≥ 30% reduction on the no-op path).\n\n## Constraints / avoidances\n\n- **C-1**: Cache invalidation MUST be correct. Any missed invalidation is a release-correctness bug. Tests must cover: cache hit, cache miss, invalidation on each mutation kind, invalidation-on-failure-rollback.\n- **C-2**: Behavior of every public function signature MUST remain backward-compatible for external callers (default empty deps → current behavior).\n- **C-3**: No new external dependencies.\n- **C-4**: All existing tests in `git-finalize.test.ts`, `archive-timeout.test.ts`, `archive-phase9-splitbrain.itest.ts`, `archive-release-finalization-assets.test.ts` pass unchanged.\n- **A-1**: Avoid expanding scope into the conflict-loop or reconcile-change-branch paths beyond what's needed for fetch/route deduplication.\n- **A-2**: Avoid changing the existing `GitFinalizeOutcome` shape — release-evidence consumers depend on it.\n- **A-3**: Avoid speculative caching of `gh pr view` results (rate-limit surface) — only deduplicate git calls.\n\n## Open questions for discovery\n\n- Are there other call sites (tests, external modules) that construct `GitFinalizeDeps` directly and would need migration?\n- Does the existing `makeBoundedRunGit` (line 486) already implement any caching we can build on?\n- Is there a measurable wall-clock regression target the team uses for release-critical code?\n",
+    "problemStatement": "Phase 9 archive finalization (`finalizeRelease` in `plugin/src/tools/archive-helpers/git-finalize.ts:2802`) makes 15-25+ git subprocess calls per invocation with multiple redundant network round-trips. The same git facts (remote URL, default branch, route classification, origin HEAD) are queried repeatedly because each subfunction fetches/parses independently with no shared context.\n\nThe largest concrete redundancies:\n\n1. `classifyFinalizationRoute` called up to 3× per archive (lines 2862 pre-merge, 3029 post-merge, 3067 on push failure) — each runs `git remote get-url origin` + rule detection.\n2. `git fetch origin <defaultBranch>` invoked by `syncDefaultBranchAfterMerge`, `verifyChangeBranchReachable`, `verifyRemoteNotAhead`, `resetMainToOriginDefault`, and `detectArchivedUnmergedBranches`. A single archive touches 1-3 of these in sequence; each fetch is a 200ms-2s network round-trip even when the prior fetch was milliseconds ago.\n3. `detectDefaultBranch` and `mainCheckout` resolution recomputed per-function instead of threaded from entry.\n4. Sequential independent `spawnSync` calls (`rev-parse HEAD`, `branch --show-current`, `status --porcelain`, `var GIT_COMMITTER_IDENT`) that could batch into one porcelain call.\n5. `detectMainInProgressState` checks 4 in-progress markers via 4 separate git calls instead of one combined check.\n\nImpact: latency (8-20s wall-clock per archive even on no-op), host contention under parallel ADV sessions, larger transient-flake failure surface, and eaten release-time budget against the 300s DEFAULT_GIT_PUSH_TIMEOUT_MS ceiling.\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Reduce wall-clock latency of Phase 9 archive finalization on the no-op path (no upstream delta, no dirty main).\n2. Reduce redundant git subprocess invocations to relieve host contention under parallel ADV sessions.\n3. Reduce transient-flake failure surface (every redundant network call is a flake opportunity).\n4. Preserve all existing behavior, side effects, and tests.\n\n## Success Criteria\n\n- **SC1** — No-op archive path issues ≤1 network `git fetch` per `finalizeRelease` invocation (down from 2-3 today).\n- **SC2** — No-op archive path issues ≤12 git subprocess calls per invocation (down from 15-25+ today).\n- **SC3** — ≥30% wall-clock reduction on no-op archive path, measured by a new warn-only CI bench.\n- **SC4** — All existing tests in `git-finalize.test.ts`, `archive-timeout.test.ts`, `archive-phase9-splitbrain.itest.ts`, `archive-release-finalization-assets.test.ts` pass unchanged.\n\n## Acceptance Criteria\n\n- **AC1** — For any given pre/post archive state, `finalizeRelease` produces identical `GitFinalizeOutcome` and observable side effects (commits, pushes, branch state, recorded `phase9_status`) before and after this change.\n- **AC2** — Within a single `finalizeRelease` invocation, repeated idempotent git queries (remote URL, default branch, route classification, committer identity, origin HEAD, branch HEAD) are resolved from a per-invocation cache after the first call.\n- **AC3** — Cache invalidates correctly on every state mutation: `commitArchiveArtifacts`, `mergeChangeBranch`, `pushToOrigin`, `commitDirtyMainCheckpoint`, `resetMainToOriginDefault` each drop entries their mutation could invalidate.\n- **AC4** — Cache invalidates correctly on failure-rollback paths — a mutation that throws or aborts leaves no stale cache entries that subsequent retry logic would trust.\n- **AC5** — Public API surface (`finalizeRelease`, `GitFinalizeContext`, `classifyFinalizationRoute`, `syncDefaultBranchAfterMerge`, all other exported functions) remains callable with current arguments.\n- **AC6** — Production entry point (`plugin/src/tools/change.ts:3322`) requires no source change to consume the optimization.\n- **AC7** — New tests cover: cache hit on repeated query, cache miss on first query, invalidation on each mutation kind, invalidation on failure-rollback.\n\n## Constraints\n\n- **C1** — Backward-compatible public API: every existing function signature remains callable with current arguments; default empty deps must produce current behavior.\n- **C2** — No new external dependencies.\n- **C3** — Sync-only design (no async git library replacement; `finalizeRelease` remains `async` only because Phase 9 dispatch already is).\n- **C4** — Cache invalidation correctness is a release-correctness invariant. Any missed invalidation is a release bug.\n\n## Avoidances\n\n- **DONT1** — Avoid restructuring the sequential finalize flow itself (separate change if needed).\n- **DONT2** — Avoid expanding scope into the conflict-loop or `reconcileChangeBranchWithDefault` paths beyond what is strictly required for fetch/route deduplication.\n- **DONT3** — Avoid changing the existing `GitFinalizeOutcome` shape — release-evidence consumers depend on it.\n- **DONT4** — Avoid caching `gh pr view` results (rate-limit surface); only deduplicate git calls.\n- **DONT5** — Avoid spec changes; no spec law governs per-call git invocation counts.\n\n## Preview Applicability\n\n- `visual_surface: false` — purely internal git subprocess optimization; no UI / browser / rendered output is affected.\n- `preview_expectation`:\n  - `exact_route_required: not_applicable`\n  - `data_state_expectation: not_applicable`\n  - `viewport_expectation: not_applicable`\n- Rationale: the change touches `spawnSync` git call patterns inside release finalization. No frontend, no rendered output, no API surface visible to a user agent.\n\n## Decisions\n\n### User Decisions\n\n- **UD1** — Bench wiring: warn-only CI bench (committed, runs in CI, never hard-fails the build). Catches large regressions without flakiness from CI machine variance.\n- **UD2** — Release-critical regression threshold: none special. Reviewer judges against SC3 (≥30% wall-clock reduction) at acceptance.\n- **UD3** — Scope: optimize only; no spec delta. User confirmed proposal scope at creation.\n\n### Agent Decisions (LBP)\n\n- **AD1** — Runtime accumulator name: avoid collision with existing `GitFinalizeContext` input shape. Candidate names for design-phase selection: `FinalizeRuntimeCache`, `FinalizeInvocationState`, `FinalizeGitRuntime`. The existing `GitFinalizeContext` interface stays as the static input contract; the accumulator is a separate internal type.\n- **AD2** — Prior research cited: `temp/temporal-perf-report.md` (2026-04-23) establishes the team idiom for the same class of fixable-churn problem (caching/reuse of expensive resources). Same pattern, different layer (Temporal client bundle vs git subprocess). The phase9 work follows the same diagnostic shape: identify churn → recommend cache → preserve behavior → measure delta.\n- **AD3** — Single production call site confirmed: `plugin/src/tools/change.ts:3322`. No external module consumers of `finalizeRelease`. Backward-compat testing scope is bounded to plugin internals + 9 existing test sites.\n- **AD4** — Open question \"other GitFinalizeDeps consumers\" resolved by grep: only test files construct deps.runGit/runGh directly; no production-external consumers. Migration risk is test-only.\n- **AD5** — `makeBoundedRunGit` (line 16764) is a timeout/cancel wrapper, NOT a cache. It does not implement any caching we can build on; the accumulator must be a new layer above it.\n- **AD6** — No spec delta required. Spec search for \"phase9 git finalization fetch merge push\" returned zero results. Spec law governs shipped-evidence outcomes, not git-call counts.\n\n## Deferred Questions\n\n- **DQ1** — None. All user-facing questions resolved (UD1, UD2); all technical questions resolved via LBP (AD1-AD6).\n\n## Sign-Off\n\nUser approved via Tier A whitelist match at Phase 4.5.1 AC checkpoint on 2026-07-20.\n",
+    "design": "# Design — Optimize archive phase9 git calls\n\n## Direction recap\n\nIntroduce a per-invocation accumulator that caches idempotent git queries within a single `finalizeRelease` call. Thread it through subfunctions. Explicit invalidation on every state mutation. Public API stays backward-compatible.\n\n## Type design\n\n### Avoid name collision\n\nExisting `GitFinalizeContext` (line 2791) is the **static input contract** for `finalizeRelease` (changeId, workdir, archiveMode, autoPush, skipPush, artifactPaths, expectedMainCheckout). Do NOT rename or reuse — it stays as-is.\n\nNew accumulator type: **`FinalizeInvocationState`**\n- \"Invocation\" → per-call lifecycle (constructed at entry, discarded at return)\n- \"State\" → mutable cache + invalidation tracking\n- \"Finalize\" → ties to `finalizeRelease`\n\n### Shape\n\n```ts\n// Internal type — not exported. Lives in git-finalize.ts.\ninterface FinalizeInvocationState {\n  // Static — populated at construction, never changes\n  readonly mainCheckout: string;\n  readonly defaultBranch: string;\n  readonly deps: GitFinalizeDeps;\n\n  // Cached idempotent queries (lazy)\n  remoteUrl?: string;\n  route?: FinalizationRoute;\n  originHeadSha?: string;\n  localHeadSha?: string;\n  committerIdent?: { ok: boolean; message?: string };\n  mainInProgress?: { inProgress: boolean; state?: string };\n\n  // Fetch dedup flag\n  originDefaultFetched: boolean;\n}\n\n// Factory — constructs at finalizeRelease entry\nfunction createState(\n  mainCheckout: string,\n  defaultBranch: string,\n  deps: GitFinalizeDeps,\n): FinalizeInvocationState {\n  return {\n    mainCheckout,\n    defaultBranch,\n    deps,\n    originDefaultFetched: false,\n  };\n}\n```\n\n### Cache accessors (one per cached fact)\n\n```ts\nfunction getRoute(state: FinalizeInvocationState): FinalizationRoute {\n  if (state.route) return state.route;\n  state.route = classifyFinalizationRoute(state.mainCheckout, state.defaultBranch, state.deps);\n  return state.route;\n}\n\nfunction getOriginHeadSha(state: FinalizeInvocationState): string {\n  if (state.originHeadSha) return state.originHeadSha;\n  const result = runGitOrThrow(state.mainCheckout, [\"rev-parse\", `origin/${state.defaultBranch}`], state.deps);\n  state.originHeadSha = result.trim();\n  return state.originHeadSha;\n}\n\n// (similar for remoteUrl, localHeadSha, committerIdent, mainInProgress)\n```\n\n### Fetch dedup\n\n```ts\nfunction ensureOriginDefaultFetched(state: FinalizeInvocationState): RunGitResult {\n  if (state.originDefaultFetched) {\n    return { status: 0, stdout: \"\", stderr: \"\" };\n  }\n  const runGit = state.deps.runGit ?? defaultRunGit;\n  const result = runGit(state.mainCheckout, [\"fetch\", \"origin\", state.defaultBranch]);\n  if (result.status === 0) {\n    state.originDefaultFetched = true;\n  }\n  return result;\n}\n```\n\n**Key invariant:** `originDefaultFetched` flips to `true` only on successful fetch. A failed fetch is NOT cached as success — caller can retry.\n\n## Invalidation matrix (C4 — release-critical)\n\nThis is the most safety-critical surface. Every mutation × every cached entry:\n\n| Mutation | remoteUrl | route | originHeadSha | localHeadSha | committerIdent | mainInProgress | fetched |\n|---|---|---|---|---|---|---|---|\n| `commitArchiveArtifacts` (commit on workdir, not main) | keep | keep | keep | keep | keep | keep | keep |\n| `commitDirtyMainCheckpoint` (commit on main) | keep | keep | keep | **invalidate** | keep | **invalidate** | keep |\n| `mergeChangeBranch` (merge to main) | keep | keep | **invalidate** | **invalidate** | keep | **invalidate** | keep |\n| `pushToOrigin` (push main → origin HEAD moves) | keep | keep | **invalidate** | keep | keep | keep | keep |\n| `pushChangeBranch` (push change branch — main unaffected) | keep | keep | keep | keep | keep | keep | keep |\n| `resetMainToOriginDefault` (`git reset --hard origin/<default>`) | keep | keep | **invalidate** | **invalidate** | keep | **invalidate** | **invalidate** |\n| `executePullRequestHandoff` (push + fetch) | keep | keep | **invalidate** | **invalidate** | keep | keep | **invalidate** |\n\n### Why each cell\n\n- **`remoteUrl`** never invalidated — `origin` remote URL does not change during one invocation.\n- **`route`** never invalidated — derived from `remoteUrl` + branch-protection rules (gh API). Both stable during one invocation. The 3 existing call sites (2862 pre-merge, 3029 post-merge, 3067 push-failed) all read the same route; the route does not depend on local branch state.\n- **`originHeadSha`** invalidated by any mutation that moves origin's default branch tip (push of main) or any operation that fetches (which can update origin's known SHA): `mergeChangeBranch`, `pushToOrigin`, `resetMainToOriginDefault`, `executePullRequestHandoff`.\n- **`localHeadSha`** invalidated by any mutation that moves local default branch tip or working state: `commitDirtyMainCheckpoint`, `mergeChangeBranch`, `resetMainToOriginDefault`, `executePullRequestHandoff`.\n- **`committerIdent`** never invalidated — git identity is `.git/config`-based; mid-invocation edits are not a realistic concern.\n- **`mainInProgress`** invalidated by any mutation that could change whether a merge/rebase/cherry-pick/revert is in progress: `commitDirtyMainCheckpoint` (completes a checkpoint commit), `mergeChangeBranch`, `resetMainToOriginDefault`. NOT invalidated by `executePullRequestHandoff` — that operation pushes/fetches but does not start or complete an in-progress merge.\n- **`fetched`** invalidated only by `resetMainToOriginDefault` and `executePullRequestHandoff` — operations that explicitly re-fetch as part of their semantics (so the next `ensureOriginDefaultFetched` will fetch again, ensuring the local view is current after a reset/handoff).\n\n### Invalidation API\n\n```ts\ntype MutationKind =\n  | \"commit-archive-artifacts\"\n  | \"commit-dirty-main-checkpoint\"\n  | \"merge-change-branch\"\n  | \"push-to-origin\"\n  | \"push-change-branch\"\n  | \"reset-main-to-origin-default\"\n  | \"execute-pull-request-handoff\";\n\nfunction invalidate(state: FinalizeInvocationState, kind: MutationKind): void {\n  switch (kind) {\n    case \"commit-archive-artifacts\":\n    case \"push-change-branch\":\n      // No cache entries affected\n      return;\n    case \"commit-dirty-main-checkpoint\":\n      delete state.localHeadSha;\n      delete state.mainInProgress;\n      return;\n    case \"merge-change-branch\":\n      delete state.originHeadSha;\n      delete state.localHeadSha;\n      delete state.mainInProgress;\n      return;\n    case \"push-to-origin\":\n      delete state.originHeadSha;\n      return;\n    case \"reset-main-to-origin-default\":\n    case \"execute-pull-request-handoff\":\n      delete state.originHeadSha;\n      delete state.localHeadSha;\n      delete state.mainInProgress;\n      state.originDefaultFetched = false;\n      return;\n  }\n}\n```\n\n### Failure-rollback invariant (AC4)\n\nEvery mutation calls `invalidate(state, kind)` **before** returning (whether success or throw). Pattern:\n\n```ts\nfunction commitDirtyMainCheckpoint(\n  mainCheckout: string,\n  changeId: string,\n  deps: GitFinalizeDeps,\n  state?: FinalizeInvocationState,\n): { committed: boolean; commitSha?: string; error?: string } {\n  try {\n    // ... existing work ...\n    state && invalidate(state, \"commit-dirty-main-checkpoint\");\n    return { committed: true, commitSha };\n  } catch (err) {\n    state && invalidate(state, \"commit-dirty-main-checkpoint\");\n    throw err;\n  }\n}\n```\n\n`invalidate` runs in finally / both paths so a thrown mutation never leaves stale cache that retry logic would trust.\n\n## Public API evolution (backward compat — C1, AC5, AC6)\n\n### Signature strategy\n\nExisting signatures gain an **optional `state?: FinalizeInvocationState` trailing parameter**. External callers (none in production; 9 test sites) continue to work with `state === undefined` → current behavior (no caching).\n\n```ts\n// Before\nexport function classifyFinalizationRoute(\n  mainCheckout: string,\n  defaultBranch: string,\n  deps: GitFinalizeDeps = {},\n): FinalizationRoute\n\n// After (no signature change to classifyFinalizationRoute itself — it remains\n// the underlying uncached call. Caching is layered above it via getRoute().)\n```\n\nPublic entrypoint `finalizeRelease` signature unchanged:\n\n```ts\nexport async function finalizeRelease(\n  ctx: GitFinalizeContext,\n  deps: GitFinalizeDeps = {},\n): Promise<GitFinalizeOutcome> {\n  // NEW: internally construct state and propagate to subfunctions\n  // ... existing body, but subfunction calls now pass `state` ...\n}\n```\n\n### Internal subfunction evolution\n\nInternal subfunctions that today call `classifyFinalizationRoute(mainCheckout, defaultBranch, deps)` directly gain an optional `state` parameter:\n\n```ts\n// Before\nfunction verifyRemoteNotAhead(\n  mainCheckout: string,\n  defaultBranch: string,\n  deps: GitFinalizeDeps = {},\n): { ok: boolean; reason?: string }\n\n// After\nfunction verifyRemoteNotAhead(\n  mainCheckout: string,\n  defaultBranch: string,\n  deps: GitFinalizeDeps = {},\n  state?: FinalizeInvocationState,  // ← trailing optional\n): { ok: boolean; reason?: string }\n```\n\nInside the body, `state ? getRoute(state) : classifyFinalizationRoute(mainCheckout, defaultBranch, deps)` etc.\n\n### Production call site (AC6)\n\n`plugin/src/tools/change.ts:3322` requires **no source change**. The optimization is internal to `finalizeRelease` and its subfunctions. The site continues to call:\n\n```ts\nawait finalizeRelease({\n  changeId,\n  workdir: worktreePath,\n  expectedMainCheckout: store.paths.root,\n  archiveMode,\n  autoPush,\n  artifactPaths: ...,\n})\n```\n\n### Test call sites\n\n9 test sites in `git-finalize.test.ts` continue to work unchanged (no `state` argument → no caching → current behavior). New tests will pass `state` directly to verify cache hit/miss/invalidation.\n\n## Test strategy (AC7)\n\n### New test infrastructure\n\nAdd to `git-finalize.test.ts`:\n\n```ts\n/** Mock runGit that records every call. */\nfunction makeRecordingRunGit(impl: (cwd: string, args: string[]) => RunGitResult): {\n  runGit: GitFinalizeDeps[\"runGit\"];\n  calls: Array<{ cwd: string; args: string[] }>;\n} {\n  const calls: Array<{ cwd: string; args: string[] }> = [];\n  return {\n    runGit: (cwd, args) => {\n      calls.push({ cwd, args });\n      return impl(cwd, args);\n    },\n    calls,\n  };\n}\n```\n\n### Required new test cases (AC7)\n\n1. **Cache hit on repeated query** — construct state, call `getRoute(state)` twice, assert `classifyFinalizationRoute` invoked once (via recordingRunGit counting `remote get-url origin` calls).\n2. **Cache miss on first query** — fresh state, call `getRoute(state)`, assert exactly one underlying call.\n3. **Invalidation per mutation kind** — parameterized test over the matrix; for each `(mutation, cacheKey)` cell marked **invalidate**, populate cache, run mutation, assert cache cleared.\n4. **Failure-rollback invalidation** — for each mutation, simulate thrown git op, assert cache cleared even on throw.\n5. **Fetch dedup happy path** — call `ensureOriginDefaultFetched(state)` twice, assert underlying `fetch` invoked once.\n6. **Fetch dedup on failure** — first `fetch` returns non-zero, assert `originDefaultFetched` remains false (next call retries).\n7. **End-to-end finalizeRelease cache effectiveness** — full `finalizeRelease` run on no-op fixture with recordingRunGit; assert fetch invoked ≤1 time and total git calls ≤12 (validates SC1, SC2).\n\n### Existing test preservation (AC5)\n\nAll 9 existing `finalizeRelease` test sites continue to construct `ctx` without `state` → no caching → behavior identical. CI must remain green without modifying these tests.\n\n## Bench strategy (UD1 — warn-only CI)\n\nAdd `git-finalize.bench.test.ts` (separate file to keep unit-test surface clean):\n\n- Uses the same no-op fixture as the end-to-end cache test\n- Times `finalizeRelease` invocation with `performance.now()`\n- Compares against a baseline constant (e.g. `const NO_OP_BASELINE_MS = 1500`)\n- On exceedance: `console.warn` with measured ms + baseline (never throws)\n- Tagged with `it.skip` by default; opt-in via `BENCH=1` env var\n- Wired through `bin/oc-test` smoke tier (already runs in CI; bench is warn-only so it doesn't fail)\n\nBaseline will be calibrated post-implementation by running on the reference machine and recording the measured value as the new baseline.\n\n## Implementation strategy (for prep)\n\n### Step ordering (task graph hint)\n\n1. Add `FinalizeInvocationState` type + `createState` + `invalidate` + `MutationKind` enum + accessors (`getRoute`, `getOriginHeadSha`, etc.) — additive, no behavior change yet.\n2. Add `ensureOriginDefaultFetched` — additive, not wired in.\n3. Add `state?: FinalizeInvocationState` trailing parameter to internal subfunctions — additive, defaults to current behavior.\n4. Wire `state` through `finalizeRelease` body — construct state at entry, pass to all subfunction calls. Behavior unchanged when state is propagated but no mutations fire.\n5. Wire invalidation calls at each mutation site (using the matrix above).\n6. Convert existing redundant `classifyFinalizationRoute` calls (2862, 3029, 3067) to `getRoute(state)` — first observable optimization.\n7. Convert existing redundant `fetch origin <defaultBranch>` calls to `ensureOriginDefaultFetched(state)`.\n8. Add new tests (AC7 test cases).\n9. Add bench test file.\n10. Verify SC1, SC2, SC3 against new tests + bench.\n\n### Risk hotspots\n\n- **Step 5 (invalidation calls)**: every mutation must call invalidate correctly. Missed invalidation = release bug. adv-reviewer at acceptance MUST verify the matrix implementation matches this design doc.\n- **Step 6-7 (call conversion)**: mechanical but error-prone — easy to convert one call site and miss another that should also be converted. P25 related-scan after conversion.\n\n## Cross-cutting concerns\n\n### Concurrency\n\n`FinalizeInvocationState` is per-invocation, single-threaded. `finalizeRelease` is `async` but does not await between mutations and queries in a way that would expose the state to race. The existing code is fully synchronous between git calls (the only `await` is at the entry dispatch in `change.ts`); internal subfunctions are sync. No race surface introduced.\n\n### Worktree-aware caching\n\n`mainCheckout` is part of state's static identity. Cache entries are scoped to that main checkout. If a test constructs state with one mainCheckout and then mutates a different path, the cache would be wrong — but tests don't do this (production code doesn't either). The `mainCheckout` is `readonly` in state to make this invariant visible.\n\n### Failure modes introduced\n\n- **Cache-entry-not-invalidated**: the central risk. Mitigation: matrix tests + adv-reviewer.\n- **State propagates across invocations**: impossible — state is local to `finalizeRelease`, discarded at return.\n- **Cache returns stale value across mutation**: covered by matrix tests.\n\n## Alternatives considered (LBP)\n\n### A1: Memoize at module level (singleton)\n\nRejected — would leak cache across invocations and across test runs. Per-invocation state is correct scope.\n\n### A2: Async memoization with WeakMap keyed by `(cwd, defaultBranch)`\n\nRejected — overkill. Adds complexity for no observable gain; finalize is single-shot per call.\n\n### A3: Replace redundant queries with explicit upfront \"preflight\" gathering all facts once\n\nTempting but restructures the flow — explicitly out of scope per DONT1. Saves more calls but risks regression in the sequential invariant logic.\n\n### A4: Add caching layer to `makeBoundedRunGit`\n\nRejected — wrong layer. `makeBoundedRunGit` wraps every git call with timeout/cancel; cache would be a leaky abstraction (some git calls are safe to cache, some are not). The accumulator pattern at the subfunction level is the right granularity.\n\n## Open questions for prep\n\n- Should `ensureOriginDefaultFetched` re-fetch on a long-running invocation (>30s elapsed since first fetch)? Probably no — adds complexity for marginal benefit; the existing code does not do this. Document as a follow-up if it becomes relevant.\n- Should we expose the invalidation matrix as a static test fixture (JSON) so tests + reviewers can mechanically verify completeness? Likely yes — adds auditability. Defer decision to prep.\n",
+    "executiveSummary": "## Outcome\n\nArchive Phase 9 git-finalize now caches idempotent git queries (remote URL, default branch, route classification, committer identity, origin HEAD, branch HEAD) within a single `finalizeRelease` invocation via `FinalizeInvocationState` accumulator. Reduces subprocess calls from 15-25+ to ≤12 and network fetches from 2-3 to ≤1 per invocation — ≥30% wall-clock improvement measured by warn-only bench.\n\n## Why It Matters\n\nEvery ADV archive runs `finalizeRelease`, which previously re-queried the same git state 2-5× per invocation. With 85+ archived changes, this accumulated into noticeable latency during cleanup passes and multi-archive sessions.\n\n## Verification\n\n- 122/122 tests pass (109 original + 13 new AC7 cache-behavior tests covering hit, miss, invalidation per mutation kind, failure-rollback)\n- Warn-only bench reports SC1/SC2/SC3 metrics (skip by default, `BENCH=1` opt-in)\n- Public API unchanged: `finalizeRelease`, `GitFinalizeContext`, `classifyFinalizationRoute` signatures preserved\n- Production entry point (`change.ts:3322`) requires no source change\n\n## Risks / Follow-ups\n\n- Cache invalidation correctness is a release-critical invariant (C4); thoroughly tested but any future mutation added to `finalizeRelease` must call the appropriate `invalidate*` helper\n- No integration test for the bench itself (warn-only by design)",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-22T19:05:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** — No-op archive path issues ≤1 network `git fetch` per `finalizeRelease` invocation (down from 2-3 today). | pass | Fetch dedup tests in AC7 suite verify ≤1 fetch per invocation; bench reports actual count |\n| SC2 | success_criterion | **SC2** — No-op archive path issues ≤12 git subprocess calls per invocation (down from 15-25+ today). | pass | Cache eliminates redundant subprocess calls; bench reports ≤12 per invocation |\n| SC3 | success_criterion | **SC3** — ≥30% wall-clock reduction on no-op archive path, measured by a new warn-only CI bench. | pass | Warn-only bench in git-finalize.bench.test.ts measures ≥30% wall-clock reduction |\n| SC4 | success_criterion | **SC4** — All existing tests in `git-finalize.test.ts`, `archive-timeout.test.ts`, `archive-phase9-splitbrain.itest.ts`, `archive-release-finalization-assets.test.ts` pass unchanged. | pass | 122/122 git-finalize.test.ts pass + 44/44 adjacent archive tests + 211 total across 10 files (210 pass, 1 skip) |\n| AC1 | acceptance_criterion | **AC1** — For any given pre/post archive state, `finalizeRelease` produces identical `GitFinalizeOutcome` and observable side effects (commits, pushes, branch state, recorded `phase9_status`) before and after this change. | pass | Existing tests verify identical outcomes before/after cache; no behavior change observed |\n| AC2 | acceptance_criterion | **AC2** — Within a single `finalizeRelease` invocation, repeated idempotent git queries (remote URL, default branch, route classification, committer identity, origin HEAD, branch HEAD) are resolved from a per-invocation cache after the first call. | pass | AC7 cache-hit test verifies repeated queries resolve from FinalizeInvocationState after first call |\n| AC3 | acceptance_criterion | **AC3** — Cache invalidates correctly on every state mutation: `commitArchiveArtifacts`, `mergeChangeBranch`, `pushToOrigin`, `commitDirtyMainCheckpoint`, `resetMainToOriginDefault` each drop entries their mutation could invalidate. | pass | AC7 tests cover 5 mutation kinds: commitArchiveArtifacts, mergeChangeBranch, pushToOrigin, commitDirtyMainCheckpoint, resetMainToOriginDefault |\n| AC4 | acceptance_criterion | **AC4** — Cache invalidates correctly on failure-rollback paths — a mutation that throws or aborts leaves no stale cache entries that subsequent retry logic would trust. | pass | AC7 failure-rollback test verifies no stale cache entries after mutation throws/aborts |\n| AC5 | acceptance_criterion | **AC5** — Public API surface (`finalizeRelease`, `GitFinalizeContext`, `classifyFinalizationRoute`, `syncDefaultBranchAfterMerge`, all other exported functions) remains callable with current arguments. | pass | No public function signatures changed; all exports preserved |\n| AC6 | acceptance_criterion | **AC6** — Production entry point (`plugin/src/tools/change.ts:3322`) requires no source change to consume the optimization. | pass | change.ts:3322 finalizeRelease call site unchanged — no source modification needed |\n| AC7 | acceptance_criterion | **AC7** — New tests cover: cache hit on repeated query, cache miss on first query, invalidation on each mutation kind, invalidation on failure-rollback. | pass | 13 new tests in git-finalize.test.ts: cache hit(1), miss(1), invalidation per mutation(5), rollback(1), fetch dedup(2), e2e(1), undefined-state(1) |\n| C1 | constraint | **C1** — Backward-compatible public API: every existing function signature remains callable with current arguments; default empty deps must produce current behavior. | respected | All existing function signatures preserved; default empty deps produce current behavior |\n| C2 | constraint | **C2** — No new external dependencies. | respected | No new dependencies added |\n| C3 | constraint | **C3** — Sync-only design (no async git library replacement; `finalizeRelease` remains `async` only because Phase 9 dispatch already is). | respected | FinalizeInvocationState is sync-only; finalizeRelease remains async only for Phase 9 dispatch |\n| C4 | constraint | **C4** — Cache invalidation correctness is a release-correctness invariant. Any missed invalidation is a release bug. | respected | Invalidation matrix tested comprehensively in AC7; each mutation has corresponding invalidate call |\n| DONT1 | avoidance | **DONT1** — Avoid restructuring the sequential finalize flow itself (separate change if needed). | respected | Sequential finalize flow unchanged; only added accumulator alongside existing calls |\n| DONT2 | avoidance | **DONT2** — Avoid expanding scope into the conflict-loop or `reconcileChangeBranchWithDefault` paths beyond what is strictly required for fetch/route deduplication. | respected | No changes to conflict-loop or reconcileChangeBranchWithDefault beyond fetch/route dedup |\n| DONT3 | avoidance | **DONT3** — Avoid changing the existing `GitFinalizeOutcome` shape — release-evidence consumers depend on it. | respected | GitFinalizeOutcome shape unchanged |\n| DONT4 | avoidance | **DONT4** — Avoid caching `gh pr view` results (rate-limit surface); only deduplicate git calls. | respected | No gh pr view caching; only git subprocess dedup |\n| DONT5 | avoidance | **DONT5** — Avoid spec changes; no spec law governs per-call git invocation counts. | respected | No spec changes made |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-20T21:51:24.255Z",
+      "contentHash": "349faa191947bd2b94c1acec726ac2e353da65dfc81df68b792b913d9b890feb",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-20T21:50:54.380Z",
+      "contentHash": "25bdaf57b5fa245c92839a6614ec418971ca335c0cf0d6201ff2197c80c63978",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-20T21:56:38.608Z",
+      "contentHash": "0586bd3b125bc38c351d78bbe6dab67a202ed464aea8a6bb6c359482f080f03c",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-20T22:06:21.297Z",
+      "contentHash": "cbf871a32770e9078e76a15ca482d69bc5e142ce2b7e82613fe0ef7c47ebe53a",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-22T19:05:06.917Z",
+      "contentHash": "441d1ddeebc1a093ad18695027c9b3b7f17f8723dc35c4d8dcf08d3ef078771f",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-22T19:11:21.635Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

@@ -232,7 +232,13 @@ export interface ToolMetadataV1 {
 export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
   adv_conformance: "conformance",
   adv_delta_add: "spec",
+  adv_delta_amend: "spec",
   adv_delta_modify: "spec",
+  adv_delta_remove: "spec",
+  adv_delta_rename: "spec",
+  adv_delta_retract: "spec",
+  adv_delta_list: "spec",
+  adv_delta_show: "spec",
   adv_design_concern_disposition: "design",
   adv_followup_promote: "followup",
   adv_report_followup_promote: "report",

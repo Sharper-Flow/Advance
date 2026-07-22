@@ -246,6 +246,8 @@ export function applyStatusView(
       }
       // Metrics counters (AC6).
       if (full.metrics) projection.metrics = full.metrics;
+      // T4: tool-context telemetry (schema manifest + cache-token samples).
+      projection.tool_context_telemetry = full.tool_context_telemetry;
       projection.plugin_runtime = full.plugin_runtime;
       projection.snapshot_health = full.snapshot_health;
       projection.worktree_census = full.worktree_census;

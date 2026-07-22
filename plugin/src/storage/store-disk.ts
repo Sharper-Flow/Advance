@@ -41,8 +41,11 @@ import type {
   Change,
   ChangeClosure,
   ChangeStatus,
+  Delta,
   DeltaAdd,
   DeltaModify,
+  DeltaRemove,
+  DeltaRename,
   Spec,
   Task,
   TddReclassification,
@@ -995,6 +998,127 @@ export async function createDiskStore(
             ) {
               throw new Error(
                 `Conflicting modify delta target ${delta.target_id} under capability ${capability}`,
+              );
+            }
+          }
+        }
+        result.data.deltas = {
+          ...deltas,
+          [capability]: [...(deltas[capability] ?? []), delta],
+        };
+        await saveChange(paths.changes, result.data);
+        return delta;
+      },
+      amend: async (changeId, capability, deltaId, delta: Delta, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        const capabilityEntries = deltas[capability] ?? [];
+        const index = capabilityEntries.findIndex(
+          (entry) => entry.id === deltaId,
+        );
+        if (index === -1) {
+          throw new Error(
+            `spec delta ${deltaId} not found under capability ${capability}`,
+          );
+        }
+        if (delta.id !== deltaId) {
+          throw new Error(
+            `amend id mismatch: delta.id ${delta.id} does not match deltaId ${deltaId}`,
+          );
+        }
+        const nextEntries = [...capabilityEntries];
+        nextEntries[index] = delta;
+        result.data.deltas = { ...deltas, [capability]: nextEntries };
+        await saveChange(paths.changes, result.data);
+        return delta;
+      },
+      retract: async (changeId, capability, deltaId, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        const capabilityEntries = deltas[capability] ?? [];
+        const index = capabilityEntries.findIndex(
+          (entry) => entry.id === deltaId,
+        );
+        if (index === -1) {
+          throw new Error(
+            `spec delta ${deltaId} not found under capability ${capability}`,
+          );
+        }
+        const nextEntries = [
+          ...capabilityEntries.slice(0, index),
+          ...capabilityEntries.slice(index + 1),
+        ];
+        result.data.deltas = { ...deltas, [capability]: nextEntries };
+        await saveChange(paths.changes, result.data);
+      },
+      remove: async (changeId, capability, delta: DeltaRemove, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        for (const [existingCapability, entries] of Object.entries(deltas)) {
+          for (const entry of entries) {
+            if (entry.id === delta.id) {
+              throw new Error(
+                `Duplicate spec delta id ${delta.id} under capability ${existingCapability}`,
+              );
+            }
+            if (
+              existingCapability === capability &&
+              entry.operation === "remove" &&
+              entry.target_id === delta.target_id
+            ) {
+              throw new Error(
+                `Conflicting remove delta target ${delta.target_id} under capability ${capability}`,
+              );
+            }
+          }
+        }
+        result.data.deltas = {
+          ...deltas,
+          [capability]: [...(deltas[capability] ?? []), delta],
+        };
+        await saveChange(paths.changes, result.data);
+        return delta;
+      },
+      rename: async (changeId, capability, delta: DeltaRename, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        for (const [existingCapability, entries] of Object.entries(deltas)) {
+          for (const entry of entries) {
+            if (entry.id === delta.id) {
+              throw new Error(
+                `Duplicate spec delta id ${delta.id} under capability ${existingCapability}`,
               );
             }
           }

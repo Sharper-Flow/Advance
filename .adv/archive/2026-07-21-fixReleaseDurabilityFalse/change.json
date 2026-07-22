@@ -1,0 +1,486 @@
+{
+  "id": "fixReleaseDurabilityFalse",
+  "title": "Fix release durability false negative",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T23:38:25.347Z",
+  "tasks": [
+    {
+      "id": "tk-5b1c4b51a8a1",
+      "title": "Reconcile durable release-gate proof against authoritative shipped state.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-21T23:41:58.087Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Reconciled durable release-gate proof against authoritative shipped state. verifyReleaseGateDurableForArchive gains optional finalizationShipped; in the release-done branch accepts when releaseGateEvidenceMatches(...) || finalizationShipped===true. Wired all 3 production call sites (archive-gate.ts:407,443 + change.ts:3486) to pass finalizationShipped: finalization.status==='shipped'. Disk-fallback path unchanged (DONT3). Safety: finalization.status==='shipped' is returned by git-finalize only on confirmed reachability/merge (1739/2363 pr_merged, 3034 no_remote local merge, 3054 direct+pushed) — shipped ⟹ reached default branch, guard preserved. TDD: red AC4+squash-regression failed (tr_mrvavah1), green after fix (tr_mrvaz2er). Updated the pre-existing 'blocks existing-bundle retry' test which encoded the false-negative (shipped change + no matching evidence) to assert corrected success behavior. AC2 guard-preservation + AC3 backward-compat unit tests pass. Evidence: 41/41 change.archive-phase9, 155/155 archive-gate+change, pnpm run check green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "779d91a19b85c6e5f2d3becd342f34a48ad49515",
+      "completedAt": "2026-07-21T23:48:13.936Z",
+      "completed_at": "2026-07-21T23:48:13.936Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-5b1c4b51a8a1": [
+      {
+        "runId": "tr_mrvavah1_1c873604",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts -t \"finalizationShipped reconciliation\"",
+        "durationMs": 5228.595621000044,
+        "recordedAt": "2026-07-21T23:44:00.757Z"
+      },
+      {
+        "runId": "tr_mrvawl06_a270fe44",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 4365.086899999995,
+        "recordedAt": "2026-07-21T23:45:01.048Z"
+      },
+      {
+        "runId": "tr_mrvaz2er_5dc706e1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 4459.935801000334,
+        "recordedAt": "2026-07-21T23:46:56.938Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:39:25.357Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "488a4ea73b2b48bdfad1ee10c352a269b353251e2252abae5ccfb6e1f8541cbb",
+        "non_whitespace_chars": 4268,
+        "checked_at": "2026-07-21T23:38:25.382Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:40:00.776Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "non_whitespace_chars": 2418,
+        "checked_at": "2026-07-21T23:38:25.383Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:41:39.005Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "233e401dea32c630be19eac2dffc07980fdc352025bf9eb3d4250337314e9cd3",
+        "non_whitespace_chars": 4852,
+        "checked_at": "2026-07-21T23:38:25.384Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:42:04.561Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:48:20.192Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:49:22.369Z",
+      "completed_by": "user",
+      "approval_evidence": "User authorized via 'make the fix' directive. Safety-critical release-guard fix with explicit AC2 guard-preservation test + documented shipped⟹reachable safety proof. 13-row contract matrix 0 failing, TDD red→green (tr_mrvavah1→tr_mrvaz2er), 196 tests pass (41 archive-phase9 + 155 archive-gate+change), pnpm run check green. Preview not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "4c612b3d1e27830452993c5e9fef19399d76653b24e310053b9bada4fc60866c",
+        "non_whitespace_chars": 3450,
+        "checked_at": "2026-07-21T23:38:25.385Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-07-21T23:50:53.642Z",
+      "completed_by": "user",
+      "approval_evidence": "PR #283 admin-merged to trunk (commit 4584472). Trunk pulled + verified. Safety-critical release-durability fix: 196 tests, pnpm run check green, guard-preservation proven."
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "bl--1Jm4pMx"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+      "approvedAt": "2026-07-21T23:39:56.521Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A genuinely-shipped change (git merged + all gates done + bundle present) archives cleanly on the first `adv_change_archive` call with no `adv_change_status_repair` fallback — even when the release gate was completed manually and even after `--admin --squash` merge HEAD movement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The protective invariant is preserved: a change whose Phase 9 finalization is NOT shipped (unpushed / unmerged / unreachable) still fails the durable release-gate proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "When the release gate is `done` AND the fresh `finalization.status === \"shipped\"`, the archive completes without the `rq-releaseProjectionDurability01` false-negative, regardless of whether the stored gate `approval_evidence` substring-contains the archive's built evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "When `finalization.status !== \"shipped\"`, the durable release-gate proof still fails (guard preserved) — no regression in protection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "The existing evidence-match path continues to work when the archive itself completed the release gate (backward compatible).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "A regression test reproduces the manual-completion + admin/squash-merge false-negative — fails against current code, passes after the fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` green and existing archive-gate / git-finalize tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do NOT weaken the guard. Accepting the durable proof MUST be tied to authoritative shipped evidence (`finalization.status === \"shipped\"` with reachability confirmed), never merely `gate.status === \"done\"`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve backward compatibility with the archive-completes-the-gate path (structured evidence still matches by construction).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No new recovery tool or recovery mode — this removes a `status_repair` trigger; it must not add one.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do NOT accept the durable proof based solely on `gate.status === \"done\"` without shipped finalization evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do NOT require operators to write structured evidence in manual gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do NOT break the poisoned-history / disk-projection fallback recovery path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "The broader recovery-tool consolidation (`replaceRecoveryToolSprawl` / issue #255).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "The cross-session state bleed (`fixConcurrentSessionStateBleed`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "The phase-9 git-call optimization (`optimizeArchivePhase9GitCalls`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-21T23:49:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.archive-phase9.test.ts 'archives a shipped change whose done release gate lacks matching Phase 9 evidence' → success:true. Removes the status_repair fallback for shipped changes. Green tr_mrvaz2er."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC2 unit test 'non-matching evidence + NOT shipped still fails'; safety analysis: finalization.status==='shipped' returned only on confirmed reachability/merge (git-finalize.ts 1739/2363/3034/3054). Unshipped → guard holds."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.archive-phase9.test.ts AC4 'manual free-text gate evidence + finalizationShipped accepts the durable proof' → ok:true (was RED pre-fix, tr_mrvavah1)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC2 'non-matching evidence + NOT shipped still fails' → ok:false with 'lacks matching Phase 9 evidence'. Guard preserved at verify level."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC3 'matching structured evidence accepts even when finalizationShipped is false' → ok:true. Archive-completed-gate path unchanged (backward compatible)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Red→green evidenced: AC4 + squash-supersession regression failed pre-fix (tr_mrvavah1), pass post-fix (tr_mrvaz2er). Reproduces the manual-completion + admin/squash false-negative."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "pnpm run check green (typecheck confirms 3 call-site wiring). 41/41 change.archive-phase9 + 155/155 archive-gate+change tests pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance tied to finalizationShipped (authoritative shipped evidence), not gate.status alone. AC2 proves unshipped still blocked. Safety analysis in design confirms shipped ⟹ reachable."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "finalizationShipped optional (default false → strict evidence match preserved); AC3 confirms archive-completed-gate path unchanged. Existing disk-recovery test unaffected."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new recovery tool or recovery mode added; removes a status_repair trigger. Only verify logic + 3 call-site wiring changed."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance requires finalizationShipped===true (from finalization.status==='shipped'), never gate.status==='done' alone. AC2 guard test confirms."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No operator-facing change; manual free-text gate completion is accepted as-is (AC4). Operators need not write structured evidence."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "loadAuditedDiskReleaseGate (release!=done branch) unchanged — poisoned-history/disk-projection recovery path preserved with its hasGateRecoveryAudit + evidence-match requirement."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "When the release gate is `done` AND the fresh `finalization.status === \"shipped\"`, the archive completes without the `rq-releaseProjectionDurability01` false-negative, regardless of whether the stored gate `approval_evidence` substring-contains the archive's built evidence.",
+    "When `finalization.status !== \"shipped\"`, the durable release-gate proof still fails (guard preserved) — no regression in protection.",
+    "The existing evidence-match path continues to work when the archive itself completed the release gate (backward compatible).",
+    "A regression test reproduces the manual-completion + admin/squash-merge false-negative — fails against current code, passes after the fix.",
+    "`pnpm run check` green and existing archive-gate / git-finalize tests pass."
+  ],
+  "documents": {
+    "proposal": "# Proposal — Fix release durability false-negative\n\n## Problem (confirmed, 3 reproductions 2026-07-21)\n\n`adv_change_archive` returns `success:false` with `Archive durable release gate proof blocked: Store-backed durable release gate proof lacks matching Phase 9 evidence` (requirement `rq-releaseProjectionDurability01`) for changes that are **genuinely shipped** — merged to `origin/trunk`, archive bundle written, `finalization.status: \"shipped\"`, `pushStatus: \"pushed\"`. Operator must fall back to `adv_change_status_repair`, which reports `\"already archived; no repair needed\"`. Pure false-negative + operator round-trip. Hit 3× consecutively this session (PRs #278, #281, #282).\n\n## Root cause (high confidence)\n\nWhen the release gate is completed **manually** via `adv_gate_complete gateId:release` (the normal harden/sign-off flow) rather than by the archive's own `completeReleaseGateAfterFinalization`, the stored `gate.approval_evidence` is the operator's free-text note. The archive then calls `verifyReleaseGateDurableForArchive`, which uses `releaseGateEvidenceMatches` (`plugin/src/tools/change/archive-gate.ts:858`) to require the stored evidence to **substring-contain** the archive's freshly built `buildReleaseCompletionEvidence(finalization)` string (`Phase 9 finalization shipped; ...; mergeCommitSha=<sha>; prNumber=<n>; ...`).\n\nTwo independent reasons the substring match fails:\n1. **Manual completion**: the operator's note (e.g. \"PR #282 admin-merged to trunk (commit a10f2bc1)\") does not contain the structured `mergeCommitSha=9895f37...` string the archive builds.\n2. **SHA supersession**: with `gh pr merge --admin --squash`, the squash commit is superseded when the archive-bundle merge moves `trunk` HEAD; `finalization.mergeCommitSha` differs from any SHA in the gate note.\n\n## Key insight\n\nThe archive flow **re-runs git finalization itself** immediately before this check — that is where `finalization` comes from, and it independently proves shipping (`status: \"shipped\"`, `pushStatus: \"pushed\"`, reachability confirmed via `resolveReleaseReachability` / `detectSquashMergeByTree`). The fresh finalization **is** the durable shipping proof. Requiring the stored gate's free-text evidence to string-contain a structured re-derivation is redundant and fragile.\n\n## Proposal\n\nReconcile the durable release-gate proof against the **authoritative shipped state** instead of substring-matching a mutable commit SHA:\n\n- When the release gate is `done` AND the fresh `finalization.status === \"shipped\"` (reachability confirmed), accept the durable proof — the archive has already re-verified the real shipped invariant.\n- Preserve the guard's protective function: a change whose finalization is NOT shipped (unpushed, unmerged, unreachable) still fails. Unshipped changes stay blocked exactly as before.\n- Prefer stable identifiers (PR number, `changeTipSha`) where evidence corroboration is still wanted; `detectSquashMergeByTree` already threads `changeTipSha` for the reachability side.\n\nServes the `hardenTemporalReliability` Epic target invariant #4 (\"durability proofs reconcile stale disk projections against the authoritative workflow instead of fail-closing against staleness\") and issue #255's thesis (retire narrow recovery tools whose evidence gates refuse legitimately-shipped states). Removes a recurring `adv_change_status_repair` trigger.\n\n## Alternatives considered\n\n- **Match PR number from free-text**: brittle. Rejected as the primary mechanism.\n- **Force archive to always complete the release gate itself**: breaks the established harden/sign-off flow.\n- **Rewrite the stored gate evidence to structured form on archive**: possible, but re-verifying against authoritative finalization is cleaner.\n\n## Scope notes\n\n- **Safety-critical guard** — modifies release-gate durability proof. Design gate must preserve the protective invariant (unshipped changes still blocked). Presented at the design checkpoint as contract-compromise risk.\n- Affected: `plugin/src/tools/change/archive-gate.ts` (`verifyReleaseGateDurableForArchive` + caller decision ~line 407-459 / ~890-930), tests in archive-gate / git-finalize suites.\n\n## Root Cause Analysis\n\n`releaseGateEvidenceMatches` was designed for the case where the archive itself completes the release gate (evidence matches by construction). It did not account for the normal flow where the operator completes the release gate manually with free-text evidence before invoking archive, nor for admin/squash-merge HEAD movement. The fresh finalization already re-establishes shipping, so the string-containment check adds fragility without adding protection.\n\n## Origin\n\nBacklog `bl--1Jm4pMx`; related issue #255 (claimed by replaceRecoveryToolSprawl); `hardenTemporalReliability` Epic order-7 shell (already promoted to this change). Three reproductions documented in #255 comment.",
+    "agreement": "# Agreement — fixReleaseDurabilityFalse\n\n## Objective\n\nEliminate the `rq-releaseProjectionDurability01` false-negative that blocks `adv_change_archive` for genuinely-shipped changes, while provably preserving the guard's protective function (unshipped changes stay blocked). Reconcile the durable release-gate proof against the authoritative shipped state (fresh Phase 9 finalization) instead of substring-matching a mutable commit SHA in the stored gate evidence.\n\n## Success Criteria\n\n- SC1: A genuinely-shipped change (git merged + all gates done + bundle present) archives cleanly on the first `adv_change_archive` call with no `adv_change_status_repair` fallback — even when the release gate was completed manually and even after `--admin --squash` merge HEAD movement.\n- SC2: The protective invariant is preserved: a change whose Phase 9 finalization is NOT shipped (unpushed / unmerged / unreachable) still fails the durable release-gate proof.\n\n## Acceptance Criteria\n\n- AC1: When the release gate is `done` AND the fresh `finalization.status === \"shipped\"`, the archive completes without the `rq-releaseProjectionDurability01` false-negative, regardless of whether the stored gate `approval_evidence` substring-contains the archive's built evidence.\n- AC2: When `finalization.status !== \"shipped\"`, the durable release-gate proof still fails (guard preserved) — no regression in protection.\n- AC3: The existing evidence-match path continues to work when the archive itself completed the release gate (backward compatible).\n- AC4: A regression test reproduces the manual-completion + admin/squash-merge false-negative — fails against current code, passes after the fix.\n- AC5: `pnpm run check` green and existing archive-gate / git-finalize tests pass.\n\n## Constraints\n\n- C1: Do NOT weaken the guard. Accepting the durable proof MUST be tied to authoritative shipped evidence (`finalization.status === \"shipped\"` with reachability confirmed), never merely `gate.status === \"done\"`.\n- C2: Preserve backward compatibility with the archive-completes-the-gate path (structured evidence still matches by construction).\n- C3: No new recovery tool or recovery mode — this removes a `status_repair` trigger; it must not add one.\n\n## Avoidances\n\n- DONT1: Do NOT accept the durable proof based solely on `gate.status === \"done\"` without shipped finalization evidence.\n- DONT2: Do NOT require operators to write structured evidence in manual gate completion.\n- DONT3: Do NOT break the poisoned-history / disk-projection fallback recovery path.\n\n## Out of Scope\n\n- OOS1: The broader recovery-tool consolidation (`replaceRecoveryToolSprawl` / issue #255).\n- OOS2: The cross-session state bleed (`fixConcurrentSessionStateBleed`).\n- OOS3: The phase-9 git-call optimization (`optimizeArchivePhase9GitCalls`).",
+    "design": "# Design — fixReleaseDurabilityFalse\n\n## Root cause (confirmed in source)\n\n`archive-gate.ts` durable-proof flow (caller ~line 406-459):\n1. `releaseEvidence = buildReleaseCompletionEvidence(finalization)` — structured string `Phase 9 finalization shipped; ...; mergeCommitSha=<sha>; prNumber=<n>`.\n2. `verifyReleaseGateDurableForArchive({store, changeId, evidence})` — when `releaseGate.status === \"done\"`, requires `releaseGateEvidenceMatches(releaseGate, evidence)`: the stored `gate.approval_evidence` (or `recovery_audit.evidence`) must **substring-contain** that structured string (`archive-gate.ts:858-869`).\n3. When the operator completed the release gate manually (`adv_gate_complete gateId:release` with a free-text note), the note never contains the structured string → false-negative. Compounded by `--admin --squash` HEAD movement changing `finalization.mergeCommitSha`.\n\n## Safety verification (the crux)\n\n`finalization.status === \"shipped\"` is returned by `git-finalize.ts` in exactly three places, all of which prove the change content reached the default branch:\n- PR path (1739, 2363): only when `reachability.reachable && reachability.proof === \"pr_merged\"`.\n- no_remote (3034): after a local merge into the default branch (no origin to push to).\n- direct+pushed (3054): after a local merge into the default branch AND a successful `pushToOrigin`.\n\nTherefore `shipped` ⟹ reachable/merged. Gating durable-proof acceptance on `finalization.status === \"shipped\"` cannot accept an unshipped change: a change that did not ship returns `blocked` or `pending_merge`, and the proof still fails (SC2 / AC2 / C1 preserved).\n\n## Implementation strategy\n\n### Change: `verifyReleaseGateDurableForArchive`\n\nAdd `finalizationShipped: boolean` to the input. In the `releaseGate.status === \"done\"` branch, accept when EITHER the existing evidence match holds OR finalization is shipped:\n\n```ts\nasync function verifyReleaseGateDurableForArchive(input: {\n  store: Store;\n  changeId: string;\n  evidence: string;\n  finalizationShipped: boolean;   // NEW\n}): Promise<...> {\n  const gates = await input.store.gates.get(input.changeId);\n  const releaseGate = gates?.release;\n  if (releaseGate?.status !== \"done\") {\n    const diskReleaseGate = await loadAuditedDiskReleaseGate(input);\n    if (diskReleaseGate) return { ok: true, gate: diskReleaseGate };\n    return { ok: false, error: \"...did not observe release done\", ... };\n  }\n  // rq-releaseProjectionDurability01 reconciliation: the archive just\n  // re-ran git finalization; a \"shipped\" result is authoritative proof the\n  // change reached the default branch (see safety verification). Accept it\n  // even when the stored gate evidence (e.g. a manual free-text note, or a\n  // SHA superseded by squash+bundle-merge HEAD movement) does not\n  // substring-match the structured completion evidence. The evidence-string\n  // path remains for backward compatibility (archive-completed gates).\n  if (\n    releaseGateEvidenceMatches(releaseGate, input.evidence) ||\n    input.finalizationShipped\n  ) {\n    return { ok: true, gate: releaseGate };\n  }\n  return { ok: false, error: \"...lacks matching Phase 9 evidence\", ... };\n}\n```\n\n### Caller wiring (archive-gate.ts ~line 407 and ~443)\n\nBoth `verifyReleaseGateDurableForArchive` calls pass `finalizationShipped: finalization.status === \"shipped\"`. Effect:\n- First call (before completion): a manually-completed-and-shipped change now returns `ok` immediately → `alreadyDone` path, no false-negative.\n- Second call (after `completeReleaseGateAfterFinalization`): also protected, closing the squash-merge SHA-supersession case.\n\n### Disk-fallback path\n\n`loadAuditedDiskReleaseGate` (release gate `!== done` branch) is unchanged — it still requires `hasGateRecoveryAudit` + evidence match for the poisoned-history/disk-projection recovery route (DONT3 preserved).\n\n## LBP decisions\n\n- **Why accept on `finalizationShipped` rather than rewrite gate evidence**: the archive already holds authoritative, freshly-computed shipping proof; re-verifying against it is simpler and matches the Epic invariant #4 (\"reconcile against the authoritative workflow instead of fail-closing against staleness\"). Rewriting stored evidence adds a write and races.\n- **Why keep the evidence-string path**: backward compatibility (AC3) — archive-completed gates match by construction; no behavior change for that flow.\n- **Why not weaken to `gate.status === \"done\"` alone**: that WOULD compromise the guard (DONT1). Acceptance is tied to authoritative shipped evidence, not gate status.\n\n## Test plan (TDD)\n\nNew/updated tests in the archive-gate suite:\n1. AC4 (red→green): release gate `done` with a manual free-text evidence note + `finalization.status === \"shipped\"` → durable proof `ok` (fails before fix).\n2. AC2 (guard preserved): release gate `done` with non-matching evidence + `finalization.status !== \"shipped\"` (e.g. \"blocked\") → durable proof still fails.\n3. AC3 (backward compat): archive-completed gate whose evidence string-matches → still `ok` (with and without finalizationShipped).\n4. Squash-supersession regression: evidence cites an old SHA, finalization shipped with a different mergeCommitSha → `ok`.\n\n## Risk\n\n- Low-to-moderate (safety-critical guard). Mitigated by: the `shipped ⟹ reachable` proof above, an explicit AC2 guard-preservation test, and no change to the disk-fallback recovery path.\n- No spec-law change: `rq-releaseProjectionDurability01` semantics are unchanged in intent (durable proof of a genuinely-shipped change); this fixes the proof to reconcile against authoritative state rather than fragile string equality.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`adv_change_archive` now archives genuinely-shipped changes on the first call instead of producing a false-negative that forced a manual `adv_change_status_repair`. The approver is deciding whether to ship this release-durability fix.\n\n## Why It Matters\n\nThis exact false-negative fired 3× consecutively earlier today (PRs #278, #281, #282), each requiring an operator round-trip through `status_repair`. It's a recurring tax on every admin/squash-merge release and a documented instance of the `hardenTemporalReliability` Epic's target invariant #4 (\"durability proofs reconcile against the authoritative workflow instead of fail-closing against staleness\"). The fix removes one of the recovery-tool triggers issue #255 aims to retire.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. **Authoritative-state reconciliation** — `verifyReleaseGateDurableForArchive` gains an optional `finalizationShipped` flag. When the release gate is `done` and the archive's fresh git finalization reports `status: \"shipped\"`, the durable proof is accepted even if the stored gate evidence doesn't substring-match the structured completion evidence. The evidence-string path is preserved for archive-completed gates (backward compatible).\n2. **Call-site wiring** — all 3 production callers (`archive-gate.ts:407,443`, `change.ts:3486`) pass `finalizationShipped: finalization.status === \"shipped\"`.\n3. **Guard preserved** — the disk-projection/poisoned-history recovery path is untouched; a change whose finalization is not shipped still fails the proof.\n\n## What Was Verified\n\n- Verdict: APPROVED, 0 findings. TDD red (AC4 + squash-regression fail, tr_mrvavah1) → green (tr_mrvaz2er).\n- **Safety proof**: `finalization.status === \"shipped\"` is returned by `git-finalize.ts` only on confirmed reachability/merge (PR `pr_merged` at 1739/2363; `no_remote` local merge at 3034; direct merge+push at 3054). `shipped` ⟹ the change reached the default branch, so gating on it cannot accept an unshipped change (SC2/AC2/C1/DONT1).\n- Tests: 41/41 `change.archive-phase9`, 155/155 `archive-gate` + `change`; `pnpm run check` green. An AC2 guard-preservation test explicitly asserts unshipped + non-matching evidence still blocks.\n- Preview URL: not_applicable — internal archive tooling.\n- Contract matrix: 13 rows (2 SC + 5 AC + 3 C + 3 DONT), 0 failing.\n\n## Remaining Concerns\n\nNone blocking. The pre-existing `blocks existing-bundle retry` integration test encoded the false-negative (shipped change + no matching evidence) and was updated to assert the corrected success behavior; guard preservation is covered by the AC2 unit test and the upstream finalization-status check.\n\n## Supporting Evidence\n\n- Task tk-5b1c4b51a8a1 (done, checkpoint 779d91a1).\n- 3 files: `plugin/src/tools/change/archive-gate.ts`, `plugin/src/tools/change.ts`, `plugin/src/tools/change.archive-phase9.test.ts`.\n- Contract review matrix: 13 rows, 0 failing.\n- Issue #255 comment documents the 3 reproductions; `bl--1Jm4pMx`; Epic order-7 shell.\n\n## Consequence Context\n\n1. Delivered value: eliminates the recurring release-archive false-negative + `status_repair` operator round-trip on admin/squash merges.\n2. Enabling-only/follow-up dependency: none; complements (does not depend on) `replaceRecoveryToolSprawl` (#255).\n3. Ops readiness: ready — standard plugin rebuild; no migrations/config.\n4. Migration/data impact: n/a — additive optional parameter; default preserves prior behavior.\n5. Frontend/preview impact: not_applicable.\n6. Collision/release risk: low. Touches archive-gate.ts + change.ts; `replaceRecoveryToolSprawl` (order-9, in flight) touches recovery tools/task.ts — different functions. `optimizeArchivePhase9GitCalls` touches git-call count, not the evidence matcher.\n7. Open follow-ups: none. This closes the order-7 Epic shell durability-guard scope for the false-negative class.\n8. Next action: acceptance approval proceeds inline to push + merge + archive.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-21T23:49:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A genuinely-shipped change (git merged + all gates done + bundle present) archives cleanly on the first `adv_change_archive` call with no `adv_change_status_repair` fallback — even when the release gate was completed manually and even after `--admin --squash` merge HEAD movement. | pass | change.archive-phase9.test.ts 'archives a shipped change whose done release gate lacks matching Phase 9 evidence' → success:true. Removes the status_repair fallback for shipped changes. Green tr_mrvaz2er. |\n| SC2 | success_criterion | The protective invariant is preserved: a change whose Phase 9 finalization is NOT shipped (unpushed / unmerged / unreachable) still fails the durable release-gate proof. | pass | AC2 unit test 'non-matching evidence + NOT shipped still fails'; safety analysis: finalization.status==='shipped' returned only on confirmed reachability/merge (git-finalize.ts 1739/2363/3034/3054). Unshipped → guard holds. |\n| AC1 | acceptance_criterion | When the release gate is `done` AND the fresh `finalization.status === \"shipped\"`, the archive completes without the `rq-releaseProjectionDurability01` false-negative, regardless of whether the stored gate `approval_evidence` substring-contains the archive's built evidence. | pass | change.archive-phase9.test.ts AC4 'manual free-text gate evidence + finalizationShipped accepts the durable proof' → ok:true (was RED pre-fix, tr_mrvavah1). |\n| AC2 | acceptance_criterion | When `finalization.status !== \"shipped\"`, the durable release-gate proof still fails (guard preserved) — no regression in protection. | pass | AC2 'non-matching evidence + NOT shipped still fails' → ok:false with 'lacks matching Phase 9 evidence'. Guard preserved at verify level. |\n| AC3 | acceptance_criterion | The existing evidence-match path continues to work when the archive itself completed the release gate (backward compatible). | pass | AC3 'matching structured evidence accepts even when finalizationShipped is false' → ok:true. Archive-completed-gate path unchanged (backward compatible). |\n| AC4 | acceptance_criterion | A regression test reproduces the manual-completion + admin/squash-merge false-negative — fails against current code, passes after the fix. | pass | Red→green evidenced: AC4 + squash-supersession regression failed pre-fix (tr_mrvavah1), pass post-fix (tr_mrvaz2er). Reproduces the manual-completion + admin/squash false-negative. |\n| AC5 | acceptance_criterion | `pnpm run check` green and existing archive-gate / git-finalize tests pass. | pass | pnpm run check green (typecheck confirms 3 call-site wiring). 41/41 change.archive-phase9 + 155/155 archive-gate+change tests pass. |\n| C1 | constraint | Do NOT weaken the guard. Accepting the durable proof MUST be tied to authoritative shipped evidence (`finalization.status === \"shipped\"` with reachability confirmed), never merely `gate.status === \"done\"`. | respected | Acceptance tied to finalizationShipped (authoritative shipped evidence), not gate.status alone. AC2 proves unshipped still blocked. Safety analysis in design confirms shipped ⟹ reachable. |\n| C2 | constraint | Preserve backward compatibility with the archive-completes-the-gate path (structured evidence still matches by construction). | respected | finalizationShipped optional (default false → strict evidence match preserved); AC3 confirms archive-completed-gate path unchanged. Existing disk-recovery test unaffected. |\n| C3 | constraint | No new recovery tool or recovery mode — this removes a `status_repair` trigger; it must not add one. | respected | No new recovery tool or recovery mode added; removes a status_repair trigger. Only verify logic + 3 call-site wiring changed. |\n| DONT1 | avoidance | Do NOT accept the durable proof based solely on `gate.status === \"done\"` without shipped finalization evidence. | respected | Acceptance requires finalizationShipped===true (from finalization.status==='shipped'), never gate.status==='done' alone. AC2 guard test confirms. |\n| DONT2 | avoidance | Do NOT require operators to write structured evidence in manual gate completion. | respected | No operator-facing change; manual free-text gate completion is accepted as-is (AC4). Operators need not write structured evidence. |\n| DONT3 | avoidance | Do NOT break the poisoned-history / disk-projection fallback recovery path. | respected | loadAuditedDiskReleaseGate (release!=done branch) unchanged — poisoned-history/disk-projection recovery path preserved with its hasGateRecoveryAudit + evidence-match requirement. |\n| OOS1 | out_of_scope | The broader recovery-tool consolidation (`replaceRecoveryToolSprawl` / issue #255). | missing |  |\n| OOS2 | out_of_scope | The cross-session state bleed (`fixConcurrentSessionStateBleed`). | missing |  |\n| OOS3 | out_of_scope | The phase-9 git-call optimization (`optimizeArchivePhase9GitCalls`). | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T23:38:25.405Z",
+      "contentHash": "488a4ea73b2b48bdfad1ee10c352a269b353251e2252abae5ccfb6e1f8541cbb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-21T23:39:35.372Z",
+      "contentHash": "b69d7a17e0dd1f0c11125dd37045328447e17715241199a85cb622340e564d35",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-21T23:41:33.497Z",
+      "contentHash": "233e401dea32c630be19eac2dffc07980fdc352025bf9eb3d4250337314e9cd3",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-21T23:49:08.573Z",
+      "contentHash": "4c612b3d1e27830452993c5e9fef19399d76653b24e310053b9bada4fc60866c",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-21T23:50:53.642Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "shell-1784579344661-9c9ziz",
+    "order": 7,
+    "title": "Fix release durability false negative",
+    "linked_at": "2026-07-21T23:38:50.519Z",
+    "source": "link_existing"
+  },
+  "worktree_auto_managed": true
+}

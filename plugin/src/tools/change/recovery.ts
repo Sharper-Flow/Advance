@@ -363,6 +363,7 @@ export async function buildReentryResult(
   store: Store,
   changeId: string,
   fromGate: GateId,
+  includeSnapshot = false,
 ): Promise<string> {
   const gates = await store.gates.get(changeId);
   const updatedChange = await store.changes.get(changeId);
@@ -405,7 +406,7 @@ export async function buildReentryResult(
     gates,
     reentry: latestEntry,
   };
-  if (contextSnapshot) {
+  if (contextSnapshot && includeSnapshot) {
     output._contextSnapshot = contextSnapshot;
   }
   return formatToolOutput(output);

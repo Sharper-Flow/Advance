@@ -24,6 +24,7 @@ import {
   type InProcessWorker,
 } from "./temporal/in-process-worker";
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
+import { OrphanQueueAdopter } from "./temporal/orphan-queue-adopter";
 import {
   ensureTemporalRuntime,
   probeTemporalWorkerRuntime,
@@ -283,6 +284,9 @@ export async function tryInitStore(
             // beats must never block on a roll.
             onBeat: () => {
               void workerBundleRollMonitor?.checkNow().catch(() => undefined);
+              void activeOrphanQueueAdopter
+                ?.adoptNextOrphan()
+                .catch(() => undefined);
             },
           });
           registerWorkerLockHeartbeat(workerHeartbeat);
@@ -381,6 +385,16 @@ export async function tryInitStore(
       });
       if (worker) {
         registerInProcessTemporalWorker(worker);
+        // rq-isolSessionTaskQueue05: instantiate the adopter once worker +
+        // temporalBundle are ready. The heartbeat onBeat calls adoptNextOrphan()
+        // on each tick (10s cadence).
+        if (temporalBundle) {
+          activeOrphanQueueAdopter = new OrphanQueueAdopter({
+            client: temporalBundle.client,
+            projectId,
+            worker,
+          });
+        }
       }
     }
 
@@ -451,6 +465,17 @@ export async function tryInitStore(
 const inProcessTemporalWorkers = new Set<InProcessWorker>();
 const workerLockHeartbeats = new Set<WorkerLockHeartbeatController>();
 let currentWorkerRole: WorkerRole = "degraded";
+
+/** Module-level adopter reference for diagnostics + heartbeat callback. */
+let activeOrphanQueueAdopter: OrphanQueueAdopter | null = null;
+
+/**
+ * Return orphan-queue adoption diagnostics for adv_temporal_diagnose +
+ * adv_status health view (rq-isolSessionTaskQueue05 / AC7).
+ */
+export function getOrphanQueueAdoptionDiagnostics(): unknown {
+  return activeOrphanQueueAdopter?.getDiagnostics() ?? null;
+}
 
 const exhaustedWorkerDirs = new Set<string>();
 

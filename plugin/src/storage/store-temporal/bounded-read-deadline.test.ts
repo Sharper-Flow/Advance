@@ -260,14 +260,13 @@ describe("bounded one-pass change-list resolution", () => {
     ]);
     expect(result.warnings).toBeUndefined();
 
-    // Regression guard: the removed second classification pass used to
-    // re-run the whole load chain per candidate. closedOne went through
-    // the terminal-projection disk read exactly once; activeOne once for
-    // the terminal-dominance check plus once for the owner guard inside
-    // the live query.
+    // Regression guard: each candidate is loaded exactly once. bl-HiZJbUuy /
+    // disk-first reads: both closedOne (terminal) and activeOne (active) resolve
+    // from a single change.json read with NO workflow query — no owner-guard
+    // second read, no live query during enumeration.
     expect(diskGetCalls.get("closedOne")).toBe(1);
-    expect(diskGetCalls.get("activeOne")).toBe(2);
-    expect(queryCount).toBe(1);
+    expect(diskGetCalls.get("activeOne")).toBe(1);
+    expect(queryCount).toBe(0);
   });
 
   it("returns typed deadline degradation when the visibility source hangs", async () => {
@@ -688,7 +687,7 @@ describe("bounded one-pass change-list resolution", () => {
     });
   }, 15_000);
 
-  it("bounds candidate disk fallback reads after fast Temporal failure", async () => {
+  it("bounds the disk-first candidate read against a hanging change.json read", async () => {
     // Fake only the timeout machinery; leave setImmediate real so fs reads
     // and async-generator enumeration drain deterministically.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
@@ -696,7 +695,10 @@ describe("bounded one-pass change-list resolution", () => {
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("slowDiskFallback"));
 
-    // Temporal query fails fast — the fallback read path is exercised.
+    // bl-HiZJbUuy: reads resolve disk-first, so the candidate's change.json read
+    // IS the bounded read — there is no Temporal-query-then-disk-fallback
+    // sequence any more. The Temporal query mock stays available but is never
+    // reached because the disk-first read is admitted first.
     const temporal = {
       client: {
         workflow: {
@@ -715,27 +717,22 @@ describe("bounded one-pass change-list resolution", () => {
       },
     };
 
-    // Make the first disk fallback read hang indefinitely. The exact number of
-    // preparatory reads is intentionally not authority: optimized paths may
-    // reach the bounded fallback on their first read. The observable contract
-    // is one admitted hanging read, deadline termination, and typed omission.
+    // Make the disk-first loadCandidate read hang indefinitely. The observable
+    // contract is one admitted hanging read, deadline termination, and typed
+    // omission — never an unbounded hang.
     const diskGetCalls = new Map<string, number>();
     let resolveFallbackStarted: (() => void) | undefined;
     const fallbackStarted = new Promise<void>((resolve) => {
       resolveFallbackStarted = resolve;
     });
-    const realGet = legacy.changes.get.bind(legacy.changes);
     legacy.changes.get = (async (changeId: string) => {
       const count = (diskGetCalls.get(changeId) ?? 0) + 1;
       diskGetCalls.set(changeId, count);
-      if (count === 4 && resolveFallbackStarted) {
+      if (resolveFallbackStarted) {
         resolveFallbackStarted();
       }
-      if (count <= 3) {
-        // loadDiskTerminalProjection + getGuardedChangeHandle + reseedChangeFromDisk — fast
-        return realGet(changeId);
-      }
-      // loadCandidate fallback — hang indefinitely
+      // disk-first loadCandidate read — hang indefinitely so the aggregate
+      // deadline wrapper (raceWithTemporalDeadline) must reject it.
       return new Promise<never>(() => {});
     }) as typeof legacy.changes.get;
 
@@ -746,20 +743,16 @@ describe("bounded one-pass change-list resolution", () => {
     });
 
     const pending = store.changes.list({ includeArchived: true });
-    // Wait until the loadCandidate fallback read has actually started —
-    // source enumeration, the fast Temporal failure, the terminal-projection
-    // disk read, the owner-guard disk read, and the reseed disk read have
-    // already happened. The fourth diskGet call is the loadCandidate fallback.
+    // Wait until the disk-first candidate read has actually started.
     await fallbackStarted;
-    expect(diskGetCalls.get("slowDiskFallback")).toBe(4);
-    // Advance past the budget. The deadline wrapper (if present) rejects
-    // the fallback read. Without the wrapper, the read hangs and the test
-    // times out (RED).
+    expect(diskGetCalls.get("slowDiskFallback")).toBe(1);
+    // Advance past the budget. The deadline wrapper rejects the hanging read.
+    // Without the wrapper, the read hangs and the test times out (RED).
     await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1000);
     const result = await pending;
 
-    // The disk fallback read is bounded by the aggregate deadline.
-    // The candidate is omitted with typed incompleteness — never a hang.
+    // The disk-first read is bounded by the aggregate deadline. The candidate
+    // is omitted with typed incompleteness — never a hang.
     expect(result.changes.map((c) => c.id)).not.toContain("slowDiskFallback");
     expect(result.warnings).toEqual(
       expect.arrayContaining([
@@ -774,12 +767,11 @@ describe("bounded one-pass change-list resolution", () => {
     });
   }, 15_000);
 
-  it("regression: skips loadCandidate fallback once the aggregate deadline is exhausted", async () => {
-    // Regression guard for the flaky full-suite failure where the fallback
-    // stage was sometimes counted as after-expiry and skipped. This test
-    // freezes the stages before expiry (terminal-projection, owner-guard,
-    // reseed) and then advances the clock past the budget, proving that the
-    // fallback stage is correctly omitted while the earlier stages are not.
+  it("regression: does not retry a candidate's disk-first read after the deadline terminates it", async () => {
+    // bl-HiZJbUuy: under disk-first there is no Temporal-query → reseed →
+    // disk-fallback sequence. This regression guard proves that once the single
+    // disk-first change.json read is deadline-terminated, no second read is
+    // attempted for the same candidate (no post-expiry retry loop).
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
@@ -796,29 +788,26 @@ describe("bounded one-pass change-list resolution", () => {
           list: async function* () {
             yield { workflowId: "adv/change/project-1/expiredBeforeFallback" };
           },
-          // Hang the reseed path after the third disk read so we can
-          // advance the fake clock and expire the budget before the
-          // loadCandidate fallback can begin.
-          start: async () => new Promise<never>(() => {}),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
         },
       },
     };
 
     const diskGetCalls = new Map<string, number>();
-    let resolveThirdDiskGet: (() => void) | undefined;
-    const thirdDiskGet = new Promise<void>((resolve) => {
-      resolveThirdDiskGet = resolve;
+    let resolveFirstDiskGet: (() => void) | undefined;
+    const firstDiskGet = new Promise<void>((resolve) => {
+      resolveFirstDiskGet = resolve;
     });
-    const realGet = legacy.changes.get.bind(legacy.changes);
     legacy.changes.get = (async (changeId: string) => {
       const count = (diskGetCalls.get(changeId) ?? 0) + 1;
       diskGetCalls.set(changeId, count);
-      if (count === 3 && resolveThirdDiskGet) {
-        resolveThirdDiskGet();
+      if (count === 1 && resolveFirstDiskGet) {
+        resolveFirstDiskGet();
       }
-      if (count <= 3) {
-        return realGet(changeId);
-      }
+      // Hang the disk-first read so the deadline must terminate it. A correct
+      // implementation never re-reads the same candidate after termination.
       return new Promise<never>(() => {});
     }) as typeof legacy.changes.get;
 
@@ -829,15 +818,14 @@ describe("bounded one-pass change-list resolution", () => {
     });
 
     const pending = store.changes.list({ includeArchived: true });
-    await thirdDiskGet;
-    // The budget is still intact at this point. Expire it before the
-    // loadCandidate fallback can begin.
+    await firstDiskGet;
+    // The disk-first read is in flight; expire the budget to terminate it.
     await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1_000);
     const result = await pending;
 
-    // The pre-expiry stages produced three disk reads; the fallback stage
-    // was correctly suppressed once the budget expired.
-    expect(diskGetCalls.get("expiredBeforeFallback")).toBe(3);
+    // Exactly one disk-first read occurred; it was deadline-terminated and
+    // never retried. The candidate is a typed deadline omission.
+    expect(diskGetCalls.get("expiredBeforeFallback")).toBe(1);
     expect(result.changes.map((c) => c.id)).not.toContain(
       "expiredBeforeFallback",
     );

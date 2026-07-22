@@ -47,11 +47,9 @@ export async function ensureChangeWorkflowStarted(
 ): Promise<WorkflowHandleLike> {
   const workflowId = buildChangeWorkflowId(input.projectId, input.changeId);
   // KD-10 / rq-isolSessionTaskQueue01: route to per-session task queue when
-  // the caller provides a sessionId (production callers via changes.ts and
-  // store-temporal/index.ts thread `getCurrentSessionId()`). When absent
-  // (tests, re-import paths, epic-only callers, pre-init), fall back to the
-  // permanent project queue — the worker child co-polls it for migration
-  // and epic workflows live there.
+  // the caller provides a sessionId. rq-isolSessionTaskQueue05: orphaned
+  // session queues (from dead sessions) are adopted at runtime by the
+  // OrphanQueueAdopter heartbeat coordinator.
   const taskQueue = input.sessionId
     ? buildSessionTaskQueue(input.projectId, input.sessionId)
     : buildProjectTaskQueue(input.projectId);

@@ -408,6 +408,7 @@ export async function reconcileArchivedBundleRetry(input: {
     store: input.store,
     changeId: input.changeId,
     evidence: releaseEvidence,
+    finalizationShipped: finalization.status === "shipped",
   });
   let releaseResult: Extract<
     ArchiveReleaseGateResult,
@@ -444,6 +445,7 @@ export async function reconcileArchivedBundleRetry(input: {
       store: input.store,
       changeId: input.changeId,
       evidence: releaseEvidence,
+      finalizationShipped: finalization.status === "shipped",
     });
     if (!durableProof.ok) {
       return formatToolOutput({
@@ -891,6 +893,20 @@ export async function verifyReleaseGateDurableForArchive(input: {
   store: Store;
   changeId: string;
   evidence: string;
+  /**
+   * True when the archive's fresh Phase 9 git finalization reported
+   * `status: "shipped"` (rq-releaseProjectionDurability01 reconciliation,
+   * fixReleaseDurabilityFalse). `shipped` is returned by git-finalize only
+   * on confirmed reachability/merge (PR pr_merged, no_remote local merge, or
+   * direct merge+push), so it is authoritative proof the change reached the
+   * default branch. When true, the durable proof is accepted for a `done`
+   * release gate even if the stored gate evidence does not substring-match
+   * the structured completion evidence — this covers manually-completed gates
+   * (free-text approval notes) and admin/squash-merge SHA supersession. The
+   * evidence-string path is preserved for archive-completed gates (backward
+   * compatible). Absent/false preserves the strict evidence-match behavior.
+   */
+  finalizationShipped?: boolean;
 }): Promise<DurableReleaseGateProofResult> {
   let gates: Gates | null;
   try {
@@ -916,7 +932,17 @@ export async function verifyReleaseGateDurableForArchive(input: {
       stuckReason: releaseGate?.stuck_reason,
     };
   }
-  if (!releaseGateEvidenceMatches(releaseGate, input.evidence)) {
+  // rq-releaseProjectionDurability01 reconciliation: accept the durable proof
+  // when the stored gate evidence corroborates finalization OR the archive's
+  // fresh finalization is authoritatively shipped. finalizationShipped is only
+  // set from finalization.status === "shipped", which git-finalize returns
+  // exclusively on confirmed reachability/merge — so this cannot accept an
+  // unshipped change (guard preserved: unshipped → blocked/pending_merge →
+  // finalizationShipped false → strict evidence match still required).
+  if (
+    !releaseGateEvidenceMatches(releaseGate, input.evidence) &&
+    input.finalizationShipped !== true
+  ) {
     return {
       ok: false,
       error:

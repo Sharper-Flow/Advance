@@ -57,60 +57,66 @@ tools:
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
   adv_delta_add: true
+  adv_delta_amend: true
+  adv_delta_list: true
   adv_delta_modify: true
+  adv_delta_remove: true
+  adv_delta_rename: true
+  adv_delta_retract: true
+  adv_delta_show: true
   adv_design_concern_disposition: true
   adv_doctor: true
+  # Tasks
   adv_epic_add_shell: true
   adv_epic_create: true
   adv_epic_link_change: true
   adv_epic_list: true
   adv_epic_move_change: true
   adv_epic_promote_shell: true
-  # Tasks
   adv_epic_reorder: true
   adv_epic_retire: true
+  # Wisdom
   adv_epic_show: true
   adv_epic_unlink_change: true
+  # Gates
   adv_epic_update: true
   adv_followup_promote: true
   adv_gate_complete: true
   adv_gate_status: true
-  # Wisdom
   adv_lightweight_profile_evaluate: true
   adv_ops_evidence_add: true
-  # Gates
+  # Sub-agent reports
   adv_ops_run_evidence_add: true
+  # Ops follow-ups
   adv_ops_run_upsert: true
   adv_project_context: true
   adv_project_metadata: true
   adv_reflect: true
   adv_reflection_list: true
-  # Sub-agent reports
+  # Temporal / workflow ops
   adv_report_followup_promote: true
-  # Ops follow-ups
   adv_run_test: true
   adv_session_list: true
   adv_session_show: true
+  # Store maintenance (operator-only)
   adv_snapshot_health: true
   adv_spec: true
-  # Temporal / workflow ops
+  # Snapshot health diagnostics
   adv_status: true
+  # Reflection
   adv_store_cleanup: true
   adv_store_consolidate: true
   adv_subagent_report_submit: true
-  # Store maintenance (operator-only)
+  # Project metadata
   adv_task_add: true
   adv_task_cancel: true
-  # Snapshot health diagnostics
+  # === Epics — optional initiative containers ===
   adv_task_checkpoint: true
-  # Reflection
   adv_task_list: true
   adv_task_ready: true
   adv_task_reclassify_tdd: true
-  # Project metadata
   adv_task_show: true
   adv_task_update: true
-  # === Epics — optional initiative containers ===
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
@@ -118,12 +124,12 @@ tools:
   adv_wip_state: true
   adv_wisdom_add: true
   adv_wisdom_list: true
+  # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_cleanup: true
   adv_worktree_create: true
   adv_worktree_delete: true
   adv_worktree_resume: true
   adv_worktree_triage: true
-  # === Worktree — orchestrator owns lifecycle ===
   # <<< ADV-GENERATED adv_* tools <<<
   # === Research MCP tools ===
   context7_*: true
@@ -192,7 +198,7 @@ If the user's intent is ambiguous or no change-id is provided, check `adv_change
 > **Defect-origin routing footnote (rq-defectOriginRca01):** When the user's intent describes unintended behavior, route through `/adv-problem` to produce Root Cause Analysis (RCA) evidence before any proposal-creation path. Defect triggers: "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X". Non-defect triggers (proceed normally to `/adv-proposal` or `/adv-task`): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X". Rule of thumb: user describes unintended behavior → defect; user describes desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3). Defect-origin `/adv-proposal` and `/adv-task` invocations MUST carry a `## Root Cause Analysis` section in the persisted proposal.md artifact. `/adv-task` fast-track does NOT bypass RCA for defects.
 
 ## Step 2: Load State
-Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume first incomplete. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
+Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot` (opt-in via `include.snapshot:true`); resume first incomplete. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
 
 ### Step 2.5: Resume Freshness Advisory
 Resumes >60m: apply `ADV_INSTRUCTIONS.md § Resume Freshness Advisory`; read-only/current-project/proceed-default; fresh skip. One archived duplicate: one-command accept (copy-paste and run), user evidence; never auto-close.
@@ -377,7 +383,7 @@ After any workflow emits a user-facing gate-transition message, use **Gate Hando
 > → `/adv-{next-command} {change-id}`
 ```
 
-Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
+Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`), not chat. Use `include.snapshot:true` on any tool to request `_contextSnapshot`. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
 
 Decision rationale (major decisions only): when `docs/command-voice-standard.md` classifies a decision as major, place its bounded rationale block inside `## Chosen direction`. Do not add a `## Decision rationale` heading, do not put rationale after `## Delivered`, and do not emit rationale for routine decisions.
 

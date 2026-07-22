@@ -91,6 +91,12 @@ const UNNAMED_CONTRACTED_REMOVALS = 1;
  */
 const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_delta_modify",
+  "adv_delta_amend",
+  "adv_delta_retract",
+  "adv_delta_remove",
+  "adv_delta_rename",
+  "adv_delta_list",
+  "adv_delta_show",
   "adv_change_workflow_terminate",
   "adv_verification_evidence_disposition",
   "adv_lightweight_profile_evaluate",

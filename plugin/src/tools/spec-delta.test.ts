@@ -4,7 +4,7 @@
  * TDD RED → GREEN for the addSpecDeltaWriter change (roadmap #64).
  * Mirrors adv_wisdom_add writer tests plus the stronger target_path
  * confirmation and recovery contract from existing change-mutating tools
- * (adv_contract_mint, adv_change_repair_origin, internal status-repair).
+ * (adv_contract_mint, adv_change_repair_origin, adv_change_status_repair).
  *
  * Acceptance criteria exercised:
  * - AC1: valid existing/new capability + add delta + scenario persists under
@@ -12,8 +12,8 @@
  * - AC2: malformed capability / malformed requirement / duplicate delta id /
  *   duplicate requirement id refuse with typed error and no state mutation.
  * - AC4: target_path mutations require explicit target confirmation.
- * - AC5: public recoveryMode/recoveryEvidence/recoveryReason args removed
- *   under D4; this tool never performs disk-projection recovery writes.
+ * - AC5: poisoned-history recovery either follows audited semantics or
+ *   refuses without modifying state (this tool refuses disk workarounds).
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,6 +31,10 @@ const mocks = vi.hoisted(() => {
   const persistStateToDisk = vi.fn();
   const specDeltasAdd = vi.fn();
   const specDeltasModify = vi.fn();
+  const specDeltasAmend = vi.fn();
+  const specDeltasRetract = vi.fn();
+  const specDeltasRemove = vi.fn();
+  const specDeltasRename = vi.fn();
   return {
     signal,
     query,
@@ -41,6 +45,10 @@ const mocks = vi.hoisted(() => {
     persistStateToDisk,
     specDeltasAdd,
     specDeltasModify,
+    specDeltasAmend,
+    specDeltasRetract,
+    specDeltasRemove,
+    specDeltasRename,
     canReachTemporalAddress: vi.fn(async () => true),
     getTemporalWorkerAliveness: vi.fn(() => true),
     getRegisteredTemporalWorkerQueues: vi.fn(() => ["advance-proj123"]),
@@ -94,7 +102,13 @@ vi.mock("../utils/project-id", async () => {
 });
 
 import { specDeltaTools } from "./spec-delta";
-import type { DeltaAdd, DeltaModify } from "../types";
+import type {
+  Delta,
+  DeltaAdd,
+  DeltaModify,
+  DeltaRemove,
+  DeltaRename,
+} from "../types";
 import type { Store } from "../storage/store-types";
 
 function makeValidDelta(overrides: Partial<DeltaAdd> = {}): DeltaAdd {
@@ -139,6 +153,10 @@ function makeStore(overrides: Record<string, unknown> = {}): Store {
     specDeltas: {
       add: mocks.specDeltasAdd,
       modify: mocks.specDeltasModify,
+      amend: mocks.specDeltasAmend,
+      retract: mocks.specDeltasRetract,
+      remove: mocks.specDeltasRemove,
+      rename: mocks.specDeltasRename,
     },
     changes: {
       get: vi.fn(async () => ({
@@ -644,5 +662,553 @@ describe("adv_delta_add — target_path confirmation contract", () => {
     expect(parsed.success).not.toBe(true);
     expect(parsed.error).toMatch(/target/i);
     expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
+  });
+});
+
+function makeScenarios(parentId: string, count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${parentId}.${i + 1}`,
+    title: `Scenario ${i + 1}`,
+    given: ["a requirement exists"],
+    when: "the scenario is recorded",
+    then: [`scenario ${i + 1} is captured`],
+  }));
+}
+
+function makeValidModifyDeltaWithScenarios(
+  overrides: Partial<DeltaModify> = {},
+): DeltaModify {
+  return {
+    id: "dl-MOD11111",
+    operation: "modify",
+    target_id: "rq-activeChangePointer01",
+    changes: {
+      scenarios: makeScenarios("rq-activeChangePointer01", 7),
+    },
+    ...overrides,
+  };
+}
+
+function makeStoreWithDelta(delta: Delta) {
+  return makeStore({
+    changes: {
+      get: vi.fn(async () => ({
+        success: true,
+        data: {
+          id: "addFeature",
+          status: "draft",
+          deltas: { "advance-workflow": [delta] },
+        },
+      })),
+    },
+    specs: {
+      get: vi.fn(async () => ({
+        success: true,
+        data: {
+          name: "advance-workflow",
+          requirements: [{ id: "rq-activeChangePointer01" }],
+        },
+      })),
+    },
+  });
+}
+
+describe("adv_delta_amend — schema + target validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.specDeltasAmend.mockImplementation(
+      async (
+        _changeId: string,
+        _capability: string,
+        _deltaId: string,
+        delta: Delta,
+      ) => delta,
+    );
+  });
+
+  it("amends a staged modify delta, preserving id and array position", async () => {
+    const original = makeValidModifyDeltaWithScenarios();
+    const store = makeStoreWithDelta(original);
+    const amended = makeValidModifyDeltaWithScenarios({
+      changes: {
+        scenarios: [
+          {
+            ...makeScenarios("rq-activeChangePointer01", 7)[0]!,
+            title: "Changed 1",
+          },
+          {
+            ...makeScenarios("rq-activeChangePointer01", 7)[1]!,
+            title: "Changed 2",
+          },
+          makeScenarios("rq-activeChangePointer01", 7)[2]!,
+          makeScenarios("rq-activeChangePointer01", 7)[3]!,
+          makeScenarios("rq-activeChangePointer01", 7)[4]!,
+          {
+            ...makeScenarios("rq-activeChangePointer01", 7)[5]!,
+            title: "Changed 6",
+          },
+          makeScenarios("rq-activeChangePointer01", 7)[6]!,
+        ],
+      },
+    });
+
+    const result = await specDeltaTools.adv_delta_amend.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MOD11111",
+        delta: amended,
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.deltaId).toBe("dl-MOD11111");
+    expect((parsed.delta as DeltaModify).id).toBe("dl-MOD11111");
+    expect(mocks.specDeltasAmend).toHaveBeenCalledWith(
+      "addFeature",
+      "advance-workflow",
+      "dl-MOD11111",
+      amended,
+      undefined,
+    );
+  });
+
+  it("allows a second amend of the same delta", async () => {
+    const original = makeValidModifyDeltaWithScenarios();
+    const store = makeStoreWithDelta(original);
+    const first = makeValidModifyDeltaWithScenarios({
+      changes: { title: "First amendment" },
+    });
+    const second = makeValidModifyDeltaWithScenarios({
+      changes: { title: "Second amendment" },
+    });
+
+    mocks.specDeltasAmend.mockImplementation(
+      async (
+        _changeId: string,
+        _capability: string,
+        _deltaId: string,
+        delta: Delta,
+      ) => delta,
+    );
+
+    await specDeltaTools.adv_delta_amend.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MOD11111",
+        delta: first,
+      },
+      store,
+    );
+    const result = await specDeltaTools.adv_delta_amend.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MOD11111",
+        delta: second,
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect((parsed.delta as DeltaModify).changes.title).toBe(
+      "Second amendment",
+    );
+    expect(mocks.specDeltasAmend).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects an invalid delta payload without calling the store", async () => {
+    const store = makeStoreWithDelta(makeValidModifyDeltaWithScenarios());
+    const result = await specDeltaTools.adv_delta_amend.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MOD11111",
+        delta: { id: "dl-MOD11111", operation: "modify" } as unknown as Delta,
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).not.toBe(true);
+    expect(mocks.specDeltasAmend).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown delta id with a typed not-found error", async () => {
+    const store = makeStoreWithDelta(makeValidModifyDeltaWithScenarios());
+    const result = await specDeltaTools.adv_delta_amend.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MISSING111",
+        delta: makeValidModifyDeltaWithScenarios({ id: "dl-MISSING111" }),
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).not.toBe(true);
+    expect(parsed.error).toMatch(/not found/);
+    expect(mocks.specDeltasAmend).not.toHaveBeenCalled();
+  });
+
+  it("rejects a delta id mismatch without calling the store", async () => {
+    const store = makeStoreWithDelta(makeValidModifyDeltaWithScenarios());
+    const result = await specDeltaTools.adv_delta_amend.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MOD11111",
+        delta: makeValidModifyDeltaWithScenarios({ id: "dl-OTHER111" }),
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).not.toBe(true);
+    expect(parsed.error).toMatch(/delta.id .* does not match deltaId/);
+    expect(mocks.specDeltasAmend).not.toHaveBeenCalled();
+  });
+});
+
+describe("adv_delta_retract — schema + validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.specDeltasRetract.mockImplementation(async () => {});
+  });
+
+  it("retracts an existing staged delta", async () => {
+    const store = makeStoreWithDelta(makeValidModifyDeltaWithScenarios());
+    const result = await specDeltaTools.adv_delta_retract.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MOD11111",
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(mocks.specDeltasRetract).toHaveBeenCalledWith(
+      "addFeature",
+      "advance-workflow",
+      "dl-MOD11111",
+      undefined,
+    );
+  });
+
+  it("rejects an unknown delta id with a typed not-found error", async () => {
+    const store = makeStoreWithDelta(makeValidModifyDeltaWithScenarios());
+    const result = await specDeltaTools.adv_delta_retract.execute(
+      {
+        changeId: "addFeature",
+        capability: "advance-workflow",
+        deltaId: "dl-MISSING111",
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).not.toBe(true);
+    expect(parsed.error).toMatch(/not found/);
+    expect(mocks.specDeltasRetract).not.toHaveBeenCalled();
+  });
+});
+
+function makeValidRemoveDelta(
+  overrides: Partial<DeltaRemove> = {},
+): DeltaRemove {
+  return {
+    id: "dl-RMV11111",
+    operation: "remove",
+    target_id: "rq-activeChangePointer01",
+    reason: "obsolete",
+    ...overrides,
+  };
+}
+
+function makeValidRenameDelta(
+  overrides: Partial<DeltaRename> = {},
+): DeltaRename {
+  return {
+    id: "dl-RNM11111",
+    operation: "rename",
+    target_id: "rq-activeChangePointer01",
+    new_title: "Renamed requirement",
+    ...overrides,
+  };
+}
+
+describe("adv_delta_remove — schema + target validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.specDeltasRemove.mockImplementation(
+      async (_changeId: string, _capability: string, delta: DeltaRemove) =>
+        delta,
+    );
+  });
+
+  it("records a remove delta for an existing requirement", async () => {
+    const store = makeStore({
+      specs: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            name: "test-capability",
+            requirements: [{ id: "rq-activeChangePointer01" }],
+          },
+        })),
+      },
+    });
+    const delta = makeValidRemoveDelta();
+    const result = await specDeltaTools.adv_delta_remove.execute(
+      { changeId: "addFeature", capability: "test-capability", delta },
+      store,
+    );
+
+    expect(parse(result).success).toBe(true);
+    expect(mocks.specDeltasRemove).toHaveBeenCalledWith(
+      "addFeature",
+      "test-capability",
+      delta,
+      undefined,
+    );
+  });
+
+  it("rejects an invalid remove delta without calling the store", async () => {
+    const result = await specDeltaTools.adv_delta_remove.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: {
+          id: "dl-RMV11111",
+          operation: "remove",
+        } as unknown as DeltaRemove,
+      },
+      makeStore(),
+    );
+
+    expect(parse(result).success).not.toBe(true);
+    expect(mocks.specDeltasRemove).not.toHaveBeenCalled();
+  });
+});
+
+describe("adv_delta_rename — schema + target validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.specDeltasRename.mockImplementation(
+      async (_changeId: string, _capability: string, delta: DeltaRename) =>
+        delta,
+    );
+  });
+
+  it("records a rename delta for an existing requirement", async () => {
+    const store = makeStore({
+      specs: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            name: "test-capability",
+            requirements: [{ id: "rq-activeChangePointer01" }],
+          },
+        })),
+      },
+    });
+    const delta = makeValidRenameDelta();
+    const result = await specDeltaTools.adv_delta_rename.execute(
+      { changeId: "addFeature", capability: "test-capability", delta },
+      store,
+    );
+
+    expect(parse(result).success).toBe(true);
+    expect(mocks.specDeltasRename).toHaveBeenCalledWith(
+      "addFeature",
+      "test-capability",
+      delta,
+      undefined,
+    );
+  });
+
+  it("rejects an invalid rename delta without calling the store", async () => {
+    const result = await specDeltaTools.adv_delta_rename.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: {
+          id: "dl-RNM11111",
+          operation: "rename",
+        } as unknown as DeltaRename,
+      },
+      makeStore(),
+    );
+
+    expect(parse(result).success).not.toBe(true);
+    expect(mocks.specDeltasRename).not.toHaveBeenCalled();
+  });
+});
+
+describe("adv_delta_list — read staged deltas", () => {
+  function storeWithDeltas(): Store {
+    return makeStore({
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            id: "addFeature",
+            title: "Add feature",
+            status: "draft",
+            deltas: {
+              "cap-one": [
+                {
+                  id: "dl-AAA11111",
+                  operation: "add",
+                  requirement: {
+                    id: "rq-one01",
+                    title: "One",
+                    body: "b",
+                    priority: "must",
+                  },
+                },
+                {
+                  id: "dl-MOD11111",
+                  operation: "modify",
+                  target_id: "rq-existing01",
+                  changes: { title: "Updated" },
+                },
+              ],
+              "cap-two": [
+                {
+                  id: "dl-REM11111",
+                  operation: "remove",
+                  target_id: "rq-two01",
+                  reason: "obsolete",
+                },
+              ],
+            },
+          },
+        })),
+      },
+    });
+  }
+
+  it("lists staged deltas across capabilities with ids, operation, target, title", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).toBe(true);
+    const rows = parsed.rows as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(3);
+    const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+    expect(byId["dl-AAA11111"]).toMatchObject({
+      operation: "add",
+      capability: "cap-one",
+      target: "rq-one01",
+      title: "One",
+    });
+    expect(byId["dl-MOD11111"]).toMatchObject({
+      operation: "modify",
+      target: "rq-existing01",
+      title: "Updated",
+    });
+    expect(byId["dl-REM11111"]).toMatchObject({
+      operation: "remove",
+      capability: "cap-two",
+      target: "rq-two01",
+    });
+    expect((parsed.pagination as Record<string, unknown>).total).toBe(3);
+  });
+
+  it("filters by capability", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature", capability: "cap-two" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    const rows = parsed.rows as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe("dl-REM11111");
+  });
+
+  it("paginates with offset + limit and reports hasMore", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature", offset: 0, limit: 2 },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect((parsed.rows as unknown[]).length).toBe(2);
+    const pg = parsed.pagination as Record<string, unknown>;
+    expect(pg.total).toBe(3);
+    expect(pg.returned).toBe(2);
+    expect(pg.hasMore).toBe(true);
+  });
+
+  it("returns empty rows for a change with no deltas", async () => {
+    const result = await specDeltaTools.adv_delta_list.execute(
+      { changeId: "addFeature" },
+      makeStore(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.rows).toEqual([]);
+    expect((parsed.pagination as Record<string, unknown>).total).toBe(0);
+  });
+});
+
+describe("adv_delta_show — read one staged delta", () => {
+  function storeWithDeltas(): Store {
+    return makeStore({
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            id: "addFeature",
+            title: "Add feature",
+            status: "draft",
+            deltas: {
+              "cap-one": [
+                {
+                  id: "dl-AAA11111",
+                  operation: "add",
+                  requirement: {
+                    id: "rq-one01",
+                    title: "One",
+                    body: "b",
+                    priority: "must",
+                  },
+                },
+              ],
+            },
+          },
+        })),
+      },
+    });
+  }
+
+  it("returns the full staged delta by id", async () => {
+    const result = await specDeltaTools.adv_delta_show.execute(
+      { changeId: "addFeature", capability: "cap-one", deltaId: "dl-AAA11111" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).toBe(true);
+    expect((parsed.delta as Record<string, unknown>).id).toBe("dl-AAA11111");
+    expect((parsed.delta as Record<string, unknown>).operation).toBe("add");
+  });
+
+  it("returns typed not-found for an unknown delta id", async () => {
+    const result = await specDeltaTools.adv_delta_show.execute(
+      { changeId: "addFeature", capability: "cap-one", deltaId: "dl-UNKNOWN0" },
+      storeWithDeltas(),
+    );
+    const parsed = parse(result);
+    expect(parsed.success).not.toBe(true);
+    expect(String(parsed.error)).toContain("dl-UNKNOWN0");
   });
 });

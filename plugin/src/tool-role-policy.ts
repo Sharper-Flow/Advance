@@ -223,6 +223,34 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Typed change-scoped spec modification; archive remains sole global-spec writer.",
   },
+  adv_delta_amend: {
+    class: "orchestrator",
+    rationale:
+      "Full-replacement change-scoped spec delta amend; archive remains sole global-spec writer.",
+  },
+  adv_delta_retract: {
+    class: "orchestrator",
+    rationale:
+      "Change-scoped spec delta retraction; archive remains sole global-spec writer.",
+  },
+  adv_delta_remove: {
+    class: "orchestrator",
+    rationale:
+      "Change-scoped remove-operation spec delta; archive remains sole global-spec writer.",
+  },
+  adv_delta_rename: {
+    class: "orchestrator",
+    rationale:
+      "Change-scoped rename-operation spec delta; archive remains sole global-spec writer.",
+  },
+  adv_delta_list: {
+    class: "orchestrator",
+    rationale: "Staged spec-delta read (bounded list).",
+  },
+  adv_delta_show: {
+    class: "orchestrator",
+    rationale: "Staged spec-delta read (single delta).",
+  },
   adv_design_concern_disposition: {
     class: "orchestrator",
     rationale: "Design-concern disposition.",
@@ -490,7 +518,13 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_contract_mint",
       "adv_contract_review_matrix_set",
       "adv_delta_add",
+      "adv_delta_amend",
+      "adv_delta_list",
       "adv_delta_modify",
+      "adv_delta_remove",
+      "adv_delta_rename",
+      "adv_delta_retract",
+      "adv_delta_show",
       "adv_design_concern_disposition",
       "adv_epic_add_shell",
       "adv_epic_create",
