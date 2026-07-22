@@ -9,8 +9,13 @@ import type { ChangeWorkflowInput, EpicWorkflowInput } from "./contracts";
 import { changeSeedStateFromChange } from "./change-state";
 import { buildTemporalSearchAttributes } from "./observability";
 import { readDiskArtifactsForHydration } from "../storage/store-temporal/hydrate-documents";
+import { changeStateQuery } from "./messages";
 import { changeWorkflow, epicWorkflow } from "./workflows";
 import { enforceMutationEligibilityForError } from "./mutation-safety";
+import {
+  resolveCreationIdempotency,
+  ChangeCreationHashConflictError,
+} from "../storage/store-temporal/creation-hash";
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -106,7 +111,33 @@ export async function ensureChangeWorkflowStarted(
     return await client.workflow.start(changeWorkflow, startOpts);
   } catch (error) {
     if (isAlreadyStartedError(error)) {
-      return client.workflow.getHandle(workflowId);
+      const handle = client.workflow.getHandle(workflowId);
+      // rq-creationRequestHash01 (tk-74c358188ffb): when the caller supplies
+      // a canonical hash, verify the existing workflow's recorded hash before
+      // silently reusing its handle. This closes the post-commit-timeout
+      // duplicate-creation defect class — a retry whose business intent
+      // differs from the original (e.g. different capability, origin, or
+      // parent linkage) refuses with a typed conflict instead of silently
+      // masking the original request. A matching hash is the idempotent
+      // success path. When the caller omits the hash, the legacy silent-
+      // reuse behavior is preserved.
+      if (input.creationRequestHash) {
+        const state = (await handle.query(changeStateQuery)) as {
+          creation_request_hash?: string;
+        };
+        const decision = resolveCreationIdempotency({
+          existingHash: state?.creation_request_hash,
+          computedHash: input.creationRequestHash,
+        });
+        if (decision.kind === "hash_conflict") {
+          throw new ChangeCreationHashConflictError({
+            changeId: input.changeId,
+            existingHash: decision.existing_hash,
+            computedHash: decision.computed_hash,
+          });
+        }
+      }
+      return handle;
     }
     // SC4 mutation-eligibility guard: a workflow-start failure classified
     // as mutation-ineligible (no-poller / query_failed_or_not_registered /

@@ -1137,6 +1137,19 @@ export const ChangeSchema = z
      * loading and Visibility lookup via AdvEpicId search attribute.
      */
     epic_membership: EpicMembershipSchema.optional(),
+
+    /**
+     * rq-creationRequestHash01 (tk-74c358188ffb, design D2 / AC4 / AC11):
+     * canonical SHA-256 hash of stable creation-request fields, computed by
+     * `computeCreationRequestHash` and stamped on the disk projection at
+     * create time. Used by `ensureChangeWorkflowStarted` to reconcile
+     * post-commit-timeout retries against the existing workflow's recorded
+     * hash: same hash → idempotent match; differing hash → typed conflict
+     * (refuses before mutation). Optional for backward compatibility —
+     * legacy changes pre-dating this field are treated as `first_creation`
+     * by the idempotency resolver.
+     */
+    creation_request_hash: z.string().optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

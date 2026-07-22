@@ -19,6 +19,7 @@ import { ChangeSummaryMemo } from "../store-temporal-memo";
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
 const renderTerminalHistory = vi.hoisted(() => vi.fn());
 const getCurrentSessionIdMock = vi.hoisted(() => vi.fn());
+const removeChangeDirMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../temporal/workflow-start", () => ({
   ensureChangeWorkflowStarted,
@@ -34,6 +35,18 @@ vi.mock("../../utils/session-id", () => ({
   generateSessionId: vi.fn(() => "sess_generated"),
   setCurrentSessionId: vi.fn(),
 }));
+
+// rq-creationRequestHash01: hijack removeChangeDir from the json module
+// so the P1.4 rollback assertion in the conflict test can observe the
+// call. The hoisted mock keeps the rest of ../json intact by deferring
+// to the real implementation via vi.importActual.
+vi.mock("../json", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    removeChangeDir: removeChangeDirMock,
+  };
+});
 
 describe("isWorkflowCompletedError", () => {
   test("non-Error values → false", () => {
@@ -375,6 +388,210 @@ describe("createChangeOps", () => {
       "newAutoManagedChange",
       expect.objectContaining({ worktree_auto_managed: true }),
     );
+  });
+
+  /**
+   * rq-creationRequestHash01 (tk-74c358188ffb) — creation-request hash
+   * threading on the store-temporal `create` path.
+   *
+   * Covers design D2 / AC4 / AC11: the canonical hash is computed from
+   * stable create fields, threaded into both `seedState.creation_request_hash`
+   * (so the workflow records it once at start) and the top-level
+   * `creationRequestHash` (so the "already started" path can reconcile
+   * retries), and stamped onto the disk projection so disk-first readers
+   * see it without a workflow query round-trip.
+   */
+  describe("creation_request_hash threading (rq-creationRequestHash01)", () => {
+    function buildOps({
+      changeId,
+      summary,
+    }: {
+      changeId: string;
+      summary: string;
+    }) {
+      ensureChangeWorkflowStarted.mockResolvedValue(undefined);
+      const createdChange = {
+        id: changeId,
+        title: summary,
+        status: "draft",
+        created_at: "2026-07-22T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {},
+        reentry_history: [],
+      };
+      const saveMock = vi.fn().mockResolvedValue(undefined);
+      const legacy = {
+        paths: { changes: "/tmp/changes", root: "/tmp/project" },
+        changes: {
+          create: vi.fn().mockResolvedValue({ changeId }),
+          get: vi
+            .fn()
+            .mockResolvedValue({ success: true, data: createdChange }),
+          save: saveMock,
+        },
+      };
+      const workflowClient = {
+        workflow: { start: vi.fn(), getHandle: vi.fn() },
+      };
+      const ops = createChangeOps({
+        input: {
+          legacy,
+          temporal: { client: workflowClient },
+          projectId: "pid-cr",
+        },
+        legacy,
+        invalidateChange: vi.fn(),
+        updateOverlay: vi.fn(),
+        emitChangeSummarySignal: vi.fn(),
+        indexTasksFromState: vi.fn(),
+        setCachedChange: vi.fn(),
+        getTemporalChange: vi.fn(),
+        listResolvedChanges: vi.fn(),
+        getTemporalWorkflowClient: () => workflowClient,
+        dualWriteAfterMutation: vi.fn(),
+      } as never);
+      return { ops, saveMock, legacy, workflowClient };
+    }
+
+    test("threads creationRequestHash + seedState.creation_request_hash into ensureChangeWorkflowStarted", async () => {
+      const { ops } = buildOps({
+        changeId: "hashThreaded",
+        summary: "Hash threaded",
+      });
+
+      await ops.create("Hash threaded", {
+        capability: "advance-meta",
+      });
+
+      const call = ensureChangeWorkflowStarted.mock.calls.at(-1)!;
+      const passedInput = call[1] as {
+        creationRequestHash?: string;
+        seedState?: { creation_request_hash?: string };
+      };
+      expect(passedInput.creationRequestHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(passedInput.seedState?.creation_request_hash).toBe(
+        passedInput.creationRequestHash,
+      );
+    });
+
+    test("stamps creation_request_hash on the disk projection (changeWithOwner)", async () => {
+      const { ops, saveMock } = buildOps({
+        changeId: "diskStamped",
+        summary: "Disk stamped",
+      });
+
+      await ops.create("Disk stamped", {});
+
+      expect(saveMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "diskStamped",
+          creation_request_hash: expect.stringMatching(/^[0-9a-f]{64}$/),
+        }),
+      );
+    });
+
+    test("hash differs when capability differs (distinguishes same-summary conflicts)", async () => {
+      const { ops: ops1 } = buildOps({
+        changeId: "sameIdDiffCap",
+        summary: "Same id diff cap",
+      });
+      await ops1.create("Same id diff cap", { capability: "auth" });
+      const hash1 = (
+        ensureChangeWorkflowStarted.mock.calls.at(-1)![1] as {
+          creationRequestHash: string;
+        }
+      ).creationRequestHash;
+
+      const { ops: ops2 } = buildOps({
+        changeId: "sameIdDiffCap",
+        summary: "Same id diff cap",
+      });
+      await ops2.create("Same id diff cap", { capability: "billing" });
+      const hash2 = (
+        ensureChangeWorkflowStarted.mock.calls.at(-1)![1] as {
+          creationRequestHash: string;
+        }
+      ).creationRequestHash;
+
+      expect(hash1).not.toBe(hash2);
+    });
+
+    test("P1.4 rollback fires on ChangeCreationHashConflictError and rethrows (post-commit-timeout conflict path)", async () => {
+      // Simulate the post-commit-timeout + different-retry scenario:
+      // the workflow exists with a different hash → ensureChangeWorkflowStarted
+      // throws ChangeCreationHashConflictError. The disk scaffold written
+      // by legacy.changes.create must be rolled back so a subsequent retry
+      // with the original request can succeed.
+      const { ChangeCreationHashConflictError } =
+        await import("./creation-hash");
+      const conflictError = new ChangeCreationHashConflictError({
+        changeId: "conflictRollback",
+        existingHash:
+          "1111111111111111111111111111111111111111111111111111111111111111",
+        computedHash:
+          "2222222222222222222222222222222222222222222222222222222222222222",
+      });
+      ensureChangeWorkflowStarted.mockRejectedValueOnce(conflictError);
+      removeChangeDirMock.mockClear();
+
+      const createdChange = {
+        id: "conflictRollback",
+        title: "Conflict rollback",
+        status: "draft",
+        created_at: "2026-07-22T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: {},
+        reentry_history: [],
+      };
+      const saveMock = vi.fn();
+      const legacy = {
+        paths: { changes: "/tmp/changes-crh", root: "/tmp/project" },
+        changes: {
+          create: vi.fn().mockResolvedValue({ changeId: "conflictRollback" }),
+          get: vi
+            .fn()
+            .mockResolvedValue({ success: true, data: createdChange }),
+          save: saveMock,
+        },
+      };
+      const workflowClient = {
+        workflow: { start: vi.fn(), getHandle: vi.fn() },
+      };
+      const ops = createChangeOps({
+        input: {
+          legacy,
+          temporal: { client: workflowClient },
+          projectId: "pid-conflict",
+        },
+        legacy,
+        invalidateChange: vi.fn(),
+        updateOverlay: vi.fn(),
+        emitChangeSummarySignal: vi.fn(),
+        indexTasksFromState: vi.fn(),
+        setCachedChange: vi.fn(),
+        getTemporalChange: vi.fn(),
+        listResolvedChanges: vi.fn(),
+        getTemporalWorkflowClient: () => workflowClient,
+        dualWriteAfterMutation: vi.fn(),
+      } as never);
+
+      await expect(
+        ops.create("Conflict rollback", { capability: "different" }),
+      ).rejects.toBeInstanceOf(ChangeCreationHashConflictError);
+
+      // The disk scaffold was rolled back so the existing change isn't
+      // masked by our conflicting write.
+      expect(removeChangeDirMock).toHaveBeenCalledWith(
+        "/tmp/changes-crh",
+        "conflictRollback",
+      );
+      // And the disk projection save was NOT called (we threw before it).
+      expect(saveMock).not.toHaveBeenCalled();
+    });
   });
 
   test("save overlays source-side cross-project coordination metadata", async () => {

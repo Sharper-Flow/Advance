@@ -207,6 +207,10 @@ export function changeSeedStateFromChange(
     ops_followup_links: safeChange.ops_followup_links,
     epic_membership: safeChange.epic_membership,
     lightweight_profile: safeChange.lightweight_profile,
+    // rq-creationRequestHash01 (tk-74c358188ffb): preserve hash across
+    // re-seed / Continue-As-New so the idempotency invariant survives
+    // workflow lifecycle boundaries.
+    creation_request_hash: safeChange.creation_request_hash,
   };
 }
 

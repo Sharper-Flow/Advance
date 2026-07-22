@@ -227,6 +227,19 @@ export interface ChangeWorkflowInput {
   title: string;
   initializedAt: string;
   /**
+   * rq-creationRequestHash01 (tk-74c358188ffb, design D2 / AC4 / AC11):
+   * canonical SHA-256 hash of stable creation-request fields, computed by
+   * the caller via `computeCreationRequestHash`. When provided, the
+   * "already started" recovery path queries the existing workflow's
+   * `state.creation_request_hash` and:
+   *   - match    → idempotent reuse (post-commit-timeout retry is safe)
+   *   - mismatch → throws {@link ChangeCreationHashConflictError}
+   *   - missing  → backward-compat first-creation (legacy workflow)
+   *
+   * When omitted, the existing silent-reuse behavior is preserved.
+   */
+  creationRequestHash?: string;
+  /**
    * Session ID for per-session task-queue routing (KD-10,
    * rq-isolSessionTaskQueue01). When present, ensureChangeWorkflowStarted
    * (tk-654199bec3cb) routes the workflow to
@@ -296,6 +309,7 @@ export interface ChangeWorkflowInput {
       | "ops_followup_links"
       | "lightweight_profile"
       | "epic_membership"
+      | "creation_request_hash"
     >
   >;
 }
@@ -598,6 +612,15 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * `lightweightProfileEvaluatedSignal`.
    */
   lightweight_profile?: Change["lightweight_profile"];
+  /**
+   * rq-creationRequestHash01 (tk-74c358188ffb): canonical hash of stable
+   * creation-request fields, mirroring `ChangeSchema.creation_request_hash`.
+   * Set once at workflow start from `seedState.creation_request_hash`;
+   * immutable thereafter. Queried by `ensureChangeWorkflowStarted` on the
+   * "already started" path to reconcile retries against the original
+   * creation request.
+   */
+  creation_request_hash?: string;
   /**
    * Per-gate criteria evaluated at completion time.
    * Advisory audit trail — criteria are not blocking.

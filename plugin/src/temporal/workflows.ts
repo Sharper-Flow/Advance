@@ -742,6 +742,13 @@ export async function changeWorkflow(
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
     }
+    // rq-creationRequestHash01 (tk-74c358188ffb): stamp the canonical
+    // creation-request hash onto workflow state at start time so the
+    // "already started" recovery path can reconcile retries. Immutable
+    // after start.
+    if (input.seedState.creation_request_hash) {
+      state.creation_request_hash = input.seedState.creation_request_hash;
+    }
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
