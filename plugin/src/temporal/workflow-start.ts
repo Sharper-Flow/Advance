@@ -3,7 +3,6 @@ import {
   buildChangeWorkflowId,
   buildEpicWorkflowId,
   buildProjectTaskQueue,
-  buildSessionTaskQueue,
 } from "./client";
 import type { ChangeWorkflowInput, EpicWorkflowInput } from "./contracts";
 import { changeSeedStateFromChange } from "./change-state";
@@ -41,15 +40,12 @@ export async function ensureChangeWorkflowStarted(
   input: ChangeWorkflowInput,
 ): Promise<WorkflowHandleLike> {
   const workflowId = buildChangeWorkflowId(input.projectId, input.changeId);
-  // KD-10 / rq-isolSessionTaskQueue01: route to per-session task queue when
-  // the caller provides a sessionId (production callers via changes.ts and
-  // store-temporal/index.ts thread `getCurrentSessionId()`). When absent
-  // (tests, re-import paths, epic-only callers, pre-init), fall back to the
-  // permanent project queue — the worker child co-polls it for migration
-  // and epic workflows live there.
-  const taskQueue = input.sessionId
-    ? buildSessionTaskQueue(input.projectId, input.sessionId)
-    : buildProjectTaskQueue(input.projectId);
+  // rq-orphanSessionAdoption01: always route change workflows to the
+  // permanent project queue. Per-session task queues caused workflows to
+  // be orphaned when sessions died (no poller on the dead session's
+  // queue). Existing orphaned workflows on session queues are adopted at
+  // worker startup by the orphan-queue-adoption module.
+  const taskQueue = buildProjectTaskQueue(input.projectId);
 
   // KD-5 workflow-start hydration: when starting a workflow for a pre-
   // migration change whose disk artifacts pre-date Temporal-first writes,

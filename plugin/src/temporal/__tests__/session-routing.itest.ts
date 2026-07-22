@@ -1,12 +1,15 @@
 /**
  * AC1 + AC5 integration test: workflow task-queue routing.
  *
- * Verifies the per-session task-queue routing design from change
- * `isolateAdvWorkerTaskQueues` (KD-2 / KD-10):
+ * rq-orphanSessionAdoption01: change workflows now default-route to the
+ * permanent project queue (advance-{P}) to prevent orphaning when sessions
+ * die. Session-scoped queues are still created and polled by the worker,
+ * but new workflows are NOT routed to them. Existing orphaned workflows on
+ * session queues are adopted at worker startup.
  *
  *   AC1: When session S1 on project P starts a change workflow, the
- *        workflow's task queue is `advance-{P}-{S1}` (verified via Temporal
- *        workflow describe or task-queue inspection).
+ *        workflow's task queue is `advance-{P}` (project queue, not
+ *        session-scoped — prevents orphaning on session death).
  *
  *   AC5: Epic workflows route to `advance-{P}` (project queue), not a
  *        session queue.
@@ -25,7 +28,7 @@ import {
 } from "../workflow-start";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput, EpicWorkflowInput } from "../contracts";
-import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
+import { buildProjectTaskQueue } from "../client";
 import { requiredAdvSearchAttributes } from "../observability";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
@@ -87,16 +90,16 @@ function makeEpicInput(epicId: string): EpicWorkflowInput {
   };
 }
 
-describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", () => {
-  it("AC1: change workflow with sessionId routes to advance-{P}-{sess}", async () => {
+describe("AC1 + AC5: workflow task-queue routing (rq-orphanSessionAdoption01)", () => {
+  it("AC1: change workflow with sessionId routes to advance-{P} (project queue)", async () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       await registerAdvSearchAttributes(env);
 
-      const sessionQueue = buildSessionTaskQueue(PROJECT_ID, SESSION_ID);
+      const projectQueue = buildProjectTaskQueue(PROJECT_ID);
       const worker = await Worker.create({
         connection: env.nativeConnection,
         workflowsPath,
-        taskQueue: sessionQueue,
+        taskQueue: projectQueue,
       });
 
       await worker.runUntil(async () => {
@@ -105,12 +108,12 @@ describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", 
           makeChangeInput("routing-ac1-change", SESSION_ID),
         );
 
-        // AC1 verification: the workflow's task queue is the session queue.
+        // AC1 verification: the workflow's task queue is the project queue,
+        // NOT the session queue — prevents orphaning on session death.
         const description = await handle.describe();
-        expect(description.taskQueue).toBe(sessionQueue);
-        expect(description.taskQueue).toBe(
-          `advance-${PROJECT_ID}-${SESSION_ID}`,
-        );
+        expect(description.taskQueue).toBe(projectQueue);
+        expect(description.taskQueue).toBe(`advance-${PROJECT_ID}`);
+        expect(description.taskQueue).not.toContain(SESSION_ID);
       });
     });
   });
