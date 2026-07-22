@@ -4,10 +4,7 @@ import type { Store } from "../storage/store-types";
 import { getService } from "../temporal/service";
 import { designConcernDispositionedSignal } from "../temporal/messages";
 import { DesignConcernDispositionSchema, type Change } from "../types";
-import {
-  isPreciseWorkflowRecoveryEvidence,
-  RECOVERY_RECONCILIATION_WARNING,
-} from "../temporal/recovery-classification";
+import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import {
@@ -16,11 +13,7 @@ import {
   MutationApplicationUnconfirmedError,
 } from "./_adapters";
 import { saveRecoveredDesignConcernDisposition } from "./_recovery-writers";
-import {
-  classifyCompletedOrPoisonedRecovery,
-  logRecoveryProbeDiagnostics,
-  shouldTakeRecoveryBranch,
-} from "./recovery-probe";
+import { logRecoveryProbeDiagnostics } from "./recovery-probe";
 import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import {
   formatTargetProjectContext,
@@ -65,27 +58,10 @@ interface DispositionArgs {
   disposition: (typeof DESIGN_CONCERN_DISPOSITIONS)[number];
   evidence: string;
   dryRun?: boolean;
-  recoveryMode?: "normal" | "poisoned_history";
-  recoveryEvidence?: string;
-  recoveryReason?: string;
   priorApprovalEvidence?: string;
   target_path?: string;
   target_confirmed?: true;
   confirmationEvidence?: string;
-}
-
-function recoveryEvidenceError(args: DispositionArgs): string | undefined {
-  if (args.recoveryMode !== "poisoned_history") return undefined;
-  if (!args.recoveryEvidence?.trim()) {
-    return "design-concern disposition recovery requires non-empty recoveryEvidence";
-  }
-  if (!isPreciseWorkflowRecoveryEvidence(args.recoveryEvidence)) {
-    return "design-concern disposition recoveryEvidence must cite precise poisoned-history or completed-workflow evidence";
-  }
-  if (!args.recoveryReason?.trim()) {
-    return "design-concern disposition recovery requires recoveryReason";
-  }
-  return undefined;
 }
 
 async function getChangeHandleForChangeId(store: Store, changeId: string) {
@@ -111,11 +87,6 @@ async function executeDisposition(
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
   const proj = projectContext ? { _projectContext: projectContext } : {};
-
-  const recoveryError = recoveryEvidenceError(args);
-  if (recoveryError) {
-    return formatToolOutput({ error: recoveryError, changeId: args.changeId });
-  }
 
   const change = await loadChange(store, args.changeId);
   const taskExists = (change.tasks ?? []).some((t) => t.id === args.taskId);
@@ -159,41 +130,9 @@ async function executeDisposition(
 
   const handle = await getChangeHandleForChangeId(store, args.changeId);
   const mutationReceiptId = `mrec_${randomUUID()}`;
-  // rq-extend-poisoned-recovery AC5 (probe-first): when the operator supplies
-  // precise poisoned-history evidence, take the disk-direct recovery branch
-  // BEFORE firing the signal. Temporal signals are fire-and-forget server-
-  // acceptance; they silently resolve on poisoned replay, so the catch-branch
-  // below is unreachable for the common poison case (issue #198, #253).
-  // describe() diagnostics are advisory only; recovery authority comes solely
-  // from operator-supplied recoveryEvidence (validated by shouldTakeRecoveryBranch).
-  if (shouldTakeRecoveryBranch(args)) {
-    await logRecoveryProbeDiagnostics(handle, args.changeId);
-    await saveRecoveredDesignConcernDisposition({
-      store,
-      change,
-      authorization: {
-        reason: args.recoveryReason?.trim() ?? "poisoned_history",
-        evidence: args.recoveryEvidence?.trim() ?? "<missing>",
-      },
-      disposition,
-    });
-    return formatToolOutput({
-      success: true,
-      changeId: args.changeId,
-      disposition,
-      _recoveryMutation: true,
-      recovered: true,
-      recoveryMode: "poisoned_history",
-      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-      note: "Disk-direct recovery; signal skipped (operator-supplied precise evidence)",
-      ...proj,
-    });
-  }
-
   // D4 internal classification (rq-internalMonotonicRecovery01): probe
   // describe() to auto-detect poisoned/completed workflows without operator
-  // evidence-copy ceremony (AC5/SC3). Operator-supplied path above remains
-  // as back-compat until tk-0528be678596 retires the public surface.
+  // evidence-copy ceremony (AC5/SC3).
   {
     const internalDecision = await classifyMutationRecoveryDecision({ handle });
     if (internalDecision.kind === "recover_via_disk") {
@@ -245,34 +184,43 @@ async function executeDisposition(
         mutationReceiptId,
       });
     }
-    // rq-releaseRepairRecovery01: release-repair recovery must remain explicit,
-    // typed, audited, and gated on completed/poisoned workflow evidence.
-    if (args.recoveryMode === "poisoned_history") {
-      const { recover } = await classifyCompletedOrPoisonedRecovery(
-        handle,
-        signalError,
-      );
-      if (recover) {
-        await saveRecoveredDesignConcernDisposition({
-          store,
-          change,
-          authorization: {
-            reason: args.recoveryReason?.trim() ?? "",
-            evidence: args.recoveryEvidence?.trim() ?? "",
-          },
-          disposition,
-        });
-        return formatToolOutput({
-          success: true,
-          changeId: args.changeId,
-          disposition,
-          _recoveryMutation: true,
-          recovered: true,
-          recoveryMode: args.recoveryMode,
-          reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-          ...proj,
-        });
-      }
+    // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+    // signal-error recovery is classified internally from the signal error +
+    // describe() evidence via the unified classifier — no operator-supplied
+    // recovery args.
+    const decision = await classifyMutationRecoveryDecision({
+      signalError,
+      handle,
+    });
+    if (decision.kind === "recover_via_disk") {
+      await saveRecoveredDesignConcernDisposition({
+        store,
+        change,
+        authorization: {
+          reason: decision.reason,
+          evidence: decision.evidence,
+        },
+        disposition,
+      });
+      return formatToolOutput({
+        success: true,
+        changeId: args.changeId,
+        disposition,
+        _recoveryMutation: true,
+        recovered: true,
+        recoveryMode: "poisoned_history",
+        reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+        note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
+        ...proj,
+      });
+    }
+    if (decision.kind === "operator_required") {
+      return formatToolOutput({
+        error: `Cannot safely record design concern disposition: ${decision.detail}`,
+        code: "DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED",
+        cause: decision.cause,
+        changeId: args.changeId,
+      });
     }
     throw signalError;
   }
@@ -313,24 +261,6 @@ export const designConcernTools = {
         .boolean()
         .optional()
         .describe("Preview the disposition without firing the signal."),
-      recoveryMode: z
-        .enum(["normal", "poisoned_history"])
-        .optional()
-        .describe(
-          "Optional recovery mode. Default 'normal'. 'poisoned_history' authorizes an audited disk-projection fallback when the normal signal path fails with poisoned/completed-workflow evidence.",
-        ),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history or completed-workflow evidence.",
-        ),
-      recoveryReason: z
-        .string()
-        .optional()
-        .describe(
-          "Required when recoveryMode='poisoned_history'. Explains why disk-projection recovery is appropriate.",
-        ),
       priorApprovalEvidence: z
         .string()
         .optional()

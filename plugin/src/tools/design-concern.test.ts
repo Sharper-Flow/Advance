@@ -5,7 +5,8 @@ import type { Store } from "../storage/store-types";
 const mocks = vi.hoisted(() => {
   const fireSignalAndRefresh = vi.fn(async () => undefined);
   const saveRecoveredDesignConcernDisposition = vi.fn(async () => undefined);
-  const workflowHandle = { signal: vi.fn(), query: vi.fn() };
+  const describe = vi.fn(async () => ({ searchAttributes: {} }));
+  const workflowHandle = { signal: vi.fn(), query: vi.fn(), describe };
   return {
     fireSignalAndRefresh,
     saveRecoveredDesignConcernDisposition,
@@ -79,11 +80,22 @@ const validArgs = {
   evidence: "Legacy page, out of scope; fast-follow #123.",
 };
 
+const poisonedDescription = () => ({
+  searchAttributes: {
+    TemporalReportedProblems: [
+      "category=WorkflowTaskFailed",
+      "cause=WorkflowTaskFailedCauseNonDeterministicError",
+    ],
+  },
+});
+
 describe("adv_design_concern_disposition", () => {
   beforeEach(() => {
     mocks.fireSignalAndRefresh.mockClear();
     mocks.fireSignalAndRefresh.mockImplementation(async () => undefined);
     mocks.saveRecoveredDesignConcernDisposition.mockClear();
+    mocks.workflowHandle.describe.mockReset();
+    mocks.workflowHandle.describe.mockResolvedValue({ searchAttributes: {} });
   });
 
   test("fires designConcernDispositionedSignal with the typed disposition", async () => {
@@ -162,13 +174,11 @@ describe("adv_design_concern_disposition", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("recovers through disk projection when completed workflow evidence is explicit", async () => {
-    // Probe-first (rq-extend-poisoned-recovery AC5): precise recoveryEvidence
-    // triggers the disk-direct recovery path BEFORE the signal fires. The
-    // observable contract — disk-direct writer called with the typed
-    // disposition + operator authorization, output reports recovery — is the
-    // same as the prior catch-branch path; only the trigger changed.
+  test("recovers via disk projection when signal fails with completed workflow", async () => {
     const store = storeFor(change());
+    const completedError = new Error("workflow execution already completed");
+    completedError.name = "WorkflowNotFoundError";
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(completedError);
 
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
@@ -176,11 +186,6 @@ describe("adv_design_concern_disposition", () => {
           ...validArgs,
           disposition: "fixed",
           evidence: "fixed in frontend commit abc123",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason:
-            "Completed workflow cannot accept designConcernDispositionedSignal; acceptance evidence proves fix.",
         },
         store,
       ),
@@ -197,9 +202,10 @@ describe("adv_design_concern_disposition", () => {
       store,
       change: expect.objectContaining({ id: "change-1" }),
       authorization: {
-        reason:
-          "Completed workflow cannot accept designConcernDispositionedSignal; acceptance evidence proves fix.",
-        evidence: "WorkflowNotFoundError: workflow execution already completed",
+        reason: "missing_workflow",
+        evidence: expect.stringContaining(
+          "workflow execution already completed",
+        ),
       },
       disposition: expect.objectContaining({
         taskId: "tk-1",
@@ -210,13 +216,66 @@ describe("adv_design_concern_disposition", () => {
     });
   });
 
-  test("does not recover generic signal failures in normal mode", async () => {
-    // Under probe-first semantics (rq-extend-poisoned-recovery AC5), precise
-    // recoveryEvidence always wins and the catch-branch becomes unreachable
-    // end-to-end. This test guards the still-valid normal-mode contract: with
-    // recoveryMode="normal", generic signal errors propagate as errors and no
-    // recovery writer fires. The catch-branch remains as defense-in-depth for
-    // a future where probe-first might be removed.
+  test("recovers via D4 internal classification when describe shows poisoned", async () => {
+    // Probe-first path: no signal is fired; the disk-direct writer saves the
+    // disposition based on machine-confirmed poisoned-history evidence.
+    mocks.workflowHandle.describe.mockResolvedValue(poisonedDescription());
+
+    const store = storeFor(change());
+    const output = parse(
+      await designConcernTools.adv_design_concern_disposition.execute(
+        {
+          ...validArgs,
+          disposition: "fixed",
+          evidence: "fixed in frontend commit abc123",
+        },
+        store,
+      ),
+    );
+
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(output.success).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
+    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledWith({
+      store,
+      change: expect.objectContaining({ id: "change-1" }),
+      authorization: {
+        reason: "poisoned_history",
+        evidence: expect.stringContaining(
+          "WorkflowTaskFailedCauseNonDeterministicError",
+        ),
+      },
+      disposition: expect.objectContaining({
+        taskId: "tk-1",
+        concernKey: "dimension:site_design_consistency",
+        disposition: "fixed",
+        evidence: "fixed in frontend commit abc123",
+      }),
+    });
+  });
+
+  test("proceeds with signal when describe is healthy", async () => {
+    const store = storeFor(change());
+    mocks.workflowHandle.describe.mockResolvedValue({
+      searchAttributes: { TemporalReportedProblems: [] },
+    });
+
+    const output = parse(
+      await designConcernTools.adv_design_concern_disposition.execute(
+        validArgs,
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.saveRecoveredDesignConcernDisposition).not.toHaveBeenCalled();
+  });
+
+  test("does not recover generic signal failures", async () => {
     const store = storeFor(change());
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(
       new Error("task queue unavailable"),
@@ -224,85 +283,35 @@ describe("adv_design_concern_disposition", () => {
 
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
-        {
-          ...validArgs,
-          recoveryMode: "normal",
-        },
+        validArgs,
         store,
       ),
     );
 
-    expect(output.error).toContain("task queue unavailable");
+    expect(output.code).toBe("DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED");
+    expect(output.cause).toBe("query_failed");
     expect(mocks.saveRecoveredDesignConcernDisposition).not.toHaveBeenCalled();
   });
 
-  test("requires precise recovery evidence and reason before recovery", async () => {
+  test("requires operator review when poisoned signal error is not confirmed by describe", async () => {
     const store = storeFor(change());
+    const poisonedError = new Error("Nondeterminism error detected");
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(poisonedError);
+    // describe() returns a healthy workflow — two authorities disagree.
+    mocks.workflowHandle.describe.mockResolvedValue({
+      searchAttributes: { TemporalReportedProblems: [] },
+    });
+
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
-        {
-          ...validArgs,
-          recoveryMode: "poisoned_history",
-          recoveryEvidence: "it failed",
-          recoveryReason: "completed workflow recovery",
-        },
+        validArgs,
         store,
       ),
     );
 
-    expect(output.error).toContain("precise poisoned-history");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-  });
-
-  test("requires recovery reason before recovery", async () => {
-    const store = storeFor(change());
-    const output = parse(
-      await designConcernTools.adv_design_concern_disposition.execute(
-        {
-          ...validArgs,
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason: "   ",
-        },
-        store,
-      ),
-    );
-
-    expect(output.error).toContain("requires recoveryReason");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-  });
-
-  test("AC5: takes probe-first recovery path when fireSignalAndRefresh would silently resolve", async () => {
-    // Poisoned replay case (issue #198, #253): fireSignalAndRefresh resolves
-    // silently because Temporal signals are fire-and-forget server-acceptance.
-    // The catch-branch never fires for this case, so the probe-first gate
-    // must short-circuit BEFORE the signal call.
-    const store = storeFor(change());
-
-    const output = parse(
-      await designConcernTools.adv_design_concern_disposition.execute(
-        {
-          ...validArgs,
-          disposition: "fixed",
-          evidence: "test evidence",
-          recoveryMode: "poisoned_history",
-          recoveryEvidence:
-            "WorkflowNotFoundError: workflow execution already completed",
-          recoveryReason: "poisoned workflow",
-        },
-        store,
-      ),
-    );
-
-    // CRITICAL: probe-first path taken; fireSignalAndRefresh NOT called.
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    // Disk-direct writer WAS called.
-    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledTimes(
-      1,
-    );
-    // Output still reports a successful recovery.
-    expect(output.success).toBe(true);
-    expect(output.recoveryMode).toBe("poisoned_history");
+    expect(output.error).toContain("operator review");
+    expect(output.code).toBe("DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED");
+    expect(output.cause).toBe("reachable_authority_disagrees");
+    expect(mocks.saveRecoveredDesignConcernDisposition).not.toHaveBeenCalled();
   });
 });
