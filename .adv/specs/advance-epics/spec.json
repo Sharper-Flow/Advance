@@ -3,15 +3,19 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.12.0",
-  "updated_at": "2026-07-10T00:00:00.000Z",
+  "version": "1.13.0",
+  "updated_at": "2026-07-22T23:12:57.005Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
       "title": "Epic Record Is a Typed, Structural Initiative Container",
       "body": "An Epic MUST be represented by a typed record containing a stable ID, title, narrative context, ordered roadmap entries, a compact status/progress summary, creation/update timestamps, and optional repo/product scope metadata. Correctness-critical Epic state MUST be structural and typed, not prose-only roadmap text. The Epic record MUST NOT depend on project-level ROADMAP.md for its existence or validation.",
       "priority": "must",
-      "tags": ["epics", "schema", "data-model"],
+      "tags": [
+        "epics",
+        "schema",
+        "data-model"
+      ],
       "scenarios": [
         {
           "id": "rq-epicEntity01.1",
@@ -28,9 +32,13 @@
         {
           "id": "rq-epicEntity01.2",
           "title": "Epic record rejects missing title",
-          "given": ["An Epic record is missing the title field"],
+          "given": [
+            "An Epic record is missing the title field"
+          ],
           "when": "The record is validated against the Epic schema",
-          "then": ["Validation fails with a clear error"]
+          "then": [
+            "Validation fails with a clear error"
+          ]
         }
       ]
     },
@@ -39,12 +47,20 @@
       "title": "Epic Roadmap Supports Linked Changes and Shell Entries",
       "body": "An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change and `shell` entries that represent future work. Change entries MUST remain backward-compatible with legacy same-project `change_id` rows and MUST support a project-aware `change_ref` carrying change ID, project ID, optional repo ID, and optional target path. Every shell entry MUST have a title and a rough success/AC hint; when a shell is imported from a repo backlog item via `backlog_ref`, these fields MAY be derived from the backlog item. Shell entries imported from the repo backlog MUST record `imported_from: { backlog_id, imported_at }` provenance and are one-way bound to the backlog item. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.",
       "priority": "must",
-      "tags": ["epics", "entries", "shell", "change", "backlog"],
+      "tags": [
+        "epics",
+        "entries",
+        "shell",
+        "change",
+        "backlog"
+      ],
       "scenarios": [
         {
           "id": "rq-epicEntries01.1",
           "title": "Shell entry requires title and success hint",
-          "given": ["An Epic entry with kind 'shell' is provided"],
+          "given": [
+            "An Epic entry with kind 'shell' is provided"
+          ],
           "when": "The entry is validated",
           "then": [
             "Validation succeeds when title and success_hint are present",
@@ -54,7 +70,9 @@
         {
           "id": "rq-epicEntries01.2",
           "title": "Change entry requires change ID",
-          "given": ["An Epic entry with kind 'change' is provided"],
+          "given": [
+            "An Epic entry with kind 'change' is provided"
+          ],
           "when": "The entry is validated",
           "then": [
             "Validation succeeds when legacy change_id is present",
@@ -65,7 +83,9 @@
         {
           "id": "rq-epicEntries01.3",
           "title": "Project-aware change entry carries audit fields",
-          "given": ["An Epic change entry uses change_ref"],
+          "given": [
+            "An Epic change entry uses change_ref"
+          ],
           "when": "The entry is validated",
           "then": [
             "Validation requires title, membership_status, linked_at, linked_by, and link_evidence",
@@ -75,7 +95,9 @@
         {
           "id": "rq-epicEntries01.4",
           "title": "Shell imported from backlog carries one-way provenance",
-          "given": ["A shell entry created with backlog_ref"],
+          "given": [
+            "A shell entry created with backlog_ref"
+          ],
           "when": "The entry is validated",
           "then": [
             "Validation succeeds when title and success_hint are present or derived",
@@ -90,12 +112,19 @@
       "title": "Epic Creation Command Is Goal-First and Overlap-Aware",
       "body": "The `/adv-epic` command MUST guide users through creating or updating Epics with an explicit ultimate goal before mutation. Before creating a new Epic, the command MUST scan related open work through typed Epic/change/backlog reads and surface plausible overlap neutrally. If plausible overlap exists, the command MUST ask the user to choose update/clarify existing, create new, or stop before calling `adv_epic_create`. Initial shell or change entries MUST remain optional and any Epic mutation MUST use typed Epic tools rather than direct ADV state edits.",
       "priority": "must",
-      "tags": ["epics", "command", "goal", "overlap"],
+      "tags": [
+        "epics",
+        "command",
+        "goal",
+        "overlap"
+      ],
       "scenarios": [
         {
           "id": "rq-epicCreateCommand01.1",
           "title": "Command requires ultimate goal before creation",
-          "given": ["A user invokes `/adv-epic` to create a new Epic"],
+          "given": [
+            "A user invokes `/adv-epic` to create a new Epic"
+          ],
           "when": "The command prepares an Epic creation plan",
           "then": [
             "The plan includes an explicit ultimate goal",
@@ -133,17 +162,24 @@
     {
       "id": "rq-epicCoordinateCommand01",
       "title": "Epic Coordination Command Is Read-First and Approval-Gated",
-      "body": "The `/adv-coordinate` command MUST inventory active Epics through typed reads before proposing durable mutations. It MUST report ownership-boundary, narrative accuracy, cross-Epic dependency, advisory sequencing, capstone placement, and membership-health findings while distinguishing evidence-backed facts from judgment calls. Epic order findings MUST remain advisory and MUST NOT block gates, tasks, promotion, or change progress. Narrative updates, reorders, and membership repairs MUST use typed Epic tools and require explicit user approval before mutation. The command MUST NOT introduce mandatory Epic membership, auto-enrollment, Jira-like planning primitives, direct ADV state edits, or CLI mutation verbs.",
+      "body": "The `/adv-coordinate` command MUST inventory active Epics through typed reads before proposing intent-bearing durable mutations. It MUST report ownership-boundary, narrative accuracy, cross-Epic dependency, advisory sequencing, capstone placement, and membership-health findings while distinguishing evidence-backed facts from judgment calls. Epic order findings MUST remain advisory and MUST NOT block gates, tasks, promotion, or change progress. Narrative updates, reorders, retargeting, removal, and competing-authority resolution MUST use typed Epic tools and require explicit user approval. Missing or stale matching derived membership MUST converge directly under rq-epicMembershipConvergence01 and MUST NOT require separate operator approval or repair-tool selection. The command MUST NOT introduce mandatory Epic membership, auto-enrollment, Jira-like planning primitives, direct ADV state edits, or CLI mutation verbs.",
       "priority": "must",
-      "tags": ["epics", "command", "coordination", "approval"],
+      "tags": [
+        "epics",
+        "command",
+        "coordination",
+        "approval"
+      ],
       "scenarios": [
         {
           "id": "rq-epicCoordinateCommand01.1",
-          "title": "Coordination report reads before mutation",
-          "given": ["One or more active Epics exist"],
+          "title": "Coordination report reads before intent mutation",
+          "given": [
+            "One or more active Epics exist"
+          ],
           "when": "`/adv-coordinate` prepares a coordination report",
           "then": [
-            "Epics are inventoried through typed Epic reads before any mutation is proposed",
+            "Epics are inventoried through typed Epic reads before intent-bearing mutation is proposed",
             "The report covers alignment, narrative accuracy, dependencies, sequencing, capstone placement, and membership health",
             "Evidence-backed facts are separated from judgment calls"
           ]
@@ -151,30 +187,34 @@
         {
           "id": "rq-epicCoordinateCommand01.2",
           "title": "Order findings remain advisory",
-          "given": ["A sequencing inversion is detected"],
+          "given": [
+            "A sequencing inversion is detected"
+          ],
           "when": "The coordination report recommends a reorder",
           "then": [
             "The reorder is presented as advisory",
-            "No gate, task, promotion, or change progress is blocked solely due to Epic order"
+            "No gate, task, promotion, or change progress is blocked solely due to order"
           ]
         },
         {
           "id": "rq-epicCoordinateCommand01.3",
-          "title": "Durable actions require approval and typed tools",
+          "title": "Intent-bearing actions require approval while derived convergence is direct",
           "given": [
-            "Narrative edits, reorders, or membership repairs are proposed"
+            "Narrative edits, reorders, retargeting, removal, competing authority, or missing matching derived projection is observed"
           ],
-          "when": "The user has not explicitly approved the proposed durable action",
+          "when": "The state is handled",
           "then": [
-            "No Epic mutation tool is executed",
-            "Approved mutations use typed Epic tools such as adv_epic_update, adv_epic_reorder, or adv_epic_repair_membership",
-            "Required expected_version and audit evidence fields are preserved"
+            "Intent-bearing mutations require explicit user approval and typed Epic tools",
+            "Missing or stale matching derived membership converges directly under rq-epicMembershipConvergence01",
+            "No dedicated membership-repair tool is required"
           ]
         },
         {
           "id": "rq-epicCoordinateCommand01.4",
           "title": "Coordination adds no new planning primitive",
-          "given": ["The `/adv-coordinate` command is implemented"],
+          "given": [
+            "The `/adv-coordinate` command is implemented"
+          ],
           "when": "Command assets and CLI surfaces are inspected",
           "then": [
             "Epic membership remains optional and no change is auto-enrolled",
@@ -190,12 +230,20 @@
       "title": "Epic Coordination Uses Current Repository Evidence Before Alignment Conclusions",
       "body": "The `/adv-coordinate` command MUST establish and report repository freshness before making alignment, sequencing, overlap, cancellation, supersession, narrative, reorder, retarget, or no-action conclusions that depend on current repository state. The command MUST collect bounded repository evidence such as current branch, HEAD SHA, default branch/upstream relation, remote freshness, ahead/behind state, dirty or uncommitted work risk, and recent commit or diff evidence when available. A bounded remote-ref refresh such as `git fetch --prune` MAY be used for freshness discovery, but the command MUST NOT merge, rebase, checkout, reset, clean, stash, or mutate product code. When repository freshness cannot be established, findings MUST be marked `freshness_limited` and the report MUST avoid evidence-backed conclusions that depend on missing repo state. The coordination report MUST compare Epic entries and linked change artifacts against current repository evidence before proposing durable actions, and MUST classify findings as `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, or `freshness_limited`. Heuristics MAY rank likely overlap, but MUST NOT authorize mutation; approved durable actions still require typed ADV/Epic tools and explicit user approval.",
       "priority": "must",
-      "tags": ["epics", "command", "coordination", "repository", "freshness"],
+      "tags": [
+        "epics",
+        "command",
+        "coordination",
+        "repository",
+        "freshness"
+      ],
       "scenarios": [
         {
           "id": "rq-epicCoordinateRepoFreshness01.1",
           "title": "Repository freshness is reported before coordination conclusions",
-          "given": ["One or more active Epics exist"],
+          "given": [
+            "One or more active Epics exist"
+          ],
           "when": "`/adv-coordinate` prepares alignment, sequencing, or overlap findings",
           "then": [
             "The report includes current repository freshness evidence before those findings",
@@ -249,7 +297,13 @@
       "title": "Epic Coordination Inventories Participating Projects Before Epic-Dependent Alignment",
       "body": "The `/adv-coordinate` command MUST inventory every participating project's in-flight changes using typed `adv_change_list` with complete pagination before Epic-dependent alignment. The command MUST describe typed `scope: \"product\"` and explicit `target_path` for cross-project reads and MUST NOT infer target paths. When expected product context is unavailable, cross-project conclusions MUST be classified as `freshness_limited` or `judgment_call`, never `adv_backed_fact`. The no-active-Epics condition MUST follow complete project-change reporting, and the coordination report MUST include Projects scanned, Changes by project, Epics scanned, and entries scanned. Optional Epic membership, advisory Epic order, existing approval-gated mutations, and repository freshness requirements MUST be preserved.",
       "priority": "must",
-      "tags": ["epics", "command", "coordination", "project-inventory", "cross-project"],
+      "tags": [
+        "epics",
+        "command",
+        "coordination",
+        "project-inventory",
+        "cross-project"
+      ],
       "scenarios": [
         {
           "id": "rq-epicCoordinateProjectInventory01.1",
@@ -293,7 +347,9 @@
         {
           "id": "rq-epicCoordinateProjectInventory01.4",
           "title": "Project inventory preserves existing coordination constraints",
-          "given": ["The `/adv-coordinate` command is implemented"],
+          "given": [
+            "The `/adv-coordinate` command is implemented"
+          ],
           "when": "Command assets and behavior are inspected",
           "then": [
             "Epic membership remains optional and order remains advisory",
@@ -308,12 +364,19 @@
       "title": "Shell Promotion Replaces the Shell Row with Exactly One Linked Change",
       "body": "Promoting a shell entry MUST create or link exactly one ADV change, then replace the shell row in the Epic with a `change` row. The new change row MUST carry promotion provenance that preserves the original shell title and success hint. Promotion MUST be idempotent: retrying promotion of the same shell MUST return the already-linked change without creating duplicate rows.",
       "priority": "must",
-      "tags": ["epics", "promotion", "shell", "idempotency"],
+      "tags": [
+        "epics",
+        "promotion",
+        "shell",
+        "idempotency"
+      ],
       "scenarios": [
         {
           "id": "rq-epicPromotion01.1",
           "title": "Promotion replaces shell with linked change row",
-          "given": ["An Epic contains a shell entry"],
+          "given": [
+            "An Epic contains a shell entry"
+          ],
           "when": "The shell is promoted",
           "then": [
             "The shell row is removed from the Epic entries",
@@ -324,7 +387,9 @@
         {
           "id": "rq-epicPromotion01.2",
           "title": "Duplicate promotion returns existing change",
-          "given": ["A shell has already been promoted to a linked change"],
+          "given": [
+            "A shell has already been promoted to a linked change"
+          ],
           "when": "Promotion is retried for the same shell entry ID",
           "then": [
             "No new change is created",
@@ -339,12 +404,19 @@
       "title": "Epic Order Is Advisory and Must Not Hard-Block Later Entries",
       "body": "Epic entry order MUST affect display and next-work recommendations only. Starting or resuming a later Epic entry MAY warn about earlier incomplete entries, but MUST NOT block gates, tasks, or promotion solely because of order. The advisory-order contract MUST be preserved in v1.",
       "priority": "must",
-      "tags": ["epics", "order", "advisory", "blocking"],
+      "tags": [
+        "epics",
+        "order",
+        "advisory",
+        "blocking"
+      ],
       "scenarios": [
         {
           "id": "rq-epicOrderAdvisory01.1",
           "title": "Later entry can be started while earlier entry is incomplete",
-          "given": ["An Epic has two entries where the first is incomplete"],
+          "given": [
+            "An Epic has two entries where the first is incomplete"
+          ],
           "when": "An agent starts work on the second entry",
           "then": [
             "The start or resume succeeds",
@@ -359,12 +431,19 @@
       "title": "Default Epic View Surfaces Compact Terminal History",
       "body": "The default Epic view MUST show next active and future work prominently and MUST include compact rows for archived or closed child changes. Full historical detail MUST remain available through an explicit view or context fetch, not inflate the default hot-path response.",
       "priority": "should",
-      "tags": ["epics", "history", "ui", "bounding"],
+      "tags": [
+        "epics",
+        "history",
+        "ui",
+        "bounding"
+      ],
       "scenarios": [
         {
           "id": "rq-epicCompactHistory01.1",
           "title": "Default view distinguishes active and terminal entries",
-          "given": ["An Epic has active, future, archived, and closed entries"],
+          "given": [
+            "An Epic has active, future, archived, and closed entries"
+          ],
           "when": "The default Epic view is rendered",
           "then": [
             "Active and future entries are clearly visible",
@@ -379,12 +458,19 @@
       "title": "Change Surfaces Show Compact Epic Membership Context",
       "body": "When a change belongs to an Epic, change show/status/resume surfaces MUST surface compact Epic membership context including Epic ID, entry ID, order, title, linked timestamp, owner Epic project ID when known, repo ID when known, and projection source when known. The context MUST be additive and MUST NOT replace or obscure the change's own gates, tasks, or artifacts. Changes without Epic membership MUST render identically to the pre-Epic flow.",
       "priority": "must",
-      "tags": ["epics", "change", "context", "membership"],
+      "tags": [
+        "epics",
+        "change",
+        "context",
+        "membership"
+      ],
       "scenarios": [
         {
           "id": "rq-epicChangeContext01.1",
           "title": "Epic child change shows compact context",
-          "given": ["A change has an epic_membership projection"],
+          "given": [
+            "A change has an epic_membership projection"
+          ],
           "when": "The change is shown or resumed",
           "then": [
             "Epic ID, entry ID, order, title, and extended project/repo metadata are surfaced when present",
@@ -394,7 +480,9 @@
         {
           "id": "rq-epicChangeContext01.2",
           "title": "Non-Epic changes remain unchanged",
-          "given": ["A change has no epic_membership"],
+          "given": [
+            "A change has no epic_membership"
+          ],
           "when": "The change is shown or resumed",
           "then": [
             "No Epic context is rendered",
@@ -408,7 +496,13 @@
       "title": "Epic Show Projects Advisory Fast-Follow Lineage from Child fast_follow_of",
       "body": "When an Epic entry references a child change that carries typed `fast_follow_of` metadata, `adv_epic_show` MUST render a bounded, additive `fast_follow_lineage` projection on that entry containing the source change ID, the source task ID when known (derived from `followup_ref.report_key` task scope, else null), a `non_blocking_advisory` classification, and the fast-follow `linked_at` timestamp. The projection MUST be advisory-only: it MUST NOT create Epic task ownership, MUST NOT introduce a dependency enum, MUST NOT change task readiness behavior, MUST NOT alter Epic order, and MUST NOT affect release or gate eligibility. Shell entries and entries whose child change has no `fast_follow_of` (or cannot be loaded) MUST render without the lineage field. The projection MUST be bounded by the number of change entries in the rendered Epic view and MUST cache per-child-change reads within a single render call. Operational work continues to flow through typed `ops_followup_links`; this projection is reserved for non-operational advisory fast-follow children.",
       "priority": "must",
-      "tags": ["epics", "fast-follow", "lineage", "projection", "advisory"],
+      "tags": [
+        "epics",
+        "fast-follow",
+        "lineage",
+        "projection",
+        "advisory"
+      ],
       "scenarios": [
         {
           "id": "rq-epicFastFollowLineage01.1",
@@ -442,7 +536,9 @@
         {
           "id": "rq-epicFastFollowLineage01.3",
           "title": "Lineage projection is bounded and additive",
-          "given": ["An Epic has both shell and change entries, with at least one fast-follow child"],
+          "given": [
+            "An Epic has both shell and change entries, with at least one fast-follow child"
+          ],
           "when": "adv_epic_show renders the Epic",
           "then": [
             "Shell entries never receive a fast_follow_lineage field",
@@ -457,12 +553,18 @@
       "title": "ADV Next-Work Selection Can Operate from Epics",
       "body": "ADV next-work selection and planning surfaces MUST be able to use Epics as a source of recommended next work without requiring a project-level ROADMAP.md. The recommendation MUST respect Epic order as advisory and MUST surface warnings rather than block when earlier entries are incomplete.",
       "priority": "should",
-      "tags": ["epics", "next-work", "roadmap"],
+      "tags": [
+        "epics",
+        "next-work",
+        "roadmap"
+      ],
       "scenarios": [
         {
           "id": "rq-epicNextWork01.1",
           "title": "Next work can be chosen from an Epic",
-          "given": ["An Epic has active and future entries"],
+          "given": [
+            "An Epic has active and future entries"
+          ],
           "when": "ADV next-work selection queries available work",
           "then": [
             "Epic entries are considered as candidates",
@@ -476,12 +578,19 @@
       "title": "Epic Membership Remains Optional and Non-Epic Changes Stay Valid",
       "body": "Epic membership MUST be optional for all ADV changes. Existing non-Epic changes, changes created outside Epics, and changes whose Epic is later archived MUST remain valid and continue through the normal gate/task flow. The change schema MUST treat epic_membership as an optional additive projection.",
       "priority": "must",
-      "tags": ["epics", "membership", "optional", "compatibility"],
+      "tags": [
+        "epics",
+        "membership",
+        "optional",
+        "compatibility"
+      ],
       "scenarios": [
         {
           "id": "rq-epicOptionalMembership01.1",
           "title": "Legacy change without Epic membership parses cleanly",
-          "given": ["A change record created before Epics exists"],
+          "given": [
+            "A change record created before Epics exists"
+          ],
           "when": "The change is parsed by the current schema",
           "then": [
             "Validation succeeds",
@@ -496,7 +605,9 @@
             "A change record contains an epic_membership object missing required fields"
           ],
           "when": "The change is parsed",
-          "then": ["Validation fails with a clear schema error"]
+          "then": [
+            "Validation fails with a clear schema error"
+          ]
         }
       ]
     },
@@ -505,14 +616,24 @@
       "title": "One Epic Per Change in V1",
       "body": "In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST represent epic_membership as a single optional object, not an array. Product/multi-project Epics MUST still preserve this one-Epic-per-change invariant by storing one compact membership projection on each linked child change.",
       "priority": "must",
-      "tags": ["epics", "membership", "v1", "scope"],
+      "tags": [
+        "epics",
+        "membership",
+        "v1",
+        "scope"
+      ],
       "scenarios": [
         {
           "id": "rq-epicOnePerChange01.1",
           "title": "Single Epic membership is valid",
-          "given": ["A change record has one epic_membership object"],
+          "given": [
+            "A change record has one epic_membership object"
+          ],
           "when": "The change is parsed",
-          "then": ["Validation succeeds", "epic_id is accessible"]
+          "then": [
+            "Validation succeeds",
+            "epic_id is accessible"
+          ]
         }
       ]
     },
@@ -521,12 +642,20 @@
       "title": "Retroactive Membership Is Audited, Movable, and Repairable",
       "body": "Existing ADV changes MAY be linked into an Epic after creation, unlinked, moved between Epics, removed from a stale parent entry, or retargeted from a stale parent entry through typed tools only. Link, unlink, move, and repair operations MUST require audit evidence, MUST preserve `fast_follow_of` as creation lineage, and MUST update the child change's compact `epic_membership` projection when the child project is reachable. Cross-project membership mutations MUST follow target-path trust rules. Partial failures MUST surface deterministic membership status such as `projection_pending`, `projection_stale`, or `target_unreachable`, with explicit repair paths for projection sync, parent-only removal, and audited retarget.",
       "priority": "must",
-      "tags": ["epics", "membership", "repair", "audit", "cross-project"],
+      "tags": [
+        "epics",
+        "membership",
+        "repair",
+        "audit",
+        "cross-project"
+      ],
       "scenarios": [
         {
           "id": "rq-epicMembershipRepair01.1",
           "title": "Existing change links with child projection",
-          "given": ["An existing ADV change has no Epic membership"],
+          "given": [
+            "An existing ADV change has no Epic membership"
+          ],
           "when": "The change is linked to an Epic with audit evidence",
           "then": [
             "The Epic records a project-aware change entry",
@@ -537,7 +666,9 @@
         {
           "id": "rq-epicMembershipRepair01.2",
           "title": "Move preserves one-Epic invariant",
-          "given": ["A child change belongs to one Epic"],
+          "given": [
+            "A child change belongs to one Epic"
+          ],
           "when": "The change is moved to another Epic with audit evidence",
           "then": [
             "The source Epic no longer appears as the active membership",
@@ -561,7 +692,9 @@
         {
           "id": "rq-epicMembershipRepair01.4",
           "title": "Missing child entry can be removed from parent only",
-          "given": ["An Epic entry references a missing child workflow"],
+          "given": [
+            "An Epic entry references a missing child workflow"
+          ],
           "when": "An operator runs audited parent-only stale-entry removal",
           "then": [
             "The parent Epic entry is removed through a typed Epic mutation",
@@ -603,7 +736,13 @@
       "title": "Epic Search-Attribute Repair Backfills Legacy Visibility",
       "body": "Epic repair tooling MUST provide an audited `refresh_search_attributes` path for running legacy Epic workflows whose immutable start input disabled initial search-attribute upserts. The repair MUST derive `AdvEpicStatus` from structural Epic workflow progress state, MUST be able to force the upsert after the namespace search attribute is registered, and MUST NOT require operators to restart or recreate legacy Epic workflows. Repair reports MUST distinguish confirmed search-attribute refresh proof from skipped, unreachable, or unverified signal-delivery outcomes; successful signal dispatch alone MUST NOT be reported as a confirmed refresh. Synchronous confirmation MAY use workflow describe point-value evidence and MUST NOT rely solely on eventually consistent active-list visibility propagation.",
       "priority": "must",
-      "tags": ["epics", "repair", "search-attributes", "visibility", "legacy"],
+      "tags": [
+        "epics",
+        "repair",
+        "search-attributes",
+        "visibility",
+        "legacy"
+      ],
       "scenarios": [
         {
           "id": "rq-epicSearchAttributeRepair01.1",
@@ -621,7 +760,9 @@
         {
           "id": "rq-epicSearchAttributeRepair01.2",
           "title": "Repair report separates confirmed and unverified outcomes",
-          "given": ["A repair signal is delivered to a running Epic workflow"],
+          "given": [
+            "A repair signal is delivered to a running Epic workflow"
+          ],
           "when": "The repair report is returned",
           "then": [
             "Confirmed refresh count includes only Epics with structural search-attribute proof",
@@ -648,7 +789,12 @@
       "title": "Epic Product Scope Is Derived from Typed Scope Breadth",
       "body": "Every Epic MUST be product-capable through typed scope metadata. User-facing local/product-spanning classification MUST be derived from the Epic scope repo/project list: one scoped repo renders as local/repo-scoped, multiple scoped repos/projects render as product-spanning, and missing scope renders as legacy/unscoped. `epic_scope.kind` MAY be preserved for backward compatibility but MUST NOT be the correctness authority for classification.",
       "priority": "must",
-      "tags": ["epics", "scope", "product", "compatibility"],
+      "tags": [
+        "epics",
+        "scope",
+        "product",
+        "compatibility"
+      ],
       "scenarios": [
         {
           "id": "rq-epicScopeDerivation01.1",
@@ -666,7 +812,9 @@
         {
           "id": "rq-epicScopeDerivation01.2",
           "title": "Multi-repo scope renders product-spanning",
-          "given": ["An Epic scope contains two repo/project entries"],
+          "given": [
+            "An Epic scope contains two repo/project entries"
+          ],
           "when": "The Epic is rendered or classified",
           "then": [
             "The derived scope label is product-spanning",
@@ -676,7 +824,9 @@
         {
           "id": "rq-epicScopeDerivation01.3",
           "title": "Missing scope remains legacy-readable",
-          "given": ["A legacy Epic has no epic_scope"],
+          "given": [
+            "A legacy Epic has no epic_scope"
+          ],
           "when": "The Epic is parsed or shown",
           "then": [
             "Validation succeeds",
@@ -691,7 +841,13 @@
       "title": "Existing Active Epics Support Audited Scope Mutation",
       "body": "An active Epic's typed scope metadata MUST be mutable after creation through a typed, audited, optimistic-concurrency mutation path. Scope mutation MUST require audit evidence and an expected version, MUST reject stale writes without changing scope, and MUST NOT silently orphan linked child-change entries when repos/projects are removed. Dry-run preview SHOULD report the derived scope label and removal impact before mutation.",
       "priority": "must",
-      "tags": ["epics", "scope", "mutation", "audit", "concurrency"],
+      "tags": [
+        "epics",
+        "scope",
+        "mutation",
+        "audit",
+        "concurrency"
+      ],
       "scenarios": [
         {
           "id": "rq-epicMutableScope01.1",
@@ -710,7 +866,9 @@
         {
           "id": "rq-epicMutableScope01.2",
           "title": "Stale scope update is rejected",
-          "given": ["An active Epic has version 3"],
+          "given": [
+            "An active Epic has version 3"
+          ],
           "when": "A scope update is submitted with expected version 2",
           "then": [
             "A typed stale-version conflict is returned",
@@ -720,7 +878,9 @@
         {
           "id": "rq-epicMutableScope01.3",
           "title": "Scope removal cannot orphan children silently",
-          "given": ["An Epic has a linked child entry for repo A"],
+          "given": [
+            "An Epic has a linked child entry for repo A"
+          ],
           "when": "A scope update removes repo A",
           "then": [
             "The update is rejected, requires explicit disposition, or surfaces typed repair status",
@@ -734,7 +894,13 @@
       "title": "Active Duplicate Epics Can Merge into One Survivor",
       "body": "Active duplicate Epics MAY be merged into one survivor Epic through a typed, audited, plan-first mutation path. Merge planning MUST surface unique entries, conflicts, target-project confirmations, and terminal-source rejection before mutation. Execution MUST preserve the one-owning-Epic-per-change invariant, MUST update reachable child epic_membership projections to the survivor, MUST require explicit conflict disposition instead of heuristic dedupe, and MUST leave the source Epic readable with a survivor pointer and no active next-work. Completed, archived, or already-merged source Epics MUST NOT be merged into active survivors; they may be referenced as historical context only.",
       "priority": "must",
-      "tags": ["epics", "merge", "membership", "audit", "cross-project"],
+      "tags": [
+        "epics",
+        "merge",
+        "membership",
+        "audit",
+        "cross-project"
+      ],
       "scenarios": [
         {
           "id": "rq-epicMerge01.1",
@@ -779,7 +945,9 @@
         {
           "id": "rq-epicMerge01.4",
           "title": "Terminal sources are historical references only",
-          "given": ["A source Epic is completed, archived, or already merged"],
+          "given": [
+            "A source Epic is completed, archived, or already merged"
+          ],
           "when": "A caller attempts to merge it into an active survivor",
           "then": [
             "The merge mutation is rejected",
@@ -791,9 +959,14 @@
     {
       "id": "rq-epicArchiveSync01",
       "title": "Archive Synchronizes Epic Child Terminal State",
-      "body": "When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through typed Epic tools such as `adv_epic_repair_membership`; direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.",
+      "body": "When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through `adv_epic_show`, which performs automatic bounded direct convergence (rq-epicMembershipConvergence01); direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.",
       "priority": "must",
-      "tags": ["epics", "archive", "release", "membership"],
+      "tags": [
+        "epics",
+        "archive",
+        "release",
+        "membership"
+      ],
       "scenarios": [
         {
           "id": "rq-epicArchiveSync01.1",
@@ -817,7 +990,7 @@
           ],
           "when": "Archive verification inspects the parent Epic",
           "then": [
-            "The flow uses `adv_epic_repair_membership` or another typed Epic tool to repair or mark the projection",
+            "The flow uses `adv_epic_show` to trigger automatic bounded direct convergence",
             "No direct ADV state files are read or edited",
             "Unresolved repair status is surfaced in archive evidence"
           ]
@@ -828,17 +1001,19 @@
           "given": [
             "An Epic entry remains active even though the linked child change is already `archived` or `closed`"
           ],
-          "when": "`adv_epic_repair_membership mode=sync_child_projection` runs with canonical child/archive evidence",
+          "when": "`adv_epic_show` runs with canonical child/archive evidence and performs automatic convergence",
           "then": [
             "The existing Epic entry receives terminal summary state",
             "Epic progress recomputes completed entries and next entry from terminal summaries",
-            "The repair result reports terminal projection evidence"
+            "The convergence result reports terminal projection evidence"
           ]
         },
         {
           "id": "rq-epicArchiveSync01.4",
           "title": "Non-Epic archive remains unchanged",
-          "given": ["A change has no `epic_membership` projection"],
+          "given": [
+            "A change has no `epic_membership` projection"
+          ],
           "when": "The change is archived",
           "then": [
             "No Epic lookup or mutation is required",
@@ -867,12 +1042,19 @@
       "title": "Product Epics Carry Repo and Project Scope Metadata",
       "body": "An Epic MAY be scoped to a single repo or to a product spanning multiple repositories/projects. Product Epic scope metadata MUST include the owner ADV project ID and a typed repo list containing repo ID, repo project ID, role, required flag, and optional path. Product Epics MUST NOT require duplicate repo-local Epics for one initiative.",
       "priority": "must",
-      "tags": ["epics", "product", "scope", "cross-project"],
+      "tags": [
+        "epics",
+        "product",
+        "scope",
+        "cross-project"
+      ],
       "scenarios": [
         {
           "id": "rq-epicProductScope01.1",
           "title": "Product scope spans multiple repos",
-          "given": ["An Epic scope includes two configured repositories"],
+          "given": [
+            "An Epic scope includes two configured repositories"
+          ],
           "when": "The Epic is validated",
           "then": [
             "Validation succeeds",
@@ -883,18 +1065,27 @@
         {
           "id": "rq-epicProductScope01.2",
           "title": "Scope repo requires project identity",
-          "given": ["An Epic scope repo is missing repo_project_id"],
+          "given": [
+            "An Epic scope repo is missing repo_project_id"
+          ],
           "when": "The scope is validated",
-          "then": ["Validation fails with a clear schema error"]
+          "then": [
+            "Validation fails with a clear schema error"
+          ]
         }
       ]
     },
     {
       "id": "rq-epicOwnerRouting01",
       "title": "Epic Membership Tools Separate Owner Routing from Child target_path",
-      "body": "Epic membership mutation tools (adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change, adv_epic_repair_membership) MUST support explicit owner project routing separate from the child change target_path. The owner Epic MUST be resolved through an epic_owner_target_path parameter or the current project when omitted, and the child change MUST be resolved through target_path or the owner project when omitted. The supported routing matrix is: owner local + child local; owner local + child remote; owner remote + child same remote; owner remote + child different remote. Ambiguous or partial shapes—such as supplying only a child target_path when the Epic is not in the current project, or supplying an owner route without a distinct child route when the child is not in the owner project—MUST fail before durable mutation with typed OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED errors. Existing child-only target_path behavior MUST remain valid when the Epic owner is the current project.",
+      "body": "Epic membership mutation tools (adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change) MUST support explicit owner project routing separate from the child change target_path. The owner Epic MUST be resolved through an epic_owner_target_path parameter or the current project when omitted, and the child change MUST be resolved through target_path or the owner project when omitted. The supported routing matrix is: owner local + child local; owner local + child remote; owner remote + child same remote; owner remote + child different remote. Ambiguous or partial shapes—such as supplying only a child target_path when the Epic is not in the current project, or supplying an owner route without a distinct child route when the child is not in the owner project—MUST fail before durable mutation with typed OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED errors. Existing child-only target_path behavior MUST remain valid when the Epic owner is the current project.",
       "priority": "must",
-      "tags": ["epics", "routing", "cross-project", "target_path"],
+      "tags": [
+        "epics",
+        "routing",
+        "cross-project",
+        "target_path"
+      ],
       "scenarios": [
         {
           "id": "rq-epicOwnerRouting01.1",
@@ -984,7 +1175,12 @@
       "title": "V1 Does Not Clone Project-Management Workflows",
       "body": "Advance Epics v1 MUST NOT add Jira-like assignments, estimates, boards, sprints, ownership workflows, or clone GitHub Projects. Epic ordering, next-work recommendation, and compact context are the only planning primitives added in v1.",
       "priority": "must",
-      "tags": ["epics", "v1", "avoidance", "scope"],
+      "tags": [
+        "epics",
+        "v1",
+        "avoidance",
+        "scope"
+      ],
       "scenarios": [
         {
           "id": "rq-epicNoJiraClone01.1",
@@ -993,7 +1189,9 @@
             "A caller attempts to add assignee, estimate, sprint, or board fields to an Epic record"
           ],
           "when": "The record is validated",
-          "then": ["Those fields are not recognized as required Epic structure"]
+          "then": [
+            "Those fields are not recognized as required Epic structure"
+          ]
         }
       ]
     },
@@ -1002,21 +1200,34 @@
       "title": "Missing Epic and Stale Links Produce Deterministic Errors or Recoverable Warnings",
       "body": "Operations referencing a missing Epic, a stale child change link, a duplicate promotion, or a concurrent reorder/promotion MUST produce deterministic errors or recoverable warnings. Failure modes MUST be typed so callers can distinguish not-found, conflict, and stale-state conditions and retry or reconcile safely.",
       "priority": "should",
-      "tags": ["epics", "errors", "recovery", "concurrency"],
+      "tags": [
+        "epics",
+        "errors",
+        "recovery",
+        "concurrency"
+      ],
       "scenarios": [
         {
           "id": "rq-epicErrors01.1",
           "title": "Missing Epic returns not-found error",
-          "given": ["A caller requests an Epic that does not exist"],
+          "given": [
+            "A caller requests an Epic that does not exist"
+          ],
           "when": "The lookup is performed",
-          "then": ["A typed not-found error is returned"]
+          "then": [
+            "A typed not-found error is returned"
+          ]
         },
         {
           "id": "rq-epicErrors01.2",
           "title": "Concurrent edit yields stale-version warning or conflict",
-          "given": ["Two callers mutate the same Epic concurrently"],
+          "given": [
+            "Two callers mutate the same Epic concurrently"
+          ],
           "when": "The second mutation is applied against a stale version",
-          "then": ["A typed conflict or stale-state response is returned"]
+          "then": [
+            "A typed conflict or stale-state response is returned"
+          ]
         }
       ]
     },
@@ -1025,7 +1236,12 @@
       "title": "Epic List CLI Is Read-Only, Worker-Free, and Fail-Closed",
       "body": "The `adv epic list --json` CLI command MUST return live Temporal-backed Epic entries for the current project as stable JSON. Each Epic entry MUST include `id` and a present `startTime` field populated from the Temporal Visibility workflow row's `startTime` as an ISO-8601 UTC string when valid; if a row unexpectedly lacks a valid timestamp, the entry MUST remain present with `startTime: null`. The command MUST use Temporal Visibility enumeration of `epicWorkflow` executions and project-scoped workflow ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic workflow, MUST NOT require a worker polling the project task queue, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands. The `startTime` field represents the Temporal workflow start timestamp and MUST NOT be labeled as child-change activity or mutable recency.",
       "priority": "must",
-      "tags": ["epics", "cli", "visibility", "read-only"],
+      "tags": [
+        "epics",
+        "cli",
+        "visibility",
+        "read-only"
+      ],
       "scenarios": [
         {
           "id": "rq-epicCliList01.1",
@@ -1071,7 +1287,9 @@
         {
           "id": "rq-epicCliList01.4",
           "title": "Epic CLI namespace remains read-only",
-          "given": ["A caller invokes the `adv epic` CLI namespace"],
+          "given": [
+            "A caller invokes the `adv epic` CLI namespace"
+          ],
           "when": "The CLI dispatches the nested command",
           "then": [
             "Only the read-only `list` operation is accepted",
@@ -1086,7 +1304,12 @@
       "title": "Completed Epics Retire Through an Audited Typed Lifecycle Path",
       "body": "Completed Epics MUST be retired through a typed `adv_epic_retire` lifecycle path. Retirement MUST require `expected_version`, non-blank audit evidence, and a retiring actor, and MUST support `dryRun` without mutation. The retirement preflight MUST prove the Epic progress status is completed and every entry is terminal before any durable mutation. If active or future work remains, retirement MUST fail before mutation and MUST identify the blocking entries.",
       "priority": "must",
-      "tags": ["epics", "retirement", "lifecycle", "audit"],
+      "tags": [
+        "epics",
+        "retirement",
+        "lifecycle",
+        "audit"
+      ],
       "scenarios": [
         {
           "id": "rq-epicRetirement01.1",
@@ -1105,7 +1328,9 @@
         {
           "id": "rq-epicRetirement01.2",
           "title": "Active or future entries block retirement before mutation",
-          "given": ["An Epic has one or more active or future entries"],
+          "given": [
+            "An Epic has one or more active or future entries"
+          ],
           "when": "A caller attempts to retire the Epic",
           "then": [
             "The operation fails before any durable mutation",
@@ -1116,7 +1341,9 @@
         {
           "id": "rq-epicRetirement01.3",
           "title": "Dry-run reports eligibility without mutation",
-          "given": ["A caller requests retirement with dryRun enabled"],
+          "given": [
+            "A caller requests retirement with dryRun enabled"
+          ],
           "when": "The preflight completes",
           "then": [
             "The response reports current version, progress status, eligibility, blockers, and projected retired summary",
@@ -1128,9 +1355,15 @@
     {
       "id": "rq-epicRetiredListing01",
       "title": "Active Epic Lists Exclude Retired Epics Structurally",
-      "body": "Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = \"active\"`, `ExecutionStatus = \"Running\"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state. Legacy running Epic workflows that started without `AdvEpicStatus` indexed MUST have an explicit audited index repair/backfill path (`adv_epic_repair_membership mode=refresh_search_attributes`) that enumerates running `epicWorkflow` executions without the `AdvEpicStatus` filter, hydrates each state, and signals reachable Epics to upsert their current `AdvEpicStatus`; the default active-only listing MUST remain unchanged and MUST NOT perform automatic mutation.",
+      "body": "Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = \"active\"`, `ExecutionStatus = \"Running\"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Missing compatible AdvEpicStatus indexing on reachable legacy workflows is machine-resolvable state: ADV initialization or direct Epic access MUST upsert the current typed status and verify it without requiring a dedicated repair mode. Wrong-type search attributes or unreachable conflicting state MUST fail closed through the doctor/operator boundary. Default listing remains read-only and MUST NOT perform per-Epic mutation fan-out.",
       "priority": "must",
-      "tags": ["epics", "listing", "cli", "visibility", "retirement"],
+      "tags": [
+        "epics",
+        "listing",
+        "cli",
+        "visibility",
+        "retirement"
+      ],
       "scenarios": [
         {
           "id": "rq-epicRetiredListing01.1",
@@ -1147,7 +1380,9 @@
         {
           "id": "rq-epicRetiredListing01.2",
           "title": "CLI list remains live active-only JSON",
-          "given": ["A caller runs adv epic list --json"],
+          "given": [
+            "A caller runs adv epic list --json"
+          ],
           "when": "The CLI builds its Temporal Visibility query",
           "then": [
             "The query includes WorkflowType = epicWorkflow",
@@ -1159,7 +1394,9 @@
         {
           "id": "rq-epicRetiredListing01.3",
           "title": "Existing completed Epics report as dry-run candidates",
-          "given": ["One or more completed-but-unretired Epics exist"],
+          "given": [
+            "One or more completed-but-unretired Epics exist"
+          ],
           "when": "An operator requests the completed-Epic retirement dry-run report",
           "then": [
             "The report lists eligible candidates and blocked Epics with blocker details",
@@ -1168,16 +1405,27 @@
         },
         {
           "id": "rq-epicRetiredListing01.4",
-          "title": "Legacy unindexed running Epics have audited index repair path",
+          "title": "Compatible legacy index state converges directly",
           "given": [
-            "Running Epic workflows exist without AdvEpicStatus indexed"
+            "A reachable running Epic lacks compatible AdvEpicStatus indexing"
           ],
-          "when": "An operator invokes the explicit repair/backfill path",
+          "when": "ADV initialization or direct Epic access observes the missing compatible attribute",
           "then": [
-            "The tool enumerates running epicWorkflow executions without the AdvEpicStatus filter",
-            "Each reachable Epic is reported with its current progress status and action",
-            "Reachable Epics are signaled to upsert their current AdvEpicStatus",
-            "The default active-only listing remains unchanged and does not mutate state"
+            "The workflow upserts and verifies its current typed AdvEpicStatus",
+            "No dedicated repair mode or operator evidence is required",
+            "Wrong-type or conflicting state routes to typed doctor/operator handling"
+          ]
+        },
+        {
+          "id": "rq-epicRetiredListing01.5",
+          "title": "Default list remains read-only",
+          "given": [
+            "Legacy unindexed Epics may exist"
+          ],
+          "when": "The default active-only listing runs",
+          "then": [
+            "It does not perform per-Epic mutation fan-out",
+            "It returns typed incomplete evidence when current index truth cannot be established"
           ]
         }
       ]
@@ -1187,12 +1435,19 @@
       "title": "Retired Epic History Remains Typed and Queryable By ID",
       "body": "Retirement MUST preserve typed history access to retired Epics. The retirement path MUST persist a durable retired projection before the archive/completion signal is fired. `adv_epic_show` MUST first try the live workflow and then fall back to the retired projection when the workflow is completed or unavailable. The retained view MUST include title, narrative, entries, terminal summaries, source version, and retirement metadata, and MUST return deterministic typed errors when neither live state nor retired projection can be read.",
       "priority": "must",
-      "tags": ["epics", "retirement", "history", "projection"],
+      "tags": [
+        "epics",
+        "retirement",
+        "history",
+        "projection"
+      ],
       "scenarios": [
         {
           "id": "rq-epicRetiredHistory01.1",
           "title": "Retirement writes projection before workflow completion",
-          "given": ["A completed Epic is eligible for retirement"],
+          "given": [
+            "A completed Epic is eligible for retirement"
+          ],
           "when": "The retirement operation executes",
           "then": [
             "A retired projection is persisted before the archive signal completes the workflow",
@@ -1230,12 +1485,19 @@
       "title": "Epic Visibility Index Respects Temporal Search-Attribute Constraints",
       "body": "The child-change Visibility index for Epic lookup MUST use a single-value `Keyword` search attribute, following the pattern of `AdvBacklogIssueNumber`, and MUST NOT exceed the existing custom `KeywordList` cap. Epic ID on child changes MUST be derived from the `epic_membership` projection.",
       "priority": "must",
-      "tags": ["epics", "temporal", "visibility", "constraints"],
+      "tags": [
+        "epics",
+        "temporal",
+        "visibility",
+        "constraints"
+      ],
       "scenarios": [
         {
           "id": "rq-epicTemporalConstraints01.1",
           "title": "Epic ID is indexed as single Keyword",
-          "given": ["A child change has epic_membership.epic_id"],
+          "given": [
+            "A child change has epic_membership.epic_id"
+          ],
           "when": "Search attributes are built",
           "then": [
             "AdvEpicId is set as a single-value Keyword",
@@ -1249,7 +1511,12 @@
       "title": "Direct Epic Link Projects Terminal Child State",
       "body": "adv_epic_link_change MUST project the terminal state of an archived or closed child change onto the linked Epic entry in the same operation. When the child change is already terminal, the Epic entry MUST receive a `terminal_summary` with `status` and `completed_at`, the entry's `membership_status` MUST reflect `terminal`, and later `adv_epic_show` MUST display the entry in compact history without `repair-needed` or `projection-missing` status. Changes without Epic membership or non-terminal changes MUST follow normal link semantics.",
       "priority": "must",
-      "tags": ["epics", "link", "terminal", "projection"],
+      "tags": [
+        "epics",
+        "link",
+        "terminal",
+        "projection"
+      ],
       "scenarios": [
         {
           "id": "rq-epicTerminalChildProjection01.1",
@@ -1268,7 +1535,9 @@
         {
           "id": "rq-epicTerminalChildProjection01.2",
           "title": "Closed child link projects terminal summary",
-          "given": ["An ADV change has status closed"],
+          "given": [
+            "An ADV change has status closed"
+          ],
           "when": "adv_epic_link_change links the change to an Epic",
           "then": [
             "The Epic entry receives a terminal_summary with status closed and a completed_at timestamp",
@@ -1278,7 +1547,9 @@
         {
           "id": "rq-epicTerminalChildProjection01.3",
           "title": "Later Epic show does not flag repaired terminal entry",
-          "given": ["A terminal child change has been linked to an Epic"],
+          "given": [
+            "A terminal child change has been linked to an Epic"
+          ],
           "when": "adv_epic_show renders the Epic",
           "then": [
             "The entry appears in compact terminal history",
@@ -1292,12 +1563,19 @@
       "title": "Epic Briefing Context Is Compact and Optional",
       "body": "When an ADV change has Epic membership, briefing packets MAY include a compact Epic context section. Epic membership MUST remain optional and advisory; packet rendering MUST NOT block on Epic order alone or require Epic membership for non-Epic changes. The Epic context section MUST include the Epic ID, title, and a compact membership status summary, and MUST NOT include the full Epic entry list or replace the authoritative Epic read surfaces.",
       "priority": "must",
-      "tags": ["epics", "briefing_packets", "optional", "compact"],
+      "tags": [
+        "epics",
+        "briefing_packets",
+        "optional",
+        "compact"
+      ],
       "scenarios": [
         {
           "id": "rq-epicBriefingContext01.1",
           "title": "Non-Epic change renders a valid briefing packet",
-          "given": ["An ADV change has no Epic membership"],
+          "given": [
+            "An ADV change has no Epic membership"
+          ],
           "when": "A briefing packet is rendered",
           "then": [
             "The packet is valid",
@@ -1308,7 +1586,9 @@
         {
           "id": "rq-epicBriefingContext01.2",
           "title": "Epic change includes compact membership context",
-          "given": ["An ADV change is linked to an Epic"],
+          "given": [
+            "An ADV change is linked to an Epic"
+          ],
           "when": "A briefing packet is rendered",
           "then": [
             "The packet MAY include a compact Epic context section",
@@ -1323,7 +1603,13 @@
       "title": "Epic Operational-Work Planning Is Explicit, Typed, and Linked",
       "body": "Epic creation and planning MUST include an explicit operational-work assessment that considers first deployment, migration/backfill, deployment configuration, monitoring, cleanup, and teardown. The assessment is contextual: an Epic with no operational need MUST record no follow-up, and operational need MUST NOT be inferred from Epic metadata alone. When required operational work is identified, planning MUST direct it to a typed, linked ops follow-up associated with the relevant delivery change through the existing `adv_followup_promote` / `ops_followup_links` path (`rq-opsFollowTrace01`); free-text agenda items, generic shell entries, or undocumented assumptions MUST NOT be the authoritative record for required operational work. Release-safety-critical operational work MUST use the `blocks` relationship so the existing release gate prevents release until the linked child work completes (`rq-opsFollowRelease01`, `rq-opsRunReleaseReadiness01`); release-first work such as post-release monitoring or cleanup MUST use an existing non-blocking relationship only with the surviving-obligation handoff semantics already defined for linked ops follow-ups (`rq-opsFollowRelease01`). This requirement adds planning traceability only: Epic order remains advisory and MUST NOT gate release, promotion, or tasks by itself; ADV records and governs operational state and MUST NOT perform deployment execution as an Epic gate; and this requirement MUST NOT introduce a new data model, validator, relationship enum, or gate-readiness rule beyond the ops-follow-up semantics it cites.",
       "priority": "must",
-      "tags": ["epics", "ops-follow-up", "planning", "release", "traceability"],
+      "tags": [
+        "epics",
+        "ops-follow-up",
+        "planning",
+        "release",
+        "traceability"
+      ],
       "scenarios": [
         {
           "id": "rq-epicOpsPlanning01.1",
@@ -1367,12 +1653,83 @@
         {
           "id": "rq-epicOpsPlanning01.4",
           "title": "Operational planning does not execute, re-gate, or remodel",
-          "given": ["An Epic has linked operational follow-ups and advisory ordering"],
+          "given": [
+            "An Epic has linked operational follow-ups and advisory ordering"
+          ],
           "when": "Epic planning guidance is applied",
           "then": [
             "Epic order remains advisory and does not gate release, promotion, or tasks by itself",
             "ADV records and governs operational state without performing deployment execution as an Epic gate",
             "No new data model, validator, relationship enum, or gate-readiness rule is introduced beyond the cited ops-follow-up semantics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicMembershipConvergence01",
+      "title": "Epic Membership Converges Without Repair Routing",
+      "body": "Epic change entries are authoritative for membership and child epic_membership is a derived projection. Link, promotion, move, unlink, terminal projection, and Epic show MUST directly converge missing or stale matching child projections within bounded execution. A conflicting child projection MUST NOT be overwritten and MUST return a typed conflict. Temporary target unavailability MUST preserve pending intent on the existing Epic entry and retry on the next relevant access without requiring a dedicated membership-repair tool.",
+      "priority": "must",
+      "tags": [
+        "epics",
+        "membership",
+        "projection",
+        "self-healing",
+        "idempotency"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-epicMembershipConvergence01.1",
+          "title": "Missing child projection converges directly",
+          "given": [
+            "An authoritative Epic entry references a child change",
+            "The matching child epic_membership projection is absent"
+          ],
+          "when": "A supported link, promotion, or Epic show operation observes the state",
+          "then": [
+            "The child projection is written and verified against the Epic entry",
+            "The operation returns healthy membership state",
+            "No dedicated membership-repair tool is required"
+          ]
+        },
+        {
+          "id": "rq-epicMembershipConvergence01.2",
+          "title": "Matching child clears stale owner status",
+          "given": [
+            "The child projection exactly matches the authoritative Epic entry",
+            "The Epic entry still reports pending or stale projection state"
+          ],
+          "when": "Epic membership is read or mutated",
+          "then": [
+            "The Epic entry is converged to applied or terminal state",
+            "The response does not report projection_missing or recommend repair"
+          ]
+        },
+        {
+          "id": "rq-epicMembershipConvergence01.3",
+          "title": "Conflicting child projection is preserved",
+          "given": [
+            "A child projection points to a different Epic or entry"
+          ],
+          "when": "Automatic convergence evaluates the projection",
+          "then": [
+            "No child projection is overwritten",
+            "A typed conflict identifies both authorities",
+            "Operator intent is required before retargeting or removal"
+          ]
+        },
+        {
+          "id": "rq-epicMembershipConvergence01.4",
+          "title": "Unavailable target retains retryable intent",
+          "given": [
+            "An Epic entry contains desired child projection state",
+            "The target project cannot be reached"
+          ],
+          "when": "Direct projection fails due to target unavailability",
+          "then": [
+            "Pending intent remains on the existing Epic entry",
+            "Owner truth remains readable",
+            "The next relevant access retries convergence without a background daemon"
           ]
         }
       ]

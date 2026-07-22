@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.29.1
-> **Updated:** 2026-07-20
+> **Version:** 1.30.0
+> **Updated:** 2026-07-22
 
 ## Purpose
 
@@ -2494,106 +2494,70 @@ Project-scope Visibility queries used by ADV listing paths MUST filter on a regi
 
 **ID:** `rq-activeChangePointer01` | **Priority:** **[MUST]**
 
-The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) the recovery MCP tool `adv_doctor` clears confirmed-phantom pointers as a safe fix, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. Cross-project tool calls are treated as active-work repoints only for tools in the activeChangeRepointTools allow-list when the target change.json exists; read/diagnostic cross-project calls do not mutate the caller's pointer, while terminal-clear hooks clear the pointer whenever the terminal changeId matches regardless of project ownership. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.
+The session active-change pointer and status mirror MUST not retain phantom references to change IDs whose workflow is unreachable and whose durable projection is absent. Pointer validity MUST be checked and stale pointers cleared automatically at session/read boundaries; terminal transitions clear matching pointers after verified success; cross-project operations never alter the caller-project pointer. All pointer mutations remain in plugin index hooks and tools MUST NOT directly mutate the pointer. A dedicated pointer-forget recovery tool, tombstone, or compatibility record is not required.
 
 **Tags:** `pointer`, `session`, `phantom`, `recovery`, `lifecycle`, `handleToolExecuteBefore`
 
 #### Scenarios
 
-**adv_doctor clears a confirmed phantom active pointer** (`rq-activeChangePointer01.1`)
+**Phantom active pointer clears automatically** (`rq-activeChangePointer01.1`)
 
 **Given:**
-- A session with state.activeChange.id set to changeId X
-- The pointer is confirmed phantom: the Temporal workflow is unreachable AND the on-disk change.json is absent
-- An audit log channel (debugLog) is available
+- A session active-change pointer references change X
+- X has no reachable workflow and no durable projection
 
-**When:** adv_doctor runs, classifies the pointer as `phantom_pointer`, and applies the safe fix
+**When:** The pointer is validated during session or active-context read handling
 
 **Then:**
-- state.activeChange.id is set to null
-- setActiveChange(null) is called to clear the status mirror
-- An audit entry is written with {ts, changeId, prevPointer, action: 'forget', trigger: 'doctor'}
-- Re-running adv_doctor when the pointer is already null is idempotent
+- The pointer and status mirror are cleared
+- A bounded internal audit entry records the stale-pointer clear
+- No dedicated recovery tool is required
 
-**adv_doctor refuses phantom clear when the change is not confirmed absent** (`rq-activeChangePointer01.2`)
+**Reachable or durable pointer remains** (`rq-activeChangePointer01.2`)
 
 **Given:**
-- A session with state.activeChange.id set to changeId Y (non-null)
-- adv_doctor cannot confirm the pointer is phantom (change.json still exists or workflow is reachable)
+- A session pointer references a change with reachable workflow or valid durable projection
 
-**When:** adv_doctor evaluates the pointer
+**When:** Pointer validation runs
 
 **Then:**
-- state.activeChange.id remains Y (NOT cleared)
-- The tool output classifies the finding as `phantom_pointer` with `outcome: "approval_required"` or `refused`
-- The output includes a hint naming the actual pointer and the safe next step
+- The pointer remains unchanged
+- Temporary source degradation does not clear a valid pointer without structural absence proof
 
-**Terminal transitions clear matching active pointer on success** (`rq-activeChangePointer01.3`)
+**Terminal transitions clear matching active pointer** (`rq-activeChangePointer01.3`)
 
 **Given:**
-- A session with state.activeChange.id set to changeId X
+- A session pointer references change X
 
-**When:** adv_change_close or adv_change_archive succeeds for changeId X (success: true in tool output)
+**When:** Verified close or archive succeeds for X
 
 **Then:**
-- state.activeChange.id is set to null
-- setActiveChange(null) is called
-- An audit entry is written with action 'terminal-close' or 'terminal-archive'
-- The clear fires only AFTER removeChangeDir succeeds (success-only path)
+- The pointer and status mirror clear after terminal success
+- Partial failure or terminal success for another change does not clear X
 
-**Terminal transitions do NOT clear on partial failure or different changeId** (`rq-activeChangePointer01.4`)
+**Unknown tool target does not re-point session** (`rq-activeChangePointer01.4`)
 
 **Given:**
-- A session with state.activeChange.id set to changeId X
+- A tool call references non-existent change Y while pointer X is active
 
-**When:** adv_change_close or adv_change_archive is called for changeId X but fails (success: false) OR succeeds for a different changeId Y where Y != X
+**When:** The tool-execute-before hook validates Y
 
 **Then:**
-- state.activeChange.id remains X (NOT cleared)
-- No audit entry is written
-- No setActiveChange call is made
+- The pointer remains X
+- The tool returns its normal not-found result
+- No phantom pointer is created
 
-**handleToolExecuteBefore does not re-point on non-existent changeId** (`rq-activeChangePointer01.5`)
+**Cross-project operations preserve caller pointer** (`rq-activeChangePointer01.5`)
 
 **Given:**
-- A session with state.activeChange.id set to changeId X
-- An ADV tool is called with args.changeId referencing changeId Y
-- changeId Y does not exist: no Visibility search attribute, no disk change.json, no reachable workflow state
+- Project A has active pointer X
+- A tool operates on project B via target_path
 
-**When:** handleToolExecuteBefore processes the tool call and runs the isChangeReachable check
-
-**Then:**
-- state.activeChange.id remains X (NOT re-pointed to Y)
-- A debug log is emitted noting Y is unreachable
-- The tool execution itself proceeds and returns its normal 'Change not found' result
-- The reachability check uses Visibility fast-path first, then disk change.json fallback, then workflow state fallback
-
-**handleToolExecuteBefore exempts adv_doctor phantom-pointer clear from reachability gate** (`rq-activeChangePointer01.6`)
-
-**Given:**
-- The adv_doctor tool is being executed
-- adv_doctor has classified the active pointer as phantom and intends to clear it
-
-**When:** handleToolExecuteBefore processes the adv_doctor tool call
+**When:** Before/after hooks process the call
 
 **Then:**
-- The reachability gate is skipped entirely for the phantom-pointer clear (early-return at the top of the hook body)
-- No isChangeReachable check is performed
-- The intentional clear is not defeated by the gate
-
-**Cross-project active-work calls repoint caller's pointer; read/diagnostic calls do not; terminal-clear fires regardless of project** (`rq-activeChangePointer01.7`)
-
-**Given:**
-- A session in project A with state.activeChange.id set (or null)
-- An ADV tool is called with target_path pointing to project B and args.changeId referencing a changeId in project B
-
-**When:** (Active-work case) The tool is in activeChangeRepointTools AND the changeId is reachable in project B (target project's change.json exists on disk); (Read/diagnostic case) The tool is NOT in activeChangeRepointTools; (Terminal-clear case) adv_change_close, adv_change_archive, or adv_doctor clears a confirmed-phantom pointer matching the caller's current pointer (regardless of project ownership)
-
-**Then:**
-- (Active-work case) state.activeChange.id is set to the target-project changeId; setActiveChange is called with the target changeId and any epicId resolved from the target project's change.json (best-effort)
-- (Read/diagnostic case) state.activeChange.id is NOT mutated; no setActiveChange call
-- (Terminal-clear case) state.activeChange.id is set to null; setActiveChange(null) is called; the clear fires whenever the terminal changeId matches the caller's pointer, regardless of which project owns the change
-- The reachability check for cross-project uses disk-only tier (existence of target's change.json); Visibility and workflow-state tiers are skipped for cross-project because they would require opening a Temporal client to the target project
+- Project A pointer remains X
+- Target-project terminal operations do not clear or replace caller pointer
 
 ---
 
@@ -2658,7 +2622,7 @@ ADV project identity is derived from the repository root commit. In a shallow cl
 
 **ID:** `rq-toolOwnership01` | **Priority:** **[MUST]**
 
-Every registered ADV tool must have an explicit ownership/reachability classification — orchestrator, operator-only, or dual (read: agent, mutate: operator) — recorded in the git-tracked matrix at docs/tool-ownership.md. Operator-only maintenance and recovery tools (adv_archive_purge, adv_doctor, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_conformance#override) remain discoverable but must never become routine autonomous agent actions: agents invoke them only on explicit operator instruction with the required approval evidence. Dual tools expose agent-reachable reads while their mutation or refresh surfaces remain operator-owned. The matrix is advisory guidance enforced by static-check tests against tool-registry.ts ADV_TOOL_NAMES; adding or renaming a registered tool without a matrix row must fail CI.
+Every registered ADV tool must have an explicit ownership/reachability classification—orchestrator, operator-only, or dual—recorded in the git-tracked matrix at docs/tool-ownership.md. Machine-resolvable recovery belongs in normal operations and MUST NOT remain as routine operator-only repair tools. The repair group contains at most adv_archive_purge, adv_change_workflow_terminate, adv_doctor, and adv_store_consolidate. Intent-bearing origin, legacy-store, and worktree maintenance may remain separately classified outside the repair group. Operator-only destructive actions require explicit instruction and approval evidence. The matrix is enforced by static tests against the canonical registry.
 
 **Tags:** `tool-surface`, `ownership`, `operator-only`, `docs`
 
@@ -2667,35 +2631,37 @@ Every registered ADV tool must have an explicit ownership/reachability classific
 **Matrix document covers every registered tool** (`rq-toolOwnership01.1`)
 
 **Given:**
-- The set of registered tool names in plugin/src/tool-registry.ts ADV_TOOL_NAMES
+- The canonical set of registered ADV tool names
 
 **When:** The tool-ownership static-check test runs
 
 **Then:**
-- docs/tool-ownership.md exists and contains a classification row for every ADV_TOOL_NAMES entry
-- A tool added to the registry without a matrix row fails CI
+- docs/tool-ownership.md contains a classification row for every registered tool
+- A tool added or renamed without a matrix row fails CI
 
-**Operator-only maintenance tools are named and non-routine** (`rq-toolOwnership01.2`)
+**Repair group is limited to genuine operator boundaries** (`rq-toolOwnership01.2`)
 
 **Given:**
-- The operator-only maintenance set: adv_archive_purge, adv_doctor, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_conformance#override
+- Normal operations directly converge machine-resolvable state
 
-**When:** The matrix is consulted or an agent plans a maintenance or recovery action
+**When:** Tool ownership and grouping are inspected
 
 **Then:**
-- Each operator-only tool is classified in docs/tool-ownership.md with its approval/evidence gate
-- Agents treat these tools as discoverable but never routine autonomous actions; invocation requires explicit operator instruction
+- The repair group contains no more than adv_archive_purge, adv_change_workflow_terminate, adv_doctor, and adv_store_consolidate
+- Superseded diagnose, reconnect, restart, registration, status-repair, archive-repair, membership-repair, and pointer-forget tools are absent
+- Destructive actions retain explicit approval requirements
 
 **Dual tools split read and mutate reachability** (`rq-toolOwnership01.3`)
 
 **Given:**
-- A dual-classified tool such as adv_status, adv_project_metadata, adv_wip_state, adv_session_list, adv_session_show, or adv_roadmap
+- A dual-classified tool exposes read and mutation behavior
 
 **When:** An agent uses the tool
 
 **Then:**
 - Read actions are agent-reachable
-- Mutation or refresh surfaces remain operator-owned and are not invoked as routine autonomous agent actions
+- Intent-bearing or destructive mutation remains operator-owned
+- Automatic internal convergence is limited by typed structural preconditions and does not consume operator authority
 
 ---
 
@@ -2890,5 +2856,106 @@ ADV MUST derive root versus descendant session authority from bounded OpenCode p
 - A bounded warning identifies task and change
 - No task mutation occurs
 - Peer PID and full working directory are omitted
+
+---
+
+### Recovery Surface Contains Only Intent-Bearing Controls
+
+**ID:** `rq-recoverySurfaceRetirement01` | **Priority:** **[MUST]**
+
+Once normal operations directly handle a machine-resolvable recovery class, the superseded recovery tool and recovery-only arguments MUST be removed completely from executable registration, schemas, role policy, manifests, prompts, specs, documentation, tests, and preflight policy. No wrapper, alias, tombstone, hidden export, or compatibility record may preserve the removed surface. Remaining repair-group tools MUST correspond only to destructive intent or genuine authority ambiguity; unresolved infrastructure diagnostics MUST use one bounded doctor entry point.
+
+**Tags:** `tools`, `recovery`, `surface`, `removal`, `doctor`
+
+#### Scenarios
+
+**Superseded recovery API leaves zero residue** (`rq-recoverySurfaceRetirement01.1`)
+
+**Given:**
+- A machine-resolvable recovery behavior has moved into its normal operation
+
+**When:** The replacement ships
+
+**Then:**
+- The former tool and recovery-only arguments are absent from every active executable and documentation surface
+- No wrapper, alias, tombstone, or compatibility export remains
+- Parity tests fail if any active reference returns
+
+**Destructive controls remain explicit** (`rq-recoverySurfaceRetirement01.2`)
+
+**Given:**
+- An action purges data, terminates or resets workflow execution, consolidates stores, or resolves competing authority
+
+**When:** The recovery surface is consolidated
+
+**Then:**
+- The action remains explicitly approval-gated
+- It is not performed by automatic direct recovery
+- Its audit and pinning safeguards remain intact
+
+**Infrastructure incident has one entry point** (`rq-recoverySurfaceRetirement01.3`)
+
+**Given:**
+- Normal direct recovery cannot resolve a Temporal, worker, search-attribute, or snapshot incident
+
+**When:** An agent requests diagnosis
+
+**Then:**
+- One doctor entry point diagnoses, applies structurally safe fixes, verifies results, and returns typed approval-required proposals for unsafe actions
+- The agent is not required to choose among diagnose, reconnect, restart, register, and snapshot-repair tools
+
+---
+
+### adv_doctor Phantom Session-Pointer Safe-Fix
+
+**ID:** `rq-doctorPhantomPointer01` | **Priority:** **[MUST]**
+
+The retired adv_change_forget tool's session active-change pointer clearing is consolidated into adv_doctor as a phantom_pointer safe-fix (design D5/D6, option B). Clearing MUST be structurally gated on confirmed-absent evidence via a tri-state probe (probeChangePhantomStatus in plugin/src/tools/_adapters.ts) that returns confirmed_absent | confirmed_present | indeterminate. A probe tier that throws (transport failure, timeout, schema error) MUST classify as indeterminate and MUST NOT be mistaken for absence. adv_doctor clears the session pointer ONLY on confirmed_absent; indeterminate MUST refuse with a typed approval_required proposal; confirmed_present is a no-op. Pointer access is injected via a plugin-host-only DoctorPointerRepairProvider (setDoctorPointerRepairProvider in index.ts); tests and the MCP server see a null provider and skip the phantom check entirely. All state.activeChange.id mutations remain in index.ts closure scope per rq-activeChangePointer01 — the doctor provider's clearActivePointer delegates to the same setActiveChange(null) path.
+
+**Tags:** `pointer`, `session`, `phantom`, `recovery`, `doctor`, `tri-state`
+
+#### Scenarios
+
+**confirmed_absent clears the session pointer** (`rq-doctorPhantomPointer01.1`)
+
+**Given:**
+- A plugin-host session with state.activeChange.id set to changeId X
+- The pointer-repair provider is injected
+- The tri-state probe for X returns confirmed_absent (disk change.json absent AND store/Visibility explicitly not-found)
+
+**When:** adv_doctor runs its diagnose→safe-fix→verify cycle
+
+**Then:**
+- A phantom_pointer finding is recorded
+- clear_session_pointer safe-fix is applied with outcome 'applied'
+- The provider's clearActivePointer is invoked, setting state.activeChange.id to null via setActiveChange(null)
+- Bounded before/after evidence is attached (before: X, after: null)
+
+**indeterminate refuses (never clears on ambiguous probe)** (`rq-doctorPhantomPointer01.2`)
+
+**Given:**
+- A plugin-host session with state.activeChange.id set to changeId X
+- The tri-state probe for X returns indeterminate because a probe tier threw (transport failure / timeout)
+
+**When:** adv_doctor runs its diagnose→safe-fix→verify cycle
+
+**Then:**
+- state.activeChange.id remains X (NOT cleared)
+- The provider's clearActivePointer is NOT invoked
+- A phantom_pointer refusal is recorded with outcome approval_required and a typed operator_action
+- The refusal evidence explains a transport failure must not be mistaken for a deleted change
+
+**confirmed_present and no-provider are no-ops** (`rq-doctorPhantomPointer01.3`)
+
+**Given:**
+- Case A: a plugin-host session where the probe returns confirmed_present for the active pointer
+- Case B: a tests/MCP-server context where no pointer-repair provider is injected
+
+**When:** adv_doctor runs
+
+**Then:**
+- (Case A) No phantom_pointer finding is produced and the pointer is not cleared
+- (Case B) The phantom-pointer check is skipped entirely and probeChangePhantomStatus is never called
+- In both cases the pointer is left unchanged
 
 ---
