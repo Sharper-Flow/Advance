@@ -92,7 +92,10 @@ describe("ensureChangeWorkflowStarted", () => {
     );
   });
 
-  test("routes to session task queue when sessionId is present (rq-isolSessionTaskQueue01, KD-10)", async () => {
+  test("routes to project task queue even when sessionId is present (rq-orphanSessionAdoption01)", async () => {
+    // Change workflows now default-route to the permanent project queue to
+    // prevent orphaning when sessions die. Session-scoped queues are adopted
+    // at worker startup for legacy workflows still on them.
     const handle = { query: vi.fn() };
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
@@ -108,12 +111,12 @@ describe("ensureChangeWorkflowStarted", () => {
     expect(start).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        taskQueue: "advance-pid-abc-sess_RouteTest",
+        taskQueue: "advance-pid-abc",
       }),
     );
   });
 
-  test("falls back to project task queue when sessionId is absent (backward compat, KD-10)", async () => {
+  test("routes to project task queue when sessionId is absent (backward compat)", async () => {
     const handle = { query: vi.fn() };
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };

@@ -25,6 +25,10 @@ import {
 } from "./temporal/in-process-worker";
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
+  discoverOrphanedSessionQueues,
+  adoptOrphanedSessionQueues,
+} from "./temporal/orphan-queue-adoption";
+import {
   ensureTemporalRuntime,
   probeTemporalWorkerRuntime,
   resolveNodeExecutable,
@@ -381,6 +385,20 @@ export async function tryInitStore(
       });
       if (worker) {
         registerInProcessTemporalWorker(worker);
+        // rq-orphanSessionAdoption01: adopt orphaned session queues from
+        // dead sessions so their workflows become reachable again. Fire-
+        // and-forget — must not block plugin init.
+        if (temporalBundle) {
+          void adoptOrphanQueuesAtStartup(
+            temporalBundle.client,
+            worker,
+            projectId,
+          ).catch((err) => {
+            debugLog(
+              `orphan queue adoption failed: ${err instanceof Error ? err.message : String(err)}`,
+            );
+          });
+        }
       }
     }
 
@@ -463,6 +481,43 @@ async function handleWorkerExhausted(
 
   recordWorkerRunFailure("<all>", new Error("worker exhausted"));
   if (worker) inProcessTemporalWorkers.delete(worker);
+}
+
+/**
+ * Discover and adopt orphaned session-scoped task queues at worker startup.
+ *
+ * Queries Temporal Visibility for RUNNING change workflows on session
+ * queues that have no poller (dead sessions), then registers those queues
+ * with the live worker so mutations/signals can reach the orphaned
+ * workflows.
+ */
+async function adoptOrphanQueuesAtStartup(
+  client: import("@temporalio/client").Client,
+  worker: InProcessWorker,
+  projectId: string,
+): Promise<void> {
+  const registeredQueues = [...worker.queues];
+  const orphans = await discoverOrphanedSessionQueues(
+    client,
+    projectId,
+    registeredQueues,
+  );
+  if (orphans.length === 0) return;
+
+  debugLog(
+    `orphan queue adoption: discovered ${orphans.length} orphaned session queue(s): ${orphans.join(", ")}`,
+  );
+  const result = await adoptOrphanedSessionQueues(worker, orphans);
+  if (result.adopted.length > 0) {
+    debugLog(
+      `orphan queue adoption: adopted ${result.adopted.length} queue(s)`,
+    );
+  }
+  if (result.failed.length > 0) {
+    debugLog(
+      `orphan queue adoption: ${result.failed.length} queue(s) failed: ${result.failed.map((f) => f.queue).join(", ")}`,
+    );
+  }
 }
 
 /**
