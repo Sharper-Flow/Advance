@@ -1,0 +1,364 @@
+{
+  "id": "addDeltaReadTools",
+  "title": "Add delta read tools",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-22T22:29:38.080Z",
+  "tasks": [
+    {
+      "id": "tk-26c463a9c6b4",
+      "title": "Implement adv_delta_list + adv_delta_show read tools",
+      "type": "code",
+      "section": "Tools",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-22T22:30:32.234Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "adv_delta_list + adv_delta_show implemented; 52 spec-delta tests pass (6 new read tests: cross-cap list, capability filter, pagination, empty, show-by-id, unknown-id not-found); read-only disk-first.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ee717455e9e86187abe01dd263b3e7f251228385",
+      "completedAt": "2026-07-22T22:39:59.426Z",
+      "completed_at": "2026-07-22T22:39:59.426Z"
+    },
+    {
+      "id": "tk-a96ff5f1ee81",
+      "title": "Wire read tools across parity surfaces + regen + verify",
+      "type": "code",
+      "section": "Wiring",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-22T22:30:49.203Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26c463a9c6b4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Wired across 8 parity surfaces (registry/policy+allowlist/catalog/preflight/title/banner/index/inventory baseline); schemas + manifests regenerated; 26 inventory tests pass; pnpm run check green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ee717455e9e86187abe01dd263b3e7f251228385",
+      "completedAt": "2026-07-22T22:40:05.132Z",
+      "completed_at": "2026-07-22T22:40:05.132Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-22T22:30:10.799Z",
+      "completed_by": "user",
+      "approval_evidence": "User directed build directly/fast, no full ceremony. Read-only follow-up completing completeDeltaTooling's read side.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "53b462b4ba80d6448e4e013559fa9e9b09b91c3b92cafe9d230f1ab57000d075",
+        "non_whitespace_chars": 1257,
+        "checked_at": "2026-07-22T22:29:38.139Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-22T22:30:15.805Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted. Confirmed no adv_delta_list/show exists (tool catalog, 88 tools, all delta tools write). Read-only design; disk-first read of change.deltas[].",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "non_whitespace_chars": 1107,
+        "checked_at": "2026-07-22T22:29:38.140Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "started_at": "2026-07-22T22:30:26.415Z",
+      "completed_at": "2026-07-22T22:30:53.463Z",
+      "completed_by": "agent",
+      "approval_evidence": "Read-only two-tool design persisted. No validator needed (read-only, no tradeoff).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "8fe569b919bd230cfd8480d33d4194559bcc111ad531c99d3e27079f2a929b46",
+        "non_whitespace_chars": 1208,
+        "checked_at": "2026-07-22T22:29:38.142Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-22T22:30:57.710Z",
+      "completed_by": "agent",
+      "approval_evidence": "User directed build directly/fast. 2 tasks: implement list+show tools, wire parity + verify. All 4 AC covered."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-22T22:40:12.402Z",
+      "completed_by": "agent",
+      "approval_evidence": "2/2 tasks done. adv_delta_list + adv_delta_show read-only tools; 52 spec-delta + 26 inventory tests pass; pnpm run check green. Read-only (no workflow change) — low merge-conflict risk with replaceRecoveryToolSprawl."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-22T22:49:20.822Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "6b490a899e8b6c8a358553a259273061c1d83ee2c699bdf463583b8e576aec60",
+        "non_whitespace_chars": 1309,
+        "checked_at": "2026-07-22T22:29:38.143Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "followup:completeDeltaTooling-read-side"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+      "approvedAt": "2026-07-22T22:30:14.141Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "adv_delta_list(changeId) returns bounded rows {id, operation, capability, target (target_id or requirement.id), title} for all staged deltas across capabilities; supports capability filter + offset/limit pagination (default limit 25, cap 100); output stays within budget for delta-heavy changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "adv_delta_show(changeId, capability, deltaId) returns the full staged delta; typed not-found error on unknown deltaId with no mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Both are read-only (no signal/mutation), read change.deltas[] disk-first, and function on a change whose workflow is orphaned/unreachable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Tools registered across all parity surfaces (registry/policy/catalog/preflight/title/banner/index allowlist); schemas:check + generate:manifests:check green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Read-only — no signals, no reducers, no workflows.ts edit, no migration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Bounded/paginated output — never emit unbounded delta content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change adv_change_show truncation behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not interrupt the replaceRecoveryToolSprawl agent; merge-time coordination only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-22T22:50:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "spec-delta.test.ts: adv_delta_list returns bounded rows {id, operation, capability, target, title} across capabilities; capability filter + offset/limit pagination with hasMore; summary rows keep output bounded"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "spec-delta.test.ts: adv_delta_show returns full staged delta by id; typed not-found (error contains deltaId) on unknown id, no mutation"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Both read change.data.deltas via activeStore.changes.get (disk-first, same path as adv_change_show/validate); no signals/mutation; function regardless of workflow reachability"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Registered in tool-registry, tool-role-policy (+allowlist), tool-catalog-entries, tool-arg-preflight, tool-title, banner, index allowlist, inventory baseline; 26 inventory tests + generate:manifests:check + schemas:check green"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No signals, reducers, or workflows.ts edits; no store schema change; no migration"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_delta_list returns summary rows only with default limit 25 / cap 100; never emits unbounded delta content"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv_change_show truncation behavior untouched"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "replaceRecoveryToolSprawl agent not interrupted; worktree-isolated; read-only change minimizes merge conflict"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "adv_delta_list(changeId) returns bounded rows {id, operation, capability, target (target_id or requirement.id), title} for all staged deltas across capabilities; supports capability filter + offset/limit pagination (default limit 25, cap 100); output stays within budget for delta-heavy changes.",
+    "adv_delta_show(changeId, capability, deltaId) returns the full staged delta; typed not-found error on unknown deltaId with no mutation.",
+    "Both are read-only (no signal/mutation), read change.deltas[] disk-first, and function on a change whose workflow is orphaned/unreachable.",
+    "Tools registered across all parity surfaces (registry/policy/catalog/preflight/title/banner/index allowlist); schemas:check + generate:manifests:check green."
+  ],
+  "documents": {
+    "proposal": "## Problem\nConfirmed via tool catalog: all 6 delta tools are realm:spec/group:write; no adv_delta_list or adv_delta_show exists. The only read path (adv_change_show) truncates the deltas array past the 21k budget. So staged deltas whose ids aren't already known cannot be enumerated, read, amended, or retracted.\n\n## Fix (read-only, no workflow change)\n- adv_delta_list(changeId, capability?, offset?, limit?) — bounded paginated rows {id, operation, target_id or requirement.id, title, capability}. Default limit ~25, cap ~100. Surfaces the ids amend/retract need without blowing the output budget.\n- adv_delta_show(changeId, capability, deltaId) — full content of one staged delta for exact-postimage verification. Typed not-found on unknown id.\n\nBoth read change.deltas[] disk-first (survive orphaned workflows). realm:spec, group:read, risk:low. NO signal, NO reducer, NO workflows.ts edit → no replay-determinism concern; only additive parity surfaces (registry/policy/catalog/preflight/title/banner/index allowlist) overlap the in-flight replaceRecoveryToolSprawl (mechanical merge).\n\n## Verification\nTool unit tests: list returns ids for a multi-delta change, respects pagination + capability filter, stays under budget; show returns full delta by id, typed not-found on unknown id. schemas:check + generate:manifests:check green. No migration.\n\n## Out of scope\nAny write/mutation; changing adv_change_show truncation; archive preview.",
+    "problemStatement": "The staged-delta write vocabulary (adv_delta_add/modify/amend/remove/rename/retract) is complete, but there is NO read primitive. amend/retract require a deltaId that prior sessions never surface; adv_change_show truncates deltas past its ~21k output budget (a change with ~30k of deltas loses them); and archive dryRun needs all 7 gates so there is no mid-flight preview. Prior-session staged deltas become unreadable and unfixable. Add read-only adv_delta_list (bounded, paginated) + adv_delta_show (full single delta) to surface delta ids + content.",
+    "agreement": "## Objectives\nProvide read access to staged spec-deltas so their ids + content can be surfaced (making amend/retract usable) without exceeding output budgets.\n\n## Acceptance Criteria\n- AC1: adv_delta_list(changeId) returns bounded rows {id, operation, capability, target (target_id or requirement.id), title} for all staged deltas across capabilities; supports capability filter + offset/limit pagination (default limit 25, cap 100); output stays within budget for delta-heavy changes.\n- AC2: adv_delta_show(changeId, capability, deltaId) returns the full staged delta; typed not-found error on unknown deltaId with no mutation.\n- AC3: Both are read-only (no signal/mutation), read change.deltas[] disk-first, and function on a change whose workflow is orphaned/unreachable.\n- AC4: Tools registered across all parity surfaces (registry/policy/catalog/preflight/title/banner/index allowlist); schemas:check + generate:manifests:check green.\n\n## Constraints\n- C1: Read-only — no signals, no reducers, no workflows.ts edit, no migration.\n- C2: Bounded/paginated output — never emit unbounded delta content.\n\n## Avoidances\n- DONT1: Do not change adv_change_show truncation behavior.\n- DONT2: Do not interrupt the replaceRecoveryToolSprawl agent; merge-time coordination only.",
+    "design": "## Architecture (read-only)\n\nTwo tool handlers in `tools/spec-delta.ts` reading `change.deltas[]` via the store's change read (disk-first — same path adv_change_show/validate use; survives orphaned workflows). No signal, no reducer, no workflows.ts edit → no replay-determinism concern, no migration.\n\n### adv_delta_list(changeId, capability?, offset?, limit?)\n- Load change; flatten `deltas[cap][]` across capabilities (or filter to `capability`).\n- Map each to a bounded row: `{ id, operation, capability, target: delta.target_id ?? delta.requirement?.id, title: delta.requirement?.title ?? delta.new_title ?? delta.changes?.title }`.\n- Paginate: default limit 25, cap 100. Return `{ rows, pagination: { total, returned, offset, hasMore } }`.\n- Bounded output by construction (summary rows only) — fixes the adv_change_show truncation gap.\n\n### adv_delta_show(changeId, capability, deltaId)\n- Find delta by id under capability; return the full delta object. Typed not-found error on unknown id (no mutation).\n\n## Wiring (parity surfaces, mirror completeDeltaTooling)\ntool-registry.ts, tool-role-policy.ts (realm:spec group:read risk:low), tool-catalog-entries.ts, tool-arg-preflight.ts, tool-title.ts, banner.ts, index.ts active-change allowlist. Then schemas:generate + generate:manifests.\n\n## Validator\nRead-only, no user-value tradeoff — no independent validation needed.",
+    "executiveSummary": "## Outcome\n\nTwo read-only tools complete the staged-delta vocabulary: `adv_delta_list` (bounded, paginated summary of staged deltas) and `adv_delta_show` (full single delta by id). They surface the delta ids that `adv_delta_amend`/`adv_delta_retract` require — previously unrecoverable.\n\n## Why It Matters\n\n`completeDeltaTooling` shipped the write side (amend/retract/remove/rename) but those need a `deltaId`, and there was no way to read staged deltas: `adv_change_show` truncates past its ~21k output budget for delta-heavy changes, and prior-session delta ids were lost. Another agent hit exactly this — 3 prior-session staged deltas were unreadable and unfixable. This closes that gap: list → get ids → show → amend/retract.\n\n## Verification\n\n- 52 spec-delta tests (6 new read tests: cross-capability list, capability filter, pagination + hasMore, empty change, show-by-id, unknown-id not-found) + 26 inventory tests pass\n- `pnpm run check` green (typecheck/lint/format/schemas/manifests)\n- Wired across all 8 parity surfaces; inventory baseline 88→90\n\n## Structural properties\n\n- Read-only — no signal, no reducer, no workflows.ts edit → no replay-determinism concern, minimal merge-conflict risk with the in-flight replaceRecoveryToolSprawl\n- Disk-first read — works even when the change workflow is orphaned\n- Bounded/paginated output by construction (fixes the truncation gap); no migration\n\n## Risks / Follow-ups\nNone material. Optional future: target_path read routing (local-only in v1, sufficient for the need).",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-22T22:50:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | adv_delta_list(changeId) returns bounded rows {id, operation, capability, target (target_id or requirement.id), title} for all staged deltas across capabilities; supports capability filter + offset/limit pagination (default limit 25, cap 100); output stays within budget for delta-heavy changes. | pass | spec-delta.test.ts: adv_delta_list returns bounded rows {id, operation, capability, target, title} across capabilities; capability filter + offset/limit pagination with hasMore; summary rows keep output bounded |\n| AC2 | acceptance_criterion | adv_delta_show(changeId, capability, deltaId) returns the full staged delta; typed not-found error on unknown deltaId with no mutation. | pass | spec-delta.test.ts: adv_delta_show returns full staged delta by id; typed not-found (error contains deltaId) on unknown id, no mutation |\n| AC3 | acceptance_criterion | Both are read-only (no signal/mutation), read change.deltas[] disk-first, and function on a change whose workflow is orphaned/unreachable. | pass | Both read change.data.deltas via activeStore.changes.get (disk-first, same path as adv_change_show/validate); no signals/mutation; function regardless of workflow reachability |\n| AC4 | acceptance_criterion | Tools registered across all parity surfaces (registry/policy/catalog/preflight/title/banner/index allowlist); schemas:check + generate:manifests:check green. | pass | Registered in tool-registry, tool-role-policy (+allowlist), tool-catalog-entries, tool-arg-preflight, tool-title, banner, index allowlist, inventory baseline; 26 inventory tests + generate:manifests:check + schemas:check green |\n| C1 | constraint | Read-only — no signals, no reducers, no workflows.ts edit, no migration. | respected | No signals, reducers, or workflows.ts edits; no store schema change; no migration |\n| C2 | constraint | Bounded/paginated output — never emit unbounded delta content. | respected | adv_delta_list returns summary rows only with default limit 25 / cap 100; never emits unbounded delta content |\n| DONT1 | avoidance | Do not change adv_change_show truncation behavior. | respected | adv_change_show truncation behavior untouched |\n| DONT2 | avoidance | Do not interrupt the replaceRecoveryToolSprawl agent; merge-time coordination only. | respected | replaceRecoveryToolSprawl agent not interrupted; worktree-isolated; read-only change minimizes merge conflict |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-22T22:29:38.191Z",
+      "contentHash": "53b462b4ba80d6448e4e013559fa9e9b09b91c3b92cafe9d230f1ab57000d075",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-22T22:29:38.191Z",
+      "contentHash": "ad8ed9256046b3adcf0eb4c2fc3485f9337929649f234b283e81c02f83fa1ad4",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-22T22:30:09.613Z",
+      "contentHash": "0c2f173ce235abee2bf252a7e0433ab6d28dd7c0795b067a47800a29fa6ef76d",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-22T22:30:45.712Z",
+      "contentHash": "8fe569b919bd230cfd8480d33d4194559bcc111ad531c99d3e27079f2a929b46",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-22T22:49:07.940Z",
+      "contentHash": "6b490a899e8b6c8a358553a259273061c1d83ee2c699bdf463583b8e576aec60",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-22T22:49:20.822Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
