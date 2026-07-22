@@ -527,11 +527,6 @@ export function createToolMap(
       "adv_change_reenter",
       store,
     ),
-    adv_change_forget: bindTool(
-      changeTools.adv_change_forget,
-      "adv_change_forget",
-      store,
-    ),
 
     // Epic Tools
     adv_epic_create: bindTool(

@@ -6,6 +6,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { AdvancePlugin } from "../index";
+import { getDoctorPointerRepairProvider } from "../tools/doctor";
 import {
   getStatus,
   resetStatusForTest,
@@ -116,9 +117,6 @@ const createMockPluginInput = (directory: string) => ({
 
 const terminalOutput = (changeId: string, success = true) =>
   JSON.stringify({ success, changeId });
-
-const forgetOutput = (changeId: string) =>
-  JSON.stringify({ success: true, changeId, action: "forget", cleared: true });
 
 function makeFakeStore(
   overrides: {
@@ -318,7 +316,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
     });
   });
 
-  describe("T5 — adv_change_forget validation + clear", () => {
+  describe("T5 — phantom-pointer clearing via adv_doctor provider (option B)", () => {
     const setPointerViaCreate = async (changeId: string) => {
       await hooks["tool.execute.after"]!(
         { tool: "adv_change_create" } as any,
@@ -329,62 +327,40 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       );
     };
 
-    it("clears pointer when changeId matches active pointer", async () => {
+    // rq-recoverySurfaceParity01 / rq-doctorConsolidation01 option B:
+    // adv_change_forget was retired. Its session-pointer clearing is now
+    // owned by adv_doctor via the pointer-repair provider that index.ts
+    // injects during plugin init. These tests verify the WIRING: the
+    // injected provider reads and clears the real session pointer.
+
+    it("index.ts injects a pointer-repair provider after plugin init", async () => {
       await createPlugin();
-      const activeId = "forgetMatch";
+      expect(getDoctorPointerRepairProvider()).not.toBeNull();
+    });
+
+    it("provider.getActivePointer reflects the current session pointer", async () => {
+      await createPlugin();
+      const activeId = "providerReads";
       await setPointerViaCreate(activeId);
       expect(getStatus().activeChangeId).toBe(activeId);
-      await hooks["tool.execute.after"]!(
-        { tool: "adv_change_forget" } as any,
-        { args: { changeId: activeId }, output: forgetOutput(activeId) } as any,
+      expect(getDoctorPointerRepairProvider()!.getActivePointer()).toBe(
+        activeId,
       );
+    });
+
+    it("provider.clearActivePointer clears the session pointer", async () => {
+      await createPlugin();
+      const activeId = "providerClears";
+      await setPointerViaCreate(activeId);
+      expect(getStatus().activeChangeId).toBe(activeId);
+      getDoctorPointerRepairProvider()!.clearActivePointer();
       expect(getStatus().activeChangeId).toBeNull();
     });
 
-    it("throws FORGET_MISMATCH when changeId does not match active pointer", async () => {
+    it("provider.clearActivePointer is idempotent when no pointer is set", async () => {
       await createPlugin();
-      const activeId = "forgetActive";
-      await setPointerViaCreate(activeId);
-      expect(getStatus().activeChangeId).toBe(activeId);
-      await expect(
-        hooks["tool.execute.before"]!(
-          { tool: "adv_change_forget", sessionID: "main" } as any,
-          { args: { changeId: "wrongId" } } as any,
-        ),
-      ).rejects.toThrow(/FORGET_MISMATCH/);
-    });
-
-    it("is idempotent when no active pointer is set", async () => {
-      await createPlugin();
-      await expect(
-        hooks["tool.execute.before"]!(
-          { tool: "adv_change_forget", sessionID: "main" } as any,
-          { args: { changeId: "anything" } } as any,
-        ),
-      ).resolves.toBeUndefined();
-      await hooks["tool.execute.after"]!(
-        { tool: "adv_change_forget" } as any,
-        {
-          args: { changeId: "anything" },
-          output: forgetOutput("anything"),
-        } as any,
-      );
       expect(getStatus().activeChangeId).toBeNull();
-    });
-
-    it("is idempotent after pointer already cleared", async () => {
-      await createPlugin();
-      const activeId = "forgetTwice";
-      await setPointerViaCreate(activeId);
-      expect(getStatus().activeChangeId).toBe(activeId);
-      await hooks["tool.execute.after"]!(
-        { tool: "adv_change_forget" } as any,
-        { args: { changeId: activeId }, output: forgetOutput(activeId) } as any,
-      );
-      await hooks["tool.execute.after"]!(
-        { tool: "adv_change_forget" } as any,
-        { args: { changeId: activeId }, output: forgetOutput(activeId) } as any,
-      );
+      getDoctorPointerRepairProvider()!.clearActivePointer();
       expect(getStatus().activeChangeId).toBeNull();
     });
   });
@@ -602,7 +578,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       expect(getStatus().activeEpicId).toBeNull();
     });
 
-    it("lets adv_change_forget bypass the reachability gate", async () => {
+    it("provider clears a pointer even when the change is unreachable (phantom)", async () => {
       mockStore = makeFakeStore({
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set(),
@@ -617,15 +593,11 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         } as any,
       );
       expect(getStatus().activeChangeId).toBe("ghost");
-      // Forget should succeed even though the change is not reachable.
-      await hooks["tool.execute.before"]!(
-        { tool: "adv_change_forget", sessionID: "main" } as any,
-        { args: { changeId: "ghost" } } as any,
-      );
-      await hooks["tool.execute.after"]!(
-        { tool: "adv_change_forget" } as any,
-        { args: { changeId: "ghost" }, output: forgetOutput("ghost") } as any,
-      );
+      // The doctor pointer-repair provider clears unconditionally when
+      // invoked; the confirmed-absent gating lives in adv_doctor's probe
+      // (covered by doctor.test.ts). Here we assert the wiring clears the
+      // real session pointer.
+      getDoctorPointerRepairProvider()!.clearActivePointer();
       expect(getStatus().activeChangeId).toBeNull();
     });
   });

@@ -181,11 +181,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Change creation.",
   },
-  adv_change_forget: {
-    class: "orchestrator",
-    rationale:
-      "In-memory session active-change pointer clear; no persistent mutation.",
-  },
   adv_change_list: {
     class: "orchestrator",
     rationale: "Change inventory read.",
@@ -483,7 +478,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_change_bulk_close",
       "adv_change_close",
       "adv_change_create",
-      "adv_change_forget",
       "adv_change_list",
       "adv_change_reenter",
       "adv_change_repair_origin",

@@ -5043,51 +5043,6 @@ describe("change tools — signal-driven lifecycle", () => {
   });
 });
 
-import { z } from "zod";
-
-describe("adv_change_forget", () => {
-  test("emits expected success output shape", async () => {
-    const store = createMockStore();
-    const result = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange" },
-      store,
-    );
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.changeId).toBe("testChange");
-    expect(parsed.action).toBe("forget");
-    expect(parsed.cleared).toBe(true);
-  });
-
-  test("requires changeId via Zod validation", async () => {
-    await expect(
-      z.object(changeTools.adv_change_forget.args).parseAsync({}),
-    ).rejects.toThrow();
-  });
-
-  test("does not accept target_path", async () => {
-    const store = createMockStore();
-    const result = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange", target_path: "/some/other/project" },
-      store,
-    );
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.changeId).toBe("testChange");
-    expect(parsed.action).toBe("forget");
-    expect(parsed.target_path).toBeUndefined();
-  });
-
-  test("is idempotent", async () => {
-    const store = createMockStore();
-    const first = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange" },
-      store,
-    );
-    const second = await changeTools.adv_change_forget.execute(
-      { changeId: "testChange" },
-      store,
-    );
-    expect(JSON.parse(first)).toEqual(JSON.parse(second));
-  });
-});
+// rq-recoverySurfaceParity01: adv_change_forget was retired; its
+// phantom-pointer clearing moved to adv_doctor (option B). Pointer-clear
+// behavior is now covered by doctor.test.ts and _adapters.test.ts.

@@ -13,14 +13,17 @@
  *
  * The safe subset it CAN apply automatically (each backed by a proven
  * failure class, per design constraint C1):
- *   - stale transport         → STSL reinit (adv_temporal_reconnect behavior)
+ *   - stale transport         → STSL reinit
  *   - missing search attrs    → registerMissingAdvSearchAttributes (missing-only)
- *   - worker_down + owned     → worker restart (no lock reclaim)
+ *   - worker_down + owned      → worker restart (no lock reclaim)
+ *   - phantom session pointer  → clear the session active-change pointer
+ *                                (confirmed-absent only; indeterminate refuses)
  *
- * The four underlying operator tools (adv_temporal_diagnose,
- * adv_temporal_register_search_attributes, adv_temporal_reconnect,
- * adv_temporal_worker_restart) continue to exist for explicit operator
- * invocation; adv_doctor is the routine orchestrator-reachable entry.
+ * adv_doctor is the single routine recovery entry point. The former
+ * per-operation recovery tools (adv_temporal_diagnose/reconnect/
+ * register_search_attributes/worker_restart, adv_archive_repair,
+ * adv_change_status_repair, adv_epic_repair_membership, adv_change_forget)
+ * were retired and consolidated here (design D6 / rq-recoverySurfaceParity01).
  */
 import { z } from "zod";
 import type { Store } from "../storage/store";
@@ -36,8 +39,14 @@ import {
 } from "../plugin-init";
 import { probeTaskQueuePollers } from "../temporal/queue-serviceability";
 import { buildProjectTaskQueue } from "../temporal/client";
-import { basename } from "path";
+import { basename, join } from "path";
+import { existsSync } from "fs";
 import { formatToolOutput } from "../utils/tool-output";
+import {
+  probeChangePhantomStatus,
+  type PhantomProbeResult,
+  type ReachabilityDeps,
+} from "./_adapters";
 
 /**
  * Typed classification of an infrastructure finding. The class name is
@@ -50,14 +59,19 @@ export type DoctorFindingClass =
   | "wrong_type_search_attributes"
   | "worker_down_owned"
   | "suspect_lock"
-  | "ambiguous_ownership";
+  | "ambiguous_ownership"
+  | "phantom_pointer";
 
 /**
  * A safe fix the doctor applied automatically. Bounded evidence per AC9.
  */
 export interface DoctorFixApplied {
   class: DoctorFindingClass;
-  action: "stsl_reinit" | "register_missing" | "worker_restart";
+  action:
+    | "stsl_reinit"
+    | "register_missing"
+    | "worker_restart"
+    | "clear_session_pointer";
   outcome: "applied" | "no_op" | "failed";
   before?: unknown;
   after?: unknown;
@@ -96,6 +110,37 @@ interface DoctorInput {
   target_path?: string;
   target_confirmed?: true;
   confirmationEvidence?: string;
+}
+
+// rq-doctorConsolidation01 option B: phantom-pointer safe-fix.
+// Module-level provider following the getCurrentSessionId pattern.
+// Injected by plugin-host (index.ts) only; tests and MCP-server see null,
+// so the phantom_pointer check is skipped in those contexts.
+export interface DoctorPointerRepairProvider {
+  /** Returns the current active-change changeId, or null if none. */
+  getActivePointer(): string | null;
+  /** Clears the active-change pointer (sets to null). */
+  clearActivePointer(): void;
+}
+
+let pointerRepairProvider: DoctorPointerRepairProvider | null = null;
+
+/**
+ * Set the pointer-repair provider. Called once during plugin-host
+ * initialization (index.ts). Pass null to disable (tests, MCP-server).
+ */
+export function setDoctorPointerRepairProvider(
+  provider: DoctorPointerRepairProvider | null,
+): void {
+  pointerRepairProvider = provider;
+}
+
+/**
+ * Read the current pointer-repair provider. Test/integration hook so the
+ * plugin-host wiring (index.ts) can be verified end-to-end.
+ */
+export function getDoctorPointerRepairProvider(): DoctorPointerRepairProvider | null {
+  return pointerRepairProvider;
 }
 
 interface TemporalHealthSnapshot {
@@ -183,6 +228,23 @@ async function probeQueue(
   } catch {
     return false;
   }
+}
+
+/**
+ * Push a finding that supersedes an optimistic `healthy` finding. If the
+ * findings list only contains `healthy`, it is replaced; otherwise the new
+ * finding is appended. Keeps the phantom-pointer check (which runs after the
+ * healthy default is set) from producing a contradictory `healthy` +
+ * `phantom_pointer` result.
+ */
+function addNonHealthyFinding(
+  findings: DoctorFinding[],
+  finding: DoctorFinding,
+): void {
+  if (findings.length === 1 && findings[0].class === "healthy") {
+    findings.splice(0, 1);
+  }
+  findings.push(finding);
 }
 
 function isSuspectLock(
@@ -331,6 +393,64 @@ export const doctorTools = {
         findings.push({ class: "healthy", detail: "All checks passed" });
       }
 
+      // rq-doctorConsolidation01 option B: phantom session-pointer check.
+      // Only runs in the plugin-host (provider injected); tests and MCP
+      // server see a null provider and skip this entirely. Uses a tri-state
+      // probe so the pointer is cleared ONLY on confirmed-absent evidence,
+      // never on a transport failure / timeout (indeterminate → refuse).
+      let phantomProbe: PhantomProbeResult | null = null;
+      const activePointer = pointerRepairProvider?.getActivePointer() ?? null;
+      if (pointerRepairProvider && activePointer && projectId) {
+        try {
+          // Conservative tri-state deps: disk is the deterministic absent
+          // signal (existsSync); store lookups PROPAGATE errors so a
+          // transport failure classifies as indeterminate rather than a
+          // false "absent" (the isChangeReachable deps swallow errors to
+          // false — unsafe for a clearing decision).
+          const phantomDeps: ReachabilityDeps = {
+            visibilityLister: async (_pid: string, cid: string) => {
+              const result = await store.changes.get(cid);
+              return result.success;
+            },
+            diskChecker: async (_dir: string, cid: string) =>
+              existsSync(join(store.paths.changes, cid, "change.json")),
+            workflowStateGetter: async (cid: string) => {
+              const result = await store.changes.get(cid);
+              return result.success;
+            },
+          };
+          phantomProbe = await probeChangePhantomStatus(
+            projectId,
+            activePointer,
+            phantomDeps,
+            store.paths.changes,
+          );
+          if (phantomProbe.status === "confirmed_absent") {
+            addNonHealthyFinding(findings, {
+              class: "phantom_pointer",
+              detail: `Session active-change pointer references '${activePointer}' which is confirmed absent (${phantomProbe.evidence})`,
+            });
+          } else if (phantomProbe.status === "indeterminate") {
+            addNonHealthyFinding(findings, {
+              class: "phantom_pointer",
+              detail: `Session pointer '${activePointer}' could not be confirmed present or absent (${phantomProbe.evidence})`,
+            });
+          }
+          // confirmed_present → pointer is valid; no finding.
+        } catch (err) {
+          phantomProbe = {
+            status: "indeterminate",
+            evidence: `phantom probe threw: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          };
+          addNonHealthyFinding(findings, {
+            class: "phantom_pointer",
+            detail: `Session pointer '${activePointer}' probe failed (${phantomProbe.evidence})`,
+          });
+        }
+      }
+
       // ── Step 2: safe fix (or refuse) ────────────────────────────────
       for (const finding of findings) {
         switch (finding.class) {
@@ -452,7 +572,7 @@ export const doctorTools = {
               class: "suspect_lock",
               outcome: "approval_required",
               operator_action:
-                "Run adv_temporal_worker_restart with approvedLockReclaim:true and non-blank approvalEvidence citing the operator's explicit approval to reclaim the suspect live worker.lock.",
+                "Operator must reclaim the suspect live worker.lock explicitly (stop the holding process, or restart OpenCode). Doctor never forcibly reclaims a live lock it does not own.",
               proposal: `worker.lock held by live pid=${health.worker_lock?.pid} (owned=${health.worker_lock?.owned ?? false}). Doctor refuses to forcibly reclaim; operator must approve explicitly.`,
               evidence: `worker_lock.live=${health.worker_lock?.live ?? "?"}, owned=${health.worker_lock?.owned ?? "?"}`,
             });
@@ -463,11 +583,54 @@ export const doctorTools = {
               class: "ambiguous_ownership",
               outcome: "approval_required",
               operator_action:
-                "Run adv_temporal_worker_restart with an explicit target_path (or close the peer session) so the ownership boundary is unambiguous.",
+                "Resolve the ownership ambiguity (close the peer OpenCode session, or target the specific project) before restarting the worker. Doctor cannot determine whether a local restart is safe while a peer serves the queue.",
               proposal:
-                "Local worker is down but the queue is served by a peer; doctor cannot determine whether a local restart is safe. Operator must remove the ambiguity (explicit target_path or peer session close).",
+                "Local worker is down but the queue is served by a peer; doctor cannot determine whether a local restart is safe. Operator must remove the ambiguity (close the peer session or scope to the specific project).",
               evidence: `queueServiceable=${queueServiceable}, worker_alive=${workerAlive}`,
             });
+            break;
+          }
+          case "phantom_pointer": {
+            // rq-doctorConsolidation01 option B: clear the session pointer
+            // ONLY on confirmed-absent evidence. Indeterminate → refuse
+            // (transport failure could mask a live change; clearing would
+            // lose the operator's working context).
+            if (
+              phantomProbe?.status === "confirmed_absent" &&
+              pointerRepairProvider
+            ) {
+              const before = activePointer;
+              try {
+                pointerRepairProvider.clearActivePointer();
+                fixesApplied.push({
+                  class: "phantom_pointer",
+                  action: "clear_session_pointer",
+                  outcome: "applied",
+                  before,
+                  after: null,
+                  evidence: `Cleared phantom session pointer '${before}': ${phantomProbe.evidence}`,
+                });
+              } catch (err) {
+                fixesApplied.push({
+                  class: "phantom_pointer",
+                  action: "clear_session_pointer",
+                  outcome: "failed",
+                  before,
+                  evidence: `clearActivePointer threw: ${
+                    err instanceof Error ? err.message : String(err)
+                  }`,
+                });
+              }
+            } else {
+              fixesRefused.push({
+                class: "phantom_pointer",
+                outcome: "approval_required",
+                operator_action:
+                  "Restore Temporal/store connectivity (adv_doctor's transport fixes, or restart OpenCode) then rerun adv_doctor. If the change genuinely no longer exists, the next run will confirm absence and clear the pointer.",
+                proposal: `Session pointer '${activePointer}' could not be confirmed absent (probe was indeterminate: ${phantomProbe?.evidence ?? "no probe result"}). Doctor refuses to clear on ambiguous evidence — a transport failure must not be mistaken for a deleted change.`,
+                evidence: phantomProbe?.evidence ?? "no probe result",
+              });
+            }
             break;
           }
           case "healthy":
@@ -546,9 +709,9 @@ export const doctorTools = {
           refusedCount > 0
             ? `${refusedCount} approval-required proposal(s) returned — operator must resolve manually; rerun adv_doctor after the operator action.`
             : failedCount > 0
-              ? `${failedCount} safe fix(es) failed; rerun adv_doctor or run adv_temporal_diagnose for deeper inspection.`
+              ? `${failedCount} safe fix(es) failed; rerun adv_doctor. If it persists, restart OpenCode to clear stale plugin/worker state.`
               : appliedCount > 0 && !verification.healthy
-                ? "Fixes applied but verification did not converge; run adv_temporal_diagnose for deeper inspection."
+                ? "Fixes applied but verification did not converge; rerun adv_doctor. If it persists, restart OpenCode."
                 : appliedCount > 0
                   ? "All safe fixes applied and verified; retry the previously blocked ADV command."
                   : "System healthy; no action needed.",

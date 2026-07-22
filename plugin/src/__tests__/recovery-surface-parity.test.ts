@@ -14,10 +14,12 @@
  * deletion, and is excluded here to keep this guard focused on the
  * availability surface an operator/agent actually touches.
  *
- * The remaining retirement (adv_change_forget) and the poisoned_history
- * public-arg removal are tracked separately — adv_change_forget has the
- * deepest subsystem integration (index.ts session-pointer clearing) and
- * requires dedicated scope.
+ * All eight superseded recovery tools are now retired and consolidated
+ * into adv_doctor (design D6 / rq-recoverySurfaceParity01). adv_change_forget
+ * is replaced by adv_doctor's phantom_pointer safe-fix (option B): a
+ * tri-state probe clears the session pointer only on confirmed-absent
+ * evidence and refuses on indeterminate. The poisoned_history public-arg
+ * removal is tracked separately.
  */
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "node:fs";
@@ -34,6 +36,7 @@ const RETIRED_TOOLS = [
   "adv_archive_repair",
   "adv_change_status_repair",
   "adv_epic_repair_membership",
+  "adv_change_forget",
 ] as const;
 
 /**

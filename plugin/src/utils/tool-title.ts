@@ -95,8 +95,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Repair change origin${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
-  adv_change_forget: (args) =>
-    operator(`Forget change pointer${suffix(args, "changeId")}`),
   adv_epic_create: (args) => write(`Create Epic${suffix(args, "epic_id")}`),
   adv_epic_show: (args) => read(`Show Epic${suffix(args, "epic_id")}`),
   adv_epic_list: () => read("List Epics"),

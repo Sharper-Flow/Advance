@@ -139,7 +139,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_change_update_issues",
       "adv_change_repair_origin",
       "adv_change_reenter",
-      "adv_change_forget",
       "adv_epic_create",
       "adv_epic_show",
       "adv_epic_list",

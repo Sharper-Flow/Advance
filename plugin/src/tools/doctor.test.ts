@@ -11,8 +11,8 @@
  * worker restart) are mocked — their internal correctness is covered by
  * their own test suites.
  */
-import { describe, expect, test, vi, beforeEach } from "vitest";
-import { doctorTools } from "./doctor";
+import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
+import { doctorTools, setDoctorPointerRepairProvider } from "./doctor";
 import type { Store } from "../storage/store";
 
 // ── Primitive mocks ──────────────────────────────────────────────────────
@@ -58,6 +58,14 @@ vi.mock("../temporal/queue-serviceability", () => ({
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: getProjectIdMock,
+}));
+
+const probeChangePhantomStatusMock = vi.hoisted(() => vi.fn());
+
+vi.mock("./_adapters", () => ({
+  isChangeReachable: vi.fn(),
+  probeChangePhantomStatus: probeChangePhantomStatusMock,
+  ReachabilityDeps: {},
 }));
 
 function makeStore(): Store {
@@ -404,5 +412,104 @@ describe("adv_doctor", () => {
     expect(refusal.proposal).toMatch(/operator/i);
     expect(refusal.operator_action).toBeTypeOf("string");
     expect(refusal.operator_action.length).toBeGreaterThan(0);
+  });
+
+  // rq-activeChangePointer01 / rq-doctorConsolidation01 — phantom pointer
+  // safe-fix (replaces retired adv_change_forget per option B / design D6).
+  describe("phantom_pointer safe-fix (rq-doctorConsolidation01 option B)", () => {
+    const pointerProvider = {
+      getActivePointer: vi.fn(),
+      clearActivePointer: vi.fn(),
+    };
+
+    beforeEach(() => {
+      pointerProvider.getActivePointer.mockReset();
+      pointerProvider.clearActivePointer.mockReset();
+      setDoctorPointerRepairProvider(pointerProvider);
+      probeChangePhantomStatusMock.mockReset();
+    });
+
+    afterEach(() => {
+      // Always reset the provider so other tests see null (tests/MCP shape).
+      setDoctorPointerRepairProvider(null);
+    });
+
+    test("confirmed_absent: clears pointer and records fix with evidence", async () => {
+      pointerProvider.getActivePointer.mockReturnValue("phantomChange");
+      probeChangePhantomStatusMock.mockResolvedValue({
+        status: "confirmed_absent",
+        evidence: "disk absent + Visibility not-found",
+      });
+
+      const result = await doctorTools.adv_doctor.execute({}, makeStore());
+      const parsed = JSON.parse(result);
+
+      expect(pointerProvider.clearActivePointer).toHaveBeenCalledTimes(1);
+      expect(parsed.fixes_applied).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            class: "phantom_pointer",
+            action: "clear_session_pointer",
+            outcome: "applied",
+          }),
+        ]),
+      );
+    });
+
+    test("confirmed_present: no fix applied, no pointer clear (pointer is valid)", async () => {
+      pointerProvider.getActivePointer.mockReturnValue("validChange");
+      probeChangePhantomStatusMock.mockResolvedValue({
+        status: "confirmed_present",
+        evidence: "disk present",
+      });
+
+      const result = await doctorTools.adv_doctor.execute({}, makeStore());
+      const parsed = JSON.parse(result);
+
+      expect(pointerProvider.clearActivePointer).not.toHaveBeenCalled();
+      expect(
+        parsed.fixes_applied.find(
+          (f: { class: string }) => f.class === "phantom_pointer",
+        ),
+      ).toBeUndefined();
+    });
+
+    test("indeterminate: REFUSED with typed proposal (never clears on ambiguous probe)", async () => {
+      pointerProvider.getActivePointer.mockReturnValue("ambiguousChange");
+      probeChangePhantomStatusMock.mockResolvedValue({
+        status: "indeterminate",
+        evidence: "Visibility timeout; disk check threw EACCES",
+      });
+
+      const result = await doctorTools.adv_doctor.execute({}, makeStore());
+      const parsed = JSON.parse(result);
+
+      expect(pointerProvider.clearActivePointer).not.toHaveBeenCalled();
+      expect(parsed.fixes_refused).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            class: "phantom_pointer",
+            outcome: "approval_required",
+          }),
+        ]),
+      );
+    });
+
+    test("no active pointer: skips phantom check entirely (no probe call)", async () => {
+      pointerProvider.getActivePointer.mockReturnValue(null);
+
+      await doctorTools.adv_doctor.execute({}, makeStore());
+
+      expect(probeChangePhantomStatusMock).not.toHaveBeenCalled();
+      expect(pointerProvider.clearActivePointer).not.toHaveBeenCalled();
+    });
+
+    test("no pointer-repair provider (tests/MCP): skips phantom check entirely", async () => {
+      setDoctorPointerRepairProvider(null);
+
+      await doctorTools.adv_doctor.execute({}, makeStore());
+
+      expect(probeChangePhantomStatusMock).not.toHaveBeenCalled();
+    });
   });
 });

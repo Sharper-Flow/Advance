@@ -13,6 +13,7 @@ import {
   getChangeHandle,
   startChangeWorkflow,
   isChangeReachable,
+  probeChangePhantomStatus,
   waitForGateCompletion,
   waitForAppliedReceipt,
   waitForQueryPredicate,
@@ -706,6 +707,116 @@ describe("isChangeReachable", () => {
     await expect(
       isChangeReachable("proj-123", "chg-456", deps, changesDir),
     ).resolves.toBe(false);
+  });
+});
+
+// rq-doctorConsolidation01 option B — tri-state phantom probe.
+describe("probeChangePhantomStatus (tri-state)", () => {
+  const changesDir = "/data/changes";
+
+  function createDeps(
+    overrides: Partial<ReachabilityDeps> = {},
+  ): ReachabilityDeps {
+    return {
+      visibilityLister: vi.fn(async () => false),
+      diskChecker: vi.fn(async () => false),
+      workflowStateGetter: vi.fn(async () => false),
+      ...overrides,
+    };
+  }
+
+  test("all tiers report absent → confirmed_absent", async () => {
+    const deps = createDeps();
+    const result = await probeChangePhantomStatus(
+      "proj-1",
+      "chg-1",
+      deps,
+      changesDir,
+    );
+    expect(result.status).toBe("confirmed_absent");
+    expect(result.evidence).toMatch(/visibility.*disk.*workflow-state/);
+  });
+
+  test("first tier finds change → confirmed_present, short-circuits", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => true),
+    });
+    const result = await probeChangePhantomStatus(
+      "proj-1",
+      "chg-1",
+      deps,
+      changesDir,
+    );
+    expect(result.status).toBe("confirmed_present");
+    expect(deps.diskChecker).not.toHaveBeenCalled();
+    expect(deps.workflowStateGetter).not.toHaveBeenCalled();
+  });
+
+  test("disk tier finds change after visibility miss → confirmed_present", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => false),
+      diskChecker: vi.fn(async () => true),
+    });
+    const result = await probeChangePhantomStatus(
+      "proj-1",
+      "chg-1",
+      deps,
+      changesDir,
+    );
+    expect(result.status).toBe("confirmed_present");
+    expect(deps.workflowStateGetter).not.toHaveBeenCalled();
+  });
+
+  test("a tier THROWS → indeterminate (never confirmed_absent)", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => {
+        throw new Error("Visibility RPC timeout");
+      }),
+    });
+    const result = await probeChangePhantomStatus(
+      "proj-1",
+      "chg-1",
+      deps,
+      changesDir,
+    );
+    expect(result.status).toBe("indeterminate");
+    expect(result.evidence).toMatch(/visibility.*threw/);
+    // Must NOT fall through to disk/workflow after an error — the change
+    // may exist; we simply couldn't confirm.
+    expect(deps.diskChecker).not.toHaveBeenCalled();
+  });
+
+  test("disk throws (EACCES) after visibility miss → indeterminate", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => false),
+      diskChecker: vi.fn(async () => {
+        throw new Error("EACCES");
+      }),
+    });
+    const result = await probeChangePhantomStatus(
+      "proj-1",
+      "chg-1",
+      deps,
+      changesDir,
+    );
+    expect(result.status).toBe("indeterminate");
+    expect(result.evidence).toMatch(/disk.*threw/);
+  });
+
+  test("workflow tier throws after visibility+disk miss → indeterminate", async () => {
+    const deps = createDeps({
+      workflowStateGetter: vi.fn(async () => {
+        throw new Error("workflow query failed");
+      }),
+    });
+    const result = await probeChangePhantomStatus(
+      "proj-1",
+      "chg-1",
+      deps,
+      changesDir,
+    );
+    expect(result.status).toBe("indeterminate");
+    expect(result.evidence).toMatch(/workflow-state.*threw/);
   });
 });
 
