@@ -28,6 +28,9 @@ import {
   CapabilityKeySchema,
   DeltaAddSchema,
   DeltaModifySchema,
+  DeltaRemoveSchema,
+  DeltaRenameSchema,
+  DeltaSchema,
 } from "./specs";
 import { AttemptSchema, TaskApplyCycleSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
@@ -381,6 +384,70 @@ export const SpecDeltaModifiedSignalPayloadSchema = z
   .strict();
 export type SpecDeltaModifiedSignalPayload = z.infer<
   typeof SpecDeltaModifiedSignalPayloadSchema
+>;
+
+/**
+ * Full-replacement amend payload for an existing staged delta. The new delta
+ * carries the same id as `deltaId` and replaces the existing entry in place.
+ */
+export const SpecDeltaAmendedSignalPayloadSchema = z
+  .object({
+    capability: CapabilityKeySchema,
+    deltaId: z.string(),
+    delta: DeltaSchema,
+    amendedAt: IsoTimestampSchema,
+    amendedBy: z.string().optional(),
+  })
+  .strict();
+export type SpecDeltaAmendedSignalPayload = z.infer<
+  typeof SpecDeltaAmendedSignalPayloadSchema
+>;
+
+/**
+ * Retraction payload: removes an existing staged delta by id from the
+ * capability-local delta record.
+ */
+export const SpecDeltaRetractedSignalPayloadSchema = z.object({
+  capability: CapabilityKeySchema,
+  deltaId: z.string(),
+  retractedAt: IsoTimestampSchema,
+  retractedBy: z.string().optional(),
+});
+export type SpecDeltaRetractedSignalPayload = z.infer<
+  typeof SpecDeltaRetractedSignalPayloadSchema
+>;
+
+/**
+ * Remove-operation delta writer payload. Mirrors modify semantics: the tool
+ * proves the target exists before signaling; the reducer records the intent.
+ */
+export const SpecDeltaRemovedSignalPayloadSchema = z
+  .object({
+    capability: CapabilityKeySchema,
+    delta: DeltaRemoveSchema,
+    removedAt: IsoTimestampSchema,
+    removedBy: z.string().optional(),
+  })
+  .strict();
+export type SpecDeltaRemovedSignalPayload = z.infer<
+  typeof SpecDeltaRemovedSignalPayloadSchema
+>;
+
+/**
+ * Rename-operation delta writer payload. Mirrors modify semantics: the reducer
+ * records the rename intent; downstream archive validators enforce new_id
+ * uniqueness and ordering.
+ */
+export const SpecDeltaRenamedSignalPayloadSchema = z
+  .object({
+    capability: CapabilityKeySchema,
+    delta: DeltaRenameSchema,
+    renamedAt: IsoTimestampSchema,
+    renamedBy: z.string().optional(),
+  })
+  .strict();
+export type SpecDeltaRenamedSignalPayload = z.infer<
+  typeof SpecDeltaRenamedSignalPayloadSchema
 >;
 
 export const ReflectionRecordedSignalPayloadSchema = z.object({

@@ -14,7 +14,6 @@ function mockClient(
 ): OrphanListClient {
   return {
     workflow: {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       async *list(_opts: { query: string }) {
         for (const e of entries) {
           yield { ...e, status: { name: "RUNNING" } };

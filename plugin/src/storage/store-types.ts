@@ -20,8 +20,11 @@ import type {
   TaskReadyResponse,
   ProjectStatus,
   ChangeRecency,
+  Delta,
   DeltaAdd,
   DeltaModify,
+  DeltaRemove,
+  DeltaRename,
   WisdomEntry,
   WisdomType,
   Cancellation,
@@ -441,6 +444,31 @@ export interface Store {
       delta: DeltaModify,
       options?: { modifiedBy?: string },
     ) => Promise<DeltaModify>;
+    amend: (
+      changeId: string,
+      capability: string,
+      deltaId: string,
+      delta: Delta,
+      options?: { amendedBy?: string },
+    ) => Promise<Delta>;
+    retract: (
+      changeId: string,
+      capability: string,
+      deltaId: string,
+      options?: { retractedBy?: string },
+    ) => Promise<void>;
+    remove: (
+      changeId: string,
+      capability: string,
+      delta: DeltaRemove,
+      options?: { removedBy?: string },
+    ) => Promise<DeltaRemove>;
+    rename: (
+      changeId: string,
+      capability: string,
+      delta: DeltaRename,
+      options?: { renamedBy?: string },
+    ) => Promise<DeltaRename>;
   };
 
   // Gates
