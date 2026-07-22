@@ -45,7 +45,7 @@ import {
 export const HEALTH_SNAPSHOT_TTL_MS = 30000;
 export const MISSING_PROJECT_ID_CACHE_KEY = "__current_project__";
 const STATUS_PROBE_TIMEOUT_MS = 2_000;
-export const STATUS_PROBE_TTL_MS = 2_000;
+export const STATUS_PROBE_TTL_MS = 10_000;
 
 export interface StatusProbeFetchOptions {
   forceRefresh?: boolean;

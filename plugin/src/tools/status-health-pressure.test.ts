@@ -66,6 +66,11 @@ vi.mock("./session/index", () => ({
   listPeerSessions: mockListPeerSessions,
 }));
 
+vi.mock("../utils/tool-lane-projection", () => ({
+  getLaneProjections: vi.fn().mockResolvedValue({}),
+  resetLaneProjectionsCache: () => {},
+}));
+
 vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("./archive-helpers/git-finalize")>();
@@ -452,6 +457,7 @@ describe("health view bounded pressure contract", () => {
       "migration_status",
       "spec_requirement_count",
       "temporal_queue_serviceability",
+      "tool_lane_projections",
     ];
     expect(sources).toEqual(expectedOrder);
   });

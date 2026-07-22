@@ -99,6 +99,11 @@ vi.mock("./session/index", () => ({
   listPeerSessions: (...args: unknown[]) => mockListPeerSessions(...args),
 }));
 
+vi.mock("../utils/tool-lane-projection", () => ({
+  getLaneProjections: vi.fn().mockResolvedValue({}),
+  resetLaneProjectionsCache: () => {},
+}));
+
 vi.mock("../utils/worker-process-probe", () => ({
   enumerateAdvWorkerProcesses: (...args: unknown[]) =>
     mockEnumerateAdvWorkerProcesses(...args),

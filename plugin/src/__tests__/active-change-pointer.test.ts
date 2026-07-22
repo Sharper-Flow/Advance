@@ -43,6 +43,7 @@ vi.mock("../tool-registry", async () => {
     ...actual,
     createToolMap: vi.fn(() => ({})),
     createDegradedToolMap: vi.fn(() => ({})),
+    getRegisteredAdvToolEntries: vi.fn(() => []),
   };
 });
 

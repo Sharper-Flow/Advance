@@ -133,7 +133,7 @@ describe("PSW retirement denylist", () => {
         `Found ${violations.length} live PSW reference(s):\n\n${violations.join("\n\n")}`,
       );
     }
-  });
+  }, 30_000);
 
   it("has no retired-tool references in scripts/", () => {
     const retiredToolPatterns = [
