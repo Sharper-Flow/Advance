@@ -64,9 +64,9 @@ Use this order. Do not skip to Temporal repair because a file path is missing.
 2. If `adv_change_show` + `adv_gate_status` load state, classify `state_reachable_not_phantom`; tell primary ADV to resume from gate state.
 3. If target project is ambiguous, compare packet `TARGET_PATH` with `_projectContext` from ADV tools. Classify `target_path_confusion` when the wrong project/shard was queried.
 4. If artifact metadata says `readable:false`, or a presumed sidecar is missing, classify `artifact_readability_mismatch`. Artifact content must come from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet content, not filesystem fallback.
-5. Use `adv_temporal_diagnose` for worker/STSL/change-workflow reachability evidence. If the queue is peer-serviceable while the local worker is down, classify `peer_serviceable_local_worker_dead` and do not recommend blind restart.
+5. Use `adv_doctor` for worker/STSL/change-workflow reachability evidence. It diagnoses, applies safe fixes automatically, and verifies. If the queue is peer-serviceable while the local worker is down, classify `peer_serviceable_local_worker_dead` and do not recommend blind restart.
 6. Use `adv_wip_state` when broad worktree/poisoned-workflow evidence is needed.
-7. Recommend `adv_change_forget` only as a primary-ADV action for the exact current-session active pointer. It is current-session in-memory cleanup only, not persistent state repair.
+7. Recommend `adv_doctor` only as a primary-ADV action for phantom-pointer cleanup. The tool clears a confirmed-phantom session active pointer automatically; it is current-session cleanup only, not persistent state repair.
 8. If evidence is only a failed filesystem read, classify `inconclusive_filesystem_only` and rerun with ADV tools.
 
 ## ADV State Access Policy

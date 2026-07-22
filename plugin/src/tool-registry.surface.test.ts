@@ -16,13 +16,13 @@ describe("getToolSurface (live surface)", () => {
     expect(surface.get("adv_change_create")?.has("target_path")).toBe(true);
   });
 
-  test("exposes design-concern recovery args for contract warrants", () => {
+  test("does not expose removed public recovery args on routine mutation tools", () => {
     const args = surface.get("adv_design_concern_disposition");
     expect(args).toBeDefined();
     expect(args?.has("target_path")).toBe(true);
-    expect(args?.has("recoveryMode")).toBe(true);
-    expect(args?.has("recoveryEvidence")).toBe(true);
-    expect(args?.has("recoveryReason")).toBe(true);
+    expect(args?.has("recoveryMode")).toBe(false);
+    expect(args?.has("recoveryEvidence")).toBe(false);
+    expect(args?.has("recoveryReason")).toBe(false);
   });
 
   test("exposes adv_change_archive#target_path for cross-project archive", () => {

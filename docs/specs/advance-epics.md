@@ -177,7 +177,7 @@ The `/adv-coordinate` command MUST inventory active Epics through typed reads be
 
 **Then:**
 - No Epic mutation tool is executed
-- Approved mutations use typed Epic tools such as adv_epic_update, adv_epic_reorder, or adv_epic_repair_membership
+- Approved mutations use typed Epic tools such as adv_epic_update, adv_epic_reorder, or adv_epic_show (which runs automatic convergence on stale projections)
 - Required expected_version and audit evidence fields are preserved
 
 **Coordination adds no new planning primitive** (`rq-epicCoordinateCommand01.4`)
@@ -807,7 +807,7 @@ Active duplicate Epics MAY be merged into one survivor Epic through a typed, aud
 
 **ID:** `rq-epicArchiveSync01` | **Priority:** **[MUST]**
 
-When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through typed Epic tools such as `adv_epic_repair_membership`; direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.
+When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through `adv_epic_show`, which performs automatic bounded direct convergence (rq-epicConvergence01); direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.
 
 **Tags:** `epics`, `archive`, `release`, `membership`
 
@@ -834,7 +834,7 @@ When an ADV change with `epic_membership` is archived, the archive/release flow 
 **When:** Archive verification inspects the parent Epic
 
 **Then:**
-- The flow uses `adv_epic_repair_membership` or another typed Epic tool to repair or mark the projection
+- The flow uses `adv_epic_show` to trigger automatic bounded direct convergence
 - No direct ADV state files are read or edited
 - Unresolved repair status is surfaced in archive evidence
 
@@ -843,12 +843,12 @@ When an ADV change with `epic_membership` is archived, the archive/release flow 
 **Given:**
 - An Epic entry remains active even though the linked child change is already `archived` or `closed`
 
-**When:** `adv_epic_repair_membership mode=sync_child_projection` runs with canonical child/archive evidence
+**When:** `adv_epic_show` runs with canonical child/archive evidence and performs automatic convergence
 
 **Then:**
 - The existing Epic entry receives terminal summary state
 - Epic progress recomputes completed entries and next entry from terminal summaries
-- The repair result reports terminal projection evidence
+- The convergence result reports terminal projection evidence
 
 **Non-Epic archive remains unchanged** (`rq-epicArchiveSync01.4`)
 
@@ -969,7 +969,7 @@ An Epic MAY be scoped to a single repo or to a product spanning multiple reposit
 
 **ID:** `rq-epicOwnerRouting01` | **Priority:** **[MUST]**
 
-Epic membership mutation tools (`adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_epic_repair_membership`) MUST support explicit owner project routing separate from the child change `target_path`. The owner Epic MUST be resolved through an `epic_owner_target_path` parameter (or the current project when omitted), and the child change MUST be resolved through `target_path` (or the owner project when omitted). The supported shapes are: owner local + child local, owner local + child remote, owner remote + child same remote, owner remote + child different remote.
+Epic membership mutation tools (`adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`) and `adv_epic_show` convergence MUST support explicit owner project routing separate from the child change `target_path`. The owner Epic MUST be resolved through an `epic_owner_target_path` parameter (or the current project when omitted), and the child change MUST be resolved through `target_path` (or the owner project when omitted). The supported shapes are: owner local + child local, owner local + child remote, owner remote + child same remote, owner remote + child different remote.
 
 The supported routing matrix is:
 
@@ -1183,7 +1183,7 @@ Completed Epics MUST be retired through a typed `adv_epic_retire` lifecycle path
 
 **ID:** `rq-epicRetiredListing01` | **Priority:** **[MUST]**
 
-Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = "active"`, `ExecutionStatus = "Running"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state. Legacy running Epic workflows that started without `AdvEpicStatus` indexed MUST have an explicit audited index repair/backfill path (`adv_epic_repair_membership mode=refresh_search_attributes`) that enumerates running `epicWorkflow` executions without the `AdvEpicStatus` filter, hydrates each state, and signals reachable Epics to upsert their current `AdvEpicStatus`; the default active-only listing MUST remain unchanged and MUST NOT perform automatic mutation.
+Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = "active"`, `ExecutionStatus = "Running"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state. Legacy running Epic workflows that started without `AdvEpicStatus` indexed MUST have an explicit audited index repair/backfill path (operator-driven search-attribute repair/backfill) that enumerates running `epicWorkflow` executions without the `AdvEpicStatus` filter, hydrates each state, and signals reachable Epics to upsert their current `AdvEpicStatus`; the default active-only listing MUST remain unchanged and MUST NOT perform automatic mutation.
 
 **Tags:** `epics`, `listing`, `cli`, `visibility`, `retirement`
 

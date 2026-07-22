@@ -178,7 +178,7 @@ Epic child archive verification:
 - If the change has no `epic_membership`, record `Epic: n/a` for the final report.
 - If the change has `epic_membership`, reload the parent Epic with `adv_epic_show epic_id: {epic_id}` after `adv_change_archive phase9: "run"` returns shipped/merged release proof.
 - Verify the linked entry by `entry_id` and/or `change_id` shows terminal child state through `terminal_summary`, compact history, or an equivalent typed Epic view field.
-- If the Epic entry/member projection is `projection_stale`, `projection_pending`, `target_unreachable`, or otherwise stale, run `adv_epic_repair_membership` (dry run first when choosing a repair mode) or the relevant typed Epic membership tool. For already-archived children whose entries still appear active, use the typed repair path to backfill `terminal_summary` from canonical child/archive evidence so Epic progress can recompute. Do not read or edit ADV state files directly.
+- If the Epic entry/member projection is `projection_stale`, `projection_pending`, `target_unreachable`, or otherwise stale, run `adv_epic_show` to trigger automatic bounded direct convergence. For already-archived children whose entries still appear active, use `adv_epic_show` to backfill `terminal_summary` from canonical child/archive evidence so Epic progress can recompute. Do not read or edit ADV state files directly.
 - Epic verification/repair evidence is additive. It never substitutes for Phase 9 release proof and it never allows "Shipped." when release proof is missing.
 
 ---
@@ -220,7 +220,7 @@ What shipped, merged locally, waits on PR auto-merge, or blocked release complet
 - Release proof: {origin/{default-branch} reachable | PR {number} state MERGED | no_remote local proof | pending PR {number} | missing: <reason>}
 - PR: {n/a | <url> auto-merge armed | <url> manual merge required | unavailable: <reason>}
 - Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
-- Epic: {n/a | {epic_id}/{entry_id} terminal state verified | terminal projection recorded | membership repaired via adv_epic_repair_membership mode=<mode> | warning: <reason>}
+- Epic: {n/a | {epic_id}/{entry_id} terminal state verified | terminal projection recorded | membership converged via adv_epic_show | warning: <reason>}
 - Reflection: {completed: <id/path/summary> | failed: <reason>; nonblocking}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
 - Asset sync: {auto via hook | manual fix | not needed | n/a}
@@ -384,7 +384,7 @@ If the script is absent → record `deploy_action: not available`. If the projec
 > **Local runtime activation callout.** `deploy_action: ran` means assets synced to the runtime path — it does NOT reload already-running OpenCode sessions, which keep the cached bundle in process memory. To activate local runtime changes after archive:
 >
 > 1. Run `./scripts/deploy-local.sh --fix` from the repo root as the primary deploy. It rebuilds a stale plugin distribution before syncing to the runtime path, so no separate manual build step is required.
-> 2. The same command classifies matching deployed Temporal workers by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker. Self-roll-capable workers are reported as advisory and are not signaled; legacy workers receive `SIGTERM`. If the refresh fails, the deploy fails closed with an `[ADV:ACTION_REQUIRED]` block; route recovery through `adv_temporal_worker_restart` rather than retrying manual termination.
+> 2. The same command classifies matching deployed Temporal workers by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker. Self-roll-capable workers are reported as advisory and are not signaled; legacy workers receive `SIGTERM`. If the refresh fails, the deploy fails closed with an `[ADV:ACTION_REQUIRED]` block; route recovery through `adv_doctor` rather than retrying manual termination.
 > 3. Restart the relevant OpenCode session / plugin host so host-loaded tool code reloads, then re-invoke the affected tool. OpenCode does not auto-restart or live-reload the host from deploy; activation requires the restart.
 >
 > Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle, and re-invoke the affected tool only after restart. Record activation status through the existing Phase 8 `Local deploy` row: when `deploy_action: ran` is recorded but the rebuilt bundle is not yet loaded by a restarted host, set the existing `Local deploy` field to `ran; OpenCode activation pending restart`; do not append a separate activation line to the report.
@@ -525,7 +525,7 @@ Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit 
 
 4. **Reference markers.** This phase exercises `rq-releaseFinalization02` (auto-drive trigger), `rq-releaseFinalization03.2` (post-merge sync diverged branch — release still completes on proven origin reachability), `rq-releaseFinalization03.3` (helper never records release-done; release remains gated by `verifyReleaseEvidenceFromMain`), and `rq-releaseFinalization04` (non-terminal reporting).
 
-5. **Completion fallthrough.** If the Task tool spawn is unavailable (no `adv-ci-waiter` runtime), render `Pending auto-merge.` + retry command — status quo behavior, non-regressive. The change stays active; the human re-invokes archive or `adv_archive_repair action=redrive` when ready.
+5. **Completion fallthrough.** If the Task tool spawn is unavailable (no `adv-ci-waiter` runtime), render `Pending auto-merge.` + retry command — status quo behavior, non-regressive. The change stays active; the human re-invokes archive or `adv_doctor` to re-drive the archived-but-unmerged branch when ready.
 
 ### Step 9: Post-Deploy Nudge
 

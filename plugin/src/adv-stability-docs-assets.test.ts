@@ -101,7 +101,7 @@ describe("ADV stability hardening docs", () => {
       "phantom pointer / phantom artifact",
       "adv_change_show",
       "adv_gate_status",
-      "adv_change_forget",
+      "adv_doctor",
       "readable:true",
       'adv_status view: "health"',
       "search_attributes.ok",

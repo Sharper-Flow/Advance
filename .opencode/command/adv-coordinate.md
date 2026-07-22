@@ -159,9 +159,9 @@ Report typed health findings and repair paths:
 
 | Signal | Recommendation |
 |---|---|
-| `target_unreachable` | Surface target path/project context; recommend audited `adv_epic_repair_membership dryRun: true` where appropriate. |
-| `projection_pending` | Recommend sync-child projection repair after user approval. |
-| `projection_stale` | Recommend stale projection repair with evidence. |
+| `target_unreachable` | Surface target path/project context; recommend `adv_epic_show` to trigger automatic bounded direct convergence where appropriate. |
+| `projection_pending` | Recommend `adv_epic_show` to trigger automatic convergence; only escalate to a typed mutation tool after user approval if convergence cannot reconcile. |
+| `projection_stale` | Recommend `adv_epic_show` to refresh the projection from canonical child/archive evidence. |
 | Missing child workflow | Recommend parent-only stale-entry repair or audited retarget only with explicit evidence. |
 
 Do not silently mutate. Repairs require `evidence`; target-routed repairs follow target-path trust rules.
@@ -186,8 +186,8 @@ For each durable action include:
 - affected Epic ID and current version;
 - exact rationale and evidence;
 - evidence label (`repo_backed_fact`, `adv-backed-fact`, `judgment_call`, or `freshness_limited`);
-- tool that would apply it (`adv_epic_update`, `adv_epic_reorder`, `adv_epic_repair_membership`);
-- required inputs such as `expected_version`, `entry_ids`, `mode`, and `evidence`.
+- tool that would apply it (`adv_epic_update`, `adv_epic_reorder`, or `adv_epic_show` for automatic convergence);
+- required inputs such as `expected_version`, `entry_ids`, and `evidence`.
 
 ---
 
@@ -219,7 +219,7 @@ Use typed tools only:
 |---|---|
 | Narrative/title update | `adv_epic_update` with current `expected_version` |
 | Advisory reorder | `adv_epic_reorder` with full `entry_ids` and current `expected_version` |
-| Membership repair | `adv_epic_repair_membership` with `mode`, target entry/change, `evidence`, and `dryRun` first when risk exists |
+| Membership convergence | `adv_epic_show` to trigger automatic bounded direct convergence; escalate to `adv_epic_update`/`adv_epic_reorder` only with user approval and evidence |
 
 Before mutation, confirm the Epic version still matches the report's `expected_version`. If stale, re-read with `adv_epic_show`, re-present the changed action, and require fresh approval.
 
@@ -248,6 +248,6 @@ Emit:
 | Show Epic | `adv_epic_show` |
 | Update narrative/title | `adv_epic_update` |
 | Reorder entries | `adv_epic_reorder` |
-| Repair membership | `adv_epic_repair_membership` |
+| Converge membership | `adv_epic_show` |
 | Inspect linked change | `adv_change_show` |
 | Check spec law | `adv_spec` |

@@ -14,16 +14,13 @@ const CLASSES = ["orchestrator", "operator-only", "dual"] as const;
 // extended approval-gated recovery family documented in the matrix.
 const OPERATOR_ONLY_TOOLS = [
   "adv_archive_purge",
-  "adv_archive_repair",
+  "adv_doctor",
   "adv_store_cleanup",
   "adv_store_consolidate",
   "adv_snapshot_health",
-  "adv_temporal_worker_restart",
   "adv_conformance",
-  "adv_change_status_repair",
   "adv_change_repair_origin",
   "adv_change_workflow_terminate",
-  "adv_temporal_register_search_attributes",
 ] as const;
 
 // rq-toolOwnership01.3: read actions agent-reachable; mutation/refresh
@@ -109,17 +106,6 @@ describe("tool ownership matrix assets (AC7/C5, rq-toolOwnership01)", () => {
     expect(req.body).toContain("orchestrator");
     expect(req.body).toContain("operator-only");
     expect(req.body).toContain("dual");
-    for (const tool of [
-      "adv_archive_purge",
-      "adv_archive_repair",
-      "adv_store_cleanup",
-      "adv_store_consolidate",
-      "adv_snapshot_health#repair",
-      "adv_temporal_worker_restart",
-      "adv_conformance#override",
-    ]) {
-      expect(req.body).toContain(tool);
-    }
     expect(req.body).toMatch(/never become routine autonomous agent actions/i);
   });
 

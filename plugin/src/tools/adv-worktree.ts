@@ -370,7 +370,7 @@ async function executeWorktreeCleanup(
         effectiveTimeoutMs,
         error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote}. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_doctor).`,
         remediation:
-          "Pass a larger timeoutMs (clamped to the safe budget) to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
+          "Pass a larger timeoutMs (clamped to the safe budget) to retry, or run adv_doctor to classify and repair the poisoned workflow first.",
       }),
       context,
     );

@@ -269,7 +269,7 @@ describe("Archive and spec assets", () => {
     // ADV_TEMPORAL_WORKER_SELF_ROLL=1 marker (retireDeployWorkerBounce:
     // self-roll-capable workers are advisory/not signaled; legacy workers
     // receive SIGTERM), fails closed on refresh failure, and routes recovery
-    // to adv_temporal_worker_restart rather than manual termination retries
+    // to adv_doctor rather than manual termination retries
     // (deploy-local.sh: refresh_deployed_temporal_workers classifier).
     // AC3: requires OpenCode session / plugin-host restart plus tool
     // re-invocation, and explicitly denies any automatic host restart /
@@ -283,7 +283,7 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/rebuilds[^.\n]*stale[^.\n]*distribut/i);
     expect(content).toMatch(/before sync/i);
     // AC2 — marker-gated worker classification; self-roll advisory / legacy
-    // SIGTERM; fail-closed refresh routes to adv_temporal_worker_restart
+    // SIGTERM; fail-closed refresh routes to adv_doctor
     // rather than manual termination retries
     expect(content).toMatch(
       /classif[^.\n]*deployed[^.\n]*worker[^.\n]*ADV_TEMPORAL_WORKER_SELF_ROLL=1/i,
@@ -292,7 +292,7 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/legacy workers receive `?SIGTERM`?/i);
     expect(content).toMatch(/fails closed[^.\n]*\[ADV:ACTION_REQUIRED\]/i);
     expect(content).toMatch(/rather than retrying manual termination/i);
-    expect(content).toMatch(/adv_temporal_worker_restart/);
+    expect(content).toMatch(/adv_doctor/);
     expect(content).not.toMatch(
       /restart[^.\n]*standalone Temporal worker process/i,
     );

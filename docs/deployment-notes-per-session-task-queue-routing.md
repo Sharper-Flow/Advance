@@ -12,7 +12,7 @@ Companion to ADR-0005 (`docs/adr/0005-per-session-task-queue-routing.md`) and th
 
 ## Operator-visible effects
 
-- `adv_status view:"health"` and `adv_temporal_diagnose` distinguish per-queue serviceability with type labels (`session` / `project`) when a session ID is active (AC6 / KD-5).
+- `adv_status view:"health"` and `adv_doctor` distinguish per-queue serviceability with type labels (`session` / `project`) when a session ID is active (AC6 / KD-5).
 - Total per-project polling footprint under 3 concurrent sessions ≤ 18 (3 sessions × 2 queues × 1+1 pollers; AC7).
 - Peer-session wedge (worker process alive but not polling) no longer blocks other sessions' workflow signals (AC2).
 

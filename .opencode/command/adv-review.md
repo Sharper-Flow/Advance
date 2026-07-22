@@ -429,7 +429,7 @@ Rules:
 - `C*`, `DONT*`, and `OOS*` rows must be `respected`, `pass`, or `not_applicable` with rationale.
 - Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
 - Keep evidence bounded and structured; do not paste raw logs into the matrix.
-- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence`, then complete the gate with `compatibilityReason: "..."`, `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
+- Poisoned-history recovery is internalized: `adv_contract_review_matrix_set` and `adv_gate_complete` auto-classify the workflow state via `adv_doctor` when needed. The only remaining human checkpoint fields are `compatibilityReason` and `priorApprovalEvidence`. This repairs the disk projection only and does not heal the poisoned workflow.
 
 #### Non-Code Evidence Policy in the Review Matrix
 
@@ -653,7 +653,7 @@ If user identifies new objectives or AC requiring scope expansion: `reopen {gate
 On acceptance:
 `adv_gate_complete changeId: {change-id} gateId: acceptance`
 
-For completed/poisoned workflow acceptance recovery, `adv_gate_complete` MUST include `compatibilityReason`, precise `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence`; without all audit fields, no disk-projection repair may occur.
+For completed/poisoned workflow acceptance recovery, `adv_gate_complete` auto-classifies the workflow state internally. The only required human checkpoint fields are `compatibilityReason` and `priorApprovalEvidence`; without both, no disk-projection repair may occur.
 
 `workflowGateStatus: "stuck"` → inspect `readinessBlockers` + `stuckReason`, fix missing/failing contract rows or artifact-generation failures, retry. Do not present acceptance complete until tool succeeds.
 

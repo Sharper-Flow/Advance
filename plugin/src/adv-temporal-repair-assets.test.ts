@@ -44,7 +44,7 @@ describe("adv-temporal-repair agent asset", () => {
       "adv_wip_state",
       "adv_session_list",
       "adv_snapshot_health",
-      "adv_temporal_diagnose",
+      "adv_doctor",
       "adv_project_context",
       "adv_spec",
       "adv_subagent_report_submit",
@@ -65,8 +65,6 @@ describe("adv-temporal-repair agent asset", () => {
       "adv_change_update",
       "adv_change_archive",
       "adv_worktree_delete",
-      "adv_temporal_worker_restart",
-      "adv_temporal_register_search_attributes",
     ]) {
       expect(getToolGrant(frontmatter, tool), `${tool} should be blocked`).toBe(
         false,
@@ -82,7 +80,8 @@ describe("adv-temporal-repair agent asset", () => {
       "adv_change_show",
       "adv_gate_status",
       "before declaring",
-      "adv_change_forget",
+      "adv_doctor",
+      "phantom",
       "current-session",
       "persistent state",
       "ADV State Access Policy",

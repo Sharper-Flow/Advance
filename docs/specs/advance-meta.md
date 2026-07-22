@@ -1339,12 +1339,12 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 - The registration uses safeExecute with an explicit { timeoutMs: N } where N is sufficient for the inner budget plus modest headroom
 - A code comment cites the inner-budget rationale and references this requirement
 
-**adv_temporal_worker_restart uses bounded verified recovery** (`rq-toolTimeoutOverride01.2`)
+**adv_doctor worker restart uses bounded verified recovery** (`rq-toolTimeoutOverride01.2`)
 
 **Given:**
 - A Temporal worker restart is requested for the current project
 
-**When:** adv_temporal_worker_restart is invoked
+**When:** adv_doctor applies a worker restart safe fix
 
 **Then:**
 - The tool waits up to the configured verification budget (default 10s) for the expected project task queue to become serviceable
@@ -1570,7 +1570,7 @@ When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart
 **Given:**
 - A Temporal worker run loop rejects or an out-of-process worker reports a run-error
 
-**When:** adv_status or adv_temporal_diagnose inspects Temporal health
+**When:** adv_status or adv_doctor inspects Temporal health
 
 **Then:**
 - The last worker run-loop error includes queue, message, and timestamp
@@ -1581,7 +1581,7 @@ When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart
 **Given:**
 - A project queue has no proven local worker readiness and no fresh server-side poller evidence
 
-**When:** adv_status view:health or adv_temporal_diagnose is executed
+**When:** adv_status view:health or adv_doctor is executed
 
 **Then:**
 - Diagnostics include expected queue and local worker registration status
@@ -1595,24 +1595,24 @@ When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart
 - A worker.lock has schema_version 2 with a fresh last_heartbeat
 - The expected project queue is not serviceable through local registration or fresh server-side poller evidence
 
-**When:** adv_status view:health or adv_temporal_diagnose classifies recovery state
+**When:** adv_status view:health or adv_doctor classifies recovery state
 
 **Then:**
 - The fresh heartbeat is treated as host or owner liveness evidence only
 - The diagnostic does not classify the queue as serviceable or as normal recovery pending peer worker spawn
 - The recommended next action surfaces approval-gated suspect_live_unserviceable_lock or owner-restart guidance
 
-**adv_temporal_reconnect is STSL-only and not worker-registration recovery** (`rq-workerHealth01.4`)
+**STSL reconnect is STSL-only and not worker-registration recovery** (`rq-workerHealth01.4`)
 
 **Given:**
 - Recovery diagnostics show worker_alive false or expected queue not serviceable
 
-**When:** adv_temporal_diagnose, adv_status, or workflow-access guidance proposes the next action
+**When:** adv_doctor, adv_status, or workflow-access guidance proposes the next action
 
 **Then:**
-- adv_temporal_reconnect is reserved for STSL or client connection issues, not for worker-registration or queue-serviceability failures
+- STSL reconnect is reserved for STSL or client connection issues, not for worker-registration or queue-serviceability failures
 - The recommended next action for worker-registration failure routes through verified worker restart or owner-restart, not reconnect
-- Documentation surfaces (docs/temporal-recovery.md) reflect the same STSL-only boundary for adv_temporal_reconnect
+- Documentation surfaces (docs/temporal-recovery.md) reflect the same STSL-only boundary for STSL reconnect
 
 ---
 
@@ -2494,39 +2494,39 @@ Project-scope Visibility queries used by ADV listing paths MUST filter on a regi
 
 **ID:** `rq-activeChangePointer01` | **Priority:** **[MUST]**
 
-The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) a recovery MCP tool (adv_change_forget) to clear phantom pointers, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. Cross-project tool calls are treated as active-work repoints only for tools in the activeChangeRepointTools allow-list when the target change.json exists; read/diagnostic cross-project calls do not mutate the caller's pointer, while terminal-clear hooks clear the pointer whenever the terminal changeId matches regardless of project ownership. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.
+The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) the recovery MCP tool `adv_doctor` clears confirmed-phantom pointers as a safe fix, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. Cross-project tool calls are treated as active-work repoints only for tools in the activeChangeRepointTools allow-list when the target change.json exists; read/diagnostic cross-project calls do not mutate the caller's pointer, while terminal-clear hooks clear the pointer whenever the terminal changeId matches regardless of project ownership. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.
 
 **Tags:** `pointer`, `session`, `phantom`, `recovery`, `lifecycle`, `handleToolExecuteBefore`
 
 #### Scenarios
 
-**adv_change_forget clears matching active pointer** (`rq-activeChangePointer01.1`)
+**adv_doctor clears a confirmed phantom active pointer** (`rq-activeChangePointer01.1`)
 
 **Given:**
 - A session with state.activeChange.id set to changeId X
+- The pointer is confirmed phantom: the Temporal workflow is unreachable AND the on-disk change.json is absent
 - An audit log channel (debugLog) is available
 
-**When:** adv_change_forget changeId:X is called and the recordForgetChange hook processes a success output
+**When:** adv_doctor runs, classifies the pointer as `phantom_pointer`, and applies the safe fix
 
 **Then:**
 - state.activeChange.id is set to null
 - setActiveChange(null) is called to clear the status mirror
-- An audit entry is written with {ts, changeId, prevPointer, action: 'forget', trigger: 'user'}
-- Re-calling adv_change_forget changeId:X is idempotent (no-op when pointer already null)
+- An audit entry is written with {ts, changeId, prevPointer, action: 'forget', trigger: 'doctor'}
+- Re-running adv_doctor when the pointer is already null is idempotent
 
-**adv_change_forget refuses on mismatched changeId with hint** (`rq-activeChangePointer01.2`)
+**adv_doctor refuses phantom clear when the change is not confirmed absent** (`rq-activeChangePointer01.2`)
 
 **Given:**
 - A session with state.activeChange.id set to changeId Y (non-null)
-- adv_change_forget is called with changeId X where X != Y
+- adv_doctor cannot confirm the pointer is phantom (change.json still exists or workflow is reachable)
 
-**When:** The recordForgetChange hook processes the forget output
+**When:** adv_doctor evaluates the pointer
 
 **Then:**
 - state.activeChange.id remains Y (NOT cleared)
-- A debug log is emitted: 'forget called for X but pointer is Y; no clear'
-- The tool output is amended with a hint naming the actual pointer
-- The hint includes the exact command to retry: adv_change_forget changeId:Y
+- The tool output classifies the finding as `phantom_pointer` with `outcome: "approval_required"` or `refused`
+- The output includes a hint naming the actual pointer and the safe next step
 
 **Terminal transitions clear matching active pointer on success** (`rq-activeChangePointer01.3`)
 
@@ -2568,17 +2568,18 @@ The session active-change pointer (state.activeChange.id in plugin/src/index.ts 
 - The tool execution itself proceeds and returns its normal 'Change not found' result
 - The reachability check uses Visibility fast-path first, then disk change.json fallback, then workflow state fallback
 
-**handleToolExecuteBefore exempts adv_change_forget from reachability gate** (`rq-activeChangePointer01.6`)
+**handleToolExecuteBefore exempts adv_doctor phantom-pointer clear from reachability gate** (`rq-activeChangePointer01.6`)
 
 **Given:**
-- The adv_change_forget tool is being executed
+- The adv_doctor tool is being executed
+- adv_doctor has classified the active pointer as phantom and intends to clear it
 
-**When:** handleToolExecuteBefore processes the adv_change_forget tool call
+**When:** handleToolExecuteBefore processes the adv_doctor tool call
 
 **Then:**
-- The reachability gate is skipped entirely (early-return at the top of the hook body)
+- The reachability gate is skipped entirely for the phantom-pointer clear (early-return at the top of the hook body)
 - No isChangeReachable check is performed
-- The forget tool's intentional clear is not defeated by the gate
+- The intentional clear is not defeated by the gate
 
 **Cross-project active-work calls repoint caller's pointer; read/diagnostic calls do not; terminal-clear fires regardless of project** (`rq-activeChangePointer01.7`)
 
@@ -2586,7 +2587,7 @@ The session active-change pointer (state.activeChange.id in plugin/src/index.ts 
 - A session in project A with state.activeChange.id set (or null)
 - An ADV tool is called with target_path pointing to project B and args.changeId referencing a changeId in project B
 
-**When:** (Active-work case) The tool is in activeChangeRepointTools AND the changeId is reachable in project B (target project's change.json exists on disk); (Read/diagnostic case) The tool is NOT in activeChangeRepointTools; (Terminal-clear case) adv_change_close, adv_change_archive, or adv_change_forget succeeds for a changeId matching the caller's current pointer (regardless of project ownership)
+**When:** (Active-work case) The tool is in activeChangeRepointTools AND the changeId is reachable in project B (target project's change.json exists on disk); (Read/diagnostic case) The tool is NOT in activeChangeRepointTools; (Terminal-clear case) adv_change_close, adv_change_archive, or adv_doctor clears a confirmed-phantom pointer matching the caller's current pointer (regardless of project ownership)
 
 **Then:**
 - (Active-work case) state.activeChange.id is set to the target-project changeId; setActiveChange is called with the target changeId and any epicId resolved from the target project's change.json (best-effort)
@@ -2657,7 +2658,7 @@ ADV project identity is derived from the repository root commit. In a shallow cl
 
 **ID:** `rq-toolOwnership01` | **Priority:** **[MUST]**
 
-Every registered ADV tool must have an explicit ownership/reachability classification — orchestrator, operator-only, or dual (read: agent, mutate: operator) — recorded in the git-tracked matrix at docs/tool-ownership.md. Operator-only maintenance and recovery tools (adv_archive_purge, adv_archive_repair, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_temporal_worker_restart, adv_conformance#override) remain discoverable but must never become routine autonomous agent actions: agents invoke them only on explicit operator instruction with the required approval evidence. Dual tools expose agent-reachable reads while their mutation or refresh surfaces remain operator-owned. The matrix is advisory guidance enforced by static-check tests against tool-registry.ts ADV_TOOL_NAMES; adding or renaming a registered tool without a matrix row must fail CI.
+Every registered ADV tool must have an explicit ownership/reachability classification — orchestrator, operator-only, or dual (read: agent, mutate: operator) — recorded in the git-tracked matrix at docs/tool-ownership.md. Operator-only maintenance and recovery tools (adv_archive_purge, adv_doctor, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_conformance#override) remain discoverable but must never become routine autonomous agent actions: agents invoke them only on explicit operator instruction with the required approval evidence. Dual tools expose agent-reachable reads while their mutation or refresh surfaces remain operator-owned. The matrix is advisory guidance enforced by static-check tests against tool-registry.ts ADV_TOOL_NAMES; adding or renaming a registered tool without a matrix row must fail CI.
 
 **Tags:** `tool-surface`, `ownership`, `operator-only`, `docs`
 
@@ -2677,7 +2678,7 @@ Every registered ADV tool must have an explicit ownership/reachability classific
 **Operator-only maintenance tools are named and non-routine** (`rq-toolOwnership01.2`)
 
 **Given:**
-- The operator-only maintenance set: adv_archive_purge, adv_archive_repair, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_temporal_worker_restart, adv_conformance#override
+- The operator-only maintenance set: adv_archive_purge, adv_doctor, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_conformance#override
 
 **When:** The matrix is consulted or an agent plans a maintenance or recovery action
 

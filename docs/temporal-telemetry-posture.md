@@ -8,8 +8,9 @@ intentional for the local OpenCode plugin runtime.
 - `adv_status view:"health"` reports Temporal server reachability, worker
   serviceability, search-attribute health, worker diagnostics, and session-local
   ADV tool-call counters.
-- `adv_temporal_diagnose` reports reachability for the server, STSL, worker, and
-  a specific change workflow when a change id is provided.
+- `adv_doctor` reports reachability for the server, STSL, worker, and
+  a specific change workflow when a change id is provided, then applies safe
+  fixes and re-verifies.
 - `plugin/src/utils/metrics.ts` tracks session-local ADV tool usage. Counters
   reset on plugin init and are not persisted.
 - `plugin/src/temporal/retry-wrapper.ts` tracks last retry/error telemetry for
