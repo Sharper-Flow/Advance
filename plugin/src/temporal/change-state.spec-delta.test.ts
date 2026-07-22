@@ -2,16 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import {
   applySpecDeltaAddedToState,
+  applySpecDeltaAmendedToState,
   applySpecDeltaModifiedToState,
+  applySpecDeltaRemovedToState,
+  applySpecDeltaRenamedToState,
+  applySpecDeltaRetractedToState,
   createChangeWorkflowState,
 } from "./change-state";
 import {
   SpecDeltaAddedSignalPayloadSchema,
+  SpecDeltaAmendedSignalPayloadSchema,
   SpecDeltaModifiedSignalPayloadSchema,
 } from "../types";
 import type {
   SpecDeltaAddedSignalPayload,
+  SpecDeltaAmendedSignalPayload,
   SpecDeltaModifiedSignalPayload,
+  SpecDeltaRemovedSignalPayload,
+  SpecDeltaRenamedSignalPayload,
+  SpecDeltaRetractedSignalPayload,
 } from "../types";
 
 const TIMESTAMP = "2026-07-14T00:00:00.000Z";
@@ -47,6 +56,28 @@ function makeModifyDelta(deltaId = "dl-MOD11111", targetId = "rq-existing01") {
   };
 }
 
+function makeRemoveDelta(deltaId = "dl-RMV11111", targetId = "rq-existing01") {
+  return {
+    id: deltaId,
+    operation: "remove" as const,
+    target_id: targetId,
+    reason: "obsolete",
+  };
+}
+
+function makeRenameDelta(
+  deltaId = "dl-RNM11111",
+  targetId = "rq-existing01",
+  newTitle = "Renamed requirement",
+) {
+  return {
+    id: deltaId,
+    operation: "rename" as const,
+    target_id: targetId,
+    new_title: newTitle,
+  };
+}
+
 function makePayload(
   overrides: Partial<SpecDeltaAddedSignalPayload> = {},
 ): SpecDeltaAddedSignalPayload {
@@ -67,6 +98,58 @@ function makeModifyPayload(
     delta: makeModifyDelta(),
     modifiedAt: TIMESTAMP,
     modifiedBy: "agent",
+    ...overrides,
+  };
+}
+
+function makeAmendPayload(
+  deltaId: string,
+  delta: SpecDeltaAmendedSignalPayload["delta"],
+  overrides: Partial<SpecDeltaAmendedSignalPayload> = {},
+): SpecDeltaAmendedSignalPayload {
+  return {
+    capability: "collection-dashboard",
+    deltaId,
+    delta,
+    amendedAt: TIMESTAMP,
+    amendedBy: "agent",
+    ...overrides,
+  };
+}
+
+function makeRetractPayload(
+  deltaId: string,
+  overrides: Partial<SpecDeltaRetractedSignalPayload> = {},
+): SpecDeltaRetractedSignalPayload {
+  return {
+    capability: "collection-dashboard",
+    deltaId,
+    retractedAt: TIMESTAMP,
+    retractedBy: "agent",
+    ...overrides,
+  };
+}
+
+function makeRemovePayload(
+  overrides: Partial<SpecDeltaRemovedSignalPayload> = {},
+): SpecDeltaRemovedSignalPayload {
+  return {
+    capability: "collection-dashboard",
+    delta: makeRemoveDelta(),
+    removedAt: TIMESTAMP,
+    removedBy: "agent",
+    ...overrides,
+  };
+}
+
+function makeRenamePayload(
+  overrides: Partial<SpecDeltaRenamedSignalPayload> = {},
+): SpecDeltaRenamedSignalPayload {
+  return {
+    capability: "collection-dashboard",
+    delta: makeRenameDelta(),
+    renamedAt: TIMESTAMP,
+    renamedBy: "agent",
     ...overrides,
   };
 }
@@ -274,5 +357,213 @@ describe("applySpecDeltaModifiedToState", () => {
       applySpecDeltaModifiedToState(state, makeModifyPayload()),
     ).toThrow(/Duplicate/);
     expect(state.deltas).toEqual(before);
+  });
+});
+
+describe("SpecDeltaAmendedSignalPayloadSchema", () => {
+  it("accepts a valid amend payload", () => {
+    expect(
+      SpecDeltaAmendedSignalPayloadSchema.safeParse(
+        makeAmendPayload("dl-MOD11111", makeModifyDelta()),
+      ).success,
+    ).toBe(true);
+  });
+
+  it("accepts an amend payload whose delta id differs from deltaId (reducer enforces match)", () => {
+    expect(
+      SpecDeltaAmendedSignalPayloadSchema.safeParse(
+        makeAmendPayload("dl-OTHER111", makeModifyDelta()),
+      ).success,
+    ).toBe(true);
+  });
+});
+
+describe("applySpecDeltaAmendedToState", () => {
+  it("replaces a modify delta in place and preserves id and position", () => {
+    const state = makeState();
+    applySpecDeltaModifiedToState(state, makeModifyPayload());
+    const replacement = makeModifyDelta("dl-MOD11111", "rq-existing01");
+    replacement.changes = { title: "Amended title" };
+
+    const next = applySpecDeltaAmendedToState(
+      state,
+      makeAmendPayload("dl-MOD11111", replacement),
+    );
+
+    expect(next.deltas["collection-dashboard"]).toHaveLength(1);
+    expect(next.deltas["collection-dashboard"]?.[0]).toEqual(replacement);
+    expect(next.deltas["collection-dashboard"]?.[0]?.id).toBe("dl-MOD11111");
+    expect(next.lastSignalAt).toBe(TIMESTAMP);
+  });
+
+  it("allows a second amend of the same delta", () => {
+    const state = makeState();
+    applySpecDeltaModifiedToState(state, makeModifyPayload());
+    const first = makeModifyDelta("dl-MOD11111", "rq-existing01");
+    first.changes = { title: "First amendment" };
+    applySpecDeltaAmendedToState(state, makeAmendPayload("dl-MOD11111", first));
+
+    const second = makeModifyDelta("dl-MOD11111", "rq-existing01");
+    second.changes = { title: "Second amendment" };
+    const next = applySpecDeltaAmendedToState(
+      state,
+      makeAmendPayload("dl-MOD11111", second),
+    );
+
+    expect(next.deltas["collection-dashboard"]).toHaveLength(1);
+    expect(next.deltas["collection-dashboard"]?.[0]?.id).toBe("dl-MOD11111");
+    expect(
+      (
+        next.deltas["collection-dashboard"]?.[0] as {
+          changes: { title: string };
+        }
+      ).changes.title,
+    ).toBe("Second amendment");
+  });
+
+  it("throws a typed not-found error for an unknown delta id", () => {
+    const state = makeState();
+    expect(() =>
+      applySpecDeltaAmendedToState(
+        state,
+        makeAmendPayload("dl-MISSING111", makeModifyDelta()),
+      ),
+    ).toThrow(
+      /spec delta dl-MISSING111 not found under capability collection-dashboard/,
+    );
+  });
+
+  it("throws a typed id-mismatch error without mutating state", () => {
+    const state = makeState();
+    applySpecDeltaModifiedToState(state, makeModifyPayload());
+    const before = structuredClone(state.deltas);
+
+    expect(() =>
+      applySpecDeltaAmendedToState(
+        state,
+        makeAmendPayload("dl-MOD11111", makeModifyDelta("dl-OTHER111")),
+      ),
+    ).toThrow(/amend id mismatch/);
+    expect(state.deltas).toEqual(before);
+  });
+
+  it("rejects a conflicting modify replacement excluding the amended entry", () => {
+    const state = makeState();
+    applySpecDeltaModifiedToState(
+      state,
+      makeModifyPayload({
+        delta: makeModifyDelta("dl-MOD11111", "rq-existing01"),
+      }),
+    );
+    applySpecDeltaModifiedToState(
+      state,
+      makeModifyPayload({
+        delta: makeModifyDelta("dl-OTHER111", "rq-existing02"),
+      }),
+    );
+    const before = structuredClone(state.deltas);
+
+    const replacement = makeModifyDelta("dl-MOD11111", "rq-existing02");
+    expect(() =>
+      applySpecDeltaAmendedToState(
+        state,
+        makeAmendPayload("dl-MOD11111", replacement),
+      ),
+    ).toThrow(/Conflicting/);
+    expect(state.deltas).toEqual(before);
+  });
+});
+
+describe("applySpecDeltaRetractedToState", () => {
+  it("removes an existing delta by id", () => {
+    const state = makeState();
+    applySpecDeltaModifiedToState(state, makeModifyPayload());
+
+    const next = applySpecDeltaRetractedToState(
+      state,
+      makeRetractPayload("dl-MOD11111"),
+    );
+
+    expect(next.deltas["collection-dashboard"]).toHaveLength(0);
+    expect(next.lastSignalAt).toBe(TIMESTAMP);
+  });
+
+  it("throws a typed not-found error for an unknown delta id", () => {
+    const state = makeState();
+    expect(() =>
+      applySpecDeltaRetractedToState(
+        state,
+        makeRetractPayload("dl-MISSING111"),
+      ),
+    ).toThrow(
+      /spec delta dl-MISSING111 not found under capability collection-dashboard/,
+    );
+  });
+});
+
+describe("applySpecDeltaRemovedToState", () => {
+  it("appends a validated remove delta and records its timestamp", () => {
+    const state = makeState();
+    const payload = makeRemovePayload();
+
+    const next = applySpecDeltaRemovedToState(state, payload);
+
+    expect(next.deltas["collection-dashboard"]).toEqual([payload.delta]);
+    expect(next.lastSignalAt).toBe(TIMESTAMP);
+  });
+
+  it("rejects duplicate ids and conflicting remove targets", () => {
+    const state = makeState();
+    applySpecDeltaRemovedToState(state, makeRemovePayload());
+    const before = structuredClone(state.deltas);
+
+    expect(() =>
+      applySpecDeltaRemovedToState(
+        state,
+        makeRemovePayload({
+          delta: makeRemoveDelta("dl-RMV11111", "rq-existing02"),
+        }),
+      ),
+    ).toThrow(/Duplicate/);
+    expect(state.deltas).toEqual(before);
+
+    expect(() =>
+      applySpecDeltaRemovedToState(
+        state,
+        makeRemovePayload({
+          delta: makeRemoveDelta("dl-OTHER111", "rq-existing01"),
+        }),
+      ),
+    ).toThrow(/Conflicting/);
+    expect(state.deltas).toEqual(before);
+  });
+});
+
+describe("applySpecDeltaRenamedToState", () => {
+  it("appends a validated rename delta and records its timestamp", () => {
+    const state = makeState();
+    const payload = makeRenamePayload();
+
+    const next = applySpecDeltaRenamedToState(state, payload);
+
+    expect(next.deltas["collection-dashboard"]).toEqual([payload.delta]);
+    expect(next.lastSignalAt).toBe(TIMESTAMP);
+  });
+
+  it("rejects duplicate ids but permits multiple rename targets", () => {
+    const state = makeState();
+    applySpecDeltaRenamedToState(state, makeRenamePayload());
+    const before = structuredClone(state.deltas);
+
+    expect(() =>
+      applySpecDeltaRenamedToState(state, makeRenamePayload()),
+    ).toThrow(/Duplicate/);
+    expect(state.deltas).toEqual(before);
+
+    const second = makeRenamePayload({
+      delta: makeRenameDelta("dl-RNM22222", "rq-existing02", "Other rename"),
+    });
+    const next = applySpecDeltaRenamedToState(state, second);
+    expect(next.deltas["collection-dashboard"]).toHaveLength(2);
   });
 });

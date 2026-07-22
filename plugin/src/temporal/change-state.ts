@@ -40,7 +40,11 @@ import type {
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
   SpecDeltaAddedSignalPayload,
+  SpecDeltaAmendedSignalPayload,
   SpecDeltaModifiedSignalPayload,
+  SpecDeltaRemovedSignalPayload,
+  SpecDeltaRenamedSignalPayload,
+  SpecDeltaRetractedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
@@ -63,7 +67,11 @@ import type {
 import {
   createDefaultGates,
   GATE_ORDER,
+  SpecDeltaAmendedSignalPayloadSchema,
   SpecDeltaModifiedSignalPayloadSchema,
+  SpecDeltaRemovedSignalPayloadSchema,
+  SpecDeltaRenamedSignalPayloadSchema,
+  SpecDeltaRetractedSignalPayloadSchema,
 } from "../types";
 import { CAPABILITY_KEY_PATTERN } from "../types/specs";
 import {
@@ -1798,6 +1806,183 @@ export function applySpecDeltaModifiedToState(
     ],
   };
   setLastSignalAt(state, validated.modifiedAt);
+  return state;
+}
+
+/**
+ * Full-replacement amend reducer. Replaces the staged delta with id `deltaId`
+ * under `capability` with `delta` while preserving array position and id.
+ * Modify replacements run the same capability-local conflict scan as
+ * applySpecDeltaModifiedToState, but exclude the entry being replaced.
+ */
+export function applySpecDeltaAmendedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaAmendedSignalPayload,
+): ChangeWorkflowState {
+  const parsed = SpecDeltaAmendedSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid amend spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+    );
+  }
+  const validated = parsed.data;
+  const deltas = state.deltas ?? {};
+  const capabilityEntries = deltas[validated.capability] ?? [];
+  const index = capabilityEntries.findIndex(
+    (entry) => entry.id === validated.deltaId,
+  );
+  if (index === -1) {
+    throw new Error(
+      `spec delta ${validated.deltaId} not found under capability ${validated.capability}`,
+    );
+  }
+  if (validated.delta.id !== validated.deltaId) {
+    throw new Error(
+      `amend id mismatch: delta.id ${validated.delta.id} does not match deltaId ${validated.deltaId}`,
+    );
+  }
+  if (validated.delta.operation === "modify") {
+    for (const [capability, entries] of Object.entries(deltas)) {
+      for (const entry of entries) {
+        if (entry.id === validated.delta.id && entry.id !== validated.deltaId) {
+          throw new Error(
+            `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+          );
+        }
+        if (
+          capability === validated.capability &&
+          entry.operation === "modify" &&
+          entry.target_id === validated.delta.target_id &&
+          entry.id !== validated.deltaId
+        ) {
+          throw new Error(
+            `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
+          );
+        }
+      }
+    }
+  }
+  const nextEntries = [...capabilityEntries];
+  nextEntries[index] = validated.delta;
+  state.deltas = { ...deltas, [validated.capability]: nextEntries };
+  setLastSignalAt(state, validated.amendedAt);
+  return state;
+}
+
+/**
+ * Retraction reducer. Removes the staged delta with id `deltaId` from the
+ * capability-local delta record.
+ */
+export function applySpecDeltaRetractedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaRetractedSignalPayload,
+): ChangeWorkflowState {
+  const parsed = SpecDeltaRetractedSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid retract spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+    );
+  }
+  const validated = parsed.data;
+  const deltas = state.deltas ?? {};
+  const capabilityEntries = deltas[validated.capability] ?? [];
+  const index = capabilityEntries.findIndex(
+    (entry) => entry.id === validated.deltaId,
+  );
+  if (index === -1) {
+    throw new Error(
+      `spec delta ${validated.deltaId} not found under capability ${validated.capability}`,
+    );
+  }
+  const nextEntries = [
+    ...capabilityEntries.slice(0, index),
+    ...capabilityEntries.slice(index + 1),
+  ];
+  state.deltas = { ...deltas, [validated.capability]: nextEntries };
+  setLastSignalAt(state, validated.retractedAt);
+  return state;
+}
+
+/**
+ * Remove-operation spec-delta reducer. Mirrors modify semantics: rejects
+ * duplicate delta identifiers globally and only one remove intent per
+ * capability/requirement pair.
+ */
+export function applySpecDeltaRemovedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaRemovedSignalPayload,
+): ChangeWorkflowState {
+  const parsed = SpecDeltaRemovedSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid remove spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+    );
+  }
+  const validated = parsed.data;
+  const deltas = state.deltas ?? {};
+  for (const [capability, entries] of Object.entries(deltas)) {
+    for (const entry of entries) {
+      if (entry.id === validated.delta.id) {
+        throw new Error(
+          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+        );
+      }
+      if (
+        capability === validated.capability &&
+        entry.operation === "remove" &&
+        entry.target_id === validated.delta.target_id
+      ) {
+        throw new Error(
+          `Conflicting remove delta target ${validated.delta.target_id} under capability ${capability}`,
+        );
+      }
+    }
+  }
+  state.deltas = {
+    ...deltas,
+    [validated.capability]: [
+      ...(deltas[validated.capability] ?? []),
+      validated.delta,
+    ],
+  };
+  setLastSignalAt(state, validated.removedAt);
+  return state;
+}
+
+/**
+ * Rename-operation spec-delta reducer. Mirrors modify semantics for duplicate
+ * id rejection; target-id uniqueness is enforced downstream by archive
+ * validators.
+ */
+export function applySpecDeltaRenamedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaRenamedSignalPayload,
+): ChangeWorkflowState {
+  const parsed = SpecDeltaRenamedSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid rename spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+    );
+  }
+  const validated = parsed.data;
+  const deltas = state.deltas ?? {};
+  for (const [capability, entries] of Object.entries(deltas)) {
+    for (const entry of entries) {
+      if (entry.id === validated.delta.id) {
+        throw new Error(
+          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+        );
+      }
+    }
+  }
+  state.deltas = {
+    ...deltas,
+    [validated.capability]: [
+      ...(deltas[validated.capability] ?? []),
+      validated.delta,
+    ],
+  };
+  setLastSignalAt(state, validated.renamedAt);
   return state;
 }
 

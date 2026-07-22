@@ -50,8 +50,6 @@ import {
   invalidate,
   getRoute,
   ensureOriginDefaultFetched,
-  type FinalizeInvocationState,
-  type MutationKind,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -4290,7 +4288,10 @@ describe("adv-archive.md auto-drive (rq-releaseFinalization02 DONT3)", () => {
 describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () => {
   /** Mock runGit that records every call so tests can assert call counts. */
   function makeRecordingRunGit(
-    impl: (cwd: string, args: string[]) => {
+    impl: (
+      cwd: string,
+      args: string[],
+    ) => {
       status: number;
       stdout: string;
       stderr: string;
@@ -4551,7 +4552,11 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
       const realRunGit = (cwd: string, args: string[], timeoutMs?: number) => {
         if (args[0] === "fetch") fetchCount++;
         if (args[0] === "remote" && args[1] === "get-url") remoteGetUrlCount++;
-        return spawnSync("git", args, { cwd, encoding: "utf8", timeout: timeoutMs }) as any;
+        return spawnSync("git", args, {
+          cwd,
+          encoding: "utf8",
+          timeout: timeoutMs,
+        }) as any;
       };
 
       const result = await finalizeRelease(

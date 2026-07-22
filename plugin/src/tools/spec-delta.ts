@@ -31,8 +31,14 @@ import {
   CapabilityKeySchema,
   DeltaAddSchema,
   DeltaModifySchema,
+  DeltaRemoveSchema,
+  DeltaRenameSchema,
+  DeltaSchema,
+  type Delta,
   type DeltaAdd,
   type DeltaModify,
+  type DeltaRemove,
+  type DeltaRename,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
 import { isPreciseWorkflowRecoveryEvidence } from "../temporal/recovery-classification";
@@ -179,6 +185,87 @@ function validateModifyDeltaArg(input: DeltaValidation): {
     const path = issue?.path?.join(".") ?? "delta";
     return {
       error: `Invalid modify delta: ${path} ${issue?.message ?? "failed schema validation"}`,
+    };
+  }
+  const delta = parsed.data;
+  if (!DELTA_ID_PATTERN.test(delta.id)) {
+    return { error: 'delta.id must match the "dl-{nanoid}" format' };
+  }
+  if (!REQUIREMENT_ID_PATTERN.test(delta.target_id)) {
+    return {
+      error: 'delta.target_id must match the "rq-{nanoid}" format',
+    };
+  }
+  return { delta };
+}
+
+function validateAmendDeltaArg(input: DeltaValidation & { deltaId?: string }): {
+  delta?: Delta;
+  error?: string;
+} {
+  if (input.delta === undefined || input.delta === null) {
+    return { error: "delta is required" };
+  }
+  const parsed = DeltaSchema.safeParse(input.delta);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.join(".") ?? "delta";
+    return {
+      error: `Invalid delta: ${path} ${issue?.message ?? "failed schema validation"}`,
+    };
+  }
+  const delta = parsed.data;
+  if (!DELTA_ID_PATTERN.test(delta.id)) {
+    return { error: 'delta.id must match the "dl-{nanoid}" format' };
+  }
+  if (input.deltaId !== undefined && delta.id !== input.deltaId) {
+    return {
+      error: `delta.id ${delta.id} does not match deltaId ${input.deltaId}`,
+    };
+  }
+  return { delta };
+}
+
+function validateRemoveDeltaArg(input: DeltaValidation): {
+  delta?: DeltaRemove;
+  error?: string;
+} {
+  if (input.delta === undefined || input.delta === null) {
+    return { error: "delta is required and must be a remove-operation delta" };
+  }
+  const parsed = DeltaRemoveSchema.safeParse(input.delta);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.join(".") ?? "delta";
+    return {
+      error: `Invalid remove delta: ${path} ${issue?.message ?? "failed schema validation"}`,
+    };
+  }
+  const delta = parsed.data;
+  if (!DELTA_ID_PATTERN.test(delta.id)) {
+    return { error: 'delta.id must match the "dl-{nanoid}" format' };
+  }
+  if (!REQUIREMENT_ID_PATTERN.test(delta.target_id)) {
+    return {
+      error: 'delta.target_id must match the "rq-{nanoid}" format',
+    };
+  }
+  return { delta };
+}
+
+function validateRenameDeltaArg(input: DeltaValidation): {
+  delta?: DeltaRename;
+  error?: string;
+} {
+  if (input.delta === undefined || input.delta === null) {
+    return { error: "delta is required and must be a rename-operation delta" };
+  }
+  const parsed = DeltaRenameSchema.safeParse(input.delta);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.join(".") ?? "delta";
+    return {
+      error: `Invalid rename delta: ${path} ${issue?.message ?? "failed schema validation"}`,
     };
   }
   const delta = parsed.data;
@@ -383,6 +470,352 @@ async function runModify(
       return formatToolOutput({
         success: false,
         error: `Spec delta modify failed and recovery was requested, but adv_delta_modify refuses the disk-projection recovery write because it would bypass the workflow reducer's conflict-detection invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the modification from a healthy workflow. Underlying error: ${message}`,
+        changeId: input.changeId,
+        capability: input.capability,
+        recoveryMode: input.recoveryMode,
+        recoveryEvidence: input.recoveryEvidence,
+        recoveryReason: input.recoveryReason,
+        ...(projectContext ? { _projectContext: projectContext } : {}),
+      });
+    }
+    return formatToolOutput({
+      success: false,
+      error: message,
+      changeId: input.changeId,
+      capability: input.capability,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+    });
+  }
+}
+
+async function runAmend(
+  activeStore: Store,
+  input: {
+    changeId: string;
+    capability: string;
+    deltaId: string;
+    delta: Delta;
+    amendedBy?: string;
+    recoveryMode?: "normal" | "poisoned_history";
+    recoveryEvidence?: string;
+    recoveryReason?: string;
+  },
+  projectContext?: TargetProjectOutputContext,
+): Promise<string> {
+  try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) throw new Error(`Change ${input.changeId} not found`);
+    if (change.data.status !== "draft") {
+      throw new Error(
+        `Spec delta amend requires a draft change; ${input.changeId} is ${change.data.status}`,
+      );
+    }
+    const capabilityDeltas = change.data.deltas?.[input.capability] ?? [];
+    if (!capabilityDeltas.some((entry) => entry.id === input.deltaId)) {
+      throw new Error(
+        `Spec delta ${input.deltaId} not found under capability ${input.capability}`,
+      );
+    }
+    const amended = await activeStore.specDeltas.amend(
+      input.changeId,
+      input.capability,
+      input.deltaId,
+      input.delta,
+      input.amendedBy ? { amendedBy: input.amendedBy } : undefined,
+    );
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      capability: input.capability,
+      deltaId: input.deltaId,
+      delta: amended,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+      message: `Amended spec delta ${input.deltaId} for change ${input.changeId} under capability ${input.capability}`,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to amend spec delta";
+    if (input.recoveryMode === "poisoned_history") {
+      return formatToolOutput({
+        success: false,
+        error: `Spec delta amend failed and recovery was requested, but adv_delta_amend refuses the disk-projection recovery write because it would bypass the workflow reducer's invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the amendment from a healthy workflow. Underlying error: ${message}`,
+        changeId: input.changeId,
+        capability: input.capability,
+        recoveryMode: input.recoveryMode,
+        recoveryEvidence: input.recoveryEvidence,
+        recoveryReason: input.recoveryReason,
+        ...(projectContext ? { _projectContext: projectContext } : {}),
+      });
+    }
+    return formatToolOutput({
+      success: false,
+      error: message,
+      changeId: input.changeId,
+      capability: input.capability,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+    });
+  }
+}
+
+async function runRetract(
+  activeStore: Store,
+  input: {
+    changeId: string;
+    capability: string;
+    deltaId: string;
+    retractedBy?: string;
+    recoveryMode?: "normal" | "poisoned_history";
+    recoveryEvidence?: string;
+    recoveryReason?: string;
+  },
+  projectContext?: TargetProjectOutputContext,
+): Promise<string> {
+  try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) throw new Error(`Change ${input.changeId} not found`);
+    if (change.data.status !== "draft") {
+      throw new Error(
+        `Spec delta retract requires a draft change; ${input.changeId} is ${change.data.status}`,
+      );
+    }
+    const capabilityDeltas = change.data.deltas?.[input.capability] ?? [];
+    if (!capabilityDeltas.some((entry) => entry.id === input.deltaId)) {
+      throw new Error(
+        `Spec delta ${input.deltaId} not found under capability ${input.capability}`,
+      );
+    }
+    await activeStore.specDeltas.retract(
+      input.changeId,
+      input.capability,
+      input.deltaId,
+      input.retractedBy ? { retractedBy: input.retractedBy } : undefined,
+    );
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      capability: input.capability,
+      deltaId: input.deltaId,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+      message: `Retracted spec delta ${input.deltaId} for change ${input.changeId} under capability ${input.capability}`,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to retract spec delta";
+    if (input.recoveryMode === "poisoned_history") {
+      return formatToolOutput({
+        success: false,
+        error: `Spec delta retract failed and recovery was requested, but adv_delta_retract refuses the disk-projection recovery write because it would bypass the workflow reducer's invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the retraction from a healthy workflow. Underlying error: ${message}`,
+        changeId: input.changeId,
+        capability: input.capability,
+        recoveryMode: input.recoveryMode,
+        recoveryEvidence: input.recoveryEvidence,
+        recoveryReason: input.recoveryReason,
+        ...(projectContext ? { _projectContext: projectContext } : {}),
+      });
+    }
+    return formatToolOutput({
+      success: false,
+      error: message,
+      changeId: input.changeId,
+      capability: input.capability,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+    });
+  }
+}
+
+async function runRemove(
+  activeStore: Store,
+  input: {
+    changeId: string;
+    capability: string;
+    delta: DeltaRemove;
+    removedBy?: string;
+    recoveryMode?: "normal" | "poisoned_history";
+    recoveryEvidence?: string;
+    recoveryReason?: string;
+  },
+  projectContext?: TargetProjectOutputContext,
+): Promise<string> {
+  try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) throw new Error(`Change ${input.changeId} not found`);
+    if (change.data.status !== "draft") {
+      throw new Error(
+        `Spec delta remove requires a draft change; ${input.changeId} is ${change.data.status}`,
+      );
+    }
+    const existingSpec = await activeStore.specs.get(input.capability);
+    if (!existingSpec.success) {
+      throw new Error(
+        `Unable to validate existing spec for capability ${input.capability}: ${existingSpec.error}`,
+      );
+    }
+    if (!existingSpec.data) {
+      throw new Error(
+        `Spec ${input.capability} not found; remove requires an existing capability`,
+      );
+    }
+    if (
+      !existingSpec.data.requirements.some(
+        (requirement) => requirement.id === input.delta.target_id,
+      )
+    ) {
+      throw new Error(
+        `Requirement ${input.delta.target_id} not found in spec ${input.capability}`,
+      );
+    }
+    for (const [existingCapability, entries] of Object.entries(
+      change.data.deltas ?? {},
+    )) {
+      for (const entry of entries) {
+        if (entry.id === input.delta.id) {
+          throw new Error(
+            `Duplicate spec delta id ${input.delta.id} under capability ${existingCapability}`,
+          );
+        }
+        if (
+          existingCapability === input.capability &&
+          entry.operation === "remove" &&
+          entry.target_id === input.delta.target_id
+        ) {
+          throw new Error(
+            `Conflicting remove delta target ${input.delta.target_id} under capability ${input.capability}`,
+          );
+        }
+      }
+    }
+    const appended = await activeStore.specDeltas.remove(
+      input.changeId,
+      input.capability,
+      input.delta,
+      input.removedBy ? { removedBy: input.removedBy } : undefined,
+    );
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      capability: input.capability,
+      delta: appended,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+      message: `Recorded remove-only spec delta ${appended.id} for requirement ${appended.target_id} under capability ${input.capability}`,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to remove spec delta";
+    if (input.recoveryMode === "poisoned_history") {
+      return formatToolOutput({
+        success: false,
+        error: `Spec delta remove failed and recovery was requested, but adv_delta_remove refuses the disk-projection recovery write because it would bypass the workflow reducer's conflict-detection invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the removal from a healthy workflow. Underlying error: ${message}`,
+        changeId: input.changeId,
+        capability: input.capability,
+        recoveryMode: input.recoveryMode,
+        recoveryEvidence: input.recoveryEvidence,
+        recoveryReason: input.recoveryReason,
+        ...(projectContext ? { _projectContext: projectContext } : {}),
+      });
+    }
+    return formatToolOutput({
+      success: false,
+      error: message,
+      changeId: input.changeId,
+      capability: input.capability,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+    });
+  }
+}
+
+async function runRename(
+  activeStore: Store,
+  input: {
+    changeId: string;
+    capability: string;
+    delta: DeltaRename;
+    renamedBy?: string;
+    recoveryMode?: "normal" | "poisoned_history";
+    recoveryEvidence?: string;
+    recoveryReason?: string;
+  },
+  projectContext?: TargetProjectOutputContext,
+): Promise<string> {
+  try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) throw new Error(`Change ${input.changeId} not found`);
+    if (change.data.status !== "draft") {
+      throw new Error(
+        `Spec delta rename requires a draft change; ${input.changeId} is ${change.data.status}`,
+      );
+    }
+    const existingSpec = await activeStore.specs.get(input.capability);
+    if (!existingSpec.success) {
+      throw new Error(
+        `Unable to validate existing spec for capability ${input.capability}: ${existingSpec.error}`,
+      );
+    }
+    if (!existingSpec.data) {
+      throw new Error(
+        `Spec ${input.capability} not found; rename requires an existing capability`,
+      );
+    }
+    if (
+      !existingSpec.data.requirements.some(
+        (requirement) => requirement.id === input.delta.target_id,
+      )
+    ) {
+      throw new Error(
+        `Requirement ${input.delta.target_id} not found in spec ${input.capability}`,
+      );
+    }
+    for (const [existingCapability, entries] of Object.entries(
+      change.data.deltas ?? {},
+    )) {
+      for (const entry of entries) {
+        if (entry.id === input.delta.id) {
+          throw new Error(
+            `Duplicate spec delta id ${input.delta.id} under capability ${existingCapability}`,
+          );
+        }
+      }
+    }
+    const appended = await activeStore.specDeltas.rename(
+      input.changeId,
+      input.capability,
+      input.delta,
+      input.renamedBy ? { renamedBy: input.renamedBy } : undefined,
+    );
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      capability: input.capability,
+      delta: appended,
+      ...(projectContext ? { _projectContext: projectContext } : {}),
+      message: `Recorded rename-only spec delta ${appended.id} for requirement ${appended.target_id} under capability ${input.capability}`,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to rename spec delta";
+    if (input.recoveryMode === "poisoned_history") {
+      return formatToolOutput({
+        success: false,
+        error: `Spec delta rename failed and recovery was requested, but adv_delta_rename refuses the disk-projection recovery write because it would bypass the workflow reducer's invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the rename from a healthy workflow. Underlying error: ${message}`,
         changeId: input.changeId,
         capability: input.capability,
         recoveryMode: input.recoveryMode,
@@ -654,6 +1087,510 @@ export const specDeltaTools = {
         capability: validatedCapability,
         delta: validatedDelta,
         modifiedBy,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+    },
+  },
+  adv_delta_amend: {
+    description:
+      "Full-replacement amend of an existing staged spec delta under `change.deltas[capability]`. The new delta must be a complete Delta and its id must match the provided deltaId. Rejects unknown delta ids, malformed capability, and invalid delta shape atomically. Archive remains the sole global-spec writer.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID whose delta record contains the delta to amend"),
+      capability: CapabilityKeySchema.describe(
+        "Existing kebab-case capability key containing the delta to amend.",
+      ),
+      deltaId: z
+        .string()
+        .min(1)
+        .describe("Id of the staged delta to replace in place."),
+      delta: DeltaSchema.describe(
+        "Complete replacement delta. Its id must match deltaId; for a modify replacement it must name an existing requirement.",
+      ),
+      amendedBy: z
+        .string()
+        .optional()
+        .describe("Optional audit identity recorded on the signal."),
+      ...targetArgs,
+      ...recoveryArgs,
+    },
+    execute: async (
+      {
+        changeId,
+        capability,
+        deltaId,
+        delta,
+        amendedBy,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      }: {
+        changeId: string;
+        capability: string;
+        deltaId: string;
+        delta: Delta;
+        amendedBy?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        recoveryReason?: string;
+      },
+      store: Store,
+    ) => {
+      const capabilityCheck = validateCapabilityArg({ capability });
+      if (capabilityCheck.error || !capabilityCheck.capability) {
+        return formatToolOutput({
+          success: false,
+          error: capabilityCheck.error ?? "Invalid capability",
+          changeId,
+        });
+      }
+      const deltaCheck = validateAmendDeltaArg({ delta, deltaId });
+      if (deltaCheck.error || !deltaCheck.delta) {
+        return formatToolOutput({
+          success: false,
+          error: deltaCheck.error ?? "Invalid delta",
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const recoveryError = validateRecoveryArgs({
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+      if (recoveryError) {
+        return formatToolOutput({
+          success: false,
+          error: recoveryError,
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const validatedCapability = capabilityCheck.capability;
+      const validatedDelta = deltaCheck.delta;
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runAmend(
+                targetStore,
+                {
+                  changeId,
+                  capability: validatedCapability,
+                  deltaId,
+                  delta: validatedDelta,
+                  amendedBy,
+                  recoveryMode,
+                  recoveryEvidence,
+                  recoveryReason,
+                },
+                formatTargetProjectContext(context),
+              ),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project spec delta amend unavailable: ${errorText}`,
+            changeId,
+            capability: validatedCapability,
+            target_path,
+          });
+        }
+      }
+      return runAmend(store, {
+        changeId,
+        capability: validatedCapability,
+        deltaId,
+        delta: validatedDelta,
+        amendedBy,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+    },
+  },
+  adv_delta_retract: {
+    description:
+      "Retract (remove) an existing staged spec delta by id from `change.deltas[capability]`. Rejects unknown delta ids and non-draft changes atomically. Archive remains the sole global-spec writer.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID whose delta record contains the delta to retract"),
+      capability: CapabilityKeySchema.describe(
+        "Existing kebab-case capability key containing the delta to retract.",
+      ),
+      deltaId: z.string().min(1).describe("Id of the staged delta to retract."),
+      retractedBy: z
+        .string()
+        .optional()
+        .describe("Optional audit identity recorded on the signal."),
+      ...targetArgs,
+      ...recoveryArgs,
+    },
+    execute: async (
+      {
+        changeId,
+        capability,
+        deltaId,
+        retractedBy,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      }: {
+        changeId: string;
+        capability: string;
+        deltaId: string;
+        retractedBy?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        recoveryReason?: string;
+      },
+      store: Store,
+    ) => {
+      const capabilityCheck = validateCapabilityArg({ capability });
+      if (capabilityCheck.error || !capabilityCheck.capability) {
+        return formatToolOutput({
+          success: false,
+          error: capabilityCheck.error ?? "Invalid capability",
+          changeId,
+        });
+      }
+      const recoveryError = validateRecoveryArgs({
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+      if (recoveryError) {
+        return formatToolOutput({
+          success: false,
+          error: recoveryError,
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const validatedCapability = capabilityCheck.capability;
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runRetract(
+                targetStore,
+                {
+                  changeId,
+                  capability: validatedCapability,
+                  deltaId,
+                  retractedBy,
+                  recoveryMode,
+                  recoveryEvidence,
+                  recoveryReason,
+                },
+                formatTargetProjectContext(context),
+              ),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project spec delta retract unavailable: ${errorText}`,
+            changeId,
+            capability: validatedCapability,
+            target_path,
+          });
+        }
+      }
+      return runRetract(store, {
+        changeId,
+        capability: validatedCapability,
+        deltaId,
+        retractedBy,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+    },
+  },
+  adv_delta_remove: {
+    description:
+      "Record a remove-operation spec delta for an existing requirement under `change.deltas[capability]`. Rejects unknown requirements, duplicate delta IDs, and conflicting capability-local remove targets atomically. Archive remains the sole global-spec writer; direct global-spec writes are out of scope.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID whose removal delta is appended"),
+      capability: CapabilityKeySchema.describe(
+        "Existing kebab-case capability key whose global spec contains the target requirement.",
+      ),
+      delta: DeltaRemoveSchema.describe(
+        "Remove-operation delta. target_id must name an existing requirement and reason must be non-empty.",
+      ),
+      removedBy: z
+        .string()
+        .optional()
+        .describe("Optional audit identity recorded on the signal."),
+      ...targetArgs,
+      ...recoveryArgs,
+    },
+    execute: async (
+      {
+        changeId,
+        capability,
+        delta,
+        removedBy,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      }: {
+        changeId: string;
+        capability: string;
+        delta: DeltaRemove;
+        removedBy?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        recoveryReason?: string;
+      },
+      store: Store,
+    ) => {
+      const capabilityCheck = validateCapabilityArg({ capability });
+      if (capabilityCheck.error || !capabilityCheck.capability) {
+        return formatToolOutput({
+          success: false,
+          error: capabilityCheck.error ?? "Invalid capability",
+          changeId,
+        });
+      }
+      const deltaCheck = validateRemoveDeltaArg({ delta });
+      if (deltaCheck.error || !deltaCheck.delta) {
+        return formatToolOutput({
+          success: false,
+          error: deltaCheck.error ?? "Invalid remove delta",
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const recoveryError = validateRecoveryArgs({
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+      if (recoveryError) {
+        return formatToolOutput({
+          success: false,
+          error: recoveryError,
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const validatedCapability = capabilityCheck.capability;
+      const validatedDelta = deltaCheck.delta;
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runRemove(
+                targetStore,
+                {
+                  changeId,
+                  capability: validatedCapability,
+                  delta: validatedDelta,
+                  removedBy,
+                  recoveryMode,
+                  recoveryEvidence,
+                  recoveryReason,
+                },
+                formatTargetProjectContext(context),
+              ),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project spec delta remove unavailable: ${errorText}`,
+            changeId,
+            capability: validatedCapability,
+            target_path,
+          });
+        }
+      }
+      return runRemove(store, {
+        changeId,
+        capability: validatedCapability,
+        delta: validatedDelta,
+        removedBy,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+    },
+  },
+  adv_delta_rename: {
+    description:
+      "Record a rename-operation spec delta for an existing requirement under `change.deltas[capability]`. Rejects unknown requirements, duplicate delta IDs, and malformed rename shape atomically. Archive remains the sole global-spec writer; direct global-spec writes are out of scope.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID whose rename delta is appended"),
+      capability: CapabilityKeySchema.describe(
+        "Existing kebab-case capability key whose global spec contains the target requirement.",
+      ),
+      delta: DeltaRenameSchema.describe(
+        "Rename-operation delta. target_id must name an existing requirement and new_title must be non-empty.",
+      ),
+      renamedBy: z
+        .string()
+        .optional()
+        .describe("Optional audit identity recorded on the signal."),
+      ...targetArgs,
+      ...recoveryArgs,
+    },
+    execute: async (
+      {
+        changeId,
+        capability,
+        delta,
+        renamedBy,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      }: {
+        changeId: string;
+        capability: string;
+        delta: DeltaRename;
+        renamedBy?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        recoveryReason?: string;
+      },
+      store: Store,
+    ) => {
+      const capabilityCheck = validateCapabilityArg({ capability });
+      if (capabilityCheck.error || !capabilityCheck.capability) {
+        return formatToolOutput({
+          success: false,
+          error: capabilityCheck.error ?? "Invalid capability",
+          changeId,
+        });
+      }
+      const deltaCheck = validateRenameDeltaArg({ delta });
+      if (deltaCheck.error || !deltaCheck.delta) {
+        return formatToolOutput({
+          success: false,
+          error: deltaCheck.error ?? "Invalid rename delta",
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const recoveryError = validateRecoveryArgs({
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+      });
+      if (recoveryError) {
+        return formatToolOutput({
+          success: false,
+          error: recoveryError,
+          changeId,
+          capability: capabilityCheck.capability,
+        });
+      }
+      const validatedCapability = capabilityCheck.capability;
+      const validatedDelta = deltaCheck.delta;
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runRename(
+                targetStore,
+                {
+                  changeId,
+                  capability: validatedCapability,
+                  delta: validatedDelta,
+                  renamedBy,
+                  recoveryMode,
+                  recoveryEvidence,
+                  recoveryReason,
+                },
+                formatTargetProjectContext(context),
+              ),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project spec delta rename unavailable: ${errorText}`,
+            changeId,
+            capability: validatedCapability,
+            target_path,
+          });
+        }
+      }
+      return runRename(store, {
+        changeId,
+        capability: validatedCapability,
+        delta: validatedDelta,
+        renamedBy,
         recoveryMode,
         recoveryEvidence,
         recoveryReason,

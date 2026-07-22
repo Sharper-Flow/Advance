@@ -37,6 +37,27 @@ const ADD_DELTA = {
   },
 };
 
+const MODIFY_DELTA = {
+  id: "dl-MOD11111",
+  operation: "modify" as const,
+  target_id: "rq-existing01",
+  changes: { title: "Updated requirement" },
+};
+
+const REMOVE_DELTA = {
+  id: "dl-RMV11111",
+  operation: "remove" as const,
+  target_id: "rq-existing01",
+  reason: "obsolete",
+};
+
+const RENAME_DELTA = {
+  id: "dl-RNM11111",
+  operation: "rename" as const,
+  target_id: "rq-existing01",
+  new_title: "Renamed requirement",
+};
+
 function makeStateWithDelta() {
   return {
     changeId: "spec-delta-store-test",
@@ -125,5 +146,138 @@ describe("createSpecDeltaOps", () => {
     ).rejects.toThrow(/rq-specDelta01/);
     expect(deps.persistStateToDisk).not.toHaveBeenCalled();
     expect(deps.setCachedChange).not.toHaveBeenCalled();
+  });
+
+  it("signals specDeltaAmended, replaces the delta in place, and returns the amended delta", async () => {
+    const state = makeStateWithDelta();
+    state.deltas["collection-dashboard"] = [MODIFY_DELTA];
+    const amended = { ...MODIFY_DELTA, changes: { title: "Amended title" } };
+    state.deltas["collection-dashboard"][0] = amended;
+    const deps = makeDeps(state);
+    const ops = createSpecDeltaOps(deps as never);
+
+    const result = await ops.amend(
+      "spec-delta-store-test",
+      "collection-dashboard",
+      "dl-MOD11111",
+      amended,
+      { amendedBy: "agent" },
+    );
+
+    expect(result).toEqual(amended);
+    expect(signalMock).toHaveBeenCalledTimes(1);
+    const [signalDef, payload] = signalMock.mock.calls[0]!;
+    expect(signalDef).toMatchObject({
+      name: CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAmended,
+    });
+    expect(payload).toMatchObject({
+      capability: "collection-dashboard",
+      deltaId: "dl-MOD11111",
+      delta: amended,
+      amendedBy: "agent",
+    });
+    expect(deps.setCachedChange).toHaveBeenCalledWith(state);
+    expect(deps.persistStateToDisk).toHaveBeenCalledWith(
+      "spec-delta-store-test",
+      state,
+    );
+  });
+
+  it("signals specDeltaRetracted and asserts the delta is absent on readback", async () => {
+    const emptyState = {
+      changeId: "spec-delta-store-test",
+      deltas: { "collection-dashboard": [] },
+      wisdom: [],
+    };
+    const deps = makeDeps(emptyState);
+    const ops = createSpecDeltaOps(deps as never);
+
+    await ops.retract(
+      "spec-delta-store-test",
+      "collection-dashboard",
+      "dl-AAA11111",
+      { retractedBy: "agent" },
+    );
+
+    expect(signalMock).toHaveBeenCalledTimes(1);
+    const [signalDef, payload] = signalMock.mock.calls[0]!;
+    expect(signalDef).toMatchObject({
+      name: CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaRetracted,
+    });
+    expect(payload).toMatchObject({
+      capability: "collection-dashboard",
+      deltaId: "dl-AAA11111",
+      retractedBy: "agent",
+    });
+    expect(deps.setCachedChange).toHaveBeenCalled();
+    expect(deps.persistStateToDisk).toHaveBeenCalled();
+  });
+
+  it("throws a typed error when retract readback still finds the delta", async () => {
+    const deps = makeDeps(makeStateWithDelta());
+    const ops = createSpecDeltaOps(deps as never);
+
+    await expect(
+      ops.retract(
+        "spec-delta-store-test",
+        "collection-dashboard",
+        "dl-AAA11111",
+      ),
+    ).rejects.toThrow(/without removing delta/);
+    expect(deps.persistStateToDisk).not.toHaveBeenCalled();
+  });
+
+  it("signals specDeltaRemoved, refreshes state, and returns the appended remove delta", async () => {
+    const state = makeStateWithDelta();
+    state.deltas["collection-dashboard"].push(REMOVE_DELTA);
+    const deps = makeDeps(state);
+    const ops = createSpecDeltaOps(deps as never);
+
+    const result = await ops.remove(
+      "spec-delta-store-test",
+      "collection-dashboard",
+      REMOVE_DELTA,
+      { removedBy: "agent" },
+    );
+
+    expect(result).toEqual(REMOVE_DELTA);
+    expect(signalMock).toHaveBeenCalledTimes(1);
+    const [signalDef, payload] = signalMock.mock.calls[0]!;
+    expect(signalDef).toMatchObject({
+      name: CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaRemoved,
+    });
+    expect(payload).toMatchObject({
+      capability: "collection-dashboard",
+      delta: REMOVE_DELTA,
+      removedBy: "agent",
+    });
+    expect(deps.setCachedChange).toHaveBeenCalledWith(state);
+  });
+
+  it("signals specDeltaRenamed, refreshes state, and returns the appended rename delta", async () => {
+    const state = makeStateWithDelta();
+    state.deltas["collection-dashboard"].push(RENAME_DELTA);
+    const deps = makeDeps(state);
+    const ops = createSpecDeltaOps(deps as never);
+
+    const result = await ops.rename(
+      "spec-delta-store-test",
+      "collection-dashboard",
+      RENAME_DELTA,
+      { renamedBy: "agent" },
+    );
+
+    expect(result).toEqual(RENAME_DELTA);
+    expect(signalMock).toHaveBeenCalledTimes(1);
+    const [signalDef, payload] = signalMock.mock.calls[0]!;
+    expect(signalDef).toMatchObject({
+      name: CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaRenamed,
+    });
+    expect(payload).toMatchObject({
+      capability: "collection-dashboard",
+      delta: RENAME_DELTA,
+      renamedBy: "agent",
+    });
+    expect(deps.setCachedChange).toHaveBeenCalledWith(state);
   });
 });

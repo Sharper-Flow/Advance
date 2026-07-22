@@ -107,6 +107,38 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     recoveryEvidence: { blank: "omit" },
     recoveryReason: { blank: "omit" },
   },
+  adv_delta_amend: {
+    amendedBy: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
+    recoveryReason: { blank: "omit" },
+  },
+  adv_delta_retract: {
+    retractedBy: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
+    recoveryReason: { blank: "omit" },
+  },
+  adv_delta_remove: {
+    removedBy: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
+    recoveryReason: { blank: "omit" },
+  },
+  adv_delta_rename: {
+    renamedBy: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
+    recoveryReason: { blank: "omit" },
+  },
   adv_change_create: {
     // Optional artifact content — strict-mode providers fill with "" defaults.
     proposal: { blank: "omit" },

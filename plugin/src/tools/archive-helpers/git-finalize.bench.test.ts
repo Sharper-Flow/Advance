@@ -170,13 +170,11 @@ describe.skipIf(!BENCH_ENABLED)(
           `[bench] SC4: verified separately by full git-finalize.test.ts run`,
         );
 
-        // eslint-disable-next-line no-console
         console.warn(lines.join("\n"));
 
         // Soft assertion (does not throw): bench always reports, never fails.
         // The fixture itself should produce a "shipped" outcome.
         if (result.status !== "shipped") {
-          // eslint-disable-next-line no-console
           console.warn(
             `[bench] UNEXPECTED status: ${result.status} (expected shipped)`,
           );
