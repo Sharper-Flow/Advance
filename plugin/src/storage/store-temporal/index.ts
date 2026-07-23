@@ -68,10 +68,7 @@ import {
   enforceMutationEligibilityForError,
   composeTypedMutationResult,
 } from "../../temporal/mutation-safety";
-import {
-  assertDurablePersist,
-  type DiskPersistOutcome,
-} from "./disk-persist";
+import { assertDurablePersist, type DiskPersistOutcome } from "./disk-persist";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
