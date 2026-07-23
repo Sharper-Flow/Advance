@@ -180,12 +180,15 @@ function reportIssuesIncludeTopLevelImplementationCycleId(
         return true;
       }
     }
-    // Zod union errors nest candidate issues under `errors` (array of arrays).
-    const nested = (issue as { errors?: z.ZodIssue[][] }).errors;
-    if (Array.isArray(nested)) {
-      return nested.some((branch) =>
-        reportIssuesIncludeTopLevelImplementationCycleId(branch),
-      );
+    // Zod invalid_union errors nest candidate issues under `errors` (array of
+    // arrays); only that issue shape carries the union branches to recurse.
+    if (issue.code === "invalid_union") {
+      const nested = (issue as { errors?: z.ZodIssue[][] }).errors;
+      if (Array.isArray(nested)) {
+        return nested.some((branch) =>
+          reportIssuesIncludeTopLevelImplementationCycleId(branch),
+        );
+      }
     }
     return false;
   });
