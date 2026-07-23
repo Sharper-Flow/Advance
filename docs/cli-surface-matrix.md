@@ -147,6 +147,7 @@
 | `adv_epic_move_change` | `no-cli-dangerous` | Epic membership mutation across Epics |
 | `adv_epic_reorder` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_retire` | `no-cli-dangerous` | Epic retirement mutation |
+| `adv_launcher_projection_rebuild` | `keep-mcp-only` | Producer-only aggregate launcher-projection rebuild (drift recovery); plugin/MCP-only, never bin/adv |
 
 ## Deferred
 

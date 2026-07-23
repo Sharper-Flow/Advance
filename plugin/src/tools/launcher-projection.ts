@@ -17,6 +17,8 @@ import { createLogger } from "../utils/debug-log";
 const logger = createLogger("launcher-projection");
 
 export const launcherProjectionTools = {
+  // rq-launcherProjectionTruth01 — producer-owned rebuild trigger regenerates
+  // the durable active-launcher-state aggregate from on-disk per-change projections.
   adv_launcher_projection_rebuild: {
     description:
       "Rebuild the aggregate launcher projection (active-launcher-state.json) from " +
