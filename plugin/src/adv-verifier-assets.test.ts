@@ -46,8 +46,12 @@ describe("adv-verifier agent asset", () => {
       "lgrep_search_semantic",
       "lgrep_search_symbols",
       "bash",
-      "adv_spec",
-      "adv_project_context",
+      // Tier 1 ADV tools only (slimMutationToolSurface)
+      "adv_change_show",
+      "adv_task_list",
+      "adv_task_show",
+      "adv_gate_status",
+      "adv_tool_invoke",
     ]) {
       expect(getToolGrant(frontmatter, tool), `${tool} should be allowed`).toBe(
         true,
@@ -62,19 +66,17 @@ describe("adv-verifier agent asset", () => {
       "task",
       "question",
       "todowrite",
+      // Tier 2/3 ADV tools — invoke-only (Tier 1 task_update/gate_complete/archive ARE granted)
       "adv_subagent_report_submit",
       "adv_change_create",
       "adv_change_update",
       "adv_task_add",
-      "adv_task_update",
       "adv_task_cancel",
-      "adv_gate_complete",
-      "adv_change_archive",
       "adv_worktree_create",
       "adv_worktree_delete",
     ]) {
-      expect(getToolGrant(frontmatter, tool), `${tool} should be blocked`).toBe(
-        false,
+      expect(getToolGrant(frontmatter, tool), `${tool} should not be granted`).not.toBe(
+        true,
       );
     }
   });

@@ -78,29 +78,27 @@ describe("adv-designer assets", () => {
     expect(frontmatter).toMatch(/temperature:\s*0\.1/);
   });
 
-  test("blocks ADV orchestration tools", () => {
-    const content = readFileSync(AGENT_PATH, "utf8");
-    const frontmatter = content.split("---")[1] ?? "";
-    const blocked = [
-      "adv_gate_complete: false",
-      "adv_task_update: false",
-      "adv_task_add: false",
-      "adv_task_cancel: false",
-      "adv_task_checkpoint: false",
-      "adv_change_validate: false",
-      "adv_worktree_create: false",
-      "adv_worktree_delete: false",
-      "adv_worktree_cleanup: false",
-    ];
-    for (const tool of blocked) {
-      expect(frontmatter, `missing blocked tool: ${tool}`).toContain(tool);
+  test("does not grant non-Tier-1 ADV orchestration tools (denyWildcard)", () => {
+    const { frontmatter } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    // Tier 1 tools (adv_gate_complete, adv_task_update, adv_task_checkpoint) ARE granted.
+    // These Tier 2/3 tools must not be granted directly — invoke-only.
+    for (const tool of [
+      "adv_task_add",
+      "adv_task_cancel",
+      "adv_change_validate",
+      "adv_worktree_create",
+      "adv_worktree_delete",
+      "adv_worktree_cleanup",
+    ]) {
+      expect(getToolGrant(frontmatter, tool), `${tool} should not be granted`).not.toBe(true);
     }
   });
 
-  test("blocks adv_change_* tools", () => {
-    const content = readFileSync(AGENT_PATH, "utf8");
-    const frontmatter = content.split("---")[1] ?? "";
-    expect(frontmatter).toMatch(/adv_change_\w+:\s*false/);
+  test("does not grant non-Tier-1 adv_change_* tools", () => {
+    const { frontmatter } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    // Tier 1 grants adv_change_show and adv_change_archive; others are invoke-only.
+    expect(getToolGrant(frontmatter, "adv_change_create")).not.toBe(true);
+    expect(getToolGrant(frontmatter, "adv_change_update")).not.toBe(true);
   });
 
   test("blocks nested delegation via task: false", () => {
@@ -109,10 +107,10 @@ describe("adv-designer assets", () => {
     expect(frontmatter).toMatch(/^\s*task:\s*false/m);
   });
 
-  test("allows typed sub-agent report submission tool", () => {
-    const content = readFileSync(AGENT_PATH, "utf8");
-    const frontmatter = content.split("---")[1] ?? "";
-    expect(frontmatter).toContain("adv_subagent_report_submit: true");
+  test("sub-agent report submission is invoke-only (Tier 3)", () => {
+    const { frontmatter } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    expect(getToolGrant(frontmatter, "adv_subagent_report_submit")).not.toBe(true);
+    expect(getToolGrant(frontmatter, "adv_tool_invoke")).toBe(true);
   });
 
   test("allows Playwright MCP tools and skill loading", () => {
