@@ -295,6 +295,36 @@ export {
 } from "./briefing-packets";
 
 // =============================================================================
+// Work Graph (dependency graph + resume projection)
+// =============================================================================
+export {
+  WorkNodeRefSchema,
+  type WorkNodeRef,
+  ResumeRowLifecycleSchema,
+  type ResumeRowLifecycle,
+  ResumeRowKindSchema,
+  type ResumeRowKind,
+  ResumeRowSchema,
+  type ResumeRow,
+  CrossEpicRedirectSchema,
+  type CrossEpicRedirect,
+  WorkGraphDiagnosticsSchema,
+  type WorkGraphDiagnostics,
+  ResumeProjectionSchema,
+  type ResumeProjection,
+  DependencyCycleErrorSchema,
+  type DependencyCycleError,
+  UnresolvedDependencyErrorSchema,
+  type UnresolvedDependencyError,
+  InvalidWorkNodeRefErrorSchema,
+  type InvalidWorkNodeRefError,
+  ShellPrereqNonterminalErrorSchema,
+  type ShellPrereqNonterminalError,
+  DepPrereqNonterminalErrorSchema,
+  type DepPrereqNonterminalError,
+} from "./work-graph";
+
+// =============================================================================
 // Gates
 // =============================================================================
 export {

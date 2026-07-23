@@ -187,6 +187,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     execute(`Checkpoint task${suffix(args, "taskId")}`),
   adv_reflection_list: (args) =>
     read(`List reflections${suffix(args, "changeId", "target_path")}`),
+  adv_resume_projection: (args) =>
+    read(`Resume projection${suffix(args, "epic_ids")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
   adv_lightweight_profile_evaluate: (args) =>
     write(`Evaluate lightweight profile${suffix(args, "changeId", "phase")}`),

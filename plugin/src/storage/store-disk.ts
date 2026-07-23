@@ -444,6 +444,8 @@ export async function createDiskStore(
           created_at: new Date().toISOString(),
           tasks: [],
           deltas: {},
+          same_project_dependencies:
+            initialMetadata?.same_project_dependencies ?? [],
           ...(initialMetadata?.origin !== undefined
             ? { origin: initialMetadata.origin }
             : {}),

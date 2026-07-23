@@ -80,6 +80,7 @@ import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
+import { resumeProjectionTools } from "./tools/resume-projection";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
@@ -748,6 +749,13 @@ export function createToolMap(
     // Status Tool
     adv_status: bindTool(statusTools.adv_status, "adv_status", store),
 
+    // Resume Projection Tool (pure-read, orchestrator class)
+    adv_resume_projection: bindTool(
+      resumeProjectionTools.adv_resume_projection,
+      "adv_resume_projection",
+      store,
+    ),
+
     // Snapshot Health Tool
     adv_snapshot_health: bindTool(
       snapshotHealthTools.adv_snapshot_health,
@@ -1214,6 +1222,7 @@ const PUBLIC_TOOL_GROUPS = [
   subagentReportTools,
   wisdomTools,
   statusTools,
+  resumeProjectionTools,
   projectTools,
   gateTools,
   testTools,

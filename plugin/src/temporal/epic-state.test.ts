@@ -812,6 +812,33 @@ describe("epic-state", () => {
   });
 
   describe("recomputeEpicProgress", () => {
+    it("skips a blocked first shell and selects the next locally unblocked entry", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-blocked",
+        title: "Blocked Shell",
+        successHint: "wait",
+        blockedBy: [
+          {
+            kind: "epic_entry",
+            epic_id: state.epic.id,
+            entry_id: "shell-ready",
+          },
+        ],
+        idempotencyKey: "add-shell-blocked",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellAddedToState(state, {
+        entryId: "shell-ready",
+        title: "Ready Shell",
+        successHint: "go",
+        idempotencyKey: "add-shell-ready",
+        addedAt: "2026-06-24T00:02:00.000Z",
+      });
+
+      expect(state.epic.progress.next_entry_id).toBe("shell-ready");
+    });
+
     it("skips terminal entries when selecting next work", () => {
       const state = makeState();
       applyShellAddedToState(state, {

@@ -251,3 +251,8 @@ Emit:
 | Converge membership | `adv_epic_show` |
 | Inspect linked change | `adv_change_show` |
 | Check spec law | `adv_spec` |
+
+
+## Resume Projection Consumption
+
+The `adv_resume_projection` tool (pure-read, orchestrator class) provides a structural dependency-aware "what to work on next" view. Consume `ordered_next` and `actionable[]` for sequencing recommendations instead of heuristic inference. Cross-Epic blockers surface as `redirects[]`.

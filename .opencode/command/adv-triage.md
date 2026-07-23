@@ -203,3 +203,8 @@ Emit: sources scanned, issues created, priorities assigned, coalesce pairs propo
 | Wisdom | `adv_wisdom_list` |
 | Local source scan | `glob`, `read`, lgrep text search |
 | Bug priority loop | `gh issue edit --add-label` |
+
+
+## Resume Projection Consumption
+
+The `adv_resume_projection` tool provides structural portfolio "what to start/promote next" via `ordered_next` and `actionable[]`. Consume the projection for portfolio-balance recommendations instead of heuristic sequencing.

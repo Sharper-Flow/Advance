@@ -8,7 +8,7 @@ import { z } from "zod";
 import { createHash } from "crypto";
 import { rm } from "fs/promises";
 import { basename, join, relative, resolve } from "path";
-import type { FastFollowOf, ChangeOrigin } from "../types";
+import type { FastFollowOf, ChangeOrigin, WorkNodeRef } from "../types";
 import {
   createDefaultGates,
   allGatesSatisfied,
@@ -18,6 +18,7 @@ import {
   ChangeRepoScopeSchema,
   BriefingPacketLaneSchema,
   BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH,
+  WorkNodeRefSchema,
   type GateId,
   type ArtifactKind,
   type Change,
@@ -103,8 +104,36 @@ import {
 import { logRecoveryProbeDiagnostics } from "./recovery-probe";
 import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { reconcileRecoveredGates } from "./gate";
+import {
+  buildD3ContextFromStore,
+  enforceD3ForChangeCreate,
+  type D3EnforcementError,
+} from "../validator/work-graph-enforcement";
+import { nodeRefKey } from "../validator/work-graph-validation";
 
 const logger = createLogger("change");
+
+function formatD3Error(error: D3EnforcementError): string {
+  switch (error.code) {
+    case "INVALID_WORK_NODE_REF": {
+      const reason = (error as { reason?: string }).reason;
+      if (reason === "self_edge") return "Self-dependency is not allowed.";
+      if (reason === "duplicate_ref")
+        return "Duplicate dependency reference in same_project_dependencies.";
+      return "Invalid dependency reference.";
+    }
+    case "UNRESOLVED_DEPENDENCY":
+      return "Dependency target does not exist in scope.";
+    case "DEPENDENCY_CYCLE":
+      return "Adding this dependency would create a cycle.";
+    case "DEP_PREREQ_NONTERMINAL": {
+      const refs = (error as { blocking_refs: WorkNodeRef[] }).blocking_refs;
+      return `Cannot create change: prerequisites are not terminal: ${refs.map((r) => nodeRefKey(r)).join(", ")}`;
+    }
+    default:
+      return `Dependency enforcement failed: ${error.code}`;
+  }
+}
 
 // adv_change_workflow_terminate: shipped proof = acceptance AND release gates
 // done on the disk projection. Only a fully-shipped change may have its
@@ -1561,6 +1590,12 @@ export const changeTools = {
         .min(1)
         .optional()
         .describe("Display title for the Epic entry."),
+      same_project_dependencies: z
+        .array(WorkNodeRefSchema)
+        .default([])
+        .describe(
+          "Same-project hard prerequisite changes/shells. Change creation is refused while any prereq is nonterminal.",
+        ),
       origin_kind: ChangeOriginKindSchema.optional().describe(
         "Origin provenance kind. " +
           "'roadmap' = READABLE LEGACY ONLY — retired for new writes by reshapeTriagePortfolioBalance; archived changes still carry this kind. Use 'triage' for new issue-linked changes. " +
@@ -1611,6 +1646,7 @@ export const changeTools = {
         entry_id,
         epic_order,
         epic_title,
+        same_project_dependencies,
         origin_kind,
         origin_issue_number,
         origin_source_artifact,
@@ -1637,6 +1673,7 @@ export const changeTools = {
         entry_id?: string;
         epic_order?: number;
         epic_title?: string;
+        same_project_dependencies?: WorkNodeRef[];
         origin_kind?: ChangeOrigin["kind"];
         origin_issue_number?: number;
         origin_source_artifact?: string;
@@ -1718,6 +1755,36 @@ export const changeTools = {
         return formatToolOutput(epicSeedResult.error);
       }
       const epicMembership = epicSeedResult.membership;
+
+      // D3 enforcement: validate same_project_dependencies at create time.
+      // Refuse creation if any hard prerequisite is nonterminal.
+      const deps = same_project_dependencies ?? [];
+      if (deps.length > 0) {
+        const projectId = (await getProjectId(store.paths.root)) ?? "";
+        const sourceRef: WorkNodeRef = {
+          kind: "change",
+          project_id: projectId,
+          change_id: "pending", // New change ID is derived from summary below.
+        };
+        const d3Ctx = await buildD3ContextFromStore(store);
+        const d3Result = enforceD3ForChangeCreate(sourceRef, deps, d3Ctx);
+        if (!d3Result.ok) {
+          return formatToolOutput({
+            success: false,
+            error: formatD3Error(d3Result.error),
+            code: d3Result.error.code,
+            ...(d3Result.error.code === "SHELL_PREREQ_NONTERMINAL" ||
+            d3Result.error.code === "DEP_PREREQ_NONTERMINAL"
+              ? {
+                  blocking_refs: (
+                    d3Result.error as { blocking_refs: WorkNodeRef[] }
+                  ).blocking_refs,
+                }
+              : {}),
+          });
+        }
+      }
+
       // rq-backlogCoord02 — Pre-create claim collision check.
       // Fires for any origin that carries a concrete `issue_number` (kind
       // roadmap requires it; triage may carry it when promoting from a
@@ -1805,6 +1872,9 @@ export const changeTools = {
         initialMetadata.scope_repos = scopeResolution.scope;
       if (epicMembership) {
         initialMetadata.epic_membership = epicMembership;
+      }
+      if (deps.length > 0) {
+        initialMetadata.same_project_dependencies = deps;
       }
       const createOptions =
         Object.keys(initialMetadata).length > 0

@@ -4,6 +4,7 @@
  * Extracted from status.ts — pure move, no behavior change.
  */
 
+import { basename } from "path";
 import type { Store } from "../storage/store";
 import {
   createDefaultGates,
@@ -38,6 +39,14 @@ import {
   statusRecommendationToString,
   type StatusRecommendationItem,
 } from "./status-recommendations";
+import {
+  buildResumeProjection,
+  type ChangeNodeInput,
+  type EpicNodeInput,
+  type EpicEntryInput,
+} from "../projection/resume-projection";
+import type { WorkNodeRef } from "../types/work-graph";
+import { nodeRefKey } from "../validator/work-graph-validation";
 
 export interface StatusSummaryOmissions {
   recentChanges: number;
@@ -894,3 +903,146 @@ export function applyCandidateEnrichmentPatches(
 
   return { candidates, recommendations, omittedCount, omittedSample };
 }
+
+// =============================================================================
+// Resume projection recommendation integration (AC9)
+// =============================================================================
+
+export async function appendResumeProjectionRecommendations(
+  store: Store,
+  target: RecommendationTarget,
+  opts?: { projectId?: string; limit?: number },
+): Promise<void> {
+  const limit = opts?.limit ?? 3;
+  const projectId =
+    opts?.projectId ??
+    (store.paths.external ? basename(store.paths.external) : "");
+  if (!projectId) return;
+
+  try {
+    const [changeList, epicList] = await Promise.all([
+      store.changes.list({ includeArchived: true, includeClosed: true }),
+      store.epics.list({ status: "all" }),
+    ]);
+
+    const changeInputs: ChangeNodeInput[] = [];
+    for (const summary of changeList.changes) {
+      const isTerminal =
+        summary.status === "archived" || summary.status === "closed";
+      if (isTerminal) {
+        changeInputs.push({
+          id: summary.id,
+          title: summary.title,
+          status: summary.status,
+          lifecycleState: summary.lifecycleState ?? "open",
+          same_project_dependencies: [],
+          hasInProgressTasks: false,
+          epic_membership: summary.epic_membership,
+        });
+        continue;
+      }
+      const full = await store.changes.get(summary.id);
+      const change = full.success && full.data ? full.data : null;
+      if (!change) continue;
+      changeInputs.push({
+        id: change.id,
+        title: change.title,
+        status: change.status,
+        lifecycleState: change.lifecycleState ?? "open",
+        same_project_dependencies: change.same_project_dependencies ?? [],
+        hasInProgressTasks:
+          change.tasks?.some((t) => t.status === "in_progress") ?? false,
+        epic_membership: change.epic_membership,
+      });
+    }
+
+    const epicInputs: EpicNodeInput[] = epicList.map((epic) => ({
+      id: epic.id,
+      title: epic.title,
+      entries: (epic.entries ?? []).map((entry): EpicEntryInput => {
+        if (entry.kind === "shell") {
+          return {
+            kind: "shell",
+            entry_id: entry.entry_id,
+            order: entry.order,
+            title: entry.title,
+            success_hint: entry.success_hint,
+            blocked_by: entry.blocked_by ?? [],
+          };
+        }
+        return {
+          kind: "change",
+          entry_id: entry.entry_id,
+          order: entry.order,
+          title: entry.title ?? "",
+          change_id: entry.change_id ?? "",
+        };
+      }),
+    }));
+
+    const projection = buildResumeProjection(changeInputs, epicInputs, {
+      project_id: projectId,
+    });
+
+    const title = (ref: WorkNodeRef): string => {
+      if (ref.kind === "change") {
+        const change = changeInputs.find((c) => c.id === ref.change_id);
+        return change?.title ?? ref.change_id;
+      }
+      const epic = epicInputs.find((e) => e.id === ref.epic_id);
+      const entry = epic?.entries.find((e) => e.entry_id === ref.entry_id);
+      return entry?.title ?? ref.entry_id;
+    };
+
+    if (projection.ordered_next) {
+      const next = projection.ordered_next;
+      const blocked = next.lifecycle === "blocked";
+      const targetEpic =
+        next.target_epic_id && next.source_epic_id !== next.target_epic_id
+          ? ` (blocked by ${next.target_epic_id})`
+          : "";
+      pushStatusRecommendation(target, {
+        kind: "resume",
+        priority: blocked ? "medium" : "high",
+        title: blocked
+          ? `Next ordered work is blocked: ${title(next.node)}`
+          : `Next ordered work: ${title(next.node)}`,
+        detail: `rank ${next.advisory_rank}${targetEpic}`,
+        action: blocked
+          ? "Resolve blockers or adjust dependencies"
+          : "Start/promote this work next",
+        source: "resume_projection",
+        message: `Next ordered work: ${title(next.node)} (${next.lifecycle})${targetEpic}`,
+      });
+    }
+
+    for (const row of projection.actionable.slice(0, limit)) {
+      pushStatusRecommendation(target, {
+        kind: "resume",
+        priority: "medium",
+        title: `Actionable: ${title(row.node)}`,
+        detail: `rank ${row.advisory_rank}`,
+        action: "Pick up when ready",
+        source: "resume_projection",
+        message: `Actionable: ${title(row.node)} (${row.lifecycle})`,
+      });
+    }
+
+    for (const redirect of projection.redirects.slice(0, limit)) {
+      pushStatusRecommendation(target, {
+        kind: "resume",
+        priority: "medium",
+        title: `Cross-Epic redirect: ${title(redirect.blocked_node)}`,
+        detail: `blocked by ${redirect.target_epic_id}`,
+        action: `Resolve blocker in ${redirect.target_epic_id} first`,
+        source: "resume_projection",
+        message: `Cross-Epic redirect: ${title(redirect.blocked_node)} → ${redirect.target_epic_id}`,
+      });
+    }
+  } catch {
+    // Resume projection recommendations are advisory; failure must not break status.
+  }
+}
+
+// Re-export nodeRefKey for consumers that need the canonical work-graph key.
+export { nodeRefKey };

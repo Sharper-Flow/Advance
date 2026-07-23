@@ -144,6 +144,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
   // task checkpoint/update/cancel, Temporal repair, cross-project trust
   // boundaries) stay distinct — no universal router (DONT1/DONT3).
+  adv_resume_projection: {
+    class: "orchestrator",
+    rationale:
+      "Pure-read dependency-aware resume projection. No mutation surface — generates an in-memory 'what next' view from changes + epics. Consumed by adv_status, /adv-coordinate, /adv-triage, and bin/adv.",
+  },
   adv_backlog_add: {
     class: "orchestrator",
     rationale: "Backlog item capture.",

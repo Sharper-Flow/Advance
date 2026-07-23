@@ -17,6 +17,8 @@
 
 import { z } from "zod";
 
+import { WorkNodeRefSchema } from "./work-graph";
+
 // =============================================================================
 // Epic Status
 // =============================================================================
@@ -285,7 +287,10 @@ const EpicChangeEntrySchema = z
 
 // rq-epicEntries01 — shell entries carry title + success hint.
 // rq-backlogEpicBridge01 — shell entries may carry backlog import provenance.
-const EpicShellEntrySchema = z.object({
+// rq-workGraphTypes01 (addDependencyAwareResume) — shell entries carry same-project
+// hard dependency edges; additive field with Zod .default([]) preserves pre-change
+// corpus semantics (no migration, no flag day).
+export const EpicShellEntrySchema = z.object({
   kind: z.literal("shell"),
   /** Stable entry ID within this Epic. */
   entry_id: z.string(),
@@ -302,6 +307,13 @@ const EpicShellEntrySchema = z.object({
       imported_at: z.string(),
     })
     .optional(),
+  /**
+   * Same-project hard prerequisite edges. Validated at mutation time
+   * (cycle-safe, target-resolved). D3 enforcement refuses promotion of a
+   * shell whose prereqs are nonterminal. Default [] on absent field
+   * (additive schema, no migration needed).
+   */
+  blocked_by: z.array(WorkNodeRefSchema).default([]),
 });
 
 export const EpicEntrySchema = z.discriminatedUnion("kind", [

@@ -10,14 +10,22 @@
 import { z } from "zod";
 import { resolve } from "path";
 import type { Store } from "../storage/store-types";
-import { deriveEpicScopeLabel } from "../types";
+import { deriveEpicScopeLabel, WorkNodeRefSchema } from "../types";
 import type {
   Change,
   EpicEntry,
   FastFollowOf,
   RetiredEpicProjection,
+  WorkNodeRef,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import {
+  buildD3ContextFromStore,
+  enforceD3ForShellAdd,
+  enforceD3ForShellPromote,
+  type D3EnforcementError,
+} from "../validator/work-graph-enforcement";
+import { nodeRefKey } from "../validator/work-graph-validation";
 import { getBacklogItem } from "../utils/backlog-store";
 import {
   appendEpicRoutingContexts,
@@ -59,6 +67,28 @@ function epicError(err: unknown) {
     code,
     ...(blockers && { blockers }),
   });
+}
+
+function formatD3Error(error: D3EnforcementError): string {
+  switch (error.code) {
+    case "INVALID_WORK_NODE_REF": {
+      const reason = (error as { reason?: string }).reason;
+      if (reason === "self_edge") return "Self-dependency is not allowed.";
+      if (reason === "duplicate_ref")
+        return "Duplicate dependency reference in blocked_by.";
+      return "Invalid dependency reference.";
+    }
+    case "UNRESOLVED_DEPENDENCY":
+      return "Dependency target does not exist in scope.";
+    case "DEPENDENCY_CYCLE":
+      return "Adding this dependency would create a cycle.";
+    case "SHELL_PREREQ_NONTERMINAL": {
+      const refs = (error as { blocking_refs: WorkNodeRef[] }).blocking_refs;
+      return `Cannot add shell: prerequisites are not terminal: ${refs.map((r) => nodeRefKey(r)).join(", ")}`;
+    }
+    default:
+      return `Dependency enforcement failed: ${error.code}`;
+  }
 }
 
 // =============================================================================
@@ -1322,6 +1352,12 @@ export const epicTools = {
         .describe(
           "Advisory display order; assigned next available if omitted.",
         ),
+      blocked_by: z
+        .array(WorkNodeRefSchema)
+        .default([])
+        .describe(
+          "Same-project hard prerequisite edges. Shell promotion is refused while any prereq is nonterminal.",
+        ),
       ...epicOwnerTargetPathSchema,
     },
     execute: async (
@@ -1332,6 +1368,7 @@ export const epicTools = {
         success_hint,
         entry_id,
         order,
+        blocked_by,
         epic_owner_target_path,
         epic_owner_target_confirmed,
         epic_owner_confirmationEvidence,
@@ -1342,6 +1379,7 @@ export const epicTools = {
         success_hint?: string;
         entry_id?: string;
         order?: number;
+        blocked_by?: WorkNodeRef[];
         epic_owner_target_path?: string;
         epic_owner_target_confirmed?: true;
         epic_owner_confirmationEvidence?: string;
@@ -1399,12 +1437,40 @@ export const epicTools = {
           });
         }
 
+        const sourceRef: WorkNodeRef = {
+          kind: "epic_entry",
+          epic_id: epic_id,
+          entry_id: entry_id ?? `shell-${Date.now()}`,
+        };
+        const d3Ctx = await buildD3ContextFromStore(owner.store);
+        const d3Result = enforceD3ForShellAdd(
+          sourceRef,
+          blocked_by ?? [],
+          d3Ctx,
+        );
+        if (!d3Result.ok) {
+          return formatToolOutput({
+            success: false,
+            error: formatD3Error(d3Result.error),
+            code: d3Result.error.code,
+            ...(d3Result.error.code === "SHELL_PREREQ_NONTERMINAL" ||
+            d3Result.error.code === "DEP_PREREQ_NONTERMINAL"
+              ? {
+                  blocking_refs: (
+                    d3Result.error as { blocking_refs: WorkNodeRef[] }
+                  ).blocking_refs,
+                }
+              : {}),
+          });
+        }
+
         const entry = await owner.store.epics.addShell(epic_id, {
           entryId: entry_id,
           title: finalTitle,
           successHint: finalSuccessHint,
           order,
           importedFrom,
+          blockedBy: blocked_by,
         });
         const output = formatToolOutput({
           success: true,
@@ -1475,6 +1541,24 @@ export const epicTools = {
           return formatToolOutput({
             error: `Shell entry not found: ${entry_id}`,
             code: "SHELL_NOT_FOUND",
+          });
+        }
+
+        // D3 enforcement: refuse promotion if same-project prerequisites are
+        // nonterminal. Edges were validated at shell-add time; we only check
+        // terminal status here.
+        const d3Ctx = await buildD3ContextFromStore(ownerStore);
+        const d3Result = enforceD3ForShellPromote(
+          shell.blocked_by ?? [],
+          d3Ctx,
+        );
+        if (!d3Result.ok) {
+          return formatToolOutput({
+            success: false,
+            error: formatD3Error(d3Result.error),
+            code: d3Result.error.code,
+            blocking_refs: (d3Result.error as { blocking_refs: WorkNodeRef[] })
+              .blocking_refs,
           });
         }
 

@@ -38,6 +38,7 @@ import type {
   EpicChangeRef,
   EpicMembershipStatus,
   RetiredEpicProjection,
+  WorkNodeRef,
 } from "../types";
 import type { GateProgress } from "./store-temporal-memo";
 import type { ProjectPaths, LoadResult } from "./json";
@@ -133,6 +134,7 @@ export interface ChangeCreateInitialMetadata {
   cross_project_origin?: Change["cross_project_origin"];
   scope_repos?: Change["scope_repos"];
   epic_membership?: Change["epic_membership"];
+  same_project_dependencies?: Change["same_project_dependencies"];
 }
 
 export interface ChangeCreateOptions {
@@ -531,6 +533,7 @@ export interface Store {
         successHint: string;
         order?: number;
         importedFrom?: { backlog_id: string; imported_at: string };
+        blockedBy?: WorkNodeRef[];
       },
     ) => Promise<EpicEntry>;
     promoteShell: (

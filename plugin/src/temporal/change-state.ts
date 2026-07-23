@@ -166,6 +166,7 @@ export function createChangeWorkflowState(input: {
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
     acceptanceReadinessRevision: 0,
+    same_project_dependencies: [],
   };
 }
 
@@ -202,6 +203,7 @@ export function changeSeedStateFromChange(
     cross_project_origin: safeChange.cross_project_origin,
     cross_project_links: safeChange.cross_project_links,
     external_dependencies: safeChange.external_dependencies,
+    same_project_dependencies: safeChange.same_project_dependencies ?? [],
     worktree_auto_managed: safeChange.worktree_auto_managed,
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
