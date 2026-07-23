@@ -314,7 +314,7 @@ export async function runTemporal<T>(
 }
 
 /**
- * Per-attempt 5s timeout for `handle.query(...)` calls. Without this,
+ * Per-attempt timeout cap for `handle.query(...)` calls. Without this,
  * a dead worker causes the query to hang indefinitely and all tool
  * calls through that path stall with it.
  *
@@ -322,8 +322,20 @@ export async function runTemporal<T>(
  * and `getHandle` keep the unbounded `runTemporal` so long-running
  * legitimate operations don't get interrupted. See design.md § KD-2,
  * P1.3.8.
+ *
+ * Configurable via `ADV_TEMPORAL_QUERY_TIMEOUT_MS` (finite-positive
+ * milliseconds). Default raised to 15s to tolerate the SQLite-backed
+ * Temporal dev server's variable history-replay latency under
+ * multi-worker load, where a long-history workflow's query can
+ * legitimately exceed the previous 5s cap. Production / CI may pin
+ * tighter via the env override. Invalid (non-finite, non-positive,
+ * non-numeric) values fall back to the default.
  */
-const QUERY_TIMEOUT_MS = 5_000;
+export function resolveQueryTimeoutMs(): number {
+  const v = Number(process.env.ADV_TEMPORAL_QUERY_TIMEOUT_MS);
+  return Number.isFinite(v) && v > 0 ? v : 15_000;
+}
+export const QUERY_TIMEOUT_MS = resolveQueryTimeoutMs();
 
 export interface RunTemporalQueryOptions {
   /**
@@ -333,9 +345,10 @@ export interface RunTemporalQueryOptions {
    */
   deadline?: TemporalReadDeadline;
   /**
-   * Per-attempt timeout cap. Defaults to `QUERY_TIMEOUT_MS` (5s) for
-   * backward compatibility; read paths override this to a lower per-member
-   * cap so a single wedged workflow cannot consume the aggregate budget.
+   * Per-attempt timeout cap. Defaults to `QUERY_TIMEOUT_MS` (15s,
+   * overridable via `ADV_TEMPORAL_QUERY_TIMEOUT_MS`); read paths
+   * override this to a lower per-member cap so a single wedged
+   * workflow cannot consume the aggregate budget.
    */
   timeoutMs?: number;
 }

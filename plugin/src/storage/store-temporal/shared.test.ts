@@ -5,6 +5,8 @@ import {
   classifyTemporalReadFailure,
   getGuardedChangeHandle,
   mapTemporalChangeStateToChange,
+  QUERY_TIMEOUT_MS,
+  resolveQueryTimeoutMs,
   runTemporalQuery,
   type TemporalStoreBackendInput,
   type WorkflowHandleLike,
@@ -19,6 +21,48 @@ import { createChangeWorkflowState } from "../../temporal/change-state";
 vi.mock("../../temporal/service", () => ({
   reinitStsl: vi.fn(async () => undefined),
 }));
+
+describe("QUERY_TIMEOUT_MS / resolveQueryTimeoutMs", () => {
+  const envKey = "ADV_TEMPORAL_QUERY_TIMEOUT_MS";
+  let saved: string | undefined;
+  beforeEach(() => {
+    saved = process.env[envKey];
+    delete process.env[envKey];
+  });
+  afterEach(() => {
+    if (saved === undefined) delete process.env[envKey];
+    else process.env[envKey] = saved;
+  });
+
+  test("default is 15s (tolerates dev-server / long-history replay beyond the old 5s cap)", () => {
+    expect(resolveQueryTimeoutMs()).toBe(15_000);
+  });
+
+  test("module-level constant resolved from the raised default", () => {
+    expect(QUERY_TIMEOUT_MS).toBe(15_000);
+  });
+
+  test("env override honored when finite-positive", () => {
+    process.env[envKey] = "30000";
+    expect(resolveQueryTimeoutMs()).toBe(30_000);
+    process.env[envKey] = "12000";
+    expect(resolveQueryTimeoutMs()).toBe(12_000);
+  });
+
+  test.each([
+    ["unset (deleted)", undefined],
+    ["empty", ""],
+    ["non-numeric", "abc"],
+    ["negative", "-5"],
+    ["zero", "0"],
+    ["Infinity string", "Infinity"],
+    ["NaN string", "NaN"],
+  ])("invalid value %s falls back to 15s", (_label, value) => {
+    if (value === undefined) delete process.env[envKey];
+    else process.env[envKey] = String(value);
+    expect(resolveQueryTimeoutMs()).toBe(15_000);
+  });
+});
 
 function createInput(args: {
   projectId?: string;
