@@ -14,7 +14,6 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
-import { ADV_TOOL_NAMES } from "./tool-registry";
 import { COMMAND_MANIFEST } from "./manifest";
 import { epicTools } from "./tools/epic";
 
@@ -23,10 +22,6 @@ const REPO_ROOT = resolve(__dirname, "../..");
 function readRepoFile(relativePath: string): string {
   return readFileSync(join(REPO_ROOT, relativePath), "utf8");
 }
-
-const EPIC_TOOLS = ADV_TOOL_NAMES.filter((name) =>
-  name.startsWith("adv_epic_"),
-);
 
 describe("Advance Epics spec documentation", () => {
   test("docs/specs/advance-epics.md mirrors the capability spec", () => {
@@ -523,9 +518,13 @@ describe("ADV agent Epic tool allowlist and context loading", () => {
   const agent = readRepoFile(".opencode/agents/adv.md");
 
   test("allows every adv_epic_* tool", () => {
-    for (const tool of EPIC_TOOLS) {
-      expect(agent).toContain(`${tool}: true`);
-    }
+    // slimMutationToolSurface: epic tools are Tier 3 (invoke-only). They are
+    // NOT in the manifest frontmatter; they are dispatched via adv_tool_invoke
+    // and discoverable via adv_tool_catalog. The orchestrator references
+    // adv_epic_show in its Epic context loading instructions.
+    expect(agent).toContain("adv_tool_invoke");
+    expect(agent).toContain("adv_tool_catalog");
+    expect(agent).toContain("adv_epic_show");
   });
 
   test("instructs orchestrator to load Epic context", () => {

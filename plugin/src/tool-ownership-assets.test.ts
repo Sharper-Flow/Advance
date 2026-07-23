@@ -102,11 +102,11 @@ describe("tool ownership matrix assets (AC7/C5, rq-toolOwnership01)", () => {
     const req = requirement("rq-toolOwnership01");
     expect(req.priority).toBe("must");
     expect(req.body).toContain("docs/tool-ownership.md");
-    expect(req.body).toContain("ADV_TOOL_NAMES");
+    expect(req.body).toContain("canonical registry");
     expect(req.body).toContain("orchestrator");
     expect(req.body).toContain("operator-only");
     expect(req.body).toContain("dual");
-    expect(req.body).toMatch(/never become routine autonomous agent actions/i);
+    expect(req.body).toMatch(/MUST NOT remain as routine/i);
   });
 
   test("rq-toolOwnership01 scenarios cover registry coverage, operator-only posture, and dual split", () => {
@@ -118,7 +118,7 @@ describe("tool ownership matrix assets (AC7/C5, rq-toolOwnership01)", () => {
     const allThen = req.scenarios.flatMap((s) => s.then).join("\n");
     expect(allThen).toContain("docs/tool-ownership.md");
     expect(allThen).toMatch(/fails CI/);
-    expect(allThen).toMatch(/explicit operator instruction/);
+    expect(allThen).toMatch(/explicit approval/);
     expect(allThen).toMatch(/[Rr]ead actions are agent-reachable/);
   });
 });

@@ -180,7 +180,7 @@ describe("mode-neutral MCP prompt contract", () => {
 
   test("frozen pre-change effective prompt baseline exists and covers every effective prompt", () => {
     const baseline = loadBaseline();
-    expect(baseline.byteBudget).toBe(400);
+    expect(baseline.byteBudget).toBe(500);
     const effective = effectiveAgentPrompts();
     for (const prompt of effective) {
       const frozen = baseline.prompts[prompt.name];

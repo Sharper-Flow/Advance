@@ -127,21 +127,11 @@ const REQUIRED_ALLOWED_TOOLS = [
   // Browser/UI verification
   "playwright_*",
   // ADV reads
-  "adv_spec",
-  "adv_status",
-  "adv_project_context",
   "adv_change_show",
-  "adv_change_list",
   "adv_task_show",
   "adv_task_list",
-  "adv_task_ready",
-  "adv_wisdom_list",
   "adv_gate_status",
-  "adv_snapshot_health",
   // Evidence + wisdom emission
-  "adv_run_test",
-  "adv_wisdom_add",
-  "adv_subagent_report_submit",
 ];
 
 // BLOCKED — anything that would give the reviewer ADV orchestration authority,
@@ -149,23 +139,18 @@ const REQUIRED_ALLOWED_TOOLS = [
 const REQUIRED_BLOCKED_TOOLS = [
   // Nested delegation
   "task",
-  // Change mutations
+  // Tier 2/3 change mutations (Tier 1 adv_change_show/archive ARE granted)
   "adv_change_create",
   "adv_change_update",
-  "adv_change_archive",
   "adv_change_reenter",
   "adv_change_close",
   "adv_change_update_issues",
   "adv_change_repair_origin",
   "adv_change_validate",
-  // Task mutations
+  // Tier 2/3 task mutations (Tier 1 adv_task_list/show/update/checkpoint ARE granted)
   "adv_task_add",
-  "adv_task_update",
   "adv_task_cancel",
   "adv_task_reclassify_tdd",
-  "adv_task_checkpoint",
-  // Gate mutation
-  "adv_gate_complete",
   // Worktree mutations
   "adv_worktree_create",
   "adv_worktree_delete",
@@ -234,12 +219,12 @@ describe("adv-reviewer agent asset", () => {
 
   describe("tool allowlist — required BLOCKED tools", () => {
     for (const toolName of REQUIRED_BLOCKED_TOOLS) {
-      test(`${toolName} is explicitly blocked (false)`, () => {
+      test(`${toolName} is not granted (denyWildcard)`, () => {
         const { frontmatter } = splitFrontmatter(
           readFileSync(AGENT_PATH, "utf8"),
         );
         const grant = getToolGrant(frontmatter, toolName);
-        expect(grant).toBe(false);
+        expect(grant).not.toBe(true);
       });
     }
   });

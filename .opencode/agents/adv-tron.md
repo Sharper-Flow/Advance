@@ -26,14 +26,14 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools - read-only spec/change queries
-  adv_change_list: true
+  adv_change_archive: true
   adv_change_show: true
-  adv_project_context: true
-  adv_snapshot_health: true
-  adv_spec: true
-  adv_subagent_report_submit: true
+  adv_gate_complete: true
+  adv_gate_status: true
+  adv_task_checkpoint: true
   adv_task_list: true
-  adv_tool_catalog: true
+  adv_task_show: true
+  adv_task_update: true
   # Disabled - Tron is repo read-only
   write: false
   edit: false
@@ -42,14 +42,12 @@ tools:
   task: false
 
   # Disabled - no ADV orchestration mutations beyond own optimized report submit
+  adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
-  adv_wisdom_list: true
-  adv_change_create: false
-  adv_gate_complete: false
-  adv_task_add: false
   # <<< ADV-GENERATED adv_* tools <<<
   # Disabled - Tron does not do external research
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas.
   context7_*: false
   exa_*: false
   webfetch: false

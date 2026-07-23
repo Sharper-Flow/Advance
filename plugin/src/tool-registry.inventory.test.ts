@@ -70,6 +70,16 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
 const CONTRACTED_PUBLIC_REMOVALS = [
   "adv_backlog_state",
   "adv_project_wisdom_list",
+  // replaceRecoveryToolSprawl retired 8 recovery tools (merged to trunk,
+  // commits c70e3fb4 + 7e0a7523):
+  "adv_archive_repair",
+  "adv_change_status_repair",
+  "adv_change_forget",
+  "adv_epic_repair_membership",
+  "adv_temporal_diagnose",
+  "adv_temporal_reconnect",
+  "adv_temporal_register_search_attributes",
+  "adv_temporal_worker_restart",
 ] as const;
 
 /**
@@ -103,6 +113,8 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_tool_catalog",
   "adv_tool_describe",
   "adv_tool_invoke",
+  // replaceRecoveryToolSprawl added the consolidated doctor entry point:
+  "adv_doctor",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;

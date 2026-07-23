@@ -21,19 +21,20 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools for proposal creation and gate completion
-  adv_change_create: true
-  adv_change_list: true
+  adv_change_archive: true
   adv_change_show: true
-  adv_change_update: true
   adv_gate_complete: true
-  adv_project_context: true
-  adv_spec: true
-  adv_status: true
+  adv_gate_status: true
+  adv_task_checkpoint: true
+  adv_task_list: true
+  adv_task_show: true
+  adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
   # <<< ADV-GENERATED adv_* tools <<<
   # Local code intelligence
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas.
   lgrep_search_semantic: true
   lgrep_index_semantic: true
   lgrep_search_symbols: true
