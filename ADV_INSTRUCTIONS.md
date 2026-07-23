@@ -249,7 +249,7 @@ Each finding carries a label from `/adv-coordinate`'s inherited taxonomy: `repo_
 
 ### MCP Tool Name Contract
 
-External MCP invocation follows the active-surface contract carried by each MCP-capable agent prompt: use only capabilities actually exposed in the session — through the generated catalog when `execute` is exposed, direct callables otherwise — and never normalize identifiers. Name providers and capabilities in workflow prose (Context7 for library docs, Exa for web discovery, searchcode for public-repo code, Firecrawl for page scrape/crawl, lgrep for local code intelligence, Vision for daemon status); take exact invocation spellings from the active schema or catalog at runtime.
+External MCP invocation follows the active-surface contract carried by each MCP-capable agent prompt: use only capabilities actually exposed in the session — through the generated catalog when `execute` is exposed, direct callables otherwise — and never normalize identifiers. Name providers and capabilities in workflow prose (Context7 for library docs, Exa for web discovery, searchcode for public-repo code, Firecrawl for page scrape/crawl, lgrep for local code intelligence, Vision for daemon status, adv for the ADV project's own Tier-4 read surface); take exact invocation spellings from the active schema or catalog at runtime. The `adv` MCP server is the ADV project's own server (Vision `adv-advance`, port 6298) and exposes a Tier-4 read surface reachable as `tools.adv.<tool>` under Code Mode.
 
 ### Structural Correctness (P33)
 
@@ -340,6 +340,10 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 - `adv_run_test` — pass `timeoutMs` (range `[1000, 300_000]` ms, default `30_000`) for slow commands like `pnpm run check` or full suites. Without it, commands taking >30s SIGTERM and the tool returns `errorClass: TestExecutionTimeout`.
 - `adv_gate_complete` — planning gate requires `userApproved: true`. Other gates accept the flag but only planning enforces it.
 - Tool `describe()` text documents relational constraints (which other tool to call first, at-least-one-of patterns, valid enum values). Read field descriptions before constructing calls.
+
+#### Tier-4 MCP read surface (`tools.adv.*`)
+
+Under OpenCode Code Mode (default for `oc`-launched sessions), the 13 Tier-4 read tools are also reachable as `tools.adv.<tool>` inside the `execute` tool — for example, `tools.adv.status({ ... })`. This is the same ADV MCP server surfaced differently; `adv_handshake` probes the inventory and contract version. Prefer the `tools.adv.*` path for pure reads when already operating inside `execute`; use the host-plugin `adv_*` tools when `execute` is not exposed.
 
 **Strict-mode tolerance.** OpenAI Responses API (GPT-5 / reasoning models) auto-applies `strict: true`, causing placeholder fills (`""`, `0`, `[]`) in every optional field. Preflight normalizes these automatically: optional content, path, and lineage blanks are omitted, and `origin_issue_number: 0` is treated as omitted. Required-when-present audit, evidence, reason, command, branch, and identity fields still reject blanks. This is a safety-net workaround for Vercel AI SDK issue #12200. Agents should still aim to omit fields they do not intend to set.
 

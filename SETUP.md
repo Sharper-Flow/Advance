@@ -302,7 +302,10 @@ unavailable:
 | Context7                                       | `context7_*` grants; Context7 resolve + query-docs capabilities                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
 | Exa                                            | `exa_*` grants; Exa web-search/fetch capabilities | `adv-researcher`                              | Web search unavailable                                                      |
 | searchcode                                     | `searchcode_*` grants; searchcode code-search/file-fetch capabilities              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
+| ADV MCP (`adv-advance`, port 6298)             | `tools.adv.*` grants; 13 Tier-4 read tools (status, spec, wisdom_list, tool_catalog, etc.)    | `plan`, `build`, `adv-researcher`, `adv-tron` | Tier-4 ADV read/query tools unavailable inside `execute`                    |
 | arXiv MCP                                      | `arxiv-mcp_*` grants; call exact names from active schema                                     | `adv-researcher`                              | Academic paper search unavailable                                           |
+
+The ADV MCP server is a per-project Vision entry (`adv-advance` on port 6298) wired via `mcp.adv` in `.opencode/opencode.json`.
 
 Tool calls must use exact names from the active schema or generated catalog. Allowlist prefixes are grants only, not callable names; never normalize identifiers.
 
@@ -1402,6 +1405,8 @@ Tradeoff-heavy decisions inside ADV flows use inline analysis by default. For de
 Parallel ADV scanners follow the same single-level delegation rule as other ADV orchestration: commands such as `/adv-slop-scan` may spawn first-level workers, but those workers must complete inline and must not spawn additional sub-agents or invoke `/adv-*` commands.
 
 ### Available Tools
+
+The read tools below are also available via the ADV MCP server as `tools.adv.*` under Code Mode (for example, `tools.adv.status`).
 
 **Project & Specs**
 

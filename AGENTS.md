@@ -3,7 +3,7 @@
 ## Scope and entry points
 
 - This is an OpenCode plugin repository, not a monorepo. `plugin/` is the only buildable/released code. Root-level `bin/`, `scripts/`, `skills/`, `.opencode/` are tooling and deployed assets, not shipped packages.
-- Plugin entry: `plugin/src/index.ts`. Tool definitions live beside handlers under `plugin/src/tools/`; `tool-registry.ts` binds exported `*Tools` groups to the SDK.
+- Plugin entry: `plugin/src/index.ts`. Tool definitions live beside handlers under `plugin/src/tools/`; `tool-registry.ts` binds exported `*Tools` groups to the SDK. A second surface, `plugin/src/mcp-server/`, provides a stdio MCP server (deployed as Vision `adv-advance` on port 6298) that exposes 13 Tier-4 read tools as `tools.adv.*` under Code Mode, dispatching to the same `tool-registry.js` handlers via dynamic import.
 - `.adv/specs/` contains git-tracked, branch-local capability laws. Runtime change/task/gate state uses Temporal-only persistence written to per-project external state (keyed by the repo root commit); do not restore a legacy SQLite/file-backed runtime path.
 - `project.md` is agent-facing project context. `ADV_INSTRUCTIONS.md` owns detailed ADV workflow protocol; do not duplicate either here.
 

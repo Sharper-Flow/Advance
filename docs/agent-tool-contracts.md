@@ -92,7 +92,7 @@ Review/harden `explore` scanners stay scanner lanes: they may receive `WORKING D
 
 ## Sub-Agent Plugin-Tool Runtime Limitation
 
-opencode `task`-spawned sub-agents receive **MCP-server tools** (context7, exa, lgrep, searchcode, time, episode) but **not host ADV plugin tools** (`adv_*`). Even when an agent manifest declares `adv_run_test: true` / `adv_subagent_report_submit: true`, those plugin-provided tools are not wired into the spawned session's runtime — the agent frontmatter can only gate tools that already exist in the session, not summon a host plugin tool.
+opencode `task`-spawned sub-agents receive **MCP-server tools** (context7, exa, lgrep, searchcode, time, episode, and the ADV MCP server's Tier-4 read surface as `tools.adv.*`) but **not host ADV plugin tools** (`adv_*`). Even when an agent manifest declares `adv_run_test: true` / `adv_subagent_report_submit: true`, those plugin-provided tools are not wired into the spawned session's runtime — the agent frontmatter can only gate tools that already exist in the session, not summon a host plugin tool.
 
 Consequences and resolution levers:
 
