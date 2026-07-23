@@ -62,8 +62,10 @@ invoked, not WHETHER they are preferred.
 - **Code Mode OFF** (`OC_DISABLE_CODE_MODE=1`, or a non-`oc` launch): the host
   `adv_*` tools are the only ADV surface (top-level). There is no `tools.adv.*`
   namespace.
-- The orchestrator/main agent and host-plugin sessions use top-level `adv_*`
-  tools; spawned sub-agents and Code Mode contexts use `tools.adv.*` for reads.
+- The orchestrator/main agent can use top-level `adv_*` tools. A spawned agent
+  can use only the host `adv_*` tools injected into its session and granted by
+  its manifest. Any Code Mode context whose catalog exposes the `adv` namespace
+  can use `tools.adv.*` for reads.
 
 ## Tier-4 read catalog
 
@@ -106,8 +108,9 @@ degradation marker — do not retry blindly.
   inside `execute`.
 - Do NOT attempt mutations via `tools.adv.*` — the Tier-4 surface is read-only;
   the MCP server rejects mutation-shaped args (`security.ts`).
-- Do NOT assume `adv_*` host tools exist in a spawned sub-agent — sub-agents get
-  `tools.adv.*` (MCP), not host `adv_*` (see `docs/agent-tool-contracts.md`).
+- Do NOT assume a particular `adv_*` host tool exists in a spawned sub-agent;
+  inspect its manifest/surface. Likewise, use `tools.adv.*` only when the Code
+  Mode catalog exposes the `adv` namespace (see `docs/agent-tool-contracts.md`).
 - Do NOT confuse the `adv` MCP namespace with the `adv_*` host tool prefix.
 ```
 
