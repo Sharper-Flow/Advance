@@ -22,6 +22,15 @@ export const ADV_TOOLS_BLOCK_START =
   "  # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>";
 export const ADV_TOOLS_BLOCK_END = "  # <<< ADV-GENERATED adv_* tools <<<";
 
+/**
+ * Append this note to the hand-owned invoke-routing paragraph that follows
+ * the generated block. It explains that the Tier-4 MCP read surface is also
+ * reachable through Code Mode as `tools.adv.*` even when the host-plugin
+ * manifest denies `adv_*`.
+ */
+const TIER_4_INVOKE_ROUTING_NOTE =
+  " Tier-4 read tools are also discoverable via `tools.adv.*` under Code Mode (call inside the `execute` tool).";
+
 const ADV_TOOL_ENTRY_RE = /^\s+(adv_[A-Za-z0-9_*]+):\s*(true|false)\s*$/;
 
 function isAdvEntry(line: string): boolean {
@@ -219,7 +228,7 @@ export function generateManifestContent(
     const merged = mergeRegionWithGenerated(originalRegion, generated, agent);
     const before = lines.slice(0, markers.startIndex + 1);
     const after = lines.slice(markers.endIndex);
-    return [...before, ...merged, ...after].join("\n");
+    return injectTier4InvokeRoutingNote([...before, ...merged, ...after].join("\n"));
   }
 
   // First run: locate the first and last adv_* entry lines and wrap them.
@@ -237,13 +246,30 @@ export function generateManifestContent(
 
   const before = lines.slice(0, first);
   const after = lines.slice(last + 1);
-  return [
+  const result = [
     ...before,
     ADV_TOOLS_BLOCK_START,
     ...merged,
     ADV_TOOLS_BLOCK_END,
     ...after,
   ].join("\n");
+
+  return injectTier4InvokeRoutingNote(result);
+}
+
+/**
+ * Append the Tier-4 Code Mode note to the hand-owned invoke-routing
+ * paragraph. The paragraph is outside the generated block, but the note is
+ * part of the contract surface the generator keeps synchronized.
+ */
+function injectTier4InvokeRoutingNote(content: string): string {
+  if (content.includes(TIER_4_INVOKE_ROUTING_NOTE)) {
+    return content;
+  }
+  return content.replace(
+    /(> \*\*Invoke routing:\*\*.*?for schemas\.)(\n?)/,
+    `$1${TIER_4_INVOKE_ROUTING_NOTE}$2`,
+  );
 }
 
 function resolveAgentsDir(): string {

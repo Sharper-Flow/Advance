@@ -70,7 +70,7 @@ const workspaceUrl = (deps: WarpDeps, suffix = ""): URL =>
  * (rq-warpModeContract05).
  *
  * Encoding matches the v1 SDK's own header construction at
- * `@opencode-ai/sdk@1.15.5/dist/client.js:42-45`.
+ * `@opencode-ai/sdk@1.18.x/dist/client.js:42-45`.
  */
 const directoryHeaders = (
   deps: WarpDeps,
@@ -177,7 +177,7 @@ export async function getSessionWorkspaceID(
   let result: unknown;
   try {
     // v1 SDK shape: `client.session.get({ path: { id } })` — verified at
-    // `@opencode-ai/sdk@1.15.5/dist/gen/types.gen.d.ts:1888-1897`. The v1
+    // `@opencode-ai/sdk@1.18.x/dist/gen/types.gen.d.ts:1888-1897`. The v1
     // client's request interceptor (`dist/client.js:41-52`) attaches the
     // `x-opencode-directory` header set at construction time, fixing the
     // missing-header regression that caused silent downgrades.

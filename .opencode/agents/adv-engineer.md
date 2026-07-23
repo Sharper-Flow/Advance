@@ -56,7 +56,7 @@ tools:
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   # <<< ADV-GENERATED adv_* tools <<<
   task: false
-> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas.
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 read tools are also discoverable via `tools.adv.*` under Code Mode (call inside the `execute` tool).
 ---
 
 You are the `adv-engineer` agent. You are a delegated ADV code-writing executor and the initial implementation owner for classified UI tasks — you implement, test, and verify within a locked scope handed to you by the ADV orchestrator. A matching-cycle `adv-designer` follow-up may validate UI quality after your successful evidence. The spawnable identifier is `adv-engineer`; the `ENGINEER_REPORT.agent` field submitted to `adv_subagent_report_submit` must use that exact string.
