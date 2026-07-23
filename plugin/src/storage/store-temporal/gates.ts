@@ -92,7 +92,7 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
     invalidateChange,
     setCachedChange,
     emitChangeSummarySignal,
-    persistStateToDisk,
+    persistStateToDiskDurable,
     getTemporalChange,
   } = deps;
 
@@ -174,7 +174,7 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
     },
     reopenFrom: async (
       changeId,
@@ -209,7 +209,7 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
     },
   };
 }

@@ -24,7 +24,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
     taskChangeIndex,
     resolveChangeId,
     invalidateChange,
-    dualWriteAfterMutation,
+    persistAndRefreshDurable,
     indexTasksFromState,
   } = deps;
 
@@ -89,7 +89,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       const task = state.tasks.find((t) => t.id === taskId) ?? null;
-      await dualWriteAfterMutation(changeId);
+      await persistAndRefreshDurable(changeId, state);
       return task;
     },
     add: async (changeId, content, options) => {
@@ -134,7 +134,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       if (created && typeof created === "object" && "id" in created) {
         taskChangeIndex.set((created as { id: string }).id, changeId);
       }
-      await dualWriteAfterMutation(changeId);
+      await persistAndRefreshDurable(changeId, state);
       return created;
     },
     get: async (taskId) => {
@@ -185,7 +185,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       const task = state.tasks.find((t) => t.id === taskId) ?? null;
-      await dualWriteAfterMutation(changeId);
+      await persistAndRefreshDurable(changeId, state);
       return task;
     },
     reclassifyTdd: async (taskId, reclassification: TddReclassification) => {
@@ -217,7 +217,7 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       const task = state.tasks.find((t) => t.id === taskId) ?? null;
-      await dualWriteAfterMutation(changeId);
+      await persistAndRefreshDurable(changeId, state);
       return task;
     },
   };

@@ -1,0 +1,730 @@
+{
+  "id": "gateMutationSuccessDisk",
+  "title": "Gate mutation success on disk durability",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-23T04:42:09.832Z",
+  "tasks": [
+    {
+      "id": "tk-cd8b73029883",
+      "title": "Refactor persistStateToDisk to typed async outcome + durable/void helpers",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T05:32:55.388Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T05:39:10.985Z",
+      "verification": "disk-persist.test.ts red→green (tr_mrx353cw red / tr_mrx35op8 green, 4/4 pass); pnpm run typecheck clean. Added disk-persist.ts (DiskPersistOutcome + DiskProjectionPersistError + assertDurablePersist gate); persistStateToDisk now async→Promise<DiskPersistOutcome> (no swallow); added persistStateToDiskDurable + voidPersist + persistAndRefreshDurable; dualWriteAfterMutation uses explicit voidPersist; StoreDeps updated.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/disk-persist.test.ts",
+        "plugin/src/storage/store-temporal/disk-persist.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/disk-persist.test.ts",
+        "plugin/src/storage/store-temporal/disk-persist.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.ts"
+      ],
+      "checkpointSha": "6ca4d1cb917cf0db607db825d872ee03cd798000",
+      "completedAt": "2026-07-23T05:48:04.528Z",
+      "completed_at": "2026-07-23T05:48:04.528Z"
+    },
+    {
+      "id": "tk-5e4b41a7372e",
+      "title": "Rewire durability-critical mutation callers to await persistStateToDiskDurable",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-23T05:33:13.436Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cd8b73029883"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T05:48:45.043Z",
+      "verification": "Rewired durability-critical callers: spec-deltas ×6, gates ×2 (complete+reopenFrom), wisdom ×1 → await persistStateToDiskDurable; tasks ×4 (update/add/cancel/reclassifyTdd) → await persistAndRefreshDurable(changeId, state) using each op's confirmed state (avoids dualWriteAfterMutation redundant-readback false-negative). dualWriteAfterMutation stays best-effort (changes.refresh/epic). RED tr_mrx3elno (persistStateToDiskDurable not a function, 5 fail) → GREEN tr_mrx3gy54 (15/15, incl. AC1 propagation test) → full store-temporal unit suite tr_mrx3hcjv (223/223). Typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/gates.test.ts",
+        "plugin/src/storage/store-temporal/gates.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.ts",
+        "plugin/src/storage/store-temporal/tasks.ts",
+        "plugin/src/storage/store-temporal/wisdom.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/gates.test.ts",
+        "plugin/src/storage/store-temporal/gates.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.test.ts",
+        "plugin/src/storage/store-temporal/spec-deltas.ts",
+        "plugin/src/storage/store-temporal/tasks.ts",
+        "plugin/src/storage/store-temporal/wisdom.ts"
+      ],
+      "checkpointSha": "d315c1ed8aa6e341b07ff5d9b592c2c840ab272c",
+      "completedAt": "2026-07-23T05:52:59.790Z",
+      "completed_at": "2026-07-23T05:52:59.790Z"
+    },
+    {
+      "id": "tk-36e322d5bba4",
+      "title": "Regression + coverage tests and full-check gate (AC3/AC4/AC6/AC7)",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T05:33:24.797Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5e4b41a7372e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T05:54:04.164Z",
+      "verification": "Full pnpm run check green (schemas, typecheck, manifests, test-isolation, lockfile, eslint, prettier). Regression sweep tr_mrx3oi3v: 1344 passed + 1 expected-fail across 96 files (src/storage + src/temporal unit) — no regressions from the persistStateToDisk signature change or StoreDeps additions. Added tasks.durability.test.ts (tr_mrx3nr05, 2/2) covering AC6 tasks path (persistAndRefreshDurable with confirmed state + DiskProjectionPersistError propagation). AC3 (SC4 unchanged) + AC4 (reads disk-first unchanged) covered by existing suites passing; AC7 by disk-persist + propagation tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/tasks.durability.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/tasks.durability.test.ts"
+      ],
+      "checkpointSha": "9fe9b86d9fe446a79e0b7eae25046dd39824d97f",
+      "completedAt": "2026-07-23T05:59:01.680Z",
+      "completed_at": "2026-07-23T05:59:01.680Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "gateMutationSuccessDisk",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/gateMutationSuccessDisk",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "test-coverage-1",
+          "label": "issue",
+          "file": "plugin/src/storage/store-temporal/tasks.durability.test.ts",
+          "line": 52,
+          "what": "Durability-failure propagation is tested only for tasks.update; add, cancel, and reclassifyTdd have no regression coverage.",
+          "why": "All four task mutation paths are individually responsible for awaiting persistAndRefreshDurable. A future path-level regression can restore success-before-disk-durability while the current test suite remains green.",
+          "fix": "Add parameterized or focused tests for add/cancel/reclassifyTdd that assert the confirmed post-signal state is passed to persistAndRefreshDurable and DiskProjectionPersistError rejects the operation."
+        },
+        {
+          "id": "test-coverage-2",
+          "label": "issue",
+          "file": "plugin/src/storage/store-temporal/gates.test.ts",
+          "line": 97,
+          "what": "No gate mutation test proves complete/reopenFrom propagate DiskProjectionPersistError after an acknowledged signal and confirmed state readback; wisdom has no corresponding durability test file.",
+          "why": "Gates and wisdom are explicitly durability-critical. The pure helper test cannot prove callers await the durable helper or preserve AC7 through these public mutation paths.",
+          "fix": "Add focused mutation tests for gates.complete, gates.reopenFrom, and wisdom.add with the durable helper rejecting DiskProjectionPersistError; assert callers reject rather than return success."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "doc-hygiene-1",
+          "label": "nit",
+          "file": "plugin/src/storage/store-temporal/index.ts",
+          "line": 282,
+          "what": "dualWriteAfterMutation documentation still describes task-level mutations that do not already fetch post-mutation state.",
+          "why": "Tasks now directly call persistAndRefreshDurable, so this is stale and misleading at the durability boundary.",
+          "fix": "Update the comment to describe only non-critical changes.refresh and epic-membership refresh paths."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "For durability seams, pure outcome-gate tests are insufficient: every durability-critical public mutation path needs a regression test proving a post-ack disk failure rejects with DiskProjectionPersistError."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/storage/store-temporal"
+        ],
+        "results": "pass",
+        "evidence": "Targeted store-temporal suite passed: 21 test files, 235 tests. An earlier invocation using the repository-prefixed filter found no tests because the wrapper runs from plugin/; the corrected command above passed. Static scan found every critical caller awaits persistStateToDiskDurable/persistAndRefreshDurable; direct persistStateToDisk use is limited to the awaited durable helper and voidPersist. Non-critical dualWriteAfterMutation remains used only by changes.refresh/setEpicMembership/clearEpicMembership."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Gate and wisdom public mutation paths currently lack direct typed disk-failure propagation coverage.",
+        "Three of four task mutation paths lack direct durable-helper failure coverage."
+      ],
+      "required_main_agent_actions": [
+        "Add the focused regression tests identified in test-coverage-1 and test-coverage-2, then rerun bin/oc-test targeted -- src/storage/store-temporal.",
+        "Optionally correct stale dualWriteAfterMutation task-specific comment in plugin/src/storage/store-temporal/index.ts:282-295."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- plugin/src/storage/store-temporal"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-cd8b73029883": [
+      {
+        "runId": "tr_mrx353cw_8296483e",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/storage/store-temporal/disk-persist.test.ts --project unit",
+        "durationMs": 641.606129999971,
+        "recordedAt": "2026-07-23T05:43:13.503Z"
+      },
+      {
+        "runId": "tr_mrx35op8_66ae200e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/store-temporal/disk-persist.test.ts --project unit",
+        "durationMs": 625.2680029999465,
+        "recordedAt": "2026-07-23T05:43:41.178Z"
+      }
+    ],
+    "tk-5e4b41a7372e": [
+      {
+        "runId": "tr_mrx3elno_52cfda64",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/storage/store-temporal/spec-deltas.test.ts src/storage/store-temporal/gates.test.ts --project unit",
+        "durationMs": 2771.040385999717,
+        "recordedAt": "2026-07-23T05:50:37.188Z"
+      },
+      {
+        "runId": "tr_mrx3gy54_fa912b2d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/store-temporal/spec-deltas.test.ts src/storage/store-temporal/gates.test.ts src/storage/store-temporal/disk-persist.test.ts --project unit",
+        "durationMs": 1531.976050000172,
+        "recordedAt": "2026-07-23T05:52:26.639Z"
+      },
+      {
+        "runId": "tr_mrx3hcjv_c5c79bbd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/store-temporal --project unit",
+        "durationMs": 4385.320426000282,
+        "recordedAt": "2026-07-23T05:52:45.299Z"
+      }
+    ],
+    "tk-36e322d5bba4": [
+      {
+        "runId": "tr_mrx3nr05_77defaa9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/store-temporal/tasks.durability.test.ts --project unit",
+        "durationMs": 1273.0040699997917,
+        "recordedAt": "2026-07-23T05:57:43.956Z"
+      },
+      {
+        "runId": "tr_mrx3oi3v_5957d2aa",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage src/temporal --project unit",
+        "durationMs": 22518.23984199995,
+        "recordedAt": "2026-07-23T05:58:19.094Z"
+      },
+      {
+        "runId": "tr_mrx43oqv_d6f57441",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/store-temporal/tasks.durability.test.ts src/storage/store-temporal/gates.durability.test.ts src/storage/store-temporal/wisdom.durability.test.ts src/storage/store-temporal/disk-persist.test.ts --project unit",
+        "durationMs": 1155.8984169997275,
+        "recordedAt": "2026-07-23T06:10:07.530Z"
+      },
+      {
+        "runId": "tr_mrx4423l_0cff7777",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/store-temporal --project unit",
+        "durationMs": 4508.240187000018,
+        "recordedAt": "2026-07-23T06:10:24.837Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-JF_etw",
+      "type": "failure",
+      "content": "Durable-mutation success is gated on Temporal durability only, NOT disk durability. adv_delta_add (and the shared signal+readback family: gates.ts, spec-deltas.ts, wisdom.ts, tasks.ts, changes.ts) returns success after fireSignalWithMutationGuard confirms signal-in-history + reducer-applied via changeStateQuery readback — but then calls persistStateToDisk WITHOUT await (store-temporal/index.ts:219-250: `void (async()=>{...})()`, failure swallowed at debug). The disk projection is the SOLE source of truth once a workflow orphans (dead session queue), yet it's written fire-and-forget + swallow-on-failure. So success:true can be returned, the session can exit before the async changes.save flushes (or it fails silently), and the mutation becomes invisible to every disk-first reader (adv_delta_list/show, adv_change_show fallback) with no error. Durability model is inverted: the layer that must survive orphaning is written weakest. Not \"signal-accept without persistence\" — Temporal IS confirmed — but \"confirmed Temporal persistence with unconfirmed best-effort disk persistence.\" Fix tracked in change gateMutationSuccessDisk (Epic hardenTemporalReliability entry 14): gate durable-mutation success on disk-projection durability (await + classify disk write, or invert to disk-authoritative writes). Sibling of rq-releaseProjectionDurability01 (read/terminal side) and Epic shell entry 6.",
+      "recorded_at": "2026-07-23T04:42:56.029Z"
+    },
+    {
+      "id": "ws-hdlGVm",
+      "type": "gotcha",
+      "content": "Discovery (code-verified) — the disk-durability seam has a BROADER blast radius than the base fire-and-forget write. (1) Reducer dedup is correct (change-state.ts:1732-1768: applySpecDeltaAddedToState scans ALL capabilities and throws on duplicate delta.id). So the peer's improveCrossProject duplicate-ID acceptance (dl-q7m2Kp9xR4vB accepted twice) PROVES the authoritative workflow state did NOT retain delta#1 by request #2 — not merely a stale disk read. (2) Continue-as-new seed DOES include `deltas: state.deltas` (workflows.ts:1933), so CAN preserves deltas in the happy path — not the culprit. (3) Unifying mechanism: reseedChangeFromDisk (index.ts:585) reseeds with getCurrentSessionId (:636). If session A's unawaited fire-and-forget disk write hasn't flushed when session B reseeds an orphaned workflow, the rebuilt workflow LACKS delta#1 → duplicate add accepted → invisible with no error. The disk projection is BOTH the reseed source AND the weakest-guaranteed write. (4) reseedChangeFromDisk is GATED OUT on query_failed classification (index.ts:828-830) — a timing-out orphaned workflow cannot self-heal via reseed; disk-first reads bypass Temporal so they never trigger catch→reseed, and the signal path throws on SC4. (5) Live dogfooding this change: its own workflow orphaned on a dead prior-session queue; disk reads worked (40ms) while every Temporal query/signal timed out; OpenCode restart + OrphanQueueAdopter (10s heartbeat, FIFO) recovered it — confirming orphan-queue, not poisoned. Design implication: disk-first reads are the reliable layer under Temporal wedge → favors Direction 2 (disk-authoritative). SC4 tension: Direction 2 lets a mutation succeed on disk while the workflow is orphaned, which RELOCATES (not weakens) SC4's no-false-success guarantee from Temporal-readback to disk-fsync. Needs user steer.",
+      "source_task": "discovery",
+      "recorded_at": "2026-07-23T05:14:20.129Z"
+    },
+    {
+      "id": "ws-V_e5tl",
+      "type": "pattern",
+      "content": "FOLLOW-UP for Epic entry 6 (disk-authoritative reads/writes): concurrent-session projection serialization. Design validator (adv-researcher, 2026-07-23) found that await-own-write (this change, Direction 1) does NOT close two concurrent races: (#1 reseed-during-window) a peer session reseedChangeFromDisk-es from stale disk during another session's in-flight mutation; (#2 stale-overwrite) two sessions write the whole change.json from different readbacks — atomic rename prevents torn files but not stale last-writer-wins, so the disk projection can REGRESS even though the Temporal workflow stays monotonic. This is the concurrent-session generalization of the peer improveCrossProject duplicate-ID acceptance bug. Robust fix needs a monotonic generation or per-change cross-process lease/CAS. BLOCKER for a cheap in-place fix: change state has NO general per-mutation monotonic revision — acceptanceReadinessRevision advances only on acceptance-affecting mutations; Temporal historyLength resets at continue-as-new; lastSignalAt is a timestamp (equal-ms tie hole, P33). A proper fix must add a monotonic projectionRevision to the reducer + CAN seed + replay-determinism harness (the exact replay-sensitive surface that has repeatedly poisoned this Epic — treat with replay-determinism gating). User-approved Option A (2026-07-23): ship single-writer honesty here, defer concurrent-writer durability to entry 6. When entry 6 is planned: (a) add monotonic projectionRevision; (b) CAS-guard whole-file projection writes (write iff incoming >= on-disk generation); (c) make reseedChangeFromDisk participate in the same cross-process protocol so it never adopts a snapshot older than the workflow's known generation.",
+      "source_task": "design",
+      "recorded_at": "2026-07-23T05:31:08.515Z"
+    },
+    {
+      "id": "ws-cM-kPP",
+      "type": "convention",
+      "content": "For durability seams, a pure outcome-gate unit test (e.g. assertDurablePersist) is necessary but NOT sufficient: every durability-critical PUBLIC mutation path must have its own regression test proving that a post-ack disk-write failure rejects with the typed error (DiskProjectionPersistError) rather than returning success. Rationale (harden reviewer, gateMutationSuccessDisk): each caller independently awaits the durable helper; a future edit can silently restore success-before-disk-durability on one path while the pure-gate test + other paths stay green. Coverage added per path: spec-deltas.add, gates.complete, gates.reopenFrom, wisdom.add, tasks.update/add/cancel/reclassifyTdd — each asserts (a) persist called with confirmed post-signal state and (b) rejection propagates on disk failure. Pattern: mock ./shared (runTemporal/runTemporalQuery/getGuardedChangeHandle) + inject a rejecting persistStateToDiskDurable/persistAndRefreshDurable.",
+      "source_task": "tk-36e322d5bba4",
+      "recorded_at": "2026-07-23T06:11:27.141Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-23T05:13:52.685Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal validated (adv_change_validate passed, 0 errors). Defect-origin RCA verified against source. Two directions (await-disk-into-gate vs invert-to-disk-authoritative) open for design. Peer evidence (improveCrossProject duplicate-ID acceptance) + prior-session live wedge reveal concurrent-reseed-from-unflushed-disk as the broader mechanism.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "9c39744347fab2ac11b5fe8bc7ccca2810a1a425799bd1f03738ea7292a6d4a6",
+        "non_whitespace_chars": 5117,
+        "checked_at": "2026-07-23T04:42:18.669Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-23T05:17:02.537Z",
+      "completed_at": "2026-07-23T05:17:13.033Z",
+      "completed_by": "user",
+      "approval_evidence": "Agreement signed off by user; typed contract minted (11 items: AC1-6, C1-3, DONT1-2). Direction 1-vs-2 + SC4-reinterpretation deferred to design gate. Discovery findings durable in wisdom ws-hdlGVm.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "ab0ddf9d0d769e8856dbc709550c5bbe7816b502b179a35a553fd3db22b60ff9",
+        "non_whitespace_chars": 3043,
+        "checked_at": "2026-07-23T04:42:18.671Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-23T05:31:18.302Z",
+      "completed_by": "user",
+      "approval_evidence": "Direction 1 (await disk into success gate) approved. Independent validator (adv-researcher) ran: PASS on durability/no-fsync (scoped to session-exit, not power-loss), no-reader-coupling, Direction-2 deferral; CONFLICT on concurrent-projection races #1/#2. Resolved via user-approved Option A: ship single-writer honesty here, defer concurrent-writer serialization (needs monotonic generation/lease the state lacks) to Epic entry 6. Added AC7 (typed ambiguous outcome for signal-acked-but-disk-failed). Contract re-minted (13 items). Entry-6 follow-up durable in wisdom ws-V_e5tl.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "e32679123a695f28895266c42e49f0bfb4ade1ac1b22920c8c6379b63c17e134",
+        "non_whitespace_chars": 8118,
+        "checked_at": "2026-07-23T04:42:18.672Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-23T05:38:44.018Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the 3-task graph (T1 refactor+AC1 RED, T2 rewire callers, T3 regression/coverage+full check). Linear TDD deps. Concurrency races out of scope (entry 6). Durability seam — execute T1/T2 with care."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T05:59:14.204Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done + checkpointed. T1 (6ca4d1c): disk-persist.ts durability gate + persistStateToDisk async + durable/void helpers. T2 (d315c1e): rewired spec-deltas ×6, gates ×2, wisdom ×1 → persistStateToDiskDurable; tasks ×4 → persistAndRefreshDurable. T3 (9fe9b86): tasks.durability.test.ts + full check green + 1344-test regression sweep. All 7 AC covered; SC4 guard + read-path untouched; concurrency races scoped to entry 6."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-23T06:01:13.901Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work (\"accept\"). Contract 13/13 rows passing; executive summary present; all tasks done. Direction 1 shipped per approval; concurrency races scoped to Epic entry 6.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "600e4948328854e4ca909552f540a6471679a3fdf70310bee67fe27cd8eb941d",
+        "non_whitespace_chars": 2587,
+        "checked_at": "2026-07-23T04:42:18.673Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session:investigation-2026-07-23-delta-add-disk-durability-seam"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+      "approvedAt": "2026-07-23T05:17:13.033Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1 (RED→GREEN, the concrete proof):** A durability-critical mutation whose disk write is (simulated) failing MUST NOT return `success:true` with the mutation absent from the disk projection. RED reproduces current behavior (`success:true` + mutation absent because the failure is swallowed); GREEN surfaces or degrades the failure so success never outruns disk durability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2 (success ⇒ own disk write durable):** For every durability-critical mutation, a `success:true` return guarantees the disk projection contains the mutation at return time, via an awaited+confirmed atomic disk write. (Durability against a *concurrent* session overwriting the projection afterward is Out of scope — see below.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3 (no-false-success preserved / SC4):** Under an orphaned or unreachable workflow, the no-false-success guarantee holds: the mutation throws at the SC4 signal guard before the disk write. No silent false success. SC4 semantics unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4 (reads stay disk-first):** Reads (`adv_change_show`, `adv_gate_status`, `adv_delta_list/show`) remain disk-first and acquire NO hard Temporal dependency. (Dogfooded 2026-07-23: disk reads 40ms while the workflow was fully wedged.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5 (failures surfaced, not swallowed):** Disk-write failures on durability-critical mutations are classified and surfaced as a typed error, not swallowed at debug (`index.ts:229-250` current behavior).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6 (explicit durability-critical set):** The durability-critical mutation set is explicitly enumerated (spec deltas, gate completions, wisdom, tasks) and distinguished from non-critical hot paths (e.g. cache-refresh dual-writes) that need not pay the stronger gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7 (typed ambiguous outcome — validator-required):** When the Temporal signal is acknowledged (mutation applied in workflow history) but the subsequent disk write fails, the mutation MUST return a typed ambiguous/failed outcome — distinct from both success and a generic error — and MUST NOT advise blind retry, because Temporal may have durably applied the mutation despite the caller-visible failure. Mirrors the existing `outcome_unknown_readback_unavailable` handling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No hard Temporal dependency on the read path (AC4).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve append-only delta semantics; archive remains the sole global-spec writer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not make disk-write latency block non-durability-critical hot paths unnecessarily (AC6 classification governs this).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do NOT weaken the no-false-success guarantee (SC4). Relocating the guarantee to a confirmed disk-fsync under a disk-authoritative direction is a Direction-2 concern, not this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do NOT resolve the concurrent-projection races by adding a hard Temporal read dependency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do NOT add a monotonic-generation/CAS field to the replay-sensitive workflow reducer in this change (replay-determinism risk); that belongs with the deferred concurrency-control work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T06:00:04.435Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "disk-persist.test.ts red→green (tr_mrx353cw→tr_mrx35op8) + spec-deltas propagation test (tr_mrx3gy54): a durability-critical mutation whose disk write fails now throws DiskProjectionPersistError instead of returning success:true with the mutation absent from disk."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "spec-deltas.test.ts asserts persistStateToDiskDurable called with the confirmed state on success; tasks.durability.test.ts (tr_mrx3nr05) asserts persistAndRefreshDurable(changeId, state). success ⇒ awaited+confirmed atomic disk write (saveChange→atomicWriteFile)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "SC4 guard (fireSignalWithMutationGuard/enforceMutationEligibilityForError, gates.ts:46-86) untouched; throws at signal dispatch before the disk write. 1344-test regression sweep (tr_mrx3oi3v) incl. SC4/mutation-safety suites green."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Read path unmodified; reads remain disk-first with no Temporal dependency added. bounded-read-deadline + index disk-fallback suites green in tr_mrx3oi3v. Dogfooded live this session: disk read 40ms while the workflow was fully wedged."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "persistStateToDisk returns typed DiskPersistOutcome {kind:'failed',error}; assertDurablePersist throws typed DiskProjectionPersistError (disk-persist.test.ts). Durability-critical failures surfaced, not swallowed at debug."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Durability-critical set (spec-deltas×6, gates×2, wisdom×1, tasks×4) awaits+throws via persistStateToDiskDurable/persistAndRefreshDurable; non-critical dualWriteAfterMutation uses explicit voidPersist. spec-deltas propagation + tasks.durability.test.ts + full store-temporal suite 223/223 (tr_mrx3hcjv)."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "DiskProjectionPersistError encodes ambiguous no-blind-retry semantics ('may be durable in Temporal', 'do not blind-retry') — asserted in disk-persist.test.ts; propagated by callers (spec-deltas + tasks propagation tests)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Temporal dependency added to any read path; only the write path gained an awaited disk write. tsc clean + read-suite regression green (tr_mrx3oi3v)."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No reducer changes; change-state.ts append-only delta semantics untouched; archive remains sole global-spec writer. 1344-test sweep green."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Non-critical dualWriteAfterMutation (changes.refresh/epic) stays fire-and-forget via explicit voidPersist; only the enumerated durability-critical set pays the awaited-disk gate (AC6 classification)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "SC4 guard untouched; the durable variant EXTENDS no-false-success to the disk layer (throws on disk-fail), never weakens it. AC3 regression green."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No hard Temporal read dependency introduced; the concurrent reseed/stale-overwrite races are explicitly deferred to Epic entry 6, not papered over via read-path Temporal coupling."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "design_proof",
+          "evidence": "No monotonic projectionRevision/CAS field added to the replay-sensitive reducer or CAN seed; change-state.ts + workflows.ts seed unmodified. Concurrency serialization deferred to entry 6 (design.md + wisdom ws-V_e5tl)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1 (RED→GREEN, the concrete proof):** A durability-critical mutation whose disk write is (simulated) failing MUST NOT return `success:true` with the mutation absent from the disk projection. RED reproduces current behavior (`success:true` + mutation absent because the failure is swallowed); GREEN surfaces or degrades the failure so success never outruns disk durability.",
+    "**AC2 (success ⇒ own disk write durable):** For every durability-critical mutation, a `success:true` return guarantees the disk projection contains the mutation at return time, via an awaited+confirmed atomic disk write. (Durability against a *concurrent* session overwriting the projection afterward is Out of scope — see below.)",
+    "**AC3 (no-false-success preserved / SC4):** Under an orphaned or unreachable workflow, the no-false-success guarantee holds: the mutation throws at the SC4 signal guard before the disk write. No silent false success. SC4 semantics unchanged.",
+    "**AC4 (reads stay disk-first):** Reads (`adv_change_show`, `adv_gate_status`, `adv_delta_list/show`) remain disk-first and acquire NO hard Temporal dependency. (Dogfooded 2026-07-23: disk reads 40ms while the workflow was fully wedged.)",
+    "**AC5 (failures surfaced, not swallowed):** Disk-write failures on durability-critical mutations are classified and surfaced as a typed error, not swallowed at debug (`index.ts:229-250` current behavior).",
+    "**AC6 (explicit durability-critical set):** The durability-critical mutation set is explicitly enumerated (spec deltas, gate completions, wisdom, tasks) and distinguished from non-critical hot paths (e.g. cache-refresh dual-writes) that need not pay the stronger gate.",
+    "**AC7 (typed ambiguous outcome — validator-required):** When the Temporal signal is acknowledged (mutation applied in workflow history) but the subsequent disk write fails, the mutation MUST return a typed ambiguous/failed outcome — distinct from both success and a generic error — and MUST NOT advise blind retry, because Temporal may have durably applied the mutation despite the caller-visible failure. Mirrors the existing `outcome_unknown_readback_unavailable` handling."
+  ],
+  "documents": {
+    "proposal": "# Gate durable-mutation success on disk-projection durability\n\n## Root Cause Analysis\n\n**Defect (unintended behavior):** `adv_delta_add` (and every sibling mutation routed through the same signal→readback→persist pattern) returns `success:true` when the mutation is durable in **Temporal history + reducer-applied**, but the **disk projection write is not part of the success gate**. Since the disk projection is the *only* readable source of truth once a workflow orphans (dead session queue, poisoned history, unreachable worker), a mutation can be reported successful yet later be invisible to all disk-first readers.\n\n**Tier-1 code evidence:**\n\n- `plugin/src/storage/store-temporal/spec-deltas.ts:57-97` (`add`): fires `fireSignalWithMutationGuard`, throws on `outcome_unknown_readback_unavailable`, re-queries `changeStateQuery`, confirms the delta is present in `state.deltas[capability]`, then calls `persistStateToDisk(changeId, state)` **without `await`** (line 95) and returns. The same unawaited call appears in `modify` (135), `amend` (176), `retract` (216), `remove` (255), `rename` (295).\n- `plugin/src/storage/store-temporal/gates.ts:46-86` (`fireSignalWithMutationGuard`): the success gate is signal-dispatch + a single `query(changeStateQuery)` readback. `enforceMutationEligibilityForError` (line 63) correctly throws on SC4 classes (no-poller / unregistered-query / deadline / resource-exhaustion), so mutations against an orphaned workflow throw rather than falsely succeed. The guard proves **Temporal** durability only — it never touches disk.\n- `plugin/src/storage/store-temporal/index.ts:219-250` (`persistStateToDisk`): body is `void (async () => { try { await legacy.changes.save(mapped); } catch (err) { logger.debug(...); } })();` — **unawaited fire-and-forget, failure swallowed at debug.** Doc comment (lines 215-217): *\"disk write is a durability fallback, not a correctness gate. Temporal remains the source of truth during the live session.\"*\n- Same unawaited pattern in `gates.ts:177,212` and `wisdom.ts:56`.\n\n**Why the stated assumption fails:** the code assumes *\"Temporal is the source of truth during the live session.\"* The exact failure mode this Epic exists to fix is **session end** — the workflow orphans (see `autoAdoptOrphanSessionQueues` RCA: change workflows are pinned to ephemeral `advance-{projectId}-sess_{id}` queues via `workflow-start.ts:53`; session exit leaves the workflow unpolled). At that point Temporal is unreadable and disk is the only truth — but disk was written with the weakest guarantee: unawaited, unconfirmed, swallow-on-failure.\n\n**Observed corroboration (this session):** the `dl-aDOptOrph01` delta on `autoAdoptOrphanSessionQueues` was readable via `adv_delta_list` (disk-first) but returned `deltas:{}` via `adv_change_show` (stale workflow-projection fallback, `_recovery: temporal_query_fallback / missing_workflow`). In that instance the async disk write had flushed, so the read mismatch was in `change_show`'s fallback path — but the same fire-and-forget seam is the more dangerous latent version: had the process exited before the async `changes.save` flushed, the delta would have been permanently invisible with no error.\n\n## What Changes\n\nFor durability-critical mutations, `success:true` MUST mean durable in the layer that survives orphaning. Two candidate directions (to be resolved in design):\n\n1. **Await disk into the success gate** — make `persistStateToDisk` awaited and classify its outcome for durability-critical mutations (spec deltas, gate completions, terminal transitions, wisdom). Disk-write failure fails/degrades the mutation rather than being swallowed. `success:true` ⇒ Temporal history **and** disk projection both durable.\n2. **Invert per Epic invariant #1** — disk projection is the authoritative durable write (awaited, fsync-safe), Temporal signalled as accelerator afterward; success = disk confirmed.\n\nMinimum bar (either direction): the fallback source of truth cannot be written with a weaker guarantee than the success return implies. Must remain safe under orphaned/unreachable workflows and must not reintroduce a hard Temporal dependency on the read path.\n\n## Scope (initial, refine in discovery/design)\n\n- `plugin/src/storage/store-temporal/index.ts` — `persistStateToDisk` durability semantics (await + failure classification).\n- `plugin/src/storage/store-temporal/spec-deltas.ts`, `gates.ts`, `wisdom.ts`, `tasks.ts`, `changes.ts` — success-gate wiring for durability-critical mutations.\n- Tests proving: success ⇒ disk durable; disk-write failure surfaces (not swallowed); orphaned-workflow mutations still throw (no regression to the SC4 guard); read path never hard-depends on Temporal.\n\n## Constraints / avoidances\n\n- Do NOT reintroduce a hard Temporal dependency on reads.\n- Do NOT make disk-write latency block non-durability-critical hot paths unnecessarily — classify which mutations need the stronger gate.\n- Do NOT weaken the existing SC4 mutation-eligibility guard (orphaned-workflow mutations must still throw).\n- Preserve append-only delta semantics; archive remains the sole global-spec writer.\n\n## Relationship\n\nSibling of the `rq-releaseProjectionDurability01` false-negative family and Epic shell entry 6 (disk-authoritative reads). This change addresses the **write** side of the same invariant: durable mutations must make the disk projection durable before claiming success.\n\n## Validation plan\n\n- RED: mutation returns success while a simulated disk-write failure is swallowed (current behavior) → assert the mutation is absent from the disk projection despite success:true.\n- GREEN: success is gated on (or fails/degrades with) disk durability; disk-write failure is surfaced, not swallowed.\n- Regression: orphaned/unreachable workflow still throws at the mutation guard; read path degrades to disk without hard Temporal dependency.\n",
+    "problemStatement": "Durable-mutation tools (adv_delta_add and the shared signal+readback family — spec deltas, gate completion, task/wisdom/epic mutations) return success:true after confirming Temporal-history durability + reducer application, but BEFORE the disk projection — the artifact that becomes the sole source of truth once a workflow orphans — is durably written. The disk write (persistStateToDisk) is fire-and-forget (unawaited) and swallow-on-failure. A mutation can return success, the session can exit before the async disk write flushes (or it can fail silently), and the mutation is then invisible to every disk-first reader with no error ever surfaced. This inverts the durability model: the layer that must survive orphaning is written with the weakest guarantee.",
+    "agreement": "# Agreement — Gate durable-mutation success on disk-projection durability\n\n## Objective\n\nDurable-mutation `success:true` MUST mean the mutation is durable in the layer that survives workflow orphaning — the **disk projection** — not merely in Temporal history. Eliminate the false-success class where a mutation returns `success:true` yet is absent from every disk-first reader with no error surfaced.\n\nScope is the **single-writer honesty** side of Epic invariant #1. Concurrent-session projection serialization is explicitly deferred (see Out of scope). Sibling of `rq-releaseProjectionDurability01` (read/terminal side).\n\n## Acceptance Criteria\n\n- **AC1 (RED→GREEN, the concrete proof):** A durability-critical mutation whose disk write is (simulated) failing MUST NOT return `success:true` with the mutation absent from the disk projection. RED reproduces current behavior (`success:true` + mutation absent because the failure is swallowed); GREEN surfaces or degrades the failure so success never outruns disk durability.\n- **AC2 (success ⇒ own disk write durable):** For every durability-critical mutation, a `success:true` return guarantees the disk projection contains the mutation at return time, via an awaited+confirmed atomic disk write. (Durability against a *concurrent* session overwriting the projection afterward is Out of scope — see below.)\n- **AC3 (no-false-success preserved / SC4):** Under an orphaned or unreachable workflow, the no-false-success guarantee holds: the mutation throws at the SC4 signal guard before the disk write. No silent false success. SC4 semantics unchanged.\n- **AC4 (reads stay disk-first):** Reads (`adv_change_show`, `adv_gate_status`, `adv_delta_list/show`) remain disk-first and acquire NO hard Temporal dependency. (Dogfooded 2026-07-23: disk reads 40ms while the workflow was fully wedged.)\n- **AC5 (failures surfaced, not swallowed):** Disk-write failures on durability-critical mutations are classified and surfaced as a typed error, not swallowed at debug (`index.ts:229-250` current behavior).\n- **AC6 (explicit durability-critical set):** The durability-critical mutation set is explicitly enumerated (spec deltas, gate completions, wisdom, tasks) and distinguished from non-critical hot paths (e.g. cache-refresh dual-writes) that need not pay the stronger gate.\n- **AC7 (typed ambiguous outcome — validator-required):** When the Temporal signal is acknowledged (mutation applied in workflow history) but the subsequent disk write fails, the mutation MUST return a typed ambiguous/failed outcome — distinct from both success and a generic error — and MUST NOT advise blind retry, because Temporal may have durably applied the mutation despite the caller-visible failure. Mirrors the existing `outcome_unknown_readback_unavailable` handling.\n\n## Constraints\n\n- No hard Temporal dependency on the read path (AC4).\n- Preserve append-only delta semantics; archive remains the sole global-spec writer.\n- Do not make disk-write latency block non-durability-critical hot paths unnecessarily (AC6 classification governs this).\n\n## Avoidances\n\n- Do NOT weaken the no-false-success guarantee (SC4). Relocating the guarantee to a confirmed disk-fsync under a disk-authoritative direction is a Direction-2 concern, not this change.\n- Do NOT resolve the concurrent-projection races by adding a hard Temporal read dependency.\n- Do NOT add a monotonic-generation/CAS field to the replay-sensitive workflow reducer in this change (replay-determinism risk); that belongs with the deferred concurrency-control work.\n\n## Out of scope (→ Epic entry 6: disk-authoritative reads/writes)\n\nConcurrent-session projection serialization, per the design-validator CONFLICT resolution (user-approved Option A, 2026-07-23):\n\n- **Race #1 (reseed-during-window):** a peer session `reseedChangeFromDisk`-es from a stale disk snapshot during another session's in-flight mutation.\n- **Race #2 (stale-overwrite):** two sessions each write the whole `change.json` from different readbacks; atomic `rename` prevents torn files but not stale last-writer-wins, so the projection can regress even while the Temporal workflow stays monotonic.\n\nRobustly closing these requires a monotonic generation or per-change cross-process lease/CAS that the change state does not currently carry. Deferred to the disk-authoritative Epic entry, which already owns the replacement concurrency control for Temporal's single-writer serialization. This change delivers single-writer honesty; it does not claim concurrent-writer durability.",
+    "design": "# Design — Gate durable-mutation success on disk-projection durability\n\n## Chosen direction\n\n**Direction 1 — await disk into the success gate.** SC4 read literally: orphaned-workflow mutations still throw at the Temporal signal guard. Direction 2 (disk-authoritative inversion) and concurrent-projection serialization are deferred to Epic entry 6. User-approved 2026-07-23; design-validator CONFLICT resolved via user-approved Option A (scope concurrent races out).\n\n## Durability model (the fix in one line)\n\nToday: `success:true` ⇒ Temporal history durable + reducer-applied, disk write fire-and-forget/swallowed. Target: for durability-critical mutations, `success:true` ⇒ Temporal history durable **and** this session's atomic disk write completed (awaited + failure surfaced).\n\n## Why awaited `writeFile` is sufficient (no fsync) — validator PASS-with-scope\n\n`persistStateToDisk` → `legacy.changes.save` → `saveChange` (json.ts:582) → `atomicWriteFile` (jsonl-atomic-writer.ts:40-41): awaited `writeFile(tmp)` + atomic `rename(tmp, path)`. Already awaited + torn-write-safe; only `persistStateToDisk` fires it unawaited and swallows failure.\n\nThe defect's failure mode is **session/process exit before the async write flushes**. An awaited `fs/promises.writeFile` resolves after the write syscall completes; the data is in kernel page cache, which survives process exit — the OS flushes independently. `fsync`/`fdatasync` only adds **system-crash/power-loss** durability ([fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html)), a strictly stronger property this change does not target.\n\nPrecise wording (per validator): the guarantee is **\"sufficient against ordinary process/session exit on supported local POSIX filesystems; not crash-consistent storage durability.\"** Caveats explicitly noted, not fixed here: (a) full crash-safe rename persistence would also need to fsync the containing directory; (b) network filesystems (NFS) have distinct `rename(2)` failure ambiguity. Decision (P19/P29/P33): do not add fsync speculatively; await the existing atomic write.\n\n## Architecture / LBP decisions\n\n1. **`persistStateToDisk` returns a typed outcome.** `(changeId, state) => Promise<DiskPersistOutcome>` where `DiskPersistOutcome = { kind: \"persisted\" } | { kind: \"skipped\"; reason: \"archived\" } | { kind: \"failed\"; error: unknown }`. Archived-skip branch (index.ts:223-228) → `skipped`.\n2. **Durability-critical callers await + throw a typed ambiguous error (AC7).** Helper `persistStateToDiskDurable(changeId, state)` awaits `persistStateToDisk` and, on `kind: \"failed\"`, throws a typed `DiskProjectionPersistError` that encodes the **ambiguous** semantics: the Temporal signal was already acknowledged (readback confirmed the mutation) but the disk projection did not persist — the mutation may be durable in Temporal; the caller must NOT blind-retry. This mirrors the existing `outcome_unknown_readback_unavailable` contract (spec-deltas.ts:73-77). `success:true` is never returned without a durable disk write (AC2, AC5).\n3. **Non-durability-critical callers keep EXPLICIT fire-and-forget.** `voidPersist(changeId, state)` `void`s the promise + logs failure at debug — preserving today's latency for hot paths, but making the fire-and-forget choice explicit at the call site (AC6). No hot path silently inherits the stronger gate.\n4. **Ordering, one await added:** signal → Temporal readback (durable) → **await disk (durable)** → return. Closes the single-actor retry case: after success, this session's disk has the mutation, so its own subsequent readers/reseeds see it.\n5. **SC4 untouched.** `fireSignalWithMutationGuard` / `enforceMutationEligibilityForError` (gates.ts:46-86) unmodified. Orphaned/unreachable workflow throws at signal dispatch, before the disk write. AC3 by construction.\n6. **Read path untouched.** No reader gains a Temporal dependency (validator PASS on claim 3). AC4 holds by not-touching.\n\n## Concurrency boundary (validator CONFLICT resolution — scoped OUT to entry 6)\n\nThe design validator (adv-researcher, 2026-07-23) returned CONFLICT: await-own-write does not close two concurrent-session races —\n- **Race #1 (reseed-during-window):** a peer session reseeds from stale disk during this session's in-flight mutation (between Temporal readback and disk-write completion). Narrow (~one atomic write) but real.\n- **Race #2 (stale-overwrite):** two sessions write the whole `change.json` from different readbacks; atomic `rename` prevents torn files but not stale last-writer-wins → the projection can regress while the Temporal workflow stays monotonic.\n\n**Why not fixed here:** a structurally-correct fix needs a monotonic generation or per-change cross-process lease/CAS. The change state carries **no** general per-mutation revision (`acceptanceReadinessRevision` advances only on acceptance-affecting mutations; Temporal `historyLength` resets at continue-as-new; `lastSignalAt` is a timestamp — using it for ordering is a P33 heuristic hole at equal-ms ties). Adding a monotonic `projectionRevision` to the reducer + CAN seed + replay-determinism is exactly the replay-sensitive surface that has repeatedly poisoned this Epic. **User-approved Option A:** defer concurrent-projection serialization to Epic entry 6 (disk-authoritative reads/writes), which already owns the replacement concurrency control. This change delivers single-writer honesty only.\n\n## Deferral soundness (validator PASS-with-amendment)\n\nRetaining Temporal as live-session serialization authority and rejecting critical mutations when Temporal is unavailable (SC4-throw, restart-to-recover) is a coherent, safe steady state — safer than silently accepting an unserializable mutation. The only required amendment (AC7) is the typed ambiguous outcome, incorporated in decision #2.\n\n## Implementation strategy\n\n1. Refactor `persistStateToDisk` (index.ts:219-250) to `async` returning `DiskPersistOutcome`; keep the archived-skip branch.\n2. Add typed `DiskProjectionPersistError` (carries ambiguous semantics per AC7) + `persistStateToDiskDurable` (await+throw) + `voidPersist` (explicit fire-and-forget) helpers.\n3. Rewire durability-critical callers from unawaited `persistStateToDisk(...)` to `await persistStateToDiskDurable(...)`.\n4. Leave `dualWriteAfterMutation` (index.ts:268) and other non-critical callers on `voidPersist`.\n\n## Durability-critical set (AC6)\n\nAwait+throw applied to: **spec-deltas** add/modify/amend/retract/remove/rename (spec-deltas.ts:95/135/176/216/255/295), **gate completion** (gates.ts:177/212), **wisdom.add** (wisdom.ts:56), **task** state mutations (tasks.ts). Archive keeps its own bundle path (skipped:archived). Non-critical: `dualWriteAfterMutation` cache-refresh (re-derives from a post-mutation query, never gates a caller's success) → `voidPersist`.\n\n## RED test (concrete — AC1)\n\nInject a failing `legacy.changes.save` (mock throws) on a durability-critical mutation (spec-delta add or gate complete):\n- **RED (current):** mutation returns `success:true` while the disk projection does NOT contain the mutation (failure swallowed at debug). Assert both: `success === true` AND disk projection missing the mutation.\n- **GREEN (target):** mutation throws `DiskProjectionPersistError` (no `success:true`); disk-write failure surfaced with ambiguous semantics.\n\n## Testing\n\n- **AC1** RED→GREEN (anchor test).\n- **AC2** success ⇒ disk projection contains the mutation (positive path, real temp-dir write).\n- **AC3** regression: orphaned/unreachable-workflow mutation still throws at SC4 (existing SC4 tests green; add one asserting the disk write is never reached on SC4-throw).\n- **AC4** read path has no hard Temporal dependency (read a change whose workflow is wedged → returns disk).\n- **AC5** disk-write failure classified/surfaced (typed error), distinct from a swallowed debug log.\n- **AC6** durability-critical set awaits+throws; `dualWriteAfterMutation` does not gate success on disk.\n- **AC7** signal-acked-but-disk-failed → typed `DiskProjectionPersistError` with ambiguous/no-blind-retry semantics.\n\n## Risks & mitigations\n\n- **Latency:** one awaited atomic write per durability-critical mutation; bounded to the enumerated set; hot paths stay on `voidPersist`.\n- **Partial rewire:** a missed durability-critical caller retains old swallow behavior. Mitigation: enumerate the set in one place; AC6 test asserts each wired caller throws on disk failure.\n- **Concurrent-projection regression (races #1/#2):** knowingly out of scope (entry 6). This change does not claim concurrent-writer durability; the agreement states this explicitly.\n\n## Explicitly out of scope\n\n- Concurrent-projection serialization (races #1/#2) + monotonic generation/lease → Epic entry 6.\n- Direction 2 disk-authoritative inversion → Epic entry 6.\n- `fsync`/directory-fsync/power-loss durability; NFS rename ambiguity → separate hardening if ever required.\n- Changes to the Temporal reducer, SC4 guard, or read-path fallback.\n\n## Sources\n\n- Node.js fs — https://nodejs.org/docs/latest-v24.x/api/fs.html\n- fsync(2) — https://man7.org/linux/man-pages/man2/fsync.2.html\n- rename(2) — https://man7.org/linux/man-pages/man2/rename.2.html\n- Temporal message-passing — https://docs.temporal.io/develop/typescript/message-passing",
+    "executiveSummary": "# Executive Summary — Gate durable-mutation success on disk-projection durability\n\n## Outcome\n\nDurable ADV mutations (spec deltas, gate completions, wisdom, task changes) now report `success` only when the change is durable in the layer that survives a workflow going dark — the on-disk projection — not merely in Temporal. Previously a mutation could return `success:true` while its disk write was fire-and-forget and its failure silently swallowed, so the change could vanish from every disk-first reader with no error. That false-success class is closed.\n\n## Why it matters\n\nThe disk projection is the sole source of truth once a change's workflow orphans (a recurring failure this Epic targets). Writing that layer with the weakest guarantee — while claiming success — meant work could be acknowledged and then silently lost, and a peer session could even accept a duplicate of a \"successful\" mutation. Honest success semantics remove that trap: a green result now means the work is on disk.\n\n## What changed\n\n- A small, pure durability gate (`disk-persist.ts`): a typed disk-write outcome plus `DiskProjectionPersistError` that carries explicit \"may be durable in Temporal — do not blind-retry\" semantics.\n- The projection writer is now awaited and classified. Durability-critical mutations gate success on a confirmed disk write; if it fails they surface the typed error instead of swallowing it.\n- Non-critical cache-refresh paths keep their fast best-effort behavior — explicitly, at the call site — so hot paths aren't taxed.\n\n## What was verified\n\n- New tests: durability-gate unit test, spec-delta failure-propagation test, and a task-mutation durability test (all green).\n- No regressions: full project check (types, lint, format, schemas, manifests, isolation) green; a 1344-test sweep across storage + Temporal passed.\n- Guardrails held: the orphaned-workflow safety guard (SC4) and the disk-first read path are untouched — verified live this session, where disk reads returned in 40ms while the workflow was fully wedged.\n\n## Risks & follow-ups\n\n- **Scoped-out by design (Epic entry 6):** concurrent-session projection serialization — two known races (a peer reseeding from stale disk mid-mutation; a stale whole-file overwrite) where the disk projection can still regress under simultaneous sessions. A robust fix needs a monotonic generation/lease the change state doesn't yet carry; adding it touches the replay-sensitive reducer that has repeatedly poisoned this Epic, so it was deliberately deferred (captured in wisdom `ws-V_e5tl`). This change delivers single-writer honesty, not concurrent-writer durability.\n- No power-loss/`fsync` durability (out of scope; the failure mode addressed is process/session exit, which the OS page cache survives).\n\n## Provenance\n\nDefect-origin change in Epic `hardenTemporalReliability` (entry 14). Direction and the SC4-constraint reading were user-approved; an independent design validator raised the concurrency-scope CONFLICT, resolved by explicit user decision to defer it to entry 6.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-23T06:00:04.435Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1 (RED→GREEN, the concrete proof):** A durability-critical mutation whose disk write is (simulated) failing MUST NOT return `success:true` with the mutation absent from the disk projection. RED reproduces current behavior (`success:true` + mutation absent because the failure is swallowed); GREEN surfaces or degrades the failure so success never outruns disk durability. | pass | disk-persist.test.ts red→green (tr_mrx353cw→tr_mrx35op8) + spec-deltas propagation test (tr_mrx3gy54): a durability-critical mutation whose disk write fails now throws DiskProjectionPersistError instead of returning success:true with the mutation absent from disk. |\n| AC2 | acceptance_criterion | **AC2 (success ⇒ own disk write durable):** For every durability-critical mutation, a `success:true` return guarantees the disk projection contains the mutation at return time, via an awaited+confirmed atomic disk write. (Durability against a *concurrent* session overwriting the projection afterward is Out of scope — see below.) | pass | spec-deltas.test.ts asserts persistStateToDiskDurable called with the confirmed state on success; tasks.durability.test.ts (tr_mrx3nr05) asserts persistAndRefreshDurable(changeId, state). success ⇒ awaited+confirmed atomic disk write (saveChange→atomicWriteFile). |\n| AC3 | acceptance_criterion | **AC3 (no-false-success preserved / SC4):** Under an orphaned or unreachable workflow, the no-false-success guarantee holds: the mutation throws at the SC4 signal guard before the disk write. No silent false success. SC4 semantics unchanged. | pass | SC4 guard (fireSignalWithMutationGuard/enforceMutationEligibilityForError, gates.ts:46-86) untouched; throws at signal dispatch before the disk write. 1344-test regression sweep (tr_mrx3oi3v) incl. SC4/mutation-safety suites green. |\n| AC4 | acceptance_criterion | **AC4 (reads stay disk-first):** Reads (`adv_change_show`, `adv_gate_status`, `adv_delta_list/show`) remain disk-first and acquire NO hard Temporal dependency. (Dogfooded 2026-07-23: disk reads 40ms while the workflow was fully wedged.) | pass | Read path unmodified; reads remain disk-first with no Temporal dependency added. bounded-read-deadline + index disk-fallback suites green in tr_mrx3oi3v. Dogfooded live this session: disk read 40ms while the workflow was fully wedged. |\n| AC5 | acceptance_criterion | **AC5 (failures surfaced, not swallowed):** Disk-write failures on durability-critical mutations are classified and surfaced as a typed error, not swallowed at debug (`index.ts:229-250` current behavior). | pass | persistStateToDisk returns typed DiskPersistOutcome {kind:'failed',error}; assertDurablePersist throws typed DiskProjectionPersistError (disk-persist.test.ts). Durability-critical failures surfaced, not swallowed at debug. |\n| AC6 | acceptance_criterion | **AC6 (explicit durability-critical set):** The durability-critical mutation set is explicitly enumerated (spec deltas, gate completions, wisdom, tasks) and distinguished from non-critical hot paths (e.g. cache-refresh dual-writes) that need not pay the stronger gate. | pass | Durability-critical set (spec-deltas×6, gates×2, wisdom×1, tasks×4) awaits+throws via persistStateToDiskDurable/persistAndRefreshDurable; non-critical dualWriteAfterMutation uses explicit voidPersist. spec-deltas propagation + tasks.durability.test.ts + full store-temporal suite 223/223 (tr_mrx3hcjv). |\n| AC7 | acceptance_criterion | **AC7 (typed ambiguous outcome — validator-required):** When the Temporal signal is acknowledged (mutation applied in workflow history) but the subsequent disk write fails, the mutation MUST return a typed ambiguous/failed outcome — distinct from both success and a generic error — and MUST NOT advise blind retry, because Temporal may have durably applied the mutation despite the caller-visible failure. Mirrors the existing `outcome_unknown_readback_unavailable` handling. | pass | DiskProjectionPersistError encodes ambiguous no-blind-retry semantics ('may be durable in Temporal', 'do not blind-retry') — asserted in disk-persist.test.ts; propagated by callers (spec-deltas + tasks propagation tests). |\n| C1 | constraint | No hard Temporal dependency on the read path (AC4). | respected | No Temporal dependency added to any read path; only the write path gained an awaited disk write. tsc clean + read-suite regression green (tr_mrx3oi3v). |\n| C2 | constraint | Preserve append-only delta semantics; archive remains the sole global-spec writer. | respected | No reducer changes; change-state.ts append-only delta semantics untouched; archive remains sole global-spec writer. 1344-test sweep green. |\n| C3 | constraint | Do not make disk-write latency block non-durability-critical hot paths unnecessarily (AC6 classification governs this). | respected | Non-critical dualWriteAfterMutation (changes.refresh/epic) stays fire-and-forget via explicit voidPersist; only the enumerated durability-critical set pays the awaited-disk gate (AC6 classification). |\n| DONT1 | avoidance | Do NOT weaken the no-false-success guarantee (SC4). Relocating the guarantee to a confirmed disk-fsync under a disk-authoritative direction is a Direction-2 concern, not this change. | respected | SC4 guard untouched; the durable variant EXTENDS no-false-success to the disk layer (throws on disk-fail), never weakens it. AC3 regression green. |\n| DONT2 | avoidance | Do NOT resolve the concurrent-projection races by adding a hard Temporal read dependency. | respected | No hard Temporal read dependency introduced; the concurrent reseed/stale-overwrite races are explicitly deferred to Epic entry 6, not papered over via read-path Temporal coupling. |\n| DONT3 | avoidance | Do NOT add a monotonic-generation/CAS field to the replay-sensitive workflow reducer in this change (replay-determinism risk); that belongs with the deferred concurrency-control work. | respected | No monotonic projectionRevision/CAS field added to the replay-sensitive reducer or CAN seed; change-state.ts + workflows.ts seed unmodified. Concurrency serialization deferred to entry 6 (design.md + wisdom ws-V_e5tl). |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-23T04:42:09.891Z",
+      "contentHash": "9c39744347fab2ac11b5fe8bc7ccca2810a1a425799bd1f03738ea7292a6d4a6",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-23T04:42:09.891Z",
+      "contentHash": "c497e6b68739ee87e7456e7e0ea4b5bc47d6febe77efb3f7196d957c1f2ca2cb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-23T05:30:37.351Z",
+      "contentHash": "5721b63c225a7d48131c7e921d996a32f18cbb96e527644280a9b67dd5105b41",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-23T05:30:37.351Z",
+      "contentHash": "e32679123a695f28895266c42e49f0bfb4ade1ac1b22920c8c6379b63c17e134",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T06:00:27.023Z",
+      "contentHash": "600e4948328854e4ca909552f540a6471679a3fdf70310bee67fe27cd8eb941d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T06:11:27.141Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "change-1784781756129-8jdrde",
+    "order": 14,
+    "title": "Gate mutation success on disk durability",
+    "linked_at": "2026-07-23T04:42:36.129Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  }
+}

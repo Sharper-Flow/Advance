@@ -30,6 +30,7 @@ import {
   type TemporalMutationOutcome,
 } from "../../temporal/mutation-safety";
 import { isSchemaError } from "../json";
+import type { DiskPersistOutcome } from "./disk-persist";
 
 const logger = createLogger("store-temporal-shared");
 
@@ -530,7 +531,29 @@ export interface StoreDeps {
     changeId: string,
     state: ChangeWorkflowState,
   ) => void;
-  persistStateToDisk: (changeId: string, state: ChangeWorkflowState) => void;
+  persistStateToDisk: (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ) => Promise<DiskPersistOutcome>;
+  /**
+   * Durability-critical persist: awaits the projection write and throws
+   * DiskProjectionPersistError on failure so `success:true` implies a durable
+   * disk projection. Callers must already hold confirmed post-mutation state
+   * and have refreshed the cache (spec-delta / gate / wisdom mutations).
+   */
+  persistStateToDiskDurable: (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ) => Promise<void>;
+  /**
+   * Durable persist + cache/summary refresh for mutations that hold confirmed
+   * state but have not yet refreshed the cache (task mutations). Avoids the
+   * redundant readback in dualWriteAfterMutation.
+   */
+  persistAndRefreshDurable: (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ) => Promise<void>;
   dualWriteAfterMutation: (changeId: string) => Promise<void>;
   getTemporalWorkflowClient: () => {
     workflow: {
