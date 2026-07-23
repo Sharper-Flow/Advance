@@ -1,0 +1,27 @@
+{
+  "archived_at": "2026-07-23T19:10:46.986Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "12df0822865a30cf5508e9b695da2f271fec12486820a3b89a0bed5f5a70e9f0",
+  "change_id": "addAdvLauncherReadProjection",
+  "completed_tasks": 7,
+  "created_at": "2026-07-23T15:20:55.501Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784822191555-c6hg2y",
+    "epic_id": "systemizeAdvOrchestration",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-23T15:56:31.555Z",
+    "order": 14,
+    "source": "link_existing",
+    "title": "Add ADV launcher read projection"
+  },
+  "last_activity_at": "2026-07-23T19:09:13.137Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "89697d5b9bde11a096d7aaa59b4d24b94549ffc9db2fab266619c01cbffc55e7",
+  "task_count": 7,
+  "title": "Add ADV launcher read projection",
+  "version": "1"
+}

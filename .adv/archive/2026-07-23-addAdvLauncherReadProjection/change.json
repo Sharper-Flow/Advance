@@ -1,0 +1,1911 @@
+{
+  "id": "addAdvLauncherReadProjection",
+  "title": "Add ADV launcher read projection",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-23T15:20:55.501Z",
+  "tasks": [
+    {
+      "id": "tk-8bfaecc7504c",
+      "title": "Spec-law delta + ADR for the launcher read-projection (docs deliverable).",
+      "type": "docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T17:48:30.536Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "C2",
+          "C5"
+        ],
+        "respects": [
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Documentation deliverable (spec law + ADR); verified by artifact existence + format conformance, not behavior tests.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Added change-owned spec delta dl-Qk7m2vR9hL4pXbN1wT3sY → rq-launcherProjectionTruth01 (5 Given/When/Then scenarios) under capability advance-workflow; wrote docs/adr/0009-launcher-projection-host-side.md (host/activity-side, replay-safe). Delta validates.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/adr/0009-launcher-projection-host-side.md"
+      ],
+      "touched_files": [
+        "docs/adr/0009-launcher-projection-host-side.md"
+      ],
+      "checkpointSha": "c2b0e82c55cef9f9758598f09d0d9a206f999517",
+      "completedAt": "2026-07-23T18:35:39.923Z",
+      "completed_at": "2026-07-23T18:35:39.923Z"
+    },
+    {
+      "id": "tk-2e50f105150f",
+      "title": "Pure aggregator module + Zod schema + TDD unit tests for the launcher read-projection.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T17:48:30.541Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "DONT3",
+          "DONT4"
+        ],
+        "verifies": [
+          "SC2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Behavior-critical pure logic (filtering, provenance truthfulness, freshness/degraded); test-driven with the regression cases enumerated in the RED plan.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addAdvLauncherReadProjection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+          "task_id": "tk-2e50f105150f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2e50f105150f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/storage/launcher-projection.ts",
+            "plugin/src/storage/launcher-projection.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mrxtka4k_a890fe70",
+              "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+              "exit_code": 1,
+              "summary": "RED: test suite failed because ./launcher-projection module was missing"
+            },
+            {
+              "test_run_id": "tr_mrxtnd50_8798ade8",
+              "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 12 tests passed"
+            },
+            {
+              "test_run_id": "tr_mrxtmvin_f9ef83a2",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passed"
+            },
+            {
+              "test_run_id": "tr_mrxtnis9_13a6c565",
+              "command": "pnpm exec prettier --check src/storage/launcher-projection.ts src/storage/launcher-projection.test.ts",
+              "exit_code": 0,
+              "summary": "Prettier formatting check passed"
+            },
+            {
+              "test_run_id": "tr_mrxtnstb_01a0aabf",
+              "command": "pnpm exec eslint src/storage/launcher-projection.ts src/storage/launcher-projection.test.ts",
+              "exit_code": 0,
+              "summary": "ESLint passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented a pure, read-only aggregator with no Temporal/ADV imports",
+              "why": "Scope requires the module to be testable in isolation and only return an in-memory projection; the caller writes the aggregate later."
+            },
+            {
+              "what": "Normalized legacy 'active'/'pending' statuses to 'draft'",
+              "why": "Spec notes legacy values map to draft, and active filter depends on draft status."
+            },
+            {
+              "what": "Capped changes at 50 and set active_count to the bounded array length",
+              "why": "Output-shape comment says active_count is changes.length; bounded list matches the 50-item cap."
+            },
+            {
+              "what": "Used z.record(z.string(), z.unknown()) and an explicit Dirent type",
+              "why": "Project uses Zod v4 (two-arg record) and Node typings that diverge when using ReturnType<typeof readdir>."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Pure aggregator buildLauncherProjection is implemented in plugin/src/storage/launcher-projection.ts with Zod schemas and 12 passing unit tests. It reads per-change projections + archive bundles, filters to active draft changes with terminal-truth dominance, computes freshness/degraded, caps at 50, and emits truthful provenance (source: disk_projection, epics_available: false). TypeScript, Prettier, and ESLint all pass.",
+            "suggested_next_action": "Proceed to the next task: extend writeChangeProjection activity to call buildLauncherProjection and atomically write active-launcher-state.json."
+          }
+        }
+      ],
+      "verification": "12 unit tests pass (green run tr_mrxtnd50_8798ade8); red run tr_mrxtka4k_a890fe70 preceded it; typecheck/prettier/eslint clean. Pure module, no writes/Temporal imports.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/launcher-projection.test.ts",
+        "plugin/src/storage/launcher-projection.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/launcher-projection.test.ts",
+        "plugin/src/storage/launcher-projection.ts"
+      ],
+      "checkpointSha": "6636a22a107ed39285555ee0283491407bf7a0a3",
+      "completedAt": "2026-07-23T18:06:36.351Z",
+      "completed_at": "2026-07-23T18:06:36.351Z"
+    },
+    {
+      "id": "tk-89628d0aa03e",
+      "title": "Producer-owned MCP rebuild tool for drift recovery (NOT a `bin/adv` subcommand — CLI source-boundary guard).",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-23T17:48:44.211Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e50f105150f"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Behavior-critical tool (drift recovery); test-driven.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addAdvLauncherReadProjection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+          "task_id": "tk-89628d0aa03e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-89628d0aa03e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/launcher-projection.ts",
+            "plugin/src/tools/launcher-projection.test.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/tool-role-policy.ts",
+            "plugin/src/utils/tool-title.ts",
+            "plugin/src/cli-bridge-contract.test.ts",
+            "plugin/src/tool-registry.inventory.test.ts",
+            "docs/tool-ownership.md"
+          ],
+          "verification": [
+            {
+              "test_run_id": "bash-red-launcher-projection-tool",
+              "command": "npx vitest run src/tools/launcher-projection.test.ts",
+              "exit_code": 1,
+              "summary": "RED: tool module missing, test failed before implementation"
+            },
+            {
+              "test_run_id": "bash-green-launcher-projection-tool",
+              "command": "npx vitest run src/tools/launcher-projection.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: adv_launcher_projection_rebuild regenerates active-launcher-state.json from seeded changes dir"
+            },
+            {
+              "test_run_id": "bash-typecheck-launcher-projection",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck clean"
+            },
+            {
+              "test_run_id": "bash-cli-source-boundary-launcher-projection",
+              "command": "bun test bin/lib/cli-source-boundary.test.ts",
+              "exit_code": 0,
+              "summary": "bin/adv source boundary remains green; new tool is plugin-only"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented adv_launcher_projection_rebuild as a plugin-only MCP tool",
+              "why": "Task requirement: reachable only via the plugin, never from bin/adv; uses disk-only buildLauncherProjection + atomicWriteFile with no Temporal dependency"
+            },
+            {
+              "what": "Resolved externalRoot via getProjectId(store.paths.root) + getExternalRoot(projectId)",
+              "why": "Follows the established tool pattern and task requirement; returns a clear error if project identity cannot be resolved"
+            },
+            {
+              "what": "Classified the tool as operator-only in tool-role-policy.ts and added docs/tool-ownership.md row",
+              "why": "Rebuilding the aggregate projection is a maintenance/cache refresh action with external-state blast radius; required by tool-role-policy.test.ts and ownership matrix parity tests"
+            },
+            {
+              "what": "Updated tool-title.ts, cli-bridge-contract snapshot, and tool-registry.inventory baseline",
+              "why": "Project's deterministic inventory/title parity tests enforce exact coverage for every ADV_TOOL_NAMES addition"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task 2 complete: adv_launcher_projection_rebuild MCP tool implemented and registered. Committed 77501570. Tool test, typecheck, and cli-source-boundary test green. Required project inventory/policy/docs parity files updated.",
+            "suggested_next_action": "Run the targeted/smoke test tiers via bin/oc-test to confirm no regressions before handing back"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-red-launcher-projection-tool"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-green-launcher-projection-tool"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-typecheck-launcher-projection"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-cli-source-boundary-launcher-projection"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_launcher_projection_rebuild MCP tool added (plugin/src/tools/launcher-projection.ts) + registered in tool-registry.ts; rebuild regenerates aggregate from on-disk per-change set; test green; cli-source-boundary test green; typecheck clean. Not reachable from bin/adv (respects C1/DONT1).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7750157010d78bdc8f713d0ba15d61b86ef5354f",
+      "completedAt": "2026-07-23T18:21:12.468Z",
+      "completed_at": "2026-07-23T18:21:12.468Z"
+    },
+    {
+      "id": "tk-83079c97fe5c",
+      "title": "Extend the EXISTING `writeChangeProjection` activity body to also write the aggregate launcher projection (replay-safe — NO new activity call added to the workflow).",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-23T17:48:44.252Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e50f105150f"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "DONT2",
+          "DONT5"
+        ],
+        "verifies": [
+          "SC3",
+          "SC4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Behavior-critical lifecycle wiring (eager regen, atomicity, failure isolation); test-driven.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addAdvLauncherReadProjection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+          "task_id": "tk-83079c97fe5c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-83079c97fe5c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/activities.ts",
+            "plugin/src/temporal/activities.disk-projection.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "bash-red-activities-disk-projection",
+              "command": "npx vitest run src/temporal/activities.disk-projection.test.ts",
+              "exit_code": 1,
+              "summary": "RED: new aggregate tests failed as expected before implementation"
+            },
+            {
+              "test_run_id": "bash-green-activities-disk-projection",
+              "command": "npx vitest run src/temporal/activities.disk-projection.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: all 7 tests pass including aggregate write and best-effort failure tests"
+            },
+            {
+              "test_run_id": "bash-typecheck-activities",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Imported buildLauncherProjection into activities.ts",
+              "why": "Activities are host-side I/O and not part of the workflow bundle root, so importing a storage module is allowed by the project boundary rules"
+            },
+            {
+              "what": "Made aggregate write best-effort with try/catch and structured warn log",
+              "why": "Per the task invariant, aggregate failure must not fail the authoritative per-change projection write or alter the activity return value; preserves workflow determinism"
+            },
+            {
+              "what": "Used logger.warn('launcher-projection-aggregate-failed', ...)",
+              "why": "Mirrors the existing 'change-projection-failed' structured warning style in the workflow layer"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task 1 complete: writeChangeProjection now writes active-launcher-state.json aggregate after the per-change projection succeeds. Committed 687bd70c. Tests and typecheck green.",
+            "suggested_next_action": "Proceed to task 2 tk-89628d0aa03e: implement adv_launcher_projection_rebuild MCP tool"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-red-activities-disk-projection"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-green-activities-disk-projection"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-typecheck-activities"
+            }
+          ]
+        }
+      ],
+      "verification": "writeChangeProjection activity body extended to also write active-launcher-state.json (host-side, best-effort, failure-isolated); 7 tests green; typecheck clean. No new activity added to the workflow (replay-safe).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7750157010d78bdc8f713d0ba15d61b86ef5354f",
+      "completedAt": "2026-07-23T18:21:05.819Z",
+      "completed_at": "2026-07-23T18:21:05.819Z"
+    },
+    {
+      "id": "tk-940495b9ba78",
+      "title": "Temporal integration test (`.itest.ts`): signal-driven aggregate regeneration with Temporal stopped.",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T17:49:01.229Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-83079c97fe5c"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Cross-cutting integration verification spanning the activity + on-disk projection + Temporal lifecycle; separate_verification (depends on the activity impl).",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addAdvLauncherReadProjection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+          "task_id": "tk-940495b9ba78",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-940495b9ba78"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/storage/launcher-projection.itest.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "manual-tk-940495b9ba78-20260723-142832",
+              "command": "pnpm exec vitest run --project temporal src/storage/launcher-projection.itest.ts",
+              "exit_code": 0,
+              "summary": "1 test passed: signal-driven aggregate regeneration with Temporal; per-change projection + active-launcher-state.json written, direct disk read verified, archive exclusion verified"
+            },
+            {
+              "test_run_id": "manual-tk-940495b9ba78-20260723-142850",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Combined SC1/SC2/SC3 into a single sequential itest using withTimeSkippingTestWorkflowEnvironment and the required Worker registration",
+              "why": "Matches task requirement to verify signal-driven write, direct disk read, and archive exclusion in one scenario; keeps the test focused and avoids redundant Temporal startup"
+            },
+            {
+              "what": "Used empty archiveProjects in ChangeWorkflowInput to avoid real git worktree/projection-proof requirements",
+              "why": "The test scope is the launcher aggregate, not the archive activity; empty archiveProjects lets runArchiveActivity return early and still triggers the terminal-state projection write"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task A integration test committed (3a07244f). Temporal itest passes; verifies per-change projection, aggregate active-launcher-state.json with source:disk_projection, direct disk read, and archive exclusion. Typecheck clean. adv_run_test was unavailable from this sub-agent session; test evidence was collected via direct pnpm exec vitest run.",
+            "suggested_next_action": "Proceed to Task B report, then run bin/oc-test targeted on the new tests if desired"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-tk-940495b9ba78-20260723-142832"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-tk-940495b9ba78-20260723-142850"
+            }
+          ]
+        }
+      ],
+      "verification": "Signal-driven aggregate regeneration itest passes (run tr_mrxujms3_a06a3684): per-change + active-launcher-state.json both written with source:\"disk_projection\"; disk read needs no Temporal; archive excludes change. Verifies SC1/SC2/SC3.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "5a0b1ba0b2866ce4cd7f4b368e4d936d878227da",
+      "completedAt": "2026-07-23T18:30:29.012Z",
+      "completed_at": "2026-07-23T18:30:29.012Z"
+    },
+    {
+      "id": "tk-b4f1c8911c3c",
+      "title": "Cross-project file-format contract coordination with toolbox `decoupleAdvDisplayTemporal` (the consumer that reads `active-launcher-state.json` from zlauncher).",
+      "type": "approval",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T17:49:01.239Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ]
+      },
+      "evidence_policy": "stakeholder_acceptance",
+      "evidence_plan": {
+        "policy": "stakeholder_acceptance",
+        "proof_target": "Stakeholder acceptance evidence",
+        "rationale": "Cross-project coordination/approval deliverable; verified by stakeholder confirmation, not tests.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Coordination complete: verified producer path is canonical (.../advance/{projectId}/active-launcher-state.json, no external/ — consistent with changes/, archive/). Found shipped toolbox consumer (decoupleAdvDisplayTemporal, master 2c1b266) reads a fabricated .../advance/external/{projectId}/ path (TDD'd vs fixtures, never validated vs real producer). Producer (this change) stays canonical; consumer path is a bug. User approved creating a toolbox follow-up fix. Follow-up creation blocked: toolbox ADV worker not serviceable for mutation (disk-snapshot reads only). Durable finding recorded (mem-b127ea438ec341aca858c5b3756a086c). Follow-up obligation: open/restart toolbox ADV worker, then create the cross-project follow-up change to drop external/ from zellij-project-launcher:544.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c2b0e82c55cef9f9758598f09d0d9a206f999517",
+      "completedAt": "2026-07-23T18:53:28.849Z",
+      "completed_at": "2026-07-23T18:53:28.849Z"
+    },
+    {
+      "id": "tk-f53deb6fd1b6",
+      "title": "Replay-safety verification (DDC6/KD-1): structural proof + guard test that the workflow's activity-invocation sequence is UNCHANGED.",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-23T17:49:01.388Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-83079c97fe5c"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "DONT2"
+        ],
+        "verifies": [
+          "AC3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Architectural/structural invariant (no new activity invocation in the workflow); verified by a static guard test, not behavior TDD.",
+        "review_evidence_ref": {
+          "report_key": "addAdvLauncherReadProjection|tk-f53deb6fd1b6|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addAdvLauncherReadProjection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+          "task_id": "tk-f53deb6fd1b6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f53deb6fd1b6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/workflow-call-sequence.guard.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "manual-tk-f53deb6fd1b6-20260723-142856",
+              "command": "pnpm exec vitest run --project unit src/temporal/workflow-call-sequence.guard.test.ts",
+              "exit_code": 0,
+              "summary": "1 test passed: workflows.ts contains no launcher-aggregate activity references and the activity proxy still only exposes the four pre-existing projection activities"
+            },
+            {
+              "test_run_id": "manual-tk-f53deb6fd1b6-20260723-142902",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used source-string assertions instead of AST parsing for the guard test",
+              "why": "Robust enough for a static_check guard: the activity proxy destructuring and disallowed names are exact string matches; an AST approach would add complexity without improving signal for this invariant"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task B replay-safety guard test committed (5a0b1ba0). Guard confirms workflows.ts does not reference any launcher-aggregate activity; the aggregate write remains inside the host-side writeChangeProjection activity body. No replay-safety violation detected. Typecheck clean. adv_run_test was unavailable from this sub-agent session; evidence collected via direct pnpm exec vitest run.",
+            "suggested_next_action": "Run bin/oc-test targeted -- src/storage/launcher-projection.itest.ts src/temporal/workflow-call-sequence.guard.test.ts to confirm host-throttled execution"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-tk-f53deb6fd1b6-20260723-142856"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-tk-f53deb6fd1b6-20260723-142902"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addAdvLauncherReadProjection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+          "task_id": "tk-f53deb6fd1b6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f53deb6fd1b6"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/temporal/workflow-call-sequence.guard.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Exit 0: 1 test passed. workflows.ts:202-207 proxies only existing activities; projectChangeState awaits only writeChangeProjection at 851-877. Aggregate write occurs inside activities.ts writeChangeProjection at 515-530. Guard test asserts invariant at workflow-call-sequence.guard.test.ts:25-48. No aggregate-change wf.patched/versioning added."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [
+            "Record this READY reviewer evidence as review_evidence_ref for tk-f53deb6fd1b6."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/workflow-call-sequence.guard.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Replay-safety invariant confirmed by reviewer (READY, report ...|tk-f53deb6fd1b6|adv-reviewer|1) + green guard test tr_mrxujkmw_07069324: workflows.ts proxies only existing activities; projectChangeState awaits only writeChangeProjection; aggregate write is inside the activity body; no wf.patch/versioning. Verifies AC3/DDC6, respects DONT2.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "5a0b1ba0b2866ce4cd7f4b368e4d936d878227da",
+      "completedAt": "2026-07-23T18:34:30.741Z",
+      "completed_at": "2026-07-23T18:34:30.741Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvLauncherReadProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+      "task_id": "tk-2e50f105150f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2e50f105150f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/launcher-projection.ts",
+        "plugin/src/storage/launcher-projection.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mrxtka4k_a890fe70",
+          "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+          "exit_code": 1,
+          "summary": "RED: test suite failed because ./launcher-projection module was missing"
+        },
+        {
+          "test_run_id": "tr_mrxtnd50_8798ade8",
+          "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 12 tests passed"
+        },
+        {
+          "test_run_id": "tr_mrxtmvin_f9ef83a2",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed"
+        },
+        {
+          "test_run_id": "tr_mrxtnis9_13a6c565",
+          "command": "pnpm exec prettier --check src/storage/launcher-projection.ts src/storage/launcher-projection.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier formatting check passed"
+        },
+        {
+          "test_run_id": "tr_mrxtnstb_01a0aabf",
+          "command": "pnpm exec eslint src/storage/launcher-projection.ts src/storage/launcher-projection.test.ts",
+          "exit_code": 0,
+          "summary": "ESLint passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented a pure, read-only aggregator with no Temporal/ADV imports",
+          "why": "Scope requires the module to be testable in isolation and only return an in-memory projection; the caller writes the aggregate later."
+        },
+        {
+          "what": "Normalized legacy 'active'/'pending' statuses to 'draft'",
+          "why": "Spec notes legacy values map to draft, and active filter depends on draft status."
+        },
+        {
+          "what": "Capped changes at 50 and set active_count to the bounded array length",
+          "why": "Output-shape comment says active_count is changes.length; bounded list matches the 50-item cap."
+        },
+        {
+          "what": "Used z.record(z.string(), z.unknown()) and an explicit Dirent type",
+          "why": "Project uses Zod v4 (two-arg record) and Node typings that diverge when using ReturnType<typeof readdir>."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Pure aggregator buildLauncherProjection is implemented in plugin/src/storage/launcher-projection.ts with Zod schemas and 12 passing unit tests. It reads per-change projections + archive bundles, filters to active draft changes with terminal-truth dominance, computes freshness/degraded, caps at 50, and emits truthful provenance (source: disk_projection, epics_available: false). TypeScript, Prettier, and ESLint all pass.",
+        "suggested_next_action": "Proceed to the next task: extend writeChangeProjection activity to call buildLauncherProjection and atomically write active-launcher-state.json."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvLauncherReadProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+      "task_id": "tk-83079c97fe5c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-83079c97fe5c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/temporal/activities.disk-projection.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "bash-red-activities-disk-projection",
+          "command": "npx vitest run src/temporal/activities.disk-projection.test.ts",
+          "exit_code": 1,
+          "summary": "RED: new aggregate tests failed as expected before implementation"
+        },
+        {
+          "test_run_id": "bash-green-activities-disk-projection",
+          "command": "npx vitest run src/temporal/activities.disk-projection.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: all 7 tests pass including aggregate write and best-effort failure tests"
+        },
+        {
+          "test_run_id": "bash-typecheck-activities",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Imported buildLauncherProjection into activities.ts",
+          "why": "Activities are host-side I/O and not part of the workflow bundle root, so importing a storage module is allowed by the project boundary rules"
+        },
+        {
+          "what": "Made aggregate write best-effort with try/catch and structured warn log",
+          "why": "Per the task invariant, aggregate failure must not fail the authoritative per-change projection write or alter the activity return value; preserves workflow determinism"
+        },
+        {
+          "what": "Used logger.warn('launcher-projection-aggregate-failed', ...)",
+          "why": "Mirrors the existing 'change-projection-failed' structured warning style in the workflow layer"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task 1 complete: writeChangeProjection now writes active-launcher-state.json aggregate after the per-change projection succeeds. Committed 687bd70c. Tests and typecheck green.",
+        "suggested_next_action": "Proceed to task 2 tk-89628d0aa03e: implement adv_launcher_projection_rebuild MCP tool"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-red-activities-disk-projection"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-green-activities-disk-projection"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-typecheck-activities"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvLauncherReadProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+      "task_id": "tk-89628d0aa03e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-89628d0aa03e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/launcher-projection.ts",
+        "plugin/src/tools/launcher-projection.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/utils/tool-title.ts",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "docs/tool-ownership.md"
+      ],
+      "verification": [
+        {
+          "test_run_id": "bash-red-launcher-projection-tool",
+          "command": "npx vitest run src/tools/launcher-projection.test.ts",
+          "exit_code": 1,
+          "summary": "RED: tool module missing, test failed before implementation"
+        },
+        {
+          "test_run_id": "bash-green-launcher-projection-tool",
+          "command": "npx vitest run src/tools/launcher-projection.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: adv_launcher_projection_rebuild regenerates active-launcher-state.json from seeded changes dir"
+        },
+        {
+          "test_run_id": "bash-typecheck-launcher-projection",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck clean"
+        },
+        {
+          "test_run_id": "bash-cli-source-boundary-launcher-projection",
+          "command": "bun test bin/lib/cli-source-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "bin/adv source boundary remains green; new tool is plugin-only"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented adv_launcher_projection_rebuild as a plugin-only MCP tool",
+          "why": "Task requirement: reachable only via the plugin, never from bin/adv; uses disk-only buildLauncherProjection + atomicWriteFile with no Temporal dependency"
+        },
+        {
+          "what": "Resolved externalRoot via getProjectId(store.paths.root) + getExternalRoot(projectId)",
+          "why": "Follows the established tool pattern and task requirement; returns a clear error if project identity cannot be resolved"
+        },
+        {
+          "what": "Classified the tool as operator-only in tool-role-policy.ts and added docs/tool-ownership.md row",
+          "why": "Rebuilding the aggregate projection is a maintenance/cache refresh action with external-state blast radius; required by tool-role-policy.test.ts and ownership matrix parity tests"
+        },
+        {
+          "what": "Updated tool-title.ts, cli-bridge-contract snapshot, and tool-registry.inventory baseline",
+          "why": "Project's deterministic inventory/title parity tests enforce exact coverage for every ADV_TOOL_NAMES addition"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task 2 complete: adv_launcher_projection_rebuild MCP tool implemented and registered. Committed 77501570. Tool test, typecheck, and cli-source-boundary test green. Required project inventory/policy/docs parity files updated.",
+        "suggested_next_action": "Run the targeted/smoke test tiers via bin/oc-test to confirm no regressions before handing back"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-red-launcher-projection-tool"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-green-launcher-projection-tool"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-typecheck-launcher-projection"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-cli-source-boundary-launcher-projection"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvLauncherReadProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+      "task_id": "tk-940495b9ba78",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-940495b9ba78"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/launcher-projection.itest.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "manual-tk-940495b9ba78-20260723-142832",
+          "command": "pnpm exec vitest run --project temporal src/storage/launcher-projection.itest.ts",
+          "exit_code": 0,
+          "summary": "1 test passed: signal-driven aggregate regeneration with Temporal; per-change projection + active-launcher-state.json written, direct disk read verified, archive exclusion verified"
+        },
+        {
+          "test_run_id": "manual-tk-940495b9ba78-20260723-142850",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Combined SC1/SC2/SC3 into a single sequential itest using withTimeSkippingTestWorkflowEnvironment and the required Worker registration",
+          "why": "Matches task requirement to verify signal-driven write, direct disk read, and archive exclusion in one scenario; keeps the test focused and avoids redundant Temporal startup"
+        },
+        {
+          "what": "Used empty archiveProjects in ChangeWorkflowInput to avoid real git worktree/projection-proof requirements",
+          "why": "The test scope is the launcher aggregate, not the archive activity; empty archiveProjects lets runArchiveActivity return early and still triggers the terminal-state projection write"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task A integration test committed (3a07244f). Temporal itest passes; verifies per-change projection, aggregate active-launcher-state.json with source:disk_projection, direct disk read, and archive exclusion. Typecheck clean. adv_run_test was unavailable from this sub-agent session; test evidence was collected via direct pnpm exec vitest run.",
+        "suggested_next_action": "Proceed to Task B report, then run bin/oc-test targeted on the new tests if desired"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-tk-940495b9ba78-20260723-142832"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-tk-940495b9ba78-20260723-142850"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvLauncherReadProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+      "task_id": "tk-f53deb6fd1b6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f53deb6fd1b6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/workflow-call-sequence.guard.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "manual-tk-f53deb6fd1b6-20260723-142856",
+          "command": "pnpm exec vitest run --project unit src/temporal/workflow-call-sequence.guard.test.ts",
+          "exit_code": 0,
+          "summary": "1 test passed: workflows.ts contains no launcher-aggregate activity references and the activity proxy still only exposes the four pre-existing projection activities"
+        },
+        {
+          "test_run_id": "manual-tk-f53deb6fd1b6-20260723-142902",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used source-string assertions instead of AST parsing for the guard test",
+          "why": "Robust enough for a static_check guard: the activity proxy destructuring and disallowed names are exact string matches; an AST approach would add complexity without improving signal for this invariant"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task B replay-safety guard test committed (5a0b1ba0). Guard confirms workflows.ts does not reference any launcher-aggregate activity; the aggregate write remains inside the host-side writeChangeProjection activity body. No replay-safety violation detected. Typecheck clean. adv_run_test was unavailable from this sub-agent session; evidence collected via direct pnpm exec vitest run.",
+        "suggested_next_action": "Run bin/oc-test targeted -- src/storage/launcher-projection.itest.ts src/temporal/workflow-call-sequence.guard.test.ts to confirm host-throttled execution"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-tk-f53deb6fd1b6-20260723-142856"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-tk-f53deb6fd1b6-20260723-142902"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvLauncherReadProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+      "task_id": "tk-f53deb6fd1b6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f53deb6fd1b6"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/workflow-call-sequence.guard.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Exit 0: 1 test passed. workflows.ts:202-207 proxies only existing activities; projectChangeState awaits only writeChangeProjection at 851-877. Aggregate write occurs inside activities.ts writeChangeProjection at 515-530. Guard test asserts invariant at workflow-call-sequence.guard.test.ts:25-48. No aggregate-change wf.patched/versioning added."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Record this READY reviewer evidence as review_evidence_ref for tk-f53deb6fd1b6."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/workflow-call-sequence.guard.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvLauncherReadProjection",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvLauncherReadProjection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "correctness-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 1393,
+          "what": "Most mutating signal handlers do not schedule the existing writeChangeProjection activity, so the aggregate does not regenerate after every change mutation.",
+          "why": "SC3 and AC1 require eager regeneration after every change mutation. signalMutation only schedules a projection when projectAfter is true (lines 959-963, 1006-1017), but document updates, task add/update/complete, worktree events, reentry, wisdom, and spec-delta handlers omit that option (for example lines 1393-1518 and 1557-1644). Task mutations change summary task_count/completed_tasks generated by launcher-projection.ts:194-207, leaving active-launcher-state.json stale until an unrelated projected signal occurs.",
+          "fix": "Apply a replay-safe, versioned scheduling change for all summary-affecting mutations, preserving historical workflow command sequences; add Temporal integration coverage proving a task mutation refreshes task_count/completed_tasks in active-launcher-state.json."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Extending an existing activity body preserves replay only when that activity was already scheduled. Adding scheduleChangeProjection to previously unscheduled signal handlers changes workflow command history and needs a replay-safe versioning plan."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/storage/launcher-projection.test.ts src/temporal/activities.disk-projection.test.ts src/storage/launcher-projection.itest.ts src/temporal/workflow-call-sequence.guard.test.ts",
+          "bun test bin/lib/cli-source-boundary.test.ts"
+        ],
+        "results": "fail",
+        "evidence": "Targeted Vitest suite passed: 4 files, 21 tests (including Temporal signal-driven aggregate test). CLI boundary guard passed: 4 tests, 179 expectations. Initial targeted command using repo-prefixed paths was rejected as no matching files; rerun with plugin-relative paths passed. Source review found blocker despite green selected tests. Positive evidence: canonical archive ID filtering in launcher-projection.ts:121-146, 184-191; truthful provenance/schema in lines 38-48 and 241-250; activity writes aggregate atomically at activities.ts:519-530 and isolates failures at 515-540; canonical producer root is dirname(changesDir) and matches getExternalRoot (.../advance/{projectId}) in project-id.ts:289-298; no aggregate activity proxy added in workflows.ts:202-210, guarded by workflow-call-sequence.guard.test.ts:25-48. No test run IDs available because review ran shell verification, not task-bound adv_run_test."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Current aggregate may show stale task counts/completion state after task mutations, and other summary-adjacent state can remain stale until a gate event.",
+        "Fixing scheduling across pre-existing workflow histories requires replay-safe versioning; do not silently add activity commands to old histories."
+      ],
+      "required_main_agent_actions": [
+        "Remediate correctness-1 before acceptance: make summary-affecting mutations eagerly refresh the existing projection with a replay-safe Temporal versioning approach, without adding a separate launcher aggregate activity.",
+        "Add a signal-driven Temporal integration test that mutates tasks after initial projection and asserts active-launcher-state.json updates task_count/completed_tasks.",
+        "Re-run the targeted projection, activity, Temporal integration, workflow-sequence, and CLI boundary suites; then rerun acceptance review."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/storage/launcher-projection.test.ts src/temporal/activities.disk-projection.test.ts src/storage/launcher-projection.itest.ts src/temporal/workflow-call-sequence.guard.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bun test bin/lib/cli-source-boundary.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-2e50f105150f": [
+      {
+        "runId": "tr_mrxtjusi_33da45a5",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/storage/launcher-projection.test.ts",
+        "durationMs": 30115.188866000157,
+        "recordedAt": "2026-07-23T18:02:32.273Z"
+      },
+      {
+        "runId": "tr_mrxtka4k_a890fe70",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+        "durationMs": 1359.5938490000553,
+        "recordedAt": "2026-07-23T18:02:52.134Z"
+      },
+      {
+        "runId": "tr_mrxtkxuq_69f88341",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+        "durationMs": 1753.2432929999195,
+        "recordedAt": "2026-07-23T18:03:22.910Z"
+      },
+      {
+        "runId": "tr_mrxtleh3_5c7a08d4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+        "durationMs": 1598.527476000134,
+        "recordedAt": "2026-07-23T18:03:44.450Z"
+      },
+      {
+        "runId": "tr_mrxtlpkb_979431de",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run typecheck",
+        "durationMs": 8843.563296000008,
+        "recordedAt": "2026-07-23T18:03:58.872Z"
+      },
+      {
+        "runId": "tr_mrxtmvin_f9ef83a2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9052.475956999697,
+        "recordedAt": "2026-07-23T18:04:53.193Z"
+      },
+      {
+        "runId": "tr_mrxtn0s2_0833bd1d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+        "durationMs": 1299.894636000041,
+        "recordedAt": "2026-07-23T18:05:00.003Z"
+      },
+      {
+        "runId": "tr_mrxtn5up_698fa752",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/storage/launcher-projection.ts src/storage/launcher-projection.test.ts",
+        "durationMs": 966.2432579998858,
+        "recordedAt": "2026-07-23T18:05:06.623Z"
+      },
+      {
+        "runId": "tr_mrxtnd50_8798ade8",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/storage/launcher-projection.test.ts",
+        "durationMs": 2212.2953570000827,
+        "recordedAt": "2026-07-23T18:05:16.023Z"
+      },
+      {
+        "runId": "tr_mrxtnis9_13a6c565",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec prettier --check src/storage/launcher-projection.ts src/storage/launcher-projection.test.ts",
+        "durationMs": 1138.6717209997587,
+        "recordedAt": "2026-07-23T18:05:23.374Z"
+      },
+      {
+        "runId": "tr_mrxtnstb_01a0aabf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec eslint src/storage/launcher-projection.ts src/storage/launcher-projection.test.ts",
+        "durationMs": 7243.032269000076,
+        "recordedAt": "2026-07-23T18:05:36.378Z"
+      }
+    ],
+    "tk-940495b9ba78": [
+      {
+        "runId": "tr_mrxujbaf_3369e8d0",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project temporal src/storage/launcher-projection.itest.ts",
+        "durationMs": 855.3451669998467,
+        "recordedAt": "2026-07-23T18:30:06.597Z"
+      },
+      {
+        "runId": "tr_mrxujms3_a06a3684",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project temporal src/storage/launcher-projection.itest.ts",
+        "durationMs": 3877.1883220002055,
+        "recordedAt": "2026-07-23T18:30:21.492Z"
+      }
+    ],
+    "tk-f53deb6fd1b6": [
+      {
+        "runId": "tr_mrxujbbo_18dbadc7",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project unit src/temporal/workflow-call-sequence.guard.test.ts",
+        "durationMs": 898.1952490005642,
+        "recordedAt": "2026-07-23T18:30:06.662Z"
+      },
+      {
+        "runId": "tr_mrxujkmw_07069324",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/temporal/workflow-call-sequence.guard.test.ts",
+        "durationMs": 1094.7939959997311,
+        "recordedAt": "2026-07-23T18:30:18.736Z"
+      }
+    ],
+    "tk-89628d0aa03e": [
+      {
+        "runId": "tr_mrxur806_5b240be5",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/launcher-projection.test.ts && bun test bin/lib/cli-source-boundary.test.ts",
+        "durationMs": 823.784837000072,
+        "recordedAt": "2026-07-23T18:36:15.588Z"
+      },
+      {
+        "runId": "tr_mrxvvghg_a1448f79",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/launcher-projection.test.ts",
+        "durationMs": 1384.7781859999523,
+        "recordedAt": "2026-07-23T19:07:32.818Z"
+      }
+    ],
+    "tk-83079c97fe5c": [
+      {
+        "runId": "tr_mrxur8ex_7f160510",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/temporal/activities.disk-projection.test.ts",
+        "durationMs": 1357.0349659994245,
+        "recordedAt": "2026-07-23T18:36:16.118Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-workflow": [
+      {
+        "id": "dl-Qk7m2vR9hL4pXbN1wT3sY",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-launcherProjectionTruth01",
+          "title": "Launcher read-projection provenance truthfulness",
+          "body": "ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times — `source:\"disk_projection\"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain Temporal-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (Temporal is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) — NOT by adding a new activity invocation to the workflow — so in-flight workflow histories replay identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the signal.",
+          "priority": "must",
+          "tags": [
+            "workflow",
+            "read-model",
+            "projection",
+            "launcher",
+            "recovery",
+            "durable",
+            "truthful-provenance"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-launcherProjectionTruth01.1",
+              "title": "Active-only projection with terminal-truth dominance",
+              "given": [
+                "a project with active (draft) and terminal (archived) changes",
+                "an on-disk per-change projection for each",
+                "an archive bundle for the terminal change whose canonical change.json.id matches its changeId"
+              ],
+              "when": "a change mutation regenerates the aggregate",
+              "then": [
+                "the projection file exists at the per-project external-state dir",
+                "it contains exactly the draft/non-terminal changes",
+                "the archived change is excluded even though a stale draft projection file may exist"
+              ]
+            },
+            {
+              "id": "rq-launcherProjectionTruth01.2",
+              "title": "Temporal-independent read",
+              "given": [
+                "Temporal (temporal-dev) is stopped",
+                "the per-change projections and aggregate already exist on disk"
+              ],
+              "when": "the launcher reads active-launcher-state.json",
+              "then": [
+                "the aggregate file is readable and reflects the active set",
+                "no Temporal round-trip is required to read it"
+              ]
+            },
+            {
+              "id": "rq-launcherProjectionTruth01.3",
+              "title": "Replay-safe eager regeneration",
+              "given": [
+                "a change mutation fires a signal handled by the workflow",
+                "the workflow calls writeChangeProjection with unchanged args"
+              ],
+              "when": "the activity body executes host-side",
+              "then": [
+                "both changes/{changeId}.json and active-launcher-state.json are written",
+                "the workflow's activity-invocation sequence is unchanged (the aggregate write occurs inside the activity body)",
+                "in-flight workflow histories replay identically with no wf.patch"
+              ]
+            },
+            {
+              "id": "rq-launcherProjectionTruth01.4",
+              "title": "Best-effort aggregate never fails the per-change write",
+              "given": [
+                "the aggregate write target is unwritable or fails",
+                "the per-change projection write already succeeded"
+              ],
+              "when": "the aggregate write throws",
+              "then": [
+                "the activity still returns success for the per-change projection",
+                "the signal is not failed",
+                "a structured warning is logged"
+              ]
+            },
+            {
+              "id": "rq-launcherProjectionTruth01.5",
+              "title": "Truthful provenance and epics_available",
+              "given": [
+                "active epic data is Temporal-only and not present on disk"
+              ],
+              "when": "the aggregate is generated",
+              "then": [
+                "epics_available is false (never fabricated as live)",
+                "source is always disk_projection (never temporal/live:true)",
+                "freshness is the max lastSignalAt across active summaries and degraded reflects the documented threshold"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-23T17:23:31.485Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e72f30b95bfe9c3bdf1ff12dfd9de4234af51cec950101b2d7108db27d2ad5b1",
+        "non_whitespace_chars": 7962,
+        "checked_at": "2026-07-23T15:20:58.586Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-23T17:29:58.010Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "4fb5c1ecda887d81ff5590f6a552ddd469da1cbcb7b276b888823113fd70cf2e",
+        "non_whitespace_chars": 6044,
+        "checked_at": "2026-07-23T15:20:58.587Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-23T17:43:45.856Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "8e8d490e80d7cb1776a7ad02d5f80a35172106f268a832c8f8f36a7b1474d80f",
+        "non_whitespace_chars": 13646,
+        "checked_at": "2026-07-23T15:20:58.588Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-23T17:56:59.138Z",
+      "completed_by": "user"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T18:54:10.367Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-23T19:08:22.310Z",
+      "completed_at": "2026-07-23T19:09:13.137Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "1b1232de01b3f2a32c1c2dcfe8fa3ad7cba81eb473e1c09ad167900021b5c7f9",
+        "non_whitespace_chars": 3698,
+        "checked_at": "2026-07-23T15:20:58.591Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "source_change_id": "decoupleAdvDisplayTemporal",
+    "linked_at": "2026-07-23T15:20:53.171Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+      "approvedAt": "2026-07-23T17:29:58.010Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** — With `temporal-dev` stopped: `active-launcher-state.json` exists and contains N active (non-terminal) change summaries matching the on-disk per-change projection files, with `source:\"disk_projection\"` and no terminal/archived entries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2** *(producer)* — A terminal/archived change never appears in the active projection, even if a stale non-terminal workflow exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3** — After a create/archive/close mutation, the aggregate regenerates eagerly without a Temporal round-trip, reflecting the new active set.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4** *(producer)* — Atomic write: a concurrent reader sees either the previous or the new file, never a partial/truncated one.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** *(amended at acceptance)* — ADV maintains a durable `active-launcher-state.json` under the per-project external-state dir, regenerated eagerly at the projection system's refresh points — on create, after each gate transition (proposal→discovery→design→planning→execution→acceptance→release), and on terminal archive/close — carrying truthful provenance (`source:\"disk_projection\"`, never `live:true`), `schema_version`, `generated_at`, last-mutation `freshness` timestamp, advisory `degraded` flag, and `epics_available:false`. A producer-owned rebuild trigger regenerates it on demand for drift recovery (covers within-gate staleness).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** *(producer — firms active-scope decision)* — The projection lists only draft/non-terminal changes; archived/terminal changes are excluded per terminal-truth dominance. ``",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-terminalProjectionTruth01"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** *(producer — firms eager-decision)* — Regeneration is host-side filesystem I/O piggybacking the existing per-change projection activity path; Temporal is not in the aggregate-write path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** *(producer — firms degraded-decision)* — Provenance carries `generated_at` + last-mutation `freshness` timestamp AND an advisory `degraded` flag with a documented default threshold; `epics_available:false` (active epics stay Temporal-only, never fabricated as live).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep the CLI boundary intact — do NOT make `bin/adv` reach `plugin/src/storage` (`bin/lib/cli-source-boundary.test.ts`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Truthful provenance only — never emit `source:\"temporal\", live:true` for projection data (P33).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Atomic write + versioned schema (reuse `atomicWriteFile`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Additive — do not break existing `adv status` / `adv epic list` consumers (they stay Temporal-live probes).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Respect `rq-terminalProjectionTruth01` — terminal archive dominates; aggregate excludes archived/terminal changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "× Patching the standalone `adv status` / `adv epic list` CLI to gain a disk-fallback — violates the Bun-safe/storage-free CLI design and `cli-source-boundary.test.ts`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "× Making the aggregate a Temporal workflow responsibility — a workflow owns only its own change state; aggregation is a cross-workflow read that belongs on the host/activity side.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "× Broadening the workflow projection trigger to every mutation (adding `projectAfter:true` to ~54 signal handlers) — breaks replay determinism for in-flight histories (KD-1).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "× Fabricating active-epic data as live — `epics_available` must be truthful.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "× Emitting live-claiming provenance for projection data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "× Non-atomic writes (partial/truncated projection observable to readers).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T19:08:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "itest tr_mrxujms3 (launcher-projection.itest.ts): temporal-stopped read returns N active summaries matching on-disk per-change projections, source disk_projection, no terminal entries."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "aggregator tests tr_mrxtnd50 (12 unit tests): terminal/archived excluded even with stale draft projection; archive-bundle matched by canonical change.json.id."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "itest tr_mrxujms3 + activity tr_mrxur8ex: aggregate regenerates on create/archive/close without a Temporal round-trip."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "atomicWriteFile (temp+fsync+rename) reused in activities.ts; reviewer confirmed atomic writes; no torn-file path."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "aggregator tr_mrxtnd50 + activity tr_mrxur8ex + rebuild tr_mrxvvghg: durable active-launcher-state.json at canonical advance/{projectId}/ path, refreshed at gate transitions + terminal + rebuild trigger, truthful provenance (amended at acceptance to projection refresh points)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "aggregator tr_mrxtnd50: lists only draft/non-terminal; archived excluded per rq-terminalProjectionTruth01 by canonical id."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "replay-safety guard tr_mrxujkmw + reviewer report READY (...|tk-f53deb6fd1b6|adv-reviewer|1): host-side, no new workflow activity; Temporal not in aggregate-write path."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "aggregator tr_mrxtnd50: generated_at + freshness (max lastSignalAt) + advisory degraded flag (5min threshold) + epics_available:false."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "cli-source-boundary.test.ts green (tr_mrxvvghg context); adv_launcher_projection_rebuild is plugin-only, not reachable from bin/adv."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "aggregator tr_mrxtnd50: source always disk_projection, never temporal/live:true."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "atomicWriteFile (utils/fs.ts) reused for the aggregate write in activities.ts; versioned schema_version:1."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "additive: adv status / adv epic list CLI untouched; cli-source-boundary.test.ts green; reviewer confirmed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "aggregator tr_mrxtnd50: archive-bundle exclusion matched by canonical change.json.id per rq-terminalProjectionTruth01."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No CLI disk-fallback patch; cli-source-boundary.test.ts green; rebuild trigger is an MCP tool."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Aggregate not a workflow responsibility; replay-safety guard tr_mrxujkmw confirms no new workflow activity; reviewer READY."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "aggregator tr_mrxtnd50: epics_available always false; epic data never fabricated as live."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "aggregator tr_mrxtnd50: provenance never claims live/temporal; source always disk_projection."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "atomicWriteFile (temp+fsync+rename) guarantees old-or-new, never torn."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Workflow projection trigger NOT broadened (would break replay, KD-1); AC1 re-scoped to gate-transition refresh instead. Guard tr_mrxujkmw."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** *(amended at acceptance)* — ADV maintains a durable `active-launcher-state.json` under the per-project external-state dir, regenerated eagerly at the projection system's refresh points — on create, after each gate transition (proposal→discovery→design→planning→execution→acceptance→release), and on terminal archive/close — carrying truthful provenance (`source:\"disk_projection\"`, never `live:true`), `schema_version`, `generated_at`, last-mutation `freshness` timestamp, advisory `degraded` flag, and `epics_available:false`. A producer-owned rebuild trigger regenerates it on demand for drift recovery (covers within-gate staleness).",
+    "**AC2** *(producer — firms active-scope decision)* — The projection lists only draft/non-terminal changes; archived/terminal changes are excluded per terminal-truth dominance. ``",
+    "**AC3** *(producer — firms eager-decision)* — Regeneration is host-side filesystem I/O piggybacking the existing per-change projection activity path; Temporal is not in the aggregate-write path.",
+    "**AC4** *(producer — firms degraded-decision)* — Provenance carries `generated_at` + last-mutation `freshness` timestamp AND an advisory `degraded` flag with a documented default threshold; `epics_available:false` (active epics stay Temporal-only, never fabricated as live)."
+  ],
+  "documents": {
+    "proposal": "# Add ADV Launcher Read Projection\n\n## Cross-Project Origin\n\n- **Source project:** toolbox (`/home/jon/toolbox`)\n- **Source change:** `decoupleAdvDisplayTemporal` (consumer-side: zlauncher reads the projection this change produces)\n- **Relationship:** producer side of the producer/consumer read-model split approved in `decoupleAdvDisplayTemporal`'s discovery + design.\n- **Linked at:** 2026-07-23T15:20:53Z; target project = advance (`bdf259aa162ae192af5b18899ccdc653b085528d`).\n\n## Why\n\n`decoupleAdvDisplayTemporal` (toolbox) makes zlauncher read a durable, producer-owned disk projection (`active-launcher-state.json`) instead of the Temporal-hard `adv status` CLI, so ADV changes stay visible when Temporal is unavailable. **This change produces that projection** in the advance plugin/store layer. It owns the producer-side acceptance criteria AC1/SC1/SC3 from the parent agreement; the consumer change owns AC2/AC3/AC4/SC2/SC4.\n\nRoot defect this resolves: the standalone `adv status` / `adv epic list` CLI is Temporal-hard (no disk-fallback), while the MCP `adv_change_list` layer has disk-fallback — so the launcher silently vanished on any Temporal outage while agents kept working. Rather than patch the intentionally Bun-safe/storage-free CLI boundary (`bin/lib/cli-source-boundary.test.ts`), the validated direction is a producer-owned aggregate read-projection consumed by file.\n\n## User Outcomes\n\n- A launcher (or any consumer) can show ADV's active changes without depending on Temporal being reachable — the display survives Temporal outages.\n- Consumers read a single, stable, versioned file instead of shelling out to a Temporal-live CLI.\n- Provenance is truthful at all times: the consumer always knows whether it is reading a disk projection or live data, and how fresh it is.\n- No regression for existing `adv status` / `adv epic list` users — those stay Temporal-live probes.\n\n## What Changes\n\n1. **Aggregate projection writer** — combine the existing per-change `{changeId}.json` projections into `active-launcher-state.json` under the per-project external-state dir.\n2. **Write lifecycle** — regenerate after the existing per-change projection write, and on create / disk-first-close / archive, plus a producer-owned rebuild trigger.\n3. **Truthful provenance** — `schema_version`, `generated_at`, `source:\"disk_projection\"`, `freshness` (last-mutation timestamp), `degraded`, `epics_available:false` (active epics remain Temporal-only; never fabricated as live).\n4. **Atomic write** (reuse `atomicWriteFile`: temp + rename + sync) with bounded active-change summaries.\n5. **Producer-owned rebuild/repair trigger** — MCP tool / plugin-internal, regenerate from the on-disk per-change projection set for drift recovery. NOT a `bin/adv` subcommand (CLI source-boundary guard).\n\n## Scope\n\n### In Scope\n- Aggregate `active-launcher-state.json` projection writer (producer side).\n- Write lifecycle hooks on change mutations (create / persist / close / archive) + rebuild trigger.\n- Truthful provenance fields + versioned schema.\n- Atomic write + bounded summaries.\n\n### Out of Scope\n- Active-epic offline projection (further follow-up; epics remain Temporal-required).\n- zlauncher consumer changes (owned by `decoupleAdvDisplayTemporal` in toolbox).\n- Removing Temporal from ADV (Temporal stays system of record).\n- Changing the standalone `adv status` / `adv epic list` CLI read path (stays Temporal-live).\n\n### Must Not\n- **Must not** make `bin/adv` reach `plugin/src/storage` — keep `bin/lib/cli-source-boundary.test.ts` green.\n- **Must not** emit `source:\"temporal\", live:true` (or any live-claiming provenance) for projection data (P33).\n- **Must not** fabricate active-epic data as live — `epics_available` must be truthful.\n- **Must not** include terminal/archived changes in the active projection — respect `rq-terminalProjectionTruth01` (archive bundle dominates stale non-terminal shadows).\n- **Must not** break existing `adv status` / `adv epic list` consumers (additive only).\n- **Must not** introduce a non-atomic write (a partial/truncated projection must never be observable).\n\n## Acceptance Criteria (owned here — inherited from parent agreement)\n\n- **AC1** — ADV maintains a durable, launcher-consumable active-state projection on disk, written on change mutations (create/persist/close/archive) with a rebuild/repair trigger, carrying truthful provenance.\n- **SC1** — With `temporal-dev` stopped: the projection file exists and contains N active change summaries matching the on-disk per-change projection files, with truthful source.\n- **SC3** — Projection regenerates correctly after a change mutation (create/archive/close) without a Temporal round-trip.\n\n> Note: AC/SC inherited from the producer/consumer split agreed in `decoupleAdvDisplayTemporal` (toolbox). Not newly authored here; carried as cross-project contract provenance. Firming/clarification belongs to `/adv-discover`.\n\n## Constraints\n\n- Keep the CLI boundary intact — do NOT make `bin/adv` reach `plugin/src/storage` (`bin/lib/cli-source-boundary.test.ts`).\n- Truthful provenance only — never emit `source:\"temporal\", live:true` for projection data (P33).\n- Atomic write + versioned schema (reuse `atomicWriteFile`).\n- Additive — do not break existing `adv status` / `adv epic list` consumers (they stay Temporal-live probes).\n- Respect `rq-terminalProjectionTruth01` — terminal archive dominates; aggregate excludes archived/terminal changes.\n\n## Related Repositories\n\n- **toolbox** (`/home/jon/toolbox`) — consumer side: `decoupleAdvDisplayTemporal` reads `active-launcher-state.json` from zlauncher. The file-format contract (path, `schema_version`, provenance fields) is shared and must be coordinated.\n\n## Discovery Findings\n\n### Current State (verified in code)\n\n- **Per-change disk projection ALREADY EXISTS** and is the aggregate writer's input source:\n  - `plugin/src/temporal/activities.ts` → `writeChangeProjection` writes `{changeId}.json` (schemaVersion 2, full `ChangeWorkflowState`) into `projectionChangesDir`.\n  - `projectionPath()` = `join(projectionChangesDir, ${changeId}.json)`.\n  - Location: `projectionChangesDir` = `{externalRoot}/changes/` = `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}/changes/` (resolved via `getProjectPaths` in `plugin/src/storage/json.ts`, external root via `getExternalRoot` in `plugin/src/utils/project-id.ts`).\n  - Written after EVERY mutating signal via `projectChangeState`/`scheduleChangeProjection` (`plugin/src/temporal/workflows.ts:851-888`); `deleteActiveProjection` removes on terminal.\n- **Atomic write primitive exists:** `atomicWriteFile` (`plugin/src/utils/fs.ts`) — temp + `fsync` + rename; also `writeJsonlAtomic` (`plugin/src/storage/jsonl-atomic-writer.ts`).\n- **No aggregate/launcher projection exists** — `active-launcher-state` / `launcher-state` strings absent everywhere → genuinely new.\n- **CLI boundary is explicit:** `bin/lib/live-status.ts` — \"Default status must be live Temporal-backed for active rows. Disk projections may contribute terminal counts, but never active rows.\" Confirms the CLI stays Temporal-live; the launcher disk-projection is a separate consumer path.\n\n### Spec Law\n\n- `docs/specs/advance-workflow.md` → **`rq-terminalProjectionTruth01`** (\"Durable Terminal Projection Dominates Stale Non-Terminal Shadows\"): terminal archive dominates stale non-terminal workflow/memo/disk/visibility projections. The aggregate MUST exclude archived/terminal changes and respect archive-bundle dominance (cannot list a change as active if an archive bundle exists).\n\n### Conflict Scan\n\n- **No direct conflict.** No other change touches `active-launcher-state.json`.\n- **Sibling epic members (`systemizeAdvOrchestration`):** `addDurableChangeSeeds` (order 13, execution — seeds change state durably; this change aggregates those seeds) and `improveCrossProject` (order 15, planning). Advisory order respected.\n- **Related prior work (archived, durable-projection lineage):** `gateMutationSuccessDisk`, `fixDurableProofFallback`, `fixArchiveDurableProof` — inform the durability patterns this change reuses.\n- **Pre-prep research packs:** no `*-prep.md` directly on this domain; `temp/brainstorm-adv-runtime-enhancements.md` and `temp/proposal-retireLegacyStorageBackend.md` are adjacent context (ADV runtime storage).\n\n### Key Design Constraint\n\nThe aggregate writer is **host/activity-side, not a workflow responsibility**: aggregating requires reading ALL per-change `{changeId}.json` files, which is a cross-workflow read a single Temporal workflow cannot perform (a workflow owns only its own change state). Trigger: extend the existing `projectChangeState` post-signal hook to also regenerate the aggregate, plus a producer-owned MCP rebuild tool for drift recovery.\n\n### LBP Check\n\nProducer-owned aggregate read-projection is the validated long-term-best-practice direction (agreed in the parent `decoupleAdvDisplayTemporal`). External-solution check: **skipped — purely internal architecture** (no external library/alternative viable; the constraint is the in-repo producer/consumer split + CLI boundary). No external alternatives evaluated.\n\n### Open Design Questions\n\n1. Freshness contract: eager regen after every mutation vs on-demand rebuild only (write amplification vs freshness guarantee).\n2. Active-scope boundary: \"active\" = draft/non-terminal only, or also include recently-archived (recent history)?\n3. Degraded-flag ownership: producer emits boolean `degraded` with threshold, or emits timestamp only and consumer classifies?\n\n## Discovery Agenda (carried forward to design)\n\n- Coordinate shared file-format contract with `decoupleAdvDisplayTemporal` (toolbox): `schema_version`, field names, provenance semantics. (Toolbox target worker not serviceable at discovery time — coordinate at design/implementation.)\n- Worktree-branch data gap: per-change `ChangeWorkflowState` lacks registered worktree paths — derive `change/<id>` convention or add a projection field.\n- Active-summary cap value (match launcher display; consumer-determined).\n\n## Root Cause Analysis (defect-origin, inherited)\n\n**Defect origin:** zlauncher's ADV display silently vanished on Temporal outage.\n\n**Evidence gathered:**\n- Tier 1 (local, advance): the standalone `adv status` / `adv epic list` CLI is Temporal-hard with no disk-fallback (`bin/lib/live-status.ts`); the MCP `adv_change_list` layer has disk-fallback; per-change `change.json`/`{changeId}.json` durability exists via `persistStateToDiskDurable`/`writeChangeProjection`.\n- Tier 2 (external, toolbox): consumer-side RCA in `decoupleAdvDisplayTemporal` confirmed the launcher read path lacked the disk-fallback.\n\n**Leading hypothesis:** the read path lacks a producer-owned durable aggregate projection; the validated fix is to produce one rather than patch the intentionally storage-free CLI boundary.\n\n**Ruled-out paths:** patching the CLI to gain a disk-fallback (rejected — violates `bin/lib/cli-source-boundary.test.ts` and the Bun-safe/storage-free CLI design).\n\n**Spec-law impact:** introduces an aggregate-projection obligation consistent with `rq-terminalProjectionTruth01`; a new `rq-*` for launcher read-projection provenance truthfulness is likely warranted (design phase).\n\n—\n\n**Bypass rationale:** RCA produced inline (inherited from the cross-project parent change `decoupleAdvDisplayTemporal`) rather than via a fresh `/adv-problem` run, because the producer/consumer split and defect origin were already established in the parent agreement.",
+    "agreement": "# Agreement\n\n> **Acceptance amendment (2026-07-23, user-approved):** AC1 re-scoped from \"after every change mutation\" to the projection system's actual refresh points (create + gate transitions + terminal). The per-change projection (`writeChangeProjection`) and the aggregate refresh when the workflow schedules projection — at gate transitions (proposal→…→release) and terminal (archive/close) — inherited from the existing projection trigger coverage. Within-gate task/artifact mutations do not refresh the projection; the producer-owned rebuild tool covers drift recovery. Broadening to every-mutation was rejected: it would require `projectAfter:true` on ~54 workflow signal handlers, breaking replay determinism (KD-1). The launcher overview (active changes + phase) is meaningfully fresh at gate granularity. See Decision U4.\n\n## Objectives\n\n1. Produce a durable, launcher-consumable aggregate read-projection (`active-launcher-state.json`) so ADV's active changes are visible without Temporal being reachable.\n2. Regenerate the projection at the projection system's refresh points (create + gate transitions + terminal), as host-side filesystem I/O, with no Temporal in the aggregate-write path.\n3. Carry truthful provenance at all times — consumers always know they are reading a disk projection, how fresh it is, and that active-epic data is not fabricated as live.\n4. Keep the existing `adv status` / `adv epic list` CLI boundary intact (Temporal-live probes, unaffected).\n\n## Success Criteria\n\n1. **SC1** — With `temporal-dev` stopped: `active-launcher-state.json` exists and contains N active (non-terminal) change summaries matching the on-disk per-change projection files, with `source:\"disk_projection\"` and no terminal/archived entries.\n2. **SC2** *(producer)* — A terminal/archived change never appears in the active projection, even if a stale non-terminal workflow exists.\n3. **SC3** — After a create/archive/close mutation, the aggregate regenerates eagerly without a Temporal round-trip, reflecting the new active set.\n4. **SC4** *(producer)* — Atomic write: a concurrent reader sees either the previous or the new file, never a partial/truncated one.\n\n## Acceptance Criteria\n\n1. **AC1** *(amended at acceptance)* — ADV maintains a durable `active-launcher-state.json` under the per-project external-state dir, regenerated eagerly at the projection system's refresh points — on create, after each gate transition (proposal→discovery→design→planning→execution→acceptance→release), and on terminal archive/close — carrying truthful provenance (`source:\"disk_projection\"`, never `live:true`), `schema_version`, `generated_at`, last-mutation `freshness` timestamp, advisory `degraded` flag, and `epics_available:false`. A producer-owned rebuild trigger regenerates it on demand for drift recovery (covers within-gate staleness).\n2. **AC2** *(producer — firms active-scope decision)* — The projection lists only draft/non-terminal changes; archived/terminal changes are excluded per terminal-truth dominance. `[warrant: spec:rq-terminalProjectionTruth01]`\n3. **AC3** *(producer — firms eager-decision)* — Regeneration is host-side filesystem I/O piggybacking the existing per-change projection activity path; Temporal is not in the aggregate-write path.\n4. **AC4** *(producer — firms degraded-decision)* — Provenance carries `generated_at` + last-mutation `freshness` timestamp AND an advisory `degraded` flag with a documented default threshold; `epics_available:false` (active epics stay Temporal-only, never fabricated as live).\n\n## Constraints\n\n- Keep the CLI boundary intact — do NOT make `bin/adv` reach `plugin/src/storage` (`bin/lib/cli-source-boundary.test.ts`).\n- Truthful provenance only — never emit `source:\"temporal\", live:true` for projection data (P33).\n- Atomic write + versioned schema (reuse `atomicWriteFile`).\n- Additive — do not break existing `adv status` / `adv epic list` consumers (they stay Temporal-live probes).\n- Respect `rq-terminalProjectionTruth01` — terminal archive dominates; aggregate excludes archived/terminal changes.\n\n## Avoidances\n\n- × Patching the standalone `adv status` / `adv epic list` CLI to gain a disk-fallback — violates the Bun-safe/storage-free CLI design and `cli-source-boundary.test.ts`.\n- × Making the aggregate a Temporal workflow responsibility — a workflow owns only its own change state; aggregation is a cross-workflow read that belongs on the host/activity side.\n- × Broadening the workflow projection trigger to every mutation (adding `projectAfter:true` to ~54 signal handlers) — breaks replay determinism for in-flight histories (KD-1).\n- × Fabricating active-epic data as live — `epics_available` must be truthful.\n- × Emitting live-claiming provenance for projection data.\n- × Non-atomic writes (partial/truncated projection observable to readers).\n\n## Preview Applicability\n\n- `visual_surface: false` — backend storage/projection change, no browser-visible output. Launcher display is owned by the consumer (`decoupleAdvDisplayTemporal` in toolbox).\n- `preview_expectation`: `exact_route_required`: not_applicable; `data_state_expectation`: not_applicable; `viewport_expectation`: not_applicable.\n\n## Decisions\n\n### User Decisions\n\n1. **Freshness contract** — *Eager regeneration.* (Chosen at discovery.) Refreshes at the projection system's trigger points (create + gate transitions + terminal); see U4 for the acceptance re-scope.\n2. **Active scope** — *Draft/non-terminal only.*\n3. **Degraded-flag ownership** — *Both — timestamp + advisory flag.*\n4. **U4 (acceptance, 2026-07-23)** — *Re-scope AC1 refresh granularity.* Acceptance review found the projection (per-change + aggregate) refreshes at gate transitions + terminal, not literally every mutation (pre-existing trigger coverage; only 3 of 57 signal handlers pass `projectAfter:true`). Re-scope AC1 to match rather than broaden the workflow trigger (which would break replay determinism, KD-1). Within-gate staleness covered by the rebuild tool. User chose re-scope over scope-expansion.\n\n### Agent Decisions (LBP)\n\n1. **Aggregate writer placement** — extend the existing `writeChangeProjection` activity body (replay-safe; no new workflow activity call).\n2. **Atomic write primitive** — reuse `atomicWriteFile`.\n3. **Projection file location** — `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}/active-launcher-state.json`.\n4. **Rebuild trigger surface** — producer-owned MCP tool (NOT `bin/adv`).\n5. **External-solution check** — skipped (purely internal).\n\n## Deferred Questions\n\n- **Worktree-branch data gap** — per-change state lacks registered worktree paths. Defer: derive `change/<id>` convention or add a projection field.\n- **Shared file-format contract coordination** — coordinated; producer path is canonical; toolbox consumer has a path bug (`external/` segment) — follow-up approved (blocked on toolbox worker).\n- **Within-gate refresh** — broadening projection to every mutation is a future enhancement (host-side trigger), not in this change's scope.\n\n## Sign-Off\n\nCriteria approved at discovery (2026-07-23); AC1 re-scoped at acceptance (user-approved, U4). Agreement persisted.",
+    "design": "# Design — Add ADV Launcher Read Projection\n\n## Architecture Overview\n\nProducer-owned aggregate read-projection. Two layers:\n\n1. **Pure aggregator** (`plugin/src/storage/launcher-projection.ts`, NEW) — reads all `{changeId}.json` per-change projections from `{externalRoot}/changes/`, filters to active (non-terminal, no archive bundle), derives bounded summaries, computes truthful provenance, returns an in-memory `LauncherProjection`. Pure function: no ADV/Temporal calls; fully testable in isolation.\n\n2. **Writer + lifecycle** (`plugin/src/temporal/activities.ts`) — the EXISTING `writeChangeProjection` activity body is extended to also write `active-launcher-state.json` (aggregate) at `{externalRoot}/`, in the same host-side execution that already writes the per-change projection. No new activity is added to the workflow. Plus a producer-owned MCP rebuild tool for drift recovery.\n\n**Why host-side, not a workflow:** aggregation reads ALL change projection files — a cross-workflow read. A Temporal workflow is sandboxed and owns only its own change state; it cannot enumerate sibling workflows' files. Activities run on the host worker and can read the filesystem broadly. So the aggregate lives in the activity/host layer.\n\n**Why extend the existing activity body, not add a new activity call (replay-safety):** adding a new `await activity()` to a workflow handler changes the recorded activity sequence → in-flight workflow histories break on replay (`NonDeterminismError`) and would require `wf.patch`/Worker versioning + replay tests. Extending the body of the ALREADY-CALLED `writeChangeProjection` activity is replay-safe: Temporal records the activity *invocation* (name + args), not the body; activity bodies are host-side and freely extensible. The workflow still calls the same activity with the same args, so existing histories replay identically.\n\n**Data flow (replay-safe — workflow code unchanged):**\n```\nmutating signal\n  → workflow state updated\n  → projectChangeState()                       [workflows.ts:851]\n      → writeChangeProjection({projectionChangesDir, state, projectedAt})   (existing invocation)\n          [activity body, host-side]\n          → write changes/{changeId}.json              (per-change, existing)\n          → buildLauncherProjection({changesDir, archiveDir, generatedAt, threshold})  (NEW, pure)\n          → atomicWriteFile active-launcher-state.json (aggregate, NEW)\n```\n\nThe activity derives `externalRoot = dirname(projectionChangesDir)` and `archiveDir = join(externalRoot, \"archive\")` from its existing `projectionChangesDir` arg — no signature change, no workflow change.\n\n## Key Decisions\n\n### KD-1 — Extend the existing `writeChangeProjection` activity body (replay-safe); do NOT add a new activity to the workflow\nCross-workflow read requires host-side execution; the existing activity is already the host-side surface invoked on every mutation. Extending its body (rather than adding a new `await activity()` to the workflow) preserves workflow-history determinism for in-flight workflows. Validated against the Temporal TypeScript determinism model (AGENTS.md: the SDK sandbox patches `Date.now()`/`Math.random()` in *workflow* code; *activities* are host-side, unpatched, and not part of the replayed workflow history — only their invocation is recorded).\n\n### KD-2 — Reuse `atomicWriteFile` (utils/fs.ts)\nSame primitive the per-change projection uses (temp + fsync + rename). Concurrent multi-session writers to the same aggregate converge: `atomicWriteFile` guarantees last-writer-wins with no torn file; content is deterministic (sorted) so concurrent writes produce equivalent files.\n\n### KD-3 — Eager regeneration (user decision)\nAggregate regenerates after every mutation, inside the same activity that writes the per-change projection. Cost: one extra `read-N + write-1` filesystem op per signal. Accepted (user chose guaranteed-fresh over write-churn reduction).\n\n### KD-4 — Active filter: `status===\"draft\"` AND no archive bundle, matched by canonical `change.json.id`\nSpec-law compliant (`rq-terminalProjectionTruth01`). Two conditions:\n- `state.status === \"draft\"` read from the per-change projection\n- no archive bundle whose canonical `change.json.id` equals the changeId (terminal truth dominates stale non-terminal shadows)\n\nPer the spec's dedupe rule (`docs/specs/advance-workflow.md` rq-terminalProjectionTruth01): archive bundles MUST be deduped/matched by the canonical `change.json.id` inside the bundle, **not** by archive directory name. The aggregator reads each archive bundle's `change.json` and matches `.id`; this defends against stale `{changeId}.json` left by a wedged/terminal workflow that never ran `deleteActiveProjection`, and against archive directories whose names diverge from the canonical id.\n\n### KD-5 — Degraded = timestamp + advisory flag (user decision)\n- `freshness` = max `lastSignalAt` across active summaries (ISO timestamp)\n- `degraded` = advisory boolean, `now - freshness > DEGRADED_THRESHOLD_MS`\n- `generated_at` = host write time\n- `degraded` / `generated_at` use host `Date.now()` — legal because the aggregator runs in the activity/host context, NOT workflow code (workflow code must be deterministic; host activities are unpatched and not replayed). Validator confirmed host-side Activity I/O and host `Date.now()` are sound.\n\n### KD-6 — epics_available:false (truthful)\nActive epics remain Temporal-only. The aggregate NEVER fabricates epic data as live. Consumers needing epic data must use Temporal. Hard truthful-provenance constraint (P33).\n\n### KD-7 — Rebuild trigger = MCP tool, not a `bin/adv` subcommand\nCLI source-boundary guard (`bin/lib/cli-source-boundary.test.ts`) forbids `bin/adv` reaching `plugin/src/storage`. The rebuild trigger is a producer-owned MCP tool (`adv_launcher_projection_rebuild`) registered in `tool-registry.ts`, calling the same pure aggregator.\n\n### KD-8 — schema_version:1, wrapper-first\nMirror the per-change projection's wrapper-first convention (`schemaVersion: 2`). Aggregate uses `schema_version: 1` (snake_case to match the cross-project consumer contract convention; coordinated with toolbox `decoupleAdvDisplayTemporal`).\n\n## ADR Drafts\n\n### ADR 0009 (DRAFT, advisory) — Launcher aggregate projection is host/activity-side; written by extending the existing projection activity body\n\n**Status:** Draft (advisory; does not gate-block)\n**Rubric:** hard-to-reverse (✓ wired into the activity body + consumer contract) + surprising-without-context (✓ \"why not a workflow query / why not a new activity?\") + result-of-real-tradeoff (✓ replay-safety constrains the mechanism).\n\n**Context:** The launcher needs a single file aggregating all active changes. Two natural-looking options exist: a Temporal workflow query, or a new activity invoked from the workflow.\n\n**Decision:** The aggregate is written by extending the body of the EXISTING `writeChangeProjection` activity (host-side), invoked on every mutation. It is neither a workflow query nor a newly-added workflow activity call.\n\n**Rationale:** (1) a workflow query is impossible — aggregation is a cross-workflow read and workflows are sandboxed to their own state; (2) adding a new `await activity()` to the workflow breaks replay determinism for in-flight histories; (3) extending an already-invoked activity's body is replay-safe because only the invocation (name+args), not the body, is recorded in workflow history.\n\n**Consequences:** Aggregate regen is host filesystem I/O with no Temporal availability dependency (the whole point). Zero workflow-code change → zero migration/versioning burden. Multi-session convergence via atomic write. (Full ADR `docs/adr/0009-launcher-projection-host-side.md` written at execution.)\n\n## Implementation Strategy\n\n1. `plugin/src/storage/launcher-projection.ts` (NEW) — pure aggregator + Zod schema (`LauncherProjectionSchema`, `LauncherChangeSummarySchema`). Exports `buildLauncherProjection({ changesDir, archiveDir, generatedAt, degradedThresholdMs })`.\n2. `plugin/src/storage/launcher-projection.test.ts` (NEW) — unit tests (filtering, archive-bundle exclusion by canonical id, freshness/degraded, empty state, sorting, cap).\n3. `plugin/src/temporal/activities.ts` — extend `writeChangeProjection` body: after writing `{changeId}.json`, derive `externalRoot`/`archiveDir`, call `buildLauncherProjection`, `atomicWriteFile` the aggregate. Mirror the existing error handling (best-effort: aggregate failure must NOT fail the per-change projection write).\n4. `plugin/src/tools/launcher-projection.ts` (NEW) — MCP rebuild tool + register in `plugin/src/tool-registry.ts`.\n5. Integration test — signal-driven regeneration with Temporal stopped (covers SC1/SC3); replay-safety check that an in-flight workflow history with the original activity call still replays (the activity body extension is transparent to replay).\n6. Cross-project contract coordination with `decoupleAdvDisplayTemporal` (toolbox): confirm `schema_version` / field names.\n\nSequencing: aggregator + schema (pure, testable) → extend activity body → MCP tool → integration + replay tests.\n\n## LBP Analysis\n\nProducer-owned aggregate read-projection is the validated long-term approach (agreed in parent `decoupleAdvDisplayTemporal`). Alternatives considered:\n\n- **Workflow query** — impossible (cross-workflow read). Rejected (KD-1).\n- **New activity added to the workflow** — breaks replay determinism for in-flight histories; requires versioning + replay tests. Rejected in favor of KD-1 (extend existing activity body).\n- **Patch the CLI for a disk-fallback** — violates CLI boundary + Bun-safe/storage-free design. Rejected (DONT1).\n- **Per-change consumer reads each `{changeId}.json`** — shifts aggregation to every consumer (N reads per consumer vs 1 aggregate). Rejected (parent agreement chose producer-owned aggregate).\n- **CQRS-lite: separate projection worker process** — over-engineering; reuses the existing activity path with no new process. Rejected.\n\n## Affected Components\n\n- `plugin/src/storage/launcher-projection.ts` (NEW) — pure aggregator + schema\n- `plugin/src/temporal/activities.ts` — extend `writeChangeProjection` body (no signature/workflow change)\n- `plugin/src/tools/launcher-projection.ts` (NEW) — MCP rebuild tool\n- `plugin/src/tool-registry.ts` — register rebuild tool\n- `plugin/src/utils/fs.ts` — reuse `atomicWriteFile` (no change)\n- `plugin/src/utils/project-id.ts` — reuse `getExternalRoot` (no change)\n- `docs/specs/advance-workflow.md` — new `rq-*` for launcher-projection provenance truthfulness (spec delta at planning)\n- Cross-project: `decoupleAdvDisplayTemporal` (toolbox) — shared file-format contract\n\n## Design-Derived Criteria (technical, architecture-caused — not new user-facing AC)\n\n- **DDC1 (performance budget):** aggregate regen < 50ms for typical N≤50 active changes (read N small JSONs + write 1). Scales linearly with active count.\n- **DDC2 (degraded threshold):** default `DEGRADED_THRESHOLD_MS = 300_000` (5 min). Documented; consumer-overridable via its own classification of `freshness`.\n- **DDC3 (atomicity):** reuse `atomicWriteFile`; concurrent readers observe old-or-new, never torn (SC4).\n- **DDC4 (summary cap):** active summaries bounded to 50, sorted by `last_activity` desc; consumer truncates display. Producer must not under-bound the launcher's view.\n- **DDC5 (host-time legality):** `degraded` / `generated_at` use host `Date.now()` — permitted because the aggregator runs in activity/host context, not the workflow sandbox (validator confirmed).\n- **DDC6 (replay-safety):** zero workflow-code change; the activity invocation sequence is unchanged, so in-flight workflow histories replay identically. No `wf.patch`/versioning required.\n\n## Design Leverage Scout\n\nScout: performed inline — the reuse surface was comprehensively mapped during discovery and is fully integrated into the design (writeChangeProjection, atomicWriteFile, getExternalRoot, ChangeWorkflowState). Candidates considered:\n\n1. **Reuse `writeChangeProjection` activity (extend body) wholesale** — auto-adopted (KD-1, KD-2). The aggregate write piggybacks the existing host-side execution; no new activity or workflow change.\n2. **Share summary schema with existing archive-summary renderer** — surfaced (not auto-adopted): `tools/archive-summary.renderBriefSummary` already derives change summaries; a shared summary type could reduce duplication. Risk: couples the producer contract to an internal renderer. → Defer to planning: assess whether the launcher summary shape and archive-summary shape can share a type without coupling the cross-project contract. Low risk if shapes differ.\n3. **Rebuild tool could also serve conformance CI** — surfaced: a conformance check could read `active-launcher-state.json` for offline active-set validation. Out of scope for this change (conformance is a consumer); noted as a future consumer, not built here.\n\nAuto-adopted: 1 (KD-1/KD-2). Surfaced to planning: 2. Noted as future: 3.\n\n## Risks / Mitigations\n\n- **Workflow replay determinism (validator blocker, resolved)** — resolved by KD-1/DDC6: extend the existing activity body, not the workflow's activity-call sequence. No versioning/replay-test burden beyond confirming transparency.\n- **Archive dedupe by directory name (validator blocker, resolved)** — resolved by KD-4: match canonical `change.json.id` inside archive bundles, per `rq-terminalProjectionTruth01`.\n- **Write amplification under signal bursts** — accepted (user chose eager). Mitigation: cheap for N≤50; host-side (no Temporal load). Debounce is the deferred fallback if it becomes a problem.\n- **Multi-session concurrent writes** — `atomicWriteFile` last-writer-wins + deterministic sorted content → convergence, no corruption.\n- **Aggregate failure must not break per-change projection** — the activity writes the per-change projection first; the aggregate write is best-effort and logs on failure (mirrors existing `projectChangeState` warn-on-failure pattern).\n- **Shared-contract drift with toolbox** — mitigation: coordinate `schema_version` / field names with `decoupleAdvDisplayTemporal` at implementation; document the contract.\n- **`degraded` threshold misclassification** — advisory flag only; consumer may override using the raw `freshness` timestamp.\n\n## Validator Result\n\n**validation.status: fail (advisory-only — resolved in-design)** — Phase 3.5 independent adv-researcher validation. (Note: the researcher's durable report submission was rejected by the active transport schema; findings are authoritative and recorded here.)\n\nTwo in-scope blockers raised, both resolved by design revision above:\n\n1. **Workflow determinism** — adding a new awaited activity to the workflow needs Temporal patch/versioning + replay tests for existing histories (cited Temporal TS workflow-versioning docs; `workflows.ts:851-876`).\n   → **Resolved:** KD-1/DDC6 — extend the existing `writeChangeProjection` activity body; the activity *invocation* (what the workflow records) is unchanged, so replay is safe and no versioning is required.\n2. **Archive suppression must match canonical `change.json.id`, not directory names** (cited `docs/specs/advance-workflow.md` rq-terminalProjectionTruth01, `json.ts`).\n   → **Resolved:** KD-4 — aggregator reads each archive bundle's `change.json` and matches by canonical `.id`.\n\nValidator confirmed SOUND: host-side Activity I/O, host `Date.now()`, and `atomicWriteFile`.\n\nNo contract compromise, no security/release blocker, no user-discovered CONFLICT. The approved AC/SC are unchanged; the revisions only refine HOW AC2/AC3 are delivered (sounder mechanism). Advisory `fail` does not gate-block; blockers resolved in-design.",
+    "executiveSummary": "# Executive Summary — Add ADV Launcher Read Projection\n\n## Outcome\n\nADV now produces a durable, launcher-consumable aggregate read-projection (`active-launcher-state.json`) so that active changes remain visible to the launcher (and any file-reading consumer) even when Temporal — ADV's system of record — is unavailable. This is the **producer side** of a producer/consumer split with the toolbox change `decoupleAdvDisplayTemporal`, which made `zellij-project-launcher` read this file instead of shelling out to a Temporal-hard CLI.\n\n## Why It Matters\n\nPreviously, the launcher silently vanished on any Temporal outage: the standalone `adv status` / `adv epic list` CLI is Temporal-hard with no disk fallback, while agents kept working via the MCP layer. Users lost visibility into active work precisely when infrastructure was degraded. This change makes the launcher display Temporal-independent for active changes — it reads a single, stable, versioned file rather than probing a live service.\n\n## What Was Built\n\n- A **pure aggregator** (`plugin/src/storage/launcher-projection.ts`) that combines the existing per-change `{changeId}.json` projections into one bounded, truthful-provenance summary (draft/non-terminal only, terminal-truth-compliant, capped at 50, freshness + advisory `degraded` flag, `epics_available:false`).\n- The **existing `writeChangeProjection` activity body** was extended (host-side) to atomically write the aggregate alongside the per-change projection — with **no new workflow activity call**, so in-flight workflow histories replay identically (no versioning/migration needed).\n- A producer-owned **MCP rebuild tool** (`adv_launcher_projection_rebuild`) for drift recovery — plugin-only, never reachable from the Bun-safe `bin/adv` CLI.\n- A new spec law (`rq-launcherProjectionTruth01`) and **ADR 0009** codifying the host-side, replay-safe design.\n\n## Verification\n\n- 12 aggregator unit tests, 7 activity tests, 1 Temporal integration test (signal-driven regeneration with Temporal stopped), and 1 replay-safety guard test — all green; typecheck/lint clean; CLI source boundary green.\n- Independent design validation (adv-researcher) and an independent acceptance review (adv-reviewer) both run; the one design blocker (workflow replay determinism) and the one acceptance blocker (refresh granularity) were resolved in-design/in-criteria.\n- Contract review matrix: 19/19 items passing.\n\n## Key Decision\n\nThe aggregate is written **host-side by extending an existing activity's body**, not by adding a new activity to the workflow. A workflow-level change would have broken replay determinism for every in-flight change; extending an already-invoked activity is replay-safe. This keeps the change low-risk and migration-free.\n\n## Risks / Follow-ups\n\n- **Projection refresh granularity:** the projection refreshes at gate transitions and terminal mutations (create/archive/close) — the existing projection system's trigger points — plus on-demand via the rebuild tool. It does not refresh on every within-gate task/artifact mutation. Acceptance criteria were re-scoped (user-approved) to match this rather than risk a workflow-replay-breaking change. A future host-side per-mutation trigger could tighten freshness.\n- **Cross-project consumer path (IMPORTANT):** the shipped toolbox consumer reads the projection from `…/advance/external/{projectId}/`, but this producer writes the canonical `…/advance/{projectId}/` (no `external/`). The producer path is correct (consistent with all other advance external state); the consumer has a path bug (it was tested only against fixtures). A toolbox follow-up to drop the `external/` segment was approved; its creation is blocked until the toolbox ADV worker is serviceable. **End-to-end producer→consumer will not connect until that consumer fix lands.** Recorded durably.\n- Active-epic offline projection remains out of scope (epics stay Temporal-only; `epics_available:false` is truthful).\n\n## Release Readiness\n\nProducer change is complete, tested, and spec-law-backed. The one open dependency is the cross-project consumer path fix (separate repo, separate shipped change), which does not block archiving this producer change but does block end-to-end launcher functionality until resolved.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-23T19:08:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** — With `temporal-dev` stopped: `active-launcher-state.json` exists and contains N active (non-terminal) change summaries matching the on-disk per-change projection files, with `source:\"disk_projection\"` and no terminal/archived entries. | pass | itest tr_mrxujms3 (launcher-projection.itest.ts): temporal-stopped read returns N active summaries matching on-disk per-change projections, source disk_projection, no terminal entries. |\n| SC2 | success_criterion | **SC2** *(producer)* — A terminal/archived change never appears in the active projection, even if a stale non-terminal workflow exists. | pass | aggregator tests tr_mrxtnd50 (12 unit tests): terminal/archived excluded even with stale draft projection; archive-bundle matched by canonical change.json.id. |\n| SC3 | success_criterion | **SC3** — After a create/archive/close mutation, the aggregate regenerates eagerly without a Temporal round-trip, reflecting the new active set. | pass | itest tr_mrxujms3 + activity tr_mrxur8ex: aggregate regenerates on create/archive/close without a Temporal round-trip. |\n| SC4 | success_criterion | **SC4** *(producer)* — Atomic write: a concurrent reader sees either the previous or the new file, never a partial/truncated one. | pass | atomicWriteFile (temp+fsync+rename) reused in activities.ts; reviewer confirmed atomic writes; no torn-file path. |\n| AC1 | acceptance_criterion | **AC1** *(amended at acceptance)* — ADV maintains a durable `active-launcher-state.json` under the per-project external-state dir, regenerated eagerly at the projection system's refresh points — on create, after each gate transition (proposal→discovery→design→planning→execution→acceptance→release), and on terminal archive/close — carrying truthful provenance (`source:\"disk_projection\"`, never `live:true`), `schema_version`, `generated_at`, last-mutation `freshness` timestamp, advisory `degraded` flag, and `epics_available:false`. A producer-owned rebuild trigger regenerates it on demand for drift recovery (covers within-gate staleness). | pass | aggregator tr_mrxtnd50 + activity tr_mrxur8ex + rebuild tr_mrxvvghg: durable active-launcher-state.json at canonical advance/{projectId}/ path, refreshed at gate transitions + terminal + rebuild trigger, truthful provenance (amended at acceptance to projection refresh points). |\n| AC2 | acceptance_criterion | **AC2** *(producer — firms active-scope decision)* — The projection lists only draft/non-terminal changes; archived/terminal changes are excluded per terminal-truth dominance. `` | pass | aggregator tr_mrxtnd50: lists only draft/non-terminal; archived excluded per rq-terminalProjectionTruth01 by canonical id. |\n| AC3 | acceptance_criterion | **AC3** *(producer — firms eager-decision)* — Regeneration is host-side filesystem I/O piggybacking the existing per-change projection activity path; Temporal is not in the aggregate-write path. | pass | replay-safety guard tr_mrxujkmw + reviewer report READY (...|tk-f53deb6fd1b6|adv-reviewer|1): host-side, no new workflow activity; Temporal not in aggregate-write path. |\n| AC4 | acceptance_criterion | **AC4** *(producer — firms degraded-decision)* — Provenance carries `generated_at` + last-mutation `freshness` timestamp AND an advisory `degraded` flag with a documented default threshold; `epics_available:false` (active epics stay Temporal-only, never fabricated as live). | pass | aggregator tr_mrxtnd50: generated_at + freshness (max lastSignalAt) + advisory degraded flag (5min threshold) + epics_available:false. |\n| C1 | constraint | Keep the CLI boundary intact — do NOT make `bin/adv` reach `plugin/src/storage` (`bin/lib/cli-source-boundary.test.ts`). | respected | cli-source-boundary.test.ts green (tr_mrxvvghg context); adv_launcher_projection_rebuild is plugin-only, not reachable from bin/adv. |\n| C2 | constraint | Truthful provenance only — never emit `source:\"temporal\", live:true` for projection data (P33). | respected | aggregator tr_mrxtnd50: source always disk_projection, never temporal/live:true. |\n| C3 | constraint | Atomic write + versioned schema (reuse `atomicWriteFile`). | respected | atomicWriteFile (utils/fs.ts) reused for the aggregate write in activities.ts; versioned schema_version:1. |\n| C4 | constraint | Additive — do not break existing `adv status` / `adv epic list` consumers (they stay Temporal-live probes). | respected | additive: adv status / adv epic list CLI untouched; cli-source-boundary.test.ts green; reviewer confirmed. |\n| C5 | constraint | Respect `rq-terminalProjectionTruth01` — terminal archive dominates; aggregate excludes archived/terminal changes. | respected | aggregator tr_mrxtnd50: archive-bundle exclusion matched by canonical change.json.id per rq-terminalProjectionTruth01. |\n| DONT1 | avoidance | × Patching the standalone `adv status` / `adv epic list` CLI to gain a disk-fallback — violates the Bun-safe/storage-free CLI design and `cli-source-boundary.test.ts`. | respected | No CLI disk-fallback patch; cli-source-boundary.test.ts green; rebuild trigger is an MCP tool. |\n| DONT2 | avoidance | × Making the aggregate a Temporal workflow responsibility — a workflow owns only its own change state; aggregation is a cross-workflow read that belongs on the host/activity side. | respected | Aggregate not a workflow responsibility; replay-safety guard tr_mrxujkmw confirms no new workflow activity; reviewer READY. |\n| DONT3 | avoidance | × Broadening the workflow projection trigger to every mutation (adding `projectAfter:true` to ~54 signal handlers) — breaks replay determinism for in-flight histories (KD-1). | respected | aggregator tr_mrxtnd50: epics_available always false; epic data never fabricated as live. |\n| DONT4 | avoidance | × Fabricating active-epic data as live — `epics_available` must be truthful. | respected | aggregator tr_mrxtnd50: provenance never claims live/temporal; source always disk_projection. |\n| DONT5 | avoidance | × Emitting live-claiming provenance for projection data. | respected | atomicWriteFile (temp+fsync+rename) guarantees old-or-new, never torn. |\n| DONT6 | avoidance | × Non-atomic writes (partial/truncated projection observable to readers). | respected | Workflow projection trigger NOT broadened (would break replay, KD-1); AC1 re-scoped to gate-transition refresh instead. Guard tr_mrxujkmw. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-23T17:26:26.435Z",
+      "contentHash": "f0ee59dd43806c1384d726221ef024394319f827f410231278b42efd463dda5a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-23T19:03:19.227Z",
+      "contentHash": "00db1a84655098d83700686f1072e2d4ce19dfac4877513c73b4b9b50df91193",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-23T17:43:35.465Z",
+      "contentHash": "8e8d490e80d7cb1776a7ad02d5f80a35172106f268a832c8f8f36a7b1474d80f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T19:08:39.755Z",
+      "contentHash": "1b1232de01b3f2a32c1c2dcfe8fa3ad7cba81eb473e1c09ad167900021b5c7f9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T19:09:13.137Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "epic_membership": {
+    "epic_id": "systemizeAdvOrchestration",
+    "entry_id": "change-1784822191555-c6hg2y",
+    "order": 14,
+    "title": "Add ADV launcher read projection",
+    "linked_at": "2026-07-23T15:56:31.555Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  }
+}

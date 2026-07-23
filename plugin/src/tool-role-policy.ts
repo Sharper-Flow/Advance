@@ -77,6 +77,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Consolidates orphaned identity stores into the true-root store; approval-gated, mutually serialized with cleanup.",
   },
+  adv_launcher_projection_rebuild: {
+    class: "operator-only",
+    rationale:
+      "Regenerates the aggregate active-launcher-state.json from the on-disk per-change projection set; a producer-owned cache rebuild with external-state blast radius if misused.",
+  },
 
   // ── Dual (8) ─────────────────────────────────────────────────────────
   // Read actions agent-reachable; mutation/refresh surfaces operator-owned.

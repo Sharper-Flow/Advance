@@ -55,6 +55,10 @@ const STATIC_TITLES: Record<
     title: "Invoke ADV tool",
     titleKind: "execute",
   },
+  adv_launcher_projection_rebuild: {
+    title: "Rebuild launcher projection",
+    titleKind: "operator",
+  },
 };
 
 const TITLE_BUILDERS: Record<string, TitleBuilder> = {

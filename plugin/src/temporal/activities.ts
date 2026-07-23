@@ -23,6 +23,11 @@ import { createHash } from "crypto";
 
 import { listSpecDirs } from "../storage/json";
 import { atomicWriteFile } from "../utils/fs";
+import { createLogger } from "../utils/debug-log";
+import {
+  buildLauncherProjection,
+  type LauncherProjection,
+} from "../storage/launcher-projection";
 import type { ChangeWorkflowState } from "./contracts";
 import { CHANGE_BRANCH_PREFIX } from "./contracts";
 import { renderBriefSummary } from "../utils/archive-summary";
@@ -33,6 +38,8 @@ import {
   ArchiveProjectionProofReceiptSchema,
   type ArchiveProjectionProofReceipt,
 } from "../types";
+
+const logger = createLogger("activities");
 
 // =============================================================================
 // Disk-artifact activities (P2.1)
@@ -500,11 +507,37 @@ export async function writeChangeProjection(
         2,
       )}\n`,
     );
-    return { ok: true, path };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `Projection write failed: ${message}` };
   }
+
+  // Best-effort aggregate launcher projection. The per-change projection is
+  // authoritative; this aggregate is a downstream cache and must not fail the
+  // activity or change the return value.
+  try {
+    const externalRoot = dirname(input.projectionChangesDir);
+    const archiveDir = join(externalRoot, "archive");
+    const projection = await buildLauncherProjection({
+      changesDir: input.projectionChangesDir,
+      archiveDir,
+      generatedAt: input.state.lastSignalAt ?? input.projectedAt,
+      degradedThresholdMs: 300_000,
+    });
+    await atomicWriteFile(
+      join(externalRoot, "active-launcher-state.json"),
+      `${JSON.stringify(projection, null, 2)}\n`,
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.warn("launcher-projection-aggregate-failed", {
+      changeId: input.state.changeId,
+      projectionChangesDir: input.projectionChangesDir,
+      error: message,
+    });
+  }
+
+  return { ok: true, path };
 }
 
 /** Remove the active projection after archive promotion consumes it. */
