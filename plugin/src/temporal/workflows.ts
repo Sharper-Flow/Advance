@@ -1978,7 +1978,6 @@ export async function changeWorkflow(
       creation_request_hash: state.creation_request_hash,
       epic_membership: state.epic_membership,
       same_project_dependencies: state.same_project_dependencies,
-      creation_request_hash: state.creation_request_hash,
     },
   };
   await wf.condition(wf.allHandlersFinished);
