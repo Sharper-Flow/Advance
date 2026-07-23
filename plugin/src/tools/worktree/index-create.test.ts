@@ -278,9 +278,9 @@ describe.skipIf(!isLinux)(
           repairedAt: expect.any(String),
         }),
       );
-      await expect(worktreeExistsForChange(deps.database, "repair")).resolves.toBe(
-        true,
-      );
+      await expect(
+        worktreeExistsForChange(deps.database, "repair"),
+      ).resolves.toBe(true);
     });
 
     it("skips repair for an existing ready record and preserves reuse when delivery fails", async () => {
@@ -332,11 +332,7 @@ describe.skipIf(!isLinux)(
       workflowSignal.mockRejectedValueOnce(new Error("worker unavailable"));
 
       await expect(
-        advWorktreeCreate(
-          "change/repair-failed",
-          {},
-          createMockDeps(repoRoot),
-        ),
+        advWorktreeCreate("change/repair-failed", {}, createMockDeps(repoRoot)),
       ).resolves.toMatchObject({ ok: true, reused: true });
     });
 

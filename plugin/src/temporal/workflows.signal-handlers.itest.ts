@@ -393,21 +393,22 @@ describe("changeWorkflow worktree signals", () => {
       });
       const afterSecondRepair = await queryState(handle);
 
-      expect((afterFirstRepair as any).worktrees["change/repair-test"])
-        .toMatchObject({
-          branch: "change/repair-test",
-          path: "/wt/change/repair-test",
-          materialized: true,
-          changeId: "worktree-registration-repair",
-          status: "created",
-          createdAt: "2026-05-05T00:04:00.000Z",
-          lastSeenAt: "2026-05-05T00:04:00.000Z",
-          baseRef: "existing",
-          headSha: "first-head",
-          source: "tool",
-          sourceVersion: 1,
-          setupReady: true,
-        });
+      expect(
+        (afterFirstRepair as any).worktrees["change/repair-test"],
+      ).toMatchObject({
+        branch: "change/repair-test",
+        path: "/wt/change/repair-test",
+        materialized: true,
+        changeId: "worktree-registration-repair",
+        status: "created",
+        createdAt: "2026-05-05T00:04:00.000Z",
+        lastSeenAt: "2026-05-05T00:04:00.000Z",
+        baseRef: "existing",
+        headSha: "first-head",
+        source: "tool",
+        sourceVersion: 1,
+        setupReady: true,
+      });
       expect(afterSecondRepair).toEqual(afterFirstRepair);
     });
   }, 30_000);

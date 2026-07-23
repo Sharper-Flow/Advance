@@ -1971,6 +1971,7 @@ export async function changeWorkflow(
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
       lightweight_profile: state.lightweight_profile,
+      creation_request_hash: state.creation_request_hash,
       epic_membership: state.epic_membership,
     },
   };
