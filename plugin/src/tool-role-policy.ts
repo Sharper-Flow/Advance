@@ -12,7 +12,7 @@
  * `scan`/`audit_history` agent-readable, `repair` operator-only) instead of
  * flattening it.
  *
- * Manifest semantics (verified against OpenCode v1.17.20
+ * Manifest semantics (verified against OpenCode 1.18.x
  * packages/core/src/v1/config/agent.ts normalize() +
  * packages/opencode/src/permission/index.ts fromConfig/disabled/evaluate):
  * legacy `tools:` entries convert to permission rules in document order and
@@ -23,6 +23,8 @@
  */
 
 import { ADV_TOOL_NAMES } from "./tool-registry";
+
+export { TIER_4_MCP_TOOLS } from "./tool-tier4-catalog.js";
 
 export type ToolRoleClass = "orchestrator" | "operator-only" | "dual";
 
@@ -527,6 +529,15 @@ const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
   "adv_task_add",
   "adv_task_ready",
 ]);
+
+/**
+ * Tier 4 — MCP read surface (13 unprefixed tools, see `TIER_4_MCP_TOOLS`).
+ * These tools are additionally reachable via `tools.adv.*` under Code Mode
+ * regardless of the host-plugin `adv_*: false` enforcement, because the MCP
+ * surface is namespaced separately from the host manifest. The `adv_*: deny`
+ * wildcard above applies to the host-plugin tool surface only; it does not
+ * block the Code Mode dispatch route for these read-only tools.
+ */
 
 /**
  * Intended ADV tool surface per shipped agent manifest.

@@ -61,7 +61,7 @@ tools:
   task: false
   # <<< ADV-GENERATED adv_* tools <<<
 ---
-> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas.
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads also via `tools.adv.*`.
 
 You are the `adv-reviewer` agent. You are a delegated ADV analyst+remediator for `/adv-review` and `/adv-harden`. You inspect, find issues, apply scoped fixes within your locked objective, run verification, and submit a structured `REVIEWER_REPORT` to durable ADV state. The spawnable identifier is `adv-reviewer`; the `REVIEWER_REPORT.agent` field must use that exact string.
 

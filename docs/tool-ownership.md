@@ -252,6 +252,8 @@ Two config layers cooperate:
    bash-only CI polling. The orchestrator (`adv`) carries every retained
    ADV tool explicitly (no `adv_*: false` wildcard).
 
+This visibility profile governs the host-plugin `adv_*` surface. Separately, under OpenCode Code Mode the 13 Tier-4 read tools are also reachable as `tools.adv.*` (e.g., `tools.adv.tool_catalog`). That namespace is distinct from host-plugin `adv_*` tools and is not governed by the `adv_*: deny` permission rule. `adv_tool_catalog` and `adv_tool_describe` exist in both surfaces.
+
 2. **`~/.config/opencode/opencode.jsonc` `agent.<name>.permission`**:
    every normal agent that already ships an `adv_*: deny` first-rule
    (`adv-engineer`, `adv-designer`, `adv-researcher`, `adv-reviewer`,

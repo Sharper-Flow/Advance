@@ -7,29 +7,19 @@
  * behavior without overloading serverInfo.
  */
 
+import { TIER_4_MCP_TOOLS, type Tier4McpTool } from "../tool-tier4-catalog.js";
+
+export type { Tier4McpTool };
+
 /**
  * Tier-4 read surface exposed by the ADV MCP server. These are the local
  * (unprefixed) tool names returned by `tools/list` when projected by
  * OpenCode as `tools.adv.*`.
  *
- * Source: KD9 — read-oriented ADV tools. The list below is the exact
- * inventory communicated in the handshake response.
+ * Source: KD9 — read-oriented ADV tools. Re-sourced from
+ * `../tool-tier4-catalog.js` so the handshake and policy share one catalog.
  */
-export const HANDSHAKE_TIER4_TOOLS = [
-  "status",
-  "spec",
-  "wisdom_list",
-  "reflection_list",
-  "project_context",
-  "backlog_list",
-  "backlog_show",
-  "epic_list",
-  "epic_show",
-  "wip_state",
-  "worktree_triage",
-  "tool_catalog",
-  "tool_describe",
-] as const;
+export const HANDSHAKE_TIER4_TOOLS = TIER_4_MCP_TOOLS;
 
 /**
  * ADV MCP handshake schema version.
