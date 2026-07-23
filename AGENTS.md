@@ -2,7 +2,7 @@
 
 ## Scope and entry points
 
-- This is an OpenCode plugin repository, not a monorepo. Supported buildable code is only `plugin/`; `acp-mux/` is archived reference material, not a release surface.
+- This is an OpenCode plugin repository, not a monorepo. `plugin/` is the only buildable/released code. Root-level `bin/`, `scripts/`, `skills/`, `.opencode/` are tooling and deployed assets, not shipped packages.
 - Plugin entry: `plugin/src/index.ts`. Tool definitions live beside handlers under `plugin/src/tools/`; `tool-registry.ts` binds exported `*Tools` groups to the SDK.
 - `.adv/specs/` contains git-tracked, branch-local capability laws. Runtime change/task/gate state uses Temporal-only persistence written to per-project external state (keyed by the repo root commit); do not restore a legacy SQLite/file-backed runtime path.
 - `project.md` is agent-facing project context. `ADV_INSTRUCTIONS.md` owns detailed ADV workflow protocol; do not duplicate either here.
@@ -34,7 +34,7 @@ bin/oc-test full
 
 ## Boundaries enforced by tests
 
-- Vitest runs two projects: `unit` (`src/**/*.test.ts`, parallel) and `temporal` (`src/**/*.itest.ts`, sequential, `fileParallelism: false`). Put Temporal integration tests in `.itest.ts`, never `.test.ts`. `@opencode-ai/plugin` is mocked via the vitest alias in `vitest.config.ts` — tests never load the real SDK.
+- Vitest runs two projects: `unit` (`src/**/*.test.ts` + `scripts/**/*.test.ts`, parallel) and `temporal` (`src/**/*.itest.ts`, sequential, `fileParallelism: false`). Put Temporal integration tests in `.itest.ts`, never `.test.ts`. `@opencode-ai/plugin` is mocked via the vitest alias in `vitest.config.ts` — tests never load the real SDK.
 - `pnpm test` requires `bun` on PATH: `opencode-session-debt.test.ts` shells out to `bun` to seed a `bun:sqlite` DB. Without it the suite fails with `spawnSync bun ENOENT`.
 - Keep tests that create changes or access worktree/data-home state isolated with `createTempDir`, `tmpdir`, `os.tmpdir`, or `XDG_DATA_HOME`. The isolation checker (`scripts/check-test-isolation.ts`) enforces this for any test calling `adv_change_create`, `changeCreate`, `getWorktreeBase`, or `getDataHome`; the only exempt patterns are `*-assets.test.ts` and `target-project.test.ts`.
 - Temporal test-server construction (`TestWorkflowEnvironment.createLocal` / `createTimeSkipping`) must route through `src/temporal/__tests__/with-test-env.ts`; direct construction is rejected everywhere else.
