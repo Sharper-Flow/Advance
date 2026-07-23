@@ -582,25 +582,22 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     vi.mocked(getProjectId).mockResolvedValue("project-test");
   });
 
-  it("calls store.changes.refresh AFTER waitForArchiveReleaseGateCompletion observes done, not before", async () => {
-    // Order-tracking mock: each handle.query and store.changes.refresh call
-    // appends to invocationLog with the observed gate state. The test asserts
-    // that the first refresh invocation occurs AFTER at least one query
-    // returned doneGate — proving refresh was sequenced after the poll
-    // observed done, not before.
-    type LogEntry = { kind: "query"; result: unknown } | { kind: "refresh" };
+  it("calls store.changes.invalidate AFTER waitForArchiveReleaseGateCompletion observes done, not refresh", async () => {
+    // Order-tracking mock: each handle.query and store.changes.invalidate call
+    // appends to invocationLog. The test asserts that the invalidate invocation
+    // occurs AFTER at least one query returned doneGate — proving invalidate was
+    // sequenced after the poll observed done, not before.
+    type LogEntry = { kind: "query"; result: unknown } | { kind: "invalidate" };
     const invocationLog: LogEntry[] = [];
 
     // Sequence models the race window:
     //   - pre-signal query: pending
     //   - poll attempt 1: pending
     //   - poll attempt 2: done (workflow has now processed the signal)
-    //   - refresh's readback after the fixed poll ordering: done
     const queryReturnSequence = [
       pendingGate, // pre-signal query
       pendingGate, // poll attempt 1
       doneGate, // poll attempt 2 — workflow caught up
-      doneGate, // refresh's post-poll readback
     ];
     let queryCallIndex = 0;
 
@@ -622,15 +619,12 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     vi.mocked(getService).mockReturnValue({ client } as never);
 
     const refreshMock = vi.fn(async () => {
-      invocationLog.push({ kind: "refresh" });
-      // Model refresh's state readback. With the pre-fix ordering this would
-      // consume the second, still-pending query result before the poll; under
-      // the fixed ordering it consumes the post-done result above.
+      // Refresh should NOT be called on the confirmed-done branch after #305.
+      invocationLog.push({ kind: "refresh" as const });
       await handle.query();
     });
     const invalidateMock = vi.fn(async () => {
-      // No-op for this ordering test; the fixed code calls invalidate on the
-      // confirmed-done branch instead of refresh.
+      invocationLog.push({ kind: "invalidate" });
     });
     const store = {
       ...createStore("/repo"),
@@ -645,22 +639,26 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     });
 
     expect(result).toMatchObject({ ok: true });
+    expect(refreshMock).not.toHaveBeenCalled();
 
-    // The invariant: the first refresh call must occur AFTER at least one
-    // query returned doneGate. Under the buggy sequencing (refresh before
-    // poll), the first refresh would occur after only pendingGate queries.
-    const firstRefreshIndex = invocationLog.findIndex(
-      (entry) => entry.kind === "refresh",
+    // The invariant: invalidate must occur AFTER at least one query returned
+    // doneGate. Under the pre-fix sequencing (refresh before poll), a cache-
+    // mutating call would occur before any done observation.
+    const firstInvalidateIndex = invocationLog.findIndex(
+      (entry) => entry.kind === "invalidate",
     );
-    expect(firstRefreshIndex).toBeGreaterThanOrEqual(0);
+    expect(firstInvalidateIndex).toBeGreaterThanOrEqual(0);
 
-    const queriesBeforeRefresh = invocationLog.slice(0, firstRefreshIndex);
-    const observedDoneBeforeRefresh = queriesBeforeRefresh.some(
+    const queriesBeforeInvalidate = invocationLog.slice(
+      0,
+      firstInvalidateIndex,
+    );
+    const observedDoneBeforeInvalidate = queriesBeforeInvalidate.some(
       (entry) =>
         entry.kind === "query" &&
         (entry.result as { status?: string } | null)?.status === "done",
     );
-    expect(observedDoneBeforeRefresh).toBe(true);
+    expect(observedDoneBeforeInvalidate).toBe(true);
   });
 });
 
@@ -774,5 +772,41 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
     // workflow state directly. Under the buggy code refresh poisons the cache
     // with pending and the proof fails before this assertion.
     expect(cachedReleaseGate).toBeUndefined();
+  });
+});
+
+describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", () => {
+  it("rejects a non-shipped change whose release gate carries a forged recovery_audit reason", async () => {
+    const forgedGate = {
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "adv-archive",
+      approval_evidence: "old-approval",
+      recovery_audit: {
+        reason: "forged_unrecognized_reason",
+        evidence: "forged-evidence",
+        audited_at: "2026-01-01T00:00:00Z",
+      },
+    };
+    const store = {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({ release: forgedGate })),
+      },
+    } as unknown as Store;
+
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "forgeGuard",
+      evidence: "legitimate-finalization-evidence",
+      finalizationStatus: "pending_merge",
+    });
+
+    expect(durableProof).toMatchObject({
+      ok: false,
+      error: expect.stringContaining(
+        "Store-backed durable release gate proof lacks matching Phase 9 evidence",
+      ),
+    });
   });
 });
