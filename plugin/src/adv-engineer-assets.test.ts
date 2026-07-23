@@ -92,7 +92,9 @@ describe("adv-engineer assets", () => {
   test("sub-agent report submission is invoke-only (Tier 3)", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const frontmatter = content.split("---")[1] ?? "";
-    expect(getToolGrant(frontmatter, "adv_subagent_report_submit")).not.toBe(true);
+    expect(getToolGrant(frontmatter, "adv_subagent_report_submit")).not.toBe(
+      true,
+    );
     expect(getToolGrant(frontmatter, "adv_tool_invoke")).toBe(true);
   });
 

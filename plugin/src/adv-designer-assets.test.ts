@@ -90,7 +90,10 @@ describe("adv-designer assets", () => {
       "adv_worktree_delete",
       "adv_worktree_cleanup",
     ]) {
-      expect(getToolGrant(frontmatter, tool), `${tool} should not be granted`).not.toBe(true);
+      expect(
+        getToolGrant(frontmatter, tool),
+        `${tool} should not be granted`,
+      ).not.toBe(true);
     }
   });
 
@@ -109,7 +112,9 @@ describe("adv-designer assets", () => {
 
   test("sub-agent report submission is invoke-only (Tier 3)", () => {
     const { frontmatter } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
-    expect(getToolGrant(frontmatter, "adv_subagent_report_submit")).not.toBe(true);
+    expect(getToolGrant(frontmatter, "adv_subagent_report_submit")).not.toBe(
+      true,
+    );
     expect(getToolGrant(frontmatter, "adv_tool_invoke")).toBe(true);
   });
 

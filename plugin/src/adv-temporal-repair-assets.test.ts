@@ -59,9 +59,10 @@ describe("adv-temporal-repair agent asset", () => {
       "adv_change_update",
       "adv_worktree_delete",
     ]) {
-      expect(getToolGrant(frontmatter, tool), `${tool} should not be granted`).not.toBe(
-        true,
-      );
+      expect(
+        getToolGrant(frontmatter, tool),
+        `${tool} should not be granted`,
+      ).not.toBe(true);
     }
   });
 
