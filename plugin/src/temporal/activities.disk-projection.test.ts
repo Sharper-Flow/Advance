@@ -6,6 +6,7 @@ import { createDefaultGates } from "../types";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import type { ChangeWorkflowState } from "./contracts";
 import { deleteActiveProjection, writeChangeProjection } from "./activities";
+import { LauncherProjectionSchema } from "../storage/launcher-projection";
 
 function makeState(changeId = "projection-change"): ChangeWorkflowState {
   return {
@@ -121,6 +122,65 @@ describe("writeChangeProjection", () => {
         "Projection two",
         "Projection three",
       ]).toContain(parsed.state.title);
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  });
+
+  it("also writes the aggregate active-launcher-state.json", async () => {
+    const dir = await createTempDir();
+    try {
+      const externalRoot = join(dir, "external");
+      const projectionChangesDir = join(externalRoot, "changes");
+      const state = makeState("aggregate-change");
+      state.status = "active";
+
+      const result = await writeChangeProjection({
+        projectionChangesDir,
+        state,
+        projectedAt: "2026-05-05T01:00:00.000Z",
+      });
+
+      expect(result.ok).toBe(true);
+      const aggregatePath = join(externalRoot, "active-launcher-state.json");
+      const aggregateRaw = await readFile(aggregatePath, "utf-8");
+      const aggregate = JSON.parse(aggregateRaw);
+      const validated = LauncherProjectionSchema.parse(aggregate);
+      expect(validated.schema_version).toBe(1);
+      expect(validated.source).toBe("disk_projection");
+      expect(validated.active_count).toBe(1);
+      expect(validated.changes[0]?.id).toBe("aggregate-change");
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  });
+
+  it("does not fail the per-change write when the aggregate write fails", async () => {
+    const dir = await createTempDir();
+    try {
+      const externalRoot = join(dir, "external");
+      const projectionChangesDir = join(externalRoot, "changes");
+      await mkdir(projectionChangesDir, { recursive: true });
+      // Make the aggregate target a directory so atomicWriteFile cannot overwrite it.
+      await mkdir(join(externalRoot, "active-launcher-state.json"));
+
+      const result = await writeChangeProjection({
+        projectionChangesDir,
+        state: makeState("aggregate-fail-change"),
+        projectedAt: "2026-05-05T01:00:00.000Z",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.path).toBe(
+        join(projectionChangesDir, "aggregate-fail-change.json"),
+      );
+      const perChangeRaw = await readFile(
+        join(projectionChangesDir, "aggregate-fail-change.json"),
+        "utf-8",
+      );
+      expect(JSON.parse(perChangeRaw).state.changeId).toBe(
+        "aggregate-fail-change",
+      );
     } finally {
       await cleanupTempDir(dir);
     }
