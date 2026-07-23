@@ -259,3 +259,59 @@ describe("OrphanQueueAdopter", () => {
     ).toBe(0);
   });
 });
+
+describe("isOrphanQueueAdoptionEnabled — ADV_ORPHAN_QUEUE_ADOPTION kill-switch", () => {
+  // Adoption is always-on in production (rq-isolSessionTaskQueue05). The env
+  // flag is an emergency kill-switch: default ON; only "0" disables. This
+  // preserves the shipped unconditional behavior while giving operators an
+  // escape hatch (design DDC8, reconciled to kill-switch-default-on because
+  // the bundle already deploys adoption always-on).
+  it("is enabled by default when the flag is unset", async () => {
+    const { isOrphanQueueAdoptionEnabled } = await loadAdopter();
+    expect(isOrphanQueueAdoptionEnabled({})).toBe(true);
+  });
+
+  it("is enabled when explicitly set to 1", async () => {
+    const { isOrphanQueueAdoptionEnabled, ADV_ORPHAN_QUEUE_ADOPTION_ENV } =
+      await loadAdopter();
+    expect(
+      isOrphanQueueAdoptionEnabled({
+        [ADV_ORPHAN_QUEUE_ADOPTION_ENV]: "1",
+      }),
+    ).toBe(true);
+  });
+
+  it("is DISABLED when set to 0 (kill-switch)", async () => {
+    const { isOrphanQueueAdoptionEnabled, ADV_ORPHAN_QUEUE_ADOPTION_ENV } =
+      await loadAdopter();
+    expect(
+      isOrphanQueueAdoptionEnabled({
+        [ADV_ORPHAN_QUEUE_ADOPTION_ENV]: "0",
+      }),
+    ).toBe(false);
+  });
+
+  it("is enabled on empty string and unrecognized values (only 0 disables)", async () => {
+    const { isOrphanQueueAdoptionEnabled, ADV_ORPHAN_QUEUE_ADOPTION_ENV } =
+      await loadAdopter();
+    expect(
+      isOrphanQueueAdoptionEnabled({ [ADV_ORPHAN_QUEUE_ADOPTION_ENV]: "" }),
+    ).toBe(true);
+    expect(
+      isOrphanQueueAdoptionEnabled({
+        [ADV_ORPHAN_QUEUE_ADOPTION_ENV]: "no",
+      }),
+    ).toBe(true);
+    expect(
+      isOrphanQueueAdoptionEnabled({
+        [ADV_ORPHAN_QUEUE_ADOPTION_ENV]: "false",
+      }),
+    ).toBe(true);
+  });
+
+  it("reads process.env when no env argument is supplied", async () => {
+    const { isOrphanQueueAdoptionEnabled } = await loadAdopter();
+    // process.env.ADV_ORPHAN_QUEUE_ADOPTION is unset in the test process.
+    expect(isOrphanQueueAdoptionEnabled()).toBe(true);
+  });
+});

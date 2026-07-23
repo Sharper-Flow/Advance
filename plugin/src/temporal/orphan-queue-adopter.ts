@@ -68,6 +68,27 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Kill-switch env flag for orphan-queue adoption (rq-isolSessionTaskQueue05 /
+ * DDC8). Adoption is always-on in production — this flag is an emergency
+ * disable path, NOT an opt-in. Default ON; only `"0"` disables. Reconciled to
+ * kill-switch-default-on because the deployed bundle already wires adoption
+ * unconditionally; a default-off flag would regress that live behavior.
+ */
+export const ADV_ORPHAN_QUEUE_ADOPTION_ENV = "ADV_ORPHAN_QUEUE_ADOPTION";
+export const ADV_ORPHAN_QUEUE_ADOPTION_DISABLE = "0";
+
+/**
+ * Returns `true` (adoption enabled) unless `ADV_ORPHAN_QUEUE_ADOPTION=0`.
+ * Unset, `"1"`, empty, and unrecognized values all enable adoption — only the
+ * exact `"0"` sentinel disables it. Injectable `env` for deterministic tests.
+ */
+export function isOrphanQueueAdoptionEnabled(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return env[ADV_ORPHAN_QUEUE_ADOPTION_ENV] !== ADV_ORPHAN_QUEUE_ADOPTION_DISABLE;
+}
+
 export class OrphanQueueAdopter {
   private readonly client: OrphanListClient;
   private readonly projectId: string;
