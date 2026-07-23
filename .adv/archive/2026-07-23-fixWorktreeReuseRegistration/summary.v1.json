@@ -1,0 +1,29 @@
+{
+  "archived_at": "2026-07-23T04:30:14.451Z",
+  "capabilities": [],
+  "change_hash": "cae842e58b4162669a4001aaec9ce9eaaf5e01fbc967857c25b990af9b3624c4",
+  "change_id": "fixWorktreeReuseRegistration",
+  "completed_tasks": 3,
+  "created_at": "2026-07-23T01:22:33.942Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784769773028-78bt3t",
+    "epic_id": "hardenTemporalReliability",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-23T01:22:53.028Z",
+    "order": 13,
+    "source": "link_existing",
+    "title": "Fix worktree reuse registration gap"
+  },
+  "fast_follow_of": {
+    "linked_at": "2026-07-23T01:22:33.386Z",
+    "parent_change_id": "autoAdoptOrphanSessionQueues"
+  },
+  "last_activity_at": "2026-07-23T04:24:41.879Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "2ad34c2030b479f79d6097dd62110b73a5b58cd803b8c61b4673da5cf5dcbaee",
+  "task_count": 3,
+  "title": "Fix worktree reuse registration gap",
+  "version": "1"
+}
