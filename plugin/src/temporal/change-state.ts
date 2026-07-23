@@ -62,6 +62,7 @@ import type {
   WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
+  WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
 import {
@@ -2079,6 +2080,38 @@ export function applyWorktreeCreatedToState(
     [payload.branch]: { ...payload, status: "created", setupReady: true },
   };
   setLastSignalAt(state, payload.createdAt);
+  return state;
+}
+
+/**
+ * Safely restores a missing worktree registry entry after an on-disk reuse.
+ * The client-side record query is advisory: this reducer is the authoritative
+ * if-absent check, so a query failure cannot replace durable workflow state.
+ */
+export function applyWorktreeRegistrationRepairedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeRegistrationRepairedSignalPayload,
+): ChangeWorkflowState {
+  if (state.worktrees?.[payload.branch]) return state;
+
+  state.worktrees = {
+    ...(state.worktrees ?? {}),
+    [payload.branch]: {
+      branch: payload.branch,
+      path: payload.path,
+      materialized: true,
+      changeId: state.changeId,
+      status: "created",
+      createdAt: payload.repairedAt,
+      lastSeenAt: payload.repairedAt,
+      baseRef: payload.baseRef,
+      headSha: payload.headSha,
+      source: "tool",
+      sourceVersion: 1,
+      setupReady: true,
+    },
+  };
+  setLastSignalAt(state, payload.repairedAt);
   return state;
 }
 

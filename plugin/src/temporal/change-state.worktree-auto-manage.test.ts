@@ -19,6 +19,7 @@ import {
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
+  applyWorktreeRegistrationRepairedToState,
   createChangeWorkflowState,
 } from "./change-state";
 
@@ -62,6 +63,110 @@ describe("applyWorktreeCreatedToState", () => {
     expect(record.status).not.toBe("deleted");
     expect(record.status).not.toBe("setup_failed");
     expect(state.lastSignalAt).toBe(ISO);
+  });
+});
+
+describe("applyWorktreeRegistrationRepairedToState", () => {
+  const repairedAt = "2026-05-21T04:00:00.000Z";
+  const payload = {
+    branch: "change/tk-test",
+    path: "/tmp/wt/tk-test",
+    baseRef: "trunk",
+    headSha: "def5678",
+    repairedAt,
+  };
+
+  it("inserts one complete setup-ready record when the branch is absent", () => {
+    const state = freshState();
+
+    applyWorktreeRegistrationRepairedToState(state, payload);
+
+    expect(state.worktrees).toEqual({
+      "change/tk-test": {
+        branch: "change/tk-test",
+        path: "/tmp/wt/tk-test",
+        materialized: true,
+        changeId: "tk-test",
+        status: "created",
+        createdAt: repairedAt,
+        lastSeenAt: repairedAt,
+        baseRef: "trunk",
+        headSha: "def5678",
+        source: "tool",
+        sourceVersion: 1,
+        setupReady: true,
+      },
+    });
+    expect(state.lastSignalAt).toBe(repairedAt);
+  });
+
+  it("preserves a setup_failed record and lastSignalAt exactly", () => {
+    const state = freshState();
+    state.worktrees = {
+      "change/tk-test": {
+        branch: "change/tk-test",
+        path: "/tmp/wt/tk-test",
+        materialized: true,
+        changeId: "tk-test",
+        status: "setup_failed",
+        createdAt: ISO,
+        lastSeenAt: ISO,
+        baseRef: "trunk",
+        headSha: "abc1234",
+        source: "tool",
+        sourceVersion: 7,
+        setupReady: false,
+        setupFailureReason: "postCreate failed",
+      },
+    };
+    state.lastSignalAt = ISO;
+    const before = structuredClone(state);
+
+    applyWorktreeRegistrationRepairedToState(state, payload);
+
+    expect(state).toEqual(before);
+  });
+
+  it("preserves metadata-rich records and makes repeated repair a true no-op", () => {
+    const state = freshState();
+
+    applyWorktreeRegistrationRepairedToState(state, payload);
+    const afterFirstRepair = structuredClone(state);
+    applyWorktreeRegistrationRepairedToState(state, {
+      ...payload,
+      headSha: "changed-head",
+      repairedAt: "2026-05-21T05:00:00.000Z",
+    });
+
+    expect(state).toEqual(afterFirstRepair);
+
+    const richState = freshState();
+    richState.worktrees = {
+      "change/tk-test": {
+        branch: "change/tk-test",
+        path: "/tmp/wt/tk-test",
+        materialized: true,
+        changeId: "tk-test",
+        status: "stale",
+        createdAt: ISO,
+        lastSeenAt: ISO,
+        baseRef: "trunk",
+        headSha: "abc1234",
+        source: "git_census",
+        sourceVersion: 9,
+        setupReady: true,
+        dirty: true,
+        merged: true,
+        cleanupEligible: false,
+        cleanupBlockedBy: ["dirty"],
+      },
+    };
+    richState.lastSignalAt = ISO;
+    const richBefore = structuredClone(richState);
+
+    applyWorktreeRegistrationRepairedToState(richState, payload);
+
+    expect(richState).toEqual(richBefore);
   });
 });
 
