@@ -302,6 +302,36 @@ describe("tool-formatters", () => {
       expect(result.recommendationsList).toHaveLength(0);
     });
 
+    it("renders degraded (not alive) when temporalDegraded is set", () => {
+      const result = formatStatusOutput({
+        specCount: 0,
+        requirementCount: 0,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+        temporalDegraded: true,
+      });
+      // A timed-out probe must NOT be reported as "server alive" — it surfaces
+      // a distinct degraded state so a real outage is not masked (health-guard-1).
+      expect(result.healthSection).toContain("server degraded");
+      expect(result.healthSection).toContain("liveness unconfirmed");
+      expect(result.healthSection).not.toContain("server alive ✓");
+    });
+
+    it("renders alive when not degraded", () => {
+      const result = formatStatusOutput({
+        specCount: 0,
+        requirementCount: 0,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+      });
+      expect(result.healthSection).toContain("server alive ✓");
+      expect(result.healthSection).not.toContain("server degraded");
+    });
+
     it("includes recency emojis in active section", () => {
       const result = formatStatusOutput({
         specCount: 1,

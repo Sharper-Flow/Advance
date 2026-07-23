@@ -550,10 +550,12 @@ export const statusTools = {
                 probeFreshness.temporal_health = temporalProbe.freshness;
               } catch (err) {
                 temporalHealth = buildTemporalHealthFallback(err);
-                const degraded = temporalHealth.probe_degraded === true;
                 probeFreshness.temporal_health = {
                   cached_at: new Date().toISOString(),
-                  stale: !degraded,
+                  // A degraded (timed-out) probe is NOT authoritative-fresh —
+                  // liveness is unconfirmed, so callers should re-fetch rather
+                  // than trust the optimistic fallback (no false "alive").
+                  stale: true,
                   age_ms: 0,
                   ttl_ms: STATUS_PROBE_TTL_MS,
                   error: err instanceof Error ? err.message : String(err),
@@ -967,6 +969,7 @@ export const statusTools = {
                 recommendations: status.recommendations,
                 recommendationSummary,
                 temporalAlive: !!temporalHealth?.server_alive,
+                temporalDegraded: temporalHealth?.probe_degraded === true,
                 temporalHealth: temporalHealth
                   ? {
                       worker_alive: temporalHealth.worker_alive ?? false,

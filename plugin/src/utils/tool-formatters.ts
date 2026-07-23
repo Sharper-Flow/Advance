@@ -113,6 +113,7 @@ export interface StatusInput {
     }>;
   };
   temporalAlive: boolean;
+  temporalDegraded?: boolean;
   worktreeCensus?: {
     total: number;
     stale: Array<{ path: string; branch: string; lastActivity: string }>;
@@ -459,7 +460,13 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     input.recommendationSummary,
   );
   const healthLines = [
-    `Temporal: ${input.temporalAlive ? "server alive ✓" : "server down ✗"}`,
+    `Temporal: ${
+      input.temporalAlive
+        ? input.temporalDegraded
+          ? "server degraded ⚠ (liveness unconfirmed)"
+          : "server alive ✓"
+        : "server down ✗"
+    }`,
   ];
   const queueServiceability = input.temporalQueueServiceability;
   if (queueServiceability) {

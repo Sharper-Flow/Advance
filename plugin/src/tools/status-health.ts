@@ -433,7 +433,11 @@ export async function computeStatusQueueServiceability(input: {
       workerDiagnostics,
       serverPollerProbe: sessionPollerProbe,
       staleRunningWorkflowCount: sessionStaleCount,
-      staleQueueProbe: input.health.server_alive ? "ok" : "unavailable",
+      staleQueueProbe: input.health.server_alive
+        ? input.health.probe_degraded
+          ? "degraded"
+          : "ok"
+        : "unavailable",
     });
   }
 
@@ -449,7 +453,11 @@ export async function computeStatusQueueServiceability(input: {
       workerDiagnostics,
       serverPollerProbe,
       staleRunningWorkflowCount,
-      staleQueueProbe: input.health.server_alive ? "ok" : "unavailable",
+      staleQueueProbe: input.health.server_alive
+        ? input.health.probe_degraded
+          ? "degraded"
+          : "ok"
+        : "unavailable",
     }),
     ...(sessionQueue ? { sessionQueue, sessionQueueServiceability } : {}),
   };

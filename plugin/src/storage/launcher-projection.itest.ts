@@ -79,7 +79,9 @@ describe("launcher projection aggregate (signal-driven)", () => {
           });
 
           await expect
-            .poll(() => readJson(join(projectionChangesDir, `${changeId}.json`)))
+            .poll(() =>
+              readJson(join(projectionChangesDir, `${changeId}.json`)),
+            )
             .toMatchObject({
               schemaVersion: 2,
               state: {
@@ -88,12 +90,14 @@ describe("launcher projection aggregate (signal-driven)", () => {
               },
             });
 
-          await expect.poll(() => readJson(aggregatePath)).toMatchObject({
-            schema_version: 1,
-            source: "disk_projection",
-            active_count: 1,
-            changes: [{ id: changeId }],
-          });
+          await expect
+            .poll(() => readJson(aggregatePath))
+            .toMatchObject({
+              schema_version: 1,
+              source: "disk_projection",
+              active_count: 1,
+              changes: [{ id: changeId }],
+            });
 
           // SC2: the aggregate is a plain file; read it directly from disk
           // without any Temporal query or workflow round-trip.
@@ -117,10 +121,12 @@ describe("launcher projection aggregate (signal-driven)", () => {
 
           await expect(handle.result()).resolves.toBeUndefined();
 
-          await expect.poll(() => readJson(aggregatePath)).toMatchObject({
-            active_count: 0,
-            changes: [],
-          });
+          await expect
+            .poll(() => readJson(aggregatePath))
+            .toMatchObject({
+              active_count: 0,
+              changes: [],
+            });
         });
       });
     } finally {
