@@ -667,6 +667,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       invalidateChange(changeId);
       await dualWriteAfterMutation(changeId);
     },
+    invalidate: async (changeId: string): Promise<void> => {
+      // #305: after a direct signal has been confirmed by polling, drop the
+      // cache entry only. A full refresh readback can race with the workflow's
+      // signal-processing loop and return a pre-signal snapshot, which
+      // dualWriteAfterMutation would classify as "confirmed" and re-cache.
+      // invalidate avoids that re-poisoning; the next read misses cache and
+      // queries the workflow fresh.
+      invalidateChange(changeId);
+    },
     setEpicMembership: async (
       changeId,
       { membership, expectedCurrent, setAt },

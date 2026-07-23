@@ -600,10 +600,13 @@ export async function createDiskStore(
         };
       },
 
-      // Disk store has no in-memory cache; refresh is a no-op. The
-      // Store interface requires the method so the temporal store
+      // Disk store has no in-memory cache; refresh and invalidate are no-ops.
+      // The Store interface requires the methods so the temporal store
       // (which does cache) can satisfy the contract.
       refresh: async (_changeId: string): Promise<void> => {
+        // intentional no-op
+      },
+      invalidate: async (_changeId: string): Promise<void> => {
         // intentional no-op
       },
       setEpicMembership: async (changeId, { membership }) => {

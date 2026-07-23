@@ -286,6 +286,14 @@ export interface Store {
      * blocked archive even though the workflow gate was already done.
      */
     refresh: (changeId: string) => Promise<void>;
+    /**
+     * Drop the in-memory change cache entry without issuing a readback query
+     * or disk write. The next read will query the workflow fresh. Use this
+     * when the caller has already confirmed the authoritative workflow state
+     * (e.g., after polling confirms a signal was applied) and a refresh's
+     * readback could race and re-poison the cache with a stale snapshot.
+     */
+    invalidate: (changeId: string) => Promise<void>;
     setEpicMembership: (
       changeId: string,
       input: {

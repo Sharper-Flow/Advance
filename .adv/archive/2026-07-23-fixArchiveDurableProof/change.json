@@ -1,0 +1,898 @@
+{
+  "id": "fixArchiveDurableProof",
+  "title": "Fix archive durable-proof projection staleness",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-23T16:33:14.535Z",
+  "tasks": [
+    {
+      "id": "tk-a4009c8fe612",
+      "title": "RED — Reproduce #305 cache-poisoning race in archive-gate.test.ts",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T17:37:40.094Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T17:47:30.264Z",
+      "verification": "RED test recorded via adv_run_test runId tr_mrxt4ssd_4e3f89df: `bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"` failed with expected cache-poisoning assertion (durableProof.ok false at line 763, did not observe release done).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "checkpointSha": "ac8c3b9d9cd7846c0b016e73e8aa3b26a04ba51c",
+      "completedAt": "2026-07-23T17:51:23.728Z",
+      "completed_at": "2026-07-23T17:51:23.728Z",
+      "updatedAt": "2026-07-23T19:08:47.785Z"
+    },
+    {
+      "id": "tk-1240df801d90",
+      "title": "VERIFY — Suite green + forge-guard regression",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-23T17:37:58.579Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "C4"
+        ],
+        "verifies": [
+          "AC4",
+          "SC1",
+          "SC3",
+          "SC4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "VERIFY suite recorded via adv_run_test runId tr_mrxtb3f7_c5172c6b: `bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts` passes (62 tests). Added forge-guard regression test (AC4) for non-shipped change with forged recovery_audit reason. pnpm run check passes (typecheck, lint, format, schemas, manifests, test-isolation, lockfile policy).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "checkpointSha": "3144867237a713688974e45fa25f93eee237d705",
+      "completedAt": "2026-07-23T17:58:14.631Z",
+      "completed_at": "2026-07-23T17:58:14.631Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveDurableProof",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveDurableProof",
+          "task_id": "tk-1240df801d90",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1240df801d90"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/storage/store-types.ts",
+            "plugin/src/storage/store-temporal/changes.ts",
+            "plugin/src/storage/store-disk.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mrxt4ssd_4e3f89df",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"",
+              "exit_code": 1,
+              "summary": "RED phase: test failed as expected with cache-poisoning assertion (durableProof.ok false, did not observe release done)"
+            },
+            {
+              "test_run_id": "tr_mrxt74cp_e5732b23",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"",
+              "exit_code": 0,
+              "summary": "GREEN phase: same test passes after implementing store.changes.invalidate and refresh→invalidate swap"
+            },
+            {
+              "test_run_id": "tr_mrxtb3f7_c5172c6b",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY phase: 62 tests pass across archive-gate and change.archive-phase9 suites; forge-guard regression (AC4) added and passing"
+            },
+            {
+              "test_run_id": "tr_mrxth4cx_8a3af349",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Typecheck, lint, format, schemas, manifests, test-isolation, and lockfile policy all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added store.changes.invalidate as a cache-drop-only method, distinct from refresh",
+              "why": "refresh issues a readback query via dualWriteAfterMutation that can race with the workflow signal handler and re-poison changeCache with a stale pre-signal 'pending' snapshot. invalidate drops the cache entry only, so the next store.gates.get misses cache and queries fresh."
+            },
+            {
+              "what": "Swapped refresh→invalidate on the confirmed-done branch of completeReleaseGateAfterFinalization",
+              "why": "The poll has already authoritatively confirmed release=done; a readback is unnecessary and is the source of the #305 residual race."
+            },
+            {
+              "what": "Updated the fixPhase9StatusSignal ordering test to assert invalidate (not refresh) is called after the poll observes done",
+              "why": "The fix replaces refresh with invalidate on this branch; the existing test's invariant (cache-mutating call happens only after done is observed) still holds, but the method name changed."
+            },
+            {
+              "what": "Added invalidate to all Store['changes'] test stubs (archive-gate.test.ts, change.archive-phase9.test.ts)",
+              "why": "The Store interface now requires invalidate; stubs must satisfy the contract so TypeScript/runtime callers do not fail."
+            },
+            {
+              "what": "Added AC4 forge-guard regression test for a non-shipped change with a forged recovery_audit reason",
+              "why": "Rev 2 does not touch the proof/disk-fallback/allowlist; this test guards that the existing strict evidence-match guard still rejects forged audits on non-shipped changes."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Added invalidate to all Store['changes'] stubs encountered in touched tests (archive-gate.test.ts, change.archive-phase9.test.ts); no other production callers required store.changes.invalidate.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All three tasks (tk-a4009c8fe612 RED, tk-eb32ec12476f GREEN, tk-1240df801d90 VERIFY) completed and checkpointed. Implemented rev 2: added store.changes.invalidate to store-types/store-temporal/store-disk, swapped refresh→invalidate in completeReleaseGateAfterFinalization confirmed-done branch, updated tests, added AC4 forge-guard regression, and verified pnpm run check green. RED test failed with the expected cache-poisoning assertion; GREEN and VERIFY pass. Commits: ac8c3b9d, bed2f0db, 31448672.",
+            "suggested_next_action": "Run the broader host test suite (e.g., bin/oc-test smoke or the relevant Temporal integration tests if any) and proceed to ADV review/acceptance gates."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mrxt4ssd_4e3f89df"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mrxt74cp_e5732b23"
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-07-23T19:08:47.964Z"
+    },
+    {
+      "id": "tk-eb32ec12476f",
+      "title": "GREEN — Add store.changes.invalidate; use it on the confirmed-done branch",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T17:38:13.534Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5"
+        ],
+        "verifies": [
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "GREEN test recorded via adv_run_test runId tr_mrxt74cp_e5732b23: `bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"` passes after implementing store.changes.invalidate and swapping refresh→invalidate on the confirmed-done branch.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "bed2f0db9a2b603f4ec484e809144f19a37814ba",
+      "completedAt": "2026-07-23T17:52:43.498Z",
+      "completed_at": "2026-07-23T17:52:43.498Z",
+      "updatedAt": "2026-07-23T19:08:47.916Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveDurableProof",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveDurableProof",
+      "task_id": "tk-1240df801d90",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1240df801d90"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mrxt4ssd_4e3f89df",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"",
+          "exit_code": 1,
+          "summary": "RED phase: test failed as expected with cache-poisoning assertion (durableProof.ok false, did not observe release done)"
+        },
+        {
+          "test_run_id": "tr_mrxt74cp_e5732b23",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"",
+          "exit_code": 0,
+          "summary": "GREEN phase: same test passes after implementing store.changes.invalidate and refresh→invalidate swap"
+        },
+        {
+          "test_run_id": "tr_mrxtb3f7_c5172c6b",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY phase: 62 tests pass across archive-gate and change.archive-phase9 suites; forge-guard regression (AC4) added and passing"
+        },
+        {
+          "test_run_id": "tr_mrxth4cx_8a3af349",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Typecheck, lint, format, schemas, manifests, test-isolation, and lockfile policy all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added store.changes.invalidate as a cache-drop-only method, distinct from refresh",
+          "why": "refresh issues a readback query via dualWriteAfterMutation that can race with the workflow signal handler and re-poison changeCache with a stale pre-signal 'pending' snapshot. invalidate drops the cache entry only, so the next store.gates.get misses cache and queries fresh."
+        },
+        {
+          "what": "Swapped refresh→invalidate on the confirmed-done branch of completeReleaseGateAfterFinalization",
+          "why": "The poll has already authoritatively confirmed release=done; a readback is unnecessary and is the source of the #305 residual race."
+        },
+        {
+          "what": "Updated the fixPhase9StatusSignal ordering test to assert invalidate (not refresh) is called after the poll observes done",
+          "why": "The fix replaces refresh with invalidate on this branch; the existing test's invariant (cache-mutating call happens only after done is observed) still holds, but the method name changed."
+        },
+        {
+          "what": "Added invalidate to all Store['changes'] test stubs (archive-gate.test.ts, change.archive-phase9.test.ts)",
+          "why": "The Store interface now requires invalidate; stubs must satisfy the contract so TypeScript/runtime callers do not fail."
+        },
+        {
+          "what": "Added AC4 forge-guard regression test for a non-shipped change with a forged recovery_audit reason",
+          "why": "Rev 2 does not touch the proof/disk-fallback/allowlist; this test guards that the existing strict evidence-match guard still rejects forged audits on non-shipped changes."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Added invalidate to all Store['changes'] stubs encountered in touched tests (archive-gate.test.ts, change.archive-phase9.test.ts); no other production callers required store.changes.invalidate.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All three tasks (tk-a4009c8fe612 RED, tk-eb32ec12476f GREEN, tk-1240df801d90 VERIFY) completed and checkpointed. Implemented rev 2: added store.changes.invalidate to store-types/store-temporal/store-disk, swapped refresh→invalidate in completeReleaseGateAfterFinalization confirmed-done branch, updated tests, added AC4 forge-guard regression, and verified pnpm run check green. RED test failed with the expected cache-poisoning assertion; GREEN and VERIFY pass. Commits: ac8c3b9d, bed2f0db, 31448672.",
+        "suggested_next_action": "Run the broader host test suite (e.g., bin/oc-test smoke or the relevant Temporal integration tests if any) and proceed to ADV review/acceptance gates."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mrxt4ssd_4e3f89df"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mrxt74cp_e5732b23"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-a4009c8fe612": [
+      {
+        "runId": "tr_mrxt4ssd_4e3f89df",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"",
+        "durationMs": 3481.539152999874,
+        "recordedAt": "2026-07-23T17:50:49.821Z"
+      }
+    ],
+    "tk-eb32ec12476f": [
+      {
+        "runId": "tr_mrxt74cp_e5732b23",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts -t \"#305 residual cache-poisoning race\"",
+        "durationMs": 3553.287578999996,
+        "recordedAt": "2026-07-23T17:52:38.160Z"
+      }
+    ],
+    "tk-1240df801d90": [
+      {
+        "runId": "tr_mrxtb3f7_c5172c6b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 5340.161912000272,
+        "recordedAt": "2026-07-23T17:55:43.572Z"
+      },
+      {
+        "runId": "tr_mrxth4cx_8a3af349",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 55540.038057999685,
+        "recordedAt": "2026-07-23T18:00:24.734Z"
+      },
+      {
+        "runId": "tr_mrxtjr73_016f8981",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/change/archive-gate.test.ts plugin/src/tools/change/change.archive-phase9.test.ts",
+        "durationMs": 2431.8412089999765,
+        "assertionDensity": 1.15625,
+        "mockSurface": [
+          {
+            "pattern": "vi.mock",
+            "count": 3
+          },
+          {
+            "pattern": "vi.fn",
+            "count": 14
+          },
+          {
+            "pattern": "vi.spyOn",
+            "count": 9
+          }
+        ],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-23T18:02:27.708Z"
+      },
+      {
+        "runId": "tr_mrxtk3k2_9c1b3ec2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/change.archive-phase9.test.ts",
+        "durationMs": 4541.332677999977,
+        "recordedAt": "2026-07-23T18:02:43.696Z"
+      },
+      {
+        "runId": "tr_mrxtl2fi_a5391bd7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 6004.348439999856,
+        "recordedAt": "2026-07-23T18:03:28.866Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-23T17:10:00.385Z",
+      "completed_by": "user",
+      "approval_evidence": "Proposal synthesized from triage #305 RCA, verified against current source (archive-gate.ts, gates.ts, store-temporal index.ts). User approved. Direction: provenance-backed durable release-gate write on running-workflow confirmed-done path.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7acab3e1b0e4d6f6fe8e7e8064d7393071a06f2e44ba8e9dfd3cad67e4f8984b",
+        "non_whitespace_chars": 6157,
+        "checked_at": "2026-07-23T16:33:14.580Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:08:15.456Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-minted corrected contract (19 items) after reentry: AC2 corrected to validated rev-2 criterion (store-backed read reports done, rq-releaseProjectionDurability01.1); former live-proof AC5 removed from ACs (now a tracked post-deploy ops-followup); former AC6 renumbered to AC5. Agreement revised. Code/tests/exec-summary/design preserved.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "non_whitespace_chars": 5567,
+        "checked_at": "2026-07-23T16:33:14.585Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:08:23.078Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact (rev 2) preserved from prior run; independently validated APPROVE by adv-researcher (attempt 2, high confidence, low risk) — both spec-law conflicts from rev 1 resolved (rq-releaseProjectionDurability01.1 satisfied via store-backed fresh query; rq-releaseRepairRecovery01 preserved — recovery writer untouched). Design unchanged by the contract correction (AC2 now matches the validated rev-2 mechanism). No re-validation needed.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "3d08dd5d68f969e72e80bf061e93f5dfe9c92c5ca22b7304f9417bcd1337e16b",
+        "non_whitespace_chars": 8376,
+        "checked_at": "2026-07-23T16:33:14.586Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:08:58.960Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-run planning after contract correction. Tasks preserved (3 done). Task contract_refs updated for corrected AC coverage: tk-a4009c8fe612 verifies AC1/AC2/AC3; tk-eb32ec12476f implements AC1, verifies AC5; tk-1240df801d90 verifies AC4 + SC1/SC3/SC4. All 5 ACs covered. (contractCoverage projections lag the updates — stale query.)"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:09:06.651Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-run execution after reentry; tasks preserved (3 done, commits ac8c3b9d/bed2f0db/31448672). No code re-implementation (contract correction only). Tests independently re-verified green by orchestrator: archive-gate.test.ts 15 (tr_mrxtk3k2), change.archive-phase9.test.ts 47 (tr_mrxtl2fi); pnpm run check green."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:09:31.325Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-run acceptance after contract correction. Review matrix re-set: 19 rows, 0 failing (all 5 corrected ACs pass — no N/A ACs now; AC2 corrected to rev-2 criterion, AC5-live-proof moved to followup, old AC6 renumbered AC5). Review READY verdict (adv-reviewer) and executive summary preserved from prior run. Verification evidence disposition (tk-1240df801d90 fixed) preserved.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "e5cdc335053a54ab0a2e3529d1a3709cf945088fc7068b4d2e883d693d03ec74",
+        "non_whitespace_chars": 5124,
+        "checked_at": "2026-07-23T16:33:14.587Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Contract correction (post-design-validation): AC2 was drafted for the rev-1 audited-durable-write mechanism, which the design-gate independent validator proved violates rq-releaseRepairRecovery01 (recovery writer is completed/poisoned-workflow only). Correct AC2 to the validated rev-2 criterion the change actually delivers (store-backed release-gate read reports done). AC5 (live archive proof) is a post-deploy operational activity, not a code acceptance criterion for this change — convert to a tracked ops-followup child change, removing it from this change's acceptance criteria. Code/tests/exec-summary preserved; no re-implementation.",
+      "scope_delta": "Agreement Acceptance Criteria revised: AC2 corrected to validated rev-2 criterion (store-backed read reports done, rq-releaseProjectionDurability01.1); AC5 removed from ACs and promoted to a tracked post-deploy ops-followup child change. Final AC set: AC1 (running-workflow confirmed-done archives), AC2 (store-backed read reports done), AC3 (clobber-resistance), AC4 (forge guard), AC5 (no git/workflow mutation). Constraints C1-C5 and avoidances AV1-AV5 unchanged.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-23T19:07:33.242Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 305
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+      "approvedAt": "2026-07-23T19:07:58.528Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1 — Running-workflow confirmed-done archives:** A shipped change with a running workflow whose release gate was just signaled `done` and confirmed by `waitForArchiveReleaseGateCompletion` retires on the first archive attempt. (RED today: blocks with `Store-backed durable release gate proof did not observe release done`.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2 — Store-backed release-gate read reports done (corrected to validated rev-2):** On the confirmed-done branch, after the fix, `verifyReleaseGateDurableForArchive` observes `release.status === \"done\"` via the **store-backed** read (`store.gates.get` → `getTemporalChange` → fresh workflow query after cache invalidation), satisfying `rq-releaseProjectionDurability01.1`. No recovery disk write, no caller-trusted state, no change to the proof/disk-fallback/recovery-writer/allowlist. (The original rev-1 \"audited durable write via saveRecoveredGateCompletion\" was superseded — it violates `rq-releaseRepairRecovery01`.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3 — Clobber-resistance:** The racing best-effort `voidPersist` from `store.changes.refresh` is eliminated on the confirmed-done path (replaced by `store.changes.invalidate`, cache-drop only — no readback, no disk write). The durable proof observes `done` even when a refresh readback would have returned stale `pending`. (Asserted via the query-sequence repro modeled on `fixPhase9StatusSignal`.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4 — Forge guard preserved:** A non-shipped change with a forged/unrecognized recovery audit is still rejected by `verifyReleaseGateDurableForArchive` (no regression to `fixDurableProofFallback`). The proof, disk-fallback, recovery writer, and `RELEASE_GATE_RECOVERY_REASONS` allowlist are unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5 — No git/workflow mutation (was AC6):** The fix performs cache invalidation only — no git writes, no workflow start, no new signals beyond the existing `gateCompletedSignal`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`archive-gate.test.ts` green, including the #305 residual cache-poisoning repro (where the refresh readback would return stale `pending` after the poll saw `done`) and the AC4 forge-guard regression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The `completeReleaseGateAfterFinalization` confirmed-done path calls `store.changes.invalidate` before returning `ok`, and `verifyReleaseGateDurableForArchive` reads `done` on the store-backed path (`source: \"store\"`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "No regression in existing `completeReleaseGateAfterFinalization` tests (T3 ambiguous-signal reconcile, `fixPhase9StatusSignal` refresh-after-poll — updated to assert `invalidate` after the poll).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`change.archive-phase9.test.ts` green (no Store-interface regression from the new `invalidate`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1 — Independent-check preserved:** The durable proof must not trust caller-supplied state without structural/provenance backing (`rq-releaseProjectionDurability01`). The fix achieves durability via the store-backed fresh query, not a caller-trusted gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2 — Forge guard intact:** `RELEASE_GATE_RECOVERY_REASONS` allowlist (`archive-gate.ts` L898) is unchanged; no new provenance reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3 — No git/workflow mutation** beyond cache invalidation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4 — Test harness:** local full `pnpm test` on archive-phase9 hits #304 (replay loop); use `bin/oc-test targeted`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5 — Reuse over bespoke:** the fix reuses the existing internal `invalidateChange` via a thin new public `store.changes.invalidate`. The recovery writer (`saveRecoveredGateCompletion`) is deliberately NOT reused (spec-forbidden on running workflows).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**AV1** Do not weaken `verifyReleaseGateDurableForArchive` to trust a caller-passed gate object without a `recovery_audit` (violates C1; regresses `fixDurableProofFallback`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**AV2** Do not introduce an unbounded `sleep`/retry loop to \"wait out\" the stale read — deterministic cache-drop, not timing-dependent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**AV3** Do not widen `RELEASE_GATE_RECOVERY_REASONS` or add a new recovery provenance (C2).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**AV4** Do not remove `store.changes.refresh` globally; only swap to `invalidate` on the confirmed-done branch. Cache freshness is preserved (invalidate → fresh next read); other refresh callers are untouched.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**AV5** Do not add git writes, workflow starts, or new signals beyond `gateCompletedSignal`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T19:09:06.763Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "#305 cache-poisoning repro (archive-gate.test.ts): refresh readback returns stale pending after poll saw done; verifyReleaseGateDurableForArchive observes release=done post-fix. Run tr_mrxtk3k2_9c1b3ec2."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Corrected rev-2 criterion: verifyReleaseGateDurableForArchive observes release=done via store-backed read (getTemporalChange fresh query after cache invalidation), rq-releaseProjectionDurability01.1. Asserted by the #305 repro (source:store). No recovery write, no caller-trusted state. Run tr_mrxtk3k2."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "refresh->invalidate swap eliminates voidPersist on the confirmed-done branch (no readback, no disk write); repro models the cache-poisoning race and asserts done. Run tr_mrxtk3k2."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Forge-guard regression: non-shipped change with forged/unrecognized recovery_audit rejected. Proof/disk-fallback/recovery-writer/allowlist unchanged. Run tr_mrxtk3k2."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Cache-drop only (store.changes.invalidate -> invalidateChange); no git writes, no workflow start, no new signals beyond gateCompletedSignal. Diff ec0e9136..HEAD confirms."
+        },
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "archive-gate.test.ts green incl #305 repro + AC4 forge-guard (15 tests, run tr_mrxtk3k2)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "completeReleaseGateAfterFinalization confirmed-done branch calls invalidate before ok; proof reads release=done on store-backed path (source:store)."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "T3 ambiguous-signal + fixPhase9StatusSignal (updated to assert invalidate after poll) tests green. Run tr_mrxtk3k2."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "change.archive-phase9.test.ts green (47 tests, run tr_mrxtl2fi) — no Store-interface regression from the new invalidate."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Independent-check preserved: verifyReleaseGateDurableForArchive/loadAuditedDiskReleaseGate unchanged; no caller-trusted gate. rq-releaseProjectionDurability01.1 satisfied via fresh query."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "RELEASE_GATE_RECOVERY_REASONS allowlist unchanged; no new provenance reason."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No git/workflow mutation; cache-drop only."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "bin/oc-test targeted used (avoids #304 replay loop)."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reuses existing internal invalidateChange via thin public store.changes.invalidate. Recovery writer deliberately not reused (spec-forbidden on running workflows)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Proof not weakened; no caller-trusted gate without recovery_audit. Proof/disk-fallback unchanged."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No sleep/retry loop; deterministic single cache-drop."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Allowlist not widened; no new recovery reason."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "refresh not removed globally; only swapped to invalidate on the confirmed-done branch. Cache freshness preserved. Other refresh callers untouched (reviewer-confirmed)."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No git writes, workflow starts, or new signals beyond gateCompletedSignal."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1 — Running-workflow confirmed-done archives:** A shipped change with a running workflow whose release gate was just signaled `done` and confirmed by `waitForArchiveReleaseGateCompletion` retires on the first archive attempt. (RED today: blocks with `Store-backed durable release gate proof did not observe release done`.)",
+    "**AC2 — Store-backed release-gate read reports done (corrected to validated rev-2):** On the confirmed-done branch, after the fix, `verifyReleaseGateDurableForArchive` observes `release.status === \"done\"` via the **store-backed** read (`store.gates.get` → `getTemporalChange` → fresh workflow query after cache invalidation), satisfying `rq-releaseProjectionDurability01.1`. No recovery disk write, no caller-trusted state, no change to the proof/disk-fallback/recovery-writer/allowlist. (The original rev-1 \"audited durable write via saveRecoveredGateCompletion\" was superseded — it violates `rq-releaseRepairRecovery01`.)",
+    "**AC3 — Clobber-resistance:** The racing best-effort `voidPersist` from `store.changes.refresh` is eliminated on the confirmed-done path (replaced by `store.changes.invalidate`, cache-drop only — no readback, no disk write). The durable proof observes `done` even when a refresh readback would have returned stale `pending`. (Asserted via the query-sequence repro modeled on `fixPhase9StatusSignal`.)",
+    "**AC4 — Forge guard preserved:** A non-shipped change with a forged/unrecognized recovery audit is still rejected by `verifyReleaseGateDurableForArchive` (no regression to `fixDurableProofFallback`). The proof, disk-fallback, recovery writer, and `RELEASE_GATE_RECOVERY_REASONS` allowlist are unchanged.",
+    "**AC5 — No git/workflow mutation (was AC6):** The fix performs cache invalidation only — no git writes, no workflow start, no new signals beyond the existing `gateCompletedSignal`."
+  ],
+  "documents": {
+    "proposal": "# Fix archive durable-proof projection staleness\n\n## Why\n\nNo shipped ADV change can complete release/archive. Every `adv_change_archive phase9:run` fails at the durable release-gate proof:\n\n```\nArchive durable release gate proof blocked: Store-backed durable release gate proof did not observe release done\nrequirement: rq-releaseProjectionDurability01\nreleaseGateStatus: pending\n```\n\nReproduced on two independent shipped changes (`fixDurableProofFallback`, `fixAdvRunTestPipefailFalse`). In both, Phase 9 git finalization succeeds (`shipped`, merge commit pushed), the release gate is signaled done and the workflow confirms it, but the immediately-following second durable proof reads `pending` and blocks. The change is permanently unarchivable despite being shipped and gate-done.\n\n## Root Cause (verified against current source `plugin/src/tools/change/archive-gate.ts`)\n\nArchive release-gate flow:\n1. First durable proof `verifyReleaseGateDurableForArchive` (L407) — fails (gate not done yet). Correct.\n2. `completeReleaseGateAfterFinalization` (L1101): fires `gateCompletedSignal` (L1159), polls `waitForArchiveReleaseGateCompletion` until the workflow confirms `done` (L1192), then `store.changes.refresh(changeId)` (L1208), returns ok.\n3. Second durable proof `verifyReleaseGateDurableForArchive` (L449) — **fails here (#305)**.\n\nThe second proof fails on **both** its read paths:\n- **Store-backed** (`store.gates.get` → `getTemporalChange`, `gates.ts` L101): issues a fresh workflow read rather than reading the refreshed change memo. `store.changes.refresh`'s `dualWriteAfterMutation` (`index.ts` L301) issues its own `changeStateQuery` that — per the `archive-gate.ts` L1165-1172 comment — can return **pre-signal stale `pending`** state, get classified \"confirmed\", and poison both the cache and the best-effort disk write (`voidPersist`, `index.ts` L334). `gates.get` then observes `pending`.\n- **Disk-fallback** (`loadAuditedDiskReleaseGate`, L904): requires the disk release gate to be `done` with a recognized recovery audit (`RELEASE_GATE_RECOVERY_REASONS`, L898). For a *running* workflow that recovery audit (`completed_workflow_release_gate_recovery`, stamped by `recoverReleaseGateViaDiskProjection` L780/L806) is **never written** — that writer is reached only via `recoverReleaseGateIfWorkflowCompleted` (L826) on a `isWorkflowCompletedError`. The running-workflow confirmed-done path writes only to workflow state (and the racing best-effort `voidPersist` may overwrite disk with stale `pending`), so the disk fallback's shipped-reconciliation cannot match → block.\n\nNet: after the workflow confirms the release gate done, that state is not durably observable to the second proof via either path. Unretireable though shipped + gate-done.\n\n## What Changes\n\n- `plugin/src/tools/change/archive-gate.ts` — on the running-workflow **confirmed-done** branch of `completeReleaseGateAfterFinalization` (`postSignalGate.status === \"done\"`, L1203), durably write a provenance-backed release-gate completion to the disk projection via the same audited writer used by the completed-workflow recovery path (`saveRecoveredGateCompletion` / `persistStateToDiskDurable`), so the disk-fallback shipped-reconciliation accepts it regardless of the cache-poisoning race.\n- Enforce write ordering so the best-effort `store.changes.refresh` `voidPersist` cannot clobber the freshly-written audited release-gate completion (write the durable audited gate after refresh, or guard `voidPersist` against clobbering a `done` release gate).\n- **Direction rationale:** preferred over (a) \"make refresh propagate to gates\" — refresh already reaches the gate read via `getTemporalChange`; the defect is the stale pre-signal read poisoning the path it would propagate to, so (a) alone does not close the race. Preferred over (c) \"pass confirmed-done gate into the proof\" — preserves the durable-proof's independent-check contract (no caller-trusted state without structural/provenance backing); (c) is viable only if the passed gate carries provenance, which is more invasive to the proof's signature.\n\n## User Outcomes\n\n- A shipped, release-gate-done change archives cleanly on the first `adv_change_archive phase9:run` — no manual recovery, no re-run.\n- `fixDurableProofFallback` and `fixAdvRunTestPipefailFalse` (currently shipped-to-trunk but ADV-blocked) retire after the fix (live proof).\n- The durable release-gate proof remains an independent, forge-resistant check (provenance-backed, not caller-trusted).\n\n## Affected Code\n\n- `plugin/src/tools/change/archive-gate.ts` — `completeReleaseGateAfterFinalization` confirmed-done branch (L1203-1209); durably write provenance-backed release-gate completion.\n- `plugin/src/tools/change/_recovery-writers.ts` — reuse/extend `saveRecoveredGateCompletion` for the running-workflow confirmed-done provenance (reuse `completed_workflow_release_gate_recovery` or add a running-workflow reason to `RELEASE_GATE_RECOVERY_REASONS`).\n- Tests: `plugin/src/tools/change/change.archive-phase9.test.ts`, `plugin/src/tools/change/archive-gate.test.ts` — add a repro for the running-workflow just-signaled-done case.\n\n## Constraints\n\n- Must not weaken the durable proof: no trusting caller-supplied state without structural/provenance backing (`rq-releaseProjectionDurability01`; `fixDurableProofFallback` forge guard preserved).\n- Must not regress `fixDurableProofFallback`'s shipped-reconciliation forge guard (bounded `RELEASE_GATE_RECOVERY_REASONS` allowlist).\n- No git/workflow mutation beyond projection reconciliation.\n- Local `pnpm test` on archive-phase9 hits #304 (replay loop); use `bin/oc-test targeted`.\n\n## Impact\n\n- Unblocks ADV release/archive for ALL shipped changes (systemic blocker).\n- No breaking API change; archive behavior becomes correct where it was broken.\n- Disk projection gains one additional provenance-bound write on the archive confirmed-done path.\n\n## Risks\n\n- Write-ordering hazard: the best-effort `voidPersist` from `store.changes.refresh` could overwrite the audited release-gate completion if not ordered/guarded. Mitigation: durable audited write after refresh, or guard so `voidPersist` does not clobber a `done` release gate.\n- Provenance allowlist: a new running-workflow provenance reason (if introduced) must be added to `RELEASE_GATE_RECOVERY_REASONS`, or the existing reason reused, to keep the forge guard intact.\n- Test harness: archive-phase9 replay-loop (#304) — use the targeted test runner.\n\n## Validation Plan\n\n- RED: archive a shipped change with a running workflow whose release gate was just signaled done → currently blocks; after fix, retires.\n- Live proof: both `fixDurableProofFallback` and `fixAdvRunTestPipefailFalse` archive cleanly after the fix.\n- `change.archive-phase9.test.ts` + `archive-gate.test.ts` green; new repro test for the running-workflow just-signaled-done case.\n- Forge-guard regression: confirm a non-shipped change with a forged/unrecognized recovery audit is still rejected.\n",
+    "problemStatement": "# Fix archive durable-proof projection staleness (#305) — systemic archive blocker\n\n## Problem (systemic)\n\nNo change can complete ADV release/archive. Every `adv_change_archive phase9:run` on a shipped change fails at the durable release-gate proof:\n\n```\nArchive durable release gate proof blocked: Store-backed durable release gate proof did not observe release done\nrequirement: rq-releaseProjectionDurability01\nreleaseGateStatus: pending\n```\n\nReproduced on two independent changes: `fixDurableProofFallback` and `fixAdvRunTestPipefailFalse`. In both, git finalization succeeds (`finalization.status: shipped`, mergeCommitSha set, pushed), but the durable-proof step never observes the release gate as done.\n\n## Root Cause Analysis\n\nThe archive release-gate flow (`plugin/src/tools/change/archive-gate.ts`) runs:\n\n1. First proof `verifyReleaseGateDurableForArchive` (L407) — fails (gate not yet done).\n2. `completeReleaseGateAfterFinalization` (L427 → def L1101):\n   - For a **running** workflow: queries the gate (L1130), fires `gateCompletedSignal` (L1159), polls `waitForArchiveReleaseGateCompletion` until the workflow confirms `done` (L1192), then `store.changes.refresh(changeId)` (L1208), returns `ok`.\n3. **Second** proof `verifyReleaseGateDurableForArchive` (L449) — **fails here (#305 fires, L455)**.\n\nThe second proof fails on **both** branches:\n- **Store-backed read** (`store.gates.get(release)`) returns stale `pending`. `store.changes.refresh(changeId)` (L1208) does NOT refresh the gate-state path the proof reads. The L1165-1172 comment already documents this exact race family (`fixPhase9StatusSignal`: refresh returning pre-signal stale `pending` state).\n- **Disk-fallback** (`loadAuditedDiskReleaseGate`) does not accept, because for a *running* workflow the release-gate-recovery audit (`completed_workflow_release_gate_recovery`) is **never written** — `recoverReleaseGateViaDiskProjection` (L780, stamps that provenance) is only reached via `recoverReleaseGateIfWorkflowCompleted` (L826) on `isWorkflowCompletedError`. A running workflow that just signaled done takes the signal+poll path (L1158-1209), which writes the gate to the **workflow state**, not to the disk projection's recovery-audit field. So the shipped-reconciliation (shipped + reason ∈ RELEASE_GATE_RECOVERY_REASONS) cannot match → block.\n\nNet: after the workflow confirms the release gate done, that state is not observable to the immediate second proof via either the store-backed query (stale) or the disk projection (no recovery audit). The change is unretireable even though it is shipped and gate-done.\n\n## Scope\n\n- `plugin/src/tools/change/archive-gate.ts` — close the projection-freshness gap so the second durable-proof observes a freshly-completed release gate. Candidate directions (design to choose):\n  - (a) Make `store.changes.refresh` (or a dedicated gate refresh) propagate the gate-state read by `store.gates.get` / `verifyReleaseGateDurableForArchive`.\n  - (b) When `completeReleaseGateAfterFinalization` has just confirmed done via signal+poll, write the release-gate-recovery audit (provenance-bound) to the disk projection so the disk-fallback shipped-reconciliation accepts — extending the recovery-audit write to the running-workflow confirmed-done path, not just the completed-workflow error path.\n  - (c) Pass the completion's confirmed-done gate into the second proof to avoid a racing re-read.\n  - Preferred: the option that preserves the durable-proof's independent-check semantics while removing the race.\n\n## Constraints\n\n- Must not weaken the durable-proof (no trusting caller-supplied state without structural/provenance backing).\n- Must not regress `fixDurableProofFallback`'s shipped-reconciliation forge guard.\n- No git/workflow mutation beyond projection reconciliation.\n\n## Validation\n\n- RED: archive a shipped change with a running workflow whose release gate was just signaled done → currently blocks; after fix, retires.\n- Both `fixDurableProofFallback` and `fixAdvRunTestPipefailFalse` (currently shipped-to-trunk but ADV-blocked) archive cleanly after the fix (live proof).\n- `change.archive-phase9.test.ts` + `archive-gate.test.ts` green; add a test reproducing the running-workflow just-signaled-done case.\n- Note: local `pnpm test` on archive-phase9 hits #304 (replay loop); use `bin/oc-test targeted`.\n\n## Related\n\n- #305 (this issue), #253 (adjacent: missing-workflow archive recovery), #304 (local test harness), #257 (avoidance-row matrix coverage — sibling acceptance blocker).\n- `fixDurableProofFallback` (shipped the disk-fallback shipped-reconciliation; does not cover this own-gate-audit gap for running workflows).",
+    "agreement": "# Agreement — Fix archive durable-proof projection staleness (#305)\n\n> **Revision 2 (post-design-validation contract correction):** AC2 was originally drafted for the rev-1 audited-durable-write mechanism. The design-gate independent validator proved that reusing `saveRecoveredGateCompletion` on a *running* workflow violates `rq-releaseRepairRecovery01` (recovery writer is completed/poisoned-workflow only). Rev 2 fixes the actual root cause (cache poisoning). AC2 is corrected to the criterion the change actually delivers (store-backed read reports `done`). The former AC5 (post-deploy live archive proof) is a post-deploy operational activity, not a code acceptance criterion — it is removed from the AC set and tracked as a post-deploy ops-followup child change. Former AC6 (no git/workflow mutation) becomes AC5. Objectives, success criteria, constraints, and avoidances are otherwise unchanged.\n\n## Objectives\n\n1. A shipped ADV change whose release gate is `done` (workflow-confirmed) archives cleanly on the first `adv_change_archive phase9:\"run\"`, with no manual recovery and no re-run.\n2. The durable release-gate proof (`verifyReleaseGateDurableForArchive`) observes a freshly-completed release gate via the **store-backed** read path, satisfying `rq-releaseProjectionDurability01.1` — not via a recovery disk write (which is spec-forbidden for running workflows).\n3. The fix is **residual** to `fixPhase9StatusSignal` (refresh-after-poll): that change reduced but did not eliminate the stale-read window, because `store.changes.refresh`'s readback is a separate query that can still return `pending` after the poll saw `done`.\n\n## Acceptance Criteria\n\n- **AC1 — Running-workflow confirmed-done archives:** A shipped change with a running workflow whose release gate was just signaled `done` and confirmed by `waitForArchiveReleaseGateCompletion` retires on the first archive attempt. (RED today: blocks with `Store-backed durable release gate proof did not observe release done`.)\n- **AC2 — Store-backed release-gate read reports done (corrected to validated rev-2):** On the confirmed-done branch, after the fix, `verifyReleaseGateDurableForArchive` observes `release.status === \"done\"` via the **store-backed** read (`store.gates.get` → `getTemporalChange` → fresh workflow query after cache invalidation), satisfying `rq-releaseProjectionDurability01.1`. No recovery disk write, no caller-trusted state, no change to the proof/disk-fallback/recovery-writer/allowlist. (The original rev-1 \"audited durable write via saveRecoveredGateCompletion\" was superseded — it violates `rq-releaseRepairRecovery01`.)\n- **AC3 — Clobber-resistance:** The racing best-effort `voidPersist` from `store.changes.refresh` is eliminated on the confirmed-done path (replaced by `store.changes.invalidate`, cache-drop only — no readback, no disk write). The durable proof observes `done` even when a refresh readback would have returned stale `pending`. (Asserted via the query-sequence repro modeled on `fixPhase9StatusSignal`.)\n- **AC4 — Forge guard preserved:** A non-shipped change with a forged/unrecognized recovery audit is still rejected by `verifyReleaseGateDurableForArchive` (no regression to `fixDurableProofFallback`). The proof, disk-fallback, recovery writer, and `RELEASE_GATE_RECOVERY_REASONS` allowlist are unchanged.\n- **AC5 — No git/workflow mutation (was AC6):** The fix performs cache invalidation only — no git writes, no workflow start, no new signals beyond the existing `gateCompletedSignal`.\n\n## Success Criteria\n\n- `archive-gate.test.ts` green, including the #305 residual cache-poisoning repro (where the refresh readback would return stale `pending` after the poll saw `done`) and the AC4 forge-guard regression.\n- The `completeReleaseGateAfterFinalization` confirmed-done path calls `store.changes.invalidate` before returning `ok`, and `verifyReleaseGateDurableForArchive` reads `done` on the store-backed path (`source: \"store\"`).\n- No regression in existing `completeReleaseGateAfterFinalization` tests (T3 ambiguous-signal reconcile, `fixPhase9StatusSignal` refresh-after-poll — updated to assert `invalidate` after the poll).\n- `change.archive-phase9.test.ts` green (no Store-interface regression from the new `invalidate`).\n\n## Followups (out of scope for this change — tracked separately)\n\n- **Post-deploy live archive proof (was AC5):** after this change is merged + deployed + the plugin host restarted, archive `fixDurableProofFallback` and `fixAdvRunTestPipefailFalse` to confirm end-to-end (the unit tests are Store-boundary-modeled; the live proof confirms Temporal behavior). Tracked as a post-deploy ops-followup child change. Operationally it is a *post-release* verification (the archive is the merge; the live proof needs the deployed fix).\n\n## Constraints\n\n- **C1 — Independent-check preserved:** The durable proof must not trust caller-supplied state without structural/provenance backing (`rq-releaseProjectionDurability01`). The fix achieves durability via the store-backed fresh query, not a caller-trusted gate.\n- **C2 — Forge guard intact:** `RELEASE_GATE_RECOVERY_REASONS` allowlist (`archive-gate.ts` L898) is unchanged; no new provenance reason.\n- **C3 — No git/workflow mutation** beyond cache invalidation.\n- **C4 — Test harness:** local full `pnpm test` on archive-phase9 hits #304 (replay loop); use `bin/oc-test targeted`.\n- **C5 — Reuse over bespoke:** the fix reuses the existing internal `invalidateChange` via a thin new public `store.changes.invalidate`. The recovery writer (`saveRecoveredGateCompletion`) is deliberately NOT reused (spec-forbidden on running workflows).\n\n## Avoidances\n\n- **AV1** Do not weaken `verifyReleaseGateDurableForArchive` to trust a caller-passed gate object without a `recovery_audit` (violates C1; regresses `fixDurableProofFallback`).\n- **AV2** Do not introduce an unbounded `sleep`/retry loop to \"wait out\" the stale read — deterministic cache-drop, not timing-dependent.\n- **AV3** Do not widen `RELEASE_GATE_RECOVERY_REASONS` or add a new recovery provenance (C2).\n- **AV4** Do not remove `store.changes.refresh` globally; only swap to `invalidate` on the confirmed-done branch. Cache freshness is preserved (invalidate → fresh next read); other refresh callers are untouched.\n- **AV5** Do not add git writes, workflow starts, or new signals beyond `gateCompletedSignal`.\n",
+    "design": "# Design — Fix archive durable-proof projection staleness (#305)\n\n> **Revision 2** — re-validated after independent validator (adv-researcher) returned CONFLICT on rev 1. Rev 1 proposed reusing the audited recovery writer (`saveRecoveredGateCompletion`) on the running-workflow confirmed-done path; that violates `rq-releaseRepairRecovery01` (recovery writer is for completed/poisoned workflows only). Rev 1 also relied on the disk-fallback to authorize archive while the store-backed read stayed `pending`; that violates `rq-releaseProjectionDurability01.1` (the store-backed read used by `adv_gate_status` MUST report `done`). Rev 2 drops the recovery write entirely and fixes the actual root cause: cache poisoning by `store.changes.refresh`.\n\n## Goal\n\nMake the **store-backed** release-gate read report `done` on the running-workflow confirmed-done path, satisfying `rq-releaseProjectionDurability01.1`, without touching the audited recovery writer (`rq-releaseRepairRecovery01` preserved).\n\n## Verified root cause (current source)\n\n### The flow (`plugin/src/tools/change/archive-gate.ts`)\n1. First proof `verifyReleaseGateDurableForArchive` (L407) — fails (gate not done yet).\n2. `completeReleaseGateAfterFinalization` (L1101): query gate (L1130) → fire `gateCompletedSignal` (L1159) → poll `waitForArchiveReleaseGateCompletion` until workflow confirms `done` (L1192) → `await store.changes.refresh(changeId)` (L1208) → return ok (L1209).\n3. Second proof `verifyReleaseGateDurableForArchive` (L449) — **fails (#305)**: reads `pending`.\n\n### Why the store-backed read returns `pending` (the actual mechanism)\n- The proof's store-backed read: `store.gates.get` (`gates.ts` L101) → `getTemporalChange` (`index.ts` L778).\n- `getTemporalChange` **serves the in-memory `changeCache`** (index.ts L819-829) and only queries the workflow fresh on a cache miss.\n- `store.changes.refresh` (`changes.ts` L658) → `invalidateChange(changeId)` (drops cache) **+** `dualWriteAfterMutation(changeId)` (`index.ts` L301), which issues its OWN `changeStateQuery`, and on a \"confirmed\" classification calls `setCachedChange(state)` + `voidPersist`.\n- Per the documented `fixPhase9StatusSignal` race (`archive-gate.ts` L1165-1172), `dualWriteAfterMutation`'s `changeStateQuery` readback **can return pre-signal `pending`** even after `waitForArchiveReleaseGateCompletion` observed `done`, get classified \"confirmed\", and **re-poison `changeCache`** with `pending`. The proof then reads the poisoned cache → `pending`.\n- Both query handlers read the same source: `getGateStatusQuery` (`workflows.ts` L787) returns `state.gates[gateId]`; `getStateQuery`/`changeStateQuery` (`workflows.ts` L779, `messages.ts` L115) returns `state`. So once the workflow has `release=done`, a **fresh** query returns `done`. The stale read is an artifact of the cache + refresh's racing readback, not query inconsistency.\n\n### Why neither the disk-fallback nor a recovery write is the fix\n- The disk-fallback (`loadAuditedDiskReleaseGate`, `archive-gate.ts` L904) cannot authorize archive while the store-backed read is `pending` (`rq-releaseProjectionDurability01.1`).\n- The audited recovery writer (`saveRecoveredGateCompletion`, `_recovery-writers.ts` L133) is permitted **only** when normal signaling cannot record state — i.e., completed/poisoned workflows (`rq-releaseRepairRecovery01.1`). Here signaling **succeeded** on a **running** workflow. Using it would violate the spec and conflate a projection-freshness bug with a recovery path.\n\n## Chosen design (single change)\n\n### D3 — Invalidate the cache on the confirmed-done branch (replace `store.changes.refresh`)\nOn `postSignalGate.status === \"done\"` (`archive-gate.ts` L1203), replace:\n```\nawait input.store.changes.refresh(input.changeId);   // L1208 — re-queries, re-caches (can poison)\n```\nwith:\n```\nawait input.store.changes.invalidate(input.changeId); // cache-drop only; no re-query, no voidPersist\n```\n- **Effect:** `changeCache` is dropped; the proof's `store.gates.get` → `getTemporalChange` misses the cache → queries the workflow **fresh** → returns `release=done` (the workflow confirmed it; both query handlers read `state.gates`). Satisfies **`rq-releaseProjectionDurability01.1`**: the store-backed read reports `done`.\n- **No disk write raced:** `invalidate` performs no `voidPersist`, so there is no blind-overwrite clobber hazard (`saveChange` is blind, `voidPersist` is fire-and-forget — both now avoided).\n- **AV4 satisfaction:** `invalidate` preserves cache freshness for the subsequent archive retirement read (`rq-cacheRefresh01`): the cache is dropped, so the next read (proof, then retirement) re-queries fresh. The workflow remains the Temporal-durable source of truth; retirement writes the durable archive bundle. The broad `store.changes.refresh` (reseed-safety dual-write, `index.ts` L210-214) is untouched for all other callers.\n\n### Surface addition\nAdd a minimal public method `store.changes.invalidate(changeId): Promise<void>` (cache-entry drop only; mirrors the existing internal `invalidateChange(changeId)`, `index.ts` L355-358):\n- `plugin/src/storage/store-types.ts` — `Store[\"changes\"]` interface (alongside `refresh`, ~L288).\n- `plugin/src/storage/store-temporal/changes.ts` — temporal impl: `invalidateChange(changeId)` only (no `dualWriteAfterMutation`).\n- `plugin/src/storage/store-disk.ts` — disk impl: no-op (like `refresh`, ~L606).\n- Test mocks/fixtures updated where they stub `store.changes`.\n\n### No change to the proof or the recovery writer\n- `verifyReleaseGateDurableForArchive` and `loadAuditedDiskReleaseGate` are unchanged. The proof now passes on the **store-backed** path (`source: \"store\"`), not the disk-fallback.\n- `saveRecoveredGateCompletion` / `recoverReleaseGateViaDiskProjection` are unchanged — still used only on the completed-workflow error path (`recoverReleaseGateIfWorkflowCompleted`, L826). `rq-releaseRepairRecovery01` preserved. No new provenance reason needed (rev-1 D1 dropped).\n\n## Residual-race handling (honest)\n\n`invalidate` fixes the cache-poisoning mechanism (the documented `fixPhase9StatusSignal` race). The RED test (below) models exactly that race. If, during implementation, the RED reproduction cannot be triggered via cache-poisoning — i.e., the live failure is a fresh query returning `pending` *despite* the workflow having `release=done` (a Temporal query-consistency issue independent of the cache) — the design escalates to a **bounded store-backed confirmation** on the confirmed-done branch: after `invalidate`, poll the store-backed read until `done` (bounded attempts, the same pattern as `waitForArchiveReleaseGateCompletion` — not an unbounded sleep loop, AV2-compliant). This guarantees `rq-releaseProjectionDurability01.1` deterministically regardless of mechanism. The live-proof ACs (AC5) are the ultimate arbiter.\n\n## Implementation strategy (TDD)\n\n1. **RED** — `archive-gate.test.ts`: in the `completeReleaseGateAfterFinalization` block, extend the `fixPhase9StatusSignal` pattern (L552): model the query-sequence where the refresh/dualWrite readback returns `pending` (stale) AFTER the poll observed `done`, poisoning the cache; assert `completeReleaseGateAfterFinalization` returns ok AND a following `verifyReleaseGateDurableForArchive` observes `release=done` on the store-backed path. Fails today (proof reads poisoned `pending`).\n2. **RED** — regression: the completed-workflow error path still routes through `recoverReleaseGateIfWorkflowCompleted` (no behavior change for completed workflows).\n3. **GREEN** — add `store.changes.invalidate`; on the confirmed-done branch replace `refresh` with `invalidate`.\n4. **VERIFY** — `bin/oc-test targeted -- plugin/src/tools/change/archive-gate.test.ts plugin/src/tools/change/change.archive-phase9.test.ts` (#304 replay-loop avoids full `pnpm test` on phase9); existing T3 ambiguous-signal and `fixPhase9StatusSignal` tests stay green (SC3).\n5. **Live proof** — archive `fixDurableProofFallback` and `fixAdvRunTestPipefailFalse` (AC5).\n\n## Affected files\n- `plugin/src/tools/change/archive-gate.ts` — confirmed-done branch (L1203-1209): `refresh` → `invalidate`.\n- `plugin/src/storage/store-types.ts` — add `Store[\"changes\"].invalidate`.\n- `plugin/src/storage/store-temporal/changes.ts` — temporal impl (invalidate-only).\n- `plugin/src/storage/store-disk.ts` — disk no-op impl.\n- `plugin/src/tools/change/archive-gate.test.ts` — new repro + regression.\n\n## Risks & mitigations\n- **New public surface (`store.changes.invalidate`):** minimal, mirrors existing internal; disk no-ops. Mitigation: strict cache-drop semantics, typed.\n- **Residual query-lag (not cache):** if RED can't reproduce via cache, escalate to bounded store-backed confirmation (above). Mitigated by live-proof ACs.\n- **Refresh removal on this path (AV4):** invalidate preserves freshness (fresh re-query on next read); workflow is durable source of truth; retirement writes archive bundle. Mitigation: assert post-invalidate `store.gates.get` returns `done`.\n- **Phase9 test harness (#304):** use `bin/oc-test targeted`.\n\n## Spec-law compliance\n- `rq-releaseProjectionDurability01.1` ✓ — store-backed read reports `done` (fresh query after invalidate).\n- `rq-releaseRepairRecovery01` ✓ — recovery writer untouched; not used on running workflow.\n- `rq-cacheRefresh01` ✓ — cache dropped; next read fresh.\n- `fixDurableProofFallback` forge guard ✓ — proof/disk-fallback unchanged; no new provenance reason.\n",
+    "executiveSummary": "# Executive Summary — fixArchiveDurableProof\n\n## Outcome\n\nFixed a systemic ADV archive blocker: no shipped change could complete `adv_change_archive phase9:\"run\"`. Every archive failed at the durable release-gate proof with `Store-backed durable release gate proof did not observe release done` (`rq-releaseProjectionDurability01`), even though Phase 9 git finalization succeeded and the workflow confirmed the release gate `done`.\n\n## Why it matters\n\nThis was a hard blocker on the entire release/archive lifecycle — two shipped-to-trunk changes (`fixDurableProofFallback`, `fixAdvRunTestPipefailFalse`) were permanently unarchivable despite being merged and gate-done. Any future shipped change would hit the same wall. Unblocking archive restores the end of the ADV 7-gate lifecycle.\n\n## Root cause (verified against source)\n\nThe archive release-gate flow's `completeReleaseGateAfterFinalization` called `store.changes.refresh(changeId)` after polling confirmed the release gate `done`. `refresh`'s `dualWriteAfterMutation` re-queries the workflow and can cache a stale pre-signal `pending` snapshot (the residual `fixPhase9StatusSignal` race), poisoning the in-memory `changeCache` that `getTemporalChange` serves. The subsequent `verifyReleaseGateDurableForArchive` then read `pending` from the poisoned cache and blocked.\n\n## What changed\n\nA single, minimal, spec-law-compliant fix:\n- Added `store.changes.invalidate(changeId)` — a cache-drop-only operation (no readback query, no best-effort disk write) — to the Store interface, temporal store, and disk store (no-op).\n- On the confirmed-done branch of `completeReleaseGateAfterFinalization`, replaced `store.changes.refresh` with `store.changes.invalidate`. The proof's `store.gates.get` → `getTemporalChange` now misses the cache and queries the workflow fresh → `release=done`.\n\nDeliberately NOT changed: the durable proof, the disk-fallback, the audited recovery writer, and the `RELEASE_GATE_RECOVERY_REASONS` forge-guard allowlist. (An earlier design revision reused the recovery writer; the independent validator proved that violates `rq-releaseRepairRecovery01`, since the recovery writer is permitted only for completed/poisoned workflows. Rev 2 fixes the actual root cause — cache poisoning — instead.)\n\n## Verification\n\n- RED: a repro test models the #305 residual cache-poisoning race (refresh readback returns stale `pending` after the poll saw `done`) and fails on the pre-fix code; passes after the fix.\n- GREEN/VERIFY: `archive-gate.test.ts` (15 tests) and `change.archive-phase9.test.ts` (47 tests) green — 62 total, including a new AC4 forge-guard regression (forged/unrecognized recovery audit still rejected).\n- `pnpm run check` green: schemas, typecheck, lint, format, generated manifests, test-isolation, lockfile policy.\n- Independent review (adv-reviewer): verdict READY, zero blocking findings, no scope drift.\n\n## Spec-law compliance\n\n- `rq-releaseProjectionDurability01.1` ✓ — store-backed read reports `done` (fresh query after cache drop).\n- `rq-releaseRepairRecovery01` ✓ — recovery writer untouched; not used on a running workflow.\n- `rq-cacheRefresh01` ✓ — cache dropped; next read is fresh.\n- `fixDurableProofFallback` forge guard ✓ — proof/disk-fallback/allowlist unchanged.\n\n## Release Readiness Summary\n\n- **Static validation:** `pnpm run check` green (schemas, typecheck, lint, format:check, generated manifests, test-isolation, lockfile). `git diff --check` clean.\n- **Test evidence:** 62 targeted tests pass (archive-gate 15 + change.archive-phase9 47), independently re-confirmed by the orchestrator (durable run IDs tr_mrxtk3k2, tr_mrxtl2fi). Includes the #305 RED→GREEN repro and the AC4 forge-guard regression.\n- **Independent review:** adv-reviewer verdict READY (attempt 1), zero blocking/non-blocking findings, no scope drift, no required remediation.\n- **Spec-law conformance:** all four governing requirements satisfied (above).\n- **Change footprint:** +207/-30 across 6 files; 3 clean commits (ac8c3b9d, bed2f0db, 31448672).\n- **CI:** not yet observed (no PR pushed); runs during archive Phase 9 (PR → adv-ci-waiter → merge).\n- **Migration/data impact:** none — cache-drop only; no schema, data, or config migration.\n- **Collision/release risk:** low — focused, additive (one new no-op-ish public method + one call-site swap); no breaking API change; no other `store.changes.refresh` caller shares the confirmed-poll→immediate-durable-proof pattern (reviewer-confirmed; all left unchanged).\n\n## Risks & follow-ups\n\n- **AC5 (live proof) — post-deploy ops obligation:** archive `fixDurableProofFallback` and `fixAdvRunTestPipefailFalse` AFTER this change is merged + deployed + plugin restarted. Operationally this is a *post-release* verification (the archive *is* the merge; AC5 needs the deployed fix). The enabling code is verified at acceptance (unit tests are Store-boundary-modeled; AC5 confirms live Temporal behavior). If AC5 fails post-deploy, it surfaces as a new defect — high confidence it will pass given the verified root-cause fix.\n- **Residual-race fallback (documented, not triggered):** if a future case shows a fresh query returning `pending` despite the workflow holding `release=done` (a Temporal query-consistency issue independent of the cache), escalate to a bounded store-backed confirmation. The RED repro confirmed the cache-poisoning mechanism, so this fallback was not needed.\n- **Adjacent `store.changes.refresh` callers:** reviewer confirmed none share the confirmed-poll→immediate-durable-proof pattern; left unchanged.\n\n## Files\n\n`plugin/src/storage/store-types.ts`, `plugin/src/storage/store-temporal/changes.ts`, `plugin/src/storage/store-disk.ts`, `plugin/src/tools/change/archive-gate.ts`, `plugin/src/tools/change/archive-gate.test.ts`, `plugin/src/tools/change.archive-phase9.test.ts` (+207/-30, 3 commits).\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-23T19:09:06.763Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1 — Running-workflow confirmed-done archives:** A shipped change with a running workflow whose release gate was just signaled `done` and confirmed by `waitForArchiveReleaseGateCompletion` retires on the first archive attempt. (RED today: blocks with `Store-backed durable release gate proof did not observe release done`.) | pass | #305 cache-poisoning repro (archive-gate.test.ts): refresh readback returns stale pending after poll saw done; verifyReleaseGateDurableForArchive observes release=done post-fix. Run tr_mrxtk3k2_9c1b3ec2. |\n| AC2 | acceptance_criterion | **AC2 — Store-backed release-gate read reports done (corrected to validated rev-2):** On the confirmed-done branch, after the fix, `verifyReleaseGateDurableForArchive` observes `release.status === \"done\"` via the **store-backed** read (`store.gates.get` → `getTemporalChange` → fresh workflow query after cache invalidation), satisfying `rq-releaseProjectionDurability01.1`. No recovery disk write, no caller-trusted state, no change to the proof/disk-fallback/recovery-writer/allowlist. (The original rev-1 \"audited durable write via saveRecoveredGateCompletion\" was superseded — it violates `rq-releaseRepairRecovery01`.) | pass | Corrected rev-2 criterion: verifyReleaseGateDurableForArchive observes release=done via store-backed read (getTemporalChange fresh query after cache invalidation), rq-releaseProjectionDurability01.1. Asserted by the #305 repro (source:store). No recovery write, no caller-trusted state. Run tr_mrxtk3k2. |\n| AC3 | acceptance_criterion | **AC3 — Clobber-resistance:** The racing best-effort `voidPersist` from `store.changes.refresh` is eliminated on the confirmed-done path (replaced by `store.changes.invalidate`, cache-drop only — no readback, no disk write). The durable proof observes `done` even when a refresh readback would have returned stale `pending`. (Asserted via the query-sequence repro modeled on `fixPhase9StatusSignal`.) | pass | refresh->invalidate swap eliminates voidPersist on the confirmed-done branch (no readback, no disk write); repro models the cache-poisoning race and asserts done. Run tr_mrxtk3k2. |\n| AC4 | acceptance_criterion | **AC4 — Forge guard preserved:** A non-shipped change with a forged/unrecognized recovery audit is still rejected by `verifyReleaseGateDurableForArchive` (no regression to `fixDurableProofFallback`). The proof, disk-fallback, recovery writer, and `RELEASE_GATE_RECOVERY_REASONS` allowlist are unchanged. | pass | Forge-guard regression: non-shipped change with forged/unrecognized recovery_audit rejected. Proof/disk-fallback/recovery-writer/allowlist unchanged. Run tr_mrxtk3k2. |\n| AC5 | acceptance_criterion | **AC5 — No git/workflow mutation (was AC6):** The fix performs cache invalidation only — no git writes, no workflow start, no new signals beyond the existing `gateCompletedSignal`. | pass | Cache-drop only (store.changes.invalidate -> invalidateChange); no git writes, no workflow start, no new signals beyond gateCompletedSignal. Diff ec0e9136..HEAD confirms. |\n| SC1 | success_criterion | `archive-gate.test.ts` green, including the #305 residual cache-poisoning repro (where the refresh readback would return stale `pending` after the poll saw `done`) and the AC4 forge-guard regression. | pass | archive-gate.test.ts green incl #305 repro + AC4 forge-guard (15 tests, run tr_mrxtk3k2). |\n| SC2 | success_criterion | The `completeReleaseGateAfterFinalization` confirmed-done path calls `store.changes.invalidate` before returning `ok`, and `verifyReleaseGateDurableForArchive` reads `done` on the store-backed path (`source: \"store\"`). | pass | completeReleaseGateAfterFinalization confirmed-done branch calls invalidate before ok; proof reads release=done on store-backed path (source:store). |\n| SC3 | success_criterion | No regression in existing `completeReleaseGateAfterFinalization` tests (T3 ambiguous-signal reconcile, `fixPhase9StatusSignal` refresh-after-poll — updated to assert `invalidate` after the poll). | pass | T3 ambiguous-signal + fixPhase9StatusSignal (updated to assert invalidate after poll) tests green. Run tr_mrxtk3k2. |\n| SC4 | success_criterion | `change.archive-phase9.test.ts` green (no Store-interface regression from the new `invalidate`). | pass | change.archive-phase9.test.ts green (47 tests, run tr_mrxtl2fi) — no Store-interface regression from the new invalidate. |\n| C1 | constraint | **C1 — Independent-check preserved:** The durable proof must not trust caller-supplied state without structural/provenance backing (`rq-releaseProjectionDurability01`). The fix achieves durability via the store-backed fresh query, not a caller-trusted gate. | respected | Independent-check preserved: verifyReleaseGateDurableForArchive/loadAuditedDiskReleaseGate unchanged; no caller-trusted gate. rq-releaseProjectionDurability01.1 satisfied via fresh query. |\n| C2 | constraint | **C2 — Forge guard intact:** `RELEASE_GATE_RECOVERY_REASONS` allowlist (`archive-gate.ts` L898) is unchanged; no new provenance reason. | respected | RELEASE_GATE_RECOVERY_REASONS allowlist unchanged; no new provenance reason. |\n| C3 | constraint | **C3 — No git/workflow mutation** beyond cache invalidation. | respected | No git/workflow mutation; cache-drop only. |\n| C4 | constraint | **C4 — Test harness:** local full `pnpm test` on archive-phase9 hits #304 (replay loop); use `bin/oc-test targeted`. | respected | bin/oc-test targeted used (avoids #304 replay loop). |\n| C5 | constraint | **C5 — Reuse over bespoke:** the fix reuses the existing internal `invalidateChange` via a thin new public `store.changes.invalidate`. The recovery writer (`saveRecoveredGateCompletion`) is deliberately NOT reused (spec-forbidden on running workflows). | respected | Reuses existing internal invalidateChange via thin public store.changes.invalidate. Recovery writer deliberately not reused (spec-forbidden on running workflows). |\n| DONT1 | avoidance | **AV1** Do not weaken `verifyReleaseGateDurableForArchive` to trust a caller-passed gate object without a `recovery_audit` (violates C1; regresses `fixDurableProofFallback`). | respected | Proof not weakened; no caller-trusted gate without recovery_audit. Proof/disk-fallback unchanged. |\n| DONT2 | avoidance | **AV2** Do not introduce an unbounded `sleep`/retry loop to \"wait out\" the stale read — deterministic cache-drop, not timing-dependent. | respected | No sleep/retry loop; deterministic single cache-drop. |\n| DONT3 | avoidance | **AV3** Do not widen `RELEASE_GATE_RECOVERY_REASONS` or add a new recovery provenance (C2). | respected | Allowlist not widened; no new recovery reason. |\n| DONT4 | avoidance | **AV4** Do not remove `store.changes.refresh` globally; only swap to `invalidate` on the confirmed-done branch. Cache freshness is preserved (invalidate → fresh next read); other refresh callers are untouched. | respected | refresh not removed globally; only swapped to invalidate on the confirmed-done branch. Cache freshness preserved. Other refresh callers untouched (reviewer-confirmed). |\n| DONT5 | avoidance | **AV5** Do not add git writes, workflow starts, or new signals beyond `gateCompletedSignal`. | respected | No git writes, workflow starts, or new signals beyond gateCompletedSignal. |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-23T16:33:14.764Z",
+      "contentHash": "635fd510f0315f43c5619edb6478c2918a80f73a20098ed87629b9a4217405f5",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-07-23T17:09:32.191Z",
+      "contentHash": "7acab3e1b0e4d6f6fe8e7e8064d7393071a06f2e44ba8e9dfd3cad67e4f8984b",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-23T19:07:51.937Z",
+      "contentHash": "53e4d8274bbdb290ba18e9d6b5de7030bbfe4cff92092725cd70a1426b78e0ad",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-23T17:32:51.982Z",
+      "contentHash": "3d08dd5d68f969e72e80bf061e93f5dfe9c92c5ca22b7304f9417bcd1337e16b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T18:57:04.720Z",
+      "contentHash": "e5cdc335053a54ab0a2e3529d1a3709cf945088fc7068b4d2e883d693d03ec74",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T19:09:31.325Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}
