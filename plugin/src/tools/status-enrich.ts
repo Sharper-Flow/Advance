@@ -46,7 +46,6 @@ import {
   type EpicEntryInput,
 } from "../projection/resume-projection";
 import type { WorkNodeRef } from "../types/work-graph";
-import { nodeRefKey } from "../validator/work-graph-validation";
 
 export interface StatusSummaryOmissions {
   recentChanges: number;
@@ -1043,6 +1042,3 @@ export async function appendResumeProjectionRecommendations(
     // Resume projection recommendations are advisory; failure must not break status.
   }
 }
-
-// Re-export nodeRefKey for consumers that need the canonical work-graph key.
-export { nodeRefKey };
