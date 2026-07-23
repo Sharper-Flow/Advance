@@ -7,6 +7,8 @@
 
 import { z } from "zod";
 
+import { FutureWorkContextPacketSchema } from "./future-work";
+
 export const CURRENT_SCHEMA_VERSION = 1;
 
 // =============================================================================
@@ -51,6 +53,8 @@ export const BacklogItemSchema = z.object({
   archived_at: z.string().min(1).optional(),
   /** Promotion target, set when the item is promoted. */
   promoted_to: BacklogPromotionTargetSchema.optional(),
+  /** Optional durable future-work context packet for promotion planning. */
+  context_packet: FutureWorkContextPacketSchema.optional(),
 });
 
 export type BacklogItem = z.infer<typeof BacklogItemSchema>;

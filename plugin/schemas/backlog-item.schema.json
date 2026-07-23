@@ -7,6 +7,80 @@
       "minLength": 1,
       "type": "string"
     },
+    "context_packet": {
+      "additionalProperties": false,
+      "properties": {
+        "avoidances": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "background": {
+          "maxLength": 4096,
+          "type": "string"
+        },
+        "constraints": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "cross_project_target": {
+          "additionalProperties": false,
+          "properties": {
+            "project_hint": {
+              "maxLength": 200,
+              "type": "string"
+            },
+            "repo_url": {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            "target_path": {
+              "maxLength": 1024,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "design_seed": {
+          "maxLength": 6144,
+          "type": "string"
+        },
+        "references": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "locator": {
+                "maxLength": 2048,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "locator"
+            ],
+            "type": "object"
+          },
+          "maxItems": 12,
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "created_at": {
       "minLength": 1,
       "type": "string"

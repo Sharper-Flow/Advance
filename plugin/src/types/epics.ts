@@ -17,6 +17,7 @@
 
 import { z } from "zod";
 
+import { FutureWorkContextPacketSchema } from "./future-work";
 import { WorkNodeRefSchema } from "./work-graph";
 
 // =============================================================================
@@ -314,6 +315,12 @@ export const EpicShellEntrySchema = z.object({
    * (additive schema, no migration needed).
    */
   blocked_by: z.array(WorkNodeRefSchema).default([]),
+  /**
+   * Optional durable future-work context packet captured at promotion/import
+   * time. Carries background, references, constraints, avoidances, design
+   * seed, and cross-project target hints for downstream planning.
+   */
+  context_packet: FutureWorkContextPacketSchema.optional(),
 });
 
 export const EpicEntrySchema = z.discriminatedUnion("kind", [
