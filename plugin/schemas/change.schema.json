@@ -3462,6 +3462,7 @@
       "type": "array"
     },
     "same_project_dependencies": {
+      "default": [],
       "items": {
         "oneOf": [
           {
@@ -9031,7 +9032,8 @@
     "status",
     "created_at",
     "tasks",
-    "deltas"
+    "deltas",
+    "same_project_dependencies"
   ],
   "title": "ADV Change",
   "type": "object"

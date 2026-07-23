@@ -300,7 +300,7 @@ describe("Error result schemas", () => {
 });
 
 describe("Additive edge fields — pre-change corpus backward-compat (AC1, SC5)", () => {
-  test("EpicShellEntrySchema yields blocked_by: undefined when field absent (optional, consumer-normalized)", () => {
+  test("EpicShellEntrySchema yields blocked_by: [] when field absent (default([]))", () => {
     const preChangeShell = {
       kind: "shell",
       entry_id: "shell-1",
@@ -309,8 +309,8 @@ describe("Additive edge fields — pre-change corpus backward-compat (AC1, SC5)"
       success_hint: "Do the thing",
     };
     const parsed = EpicShellEntrySchema.parse(preChangeShell);
-    // Optional field: absent on pre-change corpus. Consumers normalize undefined → [].
-    expect(parsed.blocked_by).toBeUndefined();
+    // default([]) fills in [] on parse of absent field (AC1 additive schema).
+    expect(parsed.blocked_by).toEqual([]);
   });
 
   test("EpicShellEntrySchema parses blocked_by with edges", () => {
@@ -337,9 +337,9 @@ describe("Additive edge fields — pre-change corpus backward-compat (AC1, SC5)"
     });
   });
 
-  test("ChangeSchema yields same_project_dependencies: undefined when field absent (optional, consumer-normalized)", () => {
+  test("ChangeSchema yields same_project_dependencies: [] when field absent (default([]))", () => {
     // Minimal pre-change Change shape — only the required fields needed to parse.
-    // ChangeSchema is large; this test focuses on the new field's optional behavior.
+    // ChangeSchema is large; this test focuses on the new field's default behavior.
     const minimalChange = {
       id: "addFoo",
       title: "Add foo",
@@ -355,8 +355,8 @@ describe("Additive edge fields — pre-change corpus backward-compat (AC1, SC5)"
       reentry_history: [],
     };
     const parsed = ChangeSchema.parse(minimalChange);
-    // Optional field: absent on pre-change corpus. Consumers normalize undefined → [].
-    expect(parsed.same_project_dependencies).toBeUndefined();
+    // default([]) fills in [] on parse of absent field (AC1 additive schema).
+    expect(parsed.same_project_dependencies).toEqual([]);
   });
 
   test("ChangeSchema parses same_project_dependencies with edges", () => {

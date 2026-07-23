@@ -997,11 +997,10 @@ export const ChangeSchema = z
      * Same-project hard prerequisite edges (rq-workGraphTypes01 /
      * addDependencyAwareResume). Validated at mutation time (cycle-safe,
      * target-resolved). D3 enforcement refuses creation of a dependency-bearing
-     * active change whose prereqs are nonterminal. Optional (undefined ≡ [])
-     * matches the existing advisory-dependency convention; consumers normalize
-     * at read.
+     * active change whose prereqs are nonterminal. Default [] on absent
+     * field (additive schema, no migration needed).
      */
-    same_project_dependencies: z.array(WorkNodeRefSchema).optional(),
+    same_project_dependencies: z.array(WorkNodeRefSchema).default([]),
     /** Product-linked repo scope for this change. */
     scope_repos: z.array(ChangeRepoScopeSchema).optional(),
     /** Project IDs affected by this change for cross-workflow discovery. */

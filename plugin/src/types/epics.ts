@@ -310,10 +310,10 @@ export const EpicShellEntrySchema = z.object({
   /**
    * Same-project hard prerequisite edges. Validated at mutation time
    * (cycle-safe, target-resolved). D3 enforcement refuses promotion of a
-   * shell whose prereqs are nonterminal. Optional (undefined ≡ []) matches
-   * the existing advisory-dependency convention; consumers normalize at read.
+   * shell whose prereqs are nonterminal. Default [] on absent field
+   * (additive schema, no migration needed).
    */
-  blocked_by: z.array(WorkNodeRefSchema).optional(),
+  blocked_by: z.array(WorkNodeRefSchema).default([]),
 });
 
 export const EpicEntrySchema = z.discriminatedUnion("kind", [
