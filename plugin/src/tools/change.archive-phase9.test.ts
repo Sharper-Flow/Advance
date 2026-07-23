@@ -1381,6 +1381,69 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).not.toHaveBeenCalled();
   });
 
+  test("treats an audited disk proof as recovery and never signals the terminated workflow", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "adv-archive-disk-proof-retry-"));
+    const changesDir = join(tmp, "changes");
+    const changeDir = join(changesDir, "example");
+    const bundleDir = join(tmp, "archive", "example");
+
+    try {
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify({
+          id: "example",
+          title: "Example",
+          status: "archived",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "done" },
+            execution: { status: "done" },
+            acceptance: { status: "done" },
+            release: {
+              status: "done",
+              completed_at: "2026-01-01T00:00:00Z",
+              completed_by: "agent",
+              recovery_audit: {
+                reason: "missing_workflow",
+                evidence:
+                  "WorkflowNotFoundError: workflow execution already completed",
+                recovered_at: "2026-01-01T00:00:01Z",
+              },
+            },
+          },
+        }),
+      );
+      mocks.findArchiveBundle.mockResolvedValue(bundleDir);
+      const store = createMockStore({
+        status: "archived",
+        durableReleasePending: true,
+      });
+      store.paths.changes = changesDir;
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "example" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.saveRecoveredGateCompletion).not.toHaveBeenCalled();
+      expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
   test("recovers release projection when workflow completes during confirmation poll", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     let releaseGateQueries = 0;
