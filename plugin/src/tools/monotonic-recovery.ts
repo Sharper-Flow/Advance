@@ -99,6 +99,7 @@ export interface ClassifyMutationRecoveryArgs {
  * or via the disk-projection recovery writer. See module docstring for the
  * full authority model.
  */
+// rq-directMonotonicRecovery01: classify whether recovery can proceed via disk without operator.
 export async function classifyMutationRecoveryDecision(
   args: ClassifyMutationRecoveryArgs,
 ): Promise<MonotonicRecoveryDecision> {

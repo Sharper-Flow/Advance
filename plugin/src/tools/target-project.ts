@@ -227,6 +227,7 @@ function formatTargetMutationReadinessError(
   ].join("; ");
 }
 
+// rq-targetWorkerLifecycle01: ensure target project Temporal task queue is serviceable before mutation.
 export async function ensureTargetMutationQueueReady(input: {
   projectId: string;
   temporalBundle: NonNullable<ReturnType<typeof getService>>;
