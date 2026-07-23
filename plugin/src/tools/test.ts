@@ -271,12 +271,18 @@ const runCommand = async (
   return await new Promise<ExecResult>((resolve) => {
     let child: ChildProcess;
     try {
-      child = spawn(command, {
-        cwd,
-        shell: true,
-        detached: process.platform !== "win32",
-        windowsHide: true,
-      });
+      const isWindows = process.platform === "win32";
+      child = spawn(
+        isWindows ? command : "bash",
+        isWindows ? [] : ["-c", `set -o pipefail; ${command}`],
+        {
+          cwd,
+          shell: isWindows,
+          detached: process.platform !== "win32",
+          windowsHide: true,
+          env: process.env,
+        },
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       resolve({
