@@ -33,7 +33,9 @@ import type { OrphanListClient } from "../list-orphan-session-queues";
 import { OrphanQueueAdopter } from "../orphan-queue-adopter";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 
-const workflowsPath = fileURLToPath(new URL("../workflows.ts", import.meta.url));
+const workflowsPath = fileURLToPath(
+  new URL("../workflows.ts", import.meta.url),
+);
 
 const PROJECT_ID = "orphan-adopt-001";
 const SESSION_ID = "sess_AdoptE2E1";
