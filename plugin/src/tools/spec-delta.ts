@@ -40,7 +40,6 @@ import {
   type DeltaRename,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
-import { isPreciseWorkflowRecoveryEvidence } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -71,52 +70,6 @@ const targetArgs = {
       "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
     ),
 };
-
-// Recovery args retained for the trunk-introduced staged-delta CRUD tools
-// (adv_delta_amend/retract/remove/rename), which refuse disk-projection recovery
-// and surface a typed refusal. adv_delta_add/adv_delta_modify are arg-free per
-// this change (D4/AC5). Follow-up: extend routine-mutation arg removal to the
-// CRUD tools for full rq-recoverySurfaceRetirement01 consistency.
-const recoveryArgs = {
-  recoveryMode: z
-    .enum(["normal", "poisoned_history"])
-    .optional()
-    .describe(
-      "Optional recovery mode. 'poisoned_history' documents audited completed/poisoned-workflow evidence; this tool does not perform disk-projection recovery writes and refuses the operation instead.",
-    ),
-  recoveryEvidence: z
-    .string()
-    .optional()
-    .describe(
-      "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history or completed-workflow evidence (e.g. WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, TMPRL1100).",
-    ),
-  recoveryReason: z
-    .string()
-    .optional()
-    .describe(
-      "Required non-blank rationale when recoveryMode='poisoned_history'. Explains why the recovery was requested.",
-    ),
-};
-
-interface RecoveryValidation {
-  recoveryMode?: "normal" | "poisoned_history";
-  recoveryEvidence?: string;
-  recoveryReason?: string;
-}
-
-function validateRecoveryArgs(input: RecoveryValidation): string | undefined {
-  if (input.recoveryMode !== "poisoned_history") return undefined;
-  if (!input.recoveryEvidence?.trim()) {
-    return "poisoned_history recovery requires non-empty recoveryEvidence";
-  }
-  if (!isPreciseWorkflowRecoveryEvidence(input.recoveryEvidence)) {
-    return "poisoned_history recoveryEvidence must cite precise poisoned-history or completed-workflow evidence";
-  }
-  if (!input.recoveryReason?.trim()) {
-    return "poisoned_history recovery requires a non-blank recoveryReason";
-  }
-  return undefined;
-}
 
 interface DeltaValidation {
   delta?: unknown;
@@ -470,9 +423,6 @@ async function runAmend(
     deltaId: string;
     delta: Delta;
     amendedBy?: string;
-    recoveryMode?: "normal" | "poisoned_history";
-    recoveryEvidence?: string;
-    recoveryReason?: string;
   },
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
@@ -514,18 +464,6 @@ async function runAmend(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to amend spec delta";
-    if (input.recoveryMode === "poisoned_history") {
-      return formatToolOutput({
-        success: false,
-        error: `Spec delta amend failed and recovery was requested, but adv_delta_amend refuses the disk-projection recovery write because it would bypass the workflow reducer's invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the amendment from a healthy workflow. Underlying error: ${message}`,
-        changeId: input.changeId,
-        capability: input.capability,
-        recoveryMode: input.recoveryMode,
-        recoveryEvidence: input.recoveryEvidence,
-        recoveryReason: input.recoveryReason,
-        ...(projectContext ? { _projectContext: projectContext } : {}),
-      });
-    }
     return formatToolOutput({
       success: false,
       error: message,
@@ -543,9 +481,6 @@ async function runRetract(
     capability: string;
     deltaId: string;
     retractedBy?: string;
-    recoveryMode?: "normal" | "poisoned_history";
-    recoveryEvidence?: string;
-    recoveryReason?: string;
   },
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
@@ -585,18 +520,6 @@ async function runRetract(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to retract spec delta";
-    if (input.recoveryMode === "poisoned_history") {
-      return formatToolOutput({
-        success: false,
-        error: `Spec delta retract failed and recovery was requested, but adv_delta_retract refuses the disk-projection recovery write because it would bypass the workflow reducer's invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the retraction from a healthy workflow. Underlying error: ${message}`,
-        changeId: input.changeId,
-        capability: input.capability,
-        recoveryMode: input.recoveryMode,
-        recoveryEvidence: input.recoveryEvidence,
-        recoveryReason: input.recoveryReason,
-        ...(projectContext ? { _projectContext: projectContext } : {}),
-      });
-    }
     return formatToolOutput({
       success: false,
       error: message,
@@ -734,9 +657,6 @@ async function runRemove(
     capability: string;
     delta: DeltaRemove;
     removedBy?: string;
-    recoveryMode?: "normal" | "poisoned_history";
-    recoveryEvidence?: string;
-    recoveryReason?: string;
   },
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
@@ -810,18 +730,6 @@ async function runRemove(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to remove spec delta";
-    if (input.recoveryMode === "poisoned_history") {
-      return formatToolOutput({
-        success: false,
-        error: `Spec delta remove failed and recovery was requested, but adv_delta_remove refuses the disk-projection recovery write because it would bypass the workflow reducer's conflict-detection invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the removal from a healthy workflow. Underlying error: ${message}`,
-        changeId: input.changeId,
-        capability: input.capability,
-        recoveryMode: input.recoveryMode,
-        recoveryEvidence: input.recoveryEvidence,
-        recoveryReason: input.recoveryReason,
-        ...(projectContext ? { _projectContext: projectContext } : {}),
-      });
-    }
     return formatToolOutput({
       success: false,
       error: message,
@@ -839,9 +747,6 @@ async function runRename(
     capability: string;
     delta: DeltaRename;
     renamedBy?: string;
-    recoveryMode?: "normal" | "poisoned_history";
-    recoveryEvidence?: string;
-    recoveryReason?: string;
   },
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
@@ -906,18 +811,6 @@ async function runRename(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to rename spec delta";
-    if (input.recoveryMode === "poisoned_history") {
-      return formatToolOutput({
-        success: false,
-        error: `Spec delta rename failed and recovery was requested, but adv_delta_rename refuses the disk-projection recovery write because it would bypass the workflow reducer's invariants and the archive-as-sole-global-writer boundary. Recover the workflow and retry the rename from a healthy workflow. Underlying error: ${message}`,
-        changeId: input.changeId,
-        capability: input.capability,
-        recoveryMode: input.recoveryMode,
-        recoveryEvidence: input.recoveryEvidence,
-        recoveryReason: input.recoveryReason,
-        ...(projectContext ? { _projectContext: projectContext } : {}),
-      });
-    }
     return formatToolOutput({
       success: false,
       error: message,
@@ -1158,7 +1051,6 @@ export const specDeltaTools = {
         .optional()
         .describe("Optional audit identity recorded on the signal."),
       ...targetArgs,
-      ...recoveryArgs,
     },
     execute: async (
       {
@@ -1170,9 +1062,6 @@ export const specDeltaTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       }: {
         changeId: string;
         capability: string;
@@ -1182,9 +1071,6 @@ export const specDeltaTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
-        recoveryReason?: string;
       },
       store: Store,
     ) => {
@@ -1201,19 +1087,6 @@ export const specDeltaTools = {
         return formatToolOutput({
           success: false,
           error: deltaCheck.error ?? "Invalid delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      const recoveryError = validateRecoveryArgs({
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
-      });
-      if (recoveryError) {
-        return formatToolOutput({
-          success: false,
-          error: recoveryError,
           changeId,
           capability: capabilityCheck.capability,
         });
@@ -1239,9 +1112,6 @@ export const specDeltaTools = {
                   deltaId,
                   delta: validatedDelta,
                   amendedBy,
-                  recoveryMode,
-                  recoveryEvidence,
-                  recoveryReason,
                 },
                 formatTargetProjectContext(context),
               ),
@@ -1264,9 +1134,6 @@ export const specDeltaTools = {
         deltaId,
         delta: validatedDelta,
         amendedBy,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       });
     },
   },
@@ -1287,7 +1154,6 @@ export const specDeltaTools = {
         .optional()
         .describe("Optional audit identity recorded on the signal."),
       ...targetArgs,
-      ...recoveryArgs,
     },
     execute: async (
       {
@@ -1298,9 +1164,6 @@ export const specDeltaTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       }: {
         changeId: string;
         capability: string;
@@ -1309,9 +1172,6 @@ export const specDeltaTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
-        recoveryReason?: string;
       },
       store: Store,
     ) => {
@@ -1321,19 +1181,6 @@ export const specDeltaTools = {
           success: false,
           error: capabilityCheck.error ?? "Invalid capability",
           changeId,
-        });
-      }
-      const recoveryError = validateRecoveryArgs({
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
-      });
-      if (recoveryError) {
-        return formatToolOutput({
-          success: false,
-          error: recoveryError,
-          changeId,
-          capability: capabilityCheck.capability,
         });
       }
       const validatedCapability = capabilityCheck.capability;
@@ -1355,9 +1202,6 @@ export const specDeltaTools = {
                   capability: validatedCapability,
                   deltaId,
                   retractedBy,
-                  recoveryMode,
-                  recoveryEvidence,
-                  recoveryReason,
                 },
                 formatTargetProjectContext(context),
               ),
@@ -1379,9 +1223,6 @@ export const specDeltaTools = {
         capability: validatedCapability,
         deltaId,
         retractedBy,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       });
     },
   },
@@ -1404,7 +1245,6 @@ export const specDeltaTools = {
         .optional()
         .describe("Optional audit identity recorded on the signal."),
       ...targetArgs,
-      ...recoveryArgs,
     },
     execute: async (
       {
@@ -1415,9 +1255,6 @@ export const specDeltaTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       }: {
         changeId: string;
         capability: string;
@@ -1426,9 +1263,6 @@ export const specDeltaTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
-        recoveryReason?: string;
       },
       store: Store,
     ) => {
@@ -1445,19 +1279,6 @@ export const specDeltaTools = {
         return formatToolOutput({
           success: false,
           error: deltaCheck.error ?? "Invalid remove delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      const recoveryError = validateRecoveryArgs({
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
-      });
-      if (recoveryError) {
-        return formatToolOutput({
-          success: false,
-          error: recoveryError,
           changeId,
           capability: capabilityCheck.capability,
         });
@@ -1482,9 +1303,6 @@ export const specDeltaTools = {
                   capability: validatedCapability,
                   delta: validatedDelta,
                   removedBy,
-                  recoveryMode,
-                  recoveryEvidence,
-                  recoveryReason,
                 },
                 formatTargetProjectContext(context),
               ),
@@ -1506,9 +1324,6 @@ export const specDeltaTools = {
         capability: validatedCapability,
         delta: validatedDelta,
         removedBy,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       });
     },
   },
@@ -1531,7 +1346,6 @@ export const specDeltaTools = {
         .optional()
         .describe("Optional audit identity recorded on the signal."),
       ...targetArgs,
-      ...recoveryArgs,
     },
     execute: async (
       {
@@ -1542,9 +1356,6 @@ export const specDeltaTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       }: {
         changeId: string;
         capability: string;
@@ -1553,9 +1364,6 @@ export const specDeltaTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
-        recoveryMode?: "normal" | "poisoned_history";
-        recoveryEvidence?: string;
-        recoveryReason?: string;
       },
       store: Store,
     ) => {
@@ -1572,19 +1380,6 @@ export const specDeltaTools = {
         return formatToolOutput({
           success: false,
           error: deltaCheck.error ?? "Invalid rename delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      const recoveryError = validateRecoveryArgs({
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
-      });
-      if (recoveryError) {
-        return formatToolOutput({
-          success: false,
-          error: recoveryError,
           changeId,
           capability: capabilityCheck.capability,
         });
@@ -1609,9 +1404,6 @@ export const specDeltaTools = {
                   capability: validatedCapability,
                   delta: validatedDelta,
                   renamedBy,
-                  recoveryMode,
-                  recoveryEvidence,
-                  recoveryReason,
                 },
                 formatTargetProjectContext(context),
               ),
@@ -1633,9 +1425,6 @@ export const specDeltaTools = {
         capability: validatedCapability,
         delta: validatedDelta,
         renamedBy,
-        recoveryMode,
-        recoveryEvidence,
-        recoveryReason,
       });
     },
   },

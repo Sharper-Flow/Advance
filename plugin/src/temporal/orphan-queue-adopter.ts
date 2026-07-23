@@ -153,7 +153,7 @@ export class OrphanQueueAdopter {
   }
 
   /**
-   * Diagnostic surface for adv_temporal_diagnose + adv_status.
+   * Diagnostic surface for adv_doctor + adv_status.
    * DDC3: cap at 50 entries.
    */
   getDiagnostics(): OrphanQueueAdopterDiagnostics {
