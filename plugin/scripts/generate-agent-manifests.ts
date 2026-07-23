@@ -28,8 +28,7 @@ export const ADV_TOOLS_BLOCK_END = "  # <<< ADV-GENERATED adv_* tools <<<";
  * reachable through Code Mode as `tools.adv.*` even when the host-plugin
  * manifest denies `adv_*`.
  */
-const TIER_4_INVOKE_ROUTING_NOTE =
-  " Tier-4 read tools are also discoverable via `tools.adv.*` under Code Mode (call inside the `execute` tool).";
+const TIER_4_INVOKE_ROUTING_NOTE = " Tier-4 reads also via `tools.adv.*`.";
 
 const ADV_TOOL_ENTRY_RE = /^\s+(adv_[A-Za-z0-9_*]+):\s*(true|false)\s*$/;
 
@@ -263,10 +262,14 @@ export function generateManifestContent(
  * part of the contract surface the generator keeps synchronized.
  */
 function injectTier4InvokeRoutingNote(content: string): string {
-  if (content.includes(TIER_4_INVOKE_ROUTING_NOTE)) {
-    return content;
-  }
-  return content.replace(
+  // Strip any previously-injected Tier-4 note (idempotent across note edits so
+  // re-runs with a changed note don't accumulate), then append the canonical
+  // note after the "for schemas." anchor.
+  const cleaned = content.replace(
+    /(> \*\*Invoke routing:\*\*.*?for schemas\.) Tier-4[^\n]*/,
+    "$1",
+  );
+  return cleaned.replace(
     /(> \*\*Invoke routing:\*\*.*?for schemas\.)(\n?)/,
     `$1${TIER_4_INVOKE_ROUTING_NOTE}$2`,
   );
