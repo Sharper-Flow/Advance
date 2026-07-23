@@ -41,6 +41,7 @@ import type {
   WorkNodeRef,
 } from "../types";
 import type { GateProgress } from "./store-temporal-memo";
+import type { TemporalReadContext } from "./store-temporal/read-context";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
 
@@ -231,7 +232,10 @@ export interface Store {
        */
       validationConcurrency?: number;
     }) => Promise<ChangeListResponse>;
-    get: (changeId: string) => Promise<LoadResult<Change | null>>;
+    get: (
+      changeId: string,
+      opts?: { context?: TemporalReadContext },
+    ) => Promise<LoadResult<Change | null>>;
     /**
      * Create a new change. Options-object API — single typed call shape:
      *

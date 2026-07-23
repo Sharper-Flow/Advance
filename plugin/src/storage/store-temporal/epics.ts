@@ -24,6 +24,7 @@ import {
   createTemporalReadContext,
   runTemporalRead,
   getTemporalConnection,
+  isTemporalReadExpired,
   TemporalQueryTimeoutError,
   type StoreDeps,
   type TemporalReadContext,
@@ -370,11 +371,14 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
   > {
     try {
       const state = await queryEpicStateRead(handle, ctx);
+      ctx.recordResponsiveMember();
       return { kind: "ok", state };
     } catch (error) {
       if (isWorkflowNotFoundError(error)) return { kind: "not_found" };
-      if (error instanceof TemporalQueryTimeoutError)
+      if (error instanceof TemporalQueryTimeoutError) {
+        ctx.recordUnresponsiveMember();
         return { kind: "unresponsive" };
+      }
       throw error;
     }
   }
@@ -615,6 +619,10 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       const ctx = createTemporalReadContext();
       const epics: Epic[] = [];
       for (const id of ids) {
+        // Short-circuit once the per-request circuit-breaker trips (K=3
+        // consecutive unresponsive Epics) or the aggregate deadline expires;
+        // remaining Epics are skipped rather than each burning the per-member cap.
+        if (ctx.isCircuitBreakerTripped() || isTemporalReadExpired(ctx)) break;
         try {
           const result = await queryEpic(id, ctx);
           if (result.kind === "ok") epics.push(result.epic);

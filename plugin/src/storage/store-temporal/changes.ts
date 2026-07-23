@@ -55,6 +55,7 @@ import {
   createTemporalReadDeadline,
   createTemporalReadContext,
   isTemporalReadExpired,
+  type TemporalReadContext,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
   TemporalQueryTimeoutError,
@@ -647,12 +648,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           : {}),
       };
     },
-    get: async (changeId: string) => {
+    get: async (changeId: string, opts?: { context?: TemporalReadContext }) => {
       // Delegates to the shared orphan-tolerant path so adv_status,
       // adv_change_show, and adv_change_list all behave the same when
       // a workflow is missing: try to re-seed from disk, otherwise
       // return the not-found error.
-      const ctx = createTemporalReadContext();
+      // A caller-supplied context threads the per-request circuit-breaker
+      // across members (e.g. epic convergence), so K unresponsive children
+      // trip the CB once instead of each burning the full per-member budget.
+      const ctx = opts?.context ?? createTemporalReadContext();
       return getTemporalChange(changeId, { context: ctx });
     },
     refresh: async (changeId: string): Promise<void> => {
