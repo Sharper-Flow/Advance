@@ -842,4 +842,34 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
       ),
     });
   });
+
+  it("accepts a shipped change whose release gate is done via shipped bypass (store path, no audit required)", async () => {
+    // Two-path forge guard (validator-confirmed): the LIVE STORE path accepts a
+    // done release gate when finalization is shipped (git-confirmed
+    // reachability is authoritative) WITHOUT requiring a recovery audit or
+    // allowlisted reason — even when the approval evidence does NOT substring-
+    // match the structured completion evidence. Only the disk fallback
+    // (loadAuditedDiskReleaseGate) requires audited + allowlisted reason.
+    const doneNoAudit = {
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "adv-archive",
+      approval_evidence: "free-text-manual-approval-notes",
+    };
+    const store = {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({ release: doneNoAudit })),
+      },
+    } as unknown as Store;
+
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "shippedBypass",
+      evidence: "structured-phase9-evidence",
+      finalizationStatus: "shipped",
+    });
+
+    expect(durableProof).toMatchObject({ ok: true, source: "store" });
+  });
 });
