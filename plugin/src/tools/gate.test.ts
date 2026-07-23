@@ -284,6 +284,52 @@ describe("gate tools — signal-driven lifecycle", () => {
       });
     });
 
+    test("invalidates re-poisoned cache after non-release gate confirmation", async () => {
+      const pendingGates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const freshGates = {
+        ...pendingGates,
+        planning: { status: "done" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates: pendingGates });
+      let cachedGates = pendingGates;
+      const getCachedChange = store.changes.get;
+      store.changes.get = vi.fn(async () => {
+        const result = await getCachedChange("test-change");
+        return {
+          ...result,
+          data: { ...result.data, gates: cachedGates },
+        };
+      });
+      store.changes.invalidate = vi.fn(async () => {
+        cachedGates = freshGates;
+      });
+      mocks.querySignal.mockResolvedValueOnce(pendingGates).mockResolvedValueOnce({
+        status: "done",
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "planning",
+          userApproved: true,
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      expect(JSON.parse(result).success).toBe(true);
+      const readback = await store.changes.get("test-change");
+      expect(readback.data?.gates.planning.status).toBe("done");
+    });
+
     test("passes compatibilityReason for acceptance gate completion", async () => {
       const gates = {
         proposal: { status: "done" },
