@@ -1731,6 +1731,27 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
+  test("rejects top-level implementation_cycle_id with apply_context binding hint", async () => {
+    const store = storeFor(change());
+    const report = {
+      ...engineerReport(),
+      implementation_cycle_id: "ic-frontend",
+    };
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.code).toBe("INVALID_REPORT");
+    expect(output.error).toContain("apply_context.implementation_cycle_id");
+    expect(output.error).toContain("implementation_provenance");
+    expect(output.error).toContain("report_key");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
   test("plugin preflight caps nested report issues at 10 and signals no mutation", async () => {
     // rq-fixWorkflowReliabilityDefects/AC4: when the canonical preflight
     // catches nested report issues, the SDK-registered tool emits bounded

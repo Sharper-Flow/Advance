@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 
 import {
+  buildApplyContextBindingHint,
   ChangeReportScopeKeySchema,
   DesignConcernDispositionSchema,
   DesignerSubagentReportSchema,
   EngineerSubagentReportSchema,
+  formatApplyContextBindingHint,
   getSubagentReportPacketAnchors,
   normalizePersistedSubagentReportState,
   type PersistedSubagentReportAgent,
@@ -14,6 +16,7 @@ import {
   ReviewerSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
   ScopedSubagentReportSchema,
+  SubagentApplyContextSchema,
   SUBAGENT_REPORT_FIELD_SOURCES,
   SUBAGENT_REPORT_PACKET_ANCHORS,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
@@ -1192,5 +1195,25 @@ describe("subagentReportKey", () => {
         attempt: 1,
       }),
     ).toBe("fixLoopLedgerRegressions|unknown-scope|adv-tron|1");
+  });
+});
+
+describe("apply_context binding hint", () => {
+  it("buildApplyContextBindingHint returns the required path and a minimal valid example", () => {
+    const hint = buildApplyContextBindingHint();
+    expect(hint.path).toBe("apply_context.implementation_cycle_id");
+    expect(hint.example).toContain("implementation_cycle_id");
+    expect(hint.example).toContain("implementation_provenance");
+    expect(
+      SubagentApplyContextSchema.safeParse(JSON.parse(hint.example)).success,
+    ).toBe(true);
+  });
+
+  it("formatApplyContextBindingHint renders the path and example for appending to messages", () => {
+    const formatted = formatApplyContextBindingHint();
+    expect(formatted).toContain("apply_context.implementation_cycle_id");
+    expect(formatted).toContain("implementation_provenance");
+    expect(formatted).toContain("implementation_cycle_id");
+    expect(formatted).toContain("report_key");
   });
 });

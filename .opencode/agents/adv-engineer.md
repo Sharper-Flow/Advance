@@ -161,6 +161,24 @@ When scope is complete:
 2. **State what NOT to revisit** — explicitly list things that should be left alone
 3. **Submit ENGINEER_REPORT** — call `adv_subagent_report_submit` with the structured JSON payload below
 
+## Apply Context Binding
+
+When the work is the implementation receipt for a classified frontend task, bind the active `implementation_cycle_id` under `report.apply_context` (not at the top level). A top-level `implementation_cycle_id` is rejected by the strict report schema.
+
+Valid `implementation_provenance.kind` variants: `engineer` (`baseline_head_sha`), `engineer_report` (`report_key`), `inline` (`baseline_head_sha` + `diff_ref`).
+
+Canonical shape:
+
+```json
+"apply_context": {
+  "implementation_cycle_id": "ic_<active-cycle-id>",
+  "implementation_provenance": {
+    "kind": "engineer_report",
+    "report_key": "<stable engineer report key>"
+  }
+}
+```
+
 ## Local Code Exploration Priority
 
 1. **Intent/concept discovery** — lgrep semantic search
