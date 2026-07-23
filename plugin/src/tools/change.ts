@@ -3630,7 +3630,7 @@ export const changeTools = {
             store,
             changeId,
             evidence: releaseEvidence,
-            finalizationShipped: finalization.status === "shipped",
+            finalizationStatus: finalization.status,
           });
           if (!durableProof.ok) {
             return formatToolOutput({
