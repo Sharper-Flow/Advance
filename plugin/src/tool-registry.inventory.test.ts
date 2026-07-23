@@ -115,6 +115,10 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_tool_invoke",
   // replaceRecoveryToolSprawl added the consolidated doctor entry point:
   "adv_doctor",
+  // resume-projection Phase E added the resume-projection MCP tool + bin
+  // adapter (feat 9f39317e); a legitimate registered public tool that was
+  // never recorded in this reintroduction-guard accounting.
+  "adv_resume_projection",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -315,8 +319,14 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // addLightweightChangeProfile then added the lightweight profile evaluate
     // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
     // catalog and describe tools (83 = 80 - 2 + 5); restoreDesignerFollowUp
-    // adds the typed modify writer (84 = 80 - 2 + 6); this change retires
-    // one additional public tool whose name is omitted per AC4 (83 = 80 - 3 + 6).
+    // adds the typed modify writer (84 = 80 - 2 + 6); the ROADMAP-retirement
+    // change removed one additional public tool whose name is omitted per AC4
+    // (83 = 80 - 3 + 6). Subsequent landed changes: replaceRecoveryToolSprawl
+    // removed 8 recovery tools (now in CONTRACTED_PUBLIC_REMOVALS) and added
+    // adv_doctor; the staged-delta write/read vocabulary + adv_tool_invoke
+    // landed as additions; and resume-projection Phase E added
+    // adv_resume_projection. Net tracked totals: 10 named removals + 1 unnamed
+    // (roadmap) removal, 15 additions => 84 = 80 - 10 - 1 + 15.
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) -
         landedRemovals -
