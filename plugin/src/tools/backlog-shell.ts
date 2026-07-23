@@ -113,7 +113,9 @@ export const backlogShellTools = {
       store: Store,
     ) => {
       try {
-        let validatedPacket: import("../types/future-work").FutureWorkContextPacket | undefined;
+        let validatedPacket:
+          | import("../types/future-work").FutureWorkContextPacket
+          | undefined;
         if (context_packet !== undefined) {
           const validation = validateContextPacket(context_packet);
           if (!validation.ok) {

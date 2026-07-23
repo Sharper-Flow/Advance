@@ -648,7 +648,15 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     addShell: async (
       epicId,
-      { entryId, title, successHint, order, importedFrom, blockedBy, context_packet },
+      {
+        entryId,
+        title,
+        successHint,
+        order,
+        importedFrom,
+        blockedBy,
+        context_packet,
+      },
     ) => {
       await assertEpicExists(epicId);
       const handle = getEpicHandle(epicId);

@@ -77,6 +77,9 @@ export function assertEpicAggregatePackets(
     }, 0) + incomingBytes;
 
   if (aggregateBytes > EPIC_AGGREGATE_LIMIT) {
-    throw new EpicAggregatePacketsExceededError(aggregateBytes, EPIC_AGGREGATE_LIMIT);
+    throw new EpicAggregatePacketsExceededError(
+      aggregateBytes,
+      EPIC_AGGREGATE_LIMIT,
+    );
   }
 }

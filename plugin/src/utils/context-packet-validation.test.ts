@@ -16,7 +16,7 @@ function repeat(char: string, count: number): string {
 
 function buildLargePacket(byteTarget: number): FutureWorkContextPacket {
   const background = repeat("b", 4096);
-  const references = Array.from({ length: 12 }, (_, i) => ({
+  const references = Array.from({ length: 12 }, () => ({
     label: repeat("l", 200),
     locator: repeat("x", 2048),
   }));
@@ -107,7 +107,7 @@ describe("assertPacketSize", () => {
   it("passes for a packet just under 16 KiB", () => {
     const packet: FutureWorkContextPacket = {
       background: repeat("b", 4096),
-      references: Array.from({ length: 2 }, (_, i) => ({
+      references: Array.from({ length: 2 }, () => ({
         label: repeat("l", 50),
         locator: repeat("x", 100),
       })),
@@ -174,13 +174,11 @@ describe("assertEpicAggregatePackets", () => {
   });
 
   it("includes an optional incomingBytes parameter in the aggregate", () => {
-    const entries = [
-      entryWithPacket({ design_seed: repeat("d", 1000) }),
-    ];
+    const entries = [entryWithPacket({ design_seed: repeat("d", 1000) })];
 
-    expect(() =>
-      assertEpicAggregatePackets(entries, 262150),
-    ).toThrow(EpicAggregatePacketsExceededError);
+    expect(() => assertEpicAggregatePackets(entries, 262150)).toThrow(
+      EpicAggregatePacketsExceededError,
+    );
 
     const aggregate = Buffer.byteLength(
       JSON.stringify(entries[0].context_packet ?? {}),
