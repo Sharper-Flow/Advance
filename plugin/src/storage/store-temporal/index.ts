@@ -68,6 +68,10 @@ import {
   enforceMutationEligibilityForError,
   composeTypedMutationResult,
 } from "../../temporal/mutation-safety";
+import {
+  assertDurablePersist,
+  type DiskPersistOutcome,
+} from "./disk-persist";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
@@ -212,41 +216,69 @@ export function createTemporalStoreBackend(
    * in Temporal are silently lost. Dual-writing keeps disk current so
    * reseeds preserve work.
    *
-   * Failures are logged but never thrown — disk write is a durability
-   * fallback, not a correctness gate. Temporal remains the source of
-   * truth during the live session.
+   * Returns a typed {@link DiskPersistOutcome} (persisted | skipped:archived |
+   * failed) and never throws itself. Durability-critical callers route through
+   * `persistStateToDiskDurable` (await + throw on failure) so `success:true`
+   * means durable on disk; non-critical hot paths use `voidPersist` to keep
+   * the explicit best-effort behavior. This replaces the previous
+   * unawaited/swallow-on-failure dual-write that let success outrun disk
+   * durability (change gateMutationSuccessDisk).
    */
-  const persistStateToDisk = (
+  const persistStateToDisk = async (
     changeId: string,
     state: ChangeWorkflowState,
-  ): void => {
+  ): Promise<DiskPersistOutcome> => {
     if (state.status === "archived") {
       logger.debug(
         `Disk dual-write skipped for archived change ${changeId}: archive bundle is the durable snapshot`,
       );
-      return;
+      return { kind: "skipped", reason: "archived" };
     }
-    void (async () => {
-      try {
-        const overlay = changeOverlayCache.get(changeId);
-        const mapped: Change = {
-          ...mapTemporalChangeStateToChange(state),
-          ...(overlay ?? {}),
-          tasks: state.tasks,
-          wisdom: state.wisdom,
-          gates: state.gates,
-          reentry_history: state.reentry_history,
-          fast_follow_of: state.fast_follow_of,
-        };
-        await legacy.changes.save(mapped);
-      } catch (err) {
-        logger.debug(
-          `Disk dual-write skipped for change ${changeId}: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
-      }
-    })();
+    try {
+      const overlay = changeOverlayCache.get(changeId);
+      const mapped: Change = {
+        ...mapTemporalChangeStateToChange(state),
+        ...(overlay ?? {}),
+        tasks: state.tasks,
+        wisdom: state.wisdom,
+        gates: state.gates,
+        reentry_history: state.reentry_history,
+        fast_follow_of: state.fast_follow_of,
+      };
+      await legacy.changes.save(mapped);
+      return { kind: "persisted" };
+    } catch (err) {
+      logger.debug(
+        `Disk dual-write failed for change ${changeId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return { kind: "failed", error: err };
+    }
+  };
+
+  /**
+   * Durability-critical variant: await the projection write and throw a typed
+   * `DiskProjectionPersistError` if it failed, so a durable-mutation caller
+   * never returns `success:true` without a durable disk projection
+   * (AC2/AC5/AC7). Used by spec-delta, gate-completion, wisdom, and task
+   * mutations via the durable dual-write path.
+   */
+  const persistStateToDiskDurable = async (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ): Promise<void> => {
+    assertDurablePersist(changeId, await persistStateToDisk(changeId, state));
+  };
+
+  /**
+   * Explicit best-effort variant for non-durability-critical hot paths: fire
+   * the projection write without gating the caller's success. Failure is
+   * logged at debug inside `persistStateToDisk` and never thrown. Making the
+   * fire-and-forget choice explicit at the call site is the AC6 boundary.
+   */
+  const voidPersist = (changeId: string, state: ChangeWorkflowState): void => {
+    void persistStateToDisk(changeId, state);
   };
 
   /**
@@ -294,7 +326,29 @@ export function createTemporalStoreBackend(
     const state = readbackValue;
     setCachedChange(state);
     emitChangeSummarySignal(changeId, state);
-    persistStateToDisk(changeId, state);
+    // Best-effort by design: this is a cache-refresh path (changes.refresh,
+    // epic-membership) whose owning mutation is already Temporal-durable.
+    // Durability-critical mutations persist their own confirmed state via
+    // persistAndRefreshDurable / persistStateToDiskDurable instead.
+    voidPersist(changeId, state);
+  };
+
+  /**
+   * Durable persist + cache refresh for mutations that already hold confirmed
+   * post-mutation state (notably task mutations, which previously routed
+   * through the best-effort `dualWriteAfterMutation` redundant re-query). Uses
+   * the caller's confirmed state directly — avoiding a redundant readback that
+   * could yield a false-negative — refreshes the cache + summary, then durably
+   * persists, throwing `DiskProjectionPersistError` on disk failure so success
+   * never outruns disk durability (AC2/AC5/AC7).
+   */
+  const persistAndRefreshDurable = async (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ): Promise<void> => {
+    setCachedChange(state);
+    emitChangeSummarySignal(changeId, state);
+    await persistStateToDiskDurable(changeId, state);
   };
 
   const invalidateChange = (changeId: string): void => {
@@ -1895,6 +1949,8 @@ export function createTemporalStoreBackend(
     updateOverlay,
     emitChangeSummarySignal,
     persistStateToDisk,
+    persistStateToDiskDurable,
+    persistAndRefreshDurable,
     dualWriteAfterMutation,
     getTemporalWorkflowClient,
     resolveStateOrQuery,
