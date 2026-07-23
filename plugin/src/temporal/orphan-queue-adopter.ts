@@ -51,6 +51,17 @@ export interface OrphanQueueAdopterState {
   perQueueState: Map<string, PerQueueAdoptionState>;
 }
 
+export interface OrphanQueueAdoptionDiagnostics {
+  scanInFlight: boolean;
+  trackedQueues: Array<{
+    queue: string;
+    attemptCount: number;
+    lastAttemptAt: number;
+    cooldownUntil: number;
+    inCooldown: boolean;
+  }>;
+}
+
 const DEFAULT_TICK_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_COOLDOWN_MS = 5 * 60_000;
@@ -86,7 +97,9 @@ export const ADV_ORPHAN_QUEUE_ADOPTION_DISABLE = "0";
 export function isOrphanQueueAdoptionEnabled(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return env[ADV_ORPHAN_QUEUE_ADOPTION_ENV] !== ADV_ORPHAN_QUEUE_ADOPTION_DISABLE;
+  return (
+    env[ADV_ORPHAN_QUEUE_ADOPTION_ENV] !== ADV_ORPHAN_QUEUE_ADOPTION_DISABLE
+  );
 }
 
 export class OrphanQueueAdopter {
@@ -192,16 +205,7 @@ export class OrphanQueueAdopter {
    * Serializable diagnostic surface consumed by `getOrphanQueueAdoptionDiagnostics`
    * → `adv_doctor` + `adv_status view:health` (rq-isolSessionTaskQueue05 / AC7).
    */
-  getDiagnostics(): {
-    scanInFlight: boolean;
-    trackedQueues: Array<{
-      queue: string;
-      attemptCount: number;
-      lastAttemptAt: number;
-      cooldownUntil: number;
-      inCooldown: boolean;
-    }>;
-  } {
+  getDiagnostics(): OrphanQueueAdoptionDiagnostics {
     const now = this.now();
     return {
       scanInFlight: this.scanInFlight,

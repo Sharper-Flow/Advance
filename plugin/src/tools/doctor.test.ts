@@ -24,6 +24,7 @@ const checkAdvSearchAttributesMock = vi.hoisted(() => vi.fn());
 const registerMissingAdvSearchAttributesMock = vi.hoisted(() => vi.fn());
 const restartCurrentProjectTemporalWorkerMock = vi.hoisted(() => vi.fn());
 const getTemporalWorkerDiagnosticsMock = vi.hoisted(() => vi.fn());
+const getOrphanQueueAdoptionDiagnosticsMock = vi.hoisted(() => vi.fn());
 const probeTaskQueuePollersMock = vi.hoisted(() => vi.fn());
 const getProjectIdMock = vi.hoisted(() => vi.fn());
 
@@ -48,6 +49,7 @@ vi.mock("../plugin-init", () => ({
   getRegisteredTemporalWorkerQueues: vi.fn(() => []),
   getTemporalWorkerAliveness: vi.fn(),
   getTemporalWorkerDiagnostics: getTemporalWorkerDiagnosticsMock,
+  getOrphanQueueAdoptionDiagnostics: getOrphanQueueAdoptionDiagnosticsMock,
   restartCurrentProjectTemporalWorker: restartCurrentProjectTemporalWorkerMock,
 }));
 
@@ -131,6 +133,7 @@ function setHealthy() {
       ],
     },
   ]);
+  getOrphanQueueAdoptionDiagnosticsMock.mockReturnValue(null);
   checkAdvSearchAttributesMock.mockResolvedValue({
     ok: true,
     present: [{ name: "AdvChangeId" }, { name: "AdvChangeStatus" }],
@@ -174,6 +177,68 @@ describe("adv_doctor", () => {
     expect(parsed.fixes_applied).toEqual([]);
     expect(parsed.fixes_refused).toEqual([]);
     expect(parsed.verification.healthy).toBe(true);
+  });
+
+  test("renders disabled orphan-queue adoption when no adopter is active", async () => {
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.orphan_queue_adoption).toEqual({
+      enabled: false,
+      note: "orphan-queue adoption: disabled (no active adopter)",
+    });
+  });
+
+  test("renders populated orphan-queue adoption diagnostics", async () => {
+    getOrphanQueueAdoptionDiagnosticsMock.mockReturnValue({
+      scanInFlight: true,
+      trackedQueues: [
+        {
+          queue: "sess_opaque",
+          attemptCount: 2,
+          lastAttemptAt: 100,
+          cooldownUntil: 200,
+          inCooldown: true,
+        },
+      ],
+    });
+
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.orphan_queue_adoption).toEqual({
+      enabled: true,
+      scanInFlight: true,
+      trackedQueues: [
+        {
+          queue: "sess_opaque",
+          attemptCount: 2,
+          lastAttemptAt: 100,
+          cooldownUntil: 200,
+          inCooldown: true,
+        },
+      ],
+      omittedTrackedQueues: 0,
+    });
+  });
+
+  test("caps displayed orphan-queue diagnostics at 50 entries", async () => {
+    getOrphanQueueAdoptionDiagnosticsMock.mockReturnValue({
+      scanInFlight: false,
+      trackedQueues: Array.from({ length: 52 }, (_, index) => ({
+        queue: `sess_${index}`,
+        attemptCount: 3,
+        lastAttemptAt: index,
+        cooldownUntil: 0,
+        inCooldown: false,
+      })),
+    });
+
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.orphan_queue_adoption.trackedQueues).toHaveLength(50);
+    expect(parsed.orphan_queue_adoption.omittedTrackedQueues).toBe(2);
   });
 
   test("stale transport (server_alive=false): reinitStsl fires once and is recorded as a bounded fix", async () => {

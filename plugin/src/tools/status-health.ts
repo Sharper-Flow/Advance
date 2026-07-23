@@ -13,6 +13,7 @@ import {
 import { getTemporalHealth } from "../temporal/health-probe";
 import { getCurrentSessionId } from "../utils/session-id";
 import {
+  getOrphanQueueAdoptionDiagnostics,
   getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics,
 } from "../plugin-init";
@@ -74,6 +75,11 @@ export interface StatusQueueServiceabilitySnapshot {
   expectedQueue: string;
   serviceability: QueueServiceability;
   workerDiagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>;
+  orphanQueueAdoption: {
+    enabled: boolean;
+    tracked: number;
+    inCooldown: number;
+  } | null;
   /**
    * Per-session queue serviceability when per-session routing is active
    * (rq-isolSessionTaskQueue04 / AC6). Present only when the current
@@ -371,6 +377,16 @@ export async function computeStatusQueueServiceability(input: {
   if (!input.projectId) return null;
   const expectedQueue = buildProjectTaskQueue(input.projectId);
   const workerDiagnostics = getTemporalWorkerDiagnostics();
+  const orphanQueueAdoptionDiagnostics = getOrphanQueueAdoptionDiagnostics();
+  const orphanQueueAdoption = orphanQueueAdoptionDiagnostics
+    ? {
+        enabled: true,
+        tracked: orphanQueueAdoptionDiagnostics.trackedQueues.length,
+        inCooldown: orphanQueueAdoptionDiagnostics.trackedQueues.filter(
+          (queue) => queue.inCooldown,
+        ).length,
+      }
+    : null;
   const bundle = getService();
   const serverPollerProbe = bundle
     ? await probeTaskQueuePollers({
@@ -440,6 +456,7 @@ export async function computeStatusQueueServiceability(input: {
   return {
     expectedQueue,
     workerDiagnostics,
+    orphanQueueAdoption,
     serviceability: classifyQueueServiceability({
       projectId: input.projectId,
       expectedQueue,

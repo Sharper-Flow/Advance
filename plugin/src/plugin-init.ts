@@ -27,6 +27,7 @@ import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   OrphanQueueAdopter,
   isOrphanQueueAdoptionEnabled,
+  type OrphanQueueAdoptionDiagnostics,
 } from "./temporal/orphan-queue-adopter";
 import {
   ensureTemporalRuntime,
@@ -478,7 +479,7 @@ let activeOrphanQueueAdopter: OrphanQueueAdopter | null = null;
  * Return orphan-queue adoption diagnostics for adv_doctor +
  * adv_status health view (rq-isolSessionTaskQueue05 / AC7).
  */
-export function getOrphanQueueAdoptionDiagnostics(): unknown {
+export function getOrphanQueueAdoptionDiagnostics(): OrphanQueueAdoptionDiagnostics | null {
   return activeOrphanQueueAdopter?.getDiagnostics() ?? null;
 }
 

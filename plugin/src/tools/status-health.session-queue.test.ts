@@ -18,6 +18,9 @@ const mockGetCurrentSessionId = vi.hoisted(() => vi.fn(() => undefined));
 const mockGetService = vi.hoisted(() => vi.fn(() => null));
 const mockGetTemporalWorkerAliveness = vi.hoisted(() => vi.fn(() => false));
 const mockGetTemporalWorkerDiagnostics = vi.hoisted(() => vi.fn(() => []));
+const mockGetOrphanQueueAdoptionDiagnostics = vi.hoisted(() =>
+  vi.fn(() => null),
+);
 
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: mockGetTemporalHealth,
@@ -58,6 +61,7 @@ vi.mock("../temporal/service", () => ({
 vi.mock("../plugin-init", () => ({
   getTemporalWorkerAliveness: mockGetTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics: mockGetTemporalWorkerDiagnostics,
+  getOrphanQueueAdoptionDiagnostics: mockGetOrphanQueueAdoptionDiagnostics,
   getRegisteredTemporalWorkerQueues: vi.fn(() => []),
 }));
 
@@ -97,6 +101,7 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
     mockProbeTaskQueuePollers.mockResolvedValue({ status: "unavailable" });
     mockGetTemporalWorkerAliveness.mockReturnValue(false);
     mockGetTemporalWorkerDiagnostics.mockReturnValue([]);
+    mockGetOrphanQueueAdoptionDiagnostics.mockReturnValue(null);
   });
 
   it("returns sessionQueueServiceability when getCurrentSessionId is set and bundle is available", async () => {
@@ -151,5 +156,36 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
     // Serviceability is omitted because probeTaskQueuePollers needs a
     // service bundle to call describeTaskQueue.
     expect(result?.sessionQueueServiceability).toBeUndefined();
+  });
+
+  it("summarizes orphan-queue adoption state without exposing queue identifiers", async () => {
+    mockGetOrphanQueueAdoptionDiagnostics.mockReturnValue({
+      scanInFlight: false,
+      trackedQueues: [
+        { queue: "sess_a", inCooldown: true },
+        { queue: "sess_b", inCooldown: false },
+        { queue: "sess_c", inCooldown: true },
+      ],
+    });
+
+    const result = await computeStatusQueueServiceability({
+      projectId: "proj-status-test-004",
+      health: { ...HEALTH },
+    });
+
+    expect(result?.orphanQueueAdoption).toEqual({
+      enabled: true,
+      tracked: 3,
+      inCooldown: 2,
+    });
+  });
+
+  it("reports no orphan-queue adoption summary when no adopter is active", async () => {
+    const result = await computeStatusQueueServiceability({
+      projectId: "proj-status-test-005",
+      health: { ...HEALTH },
+    });
+
+    expect(result?.orphanQueueAdoption).toBeNull();
   });
 });

@@ -85,6 +85,7 @@ export interface HealthStatusOutput {
   worker_diagnostics:
     | StatusQueueServiceabilitySnapshot["workerDiagnostics"]
     | undefined;
+  orphan_queue_adoption: StatusQueueServiceabilitySnapshot["orphanQueueAdoption"];
   search_attributes: SearchAttributesSnapshot | undefined;
   worker_processes: WorkerProcessesSnapshot | undefined;
   worktree_census: WorktreeCensusSnapshot | undefined;
@@ -730,6 +731,7 @@ export async function runHealthStatus(
     expected_queue: queueServiceability?.expectedQueue,
     temporal_queue_serviceability: queueServiceability?.serviceability,
     worker_diagnostics: queueServiceability?.workerDiagnostics,
+    orphan_queue_adoption: queueServiceability?.orphanQueueAdoption ?? null,
     search_attributes:
       getCaptured<SearchAttributesSnapshot>("search_attributes"),
     worker_processes: getCaptured<WorkerProcessesSnapshot>("worker_processes"),

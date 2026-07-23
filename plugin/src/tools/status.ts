@@ -790,6 +790,7 @@ export const statusTools = {
                   expectedQueue: healthResult.expected_queue ?? "",
                   serviceability: healthResult.temporal_queue_serviceability,
                   workerDiagnostics: healthResult.worker_diagnostics ?? [],
+                  orphanQueueAdoption: healthResult.orphan_queue_adoption,
                 }
               : undefined;
             workerProcesses = healthResult.worker_processes;
@@ -1014,6 +1015,8 @@ export const statusTools = {
             _freshness: probeFreshness,
             _health_execution: healthExecution,
             temporal_health: temporalHealth,
+            orphan_queue_adoption:
+              queueServiceability?.orphanQueueAdoption ?? null,
             ...(queueServiceability
               ? {
                   expected_queue: queueServiceability.expectedQueue,
