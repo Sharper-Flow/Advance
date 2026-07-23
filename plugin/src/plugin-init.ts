@@ -470,7 +470,7 @@ let currentWorkerRole: WorkerRole = "degraded";
 let activeOrphanQueueAdopter: OrphanQueueAdopter | null = null;
 
 /**
- * Return orphan-queue adoption diagnostics for adv_temporal_diagnose +
+ * Return orphan-queue adoption diagnostics for adv_doctor +
  * adv_status health view (rq-isolSessionTaskQueue05 / AC7).
  */
 export function getOrphanQueueAdoptionDiagnostics(): unknown {
