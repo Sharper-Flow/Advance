@@ -926,6 +926,66 @@ describe("change-state pure mutation helpers", () => {
     ).toThrow(/requires successful adv-designer evidence/);
   });
 
+  it("rejects frontend completion when accepted designer report lacks apply_context and includes binding hint", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-designer-no-apply-context",
+      title: "Frontend designer no apply_context",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-frontend",
+      report: makeLegacyDesignerReport(
+        "frontend-designer-no-apply-context",
+        "tk-frontend",
+      ),
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    let thrown: Error | undefined;
+    try {
+      applyTaskCompletedToState(state, {
+        taskId: "tk-frontend",
+        verification: "verified",
+        summary: "complete",
+        filesTouched: [],
+        completedAt: "2026-05-06T00:00:04.000Z",
+      });
+    } catch (error) {
+      thrown = error as Error;
+    }
+
+    expect(thrown).toBeDefined();
+    expect(thrown?.message).toMatch(
+      /TASK_COMPLETION_BLOCKED: frontend task tk-frontend requires successful adv-designer evidence for implementation cycle ic-frontend/,
+    );
+    expect(thrown?.message).toContain("apply_context.implementation_cycle_id");
+    expect(thrown?.message).toContain("implementation_provenance");
+    expect(thrown?.message).toContain("report_key");
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
   it("permits frontend completion with matching designer cycle evidence", () => {
     const state = createChangeWorkflowState({
       changeId: "frontend-cycle-allow",
