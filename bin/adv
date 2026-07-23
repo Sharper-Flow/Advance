@@ -124,7 +124,7 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       ? rawTimeout
       : QUERY_TIMEOUT_MS;
 
-    try {
+  try {
     const [summaries, terminalCounts, resumeResult] = await Promise.all([
       loadLiveSummaries(projectId, now, timeoutMs),
       countTerminalChanges(root),

@@ -19,7 +19,6 @@ import {
   CHANGE_WORKFLOW_QUERY_NAMES,
   EPIC_WORKFLOW_QUERY_NAMES,
   createTemporalClientBundle,
-  escapeVisibilityValue,
   listChangeWorkflowIds,
   listEpicWorkflowIds,
 } from "../../plugin/src/cli/temporal-boundary";
@@ -212,5 +211,3 @@ function normalizeEpicRecord(raw: unknown): EpicRecord | null {
     }),
   };
 }
-
-export { escapeVisibilityValue };
