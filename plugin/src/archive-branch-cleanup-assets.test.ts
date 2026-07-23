@@ -57,12 +57,12 @@ describe("archive branch-cleanup surface assets", () => {
   test("operator guidance distinguishes batch reconcile from single-change status repair", () => {
     const req = requirement("rq-archiveRecoveryConsistency01");
 
-    expect(req.body).toContain("adv_archive_repair");
-    expect(req.body).toContain("reconcile");
+    expect(req.body).toContain("adv_doctor");
+    expect(req.body).toContain("batch");
     expect(req.body).toMatch(/branch-merge evidence/i);
-    expect(req.body).toContain("adv_change_status_repair");
+    expect(req.body).toContain("status flip");
     expect(req.body).toMatch(/single-change/i);
-    expect(req.body).toContain("target_path");
+    expect(req.body).toContain("target");
 
     const doc = read(SPEC_DOC);
     expect(doc).toMatch(/branch-merge evidence/i);
