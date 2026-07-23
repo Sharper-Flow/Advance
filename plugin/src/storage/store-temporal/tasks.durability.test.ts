@@ -30,6 +30,10 @@ function makeStateWithTask() {
   return { changeId: CHANGE_ID, tasks: [TASK], deltas: {}, wisdom: [] };
 }
 
+function persistError() {
+  return new DiskProjectionPersistError(CHANGE_ID, new Error("EACCES"));
+}
+
 function makeDeps(stateAfterSignal: unknown) {
   queryMock.mockResolvedValue(stateAfterSignal);
   return {
@@ -77,5 +81,54 @@ describe("createTaskOps durability wiring (AC6)", () => {
     await expect(ops.update("tk-1", "done")).rejects.toBeInstanceOf(
       DiskProjectionPersistError,
     );
+  });
+
+  it("add persists confirmed state durably and propagates DiskProjectionPersistError on failure (AC1/AC6)", async () => {
+    const state = makeStateWithTask();
+    const ok = makeDeps(state);
+    await createTaskOps(ok as never).add(CHANGE_ID, "new task");
+    expect(ok.persistAndRefreshDurable).toHaveBeenCalledWith(CHANGE_ID, state);
+
+    const deps = makeDeps(makeStateWithTask());
+    deps.persistAndRefreshDurable = vi.fn().mockRejectedValue(persistError());
+    await expect(
+      createTaskOps(deps as never).add(CHANGE_ID, "new task"),
+    ).rejects.toBeInstanceOf(DiskProjectionPersistError);
+  });
+
+  it("cancel persists confirmed state durably and propagates DiskProjectionPersistError on failure (AC1/AC6)", async () => {
+    const state = makeStateWithTask();
+    const ok = makeDeps(state);
+    await createTaskOps(ok as never).cancel("tk-1", {
+      reason: "obsolete",
+      approval_evidence: "user approved",
+    });
+    expect(ok.persistAndRefreshDurable).toHaveBeenCalledWith(CHANGE_ID, state);
+
+    const deps = makeDeps(makeStateWithTask());
+    deps.persistAndRefreshDurable = vi.fn().mockRejectedValue(persistError());
+    await expect(
+      createTaskOps(deps as never).cancel("tk-1", {
+        reason: "obsolete",
+        approval_evidence: "user approved",
+      }),
+    ).rejects.toBeInstanceOf(DiskProjectionPersistError);
+  });
+
+  it("reclassifyTdd persists confirmed state durably and propagates DiskProjectionPersistError on failure (AC1/AC6)", async () => {
+    const state = makeStateWithTask();
+    const ok = makeDeps(state);
+    await createTaskOps(ok as never).reclassifyTdd("tk-1", {
+      to_intent: "inline",
+    } as never);
+    expect(ok.persistAndRefreshDurable).toHaveBeenCalledWith(CHANGE_ID, state);
+
+    const deps = makeDeps(makeStateWithTask());
+    deps.persistAndRefreshDurable = vi.fn().mockRejectedValue(persistError());
+    await expect(
+      createTaskOps(deps as never).reclassifyTdd("tk-1", {
+        to_intent: "inline",
+      } as never),
+    ).rejects.toBeInstanceOf(DiskProjectionPersistError);
   });
 });

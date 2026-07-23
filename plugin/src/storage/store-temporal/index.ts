@@ -279,13 +279,17 @@ export function createTemporalStoreBackend(
   };
 
   /**
-   * Helper for task-level mutations that don't already fetch post-mutation
-   * state. Queries the workflow once for the latest state, refreshes the
-   * cache + memo, then dual-writes to disk.
+   * Best-effort cache-refresh dual-write for NON-durability-critical
+   * mutations (changes.refresh, epic-membership set/clear). Queries the
+   * workflow once for the latest state, refreshes the cache + memo, then
+   * fires an explicit best-effort disk write via `voidPersist`.
    *
    * Best-effort: if the post-mutation query fails we skip the dual-write
    * rather than fail the original mutation. The workflow update has
-   * already succeeded by the time we get here.
+   * already succeeded by the time we get here. Durability-critical
+   * mutations (spec deltas, gates, wisdom, tasks) do NOT use this path —
+   * they persist their own confirmed state via `persistStateToDiskDurable`
+   * / `persistAndRefreshDurable` so success is gated on disk durability.
    *
    * SC6 wiring: the readback outcome is composed via
    * `composeTypedMutationResult` so an ambiguous readback
