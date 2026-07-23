@@ -1958,6 +1958,11 @@ export const gateTools = {
           });
         }
 
+        // fireSignalAndRefresh can re-poison changeCache with the pre-signal
+        // projection. Drop the cached entry after every confirmed completion so
+        // subsequent change-show readbacks use the completed gate state.
+        await activeStore.changes.invalidate(changeId);
+
         const profileEvaluations =
           gateId === "execution"
             ? await evaluateLightweightProfileAtPhases(

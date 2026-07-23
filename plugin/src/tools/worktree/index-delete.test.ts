@@ -924,6 +924,42 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).not.toContain(branch);
   });
 
+  it("classifies an archived all-gates-done change as terminal during registry-drift cleanup", async () => {
+    const branch = "change/archived-all-gates-done";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    const terminalChange = {
+      status: "archived",
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "done" },
+      },
+    };
+    deps.store = {
+      changes: {
+        get: vi.fn(async () => ({ success: true, data: terminalChange })),
+        refresh: vi.fn(async () => undefined),
+      },
+    } as any;
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(deps.store?.changes.get).toHaveBeenCalledWith(
+      "archived-all-gates-done",
+    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
   it("#55 follow-up deletes missing-registry CLOSED merged clean change branch without force", async () => {
     // Closed is a terminal status produced by adv_change_close
     // (cancelled, superseded, not_planned). Drift-recovery must accept it
