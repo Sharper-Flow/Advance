@@ -6,6 +6,7 @@
 
 import { basename } from "path";
 import type { Store } from "../storage/store";
+import { mapWithConcurrency } from "../utils/concurrency";
 import {
   createDefaultGates,
   GATE_ORDER,
@@ -924,36 +925,40 @@ export async function appendResumeProjectionRecommendations(
       store.epics.list({ status: "all" }),
     ]);
 
-    const changeInputs: ChangeNodeInput[] = [];
-    for (const summary of changeList.changes) {
-      const isTerminal =
-        summary.status === "archived" || summary.status === "closed";
-      if (isTerminal) {
-        changeInputs.push({
-          id: summary.id,
-          title: summary.title,
-          status: summary.status,
-          lifecycleState: summary.lifecycleState ?? "open",
-          same_project_dependencies: [],
-          hasInProgressTasks: false,
-          epic_membership: summary.epic_membership,
-        });
-        continue;
-      }
-      const full = await store.changes.get(summary.id);
-      const change = full.success && full.data ? full.data : null;
-      if (!change) continue;
-      changeInputs.push({
-        id: change.id,
-        title: change.title,
-        status: change.status,
-        lifecycleState: change.lifecycleState ?? "open",
-        same_project_dependencies: change.same_project_dependencies ?? [],
-        hasInProgressTasks:
-          change.tasks?.some((t) => t.status === "in_progress") ?? false,
-        epic_membership: change.epic_membership,
-      });
-    }
+    const changeInputs: ChangeNodeInput[] = (
+      await mapWithConcurrency(
+        changeList.changes,
+        8,
+        async (summary): Promise<ChangeNodeInput | null> => {
+          const isTerminal =
+            summary.status === "archived" || summary.status === "closed";
+          if (isTerminal) {
+            return {
+              id: summary.id,
+              title: summary.title,
+              status: summary.status,
+              lifecycleState: summary.lifecycleState ?? "open",
+              same_project_dependencies: [],
+              hasInProgressTasks: false,
+              epic_membership: summary.epic_membership,
+            };
+          }
+          const full = await store.changes.get(summary.id);
+          const change = full.success && full.data ? full.data : null;
+          if (!change) return null;
+          return {
+            id: change.id,
+            title: change.title,
+            status: change.status,
+            lifecycleState: change.lifecycleState ?? "open",
+            same_project_dependencies: change.same_project_dependencies ?? [],
+            hasInProgressTasks:
+              change.tasks?.some((t) => t.status === "in_progress") ?? false,
+            epic_membership: change.epic_membership,
+          };
+        },
+      )
+    ).filter((c): c is ChangeNodeInput => c !== null);
 
     const epicInputs: EpicNodeInput[] = epicList.map((epic) => ({
       id: epic.id,

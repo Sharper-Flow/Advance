@@ -454,10 +454,36 @@ export async function computeStatusQueueServiceability(input: {
     ...(sessionQueue ? { sessionQueue, sessionQueueServiceability } : {}),
   };
 }
+function isProbeTimeoutError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  if (err.name === "TimeoutError") return true;
+  if (err.cause instanceof Error && err.cause.name === "TimeoutError") {
+    return true;
+  }
+  return /timed out/i.test(err.message);
+}
+
 /** Fallback TemporalHealthSnapshot used when the health probe throws. */
 export function buildTemporalHealthFallback(
   err: unknown,
 ): TemporalHealthSnapshot {
+  if (isProbeTimeoutError(err)) {
+    return {
+      server_alive: true,
+      worker_alive: true,
+      worker_process_alive: true,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: err instanceof Error ? err.message : String(err),
+      fallback_counts: { ...getTemporalFallbackTelemetry() },
+      stale_queues: [],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
+      probe_degraded: true,
+    };
+  }
   return {
     server_alive: false,
     worker_alive: false,

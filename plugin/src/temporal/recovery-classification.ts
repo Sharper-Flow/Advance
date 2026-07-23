@@ -22,6 +22,10 @@ export const RECOVERY_RECONCILIATION_WARNING =
  *
  * - `poisoned_history` — workflow history is nondeterministic/poisoned.
  * - `missing_workflow` — workflow completed or is absent (not-found).
+ * - `workflow_unresponsive` — the query did not return within the per-member
+ *   cap (workflow/worker wedged or slow). Read-only disk fallback is safe;
+ *   the workflow state is stale/unknown, so this reason NEVER authorizes
+ *   mutation/re-seed.
  * - `query_failed` — any other reachable query failure. The workflow state
  *   is UNKNOWN, so this reason NEVER authorizes mutation (re-seed,
  *   projection recovery writes). Only the projection-safe subset may gate
@@ -30,6 +34,7 @@ export const RECOVERY_RECONCILIATION_WARNING =
 export const RECOVERY_REASONS = [
   "poisoned_history",
   "missing_workflow",
+  "workflow_unresponsive",
   "query_failed",
 ] as const;
 
@@ -107,12 +112,21 @@ export function isFailingContractReviewStatus(
   );
 }
 
+const TEMPORAL_QUERY_TIMEOUT_RE = /Temporal operation exceeded \d+ms timeout/i;
+
+function isWorkflowUnresponsiveError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.name === "TemporalQueryTimeout") return true;
+  return TEMPORAL_QUERY_TIMEOUT_RE.test(error.message);
+}
+
 export function recoveryReasonFromError(error: unknown): RecoveryReason {
   if (isPoisonedHistoryError(error)) return "poisoned_history";
   if (isWorkflowCompletedError(error)) return "missing_workflow";
   if (MISSING_WORKFLOW_TEXT_RE.test(collectErrorText(error))) {
     return "missing_workflow";
   }
+  if (isWorkflowUnresponsiveError(error)) return "workflow_unresponsive";
   // Any other reachable query failure: workflow state unknown. Typed so
   // callers can classify it, but it never authorizes mutation.
   return "query_failed";

@@ -775,6 +775,29 @@ export function createTemporalStoreBackend(
     return null;
   };
 
+  /**
+   * Load the durable on-disk projection for a change, bounded by the aggregate
+   * deadline. Returns `null` when the change is not on disk or the read is
+   * expired; throws on schema errors so they propagate verbatim.
+   */
+  const loadDiskProjection = async (
+    changeId: string,
+    deadline: TemporalReadDeadline,
+  ): Promise<Change | null> => {
+    try {
+      const diskResult = await raceWithTemporalDeadline(
+        legacy.changes.get(changeId),
+        deadline,
+      );
+      if (isSchemaError(diskResult)) {
+        throw new Error(diskResult.error);
+      }
+      return diskResult.success && diskResult.data ? diskResult.data : null;
+    } catch {
+      return null;
+    }
+  };
+
   const getTemporalChange = async (
     changeId: string,
     opts?: { deadline?: TemporalReadDeadline; context?: TemporalReadContext },
@@ -827,6 +850,35 @@ export function createTemporalStoreBackend(
           "workflow",
       };
     }
+
+    // Circuit-breaker: once three consecutive per-member queries have been
+    // unresponsive, skip further workflow round-trips and fall back to disk.
+    if (ctx.isCircuitBreakerTripped()) {
+      const diskChange = await loadDiskProjection(changeId, ctx.deadline);
+      if (diskChange) {
+        indexTasksFromChange(diskChange);
+        return {
+          success: true,
+          data: withProjectionRecovery(
+            diskChange,
+            "disk",
+            "workflow_unresponsive",
+          ),
+          source: "disk",
+        };
+      }
+      throw new TemporalQueryTimeoutError(ctx.deadline.budgetMs);
+    }
+
+    // Leg A: disk-authoritative load. The disk projection is the read model
+    // the workflow writes on every signal; resolve it first so a wedged
+    // workflow can never hang the read.
+    const diskChange = await loadDiskProjection(changeId, ctx.deadline);
+
+    // Leg B: Temporal enrichment-only. Lowered per-member cap (1500ms) plus
+    // the aggregate deadline keeps a single slow member inside the request
+    // budget. A timeout/unresponsive outcome degrades to the disk projection
+    // with a typed advisory rather than throwing/hanging.
     try {
       const read = await runTemporalRead(
         getTemporalConnection(input),
@@ -839,13 +891,14 @@ export function createTemporalStoreBackend(
         ctx,
         {
           opType: "changeStateQuery",
-          timeoutMs: 5_000,
+          timeoutMs: 1_500,
           onTransientFailure: makeReconnectingHook(),
         },
       );
       if (!read.complete) {
         throw read.error;
       }
+      ctx.recordResponsiveMember();
       const state = read.data as ChangeWorkflowState;
       indexTasksFromState(state);
       // rq-autoManageAdvWorktrees AC3 — lazy migration trigger.
@@ -877,6 +930,27 @@ export function createTemporalStoreBackend(
         error,
         ctx.deadline,
       );
+
+      // workflow_unresponsive: record the unresponsive member for the CB and,
+      // when a disk projection exists, return it as authoritative with a typed
+      // advisory. Never re-seed — the workflow may still be running but is not
+      // queryable within budget.
+      if (failure.recoveryReason === "workflow_unresponsive") {
+        ctx.recordUnresponsiveMember();
+        if (diskChange) {
+          indexTasksFromChange(diskChange);
+          return {
+            success: true,
+            data: withProjectionRecovery(
+              diskChange,
+              "disk",
+              "workflow_unresponsive",
+            ),
+            source: "disk",
+          };
+        }
+      }
+
       // query_failed never authorizes mutation: re-seed may start a new
       // workflow run, which is only safe when the workflow is known missing
       // or its history is known poisoned.

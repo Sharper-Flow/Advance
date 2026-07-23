@@ -18,11 +18,26 @@ import {
  * One absolute deadline and one AbortController are created per read. Both
  * are threaded through change, gate, and status stages so that every in-flight
  * RPC shares the same cancellation surface and the same aggregate budget.
+ *
+ * The context also tracks a per-request circuit-breaker: after K consecutive
+ * unresponsive workflow members, remaining per-member queries are
+ * short-circuited and the read degrades to disk-only with a single typed
+ * advisory. The counter resets on any responsive member.
  */
 export interface TemporalReadContext {
   deadline: TemporalReadDeadline;
   abortController: AbortController;
   readonly createdAt: number;
+  /** Number of consecutive per-member queries that failed to respond. */
+  unresponsiveCount: number;
+  /** True once the circuit-breaker threshold has been crossed. */
+  circuitBreakerTripped: boolean;
+  /** Record a responsive member and reset the unresponsive streak. */
+  recordResponsiveMember(): void;
+  /** Record an unresponsive member; returns true if the CB just tripped. */
+  recordUnresponsiveMember(): boolean;
+  /** True if the CB has tripped and remaining queries should be skipped. */
+  isCircuitBreakerTripped(): boolean;
 }
 
 /**
@@ -51,17 +66,37 @@ export interface TemporalReadResult<T> {
   error: unknown;
 }
 
+const CIRCUIT_BREAKER_THRESHOLD = 3;
+
 /**
  * Create a new read context with an absolute deadline and an AbortController.
  */
 export function createTemporalReadContext(
   budgetMs: number = TEMPORAL_READ_DEADLINE_BUDGET_MS,
 ): TemporalReadContext {
-  return {
+  const ctx: TemporalReadContext = {
     deadline: createTemporalReadDeadline(budgetMs),
     abortController: new AbortController(),
     createdAt: Date.now(),
+    unresponsiveCount: 0,
+    circuitBreakerTripped: false,
+    recordResponsiveMember() {
+      ctx.unresponsiveCount = 0;
+      ctx.circuitBreakerTripped = false;
+    },
+    recordUnresponsiveMember() {
+      ctx.unresponsiveCount += 1;
+      if (ctx.unresponsiveCount >= CIRCUIT_BREAKER_THRESHOLD) {
+        ctx.circuitBreakerTripped = true;
+        return true;
+      }
+      return false;
+    },
+    isCircuitBreakerTripped() {
+      return ctx.circuitBreakerTripped;
+    },
   };
+  return ctx;
 }
 
 /**

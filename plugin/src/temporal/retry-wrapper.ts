@@ -144,6 +144,10 @@ export function isReconnectableError(error: unknown): boolean {
 }
 
 export function classifyTemporalError(error: unknown): TemporalErrorClass {
+  // rq-boundedAuthoritativeRead03: our own per-member timeout is a cap, not a
+  // transient transport failure. Retrying it would burn the same cap again and
+  // defeat the bounded-read deadline.
+  if (error instanceof TemporalQueryTimeoutError) return "fatal";
   const text = collectErrorText(error);
   // Precedence 1: replay nondeterminism → fallback-eligible.
   if (

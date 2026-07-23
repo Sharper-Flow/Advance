@@ -1056,6 +1056,64 @@ describe("listResolvedChanges memo fast path", () => {
   });
 });
 
+describe("listResolvedChanges circuit breaker", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("trips after 3 unresponsive members and omits the rest", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const changeIds = ["cbA", "cbB", "cbC", "cbD", "cbE"];
+    legacy.changes.get = async () => ({
+      success: false as const,
+      error: "not found",
+      type: "not_found" as const,
+    });
+
+    let queryCalls = 0;
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              queryCalls += 1;
+              return new Promise<never>(() => {});
+            },
+          }),
+          list: async function* () {
+            for (const id of changeIds) {
+              yield { workflowId: `adv/change/project-1/${id}` };
+            }
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const start = Date.now();
+    const result = await store.changes.list({ validationConcurrency: 1 });
+    const elapsed = Date.now() - start;
+
+    // CB trips at 3, so exactly 3 query attempts (one per member up to trip).
+    expect(queryCalls).toBe(3);
+    expect(result.changes.map((c) => c.id)).toEqual([]);
+    expect(elapsed).toBeLessThan(6_000);
+  }, 15_000);
+});
+
 describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)", () => {
   let tempDir: string | undefined;
 

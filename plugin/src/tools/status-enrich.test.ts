@@ -951,6 +951,35 @@ describe("appendResumeProjectionRecommendations", () => {
     ).toBe(true);
   });
 
+  it("fetches nonterminal changes concurrently with bounded concurrency", async () => {
+    const changes = Array.from({ length: 10 }, (_, i) => ({
+      ...resolvedChange(`change-${i}`),
+      status: "active" as const,
+      lifecycleState: "open" as const,
+      same_project_dependencies: [],
+    }));
+    const store = mockStore({ changes });
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const originalGet = store.changes.get;
+    store.changes.get = async (id: string) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return originalGet(id);
+    };
+
+    const target: StatusRecommendationCarrier = { recommendations: [] };
+    await appendResumeProjectionRecommendations(store, target, {
+      projectId: "proj",
+    });
+
+    expect(maxInFlight).toBeGreaterThan(1);
+    expect(maxInFlight).toBeLessThanOrEqual(8);
+    expect(inFlight).toBe(0);
+  });
+
   it("is advisory: failures do not throw", async () => {
     const store = {
       paths: { external: "/tmp/proj" },

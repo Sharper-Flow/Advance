@@ -328,10 +328,16 @@ const QUERY_TIMEOUT_MS = 5_000;
 export interface RunTemporalQueryOptions {
   /**
    * Request-scoped aggregate deadline. The effective per-attempt
-   * timeout becomes `min(QUERY_TIMEOUT_MS, remaining budget)` and no
+   * timeout becomes `min(timeoutMs, remaining budget)` and no
    * retry/backoff begins after expiry.
    */
   deadline?: TemporalReadDeadline;
+  /**
+   * Per-attempt timeout cap. Defaults to `QUERY_TIMEOUT_MS` (5s) for
+   * backward compatibility; read paths override this to a lower per-member
+   * cap so a single wedged workflow cannot consume the aggregate budget.
+   */
+  timeoutMs?: number;
 }
 
 /**
@@ -343,7 +349,7 @@ export async function runTemporalQuery<T>(
   options?: RunTemporalQueryOptions,
 ): Promise<T> {
   return runTemporal(op, {
-    timeoutMs: QUERY_TIMEOUT_MS,
+    timeoutMs: options?.timeoutMs ?? QUERY_TIMEOUT_MS,
     deadline: options?.deadline,
   });
 }

@@ -58,6 +58,8 @@ export interface TemporalHealth {
   } | null;
   server_poller_probe?: ServerPollerProbe | null;
   queues?: QueueProbeResult[];
+  /** True when the probe itself timed out but server/worker are assumed reachable. */
+  probe_degraded?: boolean;
 }
 
 let overrideTelemetry: {

@@ -494,9 +494,10 @@ export const statusTools = {
                 probeFreshness.temporal_health = temporalProbe.freshness;
               } catch (err) {
                 temporalHealth = buildTemporalHealthFallback(err);
+                const degraded = temporalHealth.probe_degraded === true;
                 probeFreshness.temporal_health = {
                   cached_at: new Date().toISOString(),
-                  stale: true,
+                  stale: !degraded,
                   age_ms: 0,
                   ttl_ms: STATUS_PROBE_TTL_MS,
                   error: err instanceof Error ? err.message : String(err),
