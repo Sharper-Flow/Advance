@@ -1743,6 +1743,120 @@ Vague in-flight work.
         }
       });
     });
+
+    describe("future_work projection (AC5)", () => {
+      test("summary view surfaces Epic shells and backlog items with context_packet flags", async () => {
+        const backlogPath = join(tempDir, ".adv", "backlog.jsonl");
+        await mkdir(join(tempDir, ".adv"), { recursive: true });
+        await writeFile(
+          backlogPath,
+          [
+            JSON.stringify({ schemaVersion: 1 }),
+            JSON.stringify({
+              id: "backlog-with-packet",
+              title: "Backlog with packet",
+              success_hint: "do it",
+              status: "active",
+              created_at: "2026-01-01T00:00:00Z",
+              updated_at: "2026-01-01T00:00:00Z",
+              context_packet: { background: "bg" },
+            }),
+            JSON.stringify({
+              id: "backlog-without-packet",
+              title: "Backlog without packet",
+              success_hint: "do it",
+              status: "active",
+              created_at: "2026-01-01T00:00:00Z",
+              updated_at: "2026-01-01T00:00:00Z",
+            }),
+          ].join("\n") + "\n",
+        );
+
+        store.epics.list = vi.fn(async () => [
+          {
+            id: "epic-1",
+            title: "Epic One",
+            narrative: "narrative",
+            entries: [
+              {
+                kind: "shell" as const,
+                entry_id: "shell-with-packet",
+                order: 0,
+                title: "Shell with packet",
+                success_hint: "hint",
+                context_packet: { background: "bg" },
+              },
+              {
+                kind: "shell" as const,
+                entry_id: "shell-without-packet",
+                order: 1,
+                title: "Shell without packet",
+                success_hint: "hint",
+              },
+              {
+                kind: "change" as const,
+                entry_id: "change-entry",
+                order: 2,
+                title: "Change entry",
+                change_id: "change-1",
+              },
+            ],
+          },
+        ]);
+
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.future_work).toBeDefined();
+        expect(parsed.future_work.shells).toEqual([
+          {
+            id: "shell-with-packet",
+            title: "Shell with packet",
+            has_context_packet: true,
+          },
+          {
+            id: "shell-without-packet",
+            title: "Shell without packet",
+            has_context_packet: false,
+          },
+        ]);
+        expect(parsed.future_work.backlog).toEqual([
+          {
+            id: "backlog-with-packet",
+            title: "Backlog with packet",
+            has_context_packet: true,
+          },
+          {
+            id: "backlog-without-packet",
+            title: "Backlog without packet",
+            has_context_packet: false,
+          },
+        ]);
+        // Change entries are not projected as future work.
+        expect(
+          parsed.future_work.shells.find((s: { id: string }) => s.id === "change-entry"),
+        ).toBeUndefined();
+      });
+
+      test("changes view omits future_work", async () => {
+        const result = await statusTools.adv_status.execute(
+          { view: "changes" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        expect(parsed.future_work).toBeUndefined();
+      });
+
+      test("existing status keys remain unchanged when future_work is present", async () => {
+        const result = await statusTools.adv_status.execute({}, store);
+        const parsed = parseToolOutput(result);
+        expect(parsed.view).toBe("summary");
+        expect(parsed.specs).toBeDefined();
+        expect(parsed.changes).toBeDefined();
+        expect(Array.isArray(parsed.recommendations)).toBe(true);
+        expect(parsed.formatted).toBeDefined();
+      });
+    });
     describe("archived branch hygiene (KD6)", () => {
       test("summary view skips archived branch hygiene inspection", async () => {
         store.changes.list = vi.fn(async () => ({

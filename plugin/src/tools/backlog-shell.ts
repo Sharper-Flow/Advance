@@ -20,6 +20,10 @@ import {
   readBacklog,
   BacklogError,
 } from "../utils/backlog-store";
+import {
+  assertPacketSize,
+  parsePacket,
+} from "../utils/context-packet-validation";
 
 // =============================================================================
 // Helpers
@@ -37,6 +41,21 @@ function backlogErrorResponse(err: unknown) {
   return formatToolOutput({ success: false, error: message });
 }
 
+function validateContextPacket(input: unknown) {
+  try {
+    const packet = parsePacket(input);
+    assertPacketSize(packet);
+    return { ok: true as const, packet };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const code =
+      err instanceof Error && err.name === "ContextPacketTooLargeError"
+        ? "context_packet_too_large"
+        : "invalid_context_packet";
+    return { ok: false as const, error: message, code };
+  }
+}
+
 function formatBacklogItem(item: import("../types/backlog").BacklogItem) {
   return {
     id: item.id,
@@ -47,6 +66,7 @@ function formatBacklogItem(item: import("../types/backlog").BacklogItem) {
     updated_at: item.updated_at,
     archived_at: item.archived_at,
     promoted_to: item.promoted_to,
+    context_packet: item.context_packet,
   };
 }
 
@@ -71,20 +91,47 @@ export const backlogShellTools = {
         .describe(
           "Optional stable backlog item id; auto-generated if omitted.",
         ),
+      context_packet: z
+        .unknown()
+        .optional()
+        .describe(
+          "Optional durable future-work context packet. Validated and persisted on the backlog item.",
+        ),
     },
     execute: async (
       {
         title,
         success_hint,
         id,
-      }: { title: string; success_hint: string; id?: string },
+        context_packet,
+      }: {
+        title: string;
+        success_hint: string;
+        id?: string;
+        context_packet?: unknown;
+      },
       store: Store,
     ) => {
       try {
+        let validatedPacket: import("../types/future-work").FutureWorkContextPacket | undefined;
+        if (context_packet !== undefined) {
+          const validation = validateContextPacket(context_packet);
+          if (!validation.ok) {
+            return formatToolOutput({
+              success: false,
+              error: validation.error,
+              code: validation.code,
+            });
+          }
+          validatedPacket = validation.packet;
+        }
         const item = await addBacklogItem(store.paths.root, {
           id,
           title,
           success_hint,
+          ...(validatedPacket !== undefined
+            ? { context_packet: validatedPacket }
+            : {}),
         });
         return formatToolOutput({
           success: true,

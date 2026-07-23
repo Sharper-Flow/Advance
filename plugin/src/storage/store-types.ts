@@ -534,6 +534,7 @@ export interface Store {
         order?: number;
         importedFrom?: { backlog_id: string; imported_at: string };
         blockedBy?: WorkNodeRef[];
+        context_packet?: import("../types/future-work").FutureWorkContextPacket;
       },
     ) => Promise<EpicEntry>;
     promoteShell: (

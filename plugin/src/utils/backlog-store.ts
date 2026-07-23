@@ -31,6 +31,7 @@ import {
   type BacklogReadOptions,
   type BacklogReadResult,
 } from "../types/backlog";
+import type { FutureWorkContextPacket } from "../types/future-work";
 import { acquireFileLock } from "./fs";
 
 // =============================================================================
@@ -283,6 +284,7 @@ export interface AddBacklogItemInput {
   id?: string;
   title: string;
   success_hint: string;
+  context_packet?: FutureWorkContextPacket;
 }
 
 /**
@@ -315,6 +317,9 @@ export async function addBacklogItem(
       status: "active",
       created_at: previous?.created_at ?? now,
       updated_at: now,
+      ...(input.context_packet !== undefined
+        ? { context_packet: input.context_packet }
+        : {}),
     };
 
     await ensureBacklogFile(path, existing.header);

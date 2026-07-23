@@ -28,6 +28,14 @@ import {
 import { nodeRefKey } from "../validator/work-graph-validation";
 import { getBacklogItem } from "../utils/backlog-store";
 import {
+  assertEpicAggregatePackets,
+  assertPacketSize,
+  parsePacket,
+  ContextPacketTooLargeError,
+  EpicAggregatePacketsExceededError,
+} from "../utils/context-packet-validation";
+import type { FutureWorkContextPacket } from "../types/future-work";
+import {
   appendEpicRoutingContexts,
   EPIC_OWNER_ROUTING_ERROR_CODES,
   epicOwnerTargetPathSchema,
@@ -66,6 +74,29 @@ function epicError(err: unknown) {
     error: message,
     code,
     ...(blockers && { blockers }),
+  });
+}
+
+function contextPacketError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  if (err instanceof ContextPacketTooLargeError) {
+    return formatToolOutput({
+      success: false,
+      error: message,
+      code: "context_packet_too_large",
+    });
+  }
+  if (err instanceof EpicAggregatePacketsExceededError) {
+    return formatToolOutput({
+      success: false,
+      error: message,
+      code: "epic_aggregate_context_packets_exceeded",
+    });
+  }
+  return formatToolOutput({
+    success: false,
+    error: message,
+    code: "invalid_context_packet",
   });
 }
 
@@ -248,6 +279,7 @@ function mapEpicEntry(entry: EpicEntry) {
           title: entry.title,
           success_hint: entry.success_hint,
           imported_from: entry.imported_from,
+          context_packet: entry.context_packet,
         }
       : {
           change_id: entry.change_id,
@@ -1358,6 +1390,12 @@ export const epicTools = {
         .describe(
           "Same-project hard prerequisite edges. Shell promotion is refused while any prereq is nonterminal.",
         ),
+      context_packet: z
+        .unknown()
+        .optional()
+        .describe(
+          "Optional durable future-work context packet. Validated and persisted on the shell entry.",
+        ),
       ...epicOwnerTargetPathSchema,
     },
     execute: async (
@@ -1369,6 +1407,7 @@ export const epicTools = {
         entry_id,
         order,
         blocked_by,
+        context_packet,
         epic_owner_target_path,
         epic_owner_target_confirmed,
         epic_owner_confirmationEvidence,
@@ -1380,6 +1419,7 @@ export const epicTools = {
         entry_id?: string;
         order?: number;
         blocked_by?: WorkNodeRef[];
+        context_packet?: unknown;
         epic_owner_target_path?: string;
         epic_owner_target_confirmed?: true;
         epic_owner_confirmationEvidence?: string;
@@ -1393,6 +1433,30 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
+
+        const epic = await loadEpic(owner.store, epic_id);
+
+        let validatedContextPacket: FutureWorkContextPacket | undefined;
+        if (context_packet !== undefined) {
+          try {
+            const packet = parsePacket(context_packet);
+            assertPacketSize(packet);
+            if (epic) {
+              const existingShells = epic.entries.filter(
+                (e): e is Extract<EpicEntry, { kind: "shell" }> =>
+                  e.kind === "shell",
+              );
+              const incomingBytes = Buffer.byteLength(
+                JSON.stringify(packet),
+                "utf8",
+              );
+              assertEpicAggregatePackets(existingShells, incomingBytes);
+            }
+            validatedContextPacket = packet;
+          } catch (err) {
+            return contextPacketError(err);
+          }
+        }
 
         let importedFrom:
           | { backlog_id: string; imported_at: string }
@@ -1471,6 +1535,9 @@ export const epicTools = {
           order,
           importedFrom,
           blockedBy: blocked_by,
+          ...(validatedContextPacket !== undefined
+            ? { context_packet: validatedContextPacket }
+            : {}),
         });
         const output = formatToolOutput({
           success: true,
