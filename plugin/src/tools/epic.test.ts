@@ -74,8 +74,14 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
         },
         progress: { ...epic.progress, status: "merged" },
       })),
-      addShell: vi.fn(async () =>
-        makeShellEntry({ entry_id: "shell-1", title: "Shell One" }),
+      addShell: vi.fn(async (_epicId, input) =>
+        makeShellEntry({
+          entry_id: "shell-1",
+          title: "Shell One",
+          ...(input?.context_packet !== undefined
+            ? { context_packet: input.context_packet }
+            : {}),
+        }),
       ),
       promoteShell: vi.fn(async () => ({
         entryId: "shell-1",
@@ -1060,6 +1066,103 @@ describe("adv_epic_add_shell", () => {
     const parsed = parseToolOutput(output);
     expect(parsed.success).toBe(true);
     expect(parsed.entry.kind).toBe("shell");
+  });
+
+  test("persists a valid context_packet", async () => {
+    const packet = {
+      background: "Epic shell background",
+      constraints: ["Must be safe"],
+    };
+    const store = makeStore();
+    const output = await epicTools.adv_epic_add_shell.execute(
+      {
+        epic_id: "addAuthEpic",
+        title: "Shell One",
+        success_hint: "Do the thing",
+        context_packet: packet,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.entry.context_packet).toEqual(packet);
+    expect(store.epics.addShell).toHaveBeenCalledWith(
+      "addAuthEpic",
+      expect.objectContaining({ context_packet: packet }),
+    );
+  });
+
+  test("rejects an invalid context_packet", async () => {
+    const store = makeStore();
+    const output = await epicTools.adv_epic_add_shell.execute(
+      {
+        epic_id: "addAuthEpic",
+        title: "Shell One",
+        success_hint: "Do the thing",
+        context_packet: "not-an-object",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("invalid_context_packet");
+    expect(store.epics.addShell).not.toHaveBeenCalled();
+  });
+
+  test("rejects an oversize context_packet", async () => {
+    const packet = {
+      background: "y".repeat(4096),
+      design_seed: "x".repeat(6144),
+      constraints: Array.from({ length: 12 }, () => "z".repeat(512)),
+      avoidances: Array.from({ length: 12 }, () => "w".repeat(512)),
+    };
+    const store = makeStore();
+    const output = await epicTools.adv_epic_add_shell.execute(
+      {
+        epic_id: "addAuthEpic",
+        title: "Shell One",
+        success_hint: "Do the thing",
+        context_packet: packet,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("context_packet_too_large");
+    expect(store.epics.addShell).not.toHaveBeenCalled();
+  });
+
+  test("rejects a context_packet that exceeds the Epic aggregate cap", async () => {
+    const largePacket = {
+      background: "b".repeat(4096),
+      design_seed: "x".repeat(6000),
+      constraints: Array.from({ length: 6 }, () => "c".repeat(512)),
+      avoidances: Array.from({ length: 5 }, () => "a".repeat(512)),
+    };
+    const existingEntries = Array.from({ length: 17 }, (_, i) =>
+      makeShellEntry({
+        entry_id: `shell-existing-${i}`,
+        context_packet: largePacket,
+      }),
+    );
+    const store = makeStore({ entries: existingEntries });
+    const incomingPacket = {
+      background: "incoming".repeat(500),
+      design_seed: "y".repeat(6000),
+    };
+    const output = await epicTools.adv_epic_add_shell.execute(
+      {
+        epic_id: "addAuthEpic",
+        title: "Shell Two",
+        success_hint: "Do another thing",
+        context_packet: incomingPacket,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("epic_aggregate_context_packets_exceeded");
+    expect(store.epics.addShell).not.toHaveBeenCalled();
   });
 });
 

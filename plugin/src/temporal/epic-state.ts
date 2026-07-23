@@ -267,6 +267,9 @@ export function applyShellAddedToState(
           },
         }
       : {}),
+    ...(payload.context_packet !== undefined
+      ? { context_packet: payload.context_packet }
+      : {}),
   };
   state.epic.entries.push(entry);
 

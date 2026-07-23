@@ -53,6 +53,7 @@ import {
   OpsRunSchema,
 } from "./changes";
 import { WorkNodeRefSchema } from "./work-graph";
+import { FutureWorkContextPacketSchema } from "./future-work";
 import {
   LightweightProfileEvaluationSchema,
   LightweightProfileOmissionPolicySchema,
@@ -766,6 +767,8 @@ export const ShellAddedSignalPayloadSchema = z.object({
     .optional(),
   /** Same-project hard prerequisite edges (rq-workGraphTypes01). */
   blockedBy: z.array(WorkNodeRefSchema).default([]),
+  /** Optional durable future-work context packet for the shell entry. */
+  context_packet: FutureWorkContextPacketSchema.optional(),
 });
 export type ShellAddedSignalPayload = z.infer<
   typeof ShellAddedSignalPayloadSchema

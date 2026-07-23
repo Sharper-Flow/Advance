@@ -41,6 +41,7 @@ function createMockStore(
     },
     epics: {
       addShell,
+      get: async () => ({ success: false, error: "not found" }),
       list: async () => [],
     },
   } as unknown as Store;
