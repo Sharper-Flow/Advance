@@ -84,7 +84,12 @@ describe("plugin bundle manifest", () => {
   });
 
   test("write refuses when index.js is missing", async () => {
-    const dir = await tempDistDir(false);
+    // Provide mcp-server.js so only index.js is absent — isolating the
+    // index.js check (the writer requires both bundles; with neither present
+    // it would report mcp-server.js first).
+    const dir = await createTempDir("plugin-bundle-manifest-");
+    tempDirs.push(dir);
+    await writeFile(join(dir, "mcp-server.js"), "// mcp only\n");
     await expect(
       writePluginBundleManifest(dir, generatePluginBundleGeneration()),
     ).rejects.toThrow(/index\.js/);

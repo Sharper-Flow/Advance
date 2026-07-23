@@ -821,6 +821,7 @@ async function runRename(
   }
 }
 
+// rq-stagedDeltaCrud01: staged spec-delta tool group (add/modify/amend/retract/remove/rename/list/show).
 export const specDeltaTools = {
   adv_delta_add: {
     description:

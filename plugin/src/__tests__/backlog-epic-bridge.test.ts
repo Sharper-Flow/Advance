@@ -32,8 +32,16 @@ function createMockStore(
       config: join(root, "project.json"),
       external: null,
     },
+    changes: {
+      // buildD3ContextFromStore (D3 shell-add enforcement, added by #293)
+      // queries the store for the work graph; provide an empty graph so the
+      // shell-add proceeds without D3 blockers in this unit context.
+      list: async () => ({ changes: [] }),
+      get: async () => ({ success: false, error: "not found" }),
+    },
     epics: {
       addShell,
+      list: async () => [],
     },
   } as unknown as Store;
 }
