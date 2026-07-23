@@ -84,7 +84,13 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         projectMetadata: false,
         archivedBranchHygiene: false,
         resumeProjection: true,
-        futureWork: true,
+        // future_work (Epic/backlog inventory) is excluded from the health
+        // view: health is a strictly time-budgeted diagnostics path
+        // (status-health-integration-blockers A.1 enforces an 8,000 ms
+        // wall-clock budget). buildFutureWorkProjection reads Epic shells +
+        // backlog outside that budget and would breach it. future_work is
+        // still surfaced via the summary and hygiene views (AC5).
+        futureWork: false,
       };
     case "changes":
       return {
