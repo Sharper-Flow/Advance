@@ -8,10 +8,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   buildPendingMergePhase9Status,
+  buildReleaseCompletionEvidence,
   completeReleaseGateAfterFinalization,
   verifyReleaseEvidenceFromMain,
   preservePhase9Evidence,
   runReacquiringChangeQuery,
+  verifyReleaseGateDurableForArchive,
   waitForArchiveReleaseGateCompletion,
 } from "./archive-gate";
 import * as gitFinalize from "../archive-helpers/git-finalize";
@@ -655,5 +657,118 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
         (entry.result as { status?: string } | null)?.status === "done",
     );
     expect(observedDoneBeforeRefresh).toBe(true);
+  });
+});
+
+describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning race", () => {
+  // Even with the fixPhase9StatusSignal ordering, store.changes.refresh's
+  // readback query can return a stale pre-signal "pending" snapshot after
+  // waitForArchiveReleaseGateCompletion has observed "done". refresh then
+  // calls dualWriteAfterMutation, which classifies the stale read as
+  // "confirmed" and re-poison changeCache. The subsequent
+  // verifyReleaseGateDurableForArchive reads the poisoned cache and fails
+  // with "did not observe release done".
+  //
+  // The fix replaces refresh with invalidate on the confirmed-done branch:
+  // invalidate drops the cache entry only, so the next store.gates.get misses
+  // the cache and queries the workflow fresh, observing release=done.
+  const pendingGate = { status: "pending" };
+  const doneGate = {
+    status: "done",
+    completed_at: "2026-01-01T00:00:00Z",
+    completed_by: "adv-archive",
+  };
+  const shippedFinalization: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-1",
+  };
+
+  beforeEach(() => {
+    vi.mocked(getProjectId).mockResolvedValue("project-test");
+  });
+
+  it("invalidate (not refresh) lets verifyReleaseGateDurableForArchive observe release done from the store", async () => {
+    // Shared mutable cache variable models changeCache. store.gates.get
+    // returns the cached gate when present; an undefined cache models a
+    // cache miss and returns the fresh workflow state (doneGate).
+    let cachedReleaseGate: { status: string } | undefined;
+
+    // Sequence models the residual race:
+    //   - pre-signal query: pending
+    //   - poll attempt 1: pending
+    //   - poll attempt 2: done (workflow caught up)
+    //   - refresh's readback after the poll: stale pending (residual race)
+    const queryReturnSequence = [
+      pendingGate, // pre-signal query
+      pendingGate, // poll attempt 1
+      doneGate, // poll attempt 2
+      pendingGate, // refresh's readback returns stale pre-signal state
+    ];
+    let queryCallIndex = 0;
+
+    const handle = {
+      query: vi.fn(async () => {
+        const result =
+          queryReturnSequence[queryCallIndex] ??
+          queryReturnSequence[queryReturnSequence.length - 1] ??
+          doneGate;
+        queryCallIndex += 1;
+        return result;
+      }),
+      signal: vi.fn(async () => {
+        // Signal accepted by the server; workflow will process asynchronously.
+      }),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const refreshMock = vi.fn(async () => {
+      // Model refresh's state readback re-caching stale pre-signal state.
+      cachedReleaseGate = await handle.query();
+    });
+    const invalidateMock = vi.fn(async () => {
+      // Model invalidate: drop the cache entry only. The next store.gates.get
+      // misses cache and reads fresh workflow state.
+      cachedReleaseGate = undefined;
+    });
+    const store = {
+      ...createStore("/repo"),
+      changes: { refresh: refreshMock, invalidate: invalidateMock },
+      gates: {
+        get: vi.fn(async () => ({
+          release: cachedReleaseGate ?? doneGate,
+        })),
+      },
+    } as unknown as Store;
+
+    const completion = await completeReleaseGateAfterFinalization({
+      store,
+      change: createChange({}),
+      changeId: "issue305CachePoison",
+      finalization: shippedFinalization,
+    });
+
+    expect(completion).toMatchObject({ ok: true });
+
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "issue305CachePoison",
+      evidence: buildReleaseCompletionEvidence(shippedFinalization),
+      finalizationStatus: "shipped",
+    });
+
+    expect(durableProof).toMatchObject({
+      ok: true,
+      source: "store",
+      gate: doneGate,
+    });
+    expect(durableProof).not.toMatchObject({ source: "disk" });
+    // Under the fixed code the cache is cleared, so the proof reads fresh
+    // workflow state directly. Under the buggy code refresh poisons the cache
+    // with pending and the proof fails before this assertion.
+    expect(cachedReleaseGate).toBeUndefined();
   });
 });
