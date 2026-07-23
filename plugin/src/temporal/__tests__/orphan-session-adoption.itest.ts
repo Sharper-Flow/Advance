@@ -126,7 +126,19 @@ describe("rq-isolSessionTaskQueue05: orphan session queue adoption (real worker 
       expect(registerQueue).toHaveBeenCalledWith(sessionQueue);
 
       // 5. Sentinel (AC2): the previously-stranded workflow is now queryable.
-      const state = await handle.query(getChangeStateQuery);
+      //    Bounded retry instead of a fixed wait — on a contended runner the
+      //    adopted poller may not be attached immediately after Worker.create,
+      //    so the first query can transiently fail. Retry until it succeeds or a
+      //    ~10s budget elapses (the outer 60s timeout still bounds the test).
+      let state: unknown = null;
+      const sentinelDeadline = Date.now() + 10_000;
+      while (state === null && Date.now() < sentinelDeadline) {
+        try {
+          state = await handle.query(getChangeStateQuery);
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      }
       expect(state).toBeTruthy();
 
       // 6. Diagnostics surface the adopted queue (AC7): success clears retries.

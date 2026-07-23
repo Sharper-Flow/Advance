@@ -315,3 +315,94 @@ describe("isOrphanQueueAdoptionEnabled — ADV_ORPHAN_QUEUE_ADOPTION kill-switch
     expect(isOrphanQueueAdoptionEnabled()).toBe(true);
   });
 });
+
+describe("review remediation — failure accounting + late-settlement safety", () => {
+  // Covers acceptance-review findings: timeout-path failure counting, cooldown
+  // via timeout, lastError capture (AC6 operability), and the late-rejection
+  // unhandledRejection fix (correctness-1).
+
+  function makeAdopter(
+    worker: ReturnType<typeof mockWorker>,
+    opts: {
+      tickTimeoutMs?: number;
+      maxAttempts?: number;
+      now?: () => number;
+    } = {},
+  ) {
+    // Late-import to exercise the real module.
+    return loadAdopter().then(({ OrphanQueueAdopter }) => {
+      const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+      return new OrphanQueueAdopter({
+        client,
+        projectId: "P",
+        worker: {
+          registerQueue: worker.registerQueue,
+          queues: worker.polledQueues,
+        },
+        tickTimeoutMs: opts.tickTimeoutMs ?? 20,
+        maxAttempts: opts.maxAttempts ?? 3,
+        now: opts.now ?? (() => 1000),
+      });
+    });
+  }
+
+  it("a fast registerQueue rejection bumps attemptCount and captures lastError (AC6)", async () => {
+    const worker = mockWorker();
+    worker.setRegisterImpl(async () => {
+      throw new Error("worker run-error: stale bundle");
+    });
+    const adopter = await makeAdopter(worker);
+    await adopter.adoptNextOrphan();
+    const entry = adopter.getDiagnostics().trackedQueues[0];
+    expect(entry?.queue).toBe(Q(1, ""));
+    expect(entry?.attemptCount).toBe(1);
+    expect(entry?.lastError).toBe("worker run-error: stale bundle");
+  });
+
+  it("a timed-out registerQueue bumps attemptCount (timeout-path coverage)", async () => {
+    const worker = mockWorker();
+    // Never resolves → tick timeout wins.
+    worker.setRegisterImpl(() => new Promise<void>(() => undefined));
+    const adopter = await makeAdopter(worker);
+    await adopter.adoptNextOrphan();
+    const entry = adopter.getState().perQueueState.get(Q(1, ""));
+    expect(entry?.attemptCount).toBe(1);
+    expect(entry?.cooldownUntil).toBe(0);
+  });
+
+  it("three timed-out ticks enter cooldown (cooldown-via-timeout)", async () => {
+    const worker = mockWorker();
+    worker.setRegisterImpl(() => new Promise<void>(() => undefined));
+    const adopter = await makeAdopter(worker);
+    await adopter.adoptNextOrphan();
+    await adopter.adoptNextOrphan();
+    await adopter.adoptNextOrphan();
+    const entry = adopter.getState().perQueueState.get(Q(1, ""));
+    expect(entry?.attemptCount).toBe(3);
+    expect(entry?.cooldownUntil).toBeGreaterThan(0);
+  });
+
+  it("does not produce an unhandled rejection when registerQueue rejects after the tick timeout (correctness-1)", async () => {
+    const worker = mockWorker();
+    // Reject AFTER the tick timeout (20ms) wins the race.
+    worker.setRegisterImpl(
+      () =>
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error("late register failure")), 80),
+        ),
+    );
+    const adopter = await makeAdopter(worker);
+
+    const rejections: unknown[] = [];
+    const handler = (reason: unknown) => rejections.push(reason);
+    process.on("unhandledRejection", handler);
+    try {
+      await adopter.adoptNextOrphan();
+      // Wait well past the late-rejection delay so any stray rejection surfaces.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    } finally {
+      process.off("unhandledRejection", handler);
+    }
+    expect(rejections).toEqual([]);
+  });
+});

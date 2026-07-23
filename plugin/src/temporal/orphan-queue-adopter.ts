@@ -44,6 +44,8 @@ export interface PerQueueAdoptionState {
   attemptCount: number;
   lastAttemptAt: number;
   cooldownUntil: number;
+  /** Most recent failure reason (AC6 operability). Cleared on success. */
+  lastError?: string;
 }
 
 export interface OrphanQueueAdopterState {
@@ -59,6 +61,8 @@ export interface OrphanQueueAdoptionDiagnostics {
     lastAttemptAt: number;
     cooldownUntil: number;
     inCooldown: boolean;
+    /** Most recent failure reason, surfaced so operators can diagnose a capped/cooldown queue (AC6). */
+    lastError?: string;
   }>;
 }
 
@@ -73,6 +77,12 @@ function isShutdownError(err: unknown): boolean {
   return (
     err instanceof Error && err.message.toLowerCase().includes(SHUTDOWN_MARKER)
   );
+}
+
+/** Bound an error to a diagnostic-safe string (AC6 lastError surface). */
+function describeError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.length > 200 ? `${msg.slice(0, 197)}...` : msg;
 }
 
 function delay(ms: number): Promise<void> {
@@ -156,7 +166,15 @@ export class OrphanQueueAdopter {
     if (!target) return;
 
     try {
-      // DDC2 — race the register against the hard per-tick timeout.
+      // DDC2 — race the register against the hard per-tick timeout. A LATE
+      // settlement of registerQueue (after the timeout wins) is handled by the
+      // Promise.race internals — both branches have rejection handlers attached
+      // by race, so a late reject cannot surface as an unhandledRejection. A
+      // late resolve after timeout is tolerated: the count is cosmetic because
+      // worker.queues excludes an actually-adopted queue on the next tick
+      // (self-healing). During planned shutdown the worker may never reply; the
+      // timeout then records a best-effort failure, but the heartbeat is torn
+      // down concurrently so impact is bounded (documented limitation, D7).
       const outcome = await Promise.race([
         this.worker
           .registerQueue(target.queue)
@@ -164,24 +182,29 @@ export class OrphanQueueAdopter {
         delay(this.tickTimeoutMs).then(() => ({ ok: false as const })),
       ]);
       if (outcome.ok) {
-        // Success clears retry/cooldown state for this queue.
+        // Success clears retry/cooldown state (and lastError) for this queue.
         this.perQueueState.set(target.queue, {
           attemptCount: 0,
           lastAttemptAt: now,
           cooldownUntil: 0,
+          lastError: undefined,
         });
       } else {
-        this.recordFailure(target.queue, now);
+        this.recordFailure(
+          target.queue,
+          now,
+          `registerQueue timed out after ${this.tickTimeoutMs}ms`,
+        );
       }
     } catch (err) {
       // D7 — suppress shutdown-class refusals silently (no retry bump).
       if (isShutdownError(err)) return;
-      this.recordFailure(target.queue, now);
+      this.recordFailure(target.queue, now, describeError(err));
     }
   }
 
   /** Bump attempt count; enter cooldown once the cap is reached (D4 / DDC4-5). */
-  private recordFailure(queue: string, now: number): void {
+  private recordFailure(queue: string, now: number, reason?: string): void {
     const prev = this.perQueueState.get(queue);
     const attemptCount = (prev?.attemptCount ?? 0) + 1;
     const cooldownUntil =
@@ -190,6 +213,7 @@ export class OrphanQueueAdopter {
       attemptCount,
       lastAttemptAt: now,
       cooldownUntil,
+      lastError: reason,
     });
   }
 
@@ -215,6 +239,7 @@ export class OrphanQueueAdopter {
         lastAttemptAt: s.lastAttemptAt,
         cooldownUntil: s.cooldownUntil,
         inCooldown: s.cooldownUntil > now,
+        lastError: s.lastError,
       })),
     };
   }
