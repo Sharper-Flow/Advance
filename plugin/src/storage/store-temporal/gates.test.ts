@@ -74,6 +74,8 @@ function makeDeps(
     updateOverlay: vi.fn(),
     emitChangeSummarySignal: vi.fn(),
     persistStateToDisk: vi.fn(),
+    persistStateToDiskDurable: vi.fn(async () => {}),
+    persistAndRefreshDurable: vi.fn(async () => {}),
     dualWriteAfterMutation: vi.fn(async () => {}),
     getTemporalWorkflowClient: vi.fn(),
     resolveStateOrQuery: vi.fn(),

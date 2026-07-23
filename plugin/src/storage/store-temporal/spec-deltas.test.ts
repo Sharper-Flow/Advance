@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { createSpecDeltaOps } from "./spec-deltas";
 import { CHANGE_WORKFLOW_SIGNAL_NAMES } from "../../temporal/contracts";
+import { DiskProjectionPersistError } from "./disk-persist";
 
 const { signalMock, queryMock } = vi.hoisted(() => ({
   signalMock: vi.fn(),
@@ -75,6 +76,7 @@ function makeDeps(stateAfterSignal: unknown) {
     setCachedChange: vi.fn(),
     emitChangeSummarySignal: vi.fn(),
     persistStateToDisk: vi.fn(),
+    persistStateToDiskDurable: vi.fn(),
   };
 }
 
@@ -113,7 +115,7 @@ describe("createSpecDeltaOps", () => {
       "spec-delta-store-test",
       makeStateWithDelta(),
     );
-    expect(deps.persistStateToDisk).toHaveBeenCalledWith(
+    expect(deps.persistStateToDiskDurable).toHaveBeenCalledWith(
       "spec-delta-store-test",
       makeStateWithDelta(),
     );
@@ -144,7 +146,7 @@ describe("createSpecDeltaOps", () => {
     await expect(
       ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA),
     ).rejects.toThrow(/rq-specDelta01/);
-    expect(deps.persistStateToDisk).not.toHaveBeenCalled();
+    expect(deps.persistStateToDiskDurable).not.toHaveBeenCalled();
     expect(deps.setCachedChange).not.toHaveBeenCalled();
   });
 
@@ -177,7 +179,7 @@ describe("createSpecDeltaOps", () => {
       amendedBy: "agent",
     });
     expect(deps.setCachedChange).toHaveBeenCalledWith(state);
-    expect(deps.persistStateToDisk).toHaveBeenCalledWith(
+    expect(deps.persistStateToDiskDurable).toHaveBeenCalledWith(
       "spec-delta-store-test",
       state,
     );
@@ -210,7 +212,7 @@ describe("createSpecDeltaOps", () => {
       retractedBy: "agent",
     });
     expect(deps.setCachedChange).toHaveBeenCalled();
-    expect(deps.persistStateToDisk).toHaveBeenCalled();
+    expect(deps.persistStateToDiskDurable).toHaveBeenCalled();
   });
 
   it("throws a typed error when retract readback still finds the delta", async () => {
@@ -224,7 +226,7 @@ describe("createSpecDeltaOps", () => {
         "dl-AAA11111",
       ),
     ).rejects.toThrow(/without removing delta/);
-    expect(deps.persistStateToDisk).not.toHaveBeenCalled();
+    expect(deps.persistStateToDiskDurable).not.toHaveBeenCalled();
   });
 
   it("signals specDeltaRemoved, refreshes state, and returns the appended remove delta", async () => {
@@ -279,5 +281,27 @@ describe("createSpecDeltaOps", () => {
       renamedBy: "agent",
     });
     expect(deps.setCachedChange).toHaveBeenCalledWith(state);
+  });
+
+  it("propagates DiskProjectionPersistError when the durable disk write fails (AC1/AC5/AC7)", async () => {
+    const deps = makeDeps(makeStateWithDelta());
+    deps.persistStateToDiskDurable = vi
+      .fn()
+      .mockRejectedValue(
+        new DiskProjectionPersistError(
+          "spec-delta-store-test",
+          new Error("EACCES: permission denied"),
+        ),
+      );
+    const ops = createSpecDeltaOps(deps as never);
+
+    // The Temporal signal + readback confirmed the delta, but the disk
+    // projection write failed — success must NOT be returned; the typed
+    // ambiguous error propagates so the caller does not blind-retry.
+    await expect(
+      ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA, {
+        addedBy: "agent",
+      }),
+    ).rejects.toBeInstanceOf(DiskProjectionPersistError);
   });
 });
