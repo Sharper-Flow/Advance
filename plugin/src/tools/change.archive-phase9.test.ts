@@ -674,15 +674,72 @@ describe("adv_change_archive Phase 9 behavior", () => {
       }
     });
 
-    test("AC2b (forge guard): shipped + generic (non-release) recovery audit + non-matching evidence → blocked", async () => {
+    // The exact live-repro case: a terminated-workflow release gate recovered
+    // through generic adv_gate_complete recovery is stamped with reason
+    // "missing_workflow", not the archive's own recovery reason. It MUST be
+    // accepted under shipped (bounded release-recovery allowlist).
+    test("AC1b (live repro): shipped + missing_workflow recovery + non-matching evidence → accepted", async () => {
+      const { store, cleanup } = await makeDiskFallbackStore({
+        releaseGate: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "agent",
+          recovery_audit: {
+            reason: "missing_workflow",
+            evidence:
+              "WorkflowNotFoundError: workflow execution already completed",
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        } as Gates["release"],
+      });
+      try {
+        const proof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId: "example",
+          evidence: structuredEvidence,
+          finalizationStatus: "shipped",
+        });
+        expect(proof.ok).toBe(true);
+      } finally {
+        await cleanup();
+      }
+    });
+
+    test("AC1c: shipped + poisoned_history recovery + non-matching evidence → accepted", async () => {
+      const { store, cleanup } = await makeDiskFallbackStore({
+        releaseGate: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "agent",
+          recovery_audit: {
+            reason: "poisoned_history",
+            evidence: "poisoned history recovery",
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        } as Gates["release"],
+      });
+      try {
+        const proof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId: "example",
+          evidence: structuredEvidence,
+          finalizationStatus: "shipped",
+        });
+        expect(proof.ok).toBe(true);
+      } finally {
+        await cleanup();
+      }
+    });
+
+    test("AC2b (forge guard): shipped + unknown (non-allowlisted) recovery reason + non-matching evidence → blocked", async () => {
       const { store, cleanup } = await makeDiskFallbackStore({
         releaseGate: {
           status: "done",
           completed_at: "2026-01-01T00:00:00Z",
           completed_by: "adv-archive",
           recovery_audit: {
-            reason: "missing_workflow",
-            evidence: "generic recovery | STALE OLD EVIDENCE",
+            reason: "forged_unrecognized_reason",
+            evidence: "forged | STALE OLD EVIDENCE",
             recovered_at: "2026-01-01T00:00:01Z",
           },
         } as Gates["release"],
