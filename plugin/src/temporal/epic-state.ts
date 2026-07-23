@@ -258,6 +258,7 @@ export function applyShellAddedToState(
     order,
     title: payload.title,
     success_hint: payload.successHint,
+    blocked_by: [],
     ...(payload.importedFrom
       ? {
           imported_from: {

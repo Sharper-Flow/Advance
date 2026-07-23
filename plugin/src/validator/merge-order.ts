@@ -15,6 +15,7 @@ import {
   initStateDb,
   getWorktreeRegistrySnapshot,
 } from "../tools/worktree/state";
+import { detectCycles } from "./cycle-detect";
 
 export interface MergeOrderEntry {
   changeId: string;
@@ -136,77 +137,13 @@ export async function computeMergeOrder(
     graph.set(later.changeId, deps);
   }
 
-  // Kahn's algorithm for topological sort.
-  const inDegree = new Map<string, number>();
-  for (const { changeId } of archivedEntries) {
-    inDegree.set(changeId, 0);
-  }
-
-  // Build adjacency list (node -> nodes that depend on it) and in-degrees.
-  const adjacency = new Map<string, Set<string>>();
-  for (const { changeId } of archivedEntries) {
-    adjacency.set(changeId, new Set());
-  }
-  for (const [changeId, deps] of graph) {
-    for (const dep of deps) {
-      adjacency.get(dep)!.add(changeId);
-      inDegree.set(changeId, (inDegree.get(changeId) ?? 0) + 1);
-    }
-  }
-
-  // Initialize queue with nodes having in-degree 0.
-  const queue: string[] = [];
-  for (const [changeId, degree] of inDegree) {
-    if (degree === 0) queue.push(changeId);
-  }
-
-  const sorted: string[] = [];
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    sorted.push(current);
-    for (const neighbor of adjacency.get(current) ?? []) {
-      const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-      inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) queue.push(neighbor);
-    }
-  }
-
-  // Detect cycles: if sorted length != archived entries length, there's a cycle.
-  let cycles: string[][] | undefined;
-  if (sorted.length !== archivedEntries.length) {
-    const visited = new Set<string>();
-    const recStack = new Set<string>();
-    cycles = [];
-
-    function dfs(node: string, path: string[]): boolean {
-      visited.add(node);
-      recStack.add(node);
-      path.push(node);
-
-      for (const dep of graph.get(node) ?? []) {
-        if (!visited.has(dep)) {
-          if (dfs(dep, path)) return true;
-        } else if (recStack.has(dep)) {
-          // Found cycle — extract it.
-          const cycleStart = path.indexOf(dep);
-          cycles!.push(path.slice(cycleStart));
-          return true;
-        }
-      }
-
-      path.pop();
-      recStack.delete(node);
-      return false;
-    }
-
-    for (const { changeId } of archivedEntries) {
-      if (!visited.has(changeId)) {
-        dfs(changeId, []);
-      }
-    }
-
-    if (cycles.length === 0) cycles = undefined;
-  }
+  // Topological sort + cycle detection via shared helper (rq-workGraphTypes01).
+  // The helper combines Kahn's algorithm with iterative DFS three-color,
+  // returning closed cycle paths [A,B,A].
+  const { sorted, cycles: detectedCycles } = detectCycles(
+    archivedEntries.map((e) => e.changeId),
+    (id) => Array.from(graph.get(id) ?? []),
+  );
 
   // Build result queue in topological order.
   const resultQueue: MergeOrderEntry[] = sorted.map((changeId) => {
@@ -219,5 +156,8 @@ export async function computeMergeOrder(
     };
   });
 
-  return { queue: resultQueue, cycles };
+  return {
+    queue: resultQueue,
+    cycles: detectedCycles.length > 0 ? detectedCycles : undefined,
+  };
 }
