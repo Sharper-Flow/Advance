@@ -1,0 +1,20 @@
+{
+  "archived_at": "2026-07-23T20:11:28.777Z",
+  "capabilities": [],
+  "change_hash": "aee782c58f1a1b9c35b1c9d3b86319b56238b9d7d6cfae7daa38bc7d9f2b2b54",
+  "change_id": "fixHealthDegradedAlive",
+  "completed_tasks": 2,
+  "created_at": "2026-07-23T18:06:29.738Z",
+  "current_gate": "done",
+  "fast_follow_of": {
+    "linked_at": "2026-07-23T18:06:28.859Z",
+    "parent_change_id": "makeReadsDiskAuthoritative"
+  },
+  "last_activity_at": "2026-07-23T20:11:15.729Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "38edc5e665e148f89f1239adde72dde085bc60dfc3207ddfa037bf015124bd4b",
+  "task_count": 2,
+  "title": "Fix health degraded-alive semantics",
+  "version": "1"
+}

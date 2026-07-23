@@ -1,0 +1,356 @@
+{
+  "id": "fixHealthDegradedAlive",
+  "title": "Fix health degraded-alive semantics",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-23T18:06:29.738Z",
+  "tasks": [
+    {
+      "id": "tk-c412c02982ad",
+      "title": "Formatter degraded render + status temporalDegraded/freshness (SHIPPED 3f498a89)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T20:09:46.229Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Shipped 3f498a89: formatter degraded render + status temporalDegraded/freshness. tool-formatters.test.ts passes. AC1/AC2.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3f498a891ffe18cd9c41439d1563b13e9140b53f",
+      "completedAt": "2026-07-23T20:10:10.477Z",
+      "completed_at": "2026-07-23T20:10:10.477Z"
+    },
+    {
+      "id": "tk-3d572d3606d2",
+      "title": "staleQueueProbe degraded + isTemporalHealthUsable unchanged (SHIPPED 3f498a89)",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-23T20:09:46.336Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Shipped 3f498a89: staleQueueProbe degraded + isTemporalHealthUsable unchanged. status-health/health-probe-cache tests pass. AC3/AC4.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3f498a891ffe18cd9c41439d1563b13e9140b53f",
+      "completedAt": "2026-07-23T20:10:10.584Z",
+      "completed_at": "2026-07-23T20:10:10.584Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-23T20:08:41.223Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track (work shipped live in 3f498a89). Proposal from review finding health-guard-1: probe_degraded masked real outages by rendering 'server alive' on a timed-out probe.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7939a2e05459fb3dd5244e1c0679a07f2020a0f74090ce1d6cfabd896801928c",
+        "non_whitespace_chars": 607,
+        "checked_at": "2026-07-23T18:06:33.177Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-23T20:09:10.808Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery: the mask is tool-formatters.ts:462 rendering 'server alive ✓' when temporalAlive (timeout set server_alive:true). Fix = surface temporalDegraded in StatusInput + render degraded; keep admission. Agreement + contract (8 items) persisted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "non_whitespace_chars": 1243,
+        "checked_at": "2026-07-23T18:06:33.178Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-23T20:09:35.537Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted: surface temporalDegraded to formatter (degraded render); freshness stale:true on degraded; staleQueueProbe widened; isTemporalHealthUsable unchanged (admit). Replay-safe.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "ebb6f5e0a24761cb2fdc030ccd6c45a6633e43c26932986f216a70157625f04d",
+        "non_whitespace_chars": 1145,
+        "checked_at": "2026-07-23T18:06:33.179Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-23T20:09:58.332Z",
+      "completed_by": "user",
+      "approval_evidence": "2 test-policy tasks cover AC1-AC4. Work shipped in 3f498a89."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T20:10:20.155Z",
+      "completed_by": "agent",
+      "approval_evidence": "2 tasks done (checkpointed 3f498a89): tk-c412c02982ad (formatter degraded + freshness, AC1/AC2), tk-3d572d3606d2 (staleQueueProbe + usable-unchanged, AC3/AC4). Shipped/deployed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-23T20:10:57.926Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Fast-track acceptance: work shipped live (3f498a89) before formal acceptance. Review matrix (8 rows, 0 failing) + executive summary persisted. AC1-AC4 covered by done tasks. Closes review finding health-guard-1."
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-07-23T20:11:15.729Z",
+      "completed_by": "agent",
+      "approval_evidence": "Merged 3f498a89, deployed (manifest gen verified). Display honesty fix for health-guard-1."
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "makeReadsDiskAuthoritative",
+    "linked_at": "2026-07-23T18:06:28.859Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+      "approvedAt": "2026-07-23T20:08:59.656Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`formatStatusOutput` renders \"server degraded (liveness unconfirmed)\" (not \"server alive ✓\") when `temporalDegraded` is set.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`status` passes `temporalDegraded` from `probe_degraded`; a degraded probe sets temporal_health freshness `stale:true`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`staleQueueProbe` distinguishes \"degraded\" from \"ok\"/\"unavailable\" (type widened).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`isTemporalHealthUsable` unchanged — degraded still admits the serviceability computation (no false-down regression).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Fix surface: tools/ + utils/ + temporal/queue-serviceability type only; `workflows.ts` untouched (replay-safe).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "`pnpm run check` + `pnpm run build` green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not regress the makeReadsDiskAuthoritative false-down fix (degraded must still admit computation).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not assert confirmed liveness on a timed-out probe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T20:10:32.261Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-formatters.test.ts: temporalDegraded → 'server degraded' + 'liveness unconfirmed', NOT 'server alive ✓'."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "status.ts: temporalDegraded=probe_degraded passed; catch path freshness stale:true (degraded not authoritative-fresh)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "status-health.ts staleQueueProbe + queue-serviceability.ts type widened to 'ok'|'degraded'|'unavailable'."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "health-probe-cache.ts isTemporalHealthUsable unchanged: server_alive || probe_degraded; degraded still admits computation (health-probe-cache.test.ts)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fix surface tools/+utils/+temporal type only; workflows.ts untouched."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check + pnpm run build green."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "isTemporalHealthUsable unchanged; degraded still admits (no false-down regression)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "buildTemporalHealthFallback unchanged on server_alive; the DISPLAY now distinguishes degraded instead of asserting alive."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`formatStatusOutput` renders \"server degraded (liveness unconfirmed)\" (not \"server alive ✓\") when `temporalDegraded` is set.",
+    "`status` passes `temporalDegraded` from `probe_degraded`; a degraded probe sets temporal_health freshness `stale:true`.",
+    "`staleQueueProbe` distinguishes \"degraded\" from \"ok\"/\"unavailable\" (type widened).",
+    "`isTemporalHealthUsable` unchanged — degraded still admits the serviceability computation (no false-down regression)."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Distinguish degraded from confirmed-alive in health\n\n- Introduce a third health state distinct from both confirmed-alive and confirmed-down: `unknown`/`degraded` (probe timed out — liveness NOT confirmed).\n- `isTemporalHealthUsable` and downstream consumers (queue serviceability, status rendering) must treat `degraded` as \"liveness unconfirmed\" — usable for non-gating reads, but NOT reported as alive, and not silently masking a real outage.\n- Add tests for the degraded-vs-alive-vs-down distinction (status-health.test.ts, health-probe-cache.test.ts).\n\nFast-follow of makeReadsDiskAuthoritative (shipped). Epic hardenTemporalReliability; correctness of the health surface.",
+    "problemStatement": "# Problem: probe_degraded masks real outages\n\nThe shipped health false-down guard (makeReadsDiskAuthoritative, commit 1879fb64) added `probe_degraded` to `TemporalHealth` so a read-path timeout reports `server_alive:true, worker_alive:true, probe_degraded:true` (instead of the false \"server down\"). But `isTemporalHealthUsable` treats `probe_degraded===true` as USABLE, and the probe reports alive on a timeout — so a genuine server/worker outage that manifests as a timeout could be masked as \"alive/degraded\", a false negative the other way.\n\nFound by adv-reviewer acceptance review (finding health-guard-1, 2026-07-23). The guard correctly killed the false-positive \"server down\" but introduced a potential false-negative \"alive when actually down\".",
+    "agreement": "# Agreement: distinguish degraded from confirmed-alive health\n\n## Objectives\n1. A timed-out health probe must NOT be reported as \"server alive\" — surface a distinct degraded (liveness-unconfirmed) state.\n2. A degraded probe is NOT authoritative-fresh (callers re-fetch, not trust the optimistic fallback).\n3. Admission (`isTemporalHealthUsable`) stays optimistic for degraded so the serviceability computation still runs and catches a genuine outage by querying the server (no false-down regression).\n\n## Acceptance criteria\n- AC1: `formatStatusOutput` renders \"server degraded (liveness unconfirmed)\" (not \"server alive ✓\") when `temporalDegraded` is set.\n- AC2: `status` passes `temporalDegraded` from `probe_degraded`; a degraded probe sets temporal_health freshness `stale:true`.\n- AC3: `staleQueueProbe` distinguishes \"degraded\" from \"ok\"/\"unavailable\" (type widened).\n- AC4: `isTemporalHealthUsable` unchanged — degraded still admits the serviceability computation (no false-down regression).\n\n## Constraints\n- Fix surface: tools/ + utils/ + temporal/queue-serviceability type only; `workflows.ts` untouched (replay-safe).\n- `pnpm run check` + `pnpm run build` green.\n\n## Avoidances\n- Do not regress the makeReadsDiskAuthoritative false-down fix (degraded must still admit computation).\n- Do not assert confirmed liveness on a timed-out probe.\n\nFast-follow of makeReadsDiskAuthoritative (review finding health-guard-1).",
+    "design": "# Design: distinguish degraded from confirmed-alive\n\n## Decision\nKeep the optimistic `server_alive:true` fallback on timeout (avoids false-down for naive consumers + maps the diagnostics tri-state correctly), but stop REPORTING it as alive: add a `temporalDegraded` signal through to the formatter, which renders a distinct \"server degraded (liveness unconfirmed)\" line. Mark degraded probes non-authoritative-fresh.\n\n## Changes (shipped 3f498a89)\n1. `utils/tool-formatters.ts`: `StatusInput.temporalDegraded?`; render `Temporal: degraded ⚠ (liveness unconfirmed)` when set.\n2. `tools/status.ts`: pass `temporalDegraded = probe_degraded`; degraded → freshness `stale:true`.\n3. `tools/status-health.ts` + `temporal/queue-serviceability.ts`: `staleQueueProbe` type widened to include \"degraded\".\n4. `isTemporalHealthUsable` UNCHANGED — degraded still admits the serviceability computation, which catches a genuine outage by querying the server.\n\n## LBP\nThe functional mask was never present (the serviceability computation catches real outages). This fixes the DISPLAY honesty + freshness authority. No new failure mode.\n\n## Replay verdict\nNOT replay-sensitive: tools/ + utils/ + a type file only; `workflows.ts` untouched.\n\n## Independent validation\nDirect code read of the 4 sites; fast-track per user approval.",
+    "executiveSummary": "# Executive Summary: distinguish degraded from confirmed-alive health\n\n## Outcome\nA timed-out Temporal health probe no longer renders as \"server alive ✓\". It now surfaces a distinct \"server degraded ⚠ (liveness unconfirmed)\" state, so a potential real outage is not masked by an optimistic fallback.\n\n## Why it matters\nCloses review finding health-guard-1 of makeReadsDiskAuthoritative. The earlier `probe_degraded` fix (which prevented the false \"server down\" on a budget-starved probe) over-corrected: it asserted `server_alive:true` on a timeout, so the status line claimed \"alive\" even when liveness was unconfirmed — potentially masking a real outage. This follow-up restores honesty without regressing the false-down fix.\n\n## What was delivered\n- `formatStatusOutput` renders a distinct degraded line via a new `temporalDegraded` field.\n- `status` passes `temporalDegraded` and marks a degraded probe non-authoritative-fresh (`stale:true`).\n- `staleQueueProbe` distinguishes \"degraded\" from \"ok\"/\"unavailable\".\n- `isTemporalHealthUsable` UNCHANGED — degraded still admits the serviceability computation, which catches a genuine outage by querying the server (no false-down regression).\n\n## Verification\n- `pnpm run check` + `pnpm run build` green; 55 health/formatter/cache tests pass including new degraded-rendering regressions.\n- Replay-safe: `workflows.ts` untouched.\n- Campsite: removed unused imports + formatted `launcher-projection.*` (concurrent session had left trunk red on lint/prettier).\n\n## Risks / follow-ups\n- None new. The functional outage-detection path (serviceability computation) was already correct; this is a display/freshness honesty fix.\n\n## Release readiness\nMerged to trunk (`3f498a89`), deployed, verified on disk (manifest gen match). Safe to release — display honesty + freshness; no mutation/admission authority changes."
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-23T18:06:29.884Z",
+      "contentHash": "7939a2e05459fb3dd5244e1c0679a07f2020a0f74090ce1d6cfabd896801928c",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-23T18:06:29.884Z",
+      "contentHash": "5615a9487db050532b93ae3ebb003b1e64a221dd3a74823c264f206e02a938cf",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-23T20:08:42.747Z",
+      "contentHash": "c5aa2bddd8b57ca08d6cae212aa7f9a1f066f48f9364c2f2bdc82bcd35bb66c6",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-23T20:09:25.005Z",
+      "contentHash": "ebb6f5e0a24761cb2fdc030ccd6c45a6633e43c26932986f216a70157625f04d",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T20:10:46.895Z",
+      "contentHash": "a7414ce85ad7561b7cc9715529dba328dad9d8ec4354edad980bf311dfdfd254",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T20:11:15.729Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}
