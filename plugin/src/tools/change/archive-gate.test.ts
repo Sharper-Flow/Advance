@@ -628,9 +628,13 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
       // the fixed ordering it consumes the post-done result above.
       await handle.query();
     });
+    const invalidateMock = vi.fn(async () => {
+      // No-op for this ordering test; the fixed code calls invalidate on the
+      // confirmed-done branch instead of refresh.
+    });
     const store = {
       ...createStore("/repo"),
-      changes: { refresh: refreshMock },
+      changes: { refresh: refreshMock, invalidate: invalidateMock },
     } as unknown as Store;
 
     const result = await completeReleaseGateAfterFinalization({

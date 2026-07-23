@@ -1201,11 +1201,14 @@ export async function completeReleaseGateAfterFinalization(input: {
     });
   }
   if (postSignalGate?.status === "done") {
-    // rq-cacheRefresh01: refresh after a successful signal, matching
-    // fireSignalAndRefresh semantics. Deferred until AFTER the poll confirms
-    // done so the refresh's readback query returns post-signal state, not a
-    // stale pre-signal snapshot (fixPhase9StatusSignal race fix).
-    await input.store.changes.refresh(input.changeId);
+    // #305: after polling confirms the workflow has release=done, drop the
+    // in-memory change cache only. A full refresh readback can still race
+    // with the workflow's signal-processing loop and return a pre-signal
+    // "pending" snapshot that dualWriteAfterMutation classifies as
+    // "confirmed" and re-caches. invalidate avoids re-poisoning the cache;
+    // the subsequent verifyReleaseGateDurableForArchive store.gates.get
+    // misses cache and queries the workflow fresh.
+    await input.store.changes.invalidate(input.changeId);
     return { ok: true, gate: postSignalGate, alreadyDone: false };
   }
   return {
