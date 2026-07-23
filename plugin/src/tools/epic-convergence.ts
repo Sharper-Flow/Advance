@@ -131,6 +131,7 @@ function buildExpectedMembership(
  *  Entry unlinked + child still has matching projection
  *                               → conflict, repair=clear_child_projection
  */
+// rq-epicMembershipConvergence01: classify Epic change entry vs child membership and emit repairable convergence.
 export function convergeEpicMembership(
   input: EpicMembershipConvergenceInput,
 ): EpicMembershipConvergenceResult {

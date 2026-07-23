@@ -129,6 +129,7 @@ export async function saveRecoveredTaskAdd(input: {
  * The caller supplies the full completion record (status + completed_at +
  * completed_by + approval_evidence + optional artifact_evidence).
  */
+// rq-releaseRepairRecovery01: disk-direct gate completion write with audited recovery authorization.
 export async function saveRecoveredGateCompletion(input: {
   store: Store;
   change: Change;

@@ -45,7 +45,13 @@ describe("rq-autonomy01 human checkpoint assets", () => {
 
   test("acceptance checkpoint preserves accept-before-gate ordering (inline Tier A)", () => {
     const review = readCommand("adv-review.md");
-    const mergedGateIdx = review.search(/adv_gate_complete[\s\S]*acceptance/);
+    // Target the ACTUAL acceptance gate-completion invocation (gateId: acceptance
+    // on the same line), not earlier prose mentions of adv_gate_complete (e.g.
+    // the poisoned-history recovery note), so the ordering assertion reflects the
+    // real workflow step rather than an incidental reference.
+    const mergedGateIdx = review.search(
+      /adv_gate_complete[^\n]*gateId:\s*['"]?acceptance/,
+    );
     // Inline approval prompt now precedes gate completion (replaces question tool)
     const inlineApprovalIdx = review.search(/Inline Approval prompt/);
     expect(inlineApprovalIdx).toBeGreaterThanOrEqual(0);

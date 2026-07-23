@@ -179,6 +179,7 @@ export type CreationIdempotencyDecision =
  *
  * Pure: depends only on its arguments.
  */
+// rq-provenMutationOutcome01: reconcile creation request hash to avoid duplicate application.
 export function resolveCreationIdempotency(args: {
   existingHash?: string;
   computedHash: string;
