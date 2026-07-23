@@ -7,10 +7,7 @@
  * behavior without overloading serverInfo.
  */
 
-import {
-  TIER_4_MCP_TOOLS,
-  type Tier4McpTool,
-} from "../tool-tier4-catalog.js";
+import { TIER_4_MCP_TOOLS, type Tier4McpTool } from "../tool-tier4-catalog.js";
 
 export type { Tier4McpTool };
 
