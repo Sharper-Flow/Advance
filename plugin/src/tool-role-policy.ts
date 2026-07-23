@@ -24,6 +24,8 @@
 
 import { ADV_TOOL_NAMES } from "./tool-registry";
 
+export { TIER_4_MCP_TOOLS } from "./tool-tier4-catalog.js";
+
 export type ToolRoleClass = "orchestrator" | "operator-only" | "dual";
 
 export interface ToolRoleEntry {
