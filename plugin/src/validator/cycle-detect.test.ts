@@ -156,10 +156,7 @@ describe("detectCycles — generic node type with getKey", () => {
 
   test("works with number-keyed nodes (string conversion)", () => {
     // Nodes are 0..4, dependency chain 4→3→2→1→0.
-    const result = detectCycles(
-      [0, 1, 2, 3, 4],
-      (n) => (n > 0 ? [n - 1] : []),
-    );
+    const result = detectCycles([0, 1, 2, 3, 4], (n) => (n > 0 ? [n - 1] : []));
     expect(result.sorted).toEqual([0, 1, 2, 3, 4]);
     expect(result.cycles).toEqual([]);
   });
@@ -200,9 +197,8 @@ describe("detectCycles — iterative DFS scale (DDC2)", () => {
 describe("detectCycles — merge-order parity", () => {
   test("produces same sorted output as merge-order would for archived entries", () => {
     // Simulate merge-order's dependency graph: chg-b depends on chg-a (overlap).
-    const result = detectCycles(
-      ["chg-a", "chg-b"],
-      (n) => (n === "chg-b" ? ["chg-a"] : []),
+    const result = detectCycles(["chg-a", "chg-b"], (n) =>
+      n === "chg-b" ? ["chg-a"] : [],
     );
     expect(result.sorted).toEqual(["chg-a", "chg-b"]);
     expect(result.cycles).toEqual([]);

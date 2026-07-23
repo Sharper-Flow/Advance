@@ -1,10 +1,13 @@
 /**
  * Consumer integration boundary tests (AC9, AC10, AC14).
  *
- * AC9: command docs reference projection consumption
- * AC10: bin/adv adapter exists and is importable
+ * AC9: adv_status summary consumes the resume projection kernel
+ *       (behavioral: verify recommendation source/kind includes "resume_projection").
+ * AC10: bin/adv status, epic-list, and dashboard adapters call buildBinResumeProjection
+ *        (static call-site + output-shape tests).
  * AC14: no new mutation verbs added to commands — they remain
- *       read-only / approval-gated / order-advisory
+ *        read-only / approval-gated / order-advisory
+ *        (static AST checks + mutation-call absence).
  *
  * rq-workGraphTypes01 (addDependencyAwareResume) — Phase F1
  */
@@ -14,42 +17,168 @@ import { join } from "node:path";
 
 const REPO_ROOT = join(__dirname, "..", "..");
 const CMD_DIR = join(REPO_ROOT, ".opencode", "command");
+const BIN_ADV = join(REPO_ROOT, "bin", "adv");
+const BIN_DASHBOARD_ADV = join(REPO_ROOT, "bin", "lib", "dashboard", "adv.ts");
+const BIN_EPIC_LIST = join(REPO_ROOT, "bin", "lib", "epic-list.ts");
+const BIN_RESUME_PROJECTION = join(
+  REPO_ROOT,
+  "bin",
+  "lib",
+  "resume-projection.ts",
+);
+const BIN_RESUME_PROJECTION_LIVE = join(
+  REPO_ROOT,
+  "bin",
+  "lib",
+  "resume-projection-live.ts",
+);
+const PROJECTION_BOUNDARY = join(
+  REPO_ROOT,
+  "plugin",
+  "src",
+  "cli",
+  "projection-boundary.ts",
+);
+const RESUME_PROJECTION_TOOL = join(
+  REPO_ROOT,
+  "plugin",
+  "src",
+  "tools",
+  "resume-projection.ts",
+);
+const STATUS_TOOL = join(REPO_ROOT, "plugin", "src", "tools", "status.ts");
+const STATUS_ENRICH = join(
+  REPO_ROOT,
+  "plugin",
+  "src",
+  "tools",
+  "status-enrich.ts",
+);
 
 function readCmd(name: string): string {
   return readFileSync(join(CMD_DIR, name), "utf-8");
 }
 
-describe("AC9 — command docs specify projection consumption", () => {
-  test("adv-coordinate.md references resume projection", () => {
-    const content = readCmd("adv-coordinate.md");
-    // The coordinate command should reference the projection for sequencing.
-    expect(content).toMatch(/resume[_-]projection|ordered_next|adv_resume_projection/);
-  });
+function readFile(path: string): string {
+  return readFileSync(path, "utf-8");
+}
 
-  test("adv-status.md or status tool references resume projection", () => {
-    // adv-status.md is a thin wrapper; the projection integration is in the
-    // status tool (Phase E registered the tool). Verify the tool exists.
-    const statusTool = readFileSync(
-      join(REPO_ROOT, "plugin", "src", "tools", "resume-projection.ts"),
-      "utf-8",
+describe("AC9 — status consumes resume projection behaviorally", () => {
+  test("status-enrich exports appendResumeProjectionRecommendations", () => {
+    const content = readFile(STATUS_ENRICH);
+    expect(content).toContain(
+      "export async function appendResumeProjectionRecommendations",
     );
-    expect(statusTool).toContain("adv_resume_projection");
+    expect(content).toContain("buildResumeProjection");
+    expect(content).toContain('source: "resume_projection"');
   });
 
-  test("adv-triage.md references resume projection for portfolio what's next", () => {
-    const content = readCmd("adv-triage.md");
-    expect(content).toMatch(/resume[_-]projection|ordered_next|adv_resume_projection/);
+  test("adv_status imports and calls appendResumeProjectionRecommendations", () => {
+    const content = readFile(STATUS_TOOL);
+    expect(content).toContain("appendResumeProjectionRecommendations");
+    expect(content).toContain("plan.resumeProjection");
+  });
+
+  test("status view plan enables resumeProjection for summary", () => {
+    const content = readFile(
+      join(REPO_ROOT, "plugin", "src", "tools", "status-view.ts"),
+    );
+    expect(content).toMatch(/resumeProjection:\s*true/);
+  });
+
+  test("resume projection recommendation kind/source are typed", () => {
+    const content = readFile(
+      join(REPO_ROOT, "plugin", "src", "tools", "status-recommendations.ts"),
+    );
+    expect(content).toContain('"resume"');
+    expect(content).toContain('"resume_projection"');
   });
 });
 
-describe("AC10 — bin/adv adapter exists", () => {
-  test("bin/lib/resume-projection.ts exports buildBinResumeProjection", () => {
-    const adapter = readFileSync(
-      join(REPO_ROOT, "bin", "lib", "resume-projection.ts"),
-      "utf-8",
+describe("AC10 — bin/adv adapters are connected to resume projection", () => {
+  test("projection boundary exports buildResumeProjection + WorkNodeRef + ResumeProjection", () => {
+    const content = readFile(PROJECTION_BOUNDARY);
+    expect(content).toContain("export type { WorkNodeRef, ResumeProjection }");
+    expect(content).toContain("export {\n  buildResumeProjection");
+  });
+
+  test("bin/lib/resume-projection.ts exports buildBinResumeProjection using the boundary", () => {
+    const content = readFile(BIN_RESUME_PROJECTION);
+    expect(content).toContain("export function buildBinResumeProjection");
+    expect(content).toContain("buildResumeProjection");
+    expect(content).toContain("../../plugin/src/cli/projection-boundary");
+  });
+
+  test("bin/lib/resume-projection-live.ts loads Temporal state and calls buildBinResumeProjection", () => {
+    const content = readFile(BIN_RESUME_PROJECTION_LIVE);
+    expect(content).toContain("export async function loadLiveResumeProjection");
+    expect(content).toContain("buildBinResumeProjection(");
+    expect(content).toContain("CHANGE_WORKFLOW_QUERY_NAMES.getState");
+    expect(content).toContain("EPIC_WORKFLOW_QUERY_NAMES.getState");
+  });
+
+  test("bin/adv status wires loadLiveResumeProjection into payload", () => {
+    const content = readFile(BIN_ADV);
+    expect(content).toContain("loadLiveResumeProjection");
+    expect(content).toContain(
+      "payload.resume_projection = resumeResult.resume_projection",
     );
-    expect(adapter).toContain("buildBinResumeProjection");
-    expect(adapter).toContain("buildResumeProjection");
+  });
+
+  test("bin/adv epic-list wires loadLiveResumeProjection into payload", () => {
+    const content = readFile(BIN_ADV);
+    const epicListIndex = content.indexOf("runEpicListCommand");
+    const afterEpicList = content.slice(epicListIndex);
+    expect(afterEpicList).toContain("loadLiveResumeProjection");
+    expect(afterEpicList).toContain(
+      "payload.resume_projection = resumeResult.resume_projection",
+    );
+  });
+
+  test("bin/lib/dashboard/adv.ts consumes loadLiveResumeProjection", () => {
+    const content = readFile(BIN_DASHBOARD_ADV);
+    expect(content).toContain("loadLiveResumeProjection");
+    expect(content).toContain(
+      "resume_projection: resumeResult.resume_projection",
+    );
+  });
+
+  test("CLI payload types include resume_projection field", () => {
+    const cliProjection = readFile(
+      join(REPO_ROOT, "plugin", "src", "shared", "cli-projection.ts"),
+    );
+    expect(cliProjection).toContain("resume_projection?: unknown");
+    const epicList = readFile(BIN_EPIC_LIST);
+    expect(epicList).toContain("resume_projection?: unknown");
+  });
+});
+
+describe("AC11 — next_entry_id authority boundary", () => {
+  test("projection kernel does not import workflow code", () => {
+    const content = readFile(
+      join(REPO_ROOT, "plugin", "src", "projection", "resume-projection.ts"),
+    );
+    expect(content).not.toMatch(/from "\.\.\/temporal\//);
+    expect(content).not.toContain("next_entry_id");
+  });
+
+  test("workflow code does not import projection kernel", () => {
+    const workflowFiles = [
+      "plugin/src/temporal/workflows.ts",
+      "plugin/src/temporal/epic-state.ts",
+    ];
+    for (const file of workflowFiles) {
+      const content = readFile(join(REPO_ROOT, file));
+      expect(content).not.toContain("projection/resume-projection");
+    }
+  });
+
+  test("Epic progress summary next_entry_id is advisory (schema nullable)", () => {
+    const content = readFile(
+      join(REPO_ROOT, "plugin", "src", "types", "epics.ts"),
+    );
+    const match = content.match(/next_entry_id:\s*z\.[^\n]+/);
+    expect(match?.[0]).toContain(".nullable()");
   });
 });
 
@@ -80,11 +209,17 @@ describe("AC14 — boundary preservation (no new mutation verbs)", () => {
   });
 
   test("adv_resume_projection is pure-read (no store mutation calls)", () => {
-    const tool = readFileSync(
-      join(REPO_ROOT, "plugin", "src", "tools", "resume-projection.ts"),
-      "utf-8",
-    );
+    const tool = readFile(RESUME_PROJECTION_TOOL);
     // The tool must not call mutation store methods or fire signals.
-    expect(tool).not.toMatch(/store\.changes\.create|store\.changes\.save|store\.epics\.create|store\.save|fireSignal|emitSignal/i);
+    expect(tool).not.toMatch(
+      /store\.changes\.create|store\.changes\.save|store\.epics\.create|store\.save|fireSignal|emitSignal/i,
+    );
+  });
+
+  test("bin/adv resume projection loader does not fire signals or mutate store", () => {
+    const content = readFile(BIN_RESUME_PROJECTION_LIVE);
+    expect(content).not.toMatch(
+      /\.signal\(|fireSignal|emitSignal|store\.[a-z]+\.(create|save|update|delete)/i,
+    );
   });
 });

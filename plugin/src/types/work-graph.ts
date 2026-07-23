@@ -111,7 +111,11 @@ export const ResumeProjectionSchema = z.object({
     project_id: z.string().regex(/^[0-9a-f]{40}$/),
     epic_ids: z.array(z.string()).optional(),
   }),
-  /** First node by advisory rank that is not done (may be blocked). */
+  /**
+   * First node by advisory rank that is not done (may be blocked). This is the
+   * complete cross-Epic ordering authority; Epic.progress.next_entry_id is only
+   * a workflow-local advisory approximation.
+   */
   ordered_next: ResumeRowSchema.nullable(),
   /** Unblocked, not-done, not-active nodes ready to be picked up. */
   actionable: z.array(ResumeRowSchema),

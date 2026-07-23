@@ -30,9 +30,7 @@ export const resumeProjectionTools = {
       epic_ids: z
         .array(z.string())
         .optional()
-        .describe(
-          "Optional Epic filter. Default: all active Epics in scope.",
-        ),
+        .describe("Optional Epic filter. Default: all active Epics in scope."),
       include_diagnostics: z
         .boolean()
         .optional()

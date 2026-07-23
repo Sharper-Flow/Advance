@@ -300,6 +300,7 @@ export interface ChangeWorkflowInput {
       | "cross_project_origin"
       | "cross_project_links"
       | "external_dependencies"
+      | "same_project_dependencies"
       | "worktree_auto_managed"
       | "target_worktree_path"
       | "scope_worktrees"

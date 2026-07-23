@@ -32,6 +32,7 @@ export interface StatusViewPlan {
   pluginRuntime: boolean;
   projectMetadata: boolean;
   archivedBranchHygiene: boolean;
+  resumeProjection: boolean;
 }
 
 // rq-advStatusLazyView01 (advance-meta v1.12) — execute providers from
@@ -59,6 +60,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         pluginRuntime: false,
         projectMetadata: false,
         archivedBranchHygiene: false,
+        resumeProjection: true,
       };
     case "health":
       return {
@@ -79,6 +81,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         pluginRuntime: true,
         projectMetadata: false,
         archivedBranchHygiene: false,
+        resumeProjection: true,
       };
     case "changes":
       return {
@@ -99,6 +102,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         pluginRuntime: false,
         projectMetadata: false,
         archivedBranchHygiene: false,
+        resumeProjection: false,
       };
     case "hygiene":
       return {
@@ -119,6 +123,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         pluginRuntime: false,
         projectMetadata: true,
         archivedBranchHygiene: true,
+        resumeProjection: true,
       };
   }
 }

@@ -72,11 +72,9 @@ describe("buildResumeProjection — structure (AC8)", () => {
 
 describe("buildResumeProjection — lifecycle classification (AC6)", () => {
   test("draft change, no deps → actionable ready_to_start", () => {
-    const result = buildResumeProjection(
-      [makeChange("addFoo")],
-      [],
-      { project_id: PID },
-    );
+    const result = buildResumeProjection([makeChange("addFoo")], [], {
+      project_id: PID,
+    });
     expect(result.actionable).toHaveLength(1);
     expect(result.actionable[0].lifecycle).toBe("ready_to_start");
     expect(result.actionable[0].node).toEqual(changeRef("addFoo"));
@@ -84,7 +82,13 @@ describe("buildResumeProjection — lifecycle classification (AC6)", () => {
 
   test("shell entry, no deps → actionable ready_to_promote", () => {
     const epic = makeEpic("epicA", [
-      { kind: "shell", entry_id: "sh-1", order: 0, title: "Future", blocked_by: [] },
+      {
+        kind: "shell",
+        entry_id: "sh-1",
+        order: 0,
+        title: "Future",
+        blocked_by: [],
+      },
     ]);
     const result = buildResumeProjection([], [epic], { project_id: PID });
     expect(result.actionable).toHaveLength(1);
@@ -105,7 +109,12 @@ describe("buildResumeProjection — lifecycle classification (AC6)", () => {
 
   test("terminal change (archived) → excluded from all lists", () => {
     const result = buildResumeProjection(
-      [makeChange("addFoo", { status: "archived", lifecycleState: "archived" })],
+      [
+        makeChange("addFoo", {
+          status: "archived",
+          lifecycleState: "archived",
+        }),
+      ],
       [],
       { project_id: PID },
     );
@@ -191,13 +200,17 @@ describe("buildResumeProjection — cross-Epic redirects (AC7)", () => {
       },
     ]);
     const epicB = makeEpic("epicB", [
-      { kind: "change", entry_id: "en-b", order: 0, title: "Blocker", change_id: "addBar" },
+      {
+        kind: "change",
+        entry_id: "en-b",
+        order: 0,
+        title: "Blocker",
+        change_id: "addBar",
+      },
     ]);
-    const result = buildResumeProjection(
-      [blockingChange],
-      [epicA, epicB],
-      { project_id: PID },
-    );
+    const result = buildResumeProjection([blockingChange], [epicA, epicB], {
+      project_id: PID,
+    });
     expect(result.redirects).toHaveLength(1);
     expect(result.redirects[0].source_epic_id).toBe("epicA");
     expect(result.redirects[0].target_epic_id).toBe("epicB");
@@ -209,7 +222,13 @@ describe("buildResumeProjection — cross-Epic redirects (AC7)", () => {
       epic_membership: { epic_id: "epicA", entry_id: "en-b", order: 0 },
     });
     const epicA = makeEpic("epicA", [
-      { kind: "change", entry_id: "en-b", order: 0, title: "Blocker", change_id: "addBar" },
+      {
+        kind: "change",
+        entry_id: "en-b",
+        order: 0,
+        title: "Blocker",
+        change_id: "addBar",
+      },
       {
         kind: "shell",
         entry_id: "sh-1",
@@ -236,7 +255,12 @@ describe("buildResumeProjection — ordered_next", () => {
 
   test("all terminal → ordered_next is null", () => {
     const result = buildResumeProjection(
-      [makeChange("addFoo", { status: "archived", lifecycleState: "archived" })],
+      [
+        makeChange("addFoo", {
+          status: "archived",
+          lifecycleState: "archived",
+        }),
+      ],
       [],
       { project_id: PID },
     );
@@ -249,7 +273,13 @@ describe("buildResumeProjection — ordered_next", () => {
     });
     const highRank = makeChange("addA"); // no epic → MAX_RANK
     const epicA = makeEpic("epicA", [
-      { kind: "change", entry_id: "en-1", order: 0, title: "B", change_id: "addB" },
+      {
+        kind: "change",
+        entry_id: "en-1",
+        order: 0,
+        title: "B",
+        change_id: "addB",
+      },
     ]);
     const result = buildResumeProjection([highRank, lowRank], [epicA], {
       project_id: PID,
@@ -288,7 +318,11 @@ describe("buildResumeProjection — diagnostics (AC8)", () => {
   test("diagnostics never fail the read — graceful degradation", () => {
     // Even with bad data, the projection returns successfully.
     const result = buildResumeProjection(
-      [makeChange("addFoo", { same_project_dependencies: [changeRef("ghost")] })],
+      [
+        makeChange("addFoo", {
+          same_project_dependencies: [changeRef("ghost")],
+        }),
+      ],
       [],
       { project_id: PID },
     );
@@ -306,8 +340,20 @@ describe("buildResumeProjection — advisory rank sorting", () => {
       epic_membership: { epic_id: "epic1", entry_id: "en-1", order: 0 },
     });
     const epic1 = makeEpic("epic1", [
-      { kind: "change", entry_id: "en-1", order: 0, title: "B", change_id: "addB" },
-      { kind: "change", entry_id: "en-2", order: 1, title: "A", change_id: "addA" },
+      {
+        kind: "change",
+        entry_id: "en-1",
+        order: 0,
+        title: "B",
+        change_id: "addB",
+      },
+      {
+        kind: "change",
+        entry_id: "en-2",
+        order: 1,
+        title: "A",
+        change_id: "addA",
+      },
     ]);
     const result = buildResumeProjection([a, b], [epic1], { project_id: PID });
     // B has order 0 (lower rank) → should come first.
@@ -322,7 +368,13 @@ describe("buildResumeProjection — promoted shell deduplication", () => {
       epic_membership: { epic_id: "epicA", entry_id: "sh-1", order: 0 },
     });
     const epic = makeEpic("epicA", [
-      { kind: "change", entry_id: "sh-1", order: 0, title: "Promoted", change_id: "addFoo" },
+      {
+        kind: "change",
+        entry_id: "sh-1",
+        order: 0,
+        title: "Promoted",
+        change_id: "addFoo",
+      },
     ]);
     const result = buildResumeProjection([change], [epic], { project_id: PID });
     // Only one node — the change, not a shell.
@@ -334,10 +386,22 @@ describe("buildResumeProjection — promoted shell deduplication", () => {
 describe("buildResumeProjection — scope filtering", () => {
   test("epic_ids filter → only matching Epic shells included", () => {
     const epicA = makeEpic("epicA", [
-      { kind: "shell", entry_id: "sh-a", order: 0, title: "A shell", blocked_by: [] },
+      {
+        kind: "shell",
+        entry_id: "sh-a",
+        order: 0,
+        title: "A shell",
+        blocked_by: [],
+      },
     ]);
     const epicB = makeEpic("epicB", [
-      { kind: "shell", entry_id: "sh-b", order: 0, title: "B shell", blocked_by: [] },
+      {
+        kind: "shell",
+        entry_id: "sh-b",
+        order: 0,
+        title: "B shell",
+        blocked_by: [],
+      },
     ]);
     const result = buildResumeProjection([], [epicA, epicB], {
       project_id: PID,

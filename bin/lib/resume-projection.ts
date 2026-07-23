@@ -14,9 +14,9 @@ import {
   type ChangeNodeInput,
   type EpicNodeInput,
   type EpicEntryInput,
-} from "../../plugin/src/projection/resume-projection";
-import type { ResumeProjection } from "../../plugin/src/types/work-graph";
-import type { WorkNodeRef } from "../../plugin/src/types/work-graph";
+  type ResumeProjection,
+  type WorkNodeRef,
+} from "../../plugin/src/cli/projection-boundary";
 
 /**
  * Build the resume projection from bin/adv's loaded data.
@@ -35,6 +35,7 @@ export function buildBinResumeProjection(
     same_project_dependencies?: WorkNodeRef[];
     taskCount?: number;
     completedTasks?: number;
+    tasks?: ReadonlyArray<{ status: string }>;
     epic_membership?: { epic_id: string; entry_id: string; order: number };
   }>,
   epics: ReadonlyArray<{
@@ -64,10 +65,13 @@ export function buildBinResumeProjection(
       ? r.lifecycleState
       : "open") as ChangeNodeInput["lifecycleState"],
     same_project_dependencies: r.same_project_dependencies ?? [],
-    // Bin records have summary counts; treat any change with completedTasks
-    // between 0 and taskCount as potentially having in-progress work.
+    // Live Temporal records include task status, which is authoritative for
+    // activity. Keep the summary-count fallback for callers that do not load
+    // task records.
     hasInProgressTasks:
-      (r.completedTasks ?? 0) > 0 && (r.completedTasks ?? 0) < (r.taskCount ?? 0),
+      r.tasks?.some((task) => task.status === "in_progress") ??
+      ((r.completedTasks ?? 0) > 0 &&
+        (r.completedTasks ?? 0) < (r.taskCount ?? 0)),
     epic_membership: r.epic_membership,
   }));
 

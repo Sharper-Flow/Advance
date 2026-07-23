@@ -40,6 +40,7 @@ describe("status recommendation grouping", () => {
       "release_ready",
       "clarify",
       "next_gate",
+      "resume",
       "cleanup",
       "stale",
     ]);

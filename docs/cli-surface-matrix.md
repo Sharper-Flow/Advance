@@ -72,6 +72,12 @@
 | `adv_spec` | `mcp+cli-additive` | Agents query specs mid-workflow; CLI read additive |
 | `adv_delta_add` | `no-cli-dangerous` | Change-scoped spec-delta mutation; archive remains sole global-spec writer |
 | `adv_delta_modify` | `no-cli-dangerous` | Typed change-scoped spec modification; archive remains sole global-spec writer |
+| `adv_delta_amend` | `no-cli-dangerous` | Typed change-scoped spec amendment; archive remains sole global-spec writer |
+| `adv_delta_retract` | `no-cli-dangerous` | Typed change-scoped spec retraction; archive remains sole global-spec writer |
+| `adv_delta_remove` | `no-cli-dangerous` | Typed change-scoped spec removal; archive remains sole global-spec writer |
+| `adv_delta_rename` | `no-cli-dangerous` | Typed change-scoped spec rename; archive remains sole global-spec writer |
+| `adv_delta_list` | `keep-mcp-only` | Agent-workflow read; low standalone CLI value |
+| `adv_delta_show` | `keep-mcp-only` | Agent-workflow read; low standalone CLI value |
 | `adv_change_list` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_show` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_validate` | `mcp+cli-additive` | Gates/archive need MCP; CLI/CI verdict additive (C5 path) |
@@ -96,6 +102,7 @@
 | `adv_wip_state` | `keep-mcp-only` | Temporal/session-dependent aggregation |
 | `adv_reflection_list` | `keep-mcp-only` | Agent knowledge surface |
 | `adv_reflect` | `keep-mcp-only` | Workflow-bound reflection tool |
+| `adv_resume_projection` | `mcp+cli-additive` | Pure-read dependency-aware next-work projection; CLI status/epic-list/dashboard consume it |
 | `adv_run_test` | `keep-mcp-only` | Workflow-bound test evidence tool |
 | `adv_task_checkpoint` | `keep-mcp-only` | Workflow-bound checkpoint tool |
 | `adv_subagent_report_submit` | `keep-mcp-only` | Workflow-bound report ingestion |

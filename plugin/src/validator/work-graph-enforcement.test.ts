@@ -58,9 +58,15 @@ function makeCtx(
 describe("enforceD3ForShellAdd — edge validation (AC3)", () => {
   test("self-edge in blocked_by → rejected", () => {
     const a = shellRef("epicA", "sh-1");
-    const result = enforceD3ForShellAdd(a, [a], makeCtx({ [nodeRefKeyLocal(a)]: "nonterminal" }));
+    const result = enforceD3ForShellAdd(
+      a,
+      [a],
+      makeCtx({ [nodeRefKeyLocal(a)]: "nonterminal" }),
+    );
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error.code).toBe("INVALID_WORK_NODE_REF");
+    expect(result.ok === false && result.error.code).toBe(
+      "INVALID_WORK_NODE_REF",
+    );
   });
 
   test("duplicate ref → rejected", () => {
@@ -75,15 +81,23 @@ describe("enforceD3ForShellAdd — edge validation (AC3)", () => {
       }),
     );
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error.code).toBe("INVALID_WORK_NODE_REF");
+    expect(result.ok === false && result.error.code).toBe(
+      "INVALID_WORK_NODE_REF",
+    );
   });
 
   test("unresolved target → rejected", () => {
     const a = shellRef("epicA", "sh-1");
     const ghost = changeRef("addGhost");
-    const result = enforceD3ForShellAdd(a, [ghost], makeCtx({ [nodeRefKeyLocal(a)]: "nonterminal" }));
+    const result = enforceD3ForShellAdd(
+      a,
+      [ghost],
+      makeCtx({ [nodeRefKeyLocal(a)]: "nonterminal" }),
+    );
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error.code).toBe("UNRESOLVED_DEPENDENCY");
+    expect(result.ok === false && result.error.code).toBe(
+      "UNRESOLVED_DEPENDENCY",
+    );
   });
 
   test("cycle → rejected", () => {
@@ -121,13 +135,17 @@ describe("enforceD3ForShellAdd — edge validation (AC3)", () => {
 
   test("no blocked_by → accepted (no edges to validate)", () => {
     const a = shellRef("epicA", "sh-1");
-    const result = enforceD3ForShellAdd(a, [], makeCtx({ [nodeRefKeyLocal(a)]: "nonterminal" }));
+    const result = enforceD3ForShellAdd(
+      a,
+      [],
+      makeCtx({ [nodeRefKeyLocal(a)]: "nonterminal" }),
+    );
     expect(result.ok).toBe(true);
   });
 });
 
-describe("enforceD3ForShellAdd — nonterminal prereq (AC4)", () => {
-  test("nonterminal prereq → SHELL_PREREQ_NONTERMINAL", () => {
+describe("enforceD3ForShellAdd — deferred activation blocking", () => {
+  test("nonterminal prereq is accepted while creating a shell", () => {
     const a = shellRef("epicA", "sh-1");
     const b = changeRef("addB");
     const result = enforceD3ForShellAdd(
@@ -138,14 +156,10 @@ describe("enforceD3ForShellAdd — nonterminal prereq (AC4)", () => {
         [nodeRefKeyLocal(b)]: "nonterminal",
       }),
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe("SHELL_PREREQ_NONTERMINAL");
-      expect((result.error as { blocking_refs: WorkNodeRef[] }).blocking_refs).toContainEqual(b);
-    }
+    expect(result).toEqual({ ok: true });
   });
 
-  test("multiple nonterminal prereqs → all named in blocking_refs", () => {
+  test("multiple nonterminal prereqs are accepted while creating a shell", () => {
     const a = shellRef("epicA", "sh-1");
     const b = changeRef("addB");
     const c = changeRef("addC");
@@ -158,11 +172,7 @@ describe("enforceD3ForShellAdd — nonterminal prereq (AC4)", () => {
         [nodeRefKeyLocal(c)]: "nonterminal",
       }),
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      const err = result.error as { blocking_refs: WorkNodeRef[] };
-      expect(err.blocking_refs).toHaveLength(2);
-    }
+    expect(result).toEqual({ ok: true });
   });
 });
 

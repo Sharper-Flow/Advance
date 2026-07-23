@@ -168,19 +168,12 @@ export function detectCycles<T>(
           stack.push({
             node: depNode,
             key: depKey,
-            depKeys: resolveDepKeys(
-              depNode,
-              getDeps,
-              getKey,
-              nodeKeys,
-            ),
+            depKeys: resolveDepKeys(depNode, getDeps, getKey, nodeKeys),
             depIndex: 0,
           });
         } else if (recStack.has(depKey)) {
           // Back-edge found — cycle detected. Extract CLOSED path.
-          const cycleStartIdx = path.findIndex(
-            (n) => getKey(n) === depKey,
-          );
+          const cycleStartIdx = path.findIndex((n) => getKey(n) === depKey);
           const cyclePath = path.slice(cycleStartIdx);
           // Close the cycle: repeat the cycle-start node at the end [A,B,A].
           cyclePath.push(keyToNode.get(depKey)!);

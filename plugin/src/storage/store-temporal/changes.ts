@@ -271,6 +271,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         cross_project_origin: initialMetadata?.cross_project_origin,
         scope_repos: initialMetadata?.scope_repos,
         epic_membership_seed: epicMembership,
+        same_project_dependencies: initialMetadata?.same_project_dependencies,
       });
 
       // Layer 1 size validation (KD-8 layer 1). Fails fast before any
@@ -350,6 +351,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fast_follow_of: created.data.fast_follow_of,
             cross_project_origin: created.data.cross_project_origin,
             origin: created.data.origin,
+            same_project_dependencies:
+              initialMetadata?.same_project_dependencies ??
+              created.data.same_project_dependencies ??
+              [],
             // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
             // by default. Seed the workflow state with the marker so the
             // first read sees it; lazy migration (A4) covers legacy changes
@@ -395,6 +400,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // disk-first readers (legacy fallback, archive bundle hydration)
         // can reconcile without a workflow query round-trip.
         creation_request_hash: creationRequestHash,
+        same_project_dependencies:
+          initialMetadata?.same_project_dependencies ??
+          created.data.same_project_dependencies ??
+          [],
       };
       try {
         await legacy.changes.save(changeWithOwner);

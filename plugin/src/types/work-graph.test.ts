@@ -247,11 +247,7 @@ describe("Error result schemas", () => {
   });
 
   test("InvalidWorkNodeRefError covers self_edge, duplicate_ref, malformed", () => {
-    for (const reason of [
-      "self_edge",
-      "duplicate_ref",
-      "malformed",
-    ] as const) {
+    for (const reason of ["self_edge", "duplicate_ref", "malformed"] as const) {
       const err = { code: "INVALID_WORK_NODE_REF" as const, reason };
       expect(InvalidWorkNodeRefErrorSchema.parse(err).reason).toBe(reason);
     }

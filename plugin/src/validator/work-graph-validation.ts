@@ -128,12 +128,15 @@ export function validateEdgeAdd(
   // Check 4: Cycle detection.
   //
   // Build a temporary adjacency map that includes the new edges, then run
-  // detectCycles. The source node and all existing deps must be in the
-  // node set for the cycle check to traverse correctly.
+  // detectCycles. The source node and ALL reachable nodes must be in the
+  // node set for the cycle check to traverse transitive dependencies
+  // correctly.
   // -------------------------------------------------------------------------
 
-  // Collect all nodes involved: source + new edges + existing deps of source
-  // + deps of each edge target.
+  // Collect all nodes reachable from the source (including through the new
+  // edges and any transitive dependencies). Iterative traversal avoids
+  // recursion depth limits and ensures we discover cycles through chained
+  // prerequisites.
   const allNodes: WorkNodeRef[] = [sourceRef];
   const allNodeKeys = new Set<string>([sourceKey]);
 
@@ -147,8 +150,22 @@ export function validateEdgeAdd(
 
   for (const edge of newEdges) addIfNew(edge);
   for (const dep of existingDeps) addIfNew(dep);
-  for (const edge of newEdges) {
-    for (const dep of getDeps(nodeRefKey(edge))) addIfNew(dep);
+
+  // Follow dependencies transitively from every node we've collected.
+  const queue: WorkNodeRef[] = [...allNodes];
+  for (let i = 0; i < queue.length; i++) {
+    const current = queue[i];
+    const currentKey = nodeRefKey(current);
+    const deps =
+      currentKey === sourceKey
+        ? [...existingDeps, ...newEdges]
+        : getDeps(currentKey);
+    for (const dep of deps) {
+      if (!allNodeKeys.has(nodeRefKey(dep))) {
+        addIfNew(dep);
+        queue.push(dep);
+      }
+    }
   }
 
   // Build adjacency: for each node, its deps (with the new edges added to source).

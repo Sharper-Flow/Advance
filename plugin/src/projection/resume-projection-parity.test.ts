@@ -53,7 +53,13 @@ describe("AC11 — next_entry_id parity with projection ordered_next", () => {
       id: "epicA",
       title: "Epic A",
       entries: [
-        { kind: "shell" as const, entry_id: "sh-1", order: 0, title: "Future", blocked_by: [] },
+        {
+          kind: "shell" as const,
+          entry_id: "sh-1",
+          order: 0,
+          title: "Future",
+          blocked_by: [],
+        },
       ],
     };
     const projection = buildResumeProjection([], [epic], { project_id: PID });
@@ -83,8 +89,20 @@ describe("AC11 — next_entry_id parity with projection ordered_next", () => {
       id: "epicA",
       title: "Epic A",
       entries: [
-        { kind: "change" as const, entry_id: "en-1", order: 0, title: "Done", change_id: "addCompleted" },
-        { kind: "shell" as const, entry_id: "sh-2", order: 1, title: "Next", blocked_by: [] },
+        {
+          kind: "change" as const,
+          entry_id: "en-1",
+          order: 0,
+          title: "Done",
+          change_id: "addCompleted",
+        },
+        {
+          kind: "shell" as const,
+          entry_id: "sh-2",
+          order: 1,
+          title: "Next",
+          blocked_by: [],
+        },
       ],
     };
     const projection = buildResumeProjection([completedChange], [epic], {
@@ -127,8 +145,20 @@ describe("AC11 — next_entry_id parity with projection ordered_next", () => {
       id: "epicA",
       title: "Epic A",
       entries: [
-        { kind: "change" as const, entry_id: "en-1", order: 0, title: "A", change_id: "addA" },
-        { kind: "change" as const, entry_id: "en-2", order: 1, title: "B", change_id: "addB" },
+        {
+          kind: "change" as const,
+          entry_id: "en-1",
+          order: 0,
+          title: "A",
+          change_id: "addA",
+        },
+        {
+          kind: "change" as const,
+          entry_id: "en-2",
+          order: 1,
+          title: "B",
+          change_id: "addB",
+        },
       ],
     };
     const projection = buildResumeProjection(changes, [epic], {
@@ -158,7 +188,13 @@ describe("AC11 — next_entry_id parity with projection ordered_next", () => {
       id: "epicA",
       title: "Epic A",
       entries: [
-        { kind: "change" as const, entry_id: "en-1", order: 0, title: "Active", change_id: "addActive" },
+        {
+          kind: "change" as const,
+          entry_id: "en-1",
+          order: 0,
+          title: "Active",
+          change_id: "addActive",
+        },
       ],
     };
     const projection = buildResumeProjection([activeChange], [epic], {
@@ -199,10 +235,34 @@ describe("AC12 — projection actionable list parity with roadmap semantics", ()
       id: "epicA",
       title: "Epic A",
       entries: [
-        { kind: "change" as const, entry_id: "en-1", order: 0, title: "Done", change_id: "addDone" },
-        { kind: "change" as const, entry_id: "en-2", order: 1, title: "Active", change_id: "addActive" },
-        { kind: "shell" as const, entry_id: "sh-3", order: 2, title: "Ready A", blocked_by: [] },
-        { kind: "shell" as const, entry_id: "sh-4", order: 3, title: "Ready B", blocked_by: [] },
+        {
+          kind: "change" as const,
+          entry_id: "en-1",
+          order: 0,
+          title: "Done",
+          change_id: "addDone",
+        },
+        {
+          kind: "change" as const,
+          entry_id: "en-2",
+          order: 1,
+          title: "Active",
+          change_id: "addActive",
+        },
+        {
+          kind: "shell" as const,
+          entry_id: "sh-3",
+          order: 2,
+          title: "Ready A",
+          blocked_by: [],
+        },
+        {
+          kind: "shell" as const,
+          entry_id: "sh-4",
+          order: 3,
+          title: "Ready B",
+          blocked_by: [],
+        },
       ],
     };
     const projection = buildResumeProjection(changes, [epic], {

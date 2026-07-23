@@ -758,6 +758,10 @@ export async function changeWorkflow(
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
     }
+    if (input.seedState.same_project_dependencies) {
+      state.same_project_dependencies =
+        input.seedState.same_project_dependencies;
+    }
     // rq-creationRequestHash01 (tk-74c358188ffb): stamp the canonical
     // creation-request hash onto workflow state at start time so the
     // "already started" recovery path can reconcile retries. Immutable
@@ -1962,6 +1966,8 @@ export async function changeWorkflow(
       ops_followup_links: state.ops_followup_links,
       lightweight_profile: state.lightweight_profile,
       epic_membership: state.epic_membership,
+      same_project_dependencies: state.same_project_dependencies,
+      creation_request_hash: state.creation_request_hash,
     },
   };
   await wf.condition(wf.allHandlersFinished);

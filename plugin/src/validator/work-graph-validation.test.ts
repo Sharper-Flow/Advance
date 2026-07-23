@@ -164,6 +164,29 @@ describe("validateEdgeAdd — cycle rejection (AC2)", () => {
     );
     expect(error).toBeNull();
   });
+
+  test("transitive cycle A→B→C→A detected when adding C→A", () => {
+    const a = changeRef("addA");
+    const b = changeRef("addB");
+    const c = changeRef("addC");
+    // A depends on B, B depends on C. Adding C→A closes the transitive cycle.
+    const existing = {
+      [nodeRefKey(a)]: [b],
+      [nodeRefKey(b)]: [c],
+    };
+    const error = validateEdgeAdd(
+      c,
+      [a],
+      resolvable(a, b, c),
+      depsGetter(existing),
+    );
+    expect(error!.code).toBe("DEPENDENCY_CYCLE");
+    const cyclePath = (error as { cycle_path: WorkNodeRef[] }).cycle_path;
+    expect(cyclePath[0]).toBe(cyclePath[cyclePath.length - 1]); // closed
+    expect(cyclePath).toContainEqual(a);
+    expect(cyclePath).toContainEqual(b);
+    expect(cyclePath).toContainEqual(c);
+  });
 });
 
 describe("validateEdgeAdd — valid edges accepted", () => {

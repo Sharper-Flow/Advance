@@ -52,6 +52,7 @@ import {
   OpsRunEvidenceEntrySchema,
   OpsRunSchema,
 } from "./changes";
+import { WorkNodeRefSchema } from "./work-graph";
 import {
   LightweightProfileEvaluationSchema,
   LightweightProfileOmissionPolicySchema,
@@ -747,6 +748,8 @@ export const ShellAddedSignalPayloadSchema = z.object({
       imported_at: IsoTimestampSchema,
     })
     .optional(),
+  /** Same-project hard prerequisite edges (rq-workGraphTypes01). */
+  blockedBy: z.array(WorkNodeRefSchema).default([]),
 });
 export type ShellAddedSignalPayload = z.infer<
   typeof ShellAddedSignalPayloadSchema

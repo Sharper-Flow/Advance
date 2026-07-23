@@ -16,6 +16,7 @@ const TEMPORAL_BOUNDARY = join(PLUGIN_SRC, "cli/temporal-boundary.ts");
 const APPROVED_BIN_PLUGIN_IMPORTS = new Set([
   "../../plugin/src/shared/cli-projection",
   "../../plugin/src/cli/temporal-boundary",
+  "../../plugin/src/cli/projection-boundary",
 ]);
 
 const FORBIDDEN_PLUGIN_SRC_PREFIXES = [
@@ -112,6 +113,28 @@ describe("root CLI plugin source boundary", () => {
 
     const visited = new Set<string>();
     const stack = [TEMPORAL_BOUNDARY];
+    while (stack.length > 0) {
+      const file = stack.pop()!;
+      if (visited.has(file)) continue;
+      visited.add(file);
+      assertNoForbiddenPluginSrcPath(file);
+
+      const source = readFileSync(file, "utf8");
+      for (const specifier of importSpecifiers(source)) {
+        const next = resolveRelativeImport(file, specifier);
+        if (next && next.startsWith(PLUGIN_SRC)) {
+          stack.push(next);
+        }
+      }
+    }
+  });
+
+  test("Projection CLI boundary exists and avoids forbidden plugin internals transitively", () => {
+    const boundary = join(PLUGIN_SRC, "cli/projection-boundary.ts");
+    expect(existsSync(boundary)).toBe(true);
+
+    const visited = new Set<string>();
+    const stack = [boundary];
     while (stack.length > 0) {
       const file = stack.pop()!;
       if (visited.has(file)) continue;

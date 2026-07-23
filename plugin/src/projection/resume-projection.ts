@@ -16,6 +16,7 @@ import type {
   ResumeRowLifecycle,
 } from "../types/work-graph";
 import { detectCycles } from "../validator/cycle-detect";
+import { nodeRefKey } from "../validator/work-graph-validation";
 
 // =============================================================================
 // Input types — lightweight read views the caller maps from store types
@@ -60,18 +61,9 @@ export interface EpicNodeInput {
   entries: EpicEntryInput[];
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
-/**
- * Stable string key for a WorkNodeRef. Used as Map key throughout.
- */
-export function nodeRefKey(ref: WorkNodeRef): string {
-  return ref.kind === "epic_entry"
-    ? `epic_entry:${ref.epic_id}/${ref.entry_id}`
-    : `change:${ref.project_id}/${ref.change_id}`;
-}
+// Re-export the canonical nodeRefKey from the validation module so all
+// work-graph consumers use the same stable key function.
+export { nodeRefKey };
 
 // =============================================================================
 // Internal node model
@@ -109,38 +101,27 @@ export function buildResumeProjection(
   epics: ReadonlyArray<EpicNodeInput>,
   scope: { project_id: string; epic_ids?: string[] },
 ): ResumeProjection {
-  // -------------------------------------------------------------------------
-  // Step 1: Collect canonical nodes.
-  //
-  // A change linked into an Epic is ONE node (the change node), not the Epic
-  // entry. Unlinked shell entries (not yet promoted) are their own nodes.
-  // -------------------------------------------------------------------------
-
-  // Track which change IDs have Epic membership so we can skip their shell
-  // entries (the change node IS the representation).
-  const changesWithEpicEntries = new Set<string>();
-  for (const change of changes) {
-    if (change.epic_membership) {
-      changesWithEpicEntries.add(change.id);
-    }
-  }
-
-  // Also track change-entry refs in Epics so we can skip shells that have
-  // already been promoted to changes.
-  const promotedChangeIds = new Set<string>();
-  for (const epic of epics) {
-    for (const entry of epic.entries) {
-      if (entry.kind === "change") {
-        promotedChangeIds.add(entry.change_id);
-      }
-    }
-  }
-
   const scopedEpics = scope.epic_ids
     ? epics.filter((e) => scope.epic_ids!.includes(e.id))
     : epics;
 
   const nodes: InternalNode[] = [];
+
+  // Index promoted Epic entries by their unique epic_id+entry_id key so shell
+  // iteration can skip them in O(1) instead of scanning the change list each
+  // time. This also makes the deduplication explicit and stable.
+  const promotedEntryKeys = new Set<string>();
+  for (const change of changes) {
+    if (change.epic_membership) {
+      promotedEntryKeys.add(
+        nodeRefKey({
+          kind: "epic_entry",
+          epic_id: change.epic_membership.epic_id,
+          entry_id: change.epic_membership.entry_id,
+        }),
+      );
+    }
+  }
 
   // Change nodes.
   for (const change of changes) {
@@ -150,8 +131,15 @@ export function buildResumeProjection(
       change_id: change.id,
     };
 
+    // A change is terminal when either its workflow status or lifecycleState
+    // says so. We OR both fields because some legacy/projection paths only set
+    // one of them, and the resume projection must be conservative (never treat
+    // a terminal node as blocking).
     const isTerminal =
-      change.status === "archived" || change.status === "closed";
+      change.status === "archived" ||
+      change.status === "closed" ||
+      change.lifecycleState === "archived" ||
+      change.lifecycleState === "closed";
 
     nodes.push({
       ref,
@@ -171,13 +159,13 @@ export function buildResumeProjection(
     for (const entry of epic.entries) {
       if (entry.kind !== "shell") continue;
 
-      // Skip shells whose change is already in the changes list (promoted).
-      // We can detect this if a change entry in the same Epic references the
-      // same entry_id, or if any change has epic_membership.entry_id === entry.entry_id.
-      const isPromoted = changes.some(
-        (c) => c.epic_membership?.entry_id === entry.entry_id,
-      );
-      if (isPromoted) continue;
+      const shellKey = nodeRefKey({
+        kind: "epic_entry",
+        epic_id: epic.id,
+        entry_id: entry.entry_id,
+      });
+      // Skip shells that have already been promoted to a change.
+      if (promotedEntryKeys.has(shellKey)) continue;
 
       const ref: WorkNodeRef = {
         kind: "epic_entry",
@@ -286,7 +274,10 @@ export function buildResumeProjection(
       ...(node.source_epic_id ? { source_epic_id: node.source_epic_id } : {}),
       ...(lifecycle === "blocked" &&
       redirects.some((r) => r.blocked_node === node.ref)
-        ? { target_epic_id: redirects.find((r) => r.blocked_node === node.ref)?.target_epic_id }
+        ? {
+            target_epic_id: redirects.find((r) => r.blocked_node === node.ref)
+              ?.target_epic_id,
+          }
         : {}),
     };
 

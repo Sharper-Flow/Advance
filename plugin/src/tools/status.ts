@@ -78,6 +78,7 @@ import {
   buildProductContextOutput,
   capRecommendations,
   pushStatusRecommendation,
+  appendResumeProjectionRecommendations,
   type StatusSummaryOmissions,
   type StatusRecommendationCarrier,
   type CandidateEnrichmentPatch,
@@ -415,6 +416,15 @@ export const statusTools = {
                   }
                 }
               },
+            );
+          }
+
+          if (plan.resumeProjection) {
+            await withRecordedPhase("adv_status", "resumeProjection", () =>
+              appendResumeProjectionRecommendations(activeStore, status, {
+                projectId,
+                limit: 3,
+              }),
             );
           }
 

@@ -56,6 +56,7 @@ import {
   buildLiveEpicListPayload,
   loadLiveEpics,
 } from "./lib/epic-list";
+import { loadLiveResumeProjection } from "./lib/resume-projection-live";
 
 // =============================================================================
 // Constants
@@ -123,10 +124,18 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       ? rawTimeout
       : QUERY_TIMEOUT_MS;
 
-  try {
-    const [summaries, terminalCounts] = await Promise.all([
+    try {
+    const [summaries, terminalCounts, resumeResult] = await Promise.all([
       loadLiveSummaries(projectId, now, timeoutMs),
       countTerminalChanges(root),
+      loadLiveResumeProjection(projectId, timeoutMs).catch(
+        (err): Awaited<ReturnType<typeof loadLiveResumeProjection>> => ({
+          live: false,
+          error: err instanceof Error ? err.message : String(err),
+          remediation:
+            "ADV resume projection unavailable. Verify Temporal is running and the project has active changes/epics.",
+        }),
+      ),
     ]);
     const visibleSummaries = filterTerminalSummaries(
       summaries,
@@ -137,6 +146,9 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       now,
       ...terminalCounts,
     });
+    if (resumeResult.live && resumeResult.resume_projection) {
+      payload.resume_projection = resumeResult.resume_projection;
+    }
 
     if (json) {
       process.stdout.write(emitJson(payload) + "\n");
@@ -212,12 +224,25 @@ async function runEpicListCommand(json: boolean): Promise<number> {
       : QUERY_TIMEOUT_MS;
 
   try {
-    const epics = await loadLiveEpics(projectId, timeoutMs);
-    process.stdout.write(
-      emitJson(
-        buildLiveEpicListPayload(epics, { projectId, now }),
-      ) + "\n",
-    );
+    const [epics, resumeResult] = await Promise.all([
+      loadLiveEpics(projectId, timeoutMs),
+      loadLiveResumeProjection(
+        projectId,
+        timeoutMs,
+      ).catch(
+        (err): Awaited<ReturnType<typeof loadLiveResumeProjection>> => ({
+          live: false,
+          error: err instanceof Error ? err.message : String(err),
+          remediation:
+            "ADV resume projection unavailable. Verify Temporal is running and the project has active changes/epics.",
+        }),
+      ),
+    ]);
+    const payload = buildLiveEpicListPayload(epics, { projectId, now });
+    if (resumeResult.live && resumeResult.resume_projection) {
+      payload.resume_projection = resumeResult.resume_projection;
+    }
+    process.stdout.write(emitJson(payload) + "\n");
     return 0;
   } catch (err) {
     process.stdout.write(
