@@ -6,7 +6,11 @@ import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { launcherProjectionTools } from "./launcher-projection";
-import { createTempDir, cleanupTempDir, parseToolOutput } from "../__tests__/setup";
+import {
+  createTempDir,
+  cleanupTempDir,
+  parseToolOutput,
+} from "../__tests__/setup";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import type { Store } from "../storage/store";
 
@@ -48,15 +52,10 @@ async function initGitRepo(dir: string): Promise<void> {
     });
   });
   await new Promise<void>((resolve, reject) => {
-    execFile(
-      "git",
-      ["commit", "-m", "initial"],
-      { cwd: dir },
-      (err) => {
-        if (err) reject(err);
-        else resolve();
-      },
-    );
+    execFile("git", ["commit", "-m", "initial"], { cwd: dir }, (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
   });
 }
 
@@ -141,13 +140,22 @@ describe("adv_launcher_projection_rebuild", () => {
   });
 
   test("regenerates active-launcher-state.json from seeded changes dir", async () => {
-    await writeChangeProjection(store.paths.changes, "change-a", makeState("change-a"));
-    await writeChangeProjection(store.paths.changes, "change-b", makeState("change-b"));
-
-    const result = await launcherProjectionTools.adv_launcher_projection_rebuild.execute(
-      {},
-      store,
+    await writeChangeProjection(
+      store.paths.changes,
+      "change-a",
+      makeState("change-a"),
     );
+    await writeChangeProjection(
+      store.paths.changes,
+      "change-b",
+      makeState("change-b"),
+    );
+
+    const result =
+      await launcherProjectionTools.adv_launcher_projection_rebuild.execute(
+        {},
+        store,
+      );
 
     const parsed = parseToolOutput<{
       ok: boolean;
@@ -159,7 +167,9 @@ describe("adv_launcher_projection_rebuild", () => {
     expect(parsed.ok).toBe(true);
     expect(parsed.active_count).toBe(2);
     expect(parsed.degraded).toBe(false);
-    expect(parsed.path).toBe(join(store.paths.external!, "active-launcher-state.json"));
+    expect(parsed.path).toBe(
+      join(store.paths.external!, "active-launcher-state.json"),
+    );
 
     const raw = await import("fs/promises").then((m) =>
       m.readFile(parsed.path, "utf-8"),

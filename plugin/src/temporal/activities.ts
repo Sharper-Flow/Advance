@@ -24,10 +24,7 @@ import { createHash } from "crypto";
 import { listSpecDirs } from "../storage/json";
 import { atomicWriteFile } from "../utils/fs";
 import { createLogger } from "../utils/debug-log";
-import {
-  buildLauncherProjection,
-  type LauncherProjection,
-} from "../storage/launcher-projection";
+import { buildLauncherProjection } from "../storage/launcher-projection";
 import type { ChangeWorkflowState } from "./contracts";
 import { CHANGE_BRANCH_PREFIX } from "./contracts";
 import { renderBriefSummary } from "../utils/archive-summary";

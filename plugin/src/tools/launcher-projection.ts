@@ -6,7 +6,6 @@
  * only (never exposed via bin/adv) and do not touch Temporal workflows.
  */
 
-import { z } from "zod";
 import { join } from "path";
 import type { Store } from "../storage/store";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
@@ -29,7 +28,8 @@ export const launcherProjectionTools = {
       if (!projectId) {
         return formatToolOutput({
           ok: false,
-          error: "Could not resolve project identity for the current directory.",
+          error:
+            "Could not resolve project identity for the current directory.",
         });
       }
 
@@ -47,10 +47,7 @@ export const launcherProjectionTools = {
           degradedThresholdMs: 300_000,
         });
 
-        await atomicWriteFile(
-          path,
-          `${JSON.stringify(projection, null, 2)}\n`,
-        );
+        await atomicWriteFile(path, `${JSON.stringify(projection, null, 2)}\n`);
 
         return formatToolOutput({
           ok: true,
