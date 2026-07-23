@@ -523,9 +523,13 @@ describe("ADV agent Epic tool allowlist and context loading", () => {
   const agent = readRepoFile(".opencode/agents/adv.md");
 
   test("allows every adv_epic_* tool", () => {
-    for (const tool of EPIC_TOOLS) {
-      expect(agent).toContain(`${tool}: true`);
-    }
+    // slimMutationToolSurface: epic tools are Tier 3 (invoke-only). They are
+    // NOT in the manifest frontmatter; they are dispatched via adv_tool_invoke
+    // and discoverable via adv_tool_catalog. The orchestrator references
+    // adv_epic_show in its Epic context loading instructions.
+    expect(agent).toContain("adv_tool_invoke");
+    expect(agent).toContain("adv_tool_catalog");
+    expect(agent).toContain("adv_epic_show");
   });
 
   test("instructs orchestrator to load Epic context", () => {

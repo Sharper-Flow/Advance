@@ -65,7 +65,10 @@ describe("optimized handoff agent contracts", () => {
       readFileSync(join(AGENT_DIR, "adv-researcher.md"), "utf8"),
     );
 
-    expectToolGrant(frontmatter, "adv_subagent_report_submit", true);
+    // slimMutationToolSurface: adv_subagent_report_submit is Tier 3
+    // (invoke-only); covered by adv_*: false wildcard, not individually listed.
+    expect(frontmatter).not.toMatch(/^\s+adv_subagent_report_submit:\s*true\s*$/m);
+    expectToolGrant(frontmatter, "adv_tool_invoke", true);
     expect(body).toContain("RESEARCHER_REPORT");
     expect(body).toContain("adv_subagent_report_submit");
     expect(body).toContain('"agent": "adv-researcher"');
@@ -95,14 +98,12 @@ describe("optimized handoff agent contracts", () => {
       readFileSync(join(AGENT_DIR, "adv-tron.md"), "utf8"),
     );
 
-    expectToolGrant(frontmatter, "adv_subagent_report_submit", true);
-    for (const forbidden of [
-      "adv_change_create",
-      "adv_task_add",
-      "adv_gate_complete",
-    ]) {
-      expectToolGrant(frontmatter, forbidden, false);
-    }
+    // slimMutationToolSurface: adv_subagent_report_submit is Tier 3
+    // (invoke-only); covered by adv_*: false wildcard, not individually listed.
+    expect(frontmatter).not.toMatch(/^\s+adv_subagent_report_submit:\s*true\s*$/m);
+    expectToolGrant(frontmatter, "adv_tool_invoke", true);
+    // Tier 2/3 ADV tools denied via adv_*: false wildcard.
+    expect(frontmatter).toMatch(/^\s+adv_\*:\s*false\s*$/m);
     expect(body).toContain("TRON_REPORT");
     expect(body).toContain("adv_subagent_report_submit");
     expect(body).toContain('"agent": "adv-tron"');
