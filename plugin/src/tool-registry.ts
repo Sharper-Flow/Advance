@@ -81,6 +81,7 @@ import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
 import { resumeProjectionTools } from "./tools/resume-projection";
+import { launcherProjectionTools } from "./tools/launcher-projection";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
@@ -756,6 +757,13 @@ export function createToolMap(
       store,
     ),
 
+    // Launcher Projection Rebuild Tool (producer-only, disk-only)
+    adv_launcher_projection_rebuild: bindTool(
+      launcherProjectionTools.adv_launcher_projection_rebuild,
+      "adv_launcher_projection_rebuild",
+      store,
+    ),
+
     // Snapshot Health Tool
     adv_snapshot_health: bindTool(
       snapshotHealthTools.adv_snapshot_health,
@@ -1223,6 +1231,7 @@ const PUBLIC_TOOL_GROUPS = [
   wisdomTools,
   statusTools,
   resumeProjectionTools,
+  launcherProjectionTools,
   projectTools,
   gateTools,
   testTools,

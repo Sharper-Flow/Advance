@@ -119,6 +119,9 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // adapter (feat 9f39317e); a legitimate registered public tool that was
   // never recorded in this reintroduction-guard accounting.
   "adv_resume_projection",
+  // addAdvLauncherReadProjection added the launcher projection rebuild MCP
+  // tool (plugin-only; never exposed via bin/adv).
+  "adv_launcher_projection_rebuild",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -325,8 +328,9 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // removed 8 recovery tools (now in CONTRACTED_PUBLIC_REMOVALS) and added
     // adv_doctor; the staged-delta write/read vocabulary + adv_tool_invoke
     // landed as additions; and resume-projection Phase E added
-    // adv_resume_projection. Net tracked totals: 10 named removals + 1 unnamed
-    // (roadmap) removal, 15 additions => 84 = 80 - 10 - 1 + 15.
+    // adv_resume_projection; addAdvLauncherReadProjection added
+    // adv_launcher_projection_rebuild. Net tracked totals: 10 named removals +
+    // 1 unnamed (roadmap) removal, 16 additions => 85 = 80 - 10 - 1 + 16.
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) -
         landedRemovals -
