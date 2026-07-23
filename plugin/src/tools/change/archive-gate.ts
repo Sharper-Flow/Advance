@@ -417,7 +417,12 @@ export async function reconcileArchivedBundleRetry(input: {
     }
   >;
   if (durableProof.ok) {
-    releaseResult = { ok: true, gate: durableProof.gate, alreadyDone: true };
+    releaseResult = {
+      ok: true,
+      gate: durableProof.gate,
+      alreadyDone: true,
+      ...(durableProof.source === "disk" ? { recoveryMutation: true } : {}),
+    };
   } else {
     const completionResult = await completeReleaseGateAfterFinalization({
       store: input.store,
@@ -849,6 +854,7 @@ export type DurableReleaseGateProofResult =
   | {
       ok: true;
       gate: GateCompletion;
+      source: "store" | "disk";
     }
   | {
       ok: false;
@@ -970,7 +976,7 @@ export async function verifyReleaseGateDurableForArchive(input: {
       shipped,
     });
     if (diskReleaseGate) {
-      return { ok: true, gate: diskReleaseGate };
+      return { ok: true, gate: diskReleaseGate, source: "disk" };
     }
     return {
       ok: false,
@@ -998,7 +1004,7 @@ export async function verifyReleaseGateDurableForArchive(input: {
       stuckReason: releaseGate.stuck_reason,
     };
   }
-  return { ok: true, gate: releaseGate };
+  return { ok: true, gate: releaseGate, source: "store" };
 }
 /**
  * rq-reapOrphanAdvWorkers T3 (SC3/AC3): a gateCompletedSignal failure is
