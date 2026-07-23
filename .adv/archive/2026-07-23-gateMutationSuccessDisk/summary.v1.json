@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-07-23T06:17:51.968Z",
+  "capabilities": [],
+  "change_hash": "905b91f215f6878972079fec9410a054ec1ca1d7d308a1c5c0ccc75a6e873ae8",
+  "change_id": "gateMutationSuccessDisk",
+  "completed_tasks": 3,
+  "created_at": "2026-07-23T04:42:09.832Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784781756129-8jdrde",
+    "epic_id": "hardenTemporalReliability",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-23T04:42:36.129Z",
+    "order": 14,
+    "source": "link_existing",
+    "title": "Gate mutation success on disk durability"
+  },
+  "last_activity_at": "2026-07-23T06:11:27.141Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "57dd9c3c510d4be3d3a46e709384301618b2172ab7f15f9deaa5ad2c001ba8a4",
+  "task_count": 3,
+  "title": "Gate mutation success on disk durability",
+  "version": "1"
+}
