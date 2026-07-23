@@ -1141,6 +1141,13 @@ export async function completeReleaseGateAfterFinalization(input: {
     });
   }
   if (currentGate?.status === "done") {
+    // #305 residual: the gate is already done on the first query (a prior
+    // signal landed, or a retry finds done immediately). Drop the poisoned
+    // cache entry so the immediately-following second
+    // verifyReleaseGateDurableForArchive store.gates.get queries fresh
+    // instead of reading a stale pending left by a racing refresh. Mirrors
+    // the postSignal invalidate below (line ~1211).
+    await input.store.changes.invalidate(input.changeId);
     return { ok: true, gate: currentGate, alreadyDone: true };
   }
   // rq-reapOrphanAdvWorkers T3 (SC3/AC3): fire gateCompletedSignal in a SINGLE

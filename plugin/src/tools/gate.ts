@@ -1177,6 +1177,16 @@ async function handlePlanningGateCompletion({
     });
   }
 
+  // #305 residual: the release gate's fireSignalAndRefresh (_adapters.ts)
+  // signals then unconditionally refreshes, whose readback can re-poison
+  // changeCache with a stale pre-signal pending snapshot. Drop the entry so
+  // the archive's verifyReleaseGateDurableForArchive store.gates.get queries
+  // fresh. Narrow to release (the archive-convergence gate); other gates keep
+  // fireSignalAndRefresh semantics.
+  if (gateId === "release") {
+    await store.changes.invalidate(changeId);
+  }
+
   const apiCompatibilityPolicy = await resolveApiCompatibilityPolicy(store);
   const profileEvaluations = await evaluateLightweightProfileAtPhases(
     store,

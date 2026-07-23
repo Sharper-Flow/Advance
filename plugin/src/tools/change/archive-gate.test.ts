@@ -660,6 +660,39 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     );
     expect(observedDoneBeforeInvalidate).toBe(true);
   });
+
+  it("calls store.changes.invalidate when the pre-signal query already returns done (alreadyDone branch)", async () => {
+    // When the release gate is ALREADY done on the first query (a prior signal
+    // landed, or a retry finds done immediately), the alreadyDone short-circuit
+    // must still drop the poisoned cache so the immediately-following second
+    // verifyReleaseGateDurableForArchive store.gates.get queries fresh instead
+    // of reading a stale pending entry left by a racing refresh.
+    const invalidateMock = vi.fn(async () => {});
+    const handle = {
+      // First (and only) query returns done → alreadyDone short-circuit, no signal.
+      query: vi.fn(async () => doneGate),
+      signal: vi.fn(async () => {}),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const store = {
+      ...createStore("/repo"),
+      changes: { refresh: vi.fn(), invalidate: invalidateMock },
+    } as unknown as Store;
+
+    const result = await completeReleaseGateAfterFinalization({
+      store,
+      change: createChange({}),
+      changeId: "fixAlreadyDoneInvalidate",
+      finalization: shippedFinalization,
+    });
+
+    expect(result).toMatchObject({ ok: true, alreadyDone: true });
+    expect(invalidateMock).toHaveBeenCalledWith("fixAlreadyDoneInvalidate");
+    // No signal should fire when the gate is already done.
+    expect(handle.signal).not.toHaveBeenCalled();
+  });
 });
 
 describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning race", () => {
