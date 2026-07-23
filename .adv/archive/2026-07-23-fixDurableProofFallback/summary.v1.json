@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-23T15:32:47.996Z",
+  "capabilities": [],
+  "change_hash": "6ef41c4602b09b4190c7d69b53399846199133f64ada1d25ec2808011c1c6dbc",
+  "change_id": "fixDurableProofFallback",
+  "completed_tasks": 2,
+  "created_at": "2026-07-23T13:34:40.681Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-23T15:31:34.445Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "609d61c1ca9b7a7e1b028c915fdf34bfa021b2b414fc70d1500903fbdc8dd98e",
+  "task_count": 2,
+  "title": "Fix durable-proof fallback asymmetry",
+  "version": "1"
+}
