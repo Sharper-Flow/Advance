@@ -872,15 +872,28 @@ export function releaseGateEvidenceMatches(
 }
 
 /**
- * The exact recovery provenance written by the archive's own release-gate
- * recovery writer (recoverReleaseGateViaDiskProjection). The shipped disk
- * reconciliation below binds acceptance to THIS provenance so a generic
- * recovery-shaped gate (e.g. `missing_workflow`/`poisoned_history` from
- * adv_gate_complete recovery) or a forged non-release audit cannot be accepted
- * on the strength of `finalizationStatus` alone (fixDurableProofFallback,
- * design-validation hardening).
+ * Bounded allowlist of the recovery-audit reasons ADV's own release-gate
+ * recovery paths stamp on a disk release gate. The shipped disk reconciliation
+ * below accepts ONLY these provenances so a forged/unrecognized recovery audit
+ * cannot bypass the evidence-match guard on the strength of `finalizationStatus`
+ * alone (fixDurableProofFallback, design-validation hardening + live-repro fix).
+ *
+ * - `completed_workflow_release_gate_recovery`: archive's own release-gate
+ *   recovery (recoverReleaseGateViaDiskProjection).
+ * - `missing_workflow`: generic gate recovery when the change workflow has
+ *   terminated (adv_gate_complete release recovery; recovery-classification).
+ * - `poisoned_history`: poisoned-history disk recovery (adv_gate_complete /
+ *   verification-evidence disposition).
+ *
+ * A single-reason binding was insufficient: a terminated-workflow change whose
+ * release gate was recovered via generic gate recovery carries `missing_workflow`
+ * (or `poisoned_history`), not the archive reason, and was wrongly rejected.
  */
-const RELEASE_GATE_RECOVERY_REASON = "completed_workflow_release_gate_recovery";
+const RELEASE_GATE_RECOVERY_REASONS = new Set<string>([
+  "completed_workflow_release_gate_recovery",
+  "missing_workflow",
+  "poisoned_history",
+]);
 
 async function loadAuditedDiskReleaseGate(input: {
   store: Store;
@@ -899,15 +912,16 @@ async function loadAuditedDiskReleaseGate(input: {
   const gate = disk.data.gates.release;
   if (gate?.status !== "done" || !hasGateRecoveryAudit(gate)) return null;
   // Shipped reconciliation: a change whose git work reached the default branch
-  // but whose workflow terminated is recovered on disk with the release-gate
-  // recovery provenance. Its recovery-audit evidence text need not substring-
-  // match the freshly computed finalization evidence — this mirrors the
-  // store-backed `shipped` bypass so a terminated-workflow shipped change is
-  // not permanently unarchivable. Guarded by exact release-gate provenance so
-  // non-shipped or non-release-recovery gates never reach acceptance here.
+  // (finalization shipped — git-verified reachability that cannot be forged
+  // without a real merge) but whose workflow terminated is recovered on disk
+  // with a release-gate recovery provenance. Its recovery-audit evidence text
+  // need not substring-match the freshly computed finalization evidence — this
+  // mirrors the store-backed `shipped` bypass so a terminated-workflow shipped
+  // change is not permanently unarchivable. Guarded by the bounded release-gate
+  // recovery allowlist so a forged/unrecognized recovery audit cannot bypass.
   const shippedReconcile =
     input.shipped === true &&
-    gate.recovery_audit?.reason === RELEASE_GATE_RECOVERY_REASON;
+    RELEASE_GATE_RECOVERY_REASONS.has(gate.recovery_audit?.reason ?? "");
   if (shippedReconcile || releaseGateEvidenceMatches(gate, input.evidence)) {
     return gate;
   }
