@@ -295,6 +295,14 @@ export {
 } from "./briefing-packets";
 
 // =============================================================================
+// Future Work Context Packets
+// =============================================================================
+export {
+  FutureWorkContextPacketSchema,
+  type FutureWorkContextPacket,
+} from "./future-work";
+
+// =============================================================================
 // Work Graph (dependency graph + resume projection)
 // =============================================================================
 export {

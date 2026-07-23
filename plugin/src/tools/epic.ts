@@ -28,6 +28,14 @@ import {
 import { nodeRefKey } from "../validator/work-graph-validation";
 import { getBacklogItem } from "../utils/backlog-store";
 import {
+  assertEpicAggregatePackets,
+  assertPacketSize,
+  parsePacket,
+  ContextPacketTooLargeError,
+  EpicAggregatePacketsExceededError,
+} from "../utils/context-packet-validation";
+import type { FutureWorkContextPacket } from "../types/future-work";
+import {
   appendEpicRoutingContexts,
   EPIC_OWNER_ROUTING_ERROR_CODES,
   epicOwnerTargetPathSchema,
@@ -67,6 +75,119 @@ function epicError(err: unknown) {
     code,
     ...(blockers && { blockers }),
   });
+}
+
+function contextPacketError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  if (err instanceof ContextPacketTooLargeError) {
+    return formatToolOutput({
+      success: false,
+      error: message,
+      code: "context_packet_too_large",
+    });
+  }
+  if (err instanceof EpicAggregatePacketsExceededError) {
+    return formatToolOutput({
+      success: false,
+      error: message,
+      code: "epic_aggregate_context_packets_exceeded",
+    });
+  }
+  return formatToolOutput({
+    success: false,
+    error: message,
+    code: "invalid_context_packet",
+  });
+}
+
+/**
+ * Render a structured Future-Work Context section from a validated packet.
+ * Only includes subsections for fields that are present.
+ */
+function renderContextPacketSection(packet: FutureWorkContextPacket): string {
+  const lines: string[] = [
+    "",
+    "## Future-Work Context",
+    "",
+    "<!-- Injected from the promoted Epic shell's context_packet. -->",
+    "",
+  ];
+
+  if (packet.background) {
+    lines.push("### Background", "", packet.background, "");
+  }
+
+  if (packet.design_seed) {
+    lines.push("### Design Seed", "", packet.design_seed, "");
+  }
+
+  if (packet.references && packet.references.length > 0) {
+    lines.push("### References", "");
+    for (const ref of packet.references) {
+      lines.push(`- **${ref.label}**: ${ref.locator}`);
+    }
+    lines.push("");
+  }
+
+  if (packet.constraints && packet.constraints.length > 0) {
+    lines.push("### Constraints", "");
+    for (const constraint of packet.constraints) {
+      lines.push(`- ${constraint}`);
+    }
+    lines.push("");
+  }
+
+  if (packet.avoidances && packet.avoidances.length > 0) {
+    lines.push("### Avoidances", "");
+    for (const avoidance of packet.avoidances) {
+      lines.push(`- ${avoidance}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Render a placeholder section when a shell's context_packet is present but
+ * cannot be safely injected (e.g., it exceeds the bounded size budget).
+ */
+function renderOmittedContextPacketSection(reason: string): string {
+  return [
+    "",
+    "## Future-Work Context",
+    "",
+    `<!-- The promoted shell carried a context_packet, but it ${reason}. It was omitted to keep the proposal bounded. -->`,
+    "",
+  ].join("\n");
+}
+
+/**
+ * Build the Future-Work Context appendix for a proposal seed.
+ *
+ * Re-validates the packet size before rendering. If the packet is oversized,
+ * returns an omission section instead so promotion never crashes.
+ */
+function buildContextPacketSection(
+  packet: FutureWorkContextPacket | undefined,
+): { section: string; note?: string } {
+  if (!packet) {
+    return { section: "" };
+  }
+
+  try {
+    assertPacketSize(packet);
+    return { section: renderContextPacketSection(packet) };
+  } catch (err) {
+    const reason =
+      err instanceof ContextPacketTooLargeError
+        ? `exceeded the size budget (${err.actualBytes} bytes)`
+        : "could not be bounded";
+    return {
+      section: renderOmittedContextPacketSection(reason),
+      note: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 function formatD3Error(error: D3EnforcementError): string {
@@ -248,6 +369,7 @@ function mapEpicEntry(entry: EpicEntry) {
           title: entry.title,
           success_hint: entry.success_hint,
           imported_from: entry.imported_from,
+          context_packet: entry.context_packet,
         }
       : {
           change_id: entry.change_id,
@@ -1358,6 +1480,12 @@ export const epicTools = {
         .describe(
           "Same-project hard prerequisite edges. Shell promotion is refused while any prereq is nonterminal.",
         ),
+      context_packet: z
+        .unknown()
+        .optional()
+        .describe(
+          "Optional durable future-work context packet. Validated and persisted on the shell entry.",
+        ),
       ...epicOwnerTargetPathSchema,
     },
     execute: async (
@@ -1369,6 +1497,7 @@ export const epicTools = {
         entry_id,
         order,
         blocked_by,
+        context_packet,
         epic_owner_target_path,
         epic_owner_target_confirmed,
         epic_owner_confirmationEvidence,
@@ -1380,6 +1509,7 @@ export const epicTools = {
         entry_id?: string;
         order?: number;
         blocked_by?: WorkNodeRef[];
+        context_packet?: unknown;
         epic_owner_target_path?: string;
         epic_owner_target_confirmed?: true;
         epic_owner_confirmationEvidence?: string;
@@ -1393,6 +1523,30 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
+
+        const epic = await loadEpic(owner.store, epic_id);
+
+        let validatedContextPacket: FutureWorkContextPacket | undefined;
+        if (context_packet !== undefined) {
+          try {
+            const packet = parsePacket(context_packet);
+            assertPacketSize(packet);
+            if (epic) {
+              const existingShells = epic.entries.filter(
+                (e): e is Extract<EpicEntry, { kind: "shell" }> =>
+                  e.kind === "shell",
+              );
+              const incomingBytes = Buffer.byteLength(
+                JSON.stringify(packet),
+                "utf8",
+              );
+              assertEpicAggregatePackets(existingShells, incomingBytes);
+            }
+            validatedContextPacket = packet;
+          } catch (err) {
+            return contextPacketError(err);
+          }
+        }
 
         let importedFrom:
           | { backlog_id: string; imported_at: string }
@@ -1471,6 +1625,9 @@ export const epicTools = {
           order,
           importedFrom,
           blockedBy: blocked_by,
+          ...(validatedContextPacket !== undefined
+            ? { context_packet: validatedContextPacket }
+            : {}),
         });
         const output = formatToolOutput({
           success: true,
@@ -1562,6 +1719,9 @@ export const epicTools = {
           });
         }
 
+        let contextPacketAppendix: { section: string; note?: string } = {
+          section: "",
+        };
         let finalChangeId = change_id;
         if (!finalChangeId) {
           if (owner.context !== null && ownerStore !== store) {
@@ -1572,7 +1732,10 @@ export const epicTools = {
               ownerContext: owner.context,
             });
           }
-          const proposal = `# ${shell.title}\n\n## Intent\n\n${shell.success_hint}\n\n## Scope\n\n- Promoted from Epic ${epic_id} shell ${entry_id}.\n`;
+          contextPacketAppendix = buildContextPacketSection(
+            shell.context_packet,
+          );
+          const proposal = `# ${shell.title}\n\n## Intent\n\n${shell.success_hint}\n\n## Scope\n\n- Promoted from Epic ${epic_id} shell ${entry_id}.\n${contextPacketAppendix.section}`;
           const problemStatement = `## Problem\n\n${shell.title}\n\n## Success Criteria\n\n${shell.success_hint}\n`;
           const createResult = await ownerStore.changes.create(shell.title, {
             artifacts: { proposal, problemStatement },
@@ -1601,7 +1764,12 @@ export const epicTools = {
           entry_id,
           change_id: finalChangeId,
           promoted: true,
-          note: `Shell '${shell.title}' promoted to change ${finalChangeId}.`,
+          note: [
+            `Shell '${shell.title}' promoted to change ${finalChangeId}.`,
+            contextPacketAppendix.note,
+          ]
+            .filter(Boolean)
+            .join(" "),
         });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {

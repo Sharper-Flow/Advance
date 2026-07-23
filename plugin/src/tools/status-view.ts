@@ -33,6 +33,7 @@ export interface StatusViewPlan {
   projectMetadata: boolean;
   archivedBranchHygiene: boolean;
   resumeProjection: boolean;
+  futureWork: boolean;
 }
 
 // rq-advStatusLazyView01 (advance-meta v1.12) — execute providers from
@@ -61,6 +62,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         projectMetadata: false,
         archivedBranchHygiene: false,
         resumeProjection: true,
+        futureWork: true,
       };
     case "health":
       return {
@@ -82,6 +84,13 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         projectMetadata: false,
         archivedBranchHygiene: false,
         resumeProjection: true,
+        // future_work (Epic/backlog inventory) is excluded from the health
+        // view: health is a strictly time-budgeted diagnostics path
+        // (status-health-integration-blockers A.1 enforces an 8,000 ms
+        // wall-clock budget). buildFutureWorkProjection reads Epic shells +
+        // backlog outside that budget and would breach it. future_work is
+        // still surfaced via the summary and hygiene views (AC5).
+        futureWork: false,
       };
     case "changes":
       return {
@@ -103,6 +112,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         projectMetadata: false,
         archivedBranchHygiene: false,
         resumeProjection: false,
+        futureWork: false,
       };
     case "hygiene":
       return {
@@ -124,6 +134,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         projectMetadata: true,
         archivedBranchHygiene: true,
         resumeProjection: true,
+        futureWork: true,
       };
   }
 }
@@ -210,6 +221,7 @@ export function applyStatusView(
       projection.temporal_health_ok = !!temporalHealth?.server_alive;
       projection.worktree_count = worktreeCensus?.total ?? 0;
       projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
+      projection.future_work = full.future_work;
       if (full.bootstrap_retry) {
         projection.diagnostics = full.diagnostics;
         projection.bootstrap_retry = full.bootstrap_retry;
@@ -257,6 +269,7 @@ export function applyStatusView(
       projection.snapshot_health = full.snapshot_health;
       projection.worktree_census = full.worktree_census;
       projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
+      projection.future_work = full.future_work;
       break;
     }
     case "changes": {
@@ -282,6 +295,7 @@ export function applyStatusView(
       projection.migration_status = full.migration_status;
       projection.snapshot_health = full.snapshot_health;
       projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
+      projection.future_work = full.future_work;
       break;
     }
   }
