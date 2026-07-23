@@ -20,7 +20,7 @@ export const LauncherChangeSummarySchema = z.object({
   status: z.literal("draft"),
   phase: z.string(),
   created_at: z.string(),
-  last_activity: z.string(),
+  last_activity_at: z.string(),
   task_count: z.number().int().nonnegative(),
   completed_tasks: z.number().int().nonnegative(),
   epic_membership: z
@@ -202,7 +202,7 @@ export async function buildLauncherProjection(
       status: "draft",
       phase,
       created_at: state.createdAt,
-      last_activity: lastActivity,
+      last_activity_at: lastActivity,
       task_count: tasks.length,
       completed_tasks: completedTasks,
     };
@@ -227,7 +227,7 @@ export async function buildLauncherProjection(
 
   activeSummaries.sort((a, b) => {
     return (
-      new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime()
+      new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime()
     );
   });
 
