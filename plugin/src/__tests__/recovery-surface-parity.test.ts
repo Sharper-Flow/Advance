@@ -50,6 +50,8 @@ const ALLOWED_REFERENCE_FILES: Record<string, string> = {
     "adv_doctor's description explicitly names the tools it consolidates (educational; not an active surface)",
   "doctor.test.ts":
     "doctor tests reference the consolidated behavior by name for clarity",
+  "tool-registry.inventory.test.ts":
+    "CONTRACTED_PUBLIC_REMOVALS lists the retired names to keep the canonical public-tool count pinned; the names are data, not active surface",
 };
 
 /**

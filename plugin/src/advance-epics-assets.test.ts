@@ -14,7 +14,6 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
-import { ADV_TOOL_NAMES } from "./tool-registry";
 import { COMMAND_MANIFEST } from "./manifest";
 import { epicTools } from "./tools/epic";
 
@@ -23,10 +22,6 @@ const REPO_ROOT = resolve(__dirname, "../..");
 function readRepoFile(relativePath: string): string {
   return readFileSync(join(REPO_ROOT, relativePath), "utf8");
 }
-
-const EPIC_TOOLS = ADV_TOOL_NAMES.filter((name) =>
-  name.startsWith("adv_epic_"),
-);
 
 describe("Advance Epics spec documentation", () => {
   test("docs/specs/advance-epics.md mirrors the capability spec", () => {

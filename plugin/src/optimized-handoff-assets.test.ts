@@ -67,7 +67,9 @@ describe("optimized handoff agent contracts", () => {
 
     // slimMutationToolSurface: adv_subagent_report_submit is Tier 3
     // (invoke-only); covered by adv_*: false wildcard, not individually listed.
-    expect(frontmatter).not.toMatch(/^\s+adv_subagent_report_submit:\s*true\s*$/m);
+    expect(frontmatter).not.toMatch(
+      /^\s+adv_subagent_report_submit:\s*true\s*$/m,
+    );
     expectToolGrant(frontmatter, "adv_tool_invoke", true);
     expect(body).toContain("RESEARCHER_REPORT");
     expect(body).toContain("adv_subagent_report_submit");
@@ -100,7 +102,9 @@ describe("optimized handoff agent contracts", () => {
 
     // slimMutationToolSurface: adv_subagent_report_submit is Tier 3
     // (invoke-only); covered by adv_*: false wildcard, not individually listed.
-    expect(frontmatter).not.toMatch(/^\s+adv_subagent_report_submit:\s*true\s*$/m);
+    expect(frontmatter).not.toMatch(
+      /^\s+adv_subagent_report_submit:\s*true\s*$/m,
+    );
     expectToolGrant(frontmatter, "adv_tool_invoke", true);
     // Tier 2/3 ADV tools denied via adv_*: false wildcard.
     expect(frontmatter).toMatch(/^\s+adv_\*:\s*false\s*$/m);
