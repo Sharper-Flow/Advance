@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-23T21:00:09.568Z",
+  "capabilities": [],
+  "change_hash": "b31c79550956e2719a9e1a53045f51944dee924d623b78c6b24ef1b771edd012",
+  "change_id": "fixArchiveReleaseGateRead",
+  "completed_tasks": 3,
+  "created_at": "2026-07-23T19:56:57.767Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-23T20:28:27.393Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "2c9bef83578d57920e134f60a98101fd95d87f13da244c45ac420c82591982b4",
+  "task_count": 3,
+  "title": "Fix archive release-gate read convergence",
+  "version": "1"
+}
