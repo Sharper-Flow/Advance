@@ -1,0 +1,407 @@
+{
+  "id": "addEpicListCircuitBreaker",
+  "title": "Add epic-list circuit-breaker",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-23T18:06:29.738Z",
+  "tasks": [
+    {
+      "id": "tk-e5b25a9933cd",
+      "title": "epics.list short-circuit + tryQueryEpicStateRead recorders (SHIPPED 7de2cd0b)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T19:42:15.054Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Shipped 7de2cd0b: epics.list short-circuit + tryQuery recorders. epics.test.ts list CB-trip regression passes. AC3/AC4.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7de2cd0b30b380c48f09920632e2d72f911e6cde",
+      "completedAt": "2026-07-23T19:42:32.768Z",
+      "completed_at": "2026-07-23T19:42:32.768Z"
+    },
+    {
+      "id": "tk-39edca229cc8",
+      "title": "Thread shared circuit-breaker through epic convergence + store.changes.get ctx (SHIPPED 7de2cd0b)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T19:42:15.060Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Shipped 7de2cd0b: store.changes.get ctx param + convergeEpicOnShow/buildFastFollow CB. Tests pass. AC1/AC2/AC5.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7de2cd0b30b380c48f09920632e2d72f911e6cde",
+      "completedAt": "2026-07-23T19:42:32.771Z",
+      "completed_at": "2026-07-23T19:42:32.771Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:41:10.669Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track (work shipped live in 7de2cd0b). Proposal + problem-statement drafted from review finding epic-read-1 (epic convergence loop lacked shared CB). Direction confirmed by user.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ef630194061eef23f6ecff484e3c8b3871bb344b59520e52edf4a4004bafc14f",
+        "non_whitespace_chars": 544,
+        "checked_at": "2026-07-23T18:06:33.208Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:41:46.118Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery = adv-tron recon 2026-07-23: root cause = convergeEpicOnShow allocates fresh ctx per member (changes.ts:655); change-list immune (listResolvedChanges threads one ctx). Fix surface = store.changes.get ctx param + epic convergence CB threading; replay-safe. Agreement + contract persisted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "non_whitespace_chars": 1945,
+        "checked_at": "2026-07-23T18:06:33.209Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:42:04.081Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted: thread shared ctx through epic convergence (convergeEpicOnShow + enrich + epics.list); store.changes.get ctx param; tryQueryEpicStateRead recorders. Reuses shipped CB; mutation-safe; replay-safe. Independent validation = adv-tron recon.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b789afb3a3fc8808e412f2f79e6a39bdd09d5de7027cfbe30ccfdfb9b2cba32e",
+        "non_whitespace_chars": 1423,
+        "checked_at": "2026-07-23T18:06:33.210Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:42:24.743Z",
+      "completed_by": "user",
+      "approval_evidence": "2 tasks cover AC1-AC5 (test-policy, no stakeholder-acceptance task to avoid completion pitfall). Work shipped in 7de2cd0b."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:42:41.965Z",
+      "completed_by": "agent",
+      "approval_evidence": "2 code tasks done (checkpointed sha 7de2cd0b): tk-39edca229cc8 (convergence CB + store.changes.get ctx, AC1/AC2/AC5), tk-e5b25a9933cd (epics.list short-circuit + recorders, AC3/AC4). Work shipped in 7de2cd0b, deployed, verified live."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:43:14.234Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Fast-track acceptance: work shipped live (7de2cd0b) before formal acceptance. Review matrix (11 rows, 0 failing) + executive summary persisted. AC1-AC5 covered by done tasks. Closes review finding epic-read-1."
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-07-23T19:43:30.411Z",
+      "completed_by": "agent",
+      "approval_evidence": "Merged 7de2cd0b, deployed, restarted, verified live (epic reads unblocked). Closes Epic hardenTemporalReliability invariant #1 epic surface."
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "makeReadsDiskAuthoritative",
+    "linked_at": "2026-07-23T18:06:28.868Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+      "approvedAt": "2026-07-23T19:41:38.794Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`store.changes.get(changeId, {context})` forwards the supplied ctx to `getTemporalChange`; omitted = fresh ctx (no behavior change for existing callers).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`convergeEpicOnShow` shares one CB ctx across members; with ≥4 unresponsive members the show returns within budget (≪10s) with tripped members degraded to disk+advisory, not unreachable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`epics.list` short-circuits after K=3 consecutive unresponsive Epics (5 hanging → 3 query attempts, bounded elapsed).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`tryQueryEpicStateRead` calls `recordResponsiveMember` on success and `recordUnresponsiveMember` on timeout; `not_found` is neutral.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`enrichEpicRenderWithFastFollowLineage` shares the CB and short-circuits on trip.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Reuse the shipped CB on `TemporalReadContext` + `workflow_unresponsive` taxonomy — do NOT invent a second CB.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Fix surface: `tools/` + `storage/store-temporal/` only; `workflows.ts` untouched (replay-safe; boundary tests enforce).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "`pnpm run check` + `pnpm run build` green; optional-param change is backward-compatible (impls taking fewer params stay assignable).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change `getTemporalChange` semantics (it already short-circuits + records when given a shared ctx).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not regress existing `store.changes.get` callers that omit ctx.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not emit `kind:\"unreachable\"` for a CB-tripped member that has a disk projection (must be `present`+advisory).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T19:42:54.418Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "store-types.ts:234 + changes.ts:650: store.changes.get(changeId, {context?}) forwards to getTemporalChange; omitted = fresh ctx. Backward-compatible (disk-store impls ignore param)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "tools/epic.ts convergeEpicOnShow builds one convergenceCtx threaded via loadChange; getTemporalChange short-circuits tripped members to disk+workflow_unresponsive (present, not unreachable)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "epics.test.ts list CB-trip regression: 5 hanging epics → queryMock called 3×, elapsed <6000ms (short-circuit after K=3)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "epics.ts tryQueryEpicStateRead: recordResponsiveMember on ok, recordUnresponsiveMember on timeout; not_found neutral (mirrors index.ts:901/939)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "tools/epic.ts buildFastFollowLineageMap: own ctx + short-circuit on isCircuitBreakerTripped()/isTemporalReadExpired(); per-id cache preserved."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reuses shipped TemporalReadContext CB + workflow_unresponsive; no second CB."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fix surface tools/+storage/store-temporal/ only; workflows.ts untouched; workflow-bundle-boundary.test.ts enforces."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check (incl typecheck, optional-param backward-compatible) + pnpm run build green."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "getTemporalChange unchanged; only ctx plumbing added."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing store.changes.get callers omit ctx → fresh ctx, unchanged behavior."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "Tripped members with disk projection → kind:present + workflow_unresponsive (convergeEpicMembership treats as present), not unreachable."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`store.changes.get(changeId, {context})` forwards the supplied ctx to `getTemporalChange`; omitted = fresh ctx (no behavior change for existing callers).",
+    "`convergeEpicOnShow` shares one CB ctx across members; with ≥4 unresponsive members the show returns within budget (≪10s) with tripped members degraded to disk+advisory, not unreachable.",
+    "`epics.list` short-circuits after K=3 consecutive unresponsive Epics (5 hanging → 3 query attempts, bounded elapsed).",
+    "`tryQueryEpicStateRead` calls `recordResponsiveMember` on success and `recordUnresponsiveMember` on timeout; `not_found` is neutral.",
+    "`enrichEpicRenderWithFastFollowLineage` shares the CB and short-circuits on trip."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Add epic-list circuit-breaker + disk advisory\n\nExtend the disk-authoritative pattern from `epics.get` to the Epic list/convergence path:\n- Apply the per-request circuit-breaker (K=3 consecutive unresponsive) to list-side per-Epic queries.\n- Add list-side disk-projection advisory fallback (analogous to the change-side `loadCandidate` two-leg pattern) so a wedged Epic workflow degrades to advisory, never hangs/drops.\n- Add list-side CB + disk-fallback test coverage (finding test-coverage-1).\n\nFast-follow of makeReadsDiskAuthoritative (shipped). Epic hardenTemporalReliability invariant #1, list surface.",
+    "problemStatement": "# Problem: Epic list reads lack circuit-breaker + disk fallback\n\nThe shipped disk-authoritative fix (makeReadsDiskAuthoritative, commit 1879fb64) covered `epics.get` (single-Epic read) with deadline threading + disk-first leg + advisory, but the Epic LIST read path (`adv_epic_list` / list-side convergence in `plugin/src/storage/store-temporal/epics.ts` ~line 607) still issues serial per-Epic workflow queries with no per-request circuit-breaker and no disk-advisory fallback. A cluster of unresponsive Epic workflows can still consume the aggregate read budget; retired projections may be dropped.\n\nFound by adv-reviewer acceptance review (finding epic-read-1, 2026-07-23) of makeReadsDiskAuthoritative. Same defect class (Epic hardenTemporalReliability invariant #1), list surface not yet covered.",
+    "agreement": "# Agreement: Add epic-list circuit-breaker\n\n## Objectives\n1. Thread ONE shared `TemporalReadContext` through the epic convergence paths (`convergeEpicOnShow`, `enrichEpicRenderWithFastFollowLineage`, `epics.list`) so K=3 consecutive unresponsive children trip the shipped circuit-breaker once.\n2. `store.changes.get` accepts an optional `{context?}` and forwards it to `getTemporalChange` (omitted = unchanged fresh-ctx behavior).\n3. `tryQueryEpicStateRead` records responsive/unresponsive on the shared ctx so `epics.list`'s existing ctx actually trips.\n4. `epics.list` short-circuits remaining queries once the CB trips or the deadline expires.\n\n## Acceptance criteria\n- AC1: `store.changes.get(changeId, {context})` forwards the supplied ctx to `getTemporalChange`; omitted = fresh ctx (no behavior change for existing callers).\n- AC2: `convergeEpicOnShow` shares one CB ctx across members; with ≥4 unresponsive members the show returns within budget (≪10s) with tripped members degraded to disk+advisory, not unreachable.\n- AC3: `epics.list` short-circuits after K=3 consecutive unresponsive Epics (5 hanging → 3 query attempts, bounded elapsed).\n- AC4: `tryQueryEpicStateRead` calls `recordResponsiveMember` on success and `recordUnresponsiveMember` on timeout; `not_found` is neutral.\n- AC5: `enrichEpicRenderWithFastFollowLineage` shares the CB and short-circuits on trip.\n\n## Constraints\n- Reuse the shipped CB on `TemporalReadContext` + `workflow_unresponsive` taxonomy — do NOT invent a second CB.\n- Fix surface: `tools/` + `storage/store-temporal/` only; `workflows.ts` untouched (replay-safe; boundary tests enforce).\n- `pnpm run check` + `pnpm run build` green; optional-param change is backward-compatible (impls taking fewer params stay assignable).\n\n## Avoidances\n- Do not change `getTemporalChange` semantics (it already short-circuits + records when given a shared ctx).\n- Do not regress existing `store.changes.get` callers that omit ctx.\n- Do not emit `kind:\"unreachable\"` for a CB-tripped member that has a disk projection (must be `present`+advisory).\n\nFast-follow of makeReadsDiskAuthoritative. Epic hardenTemporalReliability invariant #1, epic-show/list surface (closes review finding epic-read-1).",
+    "design": "# Design: epic-list circuit-breaker\n\n## Decision\nThread ONE shared `TemporalReadContext` through the epic convergence paths so the shipped circuit-breaker (K=3) accumulates across members. `getTemporalChange` already short-circuits + records when given a shared ctx — this change just plumbs the ctx through.\n\n## Changes (shipped 7de2cd0b)\n1. `store-types.ts` + `changes.ts`: `store.changes.get` accepts optional `{context?: TemporalReadContext}`; forwards to `getTemporalChange`. Omitted = fresh ctx (backward-compatible; disk-store impls ignore the param).\n2. `tools/epic.ts convergeEpicOnShow`: build one `convergenceCtx`, thread through `loadChange`; getTemporalChange short-circuits tripped members to disk+`workflow_unresponsive` advisory (present, not unreachable).\n3. `tools/epic.ts buildFastFollowLineageMap`: own ctx + short-circuit on trip.\n4. `storage/store-temporal/epics.ts tryQueryEpicStateRead`: record responsive/unresponsive on the shared ctx (mirror index.ts:901/939); `epics.list` short-circuits on `isCircuitBreakerTripped()`/`isTemporalReadExpired()`.\n\n## LBP / structural correctness\n- Reuses the typed CB state machine + `workflow_unresponsive` reason — no second CB, no heuristic.\n- Mutation-safety preserved: tripped members return disk+advisory (read-only); getTemporalChange's no-reseed guarantee unchanged.\n\n## Replay verdict\nNOT replay-sensitive: tools/ + storage/store-temporal/ only; `workflows.ts` untouched (boundary tests enforce).\n\n## Independent validation\nadv-tron recon (2026-07-23) served as independent architectural validation; fast-track per user approval.",
+    "executiveSummary": "# Executive Summary: epic-list circuit-breaker\n\n## Outcome\n`adv_epic_show` and `adv_epic_list` no longer hang when epic member workflows are unresponsive. The shipped change-side circuit-breaker now threads through the epic convergence paths: after K=3 consecutive unresponsive members, remaining queries short-circuit to disk+advisory instead of each burning the 1500ms per-member cap.\n\n## Why it matters\nCloses the epic-side half of the read-wedge (review finding epic-read-1 of makeReadsDiskAuthoritative). Before this, `adv_change_list` was protected but `adv_epic_show`/`adv_epic_list` allocated a fresh `TemporalReadContext` per member, so the CB never tripped and a cluster of wedged Epic workflows could exceed the 10s tool budget. Epic `hardenTemporalReliability` invariant #1 is now fully covered across change-side AND epic-side reads.\n\n## What was delivered\n- `store.changes.get` accepts an optional `{context?}`, forwarding a shared ctx to `getTemporalChange` (backward-compatible).\n- `convergeEpicOnShow` + `buildFastFollowLineageMap` each build/share one CB ctx across their member loops.\n- `tryQueryEpicStateRead` records responsive/unresponsive on the shared ctx; `epics.list` short-circuits on CB trip / deadline expiry.\n\n## Verification\n- `pnpm run check` + `pnpm run build` green; 203+ tests pass including new `epics.list` CB-trip regression (5 hanging epics → 3 query attempts, bounded elapsed).\n- Live verification (2026-07-23): post-deploy+restart, `adv_epic_show`/`adv_epic_list` return fast, zero `ToolExecutionTimeout`.\n- Replay-safe: `workflows.ts` untouched; boundary tests enforce.\n\n## Risks / follow-ups\n- Reuses the shipped CB; no new failure mode introduced.\n- `fixHealthDegradedAlive` (sibling follow-up, the probe_degraded inverse concern) remains open — lower urgency.\n\n## Release readiness\nMerged to trunk (`7de2cd0b`), deployed, restarted, verified live. Safe to release — strictly extends read resilience to the epic surface."
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-23T18:06:29.881Z",
+      "contentHash": "ef630194061eef23f6ecff484e3c8b3871bb344b59520e52edf4a4004bafc14f",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-23T18:06:29.881Z",
+      "contentHash": "77990a2fc77b5f4de4afa82b680dab6e8a60b6880a25a94d08765dff7c692b5c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-23T19:41:32.147Z",
+      "contentHash": "7f1405ea8287f2d8893ea87a295b387c7fb748759f696094d1057b6bcbef37c4",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-23T19:41:57.335Z",
+      "contentHash": "b789afb3a3fc8808e412f2f79e6a39bdd09d5de7027cfbe30ccfdfb9b2cba32e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T19:43:05.900Z",
+      "contentHash": "9bdf8435b0da392a27d787694afae50e9ec0e6c3055e53f6b0866f2c8b467968",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T19:43:30.411Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}
