@@ -112,6 +112,7 @@ import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
 import {
   worktreeCreatedSignal,
   worktreeDeletedSignal,
+  worktreeRegistrationRepairedSignal,
   worktreeSetupFailedSignal,
 } from "../../temporal/messages";
 import type { Store } from "../../storage/store";
@@ -1005,12 +1006,34 @@ export async function advWorktreeCreate(
       const headSha = (
         await execGit(["rev-parse", "HEAD"], existingWorktree.path)
       ).trim();
+      const baseRef = opts.base ?? "existing";
+
+      // The disk worktree is authoritative for reuse, but a recovered workflow
+      // can be missing its durable registration. The query is advisory only:
+      // null also covers service/query failure, so the dedicated workflow
+      // reducer performs the authoritative if-absent check before insertion.
+      const record = await getWorktreeRecord(deps.database, branch);
+      if (!record) {
+        await fireWorktreeSignal(
+          repoRoot,
+          deps.store,
+          inferredChangeId ?? undefined,
+          worktreeRegistrationRepairedSignal,
+          {
+            branch,
+            path: existingWorktree.path,
+            baseRef,
+            headSha,
+            repairedAt: new Date().toISOString(),
+          },
+        );
+      }
 
       return {
         ok: true,
         branch,
         path: existingWorktree.path,
-        baseRef: opts.base ?? "existing",
+        baseRef,
         headSha,
         reused: true,
       };
