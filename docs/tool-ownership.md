@@ -44,6 +44,15 @@ operator-owned and must not run as routine autonomous agent actions
 | Tool | Class | Read (agent) | Mutate (operator) |
 |---|---|---|---|
 | `adv_status` | dual | All views (`summary`, `health`, `changes`, `hygiene`) | `forceRefresh` health-probe cache refresh |
+| `adv_resume_projection` | orchestrator | Dependency-aware resume projection (pure read) | — |
+| `adv_delta_add` | orchestrator | Staged delta append | — |
+| `adv_delta_amend` | orchestrator | Staged delta full-replacement amend | — |
+| `adv_delta_list` | orchestrator | Staged delta list (pure read) | — |
+| `adv_delta_show` | orchestrator | Staged delta show (pure read) | — |
+| `adv_delta_modify` | orchestrator | Staged delta modify-operation | — |
+| `adv_delta_remove` | orchestrator | Staged delta remove-operation | — |
+| `adv_delta_rename` | orchestrator | Staged delta rename-operation | — |
+| `adv_delta_retract` | orchestrator | Staged delta retract (delete) | — |
 | `adv_project_metadata` | dual | `read`, `list` | `write` — scan-owned producers only (slop-scan, comp-scan, audit, arch-scan); not ad-hoc agent writes |
 | `adv_wip_state` | dual | Cross-change work-in-progress aggregate read | No agent mutation surface; worktree/session state it reports on is operator-owned |
 | `adv_session_list` | dual | Privacy-defensive peer session inventory | No agent mutation surface; session lifecycle owned by the `oc` wrapper/operator |
