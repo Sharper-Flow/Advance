@@ -45,37 +45,19 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # === ADV reads ===
-  adv_change_list: true
+  adv_change_archive: true
   adv_change_show: true
-  adv_change_validate: true
+  adv_gate_complete: true
   adv_gate_status: true
-  adv_project_context: true
-  adv_run_test: true
-  adv_spec: true
-  adv_status: true
   adv_task_checkpoint: true
   adv_task_list: true
-  adv_task_ready: true
-  # === ADV writes — task-level execution only ===
   adv_task_show: true
   adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
-  # === BLOCKED: Orchestration and gate management ===
   adv_tool_invoke: true
-  adv_wisdom_add: true
-  adv_wisdom_list: true
-  adv_change_archive: false
-  adv_change_create: false
-  adv_change_reenter: false
-  adv_change_update: false
-  adv_change_update_issues: false
-  adv_gate_complete: false
-  adv_task_add: false
-  adv_task_cancel: false
-  adv_task_reclassify_tdd: false
-  adv_worktree_create: false
-  adv_worktree_delete: false
+  # === ADV writes — task-level execution only ===
+  # === BLOCKED: Orchestration and gate management ===
   # <<< ADV-GENERATED adv_* tools <<<
 ---
 <!-- ADV_SYNC:START build -->

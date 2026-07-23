@@ -21,14 +21,14 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools for proposal creation and gate completion
-  adv_change_create: true
-  adv_change_list: true
+  adv_change_archive: true
   adv_change_show: true
-  adv_change_update: true
   adv_gate_complete: true
-  adv_project_context: true
-  adv_spec: true
-  adv_status: true
+  adv_gate_status: true
+  adv_task_checkpoint: true
+  adv_task_list: true
+  adv_task_show: true
+  adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true

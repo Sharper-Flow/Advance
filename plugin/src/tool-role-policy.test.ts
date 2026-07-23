@@ -268,22 +268,22 @@ describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
     }
   });
 
-  test("operator-only tools are grantable only to the ADV orchestrator agent (C6)", () => {
+  test("operator-only tools are invoke-only — not in any manifest, protected by approval gates (C6)", () => {
+    // After slimMutationToolSurface, operator-only tools are routed through
+    // adv_tool_invoke exclusively. No agent manifest exposes them directly.
+    // Their destructive surface is protected by the tools' own
+    // approvedByUser + approvalEvidence required arguments, not by manifest
+    // grantability. adv_tool_invoke dispatches through the canonical
+    // ToolDefinition.execute which re-runs validation, authorization,
+    // approval, and recovery enforcement.
     for (const policy of AGENT_TOOL_POLICY) {
       const crossed = policy.allowed.filter((tool) =>
         OPERATOR_ONLY_TOOL_NAMES.includes(tool),
       );
-      if (policy.agent === "adv") {
-        expect(
-          sorted(crossed),
-          "orchestrator keeps the operator-instruction path for every operator-only tool",
-        ).toEqual(sorted(OPERATOR_ONLY_TOOL_NAMES));
-      } else {
-        expect(
-          crossed,
-          `${policy.agent} must not be granted operator-only tools across destructive/privacy/approval/target_path boundaries`,
-        ).toEqual([]);
-      }
+      expect(
+        crossed,
+        `${policy.agent} must not expose operator-only tools in its manifest — they are invoke-only, protected by approval gates`,
+      ).toEqual([]);
     }
   });
 });
@@ -297,31 +297,21 @@ function parseMode(manifestContent: string): string | undefined {
 
 describe("tool role policy — runtime blockable set derivation (AC5)", () => {
   const EXPECTED_UNION_FLOOR = Object.freeze([
-    "adv_change_list",
+    // Tier 1 — always top-level for every spawnable sub-agent
+    // (slimMutationToolSurface). All other ADV tools are invoke-only
+    // (Tier 3), routed through adv_tool_invoke.
+    "adv_change_archive",
     "adv_change_show",
+    "adv_gate_complete",
     "adv_gate_status",
-    "adv_project_context",
-    "adv_run_test",
-    "adv_snapshot_health",
-    "adv_spec",
-    "adv_status",
-    "adv_subagent_report_submit",
+    "adv_task_checkpoint",
     "adv_task_list",
-    "adv_task_ready",
     "adv_task_show",
-    // Facade tools (addProviderToolSearch AC5): every sub-agent's allowed
-    // list carries the three Advance-owned facade tools so normal agents can
-    // discover and dispatch ADV tools through the compressed surface. They
-    // remain non-blockable from sub-agent sessions because the wrapped
-    // execute re-runs authorization/approval/recovery enforcement.
+    "adv_task_update",
+    // Facade tools: discovery + dispatch surface for Tier 3 tools.
     "adv_tool_catalog",
     "adv_tool_describe",
     "adv_tool_invoke",
-    "adv_wisdom_add",
-    "adv_wisdom_list",
-    "adv_session_list",
-    "adv_doctor",
-    "adv_wip_state",
   ]);
 
   test("subAgentUnionAllowlist returns the expected union floor", () => {
@@ -342,7 +332,7 @@ describe("tool role policy — runtime blockable set derivation (AC5)", () => {
     for (const tool of OPERATOR_ONLY_TOOL_NAMES) {
       expect(blockable.has(tool)).toBe(true);
     }
-    expect(blockable.has("adv_gate_complete")).toBe(true);
+    expect(blockable.has("adv_change_create")).toBe(true);
     for (const tool of ADV_TOOL_NAMES.filter((name) =>
       name.startsWith("adv_epic_"),
     )) {

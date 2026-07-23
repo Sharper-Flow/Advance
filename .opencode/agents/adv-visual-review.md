@@ -25,13 +25,13 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV tools - read-only spec/change queries + own report submit
-  adv_change_list: true
+  adv_change_archive: true
   adv_change_show: true
-  adv_project_context: true
-  adv_spec: true
-  adv_subagent_report_submit: true
+  adv_gate_complete: true
+  adv_gate_status: true
+  adv_task_checkpoint: true
   adv_task_list: true
-  adv_tool_catalog: true
+  adv_task_show: true
 
   # Disabled - Visual Review is read-only
   write: false
@@ -41,12 +41,10 @@ tools:
   task: false
 
   # Disabled - no ADV orchestration mutations beyond own optimized report submit
+  adv_task_update: true
+  adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
-  adv_wisdom_list: true
-  adv_change_create: false
-  adv_gate_complete: false
-  adv_task_add: false
   # <<< ADV-GENERATED adv_* tools <<<
 
   # Disabled - Visual Review does not perform external research
