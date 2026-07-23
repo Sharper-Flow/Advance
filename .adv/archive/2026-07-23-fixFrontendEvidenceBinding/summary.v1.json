@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-07-23T17:23:27.908Z",
+  "capabilities": [
+    "delegation-defaults"
+  ],
+  "change_hash": "87752bca325023f8301716e0221c7171e5dae105a756715eb4104ac3129594c6",
+  "change_id": "fixFrontendEvidenceBinding",
+  "completed_tasks": 5,
+  "created_at": "2026-07-23T13:57:14.610Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-23T17:11:15.693Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "20fae7c6efd22e60c1581ec0a726bbf6bac73160ecc6f5f6afdac116aa475717",
+  "task_count": 5,
+  "title": "Fix frontend evidence binding",
+  "version": "1"
+}
