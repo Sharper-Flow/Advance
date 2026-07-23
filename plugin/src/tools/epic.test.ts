@@ -1222,6 +1222,101 @@ describe("adv_epic_promote_shell", () => {
     const parsed = parseToolOutput(output);
     expect(parsed.code).toBe("SHELL_NOT_FOUND");
   });
+
+  test("injects a valid context_packet into the generated proposal seed", async () => {
+    const packet = {
+      background: "Historical reasons this work matters.",
+      design_seed: "Lean on the existing event bus.",
+      references: [{ label: "RFC-1", locator: "https://example.com/rfc-1" }],
+      constraints: ["Must keep the public API stable."],
+      avoidances: ["Do not introduce a new database."],
+    };
+    const store = makeStore({
+      entries: [
+        makeShellEntry({ entry_id: "shell-1", context_packet: packet }),
+      ],
+    });
+    const output = await epicTools.adv_epic_promote_shell.execute(
+      { epic_id: "addAuthEpic", entry_id: "shell-1" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(store.changes.create).toHaveBeenCalled();
+
+    const [, createOptions] = (
+      store.changes.create as unknown as {
+        mock: { calls: [string, { artifacts: { proposal: string } }][] };
+      }
+    ).mock.calls[0];
+    const proposal = createOptions.artifacts.proposal;
+    expect(proposal).toContain("## Future-Work Context");
+    expect(proposal).toContain(packet.background);
+    expect(proposal).toContain(packet.design_seed);
+    expect(proposal).toContain("RFC-1");
+    expect(proposal).toContain(packet.constraints[0]);
+    expect(proposal).toContain(packet.avoidances[0]);
+    expect(proposal).toContain("Promoted from Epic addAuthEpic shell shell-1.");
+  });
+
+  test("leaves the proposal seed unchanged when the shell has no context_packet", async () => {
+    const store = makeStore({
+      entries: [makeShellEntry({ entry_id: "shell-1" })],
+    });
+    const output = await epicTools.adv_epic_promote_shell.execute(
+      { epic_id: "addAuthEpic", entry_id: "shell-1" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(store.changes.create).toHaveBeenCalled();
+
+    const [, createOptions] = (
+      store.changes.create as unknown as {
+        mock: { calls: [string, { artifacts: { proposal: string } }][] };
+      }
+    ).mock.calls[0];
+    const proposal = createOptions.artifacts.proposal;
+    expect(proposal).not.toContain("## Future-Work Context");
+    expect(proposal).toContain("## Intent");
+  });
+
+  test("omits an oversized context_packet from the proposal seed with a note", async () => {
+    const oversizedPacket = {
+      background: "b".repeat(4096),
+      design_seed: "d".repeat(6144),
+      references: Array.from({ length: 12 }, (_, i) => ({
+        label: `ref-${i}`,
+        locator: "https://example.com/" + "x".repeat(2000),
+      })),
+    };
+    const store = makeStore({
+      entries: [
+        makeShellEntry({
+          entry_id: "shell-1",
+          context_packet: oversizedPacket,
+        }),
+      ],
+    });
+    const output = await epicTools.adv_epic_promote_shell.execute(
+      { epic_id: "addAuthEpic", entry_id: "shell-1" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(store.changes.create).toHaveBeenCalled();
+
+    const [, createOptions] = (
+      store.changes.create as unknown as {
+        mock: { calls: [string, { artifacts: { proposal: string } }][] };
+      }
+    ).mock.calls[0];
+    const proposal = createOptions.artifacts.proposal;
+    expect(proposal).toContain("## Future-Work Context");
+    expect(proposal).not.toContain(oversizedPacket.background);
+    expect(proposal).toContain("exceeded the size budget");
+    expect(proposal).toContain("It was omitted to keep the proposal bounded");
+  });
 });
 
 describe("adv_epic_link_change", () => {

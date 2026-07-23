@@ -100,6 +100,96 @@ function contextPacketError(err: unknown) {
   });
 }
 
+/**
+ * Render a structured Future-Work Context section from a validated packet.
+ * Only includes subsections for fields that are present.
+ */
+function renderContextPacketSection(packet: FutureWorkContextPacket): string {
+  const lines: string[] = [
+    "",
+    "## Future-Work Context",
+    "",
+    "<!-- Injected from the promoted Epic shell's context_packet. -->",
+    "",
+  ];
+
+  if (packet.background) {
+    lines.push("### Background", "", packet.background, "");
+  }
+
+  if (packet.design_seed) {
+    lines.push("### Design Seed", "", packet.design_seed, "");
+  }
+
+  if (packet.references && packet.references.length > 0) {
+    lines.push("### References", "");
+    for (const ref of packet.references) {
+      lines.push(`- **${ref.label}**: ${ref.locator}`);
+    }
+    lines.push("");
+  }
+
+  if (packet.constraints && packet.constraints.length > 0) {
+    lines.push("### Constraints", "");
+    for (const constraint of packet.constraints) {
+      lines.push(`- ${constraint}`);
+    }
+    lines.push("");
+  }
+
+  if (packet.avoidances && packet.avoidances.length > 0) {
+    lines.push("### Avoidances", "");
+    for (const avoidance of packet.avoidances) {
+      lines.push(`- ${avoidance}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Render a placeholder section when a shell's context_packet is present but
+ * cannot be safely injected (e.g., it exceeds the bounded size budget).
+ */
+function renderOmittedContextPacketSection(reason: string): string {
+  return [
+    "",
+    "## Future-Work Context",
+    "",
+    `<!-- The promoted shell carried a context_packet, but it ${reason}. It was omitted to keep the proposal bounded. -->`,
+    "",
+  ].join("\n");
+}
+
+/**
+ * Build the Future-Work Context appendix for a proposal seed.
+ *
+ * Re-validates the packet size before rendering. If the packet is oversized,
+ * returns an omission section instead so promotion never crashes.
+ */
+function buildContextPacketSection(
+  packet: FutureWorkContextPacket | undefined,
+): { section: string; note?: string } {
+  if (!packet) {
+    return { section: "" };
+  }
+
+  try {
+    assertPacketSize(packet);
+    return { section: renderContextPacketSection(packet) };
+  } catch (err) {
+    const reason =
+      err instanceof ContextPacketTooLargeError
+        ? `exceeded the size budget (${err.actualBytes} bytes)`
+        : "could not be bounded";
+    return {
+      section: renderOmittedContextPacketSection(reason),
+      note: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 function formatD3Error(error: D3EnforcementError): string {
   switch (error.code) {
     case "INVALID_WORK_NODE_REF": {
@@ -1629,6 +1719,9 @@ export const epicTools = {
           });
         }
 
+        let contextPacketAppendix: { section: string; note?: string } = {
+          section: "",
+        };
         let finalChangeId = change_id;
         if (!finalChangeId) {
           if (owner.context !== null && ownerStore !== store) {
@@ -1639,7 +1732,10 @@ export const epicTools = {
               ownerContext: owner.context,
             });
           }
-          const proposal = `# ${shell.title}\n\n## Intent\n\n${shell.success_hint}\n\n## Scope\n\n- Promoted from Epic ${epic_id} shell ${entry_id}.\n`;
+          contextPacketAppendix = buildContextPacketSection(
+            shell.context_packet,
+          );
+          const proposal = `# ${shell.title}\n\n## Intent\n\n${shell.success_hint}\n\n## Scope\n\n- Promoted from Epic ${epic_id} shell ${entry_id}.\n${contextPacketAppendix.section}`;
           const problemStatement = `## Problem\n\n${shell.title}\n\n## Success Criteria\n\n${shell.success_hint}\n`;
           const createResult = await ownerStore.changes.create(shell.title, {
             artifacts: { proposal, problemStatement },
@@ -1668,7 +1764,12 @@ export const epicTools = {
           entry_id,
           change_id: finalChangeId,
           promoted: true,
-          note: `Shell '${shell.title}' promoted to change ${finalChangeId}.`,
+          note: [
+            `Shell '${shell.title}' promoted to change ${finalChangeId}.`,
+            contextPacketAppendix.note,
+          ]
+            .filter(Boolean)
+            .join(" "),
         });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {

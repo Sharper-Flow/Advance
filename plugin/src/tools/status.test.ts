@@ -1834,7 +1834,9 @@ Vague in-flight work.
         ]);
         // Change entries are not projected as future work.
         expect(
-          parsed.future_work.shells.find((s: { id: string }) => s.id === "change-entry"),
+          parsed.future_work.shells.find(
+            (s: { id: string }) => s.id === "change-entry",
+          ),
         ).toBeUndefined();
       });
 
