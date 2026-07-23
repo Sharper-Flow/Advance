@@ -130,9 +130,6 @@ describe("adv-tron assets", () => {
       "edit",
       "bash",
       "task",
-      "adv_change_create",
-      "adv_task_add",
-      "adv_gate_complete",
       "context7_*",
       "exa_*",
       "webfetch",
@@ -144,7 +141,10 @@ describe("adv-tron assets", () => {
       );
     }
 
-    expect(frontmatter).toMatch(/^\s+adv_subagent_report_submit:\s*true\s*$/m);
+    // slimMutationToolSurface: Tier 2/3 ADV tools are covered by the
+    // adv_*: false wildcard; adv_subagent_report_submit is invoke-only.
+    expect(frontmatter).toMatch(/^\s+adv_\*:\s*false\s*$/m);
+    expect(frontmatter).toMatch(/^\s+adv_tool_invoke:\s*true\s*$/m);
   });
 
   test("deploy script installs the bundled adv-tron skill globally", () => {

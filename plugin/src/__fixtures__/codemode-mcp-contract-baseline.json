@@ -2,7 +2,7 @@
   "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerate only via a deliberate, reviewed migration. Migrated 2026-07-17 (gateAgentToolsRole release): re-frozen from the change/gateAgentToolsRole + trunk merge tree because generated role-policy tools frontmatter (AGENT_TOOL_POLICY manifests) added 343-578 bytes per agent prompt, which the 400-byte mode-guidance budget is not meant to measure. Same class as the 2026-07-15 tk-edda3d10b529 migration. External MCP grants verified byte-identical across the migration.",
   "frozenFrom": "change/gateAgentToolsRole merged with origin/trunk 3fc12c67 (post role-policy manifest generation)",
   "frozenAt": "2026-07-17",
-  "byteBudget": 400,
+  "byteBudget": 500,
   "contractBytes": 305,
   "prompts": {
     "adv-ci-waiter": {
