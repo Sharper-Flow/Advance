@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-23T19:39:37.046Z",
+  "capabilities": [],
+  "change_hash": "be5406d403ef142b5896972c1e17b8aa219cc0cce7b7e61132a55697fa2ced21",
+  "change_id": "makeReadsDiskAuthoritative",
+  "completed_tasks": 2,
+  "created_at": "2026-07-23T16:11:18.286Z",
+  "current_gate": "done",
+  "last_activity_at": "2026-07-23T19:38:56.099Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "cb0bbc7e32a00b5455a1c3121e52a6aa9295307fa2babd542787a14922a3af7e",
+  "task_count": 3,
+  "title": "Make reads disk-authoritative",
+  "version": "1"
+}
