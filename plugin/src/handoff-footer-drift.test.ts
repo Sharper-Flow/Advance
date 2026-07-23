@@ -545,7 +545,7 @@ describe("chat-output-display drift contract", () => {
     const spec = JSON.parse(readFileSync(specPath, "utf8"));
 
     expect(spec.name).toBe("chat-output-display");
-    expect(spec.version).toBe("1.7.0");
+    expect(spec.version).toBe("1.7.1");
     expect(spec.supersedes).toContain("context-display");
 
     const requirementIds = spec.requirements.map((r: any) => r.id);

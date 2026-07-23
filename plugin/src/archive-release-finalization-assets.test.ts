@@ -51,7 +51,7 @@ describe("archive release-finalization docs/spec assets", () => {
       expect(content).toContain("release recovery");
       expect(content).toContain("archived-but-unmerged");
     }
-    expect(specJson).toContain("adv_archive_repair");
+    expect(specJson).toContain("adv_doctor");
   });
 
   test("archive command and voice expose honest remote-backed terminals", () => {
