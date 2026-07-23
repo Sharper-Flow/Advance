@@ -72,6 +72,12 @@ class rather than operator-only.
 | `adv_spec` | orchestrator | Spec list/show/search read |
 | `adv_delta_add` | orchestrator | Change-scoped spec-delta mutation; archive remains sole global-spec writer |
 | `adv_delta_modify` | orchestrator | Typed change-scoped spec modification; archive remains sole global-spec writer |
+| `adv_delta_amend` | orchestrator | Full-replacement amend of staged spec delta; archive remains sole global-spec writer |
+| `adv_delta_retract` | orchestrator | Retract a staged spec delta; archive remains sole global-spec writer |
+| `adv_delta_remove` | orchestrator | Remove-operation spec delta; archive remains sole global-spec writer |
+| `adv_delta_rename` | orchestrator | Rename-operation spec delta; archive remains sole global-spec writer |
+| `adv_delta_list` | orchestrator | List staged spec deltas (read-only) |
+| `adv_delta_show` | orchestrator | Show a single staged spec delta (read-only) |
 
 ### Backlog
 
