@@ -190,6 +190,70 @@ const RESTORE_DEL_DEFAULTS10_ARCHIVE_DELTA: Extract<
   },
 };
 
+/**
+ * rq-delDefaults10 modify delta (AC4/SC3): names the apply_context JSON
+ * shape that binds the active implementation cycle in a designer/engineer
+ * report. Additive only — augments the body and scenario rq-delDefaults10.2
+ * "then" without removing any existing semantic requirement (DDC3). Mirrors
+ * the recorded change delta authored via adv_delta_modify.
+ */
+const FIX_FRONTEND_BIND_DELTA: Extract<Delta, { operation: "modify" }> = {
+  id: "dl-FixFrontendBind10",
+  operation: "modify",
+  target_id: "rq-delDefaults10",
+  changes: {
+    title: "Engineer-First Frontend Dispatch with Designer Follow-up",
+    body: "For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. The matching implementation cycle MUST be bound under report.apply_context.implementation_cycle_id with a valid implementation_provenance (kind: engineer, engineer_report, or inline); a top-level implementation_cycle_id is rejected by the strict report schema. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.",
+    tags: [
+      "delegation",
+      "frontend",
+      "engineer-first",
+      "designer-follow-up",
+      "apply-context-binding",
+    ],
+    scenarios: [
+      {
+        id: "rq-delDefaults10.1",
+        title: "Classified frontend task starts with engineer",
+        given: [
+          "A code task has metadata.frontend set to true",
+          "No step-4 risk signal forces inline implementation",
+        ],
+        when: "ADV selects an initial implementation lane",
+        then: [
+          "ADV dispatches adv-engineer before adv-designer",
+          "ADV does not dispatch adv-designer as the initial implementation lane",
+        ],
+      },
+      {
+        id: "rq-delDefaults10.2",
+        title: "Matching implementation receipt drives designer follow-up",
+        given: [
+          "A code task has metadata.frontend set to true",
+          "A same-task same-cycle adv-engineer report completed with passing verification and no blockers, or a classified inline implementation has bounded provenance",
+        ],
+        when: "Initial implementation completes",
+        then: [
+          "ADV dispatches a matching-cycle adv-designer follow-up",
+          "Designer provenance references the engineer report or inline receipt",
+          "The implementation cycle is carried under report.apply_context.implementation_cycle_id with a valid implementation_provenance (engineer, engineer_report, or inline); a top-level implementation_cycle_id is rejected",
+          "Missing, stale, or mismatched provenance is rejected",
+        ],
+      },
+      {
+        id: "rq-delDefaults10.3",
+        title: "Reviewer retains review and harden ownership",
+        given: ["A change includes frontend scope"],
+        when: "The change reaches review or harden",
+        then: [
+          "adv-designer does not own review or harden",
+          "adv-reviewer retains review and harden ownership",
+        ],
+      },
+    ],
+  },
+};
+
 function loadSpec(): DelegationDefaultsSpec {
   return JSON.parse(readFileSync(SPEC_PATH, "utf8")) as DelegationDefaultsSpec;
 }
@@ -831,6 +895,70 @@ describe("delegation matrix coverage", () => {
     );
     expect(followUp?.then).toContain(
       "ADV dispatches a matching-cycle adv-designer follow-up",
+    );
+  });
+
+  // rq-delDefaults10: apply_context JSON shape is named by the modify delta (AC4/SC3).
+  test("apply_context binding shape is named by the modify delta and stays additive", () => {
+    const currentSpec = loadSpec() as Spec;
+    const application = applyDeltasToSpec(
+      structuredClone(currentSpec),
+      [FIX_FRONTEND_BIND_DELTA],
+      currentSpec.version,
+    );
+
+    expect(application.deltaResults).toEqual([
+      expect.objectContaining({
+        success: true,
+        deltaId: "dl-FixFrontendBind10",
+        operation: "modify",
+        targetId: "rq-delDefaults10",
+      }),
+    ]);
+
+    const requirement = application.updatedSpec?.requirements.find(
+      (entry) => entry.id === "rq-delDefaults10",
+    );
+    expect(requirement, "delta must target rq-delDefaults10").toBeDefined();
+
+    // AC4/SC3: the apply_context JSON shape is named in the body.
+    expect(requirement?.body).toContain(
+      "report.apply_context.implementation_cycle_id",
+    );
+    expect(requirement?.body).toContain("implementation_provenance");
+    expect(requirement?.body).toContain("engineer_report");
+
+    // DDC3: additive — existing engineer-first semantics preserved.
+    expect(requirement?.body).toContain(
+      "MUST route initial implementation to adv-engineer",
+    );
+    expect(requirement?.body).toContain("MUST NOT select adv-designer first");
+
+    // Scenario .2 carries the nesting requirement (additive clause).
+    const followUp = requirement?.scenarios?.find(
+      (scenario) => scenario.id === "rq-delDefaults10.2",
+    );
+    expect(
+      followUp?.then?.some((clause) =>
+        clause.includes("report.apply_context.implementation_cycle_id"),
+      ),
+    ).toBe(true);
+    expect(followUp?.then).toContain(
+      "ADV dispatches a matching-cycle adv-designer follow-up",
+    );
+
+    // Scenarios .1 and .3 unchanged (additivity).
+    const initialLane = requirement?.scenarios?.find(
+      (scenario) => scenario.id === "rq-delDefaults10.1",
+    );
+    expect(initialLane?.then).toContain(
+      "ADV dispatches adv-engineer before adv-designer",
+    );
+    const reviewer = requirement?.scenarios?.find(
+      (scenario) => scenario.id === "rq-delDefaults10.3",
+    );
+    expect(reviewer?.then).toContain(
+      "adv-reviewer retains review and harden ownership",
     );
   });
 

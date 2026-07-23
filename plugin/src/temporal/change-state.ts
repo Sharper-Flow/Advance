@@ -80,6 +80,7 @@ import {
   normalizeLegacyChangeStatus,
 } from "../types";
 import {
+  formatApplyContextBindingHint,
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
@@ -1108,7 +1109,7 @@ export function applyTaskCompletedToState(
       })
     ) {
       throw new Error(
-        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.`,
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.${formatApplyContextBindingHint()}`,
       );
     }
     if (

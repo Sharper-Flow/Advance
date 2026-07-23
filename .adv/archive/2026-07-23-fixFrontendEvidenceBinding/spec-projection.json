@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "change_id": "fixFrontendEvidenceBinding",
+  "delta_set_sha256": "89cb4204de26e014ff09dea36c5944baf880170f1797cd4038b17075c4329f4a",
+  "capabilities": [
+    {
+      "capability": "delegation-defaults",
+      "base_version": "1.3.1",
+      "target_version": "1.3.2",
+      "spec_sha256": "318d48019dc5dff94fda90e0d17eebe431b1d3b55340eea52f13a46e18520455",
+      "document_sha256": "d47c78af6ff5251664e4c53e1c3f1f89f7b2bb08fc670ccb41e585826fa40f9c",
+      "requirement_sha256": {
+        "rq-delDefaults01": "906f21dd613e03aec5790036377c997fcec63d267c397fc3878b9c196a24ee81",
+        "rq-delDefaults02": "647eada31b927b563bf28e4b7989444890e0e5ff532938dc4bba948aca1140f1",
+        "rq-delDefaults03": "ac5c96a09a46ebcebb6b1f7f2baba7cae238b6822a31d664d2deb94ef8179ae2",
+        "rq-delDefaults04": "a26db621e9571ed162ca0f1580ba91571adec86c9a9f72c38aff1c30fccd9d01",
+        "rq-delDefaults05": "e622ecf91ad6b973722ebca50bd242bc78db210c023335eedc78f8229ed9d124",
+        "rq-delDefaults06": "561a6c41fbb4d886d6cd82df1b2ebc653e6637b0c788fba324a9fcaa86171f6c",
+        "rq-delDefaults07": "256181a55c27616510932d2aebf20f44f7dfd30ce86ad13c5d139e9c6b81a714",
+        "rq-delDefaults08": "07d5984b0191d8c649a0a7b2edeb49d8685bc94d20ddde61e16bf139e2d19eaf",
+        "rq-delDefaults09": "695b4307506a8381e0bedd5445821d7f970813b263957fba51db1cee71ea0155",
+        "rq-delDefaults10": "87f0d441ec20a8347c8bbc19fce0efb3ec90094bb6fc73c6314f2a4ac47c2988"
+      },
+      "dispositions": [
+        {
+          "deltaId": "dl-FixFrontendBind10",
+          "operation": "modify",
+          "status": "missing",
+          "targetId": "rq-delDefaults10"
+        }
+      ]
+    }
+  ]
+}

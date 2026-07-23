@@ -105,6 +105,14 @@ Before touching anything, establish scope:
 
 You may not begin work until the scope is locked AND path preflight is complete.
 
+## Apply Context Binding
+
+Nest the active `implementation_cycle_id` under `report.apply_context` (a top-level value is rejected by the strict schema) with a valid `implementation_provenance` (`engineer`, `engineer_report`, or `inline`):
+
+```json
+"apply_context": { "implementation_cycle_id": "ic_<id>", "implementation_provenance": { "kind": "engineer_report", "report_key": "<key>" } }
+```
+
 If the Designer Apply or remediation Context Packet omits `TASK` or `ATTEMPT`, return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values.
 
 ## Working Directory Lock

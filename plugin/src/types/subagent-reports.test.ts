@@ -1,11 +1,15 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 
 import {
+  buildApplyContextBindingHint,
   ChangeReportScopeKeySchema,
   DesignConcernDispositionSchema,
   DesignerSubagentReportSchema,
   EngineerSubagentReportSchema,
+  formatApplyContextBindingHint,
   getSubagentReportPacketAnchors,
   normalizePersistedSubagentReportState,
   type PersistedSubagentReportAgent,
@@ -14,6 +18,7 @@ import {
   ReviewerSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
   ScopedSubagentReportSchema,
+  SubagentApplyContextSchema,
   SUBAGENT_REPORT_FIELD_SOURCES,
   SUBAGENT_REPORT_PACKET_ANCHORS,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
@@ -1192,5 +1197,50 @@ describe("subagentReportKey", () => {
         attempt: 1,
       }),
     ).toBe("fixLoopLedgerRegressions|unknown-scope|adv-tron|1");
+  });
+});
+
+describe("apply_context binding hint", () => {
+  it("buildApplyContextBindingHint returns the required path and a minimal valid example", () => {
+    const hint = buildApplyContextBindingHint();
+    expect(hint.path).toBe("apply_context.implementation_cycle_id");
+    expect(hint.example).toContain("implementation_cycle_id");
+    expect(hint.example).toContain("implementation_provenance");
+    expect(
+      SubagentApplyContextSchema.safeParse(JSON.parse(hint.example)).success,
+    ).toBe(true);
+  });
+
+  it("formatApplyContextBindingHint renders the path and example for appending to messages", () => {
+    const formatted = formatApplyContextBindingHint();
+    expect(formatted).toContain("apply_context.implementation_cycle_id");
+    expect(formatted).toContain("implementation_provenance");
+    expect(formatted).toContain("implementation_cycle_id");
+    expect(formatted).toContain("report_key");
+  });
+});
+
+describe("apply_context doc↔schema drift guard (DDC2/SC1)", () => {
+  it("validates the canonical adv-designer.md snippet and the binding hint example against SubagentApplyContextSchema", () => {
+    const docPath = fileURLToPath(
+      new URL("../../../.opencode/agents/adv-designer.md", import.meta.url),
+    );
+    const doc = readFileSync(docPath, "utf8");
+    const section = doc.split("## Apply Context Binding")[1];
+    expect(section).toBeDefined();
+
+    const blockMatch = section!.match(/```json\s*([\s\S]*?)\s*```/);
+    expect(blockMatch).toBeTruthy();
+
+    const objectMatch = blockMatch![1].match(/\{[\s\S]*\}/);
+    expect(objectMatch).toBeTruthy();
+
+    const snippet = JSON.parse(objectMatch![0]);
+    expect(SubagentApplyContextSchema.safeParse(snippet).success).toBe(true);
+
+    const hint = buildApplyContextBindingHint();
+    expect(
+      SubagentApplyContextSchema.safeParse(JSON.parse(hint.example)).success,
+    ).toBe(true);
   });
 });

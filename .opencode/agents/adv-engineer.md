@@ -161,6 +161,14 @@ When scope is complete:
 2. **State what NOT to revisit** — explicitly list things that should be left alone
 3. **Submit ENGINEER_REPORT** — call `adv_subagent_report_submit` with the structured JSON payload below
 
+## Apply Context Binding
+
+Nest the active `implementation_cycle_id` under `report.apply_context` (a top-level value is rejected by the strict schema) with a valid `implementation_provenance` (`engineer`, `engineer_report`, or `inline`):
+
+```json
+"apply_context": { "implementation_cycle_id": "ic_<id>", "implementation_provenance": { "kind": "engineer_report", "report_key": "<key>" } }
+```
+
 ## Local Code Exploration Priority
 
 1. **Intent/concept discovery** — lgrep semantic search
