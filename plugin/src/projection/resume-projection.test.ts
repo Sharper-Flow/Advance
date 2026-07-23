@@ -10,7 +10,6 @@
 import { describe, test, expect } from "vitest";
 import {
   buildResumeProjection,
-  nodeRefKey,
   type ChangeNodeInput,
   type EpicNodeInput,
 } from "./resume-projection";

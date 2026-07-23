@@ -122,7 +122,6 @@ export function detectCycles<T>(
   // consuming call-stack depth (DDC2 — safe at 10k+ nodes).
   // -------------------------------------------------------------------------
 
-  const sortedKeySet = new Set(sortedKeys);
   const visited = new Set<string>();
   const cycles: T[][] = [];
 
@@ -149,7 +148,7 @@ export function detectCycles<T>(
     stack.push({
       node: startNode,
       key: startKey,
-      depKeys: resolveDepKeys(startNode, getDeps, getKey, nodeKeys, startKey),
+      depKeys: resolveDepKeys(startNode, getDeps, getKey, nodeKeys),
       depIndex: 0,
     });
 
@@ -174,7 +173,6 @@ export function detectCycles<T>(
               getDeps,
               getKey,
               nodeKeys,
-              depKey,
             ),
             depIndex: 0,
           });
@@ -213,7 +211,6 @@ function resolveDepKeys<T>(
   getDeps: (node: T) => Iterable<T>,
   getKey: (node: T) => string,
   nodeKeys: Set<string>,
-  selfKey: string,
 ): string[] {
   const result: string[] = [];
   for (const dep of getDeps(node)) {

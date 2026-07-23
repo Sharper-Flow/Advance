@@ -14,7 +14,6 @@
 import type { WorkNodeRef } from "../types/work-graph";
 import {
   validateEdgeAdd,
-  nodeRefKey,
   type EdgeValidationError,
 } from "./work-graph-validation";
 
