@@ -26,10 +26,10 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # Read-only ADV context only
+  adv_change_archive: true
   adv_change_show: true
-  adv_project_context: true
-  adv_spec: true
-  adv_task_list: true
+  adv_gate_complete: true
+  adv_gate_status: true
 
   # Disabled — no edits, no nested delegation, no user prompts/todos
   write: false
@@ -41,20 +41,13 @@ tools:
   todowrite: false
 
   # Disabled — no ADV orchestration mutation or report submission
+  adv_task_checkpoint: true
+  adv_task_list: true
+  adv_task_show: true
+  adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
-  adv_change_archive: false
-  adv_change_close: false
-  adv_change_create: false
-  adv_change_update: false
-  adv_gate_complete: false
-  adv_subagent_report_submit: false
-  adv_task_add: false
-  adv_task_cancel: false
-  adv_task_update: false
-  adv_worktree_create: false
-  adv_worktree_delete: false
   # <<< ADV-GENERATED adv_* tools <<<
 ---
 
