@@ -1,7 +1,7 @@
 # Delegation Defaults
 
-> **Version:** 1.3.1
-> **Updated:** 2026-07-19
+> **Version:** 1.3.2
+> **Updated:** 2026-07-23
 
 ## Purpose
 
@@ -430,9 +430,9 @@ When ADV presents formatted ready-task output (for example via adv_task_ready), 
 
 **ID:** `rq-delDefaults10` | **Priority:** **[MUST]**
 
-For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.
+For delegated code tasks with metadata.frontend set to true, ADV MUST route initial implementation to adv-engineer. After successful same-task, same-cycle engineer evidence, ADV MUST dispatch adv-designer as a bounded UI/UX follow-up with engineer-report provenance. When risk signals force inline implementation, ADV MUST dispatch the same designer follow-up with bounded inline provenance. An explicit metadata.delegation_hint remains an override only among valid initial implementation routes and MUST NOT select adv-designer first for classified frontend work. The matching implementation cycle MUST be bound under report.apply_context.implementation_cycle_id with a valid implementation_provenance (kind: engineer, engineer_report, or inline); a top-level implementation_cycle_id is rejected by the strict report schema. adv-designer remains apply-phase only and MUST NOT own review or harden; adv-reviewer retains review and harden ownership.
 
-**Tags:** `delegation`, `frontend`, `engineer-first`, `designer-follow-up`
+**Tags:** `delegation`, `frontend`, `engineer-first`, `designer-follow-up`, `apply-context-binding`
 
 #### Scenarios
 
@@ -459,6 +459,7 @@ For delegated code tasks with metadata.frontend set to true, ADV MUST route init
 **Then:**
 - ADV dispatches a matching-cycle adv-designer follow-up
 - Designer provenance references the engineer report or inline receipt
+- The implementation cycle is carried under report.apply_context.implementation_cycle_id with a valid implementation_provenance (engineer, engineer_report, or inline); a top-level implementation_cycle_id is rejected
 - Missing, stale, or mismatched provenance is rejected
 
 **Reviewer retains review and harden ownership** (`rq-delDefaults10.3`)

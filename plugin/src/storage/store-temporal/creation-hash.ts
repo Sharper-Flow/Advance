@@ -37,6 +37,7 @@
  *   - `epic_membership_seed` — `epic_id`, `entry_id`, `order`, `title`
  *                            (linked_at, epic_project_id are volatile/derived)
  *   - `scope_repos`        — full (repo identity is stable)
+ *   - `same_project_dependencies` — full (edge identity is stable)
  *
  * Artifact content (proposal/agreement/design/...) is deliberately NOT
  * hashed — it has its own content-hash in workflow `state.documents`, and
@@ -57,6 +58,7 @@ export interface CreationRequestHashInput {
   cross_project_origin?: unknown;
   scope_repos?: unknown;
   epic_membership_seed?: unknown;
+  same_project_dependencies?: unknown;
 }
 
 /**
@@ -129,6 +131,7 @@ function canonicalize(
       input.epic_membership_seed,
     ),
     scope_repos: input.scope_repos ?? null,
+    same_project_dependencies: input.same_project_dependencies ?? null,
   };
 }
 
@@ -176,6 +179,7 @@ export type CreationIdempotencyDecision =
  *
  * Pure: depends only on its arguments.
  */
+// rq-provenMutationOutcome01: reconcile creation request hash to avoid duplicate application.
 export function resolveCreationIdempotency(args: {
   existingHash?: string;
   computedHash: string;

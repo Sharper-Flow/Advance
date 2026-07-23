@@ -208,6 +208,7 @@ function createMockStore(
       close: vi.fn(),
       closeBatch: vi.fn(),
       refresh: vi.fn(async () => undefined),
+      invalidate: vi.fn(async () => undefined),
     } as Store["changes"],
     tasks: {} as Store["tasks"],
     wisdom: {} as Store["wisdom"],

@@ -7,7 +7,11 @@
 import { readdir, readFile } from "fs/promises";
 import { join, relative } from "path";
 
-export const ALLOWLIST = [/-assets\.test\.ts$/, /target-project\.test\.ts$/];
+export const ALLOWLIST = [
+  /-assets\.test\.ts$/,
+  /target-project\.test\.ts$/,
+  /work-graph-d3-integration\.test\.ts$/,
+];
 
 /**
  * Files permitted to call raw `TestWorkflowEnvironment.createLocal` /

@@ -1,0 +1,900 @@
+{
+  "id": "fixWorktreeReuseRegistration",
+  "title": "Fix worktree reuse registration gap",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-23T01:22:33.942Z",
+  "tasks": [
+    {
+      "id": "tk-8eb927be80b4",
+      "title": "Add typed server-authoritative worktree registration repair signal + atomic if-absent reducer",
+      "type": "code",
+      "section": "Phase A — workflow-safe repair primitive",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T03:46:31.286Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T03:47:52.626Z",
+      "verification": "RED tr_mrwz6ml8_68d6b737 (missing reducer, 3 failures); GREEN tr_mrwz8yvi_00c7fed2 (21 unit tests); Temporal handler tr_mrwzd1da_edb51183 (new repair handler test); typecheck tr_mrwzdcny_ba1f75e6. Independent adv-verifier PASS. Broad handler-file test has unrelated pre-existing continue-as-new seed assertion drift at workflows.signal-handlers.itest.ts:1946, classified separately for task 3.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/change-state.worktree-auto-manage.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.signal-handlers.itest.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/change-state.worktree-auto-manage.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.signal-handlers.itest.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "d399cb2861210d178f79d980ef8603917c81c98f",
+      "completedAt": "2026-07-23T03:58:00.932Z",
+      "completed_at": "2026-07-23T03:58:00.932Z"
+    },
+    {
+      "id": "tk-4b93e0e307a0",
+      "title": "Wire best-effort registration repair into advWorktreeCreate Step 0",
+      "type": "code",
+      "section": "Phase B — Step-0 self-heal",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-23T03:46:42.007Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8eb927be80b4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T03:58:38.320Z",
+      "verification": "RED tr_mrwzgbf0_a0a0007f (no repair signal); GREEN tr_mrwzh375_eebb823b (25 index-create tests); typecheck tr_mrwzhgnx_fe1b2726; independent adv-verifier PASS. Step 0 probes only after disk path/HEAD and fires dedicated repair signal best-effort; ready record skips signal; rejected delivery returns reused:true.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "e5f2d441854d92c75d68ef2a011ddef07f67b387",
+      "completedAt": "2026-07-23T04:02:45.173Z",
+      "completed_at": "2026-07-23T04:02:45.173Z"
+    },
+    {
+      "id": "tk-862323cdda1b",
+      "title": "Verify complete worktree registration repair contract and regression surface",
+      "type": "verification",
+      "section": "Phase C — contract verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T03:46:58.221Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8eb927be80b4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4b93e0e307a0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T04:03:01.621Z",
+      "verification": "Targeted tr_mrwzz2jx_297bf7bf: index-create, reducer, messages, full signal-handler suite pass via bin/oc-test. Static tr_mrx005fs_7978f132: pnpm run check pass. Final independent verifier PASS. Repaired deterministic pre-existing creation_request_hash continue-as-new seed omission; structural guard now passes. Formatting-only test changes; diff check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/workflows.signal-handlers.itest.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/worktree/index-create.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/workflows.signal-handlers.itest.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/worktree/index-create.test.ts"
+      ],
+      "checkpointSha": "1ba969adf31eda5dae7f519751cac62845de987f",
+      "completedAt": "2026-07-23T04:17:21.672Z",
+      "completed_at": "2026-07-23T04:17:21.672Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorktreeReuseRegistration",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For advisory Temporal worktree-state queries, preserve correctness with a workflow-side if-absent reducer; query null/failure must never authorize client-side overwrite."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/worktree/index-create.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.itest.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Current acceptance run: targeted suite passed 4 files / 77 tests (33.36s). `pnpm run check` passed schemas:check, TypeScript, manifest check, isolation/lockfile checks, ESLint, and Prettier. Source/diff review: reducer in plugin/src/temporal/change-state.ts:2089 returns before timestamping existing records and inserts the complete required record only when absent; Step 0 in plugin/src/tools/worktree/index.ts:1009 validates disk HEAD, sends dedicated best-effort repair only after advisory null, and returns reuse regardless of signal result. getWorktreeRecord explicitly maps service/query failure to null (state.ts:1119-1156), while fireWorktreeSignal catches timeout/failure (index.ts:168-211). Workflow handler is wired at workflows.ts:1613 and serialized by workflow history. Continue-as-new now preserves creation_request_hash at workflows.ts:1974; seed application already restores it at lines 765-771, and structural test verifies every declared seed key at workflows.signal-handlers.itest.ts:1932-1948."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Consume this independent READY/PASS-equivalent report as acceptance evidence; parent retains acceptance-gate decision.",
+        "Leave resume path, isolation guard, full-create worktreeCreated signal behavior, and unrelated recovery work untouched."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/worktree/index-create.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.itest.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorktreeReuseRegistration",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For advisory workflow-state queries used during disk-authoritative recovery, emit a typed best-effort signal and make the workflow reducer the authoritative if-absent boundary; this preserves setup-failure and metadata-rich records under query failure and signal replay."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/tools/worktree/index-create.test.ts /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/temporal/change-state.worktree-auto-manage.test.ts /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/temporal/messages.test.ts /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/temporal/workflows.signal-handlers.itest.ts",
+          "pnpm --dir plugin run check",
+          "git status --porcelain=v1 && git diff --check HEAD~3..HEAD && git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Fresh targeted run passed 4 files / 77 tests in 36.65s. Fresh static check passed schema check, TypeScript, generated-manifest check, isolation/lockfile checks, ESLint, and Prettier. Final worktree is clean; committed three-checkpoint diff passes whitespace checks. Source review confirms the typed canonical signal is workflow-local, reducer returns before timestamping any existing record (including setup_failed), repair inserts only a complete setup-ready record when absent, and Step 0 validates disk path/HEAD then uses best-effort delivery without worker-health dependency. Integration test proves replay duplicate exact no-op; structural test proves creation_request_hash survives continue-as-new."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No remote CI/merge result was available in this hardening pass; release remains contingent on normal PR CI and merge policy.",
+        "Archive still requires parent-owned user archive sign-off."
+      ],
+      "required_main_agent_actions": [
+        "Treat local release hardening as READY. Before merge/release, obtain normal remote CI and merge evidence.",
+        "Parent may proceed to archive decision after required user archive sign-off; do not revisit resume, isolation guard, or full-create behavior absent a new failure."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/tools/worktree/index-create.test.ts /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/temporal/change-state.worktree-auto-manage.test.ts /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/temporal/messages.test.ts /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeReuseRegistration/plugin/src/temporal/workflows.signal-handlers.itest.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git status --porcelain=v1 && git diff --check HEAD~3..HEAD && git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-8eb927be80b4": [
+      {
+        "runId": "tr_mrwz5xot_90a2cf9b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/temporal/change-state.worktree-auto-manage.test.ts",
+        "durationMs": 120038.01021400001,
+        "recordedAt": "2026-07-23T03:51:54.367Z"
+      },
+      {
+        "runId": "tr_mrwz6ml8_68d6b737",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project unit src/temporal/change-state.worktree-auto-manage.test.ts",
+        "durationMs": 1560.110756000504,
+        "recordedAt": "2026-07-23T03:52:26.625Z"
+      },
+      {
+        "runId": "tr_mrwz8dai_387a2436",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project unit src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/messages.test.ts",
+        "durationMs": 1590.8458359995857,
+        "recordedAt": "2026-07-23T03:53:47.892Z"
+      },
+      {
+        "runId": "tr_mrwz8yvi_00c7fed2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/messages.test.ts",
+        "durationMs": 1437.6653979998082,
+        "recordedAt": "2026-07-23T03:54:15.854Z"
+      },
+      {
+        "runId": "tr_mrwzab40_796b85d6",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project temporal src/temporal/workflows.signal-handlers.itest.ts",
+        "durationMs": 49691.64768799953,
+        "recordedAt": "2026-07-23T03:55:18.390Z"
+      },
+      {
+        "runId": "tr_mrwzd1da_edb51183",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project temporal src/temporal/workflows.signal-handlers.itest.ts -t \"inserts only once for repeated worktreeRegistrationRepairedSignal deliveries\"",
+        "durationMs": 3967.8884979998693,
+        "recordedAt": "2026-07-23T03:57:25.706Z"
+      },
+      {
+        "runId": "tr_mrwzdcny_ba1f75e6",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 8357.500376000069,
+        "recordedAt": "2026-07-23T03:57:40.350Z"
+      }
+    ],
+    "tk-4b93e0e307a0": [
+      {
+        "runId": "tr_mrwzgbf0_a0a0007f",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --project unit src/tools/worktree/index-create.test.ts",
+        "durationMs": 4620.608456000686,
+        "recordedAt": "2026-07-23T03:59:58.699Z"
+      },
+      {
+        "runId": "tr_mrwzh375_eebb823b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/tools/worktree/index-create.test.ts",
+        "durationMs": 4912.35369399935,
+        "recordedAt": "2026-07-23T04:00:34.717Z"
+      },
+      {
+        "runId": "tr_mrwzhgnx_fe1b2726",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9077.843644999899,
+        "recordedAt": "2026-07-23T04:00:52.235Z"
+      }
+    ],
+    "tk-862323cdda1b": [
+      {
+        "runId": "tr_mrwzz2jx_297bf7bf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/index-create.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/messages.test.ts src/temporal/workflows.signal-handlers.itest.ts",
+        "durationMs": 39021.372755,
+        "recordedAt": "2026-07-23T04:14:33.735Z"
+      },
+      {
+        "runId": "tr_mrx005fs_7978f132",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 44352.61573599999,
+        "recordedAt": "2026-07-23T04:15:24.090Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-23T02:27:05.692Z",
+      "completed_by": "agent",
+      "approval_evidence": "Defect-origin; full RCA in proposal.md (code citations + session reproduction on autoAdoptOrphanSessionQueues). Validated 0 errors/0 conflicts. Epic hardenTemporalReliability entry 13 (invariant #3 self-healing). User approved via Tier A whitelist.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "cf2c432babbcac0a8fde36219225aa716b79390e259876e147edb30753cb593c",
+        "non_whitespace_chars": 3604,
+        "checked_at": "2026-07-23T01:22:33.986Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-23T03:15:09.129Z",
+      "completed_at": "2026-07-23T03:15:34.965Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted: 16 items (SC1, AC1-6, C1-5, DONT1-4). Agreement approved Tier A.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "b3db6e10337cd08a6aac0dc70790f43f2380a0de9ed912d96e9517a5e60f4904",
+        "non_whitespace_chars": 3202,
+        "checked_at": "2026-07-23T01:22:33.987Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-23T03:45:41.730Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved revised server-authoritative design via Tier A whitelist. Independent validator attempts: initial CONFLICT caught setup_failed masking; second CONFLICT caught null conflation/query→signal overwrite; final CAUTION required complete WorktreeRecord insertion. All findings incorporated: dedicated if-absent workflow repair signal; existing-state exact no-op; complete record fields; no resume/guard/full-create changes. Contract re-minted: 19 items.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b6dd75bd954bdf4563a457c2675ebd85d2a116ef0ac27f9adf44844eb503e534",
+        "non_whitespace_chars": 3748,
+        "checked_at": "2026-07-23T01:22:33.988Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-23T03:47:38.423Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved 3-task contract-linked prep graph via Tier A whitelist. All SC/AC coverage assigned; worktree registered; strict validation passed (only expected NO_DELTAS warning)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T04:17:45.110Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks checkpointed (d399cb2, e5f2d44, 1ba969a). RED/GREEN/verify evidence recorded; corrected targeted suite tr_mrwzz2jx_297bf7bf and pnpm run check tr_mrx005fs_7978f132 pass. Independent verifier PASS. Incidental deterministic creation_request_hash continue-as-new loss repaired and structural guard now green."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-23T04:24:41.879Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered outcome. Executive summary persisted; independent reviewer READY; no findings.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ac3044f111834e77f7035f7d5954004d463a41f5f792522b62b12fd16ed14b53",
+        "non_whitespace_chars": 1488,
+        "checked_at": "2026-07-23T01:22:33.989Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "autoAdoptOrphanSessionQueues",
+    "linked_at": "2026-07-23T01:22:33.386Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session:investigation-2026-07-23-worktree-registry-orphan-block"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+      "approvedAt": "2026-07-23T03:15:34.965Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** An orphan-recovered change with an intact disk worktree and genuinely absent workflow registration becomes mutable from trunk/zlauncher through normal create/resume reuse, without manual removal/recreation and without weakening the isolation guard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** Given an intact disk worktree and no `state.worktrees[branch]` entry, when Step 0 reuses it, then a typed registration-repair signal is delivered and the workflow atomically inserts exactly one complete `WorktreeRecord`: branch/path/baseRef/headSha from the verified disk worktree; `changeId` from workflow state; `createdAt` and `lastSeenAt` equal `repairedAt`; `source:\"tool\"`; `sourceVersion:1`; `materialized:true`; `status:\"created\"`; `setupReady:true`. `worktreeExistsForChange` becomes `true`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** Given an existing `status:\"setup_failed\"` branch record, when repair arrives (including after client false-null), then reducer performs a true no-op: every record field and `lastSignalAt` remain unchanged; isolation probe stays false.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** Given any metadata-rich existing branch record, repair preserves every field and `lastSignalAt`. Given a successful client query returning an existing record, Step 0 sends no repair signal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** Given Temporal/service/signal timeout or failure, once Step 0 confirms disk path + HEAD, it still returns `{ok:true,reused:true}` without throwing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** Given multiple repair signals for one absent branch, workflow history serializes them: first inserts; later signals preserve every first-record field and `lastSignalAt`; exactly one branch key exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6** Existing create/resume/workflow signal suites remain green; full-create still uses `worktreeCreatedSignal` exactly once and setup-failure behavior remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** Conditional existence check MUST execute inside the change workflow reducer; client probe is optimization only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** Repair reducer MUST NOT overwrite any existing `worktrees[branch]` record.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** Successful insertion may mutate only `worktrees[branch]` and `lastSignalAt`; no `taskQueue` or unrelated behavioral state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** Existing-record no-op MUST NOT update `lastSignalAt`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5** Repair runs only after `pathExists` + `rev-parse HEAD` confirm disk worktree usability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6** Repair delivery remains best-effort and cannot block reuse.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**A1** Do not reuse `worktreeCreatedSignal` for recovery; its whole-record replacement semantics are unsafe after false-null.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**A2** Do not convert `setup_failed` to ready without rerunning setup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**A3** Do not add resume-path repair wiring; null already falls through to Step 0.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**A4** Do not weaken isolation guard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**A5** Do not change full-create signal behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "**A6** Do not add client-side CAS/version heuristics; workflow history owns atomicity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T04:21:43.672Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Independent reviewer READY: disk reuse plus absent workflow record now signals server-authoritative repair; index-create test proves guard predicate true without manual recreation."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrwzz2jx_297bf7bf targeted suite: index-create absent-map reuse test + reducer complete-record test."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrwzz2jx_297bf7bf: reducer test preserves setup_failed record and lastSignalAt exactly."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrwzz2jx_297bf7bf: metadata-rich exact no-op and ready-record no-signal tests."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrwzz2jx_297bf7bf: rejected repair delivery still resolves reused:true."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrwzz2jx_297bf7bf: reducer repeated-repair test and Temporal handler first-write-wins test."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrwzz2jx_297bf7bf: corrected targeted 4-file suite passed; tr_mrx005fs_7978f132 pnpm run check passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "change-state.ts repair reducer performs workflow-side if-absent check; client only probes."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "change-state.ts early return on existing worktrees[branch] precedes all mutation."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Repair reducer only assigns worktrees[branch] and lastSignalAt on absent insertion."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing-record branch returns before setLastSignalAt; exact no-op tests pass."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "index.ts validates pathExists and rev-parse HEAD before query/signal."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "fireWorktreeSignal catches timeout/error; Step 0 ignores warning result and returns reused:true."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Dedicated worktreeRegistrationRepairedSignal added; worktreeCreatedSignal stays full-create-only."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing setup_failed record is reducer no-op; no readiness conversion."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Resume path unchanged; absent record falls through to Step 0."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Isolation guard untouched; repair restores the record it reads."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Full-create worktreeCreatedSignal path unchanged; targeted regression suite passes."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No client CAS/version heuristic; Temporal handler serializes if-absent repair."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** Given an intact disk worktree and no `state.worktrees[branch]` entry, when Step 0 reuses it, then a typed registration-repair signal is delivered and the workflow atomically inserts exactly one complete `WorktreeRecord`: branch/path/baseRef/headSha from the verified disk worktree; `changeId` from workflow state; `createdAt` and `lastSeenAt` equal `repairedAt`; `source:\"tool\"`; `sourceVersion:1`; `materialized:true`; `status:\"created\"`; `setupReady:true`. `worktreeExistsForChange` becomes `true`.",
+    "**AC2** Given an existing `status:\"setup_failed\"` branch record, when repair arrives (including after client false-null), then reducer performs a true no-op: every record field and `lastSignalAt` remain unchanged; isolation probe stays false.",
+    "**AC3** Given any metadata-rich existing branch record, repair preserves every field and `lastSignalAt`. Given a successful client query returning an existing record, Step 0 sends no repair signal.",
+    "**AC4** Given Temporal/service/signal timeout or failure, once Step 0 confirms disk path + HEAD, it still returns `{ok:true,reused:true}` without throwing.",
+    "**AC5** Given multiple repair signals for one absent branch, workflow history serializes them: first inserts; later signals preserve every first-record field and `lastSignalAt`; exactly one branch key exists.",
+    "**AC6** Existing create/resume/workflow signal suites remain green; full-create still uses `worktreeCreatedSignal` exactly once and setup-failure behavior remains unchanged."
+  ],
+  "documents": {
+    "proposal": "# Fix worktree reuse registration gap\n\n## Root Cause Analysis\n\n**Defect:** When a change-workflow's durable `worktrees` map lacks the entry for its branch (for example after workflow recovery or an incomplete state seed) but the on-disk git worktree still exists, `advWorktreeCreate` Step 0 returns `{ok:true,reused:true}` without repairing workflow state. `advWorktreeResume` with a missing record falls through to that same Step 0 path. The worktree-isolation guard then reads no setup-ready record and blocks trunk/zlauncher state-transition mutations.\n\n**Tier-1 code evidence:**\n- `plugin/src/tools/worktree/index.ts:998-1017`: Step 0 confirms the disk path + HEAD, then returns reused without any signal.\n- `plugin/src/tools/worktree/state.ts:1124-1170`: `getWorktreeRecord` queries `state.worktrees[branch]`; missing/unavailable/query-failed all return null.\n- `plugin/src/tools/worktree/state.ts:1182-1200`: `worktreeExistsForChange` requires a setup-ready, non-deleted/non-failed record with a path.\n- `plugin/src/tools/worktree/index.ts:1297-1379`: resume uses the durable record; null falls through to `advWorktreeCreate`.\n\n**Reproduced:** `autoAdoptOrphanSessionQueues` had an intact disk worktree but an empty recovered workflow `worktrees` map. Resume/create reported reuse yet the isolation guard remained false. Removing and fully recreating the worktree fired the normal creation signal and restored mutation access.\n\n**Validator-discovered safety constraint:** `getWorktreeRecord` conflates true absence with query/service failure. Existing `worktreeCreatedSignal` replaces the entire branch record, so firing it after a transient false-null could overwrite an intentional `setup_failed` or metadata-rich record. Client-side probe logic alone cannot make repair safe; the conditional must execute inside the workflow.\n\n## What Changes\n\nAdd a dedicated typed `worktreeRegistrationRepairedSignal`. Step 0 probes the record after confirming the disk worktree is usable. If the client sees null/unknown, it fires the repair signal best-effort. The workflow reducer atomically inserts a setup-ready record **only when `state.worktrees[branch]` is absent**; any existing record is a true no-op. This closes the query→signal race and preserves failed/richer records.\n\n`advWorktreeResume` needs no edit: absent record already falls through to Step 0; existing non-ready records retain the current `SETUP_FAILED` behavior.\n\n## Constraints\n\n- Repair MUST be workflow-side conditional (if-absent), not client-authoritative.\n- Existing records, especially `setup_failed`, MUST remain byte-for-byte/field-for-field unchanged on repair signal.\n- Worker/signal unavailability MUST NOT block disk worktree reuse.\n- No taskQueue or unrelated behavioral state mutation.\n- Full-create `worktreeCreatedSignal` behavior remains unchanged.\n\n## Validation Plan\n\n- RED→GREEN: disk worktree + absent map entry → Step 0 repair → isolation probe true.\n- False-null safety: repair signal against `setup_failed` and metadata-rich records → exact no-op.\n- Ready common path: successful query finds record → no signal.\n- Signal failure: still returns reused true.\n- Concurrent repair signals: first inserts; later signals no-op; one branch key.\n- Existing create/resume/workflow signal suites remain green.\n",
+    "problemStatement": "A change whose workflow was orphaned (completed/unreachable on a dead session queue) cannot be mutated from the trunk-launched (zlauncher) session — the normal operating model — because its durable change-workflow `worktrees` map entry is missing and `adv_worktree_resume`/`adv_worktree_create` do NOT repair it when an on-disk worktree already exists. The worktree-isolation guard then blocks all main-checkout state-transition mutations (task updates, gate completion). The only recovery is a manual `git worktree remove --force` + recreate.",
+    "agreement": "# Agreement — Fix worktree reuse registration gap\n\n## Objectives\n- **O1 — Safe self-heal.** Reusing an intact disk worktree repairs a missing change-workflow `worktrees[branch]` registration through a dedicated server-authoritative conditional signal.\n- **O2 — Preserve existing state.** Repair never overwrites any existing branch record, especially `setup_failed` or metadata-rich records, even when the client query falsely returns null.\n- **O3 — Best-effort reuse.** Worker/service/signal failure never blocks `{ok:true,reused:true}` once disk path + HEAD are usable.\n- **O4 — Common-path no-op.** A successful query finding an existing record emits no repair signal.\n\n## Success Criteria\n- **SC1** An orphan-recovered change with an intact disk worktree and genuinely absent workflow registration becomes mutable from trunk/zlauncher through normal create/resume reuse, without manual removal/recreation and without weakening the isolation guard.\n\n## Acceptance Criteria\n- **AC1** Given an intact disk worktree and no `state.worktrees[branch]` entry, when Step 0 reuses it, then a typed registration-repair signal is delivered and the workflow atomically inserts exactly one complete `WorktreeRecord`: branch/path/baseRef/headSha from the verified disk worktree; `changeId` from workflow state; `createdAt` and `lastSeenAt` equal `repairedAt`; `source:\"tool\"`; `sourceVersion:1`; `materialized:true`; `status:\"created\"`; `setupReady:true`. `worktreeExistsForChange` becomes `true`.\n- **AC2** Given an existing `status:\"setup_failed\"` branch record, when repair arrives (including after client false-null), then reducer performs a true no-op: every record field and `lastSignalAt` remain unchanged; isolation probe stays false.\n- **AC3** Given any metadata-rich existing branch record, repair preserves every field and `lastSignalAt`. Given a successful client query returning an existing record, Step 0 sends no repair signal.\n- **AC4** Given Temporal/service/signal timeout or failure, once Step 0 confirms disk path + HEAD, it still returns `{ok:true,reused:true}` without throwing.\n- **AC5** Given multiple repair signals for one absent branch, workflow history serializes them: first inserts; later signals preserve every first-record field and `lastSignalAt`; exactly one branch key exists.\n- **AC6** Existing create/resume/workflow signal suites remain green; full-create still uses `worktreeCreatedSignal` exactly once and setup-failure behavior remains unchanged.\n\n## Constraints\n- **C1** Conditional existence check MUST execute inside the change workflow reducer; client probe is optimization only.\n- **C2** Repair reducer MUST NOT overwrite any existing `worktrees[branch]` record.\n- **C3** Successful insertion may mutate only `worktrees[branch]` and `lastSignalAt`; no `taskQueue` or unrelated behavioral state.\n- **C4** Existing-record no-op MUST NOT update `lastSignalAt`.\n- **C5** Repair runs only after `pathExists` + `rev-parse HEAD` confirm disk worktree usability.\n- **C6** Repair delivery remains best-effort and cannot block reuse.\n\n## Avoidances\n- **A1** Do not reuse `worktreeCreatedSignal` for recovery; its whole-record replacement semantics are unsafe after false-null.\n- **A2** Do not convert `setup_failed` to ready without rerunning setup.\n- **A3** Do not add resume-path repair wiring; null already falls through to Step 0.\n- **A4** Do not weaken isolation guard.\n- **A5** Do not change full-create signal behavior.\n- **A6** Do not add client-side CAS/version heuristics; workflow history owns atomicity.\n\n## Evidence policy\nAll behavior uses automated red/green tests. Reducer tests assert exact pre/post state; tool tests prove delivery and best-effort return behavior.\n",
+    "design": "# Design — Server-authoritative worktree registration repair\n\n## Architecture\nClient query conflates missing state with query/service failure. Correctness therefore lives in a dedicated workflow signal/reducer.\n\n```\nStep 0 verifies disk path + HEAD\n  ├─ query returns record → reused:true; no signal\n  └─ query returns null/unknown → fire worktreeRegistrationRepairedSignal best-effort\n                                  └─ workflow reducer, serialized:\n                                      existing branch → exact no-op\n                                      absent branch → insert complete WorktreeRecord\n  → reused:true regardless of signal result\n```\n\nResume remains unchanged: null record falls through to Step 0; setup-failed/non-ready materialized records retain `SETUP_FAILED`.\n\n## Typed surface\n- `WorktreeRegistrationRepairedSignalPayloadSchema`: `{branch,path,baseRef,headSha,repairedAt}`.\n- `CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeRegistrationRepaired`.\n- Client export in `temporal/messages.ts`; workflow-local definition + handler in `temporal/workflows.ts`.\n- `applyWorktreeRegistrationRepairedToState` in `temporal/change-state.ts`.\n\n## Reducer (correctness boundary)\n\n```\nif (state.worktrees?.[payload.branch]) return state;\nstate.worktrees = {\n  ...(state.worktrees ?? {}),\n  [payload.branch]: {\n    branch: payload.branch,\n    path: payload.path,\n    materialized: true,\n    changeId: state.changeId,\n    status: \"created\",\n    createdAt: payload.repairedAt,\n    lastSeenAt: payload.repairedAt,\n    baseRef: payload.baseRef,\n    headSha: payload.headSha,\n    source: \"tool\",\n    sourceVersion: 1,\n    setupReady: true,\n  },\n};\nsetLastSignalAt(state, payload.repairedAt);\nreturn state;\n```\n\nExisting-record path returns before `setLastSignalAt`, preserving complete state exactly. Temporal history serializes concurrent repair signals; first insertion wins, later handlers no-op.\n\n## Client behavior\nAfter Step 0 confirms `pathExists` and `rev-parse HEAD`: query `getWorktreeRecord(deps.database, branch)`; non-null skips delivery; null triggers existing best-effort `fireWorktreeSignal` with repair payload; result is ignored and reuse returns success.\n\n## Decisions\n- **D1** New recovery-specific signal; never reuse whole-record `worktreeCreatedSignal`.\n- **D2** Workflow-side if-absent closes false-null overwrite + query→signal race.\n- **D3** Complete `WorktreeRecord` insertion satisfies durable contract (`lastSeenAt`, `source`, `sourceVersion`, materialized/change ownership included).\n- **D4** Existing-state branch is a true no-op, including timestamp.\n- **D5** No resume edit; current control flow already routes correctly.\n- **D6** Existing best-effort signal helper preserves git-authoritative reuse.\n- **D7** `baseRef:\"existing\"` is repair audit metadata; no consumer requires a resolvable ref.\n\n## Validation matrix\n| Contract | Automated proof |\n|---|---|\n| AC1 | Tool + reducer test: absent entry → complete record with all required fields; isolation probe true. RED against current Step 0. |\n| AC2 | Reducer/handler: setup_failed entry → deep-equal record and unchanged lastSignalAt. |\n| AC3 | Metadata-rich record → exact state no-op; successful client query → signal spy not called. |\n| AC4 | Signal reject/timeout → reused success. |\n| AC5 | Two repairs → one key; second preserves every first-record field + lastSignalAt. |\n| AC6 | Existing create/resume/change-state/workflow signal suites green. |\n\n## Affected files\n- `plugin/src/types/signals.ts`\n- `plugin/src/temporal/contracts.ts`\n- `plugin/src/temporal/messages.ts`\n- `plugin/src/temporal/workflows.ts`\n- `plugin/src/temporal/change-state.ts`\n- `plugin/src/tools/worktree/index.ts`\n- `plugin/src/temporal/change-state.worktree-auto-manage.test.ts`\n- `plugin/src/temporal/workflows.signal-handlers.itest.ts`\n- `plugin/src/tools/worktree/index-create.test.ts`\n- `plugin/src/temporal/messages.test.ts`\n\n## Risks and controls\n- Additive signal/handler: old histories contain no such events; replay unchanged.\n- Delivery failure: retrying create/resume later safely retries.\n- Concurrent differing payloads: first wins; each caller verified disk path + HEAD.\n- Internal signal schema is not registered in public schema registry; no schemas/manifests regeneration required.\n\n## Out of scope\nCOMPLETED-while-open anomaly (`bl-Uk4-ci9i`), restart seed-state preservation, shipped-via-PR reconciliation, guard weakening.\n",
+    "executiveSummary": "# Executive Summary — Fix worktree reuse registration gap\n\n## Outcome\n\nADV now repairs a missing durable worktree registration when it reuses an intact on-disk change worktree. Orphan-recovered changes can continue normal trunk/zlauncher mutations without the manual delete-and-recreate workaround.\n\n## Delivered value\n\n- Added a dedicated `worktreeRegistrationRepairedSignal` rather than reusing the replacement-style creation signal.\n- The workflow atomically inserts a complete setup-ready registry record only when the branch entry is absent.\n- Existing records are exact no-ops, preserving `setup_failed`, metadata-rich records, and `lastSignalAt` even after a client query returns null because Temporal is unavailable.\n- Step 0 remains disk-authoritative: it verifies path + HEAD first; failed signal delivery still returns `reused:true`.\n- Corrected an independently exposed reliability defect: `creation_request_hash` now survives workflow continue-as-new rotation.\n\n## Verification\n\n- Targeted worktree/reducer/message/full signal-handler suite: **77 passing tests** (`tr_mrwzz2jx_297bf7bf`).\n- Static checks: schema, TypeScript, manifests, isolation/lockfile checks, ESLint, and Prettier all pass (`tr_mrx005fs_7978f132`).\n- Acceptance reviewer verdict: **READY**, no blocking/non-blocking findings, no scope drift.\n- Contract review matrix: **19/19 passing**.\n\n## Release Readiness Summary\n\n- **Local readiness:** READY. Harden review found no blockers, no source regression in full-create/resume/isolation behavior, and a clean committed worktree.\n- **Operational impact:** no migration, deployment, frontend, data, or secret-management impact.\n- **Release/merge status:** CAUTION. Remote CI and merge/reachability evidence are pending; archive Phase 9 will finalize the git release path after archive sign-off.\n- **Open follow-up:** parent `autoAdoptOrphanSessionQueues` close-out remains deliberately sequenced after this change releases; it is non-blocking for this fix.\n\n## Residual risk\n\nRepair is intentionally best-effort: if worker delivery fails, reuse remains available; a later reuse retries the safe workflow-side repair.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-23T04:21:43.672Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** An orphan-recovered change with an intact disk worktree and genuinely absent workflow registration becomes mutable from trunk/zlauncher through normal create/resume reuse, without manual removal/recreation and without weakening the isolation guard. | pass | Independent reviewer READY: disk reuse plus absent workflow record now signals server-authoritative repair; index-create test proves guard predicate true without manual recreation. |\n| AC1 | acceptance_criterion | **AC1** Given an intact disk worktree and no `state.worktrees[branch]` entry, when Step 0 reuses it, then a typed registration-repair signal is delivered and the workflow atomically inserts exactly one complete `WorktreeRecord`: branch/path/baseRef/headSha from the verified disk worktree; `changeId` from workflow state; `createdAt` and `lastSeenAt` equal `repairedAt`; `source:\"tool\"`; `sourceVersion:1`; `materialized:true`; `status:\"created\"`; `setupReady:true`. `worktreeExistsForChange` becomes `true`. | pass | tr_mrwzz2jx_297bf7bf targeted suite: index-create absent-map reuse test + reducer complete-record test. |\n| AC2 | acceptance_criterion | **AC2** Given an existing `status:\"setup_failed\"` branch record, when repair arrives (including after client false-null), then reducer performs a true no-op: every record field and `lastSignalAt` remain unchanged; isolation probe stays false. | pass | tr_mrwzz2jx_297bf7bf: reducer test preserves setup_failed record and lastSignalAt exactly. |\n| AC3 | acceptance_criterion | **AC3** Given any metadata-rich existing branch record, repair preserves every field and `lastSignalAt`. Given a successful client query returning an existing record, Step 0 sends no repair signal. | pass | tr_mrwzz2jx_297bf7bf: metadata-rich exact no-op and ready-record no-signal tests. |\n| AC4 | acceptance_criterion | **AC4** Given Temporal/service/signal timeout or failure, once Step 0 confirms disk path + HEAD, it still returns `{ok:true,reused:true}` without throwing. | pass | tr_mrwzz2jx_297bf7bf: rejected repair delivery still resolves reused:true. |\n| AC5 | acceptance_criterion | **AC5** Given multiple repair signals for one absent branch, workflow history serializes them: first inserts; later signals preserve every first-record field and `lastSignalAt`; exactly one branch key exists. | pass | tr_mrwzz2jx_297bf7bf: reducer repeated-repair test and Temporal handler first-write-wins test. |\n| AC6 | acceptance_criterion | **AC6** Existing create/resume/workflow signal suites remain green; full-create still uses `worktreeCreatedSignal` exactly once and setup-failure behavior remains unchanged. | pass | tr_mrwzz2jx_297bf7bf: corrected targeted 4-file suite passed; tr_mrx005fs_7978f132 pnpm run check passed. |\n| C1 | constraint | **C1** Conditional existence check MUST execute inside the change workflow reducer; client probe is optimization only. | respected | change-state.ts repair reducer performs workflow-side if-absent check; client only probes. |\n| C2 | constraint | **C2** Repair reducer MUST NOT overwrite any existing `worktrees[branch]` record. | respected | change-state.ts early return on existing worktrees[branch] precedes all mutation. |\n| C3 | constraint | **C3** Successful insertion may mutate only `worktrees[branch]` and `lastSignalAt`; no `taskQueue` or unrelated behavioral state. | respected | Repair reducer only assigns worktrees[branch] and lastSignalAt on absent insertion. |\n| C4 | constraint | **C4** Existing-record no-op MUST NOT update `lastSignalAt`. | respected | Existing-record branch returns before setLastSignalAt; exact no-op tests pass. |\n| C5 | constraint | **C5** Repair runs only after `pathExists` + `rev-parse HEAD` confirm disk worktree usability. | respected | index.ts validates pathExists and rev-parse HEAD before query/signal. |\n| C6 | constraint | **C6** Repair delivery remains best-effort and cannot block reuse. | respected | fireWorktreeSignal catches timeout/error; Step 0 ignores warning result and returns reused:true. |\n| DONT1 | avoidance | **A1** Do not reuse `worktreeCreatedSignal` for recovery; its whole-record replacement semantics are unsafe after false-null. | respected | Dedicated worktreeRegistrationRepairedSignal added; worktreeCreatedSignal stays full-create-only. |\n| DONT2 | avoidance | **A2** Do not convert `setup_failed` to ready without rerunning setup. | respected | Existing setup_failed record is reducer no-op; no readiness conversion. |\n| DONT3 | avoidance | **A3** Do not add resume-path repair wiring; null already falls through to Step 0. | respected | Resume path unchanged; absent record falls through to Step 0. |\n| DONT4 | avoidance | **A4** Do not weaken isolation guard. | respected | Isolation guard untouched; repair restores the record it reads. |\n| DONT5 | avoidance | **A5** Do not change full-create signal behavior. | respected | Full-create worktreeCreatedSignal path unchanged; targeted regression suite passes. |\n| DONT6 | avoidance | **A6** Do not add client-side CAS/version heuristics; workflow history owns atomicity. | respected | No client CAS/version heuristic; Temporal handler serializes if-absent repair. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-23T03:34:49.803Z",
+      "contentHash": "6892b055ecb952eac7eac4550b910db6acc6eda5858ab498cf6329ec26840b4e",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-23T01:22:34.006Z",
+      "contentHash": "d438f312eb1144f455e5167e77bfece04d45d18378b77ca3824f4ec7efc516ac",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-23T03:39:19.402Z",
+      "contentHash": "13728ce98d7bfb07f772e6494ac200f05dc0ec26a9dd534e9511aac2c53c18a3",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-23T03:39:19.402Z",
+      "contentHash": "b6dd75bd954bdf4563a457c2675ebd85d2a116ef0ac27f9adf44844eb503e534",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T04:29:37.472Z",
+      "contentHash": "413c99dd55ba20932d824a29e6c58cbc571232c272dfbde42461ce4b8995ddf1",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T04:29:37.472Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "change-1784769773028-78bt3t",
+    "order": 13,
+    "title": "Fix worktree reuse registration gap",
+    "linked_at": "2026-07-23T01:22:53.028Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  }
+}

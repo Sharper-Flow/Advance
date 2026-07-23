@@ -9,9 +9,13 @@
 
 export {
   buildChangeWorkflowId,
+  buildEpicWorkflowId,
   createTemporalClientBundle,
 } from "../temporal/client";
-export { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
+export {
+  CHANGE_WORKFLOW_QUERY_NAMES,
+  EPIC_WORKFLOW_QUERY_NAMES,
+} from "../temporal/contracts";
 export { escapeVisibilityValue } from "../temporal/lifecycle-visibility";
 export { listChangeWorkflowIds } from "../temporal/list-change-workflows";
 export {

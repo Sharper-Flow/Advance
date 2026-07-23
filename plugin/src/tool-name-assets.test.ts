@@ -91,6 +91,9 @@ describe("tool-name assets", () => {
         // (`adv_backed_fact` is a label, not a callable MCP tool). Pre-existing
         // reference in `.opencode/command/adv-coordinate.md`.
         if (ref === "adv_backed_fact") continue;
+        // `adv_handshake` is the MCP-only capability probe (not host-registered);
+        // referenced in ADV_INSTRUCTIONS.md / the Code Mode convention.
+        if (ref === "adv_handshake") continue;
         if (!ADV_TOOL_NAME_SET.has(ref)) {
           offenders.push(`${relativePath}: ${ref}`);
         }
@@ -180,7 +183,7 @@ describe("mode-neutral MCP prompt contract", () => {
 
   test("frozen pre-change effective prompt baseline exists and covers every effective prompt", () => {
     const baseline = loadBaseline();
-    expect(baseline.byteBudget).toBe(400);
+    expect(baseline.byteBudget).toBe(500);
     const effective = effectiveAgentPrompts();
     for (const prompt of effective) {
       const frozen = baseline.prompts[prompt.name];

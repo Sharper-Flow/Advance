@@ -62,6 +62,7 @@ import type {
   WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
+  WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
 import {
@@ -79,6 +80,7 @@ import {
   normalizeLegacyChangeStatus,
 } from "../types";
 import {
+  formatApplyContextBindingHint,
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
@@ -165,6 +167,7 @@ export function createChangeWorkflowState(input: {
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
     acceptanceReadinessRevision: 0,
+    same_project_dependencies: [],
   };
 }
 
@@ -201,6 +204,7 @@ export function changeSeedStateFromChange(
     cross_project_origin: safeChange.cross_project_origin,
     cross_project_links: safeChange.cross_project_links,
     external_dependencies: safeChange.external_dependencies,
+    same_project_dependencies: safeChange.same_project_dependencies ?? [],
     worktree_auto_managed: safeChange.worktree_auto_managed,
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
@@ -1105,7 +1109,7 @@ export function applyTaskCompletedToState(
       })
     ) {
       throw new Error(
-        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.`,
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} requires successful adv-designer evidence for implementation cycle ${implementationCycleId}.${formatApplyContextBindingHint()}`,
       );
     }
     if (
@@ -2079,6 +2083,38 @@ export function applyWorktreeCreatedToState(
     [payload.branch]: { ...payload, status: "created", setupReady: true },
   };
   setLastSignalAt(state, payload.createdAt);
+  return state;
+}
+
+/**
+ * Safely restores a missing worktree registry entry after an on-disk reuse.
+ * The client-side record query is advisory: this reducer is the authoritative
+ * if-absent check, so a query failure cannot replace durable workflow state.
+ */
+export function applyWorktreeRegistrationRepairedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeRegistrationRepairedSignalPayload,
+): ChangeWorkflowState {
+  if (state.worktrees?.[payload.branch]) return state;
+
+  state.worktrees = {
+    ...(state.worktrees ?? {}),
+    [payload.branch]: {
+      branch: payload.branch,
+      path: payload.path,
+      materialized: true,
+      changeId: state.changeId,
+      status: "created",
+      createdAt: payload.repairedAt,
+      lastSeenAt: payload.repairedAt,
+      baseRef: payload.baseRef,
+      headSha: payload.headSha,
+      source: "tool",
+      sourceVersion: 1,
+      setupReady: true,
+    },
+  };
+  setLastSignalAt(state, payload.repairedAt);
   return state;
 }
 

@@ -52,6 +52,8 @@ import {
   OpsRunEvidenceEntrySchema,
   OpsRunSchema,
 } from "./changes";
+import { WorkNodeRefSchema } from "./work-graph";
+import { FutureWorkContextPacketSchema } from "./future-work";
 import {
   LightweightProfileEvaluationSchema,
   LightweightProfileOmissionPolicySchema,
@@ -469,6 +471,22 @@ export type WorktreeCreatedSignalPayload = z.infer<
   typeof WorktreeCreatedSignalPayloadSchema
 >;
 
+/**
+ * Repairs a missing worktree registration after disk-authoritative reuse.
+ * The change workflow performs the if-absent check so a client query failure
+ * cannot overwrite an existing setup_failed or metadata-rich record.
+ */
+export const WorktreeRegistrationRepairedSignalPayloadSchema = z.object({
+  branch: z.string(),
+  path: z.string(),
+  baseRef: z.string(),
+  headSha: z.string(),
+  repairedAt: IsoTimestampSchema,
+});
+export type WorktreeRegistrationRepairedSignalPayload = z.infer<
+  typeof WorktreeRegistrationRepairedSignalPayloadSchema
+>;
+
 export const WorktreeDeletedSignalPayloadSchema = z.object({
   branch: z.string(),
   reason: z.string(),
@@ -747,6 +765,10 @@ export const ShellAddedSignalPayloadSchema = z.object({
       imported_at: IsoTimestampSchema,
     })
     .optional(),
+  /** Same-project hard prerequisite edges (rq-workGraphTypes01). */
+  blockedBy: z.array(WorkNodeRefSchema).default([]),
+  /** Optional durable future-work context packet for the shell entry. */
+  context_packet: FutureWorkContextPacketSchema.optional(),
 });
 export type ShellAddedSignalPayload = z.infer<
   typeof ShellAddedSignalPayloadSchema

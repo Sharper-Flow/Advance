@@ -111,6 +111,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   specDeltaRenamed: "adv.change.specDeltaRenamed",
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
+  worktreeRegistrationRepaired: "adv.change.worktreeRegistrationRepaired",
   worktreeDeleted: "adv.change.worktreeDeleted",
   worktreeSetupFailed: "adv.change.worktreeSetupFailed",
   worktreeAutoManaged: "adv.change.worktreeAutoManaged",
@@ -300,6 +301,7 @@ export interface ChangeWorkflowInput {
       | "cross_project_origin"
       | "cross_project_links"
       | "external_dependencies"
+      | "same_project_dependencies"
       | "worktree_auto_managed"
       | "target_worktree_path"
       | "scope_worktrees"
@@ -561,6 +563,8 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   cross_project_links?: import("../types").Change["cross_project_links"];
   /** Advisory dependencies on external project changes. */
   external_dependencies?: import("../types").Change["external_dependencies"];
+  /** Same-project hard prerequisite edges (rq-workGraphTypes01). */
+  same_project_dependencies?: import("../types").Change["same_project_dependencies"];
   /** Deterministic idempotency keys for submitted sub-agent reports. Bounded to the most recent 200 distinct IDs in FIFO order. */
   seenReportIds?: string[];
   /** Cumulative count of every accepted distinct report ID. */

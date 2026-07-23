@@ -1206,6 +1206,37 @@ export function subagentReportImplementationCycleId(
   return report.apply_context?.implementation_cycle_id;
 }
 
+/**
+ * Builds a binding hint for `apply_context.implementation_cycle_id`. The
+ * returned example is itself valid against `SubagentApplyContextSchema` so
+ * callers can copy it verbatim after replacing the placeholders.
+ */
+export function buildApplyContextBindingHint(): {
+  path: string;
+  example: string;
+} {
+  const example = {
+    implementation_cycle_id: "ic_<id>",
+    implementation_provenance: {
+      kind: "engineer_report",
+      report_key: "<stable report key>",
+    },
+  };
+  return {
+    path: "apply_context.implementation_cycle_id",
+    example: JSON.stringify(example),
+  };
+}
+
+/**
+ * Renders the apply_context binding hint as a human-readable string suitable
+ * for appending to a rejection message.
+ */
+export function formatApplyContextBindingHint(): string {
+  const { path, example } = buildApplyContextBindingHint();
+  return ` Bind the active cycle under ${path} (with implementation_provenance). Example: ${example}`;
+}
+
 // =============================================================================
 // Typed Report Follow-Up Routing
 // =============================================================================

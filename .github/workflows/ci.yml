@@ -37,6 +37,12 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: plugin
 
+      - name: SDK parity
+        run: pnpm run check:sdk-parity
+        working-directory: plugin
+        env:
+          CI: "true"
+
       - name: Schema drift check
         run: pnpm run schemas:check
         working-directory: plugin

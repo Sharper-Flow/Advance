@@ -34,6 +34,7 @@ import { resolveMainCheckout } from "./archive-helpers/git-finalize";
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 import { type ProbeCacheFreshness } from "./probe-cache";
 import { advWorktreeCleanup } from "./worktree";
+import { readBacklog } from "../utils/backlog-store";
 import {
   getPendingDeletes,
   initStateDb as initWorktreeStateDb,
@@ -78,6 +79,7 @@ import {
   buildProductContextOutput,
   capRecommendations,
   pushStatusRecommendation,
+  appendResumeProjectionRecommendations,
   type StatusSummaryOmissions,
   type StatusRecommendationCarrier,
   type CandidateEnrichmentPatch,
@@ -193,6 +195,60 @@ async function loadStatusWithBootstrapRetry(
     },
   };
 }
+
+// =============================================================================
+// Future-work projection (AC5)
+// =============================================================================
+
+function hasContextPacket(packet: unknown): boolean {
+  if (packet == null || typeof packet !== "object") return false;
+  return Object.keys(packet).length > 0;
+}
+
+export interface FutureWorkProjection {
+  shells: Array<{ id: string; title: string; has_context_packet: boolean }>;
+  backlog: Array<{ id: string; title: string; has_context_packet: boolean }>;
+}
+
+async function buildFutureWorkProjection(
+  store: Store,
+): Promise<FutureWorkProjection> {
+  const shells: FutureWorkProjection["shells"] = [];
+  const backlog: FutureWorkProjection["backlog"] = [];
+
+  try {
+    const epics = await store.epics.list({ status: "active" });
+    for (const epic of epics) {
+      for (const entry of epic.entries ?? []) {
+        if (entry.kind === "shell") {
+          shells.push({
+            id: entry.entry_id,
+            title: entry.title,
+            has_context_packet: hasContextPacket(entry.context_packet),
+          });
+        }
+      }
+    }
+  } catch {
+    // Best-effort: Epic query must not break status availability.
+  }
+
+  try {
+    const backlogResult = await readBacklog(store.paths.root);
+    for (const item of backlogResult.latestItems) {
+      backlog.push({
+        id: item.id,
+        title: item.title,
+        has_context_packet: hasContextPacket(item.context_packet),
+      });
+    }
+  } catch {
+    // Best-effort: backlog read must not break status availability.
+  }
+
+  return { shells, backlog };
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -418,6 +474,15 @@ export const statusTools = {
             );
           }
 
+          if (plan.resumeProjection) {
+            await withRecordedPhase("adv_status", "resumeProjection", () =>
+              appendResumeProjectionRecommendations(activeStore, status, {
+                projectId,
+                limit: 3,
+              }),
+            );
+          }
+
           let probeFreshness: Record<string, ProbeCacheFreshness> = {};
           let temporalHealth: TemporalHealthSnapshot | undefined;
           let queueServiceability:
@@ -470,6 +535,7 @@ export const statusTools = {
           let toolLaneProjections:
             | Record<string, ToolSchemaProjection>
             | undefined;
+          let futureWorkProjection: FutureWorkProjection | undefined;
 
           if (view !== "health") {
             if (plan.temporalHealth) {
@@ -486,6 +552,9 @@ export const statusTools = {
                 temporalHealth = buildTemporalHealthFallback(err);
                 probeFreshness.temporal_health = {
                   cached_at: new Date().toISOString(),
+                  // A degraded (timed-out) probe is NOT authoritative-fresh —
+                  // liveness is unconfirmed, so callers should re-fetch rather
+                  // than trust the optimistic fallback (no false "alive").
                   stale: true,
                   age_ms: 0,
                   ttl_ms: STATUS_PROBE_TTL_MS,
@@ -901,6 +970,7 @@ export const statusTools = {
                 recommendations: status.recommendations,
                 recommendationSummary,
                 temporalAlive: !!temporalHealth?.server_alive,
+                temporalDegraded: temporalHealth?.probe_degraded === true,
                 temporalHealth: temporalHealth
                   ? {
                       worker_alive: temporalHealth.worker_alive ?? false,
@@ -983,6 +1053,14 @@ export const statusTools = {
               )
             : undefined;
 
+          if (plan.futureWork) {
+            futureWorkProjection = await withRecordedPhase(
+              "adv_status",
+              "futureWorkProjection",
+              () => buildFutureWorkProjection(activeStore),
+            );
+          }
+
           // T4: tool-context telemetry is only required for the health view.
           // Lane-permission probes ran under the request-owned bounded health
           // execution plan; static telemetry here only reads retained state.
@@ -1040,6 +1118,9 @@ export const statusTools = {
             status_summary_omissions: summaryOmissions,
             recommendation_summary: recommendationSummary,
             recommendation_groups: recommendationSummary.groups,
+            ...(futureWorkProjection
+              ? { future_work: futureWorkProjection }
+              : {}),
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).
             metrics: getMetrics(),

@@ -18,7 +18,17 @@ import {
   getEpicStateQuery,
   searchAttributesRefreshedSignal,
 } from "../../temporal/messages";
-import { runTemporal, runTemporalQuery, type StoreDeps } from "./shared";
+import {
+  runTemporal,
+  runTemporalQuery,
+  createTemporalReadContext,
+  runTemporalRead,
+  getTemporalConnection,
+  isTemporalReadExpired,
+  TemporalQueryTimeoutError,
+  type StoreDeps,
+  type TemporalReadContext,
+} from "./shared";
 import {
   loadRetiredEpicProjection,
   saveRetiredEpicProjection,
@@ -327,20 +337,106 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
     return asEpicHandle(handle);
   }
 
-  async function queryEpic(epicId: string): Promise<Epic | null> {
+  async function queryEpicStateRead(
+    handle: EpicHandleLike,
+    ctx: TemporalReadContext,
+  ): Promise<import("../../temporal/contracts").EpicWorkflowState> {
+    const connection = getTemporalConnection(input);
+    const read = await runTemporalRead(
+      connection,
+      async () => handle.query(getEpicStateQuery),
+      ctx,
+      { opType: "epicStateQuery", timeoutMs: 1_500 },
+    );
+    if (!read.complete) {
+      throw read.error ?? new TemporalQueryTimeoutError(ctx.deadline.budgetMs);
+    }
+    const state = read.data;
+    if (!isEpicWorkflowState(state)) {
+      throw new Error("Epic workflow state query returned malformed state");
+    }
+    return state;
+  }
+
+  async function tryQueryEpicStateRead(
+    handle: EpicHandleLike,
+    ctx: TemporalReadContext,
+  ): Promise<
+    | {
+        kind: "ok";
+        state: import("../../temporal/contracts").EpicWorkflowState;
+      }
+    | { kind: "not_found" }
+    | { kind: "unresponsive" }
+  > {
+    try {
+      const state = await queryEpicStateRead(handle, ctx);
+      ctx.recordResponsiveMember();
+      return { kind: "ok", state };
+    } catch (error) {
+      if (isWorkflowNotFoundError(error)) return { kind: "not_found" };
+      if (error instanceof TemporalQueryTimeoutError) {
+        ctx.recordUnresponsiveMember();
+        return { kind: "unresponsive" };
+      }
+      throw error;
+    }
+  }
+
+  async function queryEpic(
+    epicId: string,
+    ctx: TemporalReadContext,
+  ): Promise<
+    | { kind: "ok"; epic: Epic }
+    | { kind: "not_found" }
+    | { kind: "unresponsive" }
+  > {
     const handle = getEpicHandle(epicId);
-    const state = await tryQueryEpicState(handle);
-    return state?.epic ?? null;
+    const result = await tryQueryEpicStateRead(handle, ctx);
+    if (result.kind === "ok") return { kind: "ok", epic: result.state.epic };
+    return result;
   }
 
   async function assertEpicExists(epicId: string): Promise<Epic> {
-    const epic = await queryEpic(epicId);
-    if (!epic) {
-      throw Object.assign(new Error(`Epic not found: ${epicId}`), {
-        code: "epic_not_found",
-      });
+    const ctx = createTemporalReadContext();
+    const result = await queryEpic(epicId, ctx);
+    if (result.kind === "ok") return result.epic;
+    throw Object.assign(new Error(`Epic not found: ${epicId}`), {
+      code: "epic_not_found",
+    });
+  }
+
+  async function queryEpicFresh(epicId: string): Promise<Epic> {
+    const ctx = createTemporalReadContext();
+    const result = await queryEpic(epicId, ctx);
+    if (result.kind === "ok") return result.epic;
+    if (result.kind === "unresponsive") {
+      throw new Error(`Epic workflow unresponsive during readback: ${epicId}`);
     }
-    return epic;
+    throw Object.assign(new Error(`Epic not found: ${epicId}`), {
+      code: "epic_not_found",
+    });
+  }
+
+  function withEpicRecovery(
+    epic: Epic,
+    reason: "workflow_unresponsive",
+  ): Epic & {
+    _recovery: { mode: "temporal_query_fallback"; reason: typeof reason };
+  } {
+    return {
+      ...epic,
+      _recovery: { mode: "temporal_query_fallback", reason },
+    };
+  }
+
+  async function loadDiskEpicProjection(epicId: string): Promise<Epic | null> {
+    const retired = await loadRetiredEpicProjection(
+      deps.legacy?.paths?.retiredEpics,
+      epicId,
+    );
+    if (!retired.success || !retired.data) return null;
+    return retired.data.epic_snapshot;
   }
 
   return {
@@ -373,58 +469,51 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
     },
 
     get: async (epicId) => {
-      try {
-        const epic = await queryEpic(epicId);
-        if (epic) return { success: true, data: epic };
+      const ctx = createTemporalReadContext();
 
-        const retired = await loadRetiredEpicProjection(
-          deps.legacy?.paths?.retiredEpics,
-          epicId,
-        );
-        if (!retired.success) {
-          return {
-            success: false,
-            error: retired.error,
-            type: retired.type,
-          };
+      // Disk-first: the retired projection is the only durable epic read model
+      // the store currently writes. When present, treat it as authoritative and
+      // use the workflow query only as enrichment.
+      const diskEpic = await loadDiskEpicProjection(epicId);
+
+      try {
+        const result = await queryEpic(epicId, ctx);
+        if (result.kind === "ok") {
+          return { success: true, data: result.epic, source: "workflow" };
         }
-        if (retired.data) {
-          return {
-            success: true,
-            data: retired.data.epic_snapshot,
-            source: "retired_projection",
-          };
-        }
-        return { success: true, data: null };
-      } catch (err) {
-        const typed = extractMutationRejection(err);
-        if (typed.code === "epic_not_found") {
-          const retired = await loadRetiredEpicProjection(
-            deps.legacy?.paths?.retiredEpics,
-            epicId,
-          );
-          if (!retired.success) {
-            return {
-              success: false,
-              error: retired.error,
-              type: retired.type,
-            };
-          }
-          if (retired.data) {
+        if (result.kind === "unresponsive") {
+          if (diskEpic) {
             return {
               success: true,
-              data: retired.data.epic_snapshot,
+              data: withEpicRecovery(diskEpic, "workflow_unresponsive"),
               source: "retired_projection",
             };
           }
+          // No disk projection to fall back to; degrade gracefully rather than
+          // hanging. The caller sees a null epic but the tool returns.
           return { success: true, data: null };
         }
+        // not_found: fall through to retired-projection lookup below.
+      } catch (err) {
+        const typed = extractMutationRejection(err);
+        if (typed.code !== "epic_not_found") {
+          return {
+            success: false,
+            error: typed.message,
+            type: "read_error",
+          };
+        }
+        // not_found: fall through to retired-projection lookup below.
+      }
+
+      if (diskEpic) {
         return {
-          success: false,
-          error: typed.message,
-          type: "read_error",
+          success: true,
+          data: diskEpic,
+          source: "retired_projection",
         };
       }
+      return { success: true, data: null };
     },
 
     getRetiredProjection: async (epicId) =>
@@ -527,11 +616,16 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         projectId: input.projectId,
         status,
       });
+      const ctx = createTemporalReadContext();
       const epics: Epic[] = [];
       for (const id of ids) {
+        // Short-circuit once the per-request circuit-breaker trips (K=3
+        // consecutive unresponsive Epics) or the aggregate deadline expires;
+        // remaining Epics are skipped rather than each burning the per-member cap.
+        if (ctx.isCircuitBreakerTripped() || isTemporalReadExpired(ctx)) break;
         try {
-          const epic = await queryEpic(id);
-          if (epic) epics.push(epic);
+          const result = await queryEpic(id, ctx);
+          if (result.kind === "ok") epics.push(result.epic);
         } catch (err) {
           logger.debug(
             `[list] query failed for epic ${id}: ${
@@ -572,11 +666,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const updated = await queryEpic(epicId);
-      if (!updated) {
-        throw new Error(`Epic disappeared during update: ${epicId}`);
-      }
-      return updated;
+      return await queryEpicFresh(epicId);
     },
 
     updateScope: async (
@@ -607,11 +697,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const updated = await queryEpic(epicId);
-      if (!updated) {
-        throw new Error(`Epic disappeared during scope update: ${epicId}`);
-      }
-      return updated;
+      return await queryEpicFresh(epicId);
     },
 
     markMerged: async (epicId, { mergedInto, expectedVersion }) => {
@@ -637,18 +723,20 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const updated = await queryEpic(epicId);
-      if (!updated) {
-        throw new Error(
-          `Epic disappeared during merge finalization: ${epicId}`,
-        );
-      }
-      return updated;
+      return await queryEpicFresh(epicId);
     },
 
     addShell: async (
       epicId,
-      { entryId, title, successHint, order, importedFrom },
+      {
+        entryId,
+        title,
+        successHint,
+        order,
+        importedFrom,
+        blockedBy,
+        context_packet,
+      },
     ) => {
       await assertEpicExists(epicId);
       const handle = getEpicHandle(epicId);
@@ -662,6 +750,10 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         successHint,
         order,
         ...(importedFrom ? { importedFrom } : {}),
+        ...(blockedBy !== undefined && blockedBy.length > 0
+          ? { blockedBy }
+          : {}),
+        ...(context_packet !== undefined ? { context_packet } : {}),
         idempotencyKey: idempotencyKey("add-shell", epicId, finalEntryId),
         addedAt: new Date().toISOString(),
       };
@@ -674,8 +766,8 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const epic = await queryEpic(epicId);
-      const entry = epic?.entries.find((e) => e.entry_id === finalEntryId);
+      const epic = await queryEpicFresh(epicId);
+      const entry = epic.entries.find((e) => e.entry_id === finalEntryId);
       if (!entry) {
         throw new Error(`Shell entry not found after add: ${finalEntryId}`);
       }
@@ -761,8 +853,8 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const epic = await queryEpic(epicId);
-      const entry = epic?.entries.find((e) => e.entry_id === finalEntryId);
+      const epic = await queryEpicFresh(epicId);
+      const entry = epic.entries.find((e) => e.entry_id === finalEntryId);
       if (!entry) {
         throw new Error(`Change entry not found after link: ${finalEntryId}`);
       }
@@ -813,8 +905,8 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const epic = await queryEpic(epicId);
-      const entry = epic?.entries.find((e) => e.entry_id === entryId);
+      const epic = await queryEpicFresh(epicId);
+      const entry = epic.entries.find((e) => e.entry_id === entryId);
       if (!entry) {
         throw new Error(`Change entry not found after retarget: ${entryId}`);
       }
@@ -869,8 +961,8 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const epic = await queryEpic(epicId);
-      const entry = epic?.entries.find((e) => e.entry_id === entryId);
+      const epic = await queryEpicFresh(epicId);
+      const entry = epic.entries.find((e) => e.entry_id === entryId);
       if (!entry) {
         throw new Error(
           `Change entry not found after status update: ${entryId}`,
@@ -905,8 +997,8 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const epic = await queryEpic(epicId);
-      const entry = epic?.entries.find((e) => e.entry_id === entryId);
+      const epic = await queryEpicFresh(epicId);
+      const entry = epic.entries.find((e) => e.entry_id === entryId);
       if (!entry) {
         throw new Error(
           `Change entry not found after terminal summary update: ${entryId}`,
@@ -939,11 +1031,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         payload,
       );
 
-      const updated = await queryEpic(epicId);
-      if (!updated) {
-        throw new Error(`Epic disappeared during reorder: ${epicId}`);
-      }
-      return updated;
+      return await queryEpicFresh(epicId);
     },
 
     repairIndex: async ({ evidence, dryRun }) => {

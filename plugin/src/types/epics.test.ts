@@ -168,6 +168,7 @@ describe("Epic schema foundation", () => {
         order: 1,
         title: "RBAC authorization",
         success_hint: "Roles restrict access by resource",
+        blocked_by: [],
       };
       expect(EpicEntrySchema.parse(entry)).toEqual(entry);
     });
@@ -405,6 +406,7 @@ describe("Epic schema foundation", () => {
             order: 1,
             title: "RBAC authorization",
             success_hint: "Roles restrict access by resource",
+            blocked_by: [],
           },
         ],
         progress: {

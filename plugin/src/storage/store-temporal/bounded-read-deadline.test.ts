@@ -842,6 +842,43 @@ describe("bounded one-pass change-list resolution", () => {
     });
   }, 15_000);
 
+  it("bounds per-member change get against a hanging workflow query", async () => {
+    // The file-level beforeEach installs fake timers; this test uses real
+    // timers because the per-member cap is a real setTimeout and disk reads
+    // complete in real time.
+    vi.useRealTimers();
+    // Disk miss forces the query leg. The per-member cap (1500ms) must
+    // terminate the hanging query instead of leaving the read unbounded.
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => new Promise<never>(() => {}),
+          }),
+          list: async function* () {},
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const start = Date.now();
+    await expect(store.changes.get("hangingMemberQuery")).rejects.toThrowError(
+      /Temporal operation exceeded 1500ms timeout/,
+    );
+    expect(Date.now() - start).toBeLessThan(2_500);
+  }, 15_000);
+
   it("bounds candidate archive fallback reads after fast Temporal failure", async () => {
     // Fake only the timeout machinery; leave setImmediate real so fs reads
     // and async-generator enumeration drain deterministically.

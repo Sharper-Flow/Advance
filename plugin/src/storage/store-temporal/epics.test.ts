@@ -149,6 +149,49 @@ describe("createEpicOps", () => {
     expect(queryMock).toHaveBeenCalledWith(getEpicStateQuery);
   });
 
+  test("get falls back to retired projection when workflow query is unresponsive", async () => {
+    const tempDir = await createTempDir("epic-retired-");
+    const legacy = await createDiskStore(tempDir);
+    const epic = makeEpic({ id: "retiredUnresponsiveEpic" });
+    await legacy.epics.saveRetiredProjection("retiredUnresponsiveEpic", {
+      epic_id: epic.id,
+      epic_snapshot: epic,
+      retired_at: new Date().toISOString(),
+      retired_by: "agent",
+      evidence: "Retired for unresponsive-read test.",
+      source_workflow_id: "epic-addAuthEpic",
+      source_version: 0,
+      projection_status: "retired",
+    });
+
+    const { deps, queryMock } = setup();
+    deps.legacy = legacy;
+    // Sanity: the retired projection is actually on disk.
+    const preflight = await legacy.epics.getRetiredProjection(
+      "retiredUnresponsiveEpic",
+    );
+    expect(preflight.success).toBe(true);
+    expect(preflight.data?.epic_snapshot.id).toBe("retiredUnresponsiveEpic");
+
+    // Hanging query should not block the read.
+    queryMock.mockImplementation(() => new Promise<never>(() => {}));
+
+    const ops = createEpicOps(deps);
+    const start = Date.now();
+    const result = await ops.get("retiredUnresponsiveEpic");
+    const elapsed = Date.now() - start;
+
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("retiredUnresponsiveEpic");
+    expect(result.source).toBe("retired_projection");
+    expect(
+      (result.data as Epic & { _recovery?: { reason: string } })._recovery
+        ?.reason,
+    ).toBe("workflow_unresponsive");
+    expect(elapsed).toBeLessThan(2_000);
+    expect(queryMock).toHaveBeenCalledWith(getEpicStateQuery);
+  }, 5_000);
+
   test("update fires epicUpdated with expected version", async () => {
     const { deps, queryMock, signalMock } = setup();
     const epic = makeEpic({ version: 1 });
@@ -916,6 +959,37 @@ describe("createEpicOps", () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("activeEpic");
     });
+
+    test("list short-circuits via circuit-breaker when epic workflows are unresponsive", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      // Five epic workflows, all unresponsive.
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          for (let i = 0; i < 5; i++) {
+            yield { workflowId: `adv/epic/project-id/wedgedEpic${i}` };
+          }
+        })();
+      });
+      // Each query hangs forever; runTemporalRead caps each at 1500ms.
+      queryMock.mockImplementation(() => new Promise<never>(() => {}));
+
+      const ops = createEpicOps(deps);
+      const start = Date.now();
+      const result = await ops.list({ status: "all" });
+      const elapsed = Date.now() - start;
+
+      // Circuit-breaker trips after K=3 consecutive unresponsive members,
+      // short-circuiting the remaining two. Without the CB, five hanging
+      // queries would each burn the 1500ms per-member cap (>=7500ms) and
+      // exceed the tool budget; with it, only three are attempted.
+      expect(queryMock).toHaveBeenCalledTimes(3);
+      expect(elapsed).toBeLessThan(6_000);
+      // No epic resolved (all unresponsive); result is empty, not a hang.
+      expect(result).toHaveLength(0);
+    }, 15_000);
   });
 
   describe("repairIndex", () => {

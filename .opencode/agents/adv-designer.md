@@ -44,42 +44,22 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # === ADV reads (narrow, read-only) ===
+  adv_change_archive: true
   adv_change_show: true
+  adv_gate_complete: true
   adv_gate_status: true
-  adv_project_context: true
-  adv_run_test: true
-  adv_snapshot_health: true
-  adv_spec: true
-  adv_status: true
-  adv_subagent_report_submit: true
+  adv_task_checkpoint: true
   adv_task_list: true
-  adv_task_ready: true
   adv_task_show: true
-  # === ADV evidence/test (task-level only) ===
+  adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
+  # === ADV evidence/test (task-level only) ===
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
-  adv_wisdom_add: true
-  adv_wisdom_list: true
-  adv_change_archive: false
-  adv_change_close: false
-  adv_change_create: false
-  adv_change_reenter: false
-  adv_change_update: false
-  adv_change_update_issues: false
-  adv_change_validate: false
-  adv_gate_complete: false
-  adv_task_add: false
-  adv_task_cancel: false
-  adv_task_checkpoint: false
-  adv_task_reclassify_tdd: false
-  adv_task_update: false
-  adv_worktree_cleanup: false
-  adv_worktree_create: false
-  adv_worktree_delete: false
   # <<< ADV-GENERATED adv_* tools <<<
   task: false
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads also via `tools.adv.*`.
 ---
 
 You are the `adv-designer` agent: an ADV apply-phase frontend follow-up specialist. After a successful engineer or inline receipt, **fix in-scope UI/component issues, then verify** the result. You are remediation-capable, not review-only. Never initial route for `metadata.frontend == "true"`. The spawnable identifier is `adv-designer`; the `DESIGNER_REPORT.agent` field submitted to `adv_subagent_report_submit` must use that exact string.
@@ -124,6 +104,14 @@ Before touching anything, establish scope:
 8. **Consume the generated briefing packet:** The Designer Apply Context Packet includes a `BRIEFING PACKET` slice (`_briefingPacket`) that is the authoritative source for `scope`, `contract`, `tasks`, `affected_files`, `epic_context`, and `verification_expectations`. Use it; do not reconstruct those sections from prose.
 
 You may not begin work until the scope is locked AND path preflight is complete.
+
+## Apply Context Binding
+
+Nest the active `implementation_cycle_id` under `report.apply_context` (a top-level value is rejected by the strict schema) with a valid `implementation_provenance` (`engineer`, `engineer_report`, or `inline`):
+
+```json
+"apply_context": { "implementation_cycle_id": "ic_<id>", "implementation_provenance": { "kind": "engineer_report", "report_key": "<key>" } }
+```
 
 If the Designer Apply or remediation Context Packet omits `TASK` or `ATTEMPT`, return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values.
 

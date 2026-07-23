@@ -55,6 +55,7 @@ import {
   createTemporalReadDeadline,
   createTemporalReadContext,
   isTemporalReadExpired,
+  type TemporalReadContext,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
   TemporalQueryTimeoutError,
@@ -271,6 +272,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         cross_project_origin: initialMetadata?.cross_project_origin,
         scope_repos: initialMetadata?.scope_repos,
         epic_membership_seed: epicMembership,
+        same_project_dependencies: initialMetadata?.same_project_dependencies,
       });
 
       // Layer 1 size validation (KD-8 layer 1). Fails fast before any
@@ -350,6 +352,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fast_follow_of: created.data.fast_follow_of,
             cross_project_origin: created.data.cross_project_origin,
             origin: created.data.origin,
+            same_project_dependencies:
+              initialMetadata?.same_project_dependencies ??
+              created.data.same_project_dependencies ??
+              [],
             // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
             // by default. Seed the workflow state with the marker so the
             // first read sees it; lazy migration (A4) covers legacy changes
@@ -395,6 +401,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // disk-first readers (legacy fallback, archive bundle hydration)
         // can reconcile without a workflow query round-trip.
         creation_request_hash: creationRequestHash,
+        same_project_dependencies:
+          initialMetadata?.same_project_dependencies ??
+          created.data.same_project_dependencies ??
+          [],
       };
       try {
         await legacy.changes.save(changeWithOwner);
@@ -638,12 +648,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           : {}),
       };
     },
-    get: async (changeId: string) => {
+    get: async (changeId: string, opts?: { context?: TemporalReadContext }) => {
       // Delegates to the shared orphan-tolerant path so adv_status,
       // adv_change_show, and adv_change_list all behave the same when
       // a workflow is missing: try to re-seed from disk, otherwise
       // return the not-found error.
-      const ctx = createTemporalReadContext();
+      // A caller-supplied context threads the per-request circuit-breaker
+      // across members (e.g. epic convergence), so K unresponsive children
+      // trip the CB once instead of each burning the full per-member budget.
+      const ctx = opts?.context ?? createTemporalReadContext();
       return getTemporalChange(changeId, { context: ctx });
     },
     refresh: async (changeId: string): Promise<void> => {
@@ -657,6 +670,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // signal has already succeeded by the time we get here.
       invalidateChange(changeId);
       await dualWriteAfterMutation(changeId);
+    },
+    invalidate: async (changeId: string): Promise<void> => {
+      // #305: after a direct signal has been confirmed by polling, drop the
+      // cache entry only. A full refresh readback can race with the workflow's
+      // signal-processing loop and return a pre-signal snapshot, which
+      // dualWriteAfterMutation would classify as "confirmed" and re-cache.
+      // invalidate avoids that re-poisoning; the next read misses cache and
+      // queries the workflow fresh.
+      invalidateChange(changeId);
     },
     setEpicMembership: async (
       changeId,

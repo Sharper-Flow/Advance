@@ -6,6 +6,7 @@ import {
   taskUpdatedSignal,
 } from "../temporal/messages";
 import {
+  formatApplyContextBindingHint,
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
@@ -161,6 +162,44 @@ function invalidTaskAnchorOutput(input: {
   );
 }
 
+interface UnrecognizedKeysIssue {
+  code: "unrecognized_keys";
+  keys: string[];
+}
+
+function reportIssuesIncludeTopLevelImplementationCycleId(
+  issues: z.ZodIssue[],
+): boolean {
+  return issues.some((issue) => {
+    if (issue.code === "unrecognized_keys") {
+      const unrecognized = issue as UnrecognizedKeysIssue;
+      if (
+        Array.isArray(unrecognized.keys) &&
+        unrecognized.keys.includes("implementation_cycle_id")
+      ) {
+        return true;
+      }
+    }
+    // Zod invalid_union errors nest candidate issues under `errors` (array of
+    // arrays); only that issue shape carries the union branches to recurse.
+    if (issue.code === "invalid_union") {
+      const nested = (issue as { errors?: z.ZodIssue[][] }).errors;
+      if (Array.isArray(nested)) {
+        return nested.some((branch) =>
+          reportIssuesIncludeTopLevelImplementationCycleId(branch),
+        );
+      }
+    }
+    return false;
+  });
+}
+
+function maybeApplyContextBindingHint(issues: z.ZodIssue[]): string {
+  return reportIssuesIncludeTopLevelImplementationCycleId(issues)
+    ? formatApplyContextBindingHint()
+    : "";
+}
+
 function parseReport(
   rawReport: unknown,
 ):
@@ -168,20 +207,22 @@ function parseReport(
   | { ok: false; code: string; message: string; details?: unknown } {
   const probe = reportAgentProbeSchema.safeParse(rawReport);
   if (!probe.success) {
+    const hint = maybeApplyContextBindingHint(probe.error.issues);
     return {
       ok: false,
       code: "INVALID_REPORT",
-      message: "Invalid sub-agent report payload",
+      message: `Invalid sub-agent report payload${hint}`,
       details: probe.error.issues,
     };
   }
 
   const parsed = ScopedSubagentReportSchema.safeParse(rawReport);
   if (!parsed.success) {
+    const hint = maybeApplyContextBindingHint(parsed.error.issues);
     return {
       ok: false,
       code: "INVALID_REPORT",
-      message: "Invalid sub-agent report payload",
+      message: `Invalid sub-agent report payload${hint}`,
       details: parsed.error.issues,
     };
   }

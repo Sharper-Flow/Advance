@@ -33,103 +33,39 @@ tools:
   # === ADV tools — full suite for 7-gate orchestration ===
   # Specs + project context
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
-  adv_archive_purge: true
-  adv_backlog_add: true
-  adv_backlog_archive: true
-  adv_backlog_list: true
-  adv_backlog_promote: true
-  adv_backlog_show: true
-  # Roadmap
+  adv_*: false
   adv_change_archive: true
-  adv_change_bulk_close: true
   adv_change_close: true
   adv_change_create: true
   adv_change_list: true
-  adv_change_reenter: true
-  # Changes
-  adv_change_repair_origin: true
   adv_change_show: true
+  # Roadmap
   adv_change_update: true
-  adv_change_update_issues: true
-  adv_change_validate: true
-  adv_change_workflow_terminate: true
-  adv_conformance: true
-  adv_contract_mint: true
-  adv_contract_review_matrix_set: true
-  adv_delta_add: true
-  adv_delta_amend: true
-  adv_delta_list: true
-  adv_delta_modify: true
-  adv_delta_remove: true
-  adv_delta_rename: true
-  adv_delta_retract: true
-  adv_delta_show: true
-  adv_design_concern_disposition: true
-  adv_doctor: true
-  # Tasks
-  adv_epic_add_shell: true
-  adv_epic_create: true
-  adv_epic_link_change: true
-  adv_epic_list: true
-  adv_epic_move_change: true
-  adv_epic_promote_shell: true
-  adv_epic_reorder: true
-  adv_epic_retire: true
-  # Wisdom
-  adv_epic_show: true
-  adv_epic_unlink_change: true
-  # Gates
-  adv_epic_update: true
-  adv_followup_promote: true
   adv_gate_complete: true
   adv_gate_status: true
-  adv_lightweight_profile_evaluate: true
-  adv_ops_evidence_add: true
-  # Sub-agent reports
-  adv_ops_run_evidence_add: true
-  # Ops follow-ups
-  adv_ops_run_upsert: true
-  adv_project_context: true
-  adv_project_metadata: true
-  adv_reflect: true
-  adv_reflection_list: true
-  # Temporal / workflow ops
-  adv_report_followup_promote: true
   adv_run_test: true
-  adv_session_list: true
-  adv_session_show: true
-  # Store maintenance (operator-only)
-  adv_snapshot_health: true
-  adv_spec: true
-  # Snapshot health diagnostics
-  adv_status: true
-  # Reflection
-  adv_store_cleanup: true
-  adv_store_consolidate: true
-  adv_subagent_report_submit: true
-  # Project metadata
   adv_task_add: true
-  adv_task_cancel: true
-  # === Epics — optional initiative containers ===
   adv_task_checkpoint: true
+  # Changes
   adv_task_list: true
   adv_task_ready: true
-  adv_task_reclassify_tdd: true
   adv_task_show: true
   adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
   adv_tool_invoke: true
-  adv_verification_evidence_disposition: true
-  adv_wip_state: true
-  adv_wisdom_add: true
-  adv_wisdom_list: true
+  # Tasks
+  # Wisdom
+  # Gates
+  # Sub-agent reports
+  # Ops follow-ups
+  # Temporal / workflow ops
+  # Store maintenance (operator-only)
+  # Snapshot health diagnostics
+  # Reflection
+  # Project metadata
+  # === Epics — optional initiative containers ===
   # === Worktree — orchestrator owns lifecycle ===
-  adv_worktree_cleanup: true
-  adv_worktree_create: true
-  adv_worktree_delete: true
-  adv_worktree_resume: true
-  adv_worktree_triage: true
   # <<< ADV-GENERATED adv_* tools <<<
   # === Research MCP tools ===
   context7_*: true
@@ -391,6 +327,6 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 
 **NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool: change.json/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance artifacts under `~/.local/share/opencode/plugins/advance/**` (legacy agenda), or locked sibling conformance dirs (`advance-conformance-{pid}/`). Path guards also block glob/grep/lgrep on locked sibling paths.
 
-**ALWAYS** use ADV tools: change details/context → `adv_change_show`; task → `adv_task_show`; ready/all tasks → `adv_task_ready`/`adv_task_list`; active changes → `adv_change_list`; validation → `adv_change_validate`; wisdom → `adv_wisdom_list`; conformance → `adv_conformance action: "status"`.
+**ALWAYS** use ADV tools: change details/context → `adv_change_show`; task → `adv_task_show`; ready/all tasks → `adv_task_ready`/`adv_task_list`; active changes → `adv_change_list`; validation → `adv_change_validate`; wisdom → `adv_wisdom_list`; conformance → `adv_conformance action: "status"`. Tools not in the manifest surface above are Tier 3 (invoke-only) — dispatch them through `adv_tool_invoke({name, args})`, which preserves validation, authorization, approvals, and recovery enforcement. Use `adv_tool_catalog` to discover available tools and `adv_tool_describe` for their schemas.
 
 If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead. Artifact content comes from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet inline content, not `artifacts.*.path` unless explicitly `readable:true`.

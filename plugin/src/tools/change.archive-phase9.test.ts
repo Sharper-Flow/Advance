@@ -243,6 +243,7 @@ function createMockStore(
       close: vi.fn(),
       closeBatch: vi.fn(),
       refresh: vi.fn(async () => undefined),
+      invalidate: vi.fn(async () => undefined),
     } as Store["changes"],
     tasks: {} as Store["tasks"],
     wisdom: {} as Store["wisdom"],
@@ -555,6 +556,209 @@ describe("adv_change_archive Phase 9 behavior", () => {
     }
   });
 
+  describe("disk-fallback shipped reconciliation (fixDurableProofFallback)", () => {
+    // When the workflow has terminated, store.gates.get() returns a stale
+    // pending release gate and archive drops to the disk-fallback path. A
+    // shipped change whose disk release gate was recovered (recovery_audit
+    // reason = completed_workflow_release_gate_recovery) but whose evidence
+    // text does NOT substring-match the freshly computed finalization evidence
+    // must still be accepted when finalizationStatus === "shipped".
+    const structuredEvidence =
+      "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=NEWBUNDLE999";
+
+    async function makeDiskFallbackStore(input: {
+      releaseGate: Gates["release"];
+    }): Promise<{ store: Store; cleanup: () => Promise<void> }> {
+      const tmp = await mkdtemp(join(tmpdir(), "adv-durable-proof-fallback-"));
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "example");
+      await mkdir(changeDir, { recursive: true });
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: input.releaseGate,
+      } as Gates;
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify(
+          {
+            id: "example",
+            title: "Example",
+            status: "archived",
+            created_at: "2026-01-01T00:00:00Z",
+            created_by: "test",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates,
+          },
+          null,
+          2,
+        ),
+      );
+      // Store gate read is stale (release pending) → forces disk fallback.
+      const store = {
+        paths: { changes: changesDir },
+        gates: {
+          get: async () => ({
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "done" },
+            execution: { status: "done" },
+            acceptance: { status: "done" },
+            release: { status: "pending" },
+          }),
+        },
+      } as unknown as Store;
+      return {
+        store,
+        cleanup: () => rm(tmp, { recursive: true, force: true }),
+      };
+    }
+
+    test("AC1: shipped + release-recovery provenance + non-matching evidence → accepted", async () => {
+      const { store, cleanup } = await makeDiskFallbackStore({
+        releaseGate: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "adv-archive",
+          recovery_audit: {
+            reason: "completed_workflow_release_gate_recovery",
+            evidence:
+              "workflow execution already completed | STALE OLD EVIDENCE",
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        } as Gates["release"],
+      });
+      try {
+        const proof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId: "example",
+          evidence: structuredEvidence,
+          finalizationStatus: "shipped",
+        });
+        expect(proof.ok).toBe(true);
+      } finally {
+        await cleanup();
+      }
+    });
+
+    test("AC2a: NOT shipped + non-matching evidence → blocked", async () => {
+      const { store, cleanup } = await makeDiskFallbackStore({
+        releaseGate: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "adv-archive",
+          recovery_audit: {
+            reason: "completed_workflow_release_gate_recovery",
+            evidence:
+              "workflow execution already completed | STALE OLD EVIDENCE",
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        } as Gates["release"],
+      });
+      try {
+        const proof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId: "example",
+          evidence: structuredEvidence,
+          finalizationStatus: "blocked",
+        });
+        expect(proof.ok).toBe(false);
+      } finally {
+        await cleanup();
+      }
+    });
+
+    // The exact live-repro case: a terminated-workflow release gate recovered
+    // through generic adv_gate_complete recovery is stamped with reason
+    // "missing_workflow", not the archive's own recovery reason. It MUST be
+    // accepted under shipped (bounded release-recovery allowlist).
+    test("AC1b (live repro): shipped + missing_workflow recovery + non-matching evidence → accepted", async () => {
+      const { store, cleanup } = await makeDiskFallbackStore({
+        releaseGate: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "agent",
+          recovery_audit: {
+            reason: "missing_workflow",
+            evidence:
+              "WorkflowNotFoundError: workflow execution already completed",
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        } as Gates["release"],
+      });
+      try {
+        const proof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId: "example",
+          evidence: structuredEvidence,
+          finalizationStatus: "shipped",
+        });
+        expect(proof.ok).toBe(true);
+      } finally {
+        await cleanup();
+      }
+    });
+
+    test("AC1c: shipped + poisoned_history recovery + non-matching evidence → accepted", async () => {
+      const { store, cleanup } = await makeDiskFallbackStore({
+        releaseGate: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "agent",
+          recovery_audit: {
+            reason: "poisoned_history",
+            evidence: "poisoned history recovery",
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        } as Gates["release"],
+      });
+      try {
+        const proof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId: "example",
+          evidence: structuredEvidence,
+          finalizationStatus: "shipped",
+        });
+        expect(proof.ok).toBe(true);
+      } finally {
+        await cleanup();
+      }
+    });
+
+    test("AC2b (forge guard): shipped + unknown (non-allowlisted) recovery reason + non-matching evidence → blocked", async () => {
+      const { store, cleanup } = await makeDiskFallbackStore({
+        releaseGate: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "adv-archive",
+          recovery_audit: {
+            reason: "forged_unrecognized_reason",
+            evidence: "forged | STALE OLD EVIDENCE",
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        } as Gates["release"],
+      });
+      try {
+        const proof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId: "example",
+          evidence: structuredEvidence,
+          finalizationStatus: "shipped",
+        });
+        expect(proof.ok).toBe(false);
+      } finally {
+        await cleanup();
+      }
+    });
+  });
+
   describe("finalizationShipped reconciliation (fixReleaseDurabilityFalse)", () => {
     const structuredEvidence =
       "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
@@ -590,7 +794,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         store,
         changeId: "example",
         evidence: structuredEvidence,
-        finalizationShipped: true,
+        finalizationStatus: "shipped",
       });
       expect(proof.ok).toBe(true);
     });
@@ -603,7 +807,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         store,
         changeId: "example",
         evidence: structuredEvidence,
-        finalizationShipped: false,
+        finalizationStatus: "blocked",
       });
       expect(proof.ok).toBe(false);
       expect(proof).toMatchObject({
@@ -619,7 +823,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         store,
         changeId: "example",
         evidence: structuredEvidence,
-        finalizationShipped: false,
+        finalizationStatus: "blocked",
       });
       expect(proof.ok).toBe(true);
     });
@@ -633,7 +837,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         changeId: "example",
         evidence:
           "Phase 9 finalization shipped; mergeCommitSha=NEWBUNDLEMERGE222",
-        finalizationShipped: true,
+        finalizationStatus: "shipped",
       });
       expect(proof.ok).toBe(true);
     });
@@ -1176,6 +1380,69 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
     expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
     expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("treats an audited disk proof as recovery and never signals the terminated workflow", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "adv-archive-disk-proof-retry-"));
+    const changesDir = join(tmp, "changes");
+    const changeDir = join(changesDir, "example");
+    const bundleDir = join(tmp, "archive", "example");
+
+    try {
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify({
+          id: "example",
+          title: "Example",
+          status: "archived",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "done" },
+            execution: { status: "done" },
+            acceptance: { status: "done" },
+            release: {
+              status: "done",
+              completed_at: "2026-01-01T00:00:00Z",
+              completed_by: "agent",
+              recovery_audit: {
+                reason: "missing_workflow",
+                evidence:
+                  "WorkflowNotFoundError: workflow execution already completed",
+                recovered_at: "2026-01-01T00:00:01Z",
+              },
+            },
+          },
+        }),
+      );
+      mocks.findArchiveBundle.mockResolvedValue(bundleDir);
+      const store = createMockStore({
+        status: "archived",
+        durableReleasePending: true,
+      });
+      store.paths.changes = changesDir;
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "example" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.saveRecoveredGateCompletion).not.toHaveBeenCalled();
+      expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 
   test("recovers release projection when workflow completes during confirmation poll", async () => {

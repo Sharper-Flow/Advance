@@ -7,7 +7,8 @@ export type StatusRecommendationKind =
   | "release_ready"
   | "cleanup"
   | "health"
-  | "blocked_or_stuck";
+  | "blocked_or_stuck"
+  | "resume";
 
 export type StatusRecommendationPriority =
   | "critical"
@@ -23,7 +24,8 @@ export type StatusRecommendationSource =
   | "health"
   | "branch_hygiene"
   | "release_readiness"
-  | "resume_freshness";
+  | "resume_freshness"
+  | "resume_projection";
 
 export interface StatusRecommendationItem {
   kind: StatusRecommendationKind;
@@ -66,6 +68,7 @@ export const STATUS_RECOMMENDATION_KIND_ORDER: StatusRecommendationKind[] = [
   "release_ready",
   "clarify",
   "next_gate",
+  "resume",
   "cleanup",
   "stale",
 ];

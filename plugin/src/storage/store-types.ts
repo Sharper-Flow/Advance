@@ -38,8 +38,10 @@ import type {
   EpicChangeRef,
   EpicMembershipStatus,
   RetiredEpicProjection,
+  WorkNodeRef,
 } from "../types";
 import type { GateProgress } from "./store-temporal-memo";
+import type { TemporalReadContext } from "./store-temporal/read-context";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
 
@@ -133,6 +135,7 @@ export interface ChangeCreateInitialMetadata {
   cross_project_origin?: Change["cross_project_origin"];
   scope_repos?: Change["scope_repos"];
   epic_membership?: Change["epic_membership"];
+  same_project_dependencies?: Change["same_project_dependencies"];
 }
 
 export interface ChangeCreateOptions {
@@ -229,7 +232,10 @@ export interface Store {
        */
       validationConcurrency?: number;
     }) => Promise<ChangeListResponse>;
-    get: (changeId: string) => Promise<LoadResult<Change | null>>;
+    get: (
+      changeId: string,
+      opts?: { context?: TemporalReadContext },
+    ) => Promise<LoadResult<Change | null>>;
     /**
      * Create a new change. Options-object API — single typed call shape:
      *
@@ -284,6 +290,14 @@ export interface Store {
      * blocked archive even though the workflow gate was already done.
      */
     refresh: (changeId: string) => Promise<void>;
+    /**
+     * Drop the in-memory change cache entry without issuing a readback query
+     * or disk write. The next read will query the workflow fresh. Use this
+     * when the caller has already confirmed the authoritative workflow state
+     * (e.g., after polling confirms a signal was applied) and a refresh's
+     * readback could race and re-poison the cache with a stale snapshot.
+     */
+    invalidate: (changeId: string) => Promise<void>;
     setEpicMembership: (
       changeId: string,
       input: {
@@ -531,6 +545,8 @@ export interface Store {
         successHint: string;
         order?: number;
         importedFrom?: { backlog_id: string; imported_at: string };
+        blockedBy?: WorkNodeRef[];
+        context_packet?: import("../types/future-work").FutureWorkContextPacket;
       },
     ) => Promise<EpicEntry>;
     promoteShell: (

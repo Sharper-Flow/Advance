@@ -7,6 +7,7 @@ import type { WorkflowDirective } from "../utils/workflow-directive";
 import {
   applyCandidateEnrichmentPatches,
   appendResumeFreshnessRecommendation,
+  appendResumeProjectionRecommendations,
   buildCandidateEnrichmentPatch,
   buildNextGateRecommendationFromDirective,
   enrichRecentChangeStatus,
@@ -832,5 +833,170 @@ describe("appendResumeFreshnessRecommendation", () => {
     expect(msg).not.toMatch(/button-click/i);
     expect(action).not.toMatch(/one-click/i);
     expect(action).not.toMatch(/button-click/i);
+  });
+});
+
+// =============================================================================
+// Resume projection recommendation integration (AC9)
+// =============================================================================
+
+describe("appendResumeProjectionRecommendations", () => {
+  function mockStore(overrides: {
+    changes?: Change[];
+    epics?: Array<{ id: string; title: string; entries: unknown[] }>;
+  }): Store {
+    const changes = overrides.changes ?? [];
+    const epics = overrides.epics ?? [];
+    return {
+      paths: { external: "/tmp/proj" },
+      changes: {
+        list: async () => ({
+          changes: changes.map((c) => ({ ...c, recency: "hot" as const })),
+        }),
+        get: async (id: string) => {
+          const change = changes.find((c) => c.id === id);
+          return change
+            ? { success: true as const, data: change, source: "test" as const }
+            : {
+                success: false as const,
+                error: "not found",
+                type: "not_found" as const,
+              };
+        },
+      },
+      epics: {
+        list: async () => epics,
+      },
+    } as unknown as Store;
+  }
+
+  it("emits resume recommendations for an unblocked ready shell", async () => {
+    const store = mockStore({
+      changes: [],
+      epics: [
+        {
+          id: "epicReady",
+          title: "Ready Epic",
+          entries: [
+            {
+              kind: "shell",
+              entry_id: "shell-1",
+              order: 0,
+              title: "First shell",
+              success_hint: "do it",
+              blocked_by: [],
+            },
+          ],
+        },
+      ],
+    });
+
+    const target: StatusRecommendationCarrier = { recommendations: [] };
+    await appendResumeProjectionRecommendations(store, target, {
+      projectId: "proj",
+    });
+
+    expect(target.recommendations.length).toBeGreaterThan(0);
+    expect(
+      target.recommendation_items?.some(
+        (r) => r.source === "resume_projection",
+      ),
+    ).toBe(true);
+    expect(target.recommendation_items?.some((r) => r.kind === "resume")).toBe(
+      true,
+    );
+  });
+
+  it("emits a blocked resume recommendation when a shell has a nonterminal prereq", async () => {
+    const store = mockStore({
+      changes: [
+        {
+          ...resolvedChange("changeA"),
+          status: "active",
+          lifecycleState: "open",
+          same_project_dependencies: [],
+        },
+      ],
+      epics: [
+        {
+          id: "epicBlocked",
+          title: "Blocked Epic",
+          entries: [
+            {
+              kind: "shell",
+              entry_id: "shell-1",
+              order: 0,
+              title: "Blocked shell",
+              success_hint: "do it",
+              blocked_by: [{ kind: "change", change_id: "changeA" }],
+            },
+          ],
+        },
+      ],
+    });
+
+    const target: StatusRecommendationCarrier = { recommendations: [] };
+    await appendResumeProjectionRecommendations(store, target, {
+      projectId: "proj",
+    });
+
+    const items = target.recommendation_items ?? [];
+    expect(items.some((r) => r.source === "resume_projection")).toBe(true);
+    expect(
+      items.some(
+        (r) =>
+          r.source === "resume_projection" &&
+          (r.title.includes("blocked") || r.title.includes("Blocked")),
+      ),
+    ).toBe(true);
+  });
+
+  it("fetches nonterminal changes concurrently with bounded concurrency", async () => {
+    const changes = Array.from({ length: 10 }, (_, i) => ({
+      ...resolvedChange(`change-${i}`),
+      status: "active" as const,
+      lifecycleState: "open" as const,
+      same_project_dependencies: [],
+    }));
+    const store = mockStore({ changes });
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const originalGet = store.changes.get;
+    store.changes.get = async (id: string) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return originalGet(id);
+    };
+
+    const target: StatusRecommendationCarrier = { recommendations: [] };
+    await appendResumeProjectionRecommendations(store, target, {
+      projectId: "proj",
+    });
+
+    expect(maxInFlight).toBeGreaterThan(1);
+    expect(maxInFlight).toBeLessThanOrEqual(8);
+    expect(inFlight).toBe(0);
+  });
+
+  it("is advisory: failures do not throw", async () => {
+    const store = {
+      paths: { external: "/tmp/proj" },
+      changes: {
+        list: () => Promise.reject(new Error("store unavailable")),
+      },
+      epics: {
+        list: async () => [],
+      },
+    } as unknown as Store;
+
+    const target: StatusRecommendationCarrier = { recommendations: [] };
+    await expect(
+      appendResumeProjectionRecommendations(store, target, {
+        projectId: "proj",
+      }),
+    ).resolves.toBeUndefined();
+    expect(target.recommendations).toEqual([]);
   });
 });

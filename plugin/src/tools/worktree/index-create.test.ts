@@ -96,9 +96,10 @@ import {
 import { runHooksWithSafety } from "./hooks";
 import {
   worktreeCreatedSignal,
+  worktreeRegistrationRepairedSignal,
   worktreeSetupFailedSignal,
 } from "../../temporal/messages";
-import { getWorktreePath } from "./state";
+import { getWorktreePath, worktreeExistsForChange } from "./state";
 
 const isLinux = process.platform === "linux";
 
@@ -230,6 +231,109 @@ describe.skipIf(!isLinux)(
       expect(resolveDefaultBranch).not.toHaveBeenCalled();
       expect(detectStaleBasis).not.toHaveBeenCalled();
       expect(workflowExecuteUpdate).not.toHaveBeenCalled();
+    });
+
+    it("repairs an absent workflow registration after reusing a disk worktree", async () => {
+      const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-repair-"));
+      rmSync(existingPath, { recursive: true, force: true });
+      cleanupPaths.push(existingPath);
+      execSync(`git worktree add -b change/repair ${existingPath} main`, {
+        cwd: repoRoot,
+      });
+
+      const liveState = {
+        changeId: "repair",
+        worktrees: {} as Record<string, unknown>,
+      };
+      workflowQuery.mockResolvedValue(liveState);
+      workflowSignal.mockImplementation(async (signal, payload) => {
+        if (signal !== worktreeRegistrationRepairedSignal) return;
+        liveState.worktrees[payload.branch] = {
+          branch: payload.branch,
+          path: payload.path,
+          materialized: true,
+          changeId: liveState.changeId,
+          status: "created",
+          createdAt: payload.repairedAt,
+          lastSeenAt: payload.repairedAt,
+          baseRef: payload.baseRef,
+          headSha: payload.headSha,
+          source: "tool",
+          sourceVersion: 1,
+          setupReady: true,
+        };
+      });
+      const deps = createMockDeps(repoRoot);
+
+      const result = await advWorktreeCreate("change/repair", {}, deps);
+
+      expect(result).toMatchObject({ ok: true, reused: true });
+      expect(workflowSignal).toHaveBeenCalledWith(
+        worktreeRegistrationRepairedSignal,
+        expect.objectContaining({
+          branch: "change/repair",
+          path: existingPath,
+          baseRef: "existing",
+          headSha: expect.any(String),
+          repairedAt: expect.any(String),
+        }),
+      );
+      await expect(
+        worktreeExistsForChange(deps.database, "repair"),
+      ).resolves.toBe(true);
+    });
+
+    it("skips repair for an existing ready record and preserves reuse when delivery fails", async () => {
+      const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-repair-ready-"));
+      rmSync(existingPath, { recursive: true, force: true });
+      cleanupPaths.push(existingPath);
+      execSync(`git worktree add -b change/repair-ready ${existingPath} main`, {
+        cwd: repoRoot,
+      });
+
+      const readyState = {
+        changeId: "repair-ready",
+        worktrees: {
+          "change/repair-ready": {
+            branch: "change/repair-ready",
+            path: existingPath,
+            materialized: true,
+            changeId: "repair-ready",
+            status: "created",
+            createdAt: "2026-05-21T03:40:00.000Z",
+            lastSeenAt: "2026-05-21T03:40:00.000Z",
+            baseRef: "main",
+            headSha: "abc1234",
+            source: "tool",
+            sourceVersion: 1,
+            setupReady: true,
+          },
+        },
+      };
+      workflowQuery.mockResolvedValue(readyState);
+      const readyResult = await advWorktreeCreate(
+        "change/repair-ready",
+        {},
+        createMockDeps(repoRoot),
+      );
+      expect(readyResult).toMatchObject({ ok: true, reused: true });
+      expect(workflowSignal).not.toHaveBeenCalled();
+
+      const failedPath = mkdtempSync(join(tmpdir(), "adv-wt-repair-failed-"));
+      rmSync(failedPath, { recursive: true, force: true });
+      cleanupPaths.push(failedPath);
+      execSync(`git worktree add -b change/repair-failed ${failedPath} main`, {
+        cwd: repoRoot,
+      });
+      workflowQuery.mockResolvedValue({
+        changeId: "repair-failed",
+        worktrees: {},
+      });
+      workflowSignal.mockRejectedValueOnce(new Error("worker unavailable"));
+
+      await expect(
+        advWorktreeCreate("change/repair-failed", {}, createMockDeps(repoRoot)),
+      ).resolves.toMatchObject({ ok: true, reused: true });
     });
 
     it("blocks an existing git worktree when another active change owns the branch", async () => {

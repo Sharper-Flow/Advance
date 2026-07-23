@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-07-23T17:57:53.789Z",
+  "capabilities": [],
+  "change_hash": "1a9fe6f6210eee9e40b331a1018fe0493dbd1c9b9e6f6a47686f9583949f9a26",
+  "change_id": "addDurableChangeSeeds",
+  "completed_tasks": 7,
+  "created_at": "2026-07-22T19:59:10.640Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784750365239-3rfbgv",
+    "epic_id": "systemizeAdvOrchestration",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-22T19:59:25.239Z",
+    "order": 13,
+    "source": "link_existing",
+    "title": "Add durable change seeds"
+  },
+  "last_activity_at": "2026-07-23T17:52:19.395Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "e78a03ebe16927d86468c5612cbc7b8d00a411c016fd67ba383103e432fcbc15",
+  "task_count": 7,
+  "title": "Add durable change seeds",
+  "version": "1"
+}

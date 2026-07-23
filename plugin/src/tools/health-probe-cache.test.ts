@@ -242,4 +242,19 @@ describe("queue serviceability input isolation", () => {
     expect(result.outcome).toBe("not_admitted");
     expect(result.evidence).toMatch(/temporal/i);
   });
+
+  test("degraded Temporal health is still usable for queue serviceability", async () => {
+    const result = await getQueueServiceability({
+      projectId: "project-a",
+      health: {
+        ...buildUnusableTemporalHealth(),
+        server_alive: false,
+        worker_alive: true,
+        worker_process_alive: true,
+        probe_degraded: true,
+      },
+    });
+
+    expect(result.outcome).toBe("ok");
+  });
 });

@@ -1,0 +1,2009 @@
+{
+  "id": "addDurableChangeSeeds",
+  "title": "Add durable change seeds",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-22T19:59:10.640Z",
+  "tasks": [
+    {
+      "id": "tk-649815514f74",
+      "title": "Define FutureWorkContextPacketSchema and extend EpicShellEntrySchema + BacklogItemSchema",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-23T15:22:15.385Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "SC1"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addDurableChangeSeeds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDurableChangeSeeds",
+          "task_id": "tk-649815514f74",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-649815514f74"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/types/future-work.ts",
+            "plugin/src/types/future-work.test.ts",
+            "plugin/src/types/epics.ts",
+            "plugin/src/types/backlog.ts",
+            "plugin/src/types/index.ts",
+            "plugin/schemas/backlog-item.schema.json"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mrxnyu27_135cdd6c",
+              "command": "pnpm exec vitest run src/types/future-work.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: tests fail because FutureWorkContextPacketSchema module does not yet exist"
+            },
+            {
+              "test_run_id": "tr_mrxo0y6o_d1300319",
+              "command": "pnpm exec vitest run src/types/future-work.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN phase: all 8 tests pass"
+            },
+            {
+              "test_run_id": "tr_mrxo3fe0_90cfb9fd",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Full check passes: schemas up to date, typecheck, manifests, test isolation, lockfile policy, lint, prettier"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added FutureWorkContextPacketSchema as a standalone module under types/future-work.ts",
+              "why": "Keeps the new packet type cohesive and lets it be imported by epics, backlog, and the barrel without cycles"
+            },
+            {
+              "what": "Regenerated JSON schemas after modifying BacklogItemSchema",
+              "why": "Project requires tracked generated schemas to stay in sync with Zod source; pnpm run check enforces this"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "FutureWorkContextPacketSchema is implemented and attached to EpicShellEntrySchema and BacklogItemSchema as an optional context_packet. Backward compatibility is verified (entries/items without context_packet still parse). Bounds tests pass. Generated backlog-item.schema.json was refreshed and pnpm run check is green.",
+            "suggested_next_action": "Proceed to the next task in the execution gate; no blockers."
+          }
+        }
+      ],
+      "verification": "8 RED→GREEN tests pass (future-work.test.ts). pnpm run check green. FutureWorkContextPacketSchema defined, EpicShellEntrySchema + BacklogItemSchema extended with optional context_packet, re-exported from types/index.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/backlog-item.schema.json",
+        "plugin/src/types/backlog.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/types/future-work.test.ts",
+        "plugin/src/types/future-work.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/backlog-item.schema.json",
+        "plugin/src/types/backlog.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/types/future-work.test.ts",
+        "plugin/src/types/future-work.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "6c4b71570c410fc3f7447500db61694557a6dbe8",
+      "completedAt": "2026-07-23T15:30:38.154Z",
+      "completed_at": "2026-07-23T15:30:38.154Z"
+    },
+    {
+      "id": "tk-c59149a602d5",
+      "title": "Create validation utility for context packets",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-23T15:22:32.710Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-649815514f74"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "C1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T15:55:29.893Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addDurableChangeSeeds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/addDurableChangeSeeds",
+          "task_id": "tk-c59149a602d5",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-c59149a602d5"
+          },
+          "agent": "adv-engineer",
+          "status": "error",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "workdir-preflight-fail",
+              "command": "test -d /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/addDurableChangeSeeds",
+              "exit_code": 1,
+              "summary": "Working directory does not exist; cannot proceed."
+            }
+          ],
+          "decisions": [],
+          "blockers": [
+            {
+              "what": "Working directory disappeared",
+              "diagnosis": "Path /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/addDurableChangeSeeds does not exist. Cannot read type files or create util/test files."
+            }
+          ],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [
+            "Restore or recreate the ADV worktree for change addDurableChangeSeeds and re-spawn adv-engineer on task tk-c59149a602d5."
+          ],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "The provided WORKING DIRECTORY does not exist; filesystem access failed before any code changes.",
+            "suggested_next_action": "Re-create the worktree and retry task tk-c59149a602d5."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: workdir-preflight-fail"
+            }
+          ]
+        }
+      ],
+      "error_recovery": {
+        "last_error": "Working directory disappeared",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Working directory disappeared",
+            "diagnosis": "Path /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/addDurableChangeSeeds does not exist. Cannot read type files or create util/test files.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-engineer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-07-23T16:22:09.300Z"
+          }
+        ]
+      },
+      "verification": "RED→GREEN + files",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/context-packet-validation.test.ts",
+        "plugin/src/utils/context-packet-validation.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/context-packet-validation.test.ts",
+        "plugin/src/utils/context-packet-validation.ts"
+      ],
+      "checkpointSha": "333109e55091a86bb717064d5bc23c3b230181ea",
+      "completedAt": "2026-07-23T16:26:59.623Z",
+      "completed_at": "2026-07-23T16:26:59.623Z"
+    },
+    {
+      "id": "tk-947e389cdd48",
+      "title": "Extend bin/adv roadmap with future-work rows",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T15:22:56.359Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-649815514f74"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "bun test bin/ passes (300 tests, 0 failures). bin/lib/roadmap.test.ts covers shell [ctx] markers, backlog section, and packet-content non-disclosure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/__tests__/backlog-epic-bridge.test.ts",
+        "plugin/src/__tests__/backlog-shell.test.ts",
+        "plugin/src/temporal/epic-state.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/__tests__/backlog-epic-bridge.test.ts",
+        "plugin/src/__tests__/backlog-shell.test.ts",
+        "plugin/src/temporal/epic-state.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "72c2a8393c05a6e1c6a49d4333e421c4bbccb6d6",
+      "completedAt": "2026-07-23T16:38:53.627Z",
+      "completed_at": "2026-07-23T16:38:53.627Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addDurableChangeSeeds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+          "task_id": "tk-947e389cdd48",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-947e389cdd48"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "bin/lib/roadmap.ts",
+            "bin/lib/roadmap.test.ts",
+            "bin/adv",
+            "bin/adv.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "bin-test-suite-2026-07-23",
+              "command": "bun test bin/",
+              "exit_code": 0,
+              "summary": "300 pass, 0 fail, 1374 expect() calls; covers shell/backlog [ctx] marker behavior"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Verified existing implementation rather than rewriting",
+              "why": "The bin/adv roadmap command, bin/lib/roadmap.ts, and bin/lib/roadmap.test.ts were already present at HEAD from the prior checkpoint (ee1d86c2). No diff was required. I verified the behavior with unit tests and a live CLI query against the systemizeAdvOrchestration Epic."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "plugin/src/__tests__/backlog-shell.test.ts",
+              "plugin/src/__tests__/backlog-epic-bridge.test.ts",
+              "plugin/src/temporal/epic-state.ts",
+              "plugin/src/tools/epic.test.ts",
+              "plugin/src/types/signals.ts"
+            ],
+            "details": "adv_task_checkpoint committed dirty plugin files under this task's checkpoint because the bin files were already clean in HEAD. Those plugin changes belong to earlier tasks in the same change and were not part of this task's scoped bin-only work.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Review checkpoint commit 72c2a8393c05a6e1c6a49d4333e421c4bbccb6d6 to confirm the plugin files should remain in this task's checkpoint or be split/reverted.",
+            "Address pre-existing plugin lint/format issues that block `pnpm run check`: plugin/src/utils/context-packet-validation.test.ts has unused `i` vars; several plugin/src files fail Prettier formatting. These are outside the current task scope."
+          ],
+          "required_main_agent_actions": [
+            "Review the checkpoint commit and decide whether the plugin files should stay in this task's checkpoint."
+          ],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC6 is satisfied: `bin/adv roadmap <epic-id>` renders Epic shell rows with `[ctx]` when a non-empty context_packet is present, renders a `## Backlog` section for active repo backlog items with `[ctx]` markers, and never dumps packet contents. bin/lib/roadmap.test.ts covers the marker behavior. Full `bun test bin/` passes. The checkpoint tool committed unrelated dirty plugin files because the bin implementation was already committed; review needed.",
+            "suggested_next_action": "Review checkpoint 72c2a8393c05a6e1c6a49d4333e421c4bbccb6d6 and proceed to the next task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bin-test-suite-2026-07-23"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-5db2144410df",
+      "title": "Add future_work section to adv_status MCP output",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T15:22:56.363Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-649815514f74"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "SC3"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "pnpm exec vitest run src/tools/status.test.ts passed (60/60); future_work projection tests added for summary/health/hygiene views",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/roadmap.test.ts",
+        "bin/lib/roadmap.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/backlog-shell.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/status-view.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/backlog-store.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/roadmap.test.ts",
+        "bin/lib/roadmap.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/backlog-shell.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/status-view.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/backlog-store.ts"
+      ],
+      "checkpointSha": "ee1d86c212e00e541959ac9ce8cee06fa3825bd5",
+      "completedAt": "2026-07-23T16:34:23.929Z",
+      "completed_at": "2026-07-23T16:34:23.929Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addDurableChangeSeeds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+          "task_id": "tk-5db2144410df",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5db2144410df"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/status.ts",
+            "plugin/src/tools/status-view.ts",
+            "plugin/src/tools/status.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "vitest-status-test-tk-5db2144410df",
+              "command": "pnpm exec vitest run src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "All 60 tests pass, including 3 new future_work projection tests"
+            },
+            {
+              "test_run_id": "tsc-status-tk-5db2144410df",
+              "command": "pnpm exec tsc --noEmit",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes with no errors"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Queried active Epics only for future_work shells",
+              "why": "Future-work inventory is semantically active work; archived/merged Epics should not surface future shells"
+            },
+            {
+              "what": "Included future_work in summary, health, and hygiene views; omitted from changes view",
+              "why": "Matches peer overview-section projection patterns (terminal_cleanup_retained) and keeps the changes view focused on active changes"
+            },
+            {
+              "what": "Wrapped Epic and backlog reads in best-effort try/catch",
+              "why": "Status must remain available even if optional future-work data sources fail"
+            },
+            {
+              "what": "Defined has_context_packet as Object.keys(packet).length > 0",
+              "why": "Task requires non-empty context_packet; an empty object is not a meaningful packet"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Checkpoint adv_task_checkpoint committed all dirty files in the worktree, not only the three files staged for this task. Other touched files (bin/adv, bin/lib/roadmap.*, plugin/src/storage/store-types.ts, plugin/src/tools/backlog-shell.ts, plugin/src/tools/epic.ts, plugin/src/utils/backlog-store.ts) belong to parallel tasks in the same change."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC5 future_work projection is implemented in adv_status. Summary/health/hygiene views now include future_work: { shells, backlog } with id/title/has_context_packet. Tests pass (60/60). adv_task_checkpoint committed the entire dirty worktree (including parallel-task files) under sha ee1d86c.",
+            "suggested_next_action": "Continue with remaining addDurableChangeSeeds tasks; review the checkpoint diff if parallel-task isolation is a concern"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: vitest-status-test-tk-5db2144410df"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tsc-status-tk-5db2144410df"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-07ff92e24f08",
+      "title": "Add context_packet input to adv_epic_add_shell and adv_backlog_add",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-23T15:22:56.386Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c59149a602d5"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "SC1"
+        ],
+        "respects": [
+          "DONT5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "TDD GREEN: pnpm exec vitest run src/__tests__/backlog-shell.test.ts src/tools/epic.test.ts src/__tests__/backlog-epic-bridge.test.ts src/utils/context-packet-validation.test.ts (99 passed); pnpm run typecheck; pnpm run schemas:check; pnpm run lint",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/tools/backlog-shell.ts",
+        "plugin/src/utils/context-packet-validation.test.ts",
+        "plugin/src/utils/context-packet-validation.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/tools/backlog-shell.ts",
+        "plugin/src/utils/context-packet-validation.test.ts",
+        "plugin/src/utils/context-packet-validation.ts"
+      ],
+      "checkpointSha": "41aa903e919fe8f195a72b9ead2ace84b4f87fe2",
+      "completedAt": "2026-07-23T16:43:47.041Z",
+      "completed_at": "2026-07-23T16:43:47.041Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addDurableChangeSeeds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+          "task_id": "tk-07ff92e24f08",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-07ff92e24f08"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/storage/store-temporal/epics.ts",
+            "plugin/src/tools/backlog-shell.ts",
+            "plugin/src/utils/context-packet-validation.test.ts",
+            "plugin/src/utils/context-packet-validation.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "manual-bash-green-1",
+              "command": "pnpm exec vitest run src/__tests__/backlog-shell.test.ts src/tools/epic.test.ts src/__tests__/backlog-epic-bridge.test.ts src/utils/context-packet-validation.test.ts",
+              "exit_code": 0,
+              "summary": "99 tests passed; context_packet persistence, invalid/oversize, and Epic aggregate cap covered"
+            },
+            {
+              "test_run_id": "manual-bash-typecheck-1",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passed"
+            },
+            {
+              "test_run_id": "manual-bash-schemas-1",
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "JSON schemas up to date"
+            },
+            {
+              "test_run_id": "manual-bash-lint-1",
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "eslint src/ passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented context_packet as z.unknown().optional() in tool args schemas and validated via parsePacket/assertPacketSize in handlers",
+              "why": "Keeps schema loose (raw input) so per-field bound errors come from the shared validation utility, satisfying the contract"
+            },
+            {
+              "what": "Enforced Epic aggregate cap in adv_epic_add_shell by loading the Epic and calling assertEpicAggregatePackets(existingShells, incomingBytes) before addShell",
+              "why": "AC7/SC1 requires the 256 KiB aggregate budget to be checked at shell-add time"
+            },
+            {
+              "what": "Returned structured tool errors with codes invalid_context_packet / context_packet_too_large / epic_aggregate_context_packets_exceeded instead of letting exceptions propagate",
+              "why": "MCP tool contract requires typed failures, not uncaught throws"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed same-pattern unused-variable lint issues in plugin/src/utils/context-packet-validation.test.ts; formatted related context-packet files. Pre-existing prettier issue in src/tools/status.test.ts remains outside scope.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-07ff92e24f08 implementation and tests were already present in the worktree from prior commits; this session verified the work, fixed lint/format issues, and created checkpoint 41aa903. adv_run_test is blocked in sub-agent sessions, so verification was recorded via bash. format:check has a pre-existing failure in src/tools/status.test.ts unrelated to this task.",
+            "suggested_next_action": "Review the checkpoint diff and, if acceptable, proceed to the next task in change addDurableChangeSeeds"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-bash-green-1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-bash-typecheck-1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-bash-schemas-1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-bash-lint-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-9172fe42d793",
+      "title": "Inject context_packet into proposal seed on shell promotion",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-23T15:23:11.547Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07ff92e24f08"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "verifies": [
+          "SC2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "pnpm run check passes; src/tools/epic.test.ts 77 tests pass including RED→GREEN context_packet injection tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "checkpointSha": "489b653b54ec5e3cfd773536f59f24116a73fb9d",
+      "completedAt": "2026-07-23T16:53:02.827Z",
+      "completed_at": "2026-07-23T16:53:02.827Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addDurableChangeSeeds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+          "task_id": "tk-9172fe42d793",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9172fe42d793"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/epic.ts",
+            "plugin/src/tools/epic.test.ts",
+            "plugin/src/tools/status.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "epic-test-red",
+              "command": "pnpm exec vitest run src/tools/epic.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "RED: 2 new context_packet injection tests failed before implementation (77 total, 2 failed)."
+            },
+            {
+              "test_run_id": "epic-test-green",
+              "command": "pnpm exec vitest run src/tools/epic.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "GREEN: 77/77 tests pass after implementation, including 3 new promotion/proposal-seeding tests."
+            },
+            {
+              "test_run_id": "check-suite",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all pass."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Inject the shell's context_packet into the proposal.md seed as a structured Future-Work Context appendix during adv_epic_promote_shell when a new change is created.",
+              "why": "AC4 requires the packet's background, design_seed, references, constraints, and avoidances to reach the generated proposal seed."
+            },
+            {
+              "what": "Re-validate packet size with assertPacketSize before rendering; catch ContextPacketTooLargeError and emit an omission placeholder instead of crashing.",
+              "why": "SC2 requires bounded injection; defensive handling keeps promotion safe even if an oversized packet somehow reaches the shell."
+            },
+            {
+              "what": "Added the context-packet appendix after the existing Scope section and left the original Intent/Scope/Problem/Success Criteria sections untouched.",
+              "why": "Requirement: additive, structured, no clobbering."
+            },
+            {
+              "what": "Formatted plugin/src/tools/status.test.ts with Prettier.",
+              "why": "Prior task in this branch left it unformatted, causing pnpm run check to fail. Formatting-only change with no logic edits."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes needed; only the Epic shell promotion path creates a proposal seed from a shell. Backlog promote (adv_backlog_promote) only records promoted_to and does not generate a proposal, so it was intentionally left unchanged.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "tk-9172fe42d793 is complete. adv_epic_promote_shell now injects a shell's context_packet into the generated proposal.md seed under a new ## Future-Work Context section. The packet is re-validated for size; oversized packets are omitted with a bounded note. Tests added to plugin/src/tools/epic.test.ts cover injection, no-packet unchanged behavior, and oversized graceful omission. pnpm run check and the targeted test suite are green. Checkpoint commit 489b653 created.",
+            "suggested_next_action": "Run bin/oc-test targeted -- src/tools/epic.test.ts or bin/oc-test smoke if a broader pre-push check is needed, then proceed to next task or gate."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: epic-test-red"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: epic-test-green"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: check-suite"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-f97646415c28",
+      "title": "Schema artifacts, integration tests, and cross-cutting verification",
+      "type": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-23T15:23:24.404Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07ff92e24f08"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9172fe42d793"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5db2144410df"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-947e389cdd48"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "DONT1"
+        ],
+        "verifies": [
+          "AC8",
+          "AC9",
+          "SC1",
+          "SC2",
+          "SC3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Full test suite green: pnpm test (AC8, AC9) + bun test bin/ (CLI) + pnpm run check (schemas)",
+        "rationale": "Verification task runs pnpm test, bun test bin/, and pnpm run check — executable test evidence. Policy test is appropriate for passing test suites proving AC8/AC9.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "evidence_policy": "test",
+      "updatedAt": "2026-07-23T15:24:31.706Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-23T16:53:46.281Z",
+      "verification": "Cross-cutting verification complete. pnpm run check green; bun test bin/ 300 pass; full vitest 7156 pass. Fixed real regression: buildFutureWorkProjection computed inside time-budgeted health view (A.1 8100ms budget) breaching it; excluded future_work from health view (still in summary/hygiene, AC5 satisfied). A.1 passes. Sole full-suite failure = legacy-copoll.itest.ts (temporal co-polling timing), unrelated, environmental flake under parallel load, passes in isolation (4.19s). AC8/AC9/SC1-3 verified.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status-view.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status-view.ts"
+      ],
+      "checkpointSha": "e2a6cea43be42443865da73adbbe1b11dd551058",
+      "completedAt": "2026-07-23T17:39:45.884Z",
+      "completed_at": "2026-07-23T17:39:45.884Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addDurableChangeSeeds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: durable change seeds",
+      "sources": [
+        {
+          "label": "Approved agreement and design",
+          "locator": "adv://change/addDurableChangeSeeds/artifacts/agreement@0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9;design@7afb1d6f57f7d8fad1bbfbc2333bf1d0d6ec3c25c9739e12849b5f2ccd5b8559",
+          "summary": "C1 requires a ≤16 KiB packet and ≤256 KiB per-Epic aggregate; AC1–AC9 define additive schemas, seed injection, status/CLI, agent-mediated backlog transfer, and target-path reauthorization."
+        },
+        {
+          "label": "Advance Epics specification",
+          "locator": "adv://spec/advance-epics#rq-epicEntries01",
+          "summary": "Shell entries require title and success hint, support provenance, and remain lightweight/promotable."
+        },
+        {
+          "label": "Backlog specification",
+          "locator": "adv://spec/backlog#rq-backlogFormat01,rq-backlogLifecycle01",
+          "summary": "Backlog rows are independently Zod-validated JSONL records and promotion appends lifecycle state."
+        },
+        {
+          "label": "Current sizing implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/types/epics.ts#L347-L358;file:///home/jon/dev/advance/plugin/src/storage/_artifact-size-validation.ts#L50-L98",
+          "summary": "Epic entries have no cardinality cap; existing aggregate guard covers Change documents only."
+        },
+        {
+          "label": "Official Zod documentation",
+          "locator": "https://zod.dev/api?id=strings",
+          "summary": "Zod supports bounded string schemas; aggregate object checks can be expressed through refinement."
+        }
+      ],
+      "architecture_assessment": "Shared optional packet schemas plus additive projection and CLI surfaces are the simplest spec-compatible shape. C1 is not met because the design maps the per-Epic budget to a Change-document guard that cannot observe Epic-shell packets.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "DDC3 relies on AGGREGATE_HARD_CAP for the per-Epic packet budget, but that guard sums only Change state.documents while EpicSchema permits an unbounded entries array.",
+            "contract_ids": [
+              "C1"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Add an Epic-store or shell-mutation-boundary UTF-8 JSON-byte aggregate check that sums retained shell context_packet payloads plus the candidate packet and rejects totals above 256 KiB before persistence.",
+            "source": {
+              "label": "Current implementation and approved design",
+              "locator": "adv://change/addDurableChangeSeeds/artifacts/design@7afb1d6f57f7d8fad1bbfbc2333bf1d0d6ec3c25c9739e12849b5f2ccd5b8559#DDC3;file:///home/jon/dev/advance/plugin/src/types/epics.ts#L347-L358;file:///home/jon/dev/advance/plugin/src/storage/_artifact-size-validation.ts#L50-L98",
+              "summary": "DDC3 names the Change artifact guard; the implementation shows that guard projects documents only and Epic entries have no maximum."
+            }
+          }
+        ],
+        "notes": "KD1/KD2 use bounded Zod fields plus serialized aggregate validation, consistent with Zod bounds/refinement. Optional packet fields preserve rq-epicEntries01 and independently validated JSONL rows under rq-backlogFormat01/rq-backlogLifecycle01. KD6 retains pure backlog promotion. C1 remains unenforced."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "A store-bound aggregate check adds a bounded sum during shell mutation.",
+          "Structural enforcement prevents oversized aggregate state when command conventions are bypassed."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep DDC3's Change artifact aggregate guard",
+            "disposition": "rejected",
+            "rationale": "It cannot observe or bound Epic-shell packets."
+          },
+          {
+            "option": "Rely on per-packet cap and implicit entry count",
+            "disposition": "rejected",
+            "rationale": "Epic entries are not cardinality-bounded."
+          },
+          {
+            "option": "Store context only in title, success hint, or proposal",
+            "disposition": "rejected",
+            "rationale": "It loses durable structured context and violates the approved title/success_hint avoidance."
+          },
+          {
+            "option": "Shared optional packet plus explicit Epic aggregate guard",
+            "disposition": "preferred",
+            "rationale": "Additive schema with enforcement at the only boundary that observes the complete Epic packet aggregate."
+          }
+        ],
+        "recommendation": "Before design approval, add and test a per-Epic UTF-8 serialized packet aggregate guard at the Epic mutation boundary. Retain KD1/KD2/KD4–KD6 after that correction."
+      },
+      "recommendation": "Fail design validation until C1 has a concrete, tested Epic aggregate guard; then proceed with the otherwise additive design.",
+      "follow_ups": [
+        "Episode advisory recall was unavailable on the active tool surface.",
+        "After C1 remediation, verify target_path hints do not bypass normal target_confirmed and confirmationEvidence checks required by AC9."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDurableChangeSeeds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDurableChangeSeeds",
+      "task_id": "tk-649815514f74",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-649815514f74"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/types/future-work.ts",
+        "plugin/src/types/future-work.test.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/types/backlog.ts",
+        "plugin/src/types/index.ts",
+        "plugin/schemas/backlog-item.schema.json"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mrxnyu27_135cdd6c",
+          "command": "pnpm exec vitest run src/types/future-work.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: tests fail because FutureWorkContextPacketSchema module does not yet exist"
+        },
+        {
+          "test_run_id": "tr_mrxo0y6o_d1300319",
+          "command": "pnpm exec vitest run src/types/future-work.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN phase: all 8 tests pass"
+        },
+        {
+          "test_run_id": "tr_mrxo3fe0_90cfb9fd",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Full check passes: schemas up to date, typecheck, manifests, test isolation, lockfile policy, lint, prettier"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added FutureWorkContextPacketSchema as a standalone module under types/future-work.ts",
+          "why": "Keeps the new packet type cohesive and lets it be imported by epics, backlog, and the barrel without cycles"
+        },
+        {
+          "what": "Regenerated JSON schemas after modifying BacklogItemSchema",
+          "why": "Project requires tracked generated schemas to stay in sync with Zod source; pnpm run check enforces this"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "FutureWorkContextPacketSchema is implemented and attached to EpicShellEntrySchema and BacklogItemSchema as an optional context_packet. Backward compatibility is verified (entries/items without context_packet still parse). Bounds tests pass. Generated backlog-item.schema.json was refreshed and pnpm run check is green.",
+        "suggested_next_action": "Proceed to the next task in the execution gate; no blockers."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDurableChangeSeeds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/addDurableChangeSeeds",
+      "task_id": "tk-c59149a602d5",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-c59149a602d5"
+      },
+      "agent": "adv-engineer",
+      "status": "error",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "workdir-preflight-fail",
+          "command": "test -d /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/addDurableChangeSeeds",
+          "exit_code": 1,
+          "summary": "Working directory does not exist; cannot proceed."
+        }
+      ],
+      "decisions": [],
+      "blockers": [
+        {
+          "what": "Working directory disappeared",
+          "diagnosis": "Path /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/addDurableChangeSeeds does not exist. Cannot read type files or create util/test files."
+        }
+      ],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [
+        "Restore or recreate the ADV worktree for change addDurableChangeSeeds and re-spawn adv-engineer on task tk-c59149a602d5."
+      ],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "The provided WORKING DIRECTORY does not exist; filesystem access failed before any code changes.",
+        "suggested_next_action": "Re-create the worktree and retry task tk-c59149a602d5."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: workdir-preflight-fail"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDurableChangeSeeds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+      "task_id": "tk-5db2144410df",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5db2144410df"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/status-view.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "vitest-status-test-tk-5db2144410df",
+          "command": "pnpm exec vitest run src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "All 60 tests pass, including 3 new future_work projection tests"
+        },
+        {
+          "test_run_id": "tsc-status-tk-5db2144410df",
+          "command": "pnpm exec tsc --noEmit",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes with no errors"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Queried active Epics only for future_work shells",
+          "why": "Future-work inventory is semantically active work; archived/merged Epics should not surface future shells"
+        },
+        {
+          "what": "Included future_work in summary, health, and hygiene views; omitted from changes view",
+          "why": "Matches peer overview-section projection patterns (terminal_cleanup_retained) and keeps the changes view focused on active changes"
+        },
+        {
+          "what": "Wrapped Epic and backlog reads in best-effort try/catch",
+          "why": "Status must remain available even if optional future-work data sources fail"
+        },
+        {
+          "what": "Defined has_context_packet as Object.keys(packet).length > 0",
+          "why": "Task requires non-empty context_packet; an empty object is not a meaningful packet"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Checkpoint adv_task_checkpoint committed all dirty files in the worktree, not only the three files staged for this task. Other touched files (bin/adv, bin/lib/roadmap.*, plugin/src/storage/store-types.ts, plugin/src/tools/backlog-shell.ts, plugin/src/tools/epic.ts, plugin/src/utils/backlog-store.ts) belong to parallel tasks in the same change."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC5 future_work projection is implemented in adv_status. Summary/health/hygiene views now include future_work: { shells, backlog } with id/title/has_context_packet. Tests pass (60/60). adv_task_checkpoint committed the entire dirty worktree (including parallel-task files) under sha ee1d86c.",
+        "suggested_next_action": "Continue with remaining addDurableChangeSeeds tasks; review the checkpoint diff if parallel-task isolation is a concern"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: vitest-status-test-tk-5db2144410df"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tsc-status-tk-5db2144410df"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDurableChangeSeeds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+      "task_id": "tk-947e389cdd48",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-947e389cdd48"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "bin/lib/roadmap.ts",
+        "bin/lib/roadmap.test.ts",
+        "bin/adv",
+        "bin/adv.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "bin-test-suite-2026-07-23",
+          "command": "bun test bin/",
+          "exit_code": 0,
+          "summary": "300 pass, 0 fail, 1374 expect() calls; covers shell/backlog [ctx] marker behavior"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Verified existing implementation rather than rewriting",
+          "why": "The bin/adv roadmap command, bin/lib/roadmap.ts, and bin/lib/roadmap.test.ts were already present at HEAD from the prior checkpoint (ee1d86c2). No diff was required. I verified the behavior with unit tests and a live CLI query against the systemizeAdvOrchestration Epic."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "plugin/src/__tests__/backlog-shell.test.ts",
+          "plugin/src/__tests__/backlog-epic-bridge.test.ts",
+          "plugin/src/temporal/epic-state.ts",
+          "plugin/src/tools/epic.test.ts",
+          "plugin/src/types/signals.ts"
+        ],
+        "details": "adv_task_checkpoint committed dirty plugin files under this task's checkpoint because the bin files were already clean in HEAD. Those plugin changes belong to earlier tasks in the same change and were not part of this task's scoped bin-only work.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Review checkpoint commit 72c2a8393c05a6e1c6a49d4333e421c4bbccb6d6 to confirm the plugin files should remain in this task's checkpoint or be split/reverted.",
+        "Address pre-existing plugin lint/format issues that block `pnpm run check`: plugin/src/utils/context-packet-validation.test.ts has unused `i` vars; several plugin/src files fail Prettier formatting. These are outside the current task scope."
+      ],
+      "required_main_agent_actions": [
+        "Review the checkpoint commit and decide whether the plugin files should stay in this task's checkpoint."
+      ],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC6 is satisfied: `bin/adv roadmap <epic-id>` renders Epic shell rows with `[ctx]` when a non-empty context_packet is present, renders a `## Backlog` section for active repo backlog items with `[ctx]` markers, and never dumps packet contents. bin/lib/roadmap.test.ts covers the marker behavior. Full `bun test bin/` passes. The checkpoint tool committed unrelated dirty plugin files because the bin implementation was already committed; review needed.",
+        "suggested_next_action": "Review checkpoint 72c2a8393c05a6e1c6a49d4333e421c4bbccb6d6 and proceed to the next task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bin-test-suite-2026-07-23"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDurableChangeSeeds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+      "task_id": "tk-07ff92e24f08",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-07ff92e24f08"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/tools/backlog-shell.ts",
+        "plugin/src/utils/context-packet-validation.test.ts",
+        "plugin/src/utils/context-packet-validation.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "manual-bash-green-1",
+          "command": "pnpm exec vitest run src/__tests__/backlog-shell.test.ts src/tools/epic.test.ts src/__tests__/backlog-epic-bridge.test.ts src/utils/context-packet-validation.test.ts",
+          "exit_code": 0,
+          "summary": "99 tests passed; context_packet persistence, invalid/oversize, and Epic aggregate cap covered"
+        },
+        {
+          "test_run_id": "manual-bash-typecheck-1",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passed"
+        },
+        {
+          "test_run_id": "manual-bash-schemas-1",
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "JSON schemas up to date"
+        },
+        {
+          "test_run_id": "manual-bash-lint-1",
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "eslint src/ passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented context_packet as z.unknown().optional() in tool args schemas and validated via parsePacket/assertPacketSize in handlers",
+          "why": "Keeps schema loose (raw input) so per-field bound errors come from the shared validation utility, satisfying the contract"
+        },
+        {
+          "what": "Enforced Epic aggregate cap in adv_epic_add_shell by loading the Epic and calling assertEpicAggregatePackets(existingShells, incomingBytes) before addShell",
+          "why": "AC7/SC1 requires the 256 KiB aggregate budget to be checked at shell-add time"
+        },
+        {
+          "what": "Returned structured tool errors with codes invalid_context_packet / context_packet_too_large / epic_aggregate_context_packets_exceeded instead of letting exceptions propagate",
+          "why": "MCP tool contract requires typed failures, not uncaught throws"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed same-pattern unused-variable lint issues in plugin/src/utils/context-packet-validation.test.ts; formatted related context-packet files. Pre-existing prettier issue in src/tools/status.test.ts remains outside scope.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-07ff92e24f08 implementation and tests were already present in the worktree from prior commits; this session verified the work, fixed lint/format issues, and created checkpoint 41aa903. adv_run_test is blocked in sub-agent sessions, so verification was recorded via bash. format:check has a pre-existing failure in src/tools/status.test.ts unrelated to this task.",
+        "suggested_next_action": "Review the checkpoint diff and, if acceptable, proceed to the next task in change addDurableChangeSeeds"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-bash-green-1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-bash-typecheck-1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-bash-schemas-1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-bash-lint-1"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDurableChangeSeeds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/advance/change-addDurableChangeSeeds",
+      "task_id": "tk-9172fe42d793",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9172fe42d793"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "epic-test-red",
+          "command": "pnpm exec vitest run src/tools/epic.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "RED: 2 new context_packet injection tests failed before implementation (77 total, 2 failed)."
+        },
+        {
+          "test_run_id": "epic-test-green",
+          "command": "pnpm exec vitest run src/tools/epic.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "GREEN: 77/77 tests pass after implementation, including 3 new promotion/proposal-seeding tests."
+        },
+        {
+          "test_run_id": "check-suite",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all pass."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Inject the shell's context_packet into the proposal.md seed as a structured Future-Work Context appendix during adv_epic_promote_shell when a new change is created.",
+          "why": "AC4 requires the packet's background, design_seed, references, constraints, and avoidances to reach the generated proposal seed."
+        },
+        {
+          "what": "Re-validate packet size with assertPacketSize before rendering; catch ContextPacketTooLargeError and emit an omission placeholder instead of crashing.",
+          "why": "SC2 requires bounded injection; defensive handling keeps promotion safe even if an oversized packet somehow reaches the shell."
+        },
+        {
+          "what": "Added the context-packet appendix after the existing Scope section and left the original Intent/Scope/Problem/Success Criteria sections untouched.",
+          "why": "Requirement: additive, structured, no clobbering."
+        },
+        {
+          "what": "Formatted plugin/src/tools/status.test.ts with Prettier.",
+          "why": "Prior task in this branch left it unformatted, causing pnpm run check to fail. Formatting-only change with no logic edits."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes needed; only the Epic shell promotion path creates a proposal seed from a shell. Backlog promote (adv_backlog_promote) only records promoted_to and does not generate a proposal, so it was intentionally left unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "tk-9172fe42d793 is complete. adv_epic_promote_shell now injects a shell's context_packet into the generated proposal.md seed under a new ## Future-Work Context section. The packet is re-validated for size; oversized packets are omitted with a bounded note. Tests added to plugin/src/tools/epic.test.ts cover injection, no-packet unchanged behavior, and oversized graceful omission. pnpm run check and the targeted test suite are green. Checkpoint commit 489b653 created.",
+        "suggested_next_action": "Run bin/oc-test targeted -- src/tools/epic.test.ts or bin/oc-test smoke if a broader pre-push check is needed, then proceed to next task or gate."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: epic-test-red"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: epic-test-green"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: check-suite"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-649815514f74": [
+      {
+        "runId": "tr_mrxnyu27_135cdd6c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/types/future-work.test.ts",
+        "durationMs": 2617.891448006034,
+        "recordedAt": "2026-07-23T15:26:13.467Z"
+      },
+      {
+        "runId": "tr_mrxnzu3f_358fe701",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/types/future-work.test.ts",
+        "durationMs": 1325.184592999518,
+        "recordedAt": "2026-07-23T15:27:00.175Z"
+      },
+      {
+        "runId": "tr_mrxo05tp_86851c9d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9866.201236002147,
+        "recordedAt": "2026-07-23T15:27:15.362Z"
+      },
+      {
+        "runId": "tr_mrxo0pc4_2ef32059",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run lint",
+        "durationMs": 20805.46665300429,
+        "recordedAt": "2026-07-23T15:27:40.654Z"
+      },
+      {
+        "runId": "tr_mrxo0y6o_d1300319",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/types/future-work.test.ts",
+        "durationMs": 1527.0760689973831,
+        "recordedAt": "2026-07-23T15:27:52.132Z"
+      },
+      {
+        "runId": "tr_mrxo1b00_22e9374e",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run lint",
+        "durationMs": 19571.720613002777,
+        "recordedAt": "2026-07-23T15:28:08.724Z"
+      },
+      {
+        "runId": "tr_mrxo1s39_f7419cfe",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run format:check",
+        "durationMs": 18096.177596002817,
+        "recordedAt": "2026-07-23T15:28:30.872Z"
+      },
+      {
+        "runId": "tr_mrxo23qv_ed38994e",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 1732.8321649953723,
+        "recordedAt": "2026-07-23T15:28:45.994Z"
+      },
+      {
+        "runId": "tr_mrxo3fe0_90cfb9fd",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 56058.19070299715,
+        "recordedAt": "2026-07-23T15:29:47.778Z"
+      }
+    ],
+    "tk-f97646415c28": [
+      {
+        "runId": "tr_mrxr5bcn_877c5023",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/",
+        "durationMs": 25908.272588999942,
+        "recordedAt": "2026-07-23T16:55:14.695Z"
+      }
+    ],
+    "tk-947e389cdd48": [
+      {
+        "runId": "tr_mrxt14sp_ca992e57",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/roadmap.test.ts",
+        "durationMs": 305.05343900062144,
+        "recordedAt": "2026-07-23T17:47:58.846Z"
+      }
+    ],
+    "tk-c59149a602d5": [
+      {
+        "runId": "tr_mrxt15qs_0a928cff",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/context-packet-validation.test.ts",
+        "durationMs": 1535.2343570003286,
+        "recordedAt": "2026-07-23T17:48:00.000Z"
+      }
+    ],
+    "tk-5db2144410df": [
+      {
+        "runId": "tr_mrxt1f9b_8200e330",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/status.test.ts",
+        "durationMs": 13860.877445999533,
+        "recordedAt": "2026-07-23T17:48:12.320Z"
+      }
+    ],
+    "tk-07ff92e24f08": [
+      {
+        "runId": "tr_mrxt1ozq_cb2f4a5f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/__tests__/backlog-shell.test.ts src/__tests__/backlog-epic-bridge.test.ts",
+        "durationMs": 4970.805962000042,
+        "recordedAt": "2026-07-23T17:48:25.069Z"
+      }
+    ],
+    "tk-9172fe42d793": [
+      {
+        "runId": "tr_mrxt1p2k_db9fb79e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/epic.test.ts",
+        "durationMs": 5063.128743999638,
+        "recordedAt": "2026-07-23T17:48:25.141Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-23T14:29:44.741Z",
+      "completed_by": "user",
+      "approval_evidence": "Phase 1 confirmed by user. Phase 1b knowledge gap: addDependencyAwareResume (Capability A) already landed on trunk — sequencing corrected (B builds additively on A, not \"B first\"). Phase 2 full proposal with Scope/User Outcomes/Discovery Agenda. B/F/S ambiguity scan: zero CRITICAL.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "1e89dd7e6e49926998039a7da18a7cd91d722d2c7a1b0d4903090034fcc58801",
+        "non_whitespace_chars": 7628,
+        "checked_at": "2026-07-22T19:59:10.703Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-23T15:05:54.718Z",
+      "completed_by": "user",
+      "approval_evidence": "Discovery findings: DF1 (backlog promotion is pure record → agent-mediated packet copy), DF2 (status is in-memory not file-based), DF3 (shell extension pattern confirmed), DF4 (no schema-registry impact). Agreement persisted with 3 SC, 9 AC, 4 C, 5 DONT. Contract minted 21 items. User approved AC checkpoint. Ambiguity scan: B:C F:C S:C M:C (zero findings).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "non_whitespace_chars": 3960,
+        "checked_at": "2026-07-22T19:59:10.704Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-23T15:14:03.952Z",
+      "completed_by": "user",
+      "approval_evidence": "Design covers 6 key decisions (KD1-KD6) + KD7 (validator-identified Epic aggregate enforcement). Validator: caution (advisory-only) — C1 per-Epic aggregate budget gap remediated via assertEpicAggregatePackets(). Spec-law: clean. No blockers. No user-value tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "6bcc72ec5422a9a416cca65a31a792cb7a475a47dd322ca5194b42eae7de0a29",
+        "non_whitespace_chars": 9993,
+        "checked_at": "2026-07-22T19:59:10.705Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-23T15:24:39.209Z",
+      "completed_by": "user",
+      "approval_evidence": "7-task graph covering 21/21 contract items. 1 ready (schema), 6 blocked. Zero uncovered AC. Verification task evidence_policy=test. Validation passed. User approved prep vision."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T17:40:14.925Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 tasks done + verified. Implementation in manual ad-hoc worktree (ADV per-change worktree was unstable for this change — recurring teardown). Verification: pnpm run check green, bun test bin/ 300 pass, full vitest 7156 pass (1 unrelated environmental flake: legacy-copoll.itest.ts temporal timing test, passes in isolation). Fixed a real regression mid-verification (future_work projection breaching the health view 8100ms budget — excluded from health view, AC5 satisfied via summary/hygiene)."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-23T17:47:29.943Z",
+      "completed_at": "2026-07-23T17:52:19.395Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted (\"accept\"). Review matrix: 21/21 rows passing (0 failing). Verification evidence dispositions recorded for all 5 impl tasks. Executive summary persisted. Inline acceptance review verdict ACCEPT.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "75f03c585bc8b3cd0fa9caed71327adfe02c0ce29bc7098c09a422a0275cf7fd",
+        "non_whitespace_chars": 943,
+        "checked_at": "2026-07-22T19:59:10.706Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session:durable-change-seeds-2026-07-22"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+      "approvedAt": "2026-07-23T15:05:41.452Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Durable context (background, references, constraints, avoidances, design direction, cross-project hints) can be captured on workflow-free primitives without spawning a Temporal workflow",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Promotion carries context forward into proposal without re-derivation",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Future work visible in status output and CLI roadmap without forced Epic membership",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`EpicShellEntrySchema` parses with optional `context_packet`; existing shells without packet parse unchanged",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`BacklogItemSchema` parses with optional `context_packet`; existing backlog items parse unchanged",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Serialized packet ≤16 KiB enforced at validation; per-field bounds (background ≤4 KiB, references ≤12, constraints/avoidances ≤12 × 512 B, design_seed ≤6 KiB) enforced",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_epic_promote_shell` injects packet content into generated proposal seed section verbatim, with promotion provenance (source shell entry_id + timestamp)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_status` MCP output includes future-work rows (shells with packet presence indicator) — additive, no breaking change to existing fields",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`bin/adv roadmap` CLI command renders future-work rows with packet summary",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`adv_epic_add_shell` accepts optional `context_packet` input; `adv_backlog_add` accepts optional `context_packet` input",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Backlog→change packet copy is agent-mediated: the promoting command reads the backlog item's packet and passes it to `adv_change_create`; `adv_backlog_promote` remains a pure record operation (no proposal generation)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Cross-project `target_path` stored in packet is never treated as authorization — promotion requires normal `target_path` confirmation/revalidation",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Packet serialized size ≤16 KiB; per-Epic aggregate packet budget ≤256 KiB (protects Temporal continueAsNew ~1.8 MB hard cap)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "addDependencyAwareResume (Capability A) already landed on trunk — WorkNodeRefSchema, blocked_by on shells, resume projection present. This change builds additively; clean seam (B owns packet content, A owns graph topology)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Backward-compatible additive field — `.optional()` with Zod; no migration needed for existing JSONL backlog or Epic projections",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "replaceRecoveryToolSprawl (HARD dependency) already archived 2026-07-15 — cleared",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Must NOT treat a stored `cross_project_target.target_path` as authorization",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Must NOT alter `title` or `success_hint` semantics — they stay OUTSIDE the packet",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Must NOT create a unified entity merging backlog JSONL, Epic-shell projection, and active Change",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Must NOT make Epic membership mandatory for backlog items or one-off changes",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Must NOT add mutation verbs beyond `context_packet` on existing add/promote tools",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T17:52:09.866Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "types/epics.ts EpicShellEntrySchema has optional context_packet; future-work.test.ts confirms existing shells parse unchanged"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "types/backlog.ts BacklogItemSchema has optional context_packet; future-work.test.ts confirms existing items parse unchanged"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "context-packet-validation.test.ts: assertPacketSize 16KiB + per-field bounds; 12 pass (adv_run_test tr_mrxt15qs)"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "epic.test.ts promotion injects packet into proposal seed ## Future-Work Context appendix verbatim with provenance; 77 pass (tr_mrxt1p2k)"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "status.test.ts future_work projection additive in summary/hygiene views; 60 pass (tr_mrxt1f9b)"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/roadmap.test.ts [ctx] markers + ## Backlog section; bun test bin/ 300 pass (tr_mrxt14sp)"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_epic_add_shell + adv_backlog_add accept optional context_packet; epic.test.ts + backlog-shell.test.ts 13 pass (tr_mrxt1ozq)"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv_backlog_promote remains pure record op (backlog-store.ts/backlog-shell.ts); packet agent-mediated via adv_change_create on promotion"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "validation (parsePacket/assertPacketSize) ignores target_path; promotion requires normal target_path confirmation — never auto-authorized"
+        },
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "packet stored on shell/backlog records (workflow-free primitives); no Temporal workflow spawned for packet persistence"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "epic.test.ts promotion injects packet verbatim without re-derivation; 77 pass"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv_status future_work + bin/adv roadmap project backlog items independent of Epic membership"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "assertPacketSize 16384 + assertEpicAggregatePackets 262144 enforced at add_shell/promotion; context-packet-validation.test.ts"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "clean seam — packet content (this change) separate from graph topology (addDependencyAwareResume, already on trunk)"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "additive .optional() Zod field; no migration; existing JSONL/Epic projections parse unchanged (AC1/AC2)"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "replaceRecoveryToolSprawl archived 2026-07-15 (precondition cleared, not re-verified here)"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "stored cross_project_target.target_path never treated as auth; promotion requires confirmation (AC9)"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "title/success_hint stay outside packet; packet is a separate field, semantics untouched"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "no unified entity; backlog JSONL, Epic-shell projection, active Change remain separate stores; packet copied on promotion"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Epic membership not mandatory; future_work projects backlog items independent of Epic (SC3)"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "only context_packet added to existing add/promote tools; no new mutation verbs"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`EpicShellEntrySchema` parses with optional `context_packet`; existing shells without packet parse unchanged",
+    "`BacklogItemSchema` parses with optional `context_packet`; existing backlog items parse unchanged",
+    "Serialized packet ≤16 KiB enforced at validation; per-field bounds (background ≤4 KiB, references ≤12, constraints/avoidances ≤12 × 512 B, design_seed ≤6 KiB) enforced",
+    "`adv_epic_promote_shell` injects packet content into generated proposal seed section verbatim, with promotion provenance (source shell entry_id + timestamp)",
+    "`adv_status` MCP output includes future-work rows (shells with packet presence indicator) — additive, no breaking change to existing fields",
+    "`bin/adv roadmap` CLI command renders future-work rows with packet summary",
+    "`adv_epic_add_shell` accepts optional `context_packet` input; `adv_backlog_add` accepts optional `context_packet` input",
+    "Backlog→change packet copy is agent-mediated: the promoting command reads the backlog item's packet and passes it to `adv_change_create`; `adv_backlog_promote` remains a pure record operation (no proposal generation)",
+    "Cross-project `target_path` stored in packet is never treated as authorization — promotion requires normal `target_path` confirmation/revalidation"
+  ],
+  "documents": {
+    "proposal": "## Problem\n\nTwo ways to record future work exist, neither fits long-horizon planning:\n1. **Real ADV change** — spawns a live Temporal workflow immediately (project already carries 33 Running vs ~8 active). Workflow-per-future-item does not scale.\n2. **Epic shell** — workflow-free, promotable, agent-visible, BUT carries only `title` + one `success_hint` string. No durable context.\n\nEpic shells are the right workflow-free primitive; the gap is **durable context** on shells AND backlog items, **context-carrying promotion** (same + cross-project), and **visibility** of the future roadmap in ZLauncher.\n\n## What Changes\n\nAdd a shared `FutureWorkContextPacketSchema` as an optional, backward-compatible field on both `EpicShellEntrySchema` and `BacklogItemSchema`. When a shell is promoted to a change, the packet is copied verbatim into a labelled seed section of the generated proposal/problem-statement. The status projection surfaces future work (shells + backlog) with packet summaries.\n\n## User Outcomes\n\n- A user (or agent) can capture durable context — background, references, constraints, avoidances, early design direction, cross-project target hints — when creating a backlog item or Epic shell, without spawning a workflow.\n- On promotion, that context flows forward into the proposal verbatim — no re-derivation from scratch.\n- Future work is visible in status output without requiring every item to be a live change or an Epic member.\n- Backward compatible: existing backlog items and shells without a packet continue to work unchanged.\n\n## Affected Capabilities\n\n| Spec | Impact |\n|---|---|\n| `advance-epics` (v1.13.0, 33 reqs) | New optional `context_packet` field on shell entries; context-carrying shell promotion |\n| `backlog` (v1.0.0, 8 reqs) | New optional `context_packet` field on backlog items |\n\n## Affected Code\n\n| File | Change |\n|---|---|\n| `types/epics.ts` | Add `context_packet?: FutureWorkContextPacketSchema` to `EpicShellEntrySchema` |\n| `types/backlog.ts` | Add `context_packet?: FutureWorkContextPacketSchema` to `BacklogItemSchema` |\n| `types/future-work.ts` (new) | Define `FutureWorkContextPacketSchema` with bounded fields + 16 KiB serialized cap |\n| `tools/backlog-shell.ts` | `adv_backlog_add` accepts optional `context_packet` input |\n| `tools/epic.ts` | `adv_epic_add_shell` accepts optional `context_packet` input; `adv_epic_promote_shell` injects packet into generated proposal seed |\n| `utils/context-packet-validation.ts` (new) | Serialize + validate packet ≤16 KiB; per-field bounds enforcement |\n\n## Scope\n\n### In Scope\n- `FutureWorkContextPacketSchema` definition with bounded fields (background, references, constraints, avoidances, design_seed, cross_project_target)\n- Backward-compatible optional `context_packet` field on `EpicShellEntrySchema` and `BacklogItemSchema`\n- Context-carrying shell promotion: packet copied verbatim into proposal seed on `adv_epic_promote_shell`\n- Promotion provenance: source shell id + timestamp preserved\n- 16 KiB serialized packet cap with per-field bounds (D2)\n- `adv_status` output surfaces future-work summary (shells with packet presence)\n\n### Out of Scope\n- Dependency graph + resume projection (`blocked_by`, cycle validation, `WorkNodeRef`) — owned by `addDependencyAwareResume`, **already landed on trunk**\n- 33→8 zombie-workflow reconcile (backlog `bl-bEd2-Jbi`)\n- Changing the Epic/change Temporal workflow model (seeds stay workflow-free)\n- Live target-project MCP capability loading (`improveCrossProject`)\n- ZLauncher rendering changes in `~/toolbox` (follows the projection landing; separate cross-repo change)\n- Backlog→change packet copy via `adv_backlog_promote` (pure record operation; promoter passes packet to `adv_change_create` explicitly instead — see Discovery Finding DF1)\n\n### Must Not\n- Must NOT treat a stored `cross_project_target.target_path` as authorization — cross-project promotion requires normal `target_path` confirmation/revalidation\n- Must NOT alter `title` or `success_hint` semantics — they stay OUTSIDE the packet\n- Must NOT create a unified entity merging backlog JSONL, Epic-shell projection, and active Change\n- Must NOT make Epic membership mandatory for backlog items or one-off changes\n- Must NOT add mutation verbs beyond `context_packet` on existing add/promote tools\n\n## Constraints\n\n- **C1**: Packet serialized size ≤16 KiB; per-Epic aggregate packet budget ≤256 KiB (protects Temporal continueAsNew ~1.8 MB hard cap in `types/artifacts.ts`)\n- **C2**: `addDependencyAwareResume` (Capability A) has **already landed on trunk** — `WorkNodeRefSchema`, `blocked_by` on shells, resume projection all present. This change builds additively on top of A's schema; clean seam unchanged (B owns packet content, A owns graph topology)\n- **C3**: Backward-compatible additive field — `.optional()` with Zod; no migration needed for existing JSONL backlog or Epic projections\n- **C4**: `replaceRecoveryToolSprawl` (HARD dependency) already archived 2026-07-15 — cleared\n\n## Discovery Findings\n\n### DF1 — Backlog promotion is a pure record operation (REVISED from original proposal)\n`adv_backlog_promote` (backlog-shell.ts:175 + backlog-store.ts:338) ONLY appends `promoted_to` metadata to the JSONL. It does NOT create a change or generate proposal content. The change must already exist. Therefore, \"context-carrying promotion\" for backlog→change is architecturally different from shell→change:\n- **Shell promotion** (`adv_epic_promote_shell`): generates proposal at epic.ts:1575 — clean injection point for packet copy ✅\n- **Backlog promotion** (`adv_backlog_promote`): pure record — packet copy must happen at `adv_change_create` call site (the promoting agent reads the backlog item's packet and includes it in the proposal) OR through `adv_backlog_promote` gaining an optional proposal-seed capability\n\n**Recommendation**: agent-mediated packet copy (promoter reads packet, passes to `adv_change_create`). Keeps `adv_backlog_promote` pure. The context is captured durably on the backlog item; the promoting command (e.g. `/adv-proposal` or `/adv-epic promote`) reads it and injects into proposal.\n\n### DF2 — Status projection is in-memory, not file-based\nNo `adv-status.json` file exists in `plugin/src` or `bin/adv`. Status is served by the `adv_status` MCP tool (Temporal Visibility query → in-memory response). The ZLauncher in `~/toolbox` must consume ADV state through a different mechanism (possibly `bin/adv status --json`). Surfacing future-work in status output means extending the `adv_status` tool's response shape, not writing a file.\n\n### DF3 — EpicShellEntrySchema extension pattern confirmed\n`EpicShellEntrySchema` (types/epics.ts:293) already carries an additive optional field from addDependencyAwareResume: `blocked_by: z.array(WorkNodeRefSchema).default([])`. Adding `context_packet?: FutureWorkContextPacketSchema` follows the exact same pattern — backward-compatible, no migration.\n\n### DF4 — Schema-registry impact: none\n`FutureWorkContextPacketSchema` is embedded inside tool arg schemas (as part of `adv_backlog_add` and `adv_epic_add_shell` args). Zod generates the JSON Schema automatically via `z.toJSONSchema()` in schema-registry.ts. No separate registration needed — the packet schema becomes part of the tool arg schema naturally.\n\n## Context\n\n### Packet schema (D1)\n```ts\nFutureWorkContextPacketSchema = {\n  background?: string,                 // why this work exists (≤4 KiB)\n  references?: Array<{ label: string; locator: string }>,  // ≤12\n  constraints?: string[],              // ≤12, ≤512 B each\n  avoidances?: string[],               // ≤12, ≤512 B each\n  design_seed?: string,                // early direction (≤6 KiB)\n  cross_project_target?: { project_hint?: string; target_path?: string; repo_url?: string }\n}\n```\n\n### One-off vs initiative model (D4)\n| State | Decision rule |\n|---|---|\n| **Backlog** | Uncommitted, unready, or genuinely independent; context-bearing inbox |\n| **Epic shell** | Future work committed to an initiative roadmap, not yet workflow-active |\n| **Change** | Ready to become active now; may be one-off OR Epic-linked |\n\nCrisp rule: use an Epic only when several items share an initiative-level outcome, sequencing, or navigation need. A one-off promotes backlog → change directly; NEVER create an Epic merely to classify a one-off.",
+    "problemStatement": "Planning long-running initiatives with many future follow-ups forces a bad tradeoff today. Creating real ADV changes for future work spawns a live Temporal workflow per change (the project already carries 33 Running workflows vs ~8 truly-active — ~25 zombies), but the workflow-free alternative (Epic shells) can only hold a title + a single success_hint string. Neither path lets you durably capture the context an agent needs to later rework, align, sequence, or promote that future work — including future work targeted at another project. Agents re-derive key context from scratch on every promotion, and future/roadmap work is not surfaced in the ZLauncher project picker.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add `FutureWorkContextPacketSchema` as optional field on Epic shells + backlog items\n2. Context-carrying shell promotion (packet → proposal seed)\n3. Status output + CLI roadmap surface future-work summary\n4. Backward compatible (existing items unchanged)\n\n## Success Criteria\n\n1. Durable context (background, references, constraints, avoidances, design direction, cross-project hints) can be captured on workflow-free primitives without spawning a Temporal workflow\n2. Promotion carries context forward into proposal without re-derivation\n3. Future work visible in status output and CLI roadmap without forced Epic membership\n\n## Acceptance Criteria\n\n1. `EpicShellEntrySchema` parses with optional `context_packet`; existing shells without packet parse unchanged\n2. `BacklogItemSchema` parses with optional `context_packet`; existing backlog items parse unchanged\n3. Serialized packet ≤16 KiB enforced at validation; per-field bounds (background ≤4 KiB, references ≤12, constraints/avoidances ≤12 × 512 B, design_seed ≤6 KiB) enforced\n4. `adv_epic_promote_shell` injects packet content into generated proposal seed section verbatim, with promotion provenance (source shell entry_id + timestamp)\n5. `adv_status` MCP output includes future-work rows (shells with packet presence indicator) — additive, no breaking change to existing fields\n6. `bin/adv roadmap` CLI command renders future-work rows with packet summary\n7. `adv_epic_add_shell` accepts optional `context_packet` input; `adv_backlog_add` accepts optional `context_packet` input\n8. Backlog→change packet copy is agent-mediated: the promoting command reads the backlog item's packet and passes it to `adv_change_create`; `adv_backlog_promote` remains a pure record operation (no proposal generation)\n9. Cross-project `target_path` stored in packet is never treated as authorization — promotion requires normal `target_path` confirmation/revalidation\n\n## Constraints\n\n- C1: Packet serialized size ≤16 KiB; per-Epic aggregate packet budget ≤256 KiB (protects Temporal continueAsNew ~1.8 MB hard cap)\n- C2: addDependencyAwareResume (Capability A) already landed on trunk — WorkNodeRefSchema, blocked_by on shells, resume projection present. This change builds additively; clean seam (B owns packet content, A owns graph topology)\n- C3: Backward-compatible additive field — `.optional()` with Zod; no migration needed for existing JSONL backlog or Epic projections\n- C4: replaceRecoveryToolSprawl (HARD dependency) already archived 2026-07-15 — cleared\n\n## Avoidances\n\n- Must NOT treat a stored `cross_project_target.target_path` as authorization\n- Must NOT alter `title` or `success_hint` semantics — they stay OUTSIDE the packet\n- Must NOT create a unified entity merging backlog JSONL, Epic-shell projection, and active Change\n- Must NOT make Epic membership mandatory for backlog items or one-off changes\n- Must NOT add mutation verbs beyond `context_packet` on existing add/promote tools\n\n## Preview Applicability\n\n`visual_surface: false` — schema/tool/projection change, no browser-visible output.\n`preview_expectation`:\n- `exact_route_required`: not_applicable\n- `data_state_expectation`: not_applicable\n- `viewport_expectation`: not_applicable\n\n## Decisions\n\n### User Decisions\n\n1. **Backlog packet flow (DF1)**: Agent-mediated — promoter reads backlog item's packet, passes to `adv_change_create`. Keeps `adv_backlog_promote` pure record operation. Why it matters: preserves architectural purity of the promote tool while still delivering context flow.\n2. **Status surfacing scope**: Include `adv_status` MCP future-work rows in this change. Why it matters: delivers visibility value in the same change, not deferred.\n3. **CLI rendering scope**: Both `adv_status` MCP + `bin/adv roadmap` CLI render future-work rows. Why it matters: consistent visibility across surfaces.\n\n### Agent Decisions (LBP)\n\n1. **Packet schema location**: New file `types/future-work.ts` for `FutureWorkContextPacketSchema`. Reused by both `EpicShellEntrySchema` and `BacklogItemSchema`. No separate schema-registry registration needed — embedded in tool arg schemas via Zod.\n2. **Promotion injection for shells**: Append packet fields to generated proposal string at epic.ts:1575-1578. Clean injection point, no new code path.\n3. **Schema-registry impact**: None — packet schema is embedded inside tool arg schemas, auto-generated via `z.toJSONSchema()`.\n\n## Deferred Questions\n\nNone — all questions resolved.\n\n## Sign-Off\n\nUser approved acceptance criteria and success criteria on 2026-07-23.",
+    "design": "# Design\n\n## Architecture Overview\n\nAdditive schema extension: one new optional field (`context_packet`) on two existing Zod schemas (`EpicShellEntrySchema`, `BacklogItemSchema`), backed by a shared `FutureWorkContextPacketSchema` in a new `types/future-work.ts`. The packet rides existing storage paths (JSONL backlog, Temporal Epic projection) with no new infrastructure. Promotion injection is a string-append to the existing proposal-generation site. Status/CLI surfacing is an additive response field.\n\n```\ntypes/future-work.ts  ──→  FutureWorkContextPacketSchema (shared)\n         │\n         ├──→  types/epics.ts: EpicShellEntrySchema.context_packet?\n         ├──→  types/backlog.ts: BacklogItemSchema.context_packet?\n         │\nutils/context-packet-validation.ts  ──→  parsePacket() + assertPacketSize() + assertEpicAggregate()\n         │\ntools/epic.ts:\n  adv_epic_add_shell.args.context_packet?\n  adv_epic_promote_shell: inject packet into proposal seed\n         │\ntools/backlog-shell.ts:\n  adv_backlog_add.args.context_packet?\n         │\ntools/status.ts (or adv_status handler):\n  response.future_work = { shells: [...], backlog: [...] }\n         │\nbin/adv roadmap: render future-work rows\n```\n\n## Key Decisions\n\n### KD1 — Packet schema shape (types/future-work.ts)\n\n```ts\nconst MAX_BG = 4096;        // 4 KiB\nconst MAX_DESIGN_SEED = 6144; // 6 KiB\nconst MAX_ITEM = 512;        // per constraint/avoidance string\nconst MAX_ARRAY = 12;        // references, constraints, avoidances\nconst MAX_PACKET = 16384;    // 16 KiB serialized total\n\nexport const FutureWorkContextPacketSchema = z.object({\n  background: z.string().max(MAX_BG).optional(),\n  references: z.array(z.object({\n    label: z.string().min(1).max(200),\n    locator: z.string().min(1).max(2048),\n  })).max(MAX_ARRAY).optional(),\n  constraints: z.array(z.string().min(1).max(MAX_ITEM)).max(MAX_ARRAY).optional(),\n  avoidances: z.array(z.string().min(1).max(MAX_ITEM)).max(MAX_ARRAY).optional(),\n  design_seed: z.string().max(MAX_DESIGN_SEED).optional(),\n  cross_project_target: z.object({\n    project_hint: z.string().max(200).optional(),\n    target_path: z.string().max(1024).optional(),\n    repo_url: z.string().max(2048).optional(),\n  }).optional(),\n});\n```\n\nOn parent schemas: `context_packet: FutureWorkContextPacketSchema.optional()`.\n\nPer-field bounds are Zod-enforced at parse. The 16 KiB total cap needs a separate serialized-size check (Zod validates individual fields, not the serialized aggregate).\n\n### KD2 — Validation utility (utils/context-packet-validation.ts)\n\nThree functions:\n- `parsePacket(input: unknown): FutureWorkContextPacket` — wraps Zod parse; throws on bound violation\n- `assertPacketSize(packet: FutureWorkContextPacket): void` — serializes to JSON, checks ≤16 KiB; throws `ContextPacketTooLargeError` with actual size\n- `assertEpicAggregatePackets(entries: EpicEntry[]): void` — sums UTF-8 serialized sizes of all shell entries' `context_packet` fields; rejects if total >256 KiB (262144 bytes). Called at Epic mutation boundary (adv_epic_add_shell before store write).\n\nCalled at: tool input validation (parsePacket), backlog write (assertPacketSize), Epic signal (assertPacketSize + assertEpicAggregatePackets).\n\n### KD3 — Proposal seed section format (adv_epic_promote_shell)\n\nCurrent injection point: epic.ts:1575-1578. Extend the generated proposal string:\n\n```ts\nlet proposal = `# ${shell.title}\\n\\n## Intent\\n\\n${shell.success_hint}\\n\\n## Scope\\n\\n- Promoted from Epic ${epic_id} shell ${entry_id}.\\n`;\n\nif (shell.context_packet) {\n  const ts = new Date().toISOString();\n  proposal += `\\n## Context Seed\\n\\n**Source:** Epic ${epic_id} shell ${entry_id}, promoted ${ts}\\n\\n`;\n  if (shell.context_packet.background) proposal += `### Background\\n\\n${shell.context_packet.background}\\n\\n`;\n  if (shell.context_packet.references?.length) proposal += `### References\\n\\n${shell.context_packet.references.map(r => `- [${r.label}](${r.locator})`).join('\\n')}\\n\\n`;\n  if (shell.context_packet.constraints?.length) proposal += `### Constraints\\n\\n${shell.context_packet.constraints.map(c => `- ${c}`).join('\\n')}\\n\\n`;\n  if (shell.context_packet.avoidances?.length) proposal += `### Avoidances\\n\\n${shell.context_packet.avoidances.map(a => `- ${a}`).join('\\n')}\\n\\n`;\n  if (shell.context_packet.design_seed) proposal += `### Design Direction\\n\\n${shell.context_packet.design_seed}\\n\\n`;\n  if (shell.context_packet.cross_project_target) proposal += `### Cross-Project Target\\n\\n\\`\\`\\`json\\n${JSON.stringify(shell.context_packet.cross_project_target, null, 2)}\\n\\`\\`\\`\\n`;\n}\n```\n\nOnly non-empty sections render. Provenance (source shell + timestamp) is always present when packet exists.\n\n### KD4 — Status future-work rows (adv_status response)\n\nAdd `future_work` key to the status response:\n\n```ts\nfuture_work?: {\n  shells: Array<{\n    epic_id: string;\n    entry_id: string;\n    title: string;\n    has_context_packet: boolean;\n  }>;\n  backlog: Array<{\n    id: string;\n    title: string;\n    has_context_packet: boolean;\n  }>;\n}\n```\n\nPopulated by scanning active Epics for shell entries + reading active backlog items. Bounded by existing backlog tail_limit (default 1000 lines).\n\n### KD5 — bin/adv roadmap rendering\n\n`bin/adv roadmap` already reads Epics. Add:\n- Shell entries show `[ctx]` marker when `has_context_packet`\n- Backlog items listed in a `## Backlog` section with `[ctx]` marker\n\nRendering is text-only; packet content is not dumped (only presence indicator).\n\n### KD6 — Backlog→change packet flow is agent-mediated (AC8)\n\n`adv_backlog_promote` stays a pure record operation. The promoting command (e.g. `/adv-proposal` or `/adv-epic`) reads the backlog item via `adv_backlog_show`, extracts `context_packet`, and passes it to `adv_change_create` as part of the proposal content. No tool change to `adv_backlog_promote`.\n\nThis is documented as a workflow convention, not a tool-level enforcement. The promoting agent is responsible for reading and carrying the packet.\n\n### KD7 — Per-Epic aggregate packet budget enforcement (validator-identified gap)\n\nThe existing `AGGREGATE_HARD_CAP` in `types/artifacts.ts` / `_artifact-size-validation.ts` measures Change document sizes only — it does NOT cover Epic entry packets. C1's ≤256 KiB per-Epic aggregate budget needs explicit enforcement.\n\n`assertEpicAggregatePackets()` in `utils/context-packet-validation.ts`:\n1. Called at `adv_epic_add_shell` before the store write\n2. Loads the Epic's current entries\n3. Sums `Buffer.byteLength(JSON.stringify(entry.context_packet ?? {}), 'utf8')` for all shell entries\n4. Adds the incoming packet size\n5. Rejects if total >262144 bytes (256 KiB) with `EpicAggregatePacketsExceededError`\n\nThis is a bounded computation: iterate active shell entries (typically <50 per Epic), sum serialized sizes. No network calls, <1ms for typical Epic sizes.\n\n## Implementation Strategy\n\n1. **Schema layer**: `types/future-work.ts` (new) → extend `types/epics.ts` + `types/backlog.ts`\n2. **Validation utility**: `utils/context-packet-validation.ts` (new) — parsePacket, assertPacketSize, assertEpicAggregatePackets\n3. **Tool inputs**: `adv_epic_add_shell` + `adv_backlog_add` accept `context_packet`; adv_epic_add_shell calls assertEpicAggregatePackets before write\n4. **Shell promotion**: inject packet into proposal at epic.ts:1575\n5. **Status surfacing**: extend `adv_status` handler with `future_work` key\n6. **CLI rendering**: extend `bin/adv` roadmap command\n7. **Tests**: per-layer unit tests (schema parse, bounds, aggregate enforcement, promotion injection, status shape)\n8. **Schema artifacts**: `pnpm run schemas:generate` if tool arg schemas changed (they will — new optional arg)\n\n## LBP Analysis\n\nThis is the preferred long-term approach because:\n- **Minimal blast radius**: one optional field per schema, no migration, no new infrastructure\n- **Follows existing pattern**: identical to `blocked_by` additive field from addDependencyAwareResume (`.optional()` / `.default([])`)\n- **Clean seam**: packet content (this change) is orthogonal to graph topology (addDependencyAwareResume). No coupling.\n- **Bounded by design**: 16 KiB per-packet cap + 256 KiB per-Epic aggregate cap prevent unbounded growth on the Temporal continueAsNew seed path\n- **Deferred complexity**: no unified entity, no new workflow model, no mandatory membership — each rejected alternative would have increased coupling and migration risk\n\n## Affected Components\n\n| Component | Change type |\n|---|---|\n| `types/future-work.ts` | New file — schema definition |\n| `types/epics.ts` | Additive — one optional field on EpicShellEntrySchema |\n| `types/backlog.ts` | Additive — one optional field on BacklogItemSchema |\n| `types/index.ts` | Re-export FutureWorkContextPacketSchema |\n| `utils/context-packet-validation.ts` | New file — validation utility (parse, size, aggregate) |\n| `tools/epic.ts` | Add optional arg to adv_epic_add_shell; inject packet in promote_shell; call aggregate check |\n| `tools/backlog-shell.ts` | Add optional arg to adv_backlog_add |\n| `utils/backlog-store.ts` | Pass context_packet through to BacklogItemSchema on write |\n| Status handler (adv_status) | Add future_work response key |\n| `bin/adv` | Extend roadmap command with future-work rows |\n| `plugin/schemas/*` | Regenerated via `pnpm run schemas:generate` |\n\n## Design-Derived Criteria\n\n- **DDC1**: Packet validation (Zod parse + serialized-size check + aggregate check) must complete in <1ms per item — no network calls, pure local computation\n- **DDC2**: `future_work` section in adv_status must not add >5ms to response time — bounded by existing backlog tail_limit and Epic entry count\n- **DDC3**: Per-Epic aggregate packet budget (≤256 KiB) is explicitly enforced via `assertEpicAggregatePackets()` at the Epic mutation boundary (KD7), NOT deferred to the Change-level aggregate guard which only measures Change documents\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| R1: JSONL backlog with many large packets slows reads | 16 KiB cap per packet; existing tail_limit (1000 lines) bounds read scope |\n| R2: Packet copy inflates proposal artifact beyond Temporal limits | 16 KiB cap ensures proposal stays well under artifact size limits |\n| R3: Agent-mediated backlog packet copy (AC8) is a convention, not tool-enforced | Documented in agreement; promoting commands will be updated to read+carry packet |\n| R4: Status query scans all active Epics for shells | Existing Epic scan already happens in adv_status; future_work reuses the same read with a filter for shell kind |\n| R5: Per-Epic aggregate budget enforcement adds latency to shell creation | Bounded computation: iterate shell entries (typically <50), sum serialized sizes. <1ms. |\n\n## Validator Result\n\nValidator (adv-researcher, attempt 1): **caution** (advisory-only, not gate-blocking).\n- Finding: C1 per-Epic ≤256 KiB aggregate budget lacked enforcement — existing AGGREGATE_HARD_CAP measures Change documents only, not Epic entries\n- Remediation: Added KD7 (`assertEpicAggregatePackets()`) to enforce the 256 KiB budget at Epic mutation boundary\n- Spec-law compliance: clean — optional packet fields preserve advance-epics rq-epicEntries01 and backlog rq-backlogFormat01/rq-backlogLifecycle01\n- No blockers; no alternatives overlooked\n\n## Design Leverage Scout\n\nScout: skipped — narrow additive schema change with clear extension points. Zero alternative approaches viable (the packet shape was researcher-validated; the promotion injection site is the sole proposal-generation path). No leverage shortcuts or reusable components to discover.",
+    "executiveSummary": "# Executive Summary — Add durable change seeds\n\n## Outcome\nADV change seeds (Epic shells, backlog items) carry a durable, size-bounded **context packet** (structured background) injected into the generated proposal on promotion.\n\n## Value / why it matters\nCapture background once; every proposal from that seed inherits it, bounded + validated. Reduces rework/drift. Future-work inventory surfaced in `adv_status` + `bin/adv roadmap`.\n\n## What was verified\n- `pnpm run check` green; `bun test bin/` 300 pass; full vitest 7156 pass.\n- Bounds enforced at every entry point (add_shell, backlog_add, promotion). Optional everywhere. Presence-only projection.\n\n## Risks / follow-ups\n- ADV per-change worktree instability (separate defect; work done in manual ad-hoc worktree).\n- `legacy-copoll.itest.ts` environmental flake (unrelated, passes in isolation).\n- Entangled commit attribution → squash-merge recommended.\n\n## Release Readiness Summary\nDeliverable complete (7 tasks, 9 AC/3 SC/4 C/5 DONT met, review ACCEPT). Standard plugin build+deploy from merged trunk; no migration/data/frontend impact.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-23T17:52:09.866Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Durable context (background, references, constraints, avoidances, design direction, cross-project hints) can be captured on workflow-free primitives without spawning a Temporal workflow | pass | packet stored on shell/backlog records (workflow-free primitives); no Temporal workflow spawned for packet persistence |\n| SC2 | success_criterion | Promotion carries context forward into proposal without re-derivation | pass | epic.test.ts promotion injects packet verbatim without re-derivation; 77 pass |\n| SC3 | success_criterion | Future work visible in status output and CLI roadmap without forced Epic membership | pass | adv_status future_work + bin/adv roadmap project backlog items independent of Epic membership |\n| AC1 | acceptance_criterion | `EpicShellEntrySchema` parses with optional `context_packet`; existing shells without packet parse unchanged | pass | types/epics.ts EpicShellEntrySchema has optional context_packet; future-work.test.ts confirms existing shells parse unchanged |\n| AC2 | acceptance_criterion | `BacklogItemSchema` parses with optional `context_packet`; existing backlog items parse unchanged | pass | types/backlog.ts BacklogItemSchema has optional context_packet; future-work.test.ts confirms existing items parse unchanged |\n| AC3 | acceptance_criterion | Serialized packet ≤16 KiB enforced at validation; per-field bounds (background ≤4 KiB, references ≤12, constraints/avoidances ≤12 × 512 B, design_seed ≤6 KiB) enforced | pass | context-packet-validation.test.ts: assertPacketSize 16KiB + per-field bounds; 12 pass (adv_run_test tr_mrxt15qs) |\n| AC4 | acceptance_criterion | `adv_epic_promote_shell` injects packet content into generated proposal seed section verbatim, with promotion provenance (source shell entry_id + timestamp) | pass | epic.test.ts promotion injects packet into proposal seed ## Future-Work Context appendix verbatim with provenance; 77 pass (tr_mrxt1p2k) |\n| AC5 | acceptance_criterion | `adv_status` MCP output includes future-work rows (shells with packet presence indicator) — additive, no breaking change to existing fields | pass | status.test.ts future_work projection additive in summary/hygiene views; 60 pass (tr_mrxt1f9b) |\n| AC6 | acceptance_criterion | `bin/adv roadmap` CLI command renders future-work rows with packet summary | pass | bin/lib/roadmap.test.ts [ctx] markers + ## Backlog section; bun test bin/ 300 pass (tr_mrxt14sp) |\n| AC7 | acceptance_criterion | `adv_epic_add_shell` accepts optional `context_packet` input; `adv_backlog_add` accepts optional `context_packet` input | pass | adv_epic_add_shell + adv_backlog_add accept optional context_packet; epic.test.ts + backlog-shell.test.ts 13 pass (tr_mrxt1ozq) |\n| AC8 | acceptance_criterion | Backlog→change packet copy is agent-mediated: the promoting command reads the backlog item's packet and passes it to `adv_change_create`; `adv_backlog_promote` remains a pure record operation (no proposal generation) | pass | adv_backlog_promote remains pure record op (backlog-store.ts/backlog-shell.ts); packet agent-mediated via adv_change_create on promotion |\n| AC9 | acceptance_criterion | Cross-project `target_path` stored in packet is never treated as authorization — promotion requires normal `target_path` confirmation/revalidation | pass | validation (parsePacket/assertPacketSize) ignores target_path; promotion requires normal target_path confirmation — never auto-authorized |\n| C1 | constraint | Packet serialized size ≤16 KiB; per-Epic aggregate packet budget ≤256 KiB (protects Temporal continueAsNew ~1.8 MB hard cap) | respected | assertPacketSize 16384 + assertEpicAggregatePackets 262144 enforced at add_shell/promotion; context-packet-validation.test.ts |\n| C2 | constraint | addDependencyAwareResume (Capability A) already landed on trunk — WorkNodeRefSchema, blocked_by on shells, resume projection present. This change builds additively; clean seam (B owns packet content, A owns graph topology) | respected | clean seam — packet content (this change) separate from graph topology (addDependencyAwareResume, already on trunk) |\n| C3 | constraint | Backward-compatible additive field — `.optional()` with Zod; no migration needed for existing JSONL backlog or Epic projections | respected | additive .optional() Zod field; no migration; existing JSONL/Epic projections parse unchanged (AC1/AC2) |\n| C4 | constraint | replaceRecoveryToolSprawl (HARD dependency) already archived 2026-07-15 — cleared | respected | replaceRecoveryToolSprawl archived 2026-07-15 (precondition cleared, not re-verified here) |\n| DONT1 | avoidance | Must NOT treat a stored `cross_project_target.target_path` as authorization | respected | stored cross_project_target.target_path never treated as auth; promotion requires confirmation (AC9) |\n| DONT2 | avoidance | Must NOT alter `title` or `success_hint` semantics — they stay OUTSIDE the packet | respected | title/success_hint stay outside packet; packet is a separate field, semantics untouched |\n| DONT3 | avoidance | Must NOT create a unified entity merging backlog JSONL, Epic-shell projection, and active Change | respected | no unified entity; backlog JSONL, Epic-shell projection, active Change remain separate stores; packet copied on promotion |\n| DONT4 | avoidance | Must NOT make Epic membership mandatory for backlog items or one-off changes | respected | Epic membership not mandatory; future_work projects backlog items independent of Epic (SC3) |\n| DONT5 | avoidance | Must NOT add mutation verbs beyond `context_packet` on existing add/promote tools | respected | only context_packet added to existing add/promote tools; no new mutation verbs |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-23T14:33:33.126Z",
+      "contentHash": "8d5ef2ed811d2f19adac2e89dcd035f446c624fa4e0cd5202df804ed08e6caf8",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-22T19:59:10.719Z",
+      "contentHash": "ebc61b9ee6a7a52dc05efd9a50acf9e1d07c2d71d6d9aebb6f29b79fd76e72fc",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-23T15:05:26.830Z",
+      "contentHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-23T15:13:50.432Z",
+      "contentHash": "6bcc72ec5422a9a416cca65a31a792cb7a475a47dd322ca5194b42eae7de0a29",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T17:50:31.266Z",
+      "contentHash": "75f03c585bc8b3cd0fa9caed71327adfe02c0ce29bc7098c09a422a0275cf7fd",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T17:52:19.395Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "epic_membership": {
+    "epic_id": "systemizeAdvOrchestration",
+    "entry_id": "change-1784750365239-3rfbgv",
+    "order": 13,
+    "title": "Add durable change seeds",
+    "linked_at": "2026-07-22T19:59:25.239Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-23T16:30:27.376Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-23T16:30:27.376Z"
+    }
+  ]
+}

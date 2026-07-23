@@ -258,6 +258,7 @@ export function applyShellAddedToState(
     order,
     title: payload.title,
     success_hint: payload.successHint,
+    blocked_by: payload.blockedBy ?? [],
     ...(payload.importedFrom
       ? {
           imported_from: {
@@ -265,6 +266,9 @@ export function applyShellAddedToState(
             imported_at: payload.importedFrom.imported_at,
           },
         }
+      : {}),
+    ...(payload.context_packet !== undefined
+      ? { context_packet: payload.context_packet }
       : {}),
   };
   state.epic.entries.push(entry);
@@ -858,6 +862,47 @@ export function nextAvailableOrder(entries: EpicEntry[]): number {
   return Math.max(...entries.map((entry) => entry.order), -1) + 1;
 }
 
+/**
+ * Local advisory approximation for Epic.progress.next_entry_id.
+ *
+ * ResumeProjection.ordered_next is the complete cross-Epic authority. Workflow
+ * state can only resolve entries owned by this Epic, so unresolved or external
+ * prerequisites remain blocking rather than being guessed terminal.
+ */
+function localOrderedNextEntryId(entries: EpicEntry[]): string | null {
+  const localEntryById = new Map(
+    entries.map((entry) => [entry.entry_id, entry]),
+  );
+  const sortedEntries = [...entries].sort(
+    (left, right) => left.order - right.order,
+  );
+
+  for (const entry of sortedEntries) {
+    if (entry.kind === "change" && entry.terminal_summary?.status != null) {
+      continue;
+    }
+
+    if (entry.kind === "shell") {
+      const hasUnresolvedOrNonterminalPrereq = (entry.blocked_by ?? []).some(
+        (prereq) => {
+          if (prereq.kind !== "epic_entry") return true;
+          const localPrereq = localEntryById.get(prereq.entry_id);
+          return (
+            !localPrereq ||
+            localPrereq.kind !== "change" ||
+            localPrereq.terminal_summary?.status == null
+          );
+        },
+      );
+      if (hasUnresolvedOrNonterminalPrereq) continue;
+    }
+
+    return entry.entry_id;
+  }
+
+  return null;
+}
+
 export function recomputeEpicProgress(
   state: EpicWorkflowState,
 ): EpicProgressSummary {
@@ -885,15 +930,8 @@ export function recomputeEpicProgress(
     return summary;
   }
 
-  let next_entry_id: string | null = null;
-  if (state.status !== "archived") {
-    for (const entry of entries) {
-      if (entry.kind === "shell" || entry.terminal_summary?.status == null) {
-        next_entry_id = entry.entry_id;
-        break;
-      }
-    }
-  }
+  const next_entry_id =
+    state.status === "archived" ? null : localOrderedNextEntryId(entries);
 
   const summary: EpicProgressSummary = {
     status:

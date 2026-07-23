@@ -1,4 +1,8 @@
 import { loadLiveSummaries, QUERY_TIMEOUT_MS } from "../live-status";
+import {
+  loadLiveResumeProjection,
+  type LiveResumeProjectionResult,
+} from "../resume-projection-live";
 import { resolveProjectId } from "../project";
 import type { ChangeSummary } from "../types";
 import { sanitizeDashboardState } from "./config";
@@ -28,12 +32,17 @@ export interface DashboardAdvProjectSnapshot {
   project_id: string;
   generated_at: string;
   changes: DashboardAdvChange[];
+  resume_projection?: unknown;
   degradedSources: DashboardDegradedSource[];
 }
 
 export interface DashboardAdvReaderDeps {
   resolveProjectId?: (path: string) => Promise<string | null>;
   loadBaseSummaries?: (projectId: string, now: Date, timeoutMs: number) => Promise<ChangeSummary[]>;
+  loadResumeProjection?: (
+    projectId: string,
+    timeoutMs: number,
+  ) => Promise<LiveResumeProjectionResult>;
   loadOpsChanges?: (projectId: string, timeoutMs: number) => Promise<unknown[]>;
   now?: () => Date;
   timeoutMs?: number;
@@ -58,8 +67,24 @@ export async function readDashboardAdvProject(
   }
 
   const loadBase = deps.loadBaseSummaries ?? loadLiveSummaries;
-  const baseSummaries = await loadBase(projectId, now, timeoutMs);
+  const loadResume = deps.loadResumeProjection ?? loadLiveResumeProjection;
+  const [baseSummaries, resumeResult] = await Promise.all([
+    loadBase(projectId, now, timeoutMs),
+    loadResume(projectId, timeoutMs).catch(
+      (err): LiveResumeProjectionResult => ({
+        live: false,
+        error: err instanceof Error ? err.message : String(err),
+        remediation:
+          "ADV resume projection unavailable. Verify Temporal is running and the project has active changes/epics.",
+      }),
+    ),
+  ]);
   const degradedSources: DashboardDegradedSource[] = [];
+  if (!resumeResult.live && resumeResult.error) {
+    degradedSources.push(
+      degraded("RESUME_PROJECTION_UNAVAILABLE", resumeResult.error),
+    );
+  }
 
   const changes = baseSummaries.map((summary) => mergeAdvChange(summary));
   return sanitizeDashboardState({
@@ -68,6 +93,7 @@ export async function readDashboardAdvProject(
     project_id: projectId,
     generated_at: now.toISOString(),
     changes,
+    resume_projection: resumeResult.resume_projection,
     degradedSources,
   });
 }

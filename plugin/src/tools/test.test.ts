@@ -652,5 +652,62 @@ describe("test tools — simplified adv_run_test", () => {
       expect(parsed.timedOut).toBe(false);
       expect(parsed.maxBufferExceeded).toBe(false);
     });
+
+    test("classifies failing pipe stage as failed (pipefail)", async () => {
+      const store = createMockStore();
+
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command: "false | true",
+          phase: "red",
+        },
+        store,
+        "/tmp",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.exitCode).not.toBe(0);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.classification).toBe("failed");
+    });
+
+    test("preserves masking semantics with pipefail and || true", async () => {
+      const store = createMockStore();
+
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command: "false | true || true",
+          phase: "green",
+        },
+        store,
+        "/tmp",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.exitCode).toBe(0);
+      expect(parsed.passed).toBe(true);
+      expect(parsed.classification).toBe("passed");
+    });
+
+    test("preserves quoted and semicolon command semantics through bash", async () => {
+      const store = createMockStore();
+
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command: "printf 'a;b\\nc'; echo done",
+          phase: "green",
+        },
+        store,
+        "/tmp",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.exitCode).toBe(0);
+      expect(parsed.output).toContain("a;b");
+      expect(parsed.output).toContain("done");
+    });
   });
 });

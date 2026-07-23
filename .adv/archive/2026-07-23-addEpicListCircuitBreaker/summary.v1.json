@@ -1,0 +1,20 @@
+{
+  "archived_at": "2026-07-23T19:43:37.643Z",
+  "capabilities": [],
+  "change_hash": "df49445cc7b13a40238377d4e67deb2f2c9fc5b14c446d052f2e4898fc85b374",
+  "change_id": "addEpicListCircuitBreaker",
+  "completed_tasks": 2,
+  "created_at": "2026-07-23T18:06:29.738Z",
+  "current_gate": "done",
+  "fast_follow_of": {
+    "linked_at": "2026-07-23T18:06:28.868Z",
+    "parent_change_id": "makeReadsDiskAuthoritative"
+  },
+  "last_activity_at": "2026-07-23T19:43:30.411Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "ac68c7646479209767e47668bf177964cd07b0b83617161e5af35ace292efb82",
+  "task_count": 2,
+  "title": "Add epic-list circuit-breaker",
+  "version": "1"
+}

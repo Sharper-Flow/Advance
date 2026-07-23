@@ -6478,3 +6478,79 @@ A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal nam
 - The idempotency check at the worker-multi level short-circuits the duplicate registration
 
 ---
+
+### Launcher read-projection provenance truthfulness
+
+**ID:** `rq-launcherProjectionTruth01` | **Priority:** **[MUST]**
+
+ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times — `source:"disk_projection"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain Temporal-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (Temporal is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) — NOT by adding a new activity invocation to the workflow — so in-flight workflow histories replay identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the signal.
+
+**Tags:** `workflow`, `read-model`, `projection`, `launcher`, `recovery`, `durable`, `truthful-provenance`
+
+#### Scenarios
+
+**Active-only projection with terminal-truth dominance** (`rq-launcherProjectionTruth01.1`)
+
+**Given:**
+- a project with active (draft) and terminal (archived) changes
+- an on-disk per-change projection for each
+- an archive bundle for the terminal change whose canonical change.json.id matches its changeId
+
+**When:** a change mutation regenerates the aggregate
+
+**Then:**
+- the projection file exists at the per-project external-state dir
+- it contains exactly the draft/non-terminal changes
+- the archived change is excluded even though a stale draft projection file may exist
+
+**Temporal-independent read** (`rq-launcherProjectionTruth01.2`)
+
+**Given:**
+- Temporal (temporal-dev) is stopped
+- the per-change projections and aggregate already exist on disk
+
+**When:** the launcher reads active-launcher-state.json
+
+**Then:**
+- the aggregate file is readable and reflects the active set
+- no Temporal round-trip is required to read it
+
+**Replay-safe eager regeneration** (`rq-launcherProjectionTruth01.3`)
+
+**Given:**
+- a change mutation fires a signal handled by the workflow
+- the workflow calls writeChangeProjection with unchanged args
+
+**When:** the activity body executes host-side
+
+**Then:**
+- both changes/{changeId}.json and active-launcher-state.json are written
+- the workflow's activity-invocation sequence is unchanged (the aggregate write occurs inside the activity body)
+- in-flight workflow histories replay identically with no wf.patch
+
+**Best-effort aggregate never fails the per-change write** (`rq-launcherProjectionTruth01.4`)
+
+**Given:**
+- the aggregate write target is unwritable or fails
+- the per-change projection write already succeeded
+
+**When:** the aggregate write throws
+
+**Then:**
+- the activity still returns success for the per-change projection
+- the signal is not failed
+- a structured warning is logged
+
+**Truthful provenance and epics_available** (`rq-launcherProjectionTruth01.5`)
+
+**Given:**
+- active epic data is Temporal-only and not present on disk
+
+**When:** the aggregate is generated
+
+**Then:**
+- epics_available is false (never fabricated as live)
+- source is always disk_projection (never temporal/live:true)
+- freshness is the max lastSignalAt across active summaries and degraded reflects the documented threshold
+
+---

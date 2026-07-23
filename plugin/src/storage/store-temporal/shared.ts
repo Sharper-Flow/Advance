@@ -30,6 +30,7 @@ import {
   type TemporalMutationOutcome,
 } from "../../temporal/mutation-safety";
 import { isSchemaError } from "../json";
+import type { DiskPersistOutcome } from "./disk-persist";
 
 const logger = createLogger("store-temporal-shared");
 
@@ -103,6 +104,7 @@ export function mapTemporalChangeStateToChange(
     adv_project_id: safeState.projectId,
     cross_project_links: safeState.cross_project_links,
     external_dependencies: safeState.external_dependencies,
+    same_project_dependencies: safeState.same_project_dependencies ?? [],
     ops_followup: safeState.ops_followup,
     ops_followup_links: safeState.ops_followup_links,
     epic_membership: safeState.epic_membership,
@@ -312,7 +314,7 @@ export async function runTemporal<T>(
 }
 
 /**
- * Per-attempt 5s timeout for `handle.query(...)` calls. Without this,
+ * Per-attempt timeout cap for `handle.query(...)` calls. Without this,
  * a dead worker causes the query to hang indefinitely and all tool
  * calls through that path stall with it.
  *
@@ -320,16 +322,35 @@ export async function runTemporal<T>(
  * and `getHandle` keep the unbounded `runTemporal` so long-running
  * legitimate operations don't get interrupted. See design.md § KD-2,
  * P1.3.8.
+ *
+ * Configurable via `ADV_TEMPORAL_QUERY_TIMEOUT_MS` (finite-positive
+ * milliseconds). Default raised to 15s to tolerate the SQLite-backed
+ * Temporal dev server's variable history-replay latency under
+ * multi-worker load, where a long-history workflow's query can
+ * legitimately exceed the previous 5s cap. Production / CI may pin
+ * tighter via the env override. Invalid (non-finite, non-positive,
+ * non-numeric) values fall back to the default.
  */
-const QUERY_TIMEOUT_MS = 5_000;
+export function resolveQueryTimeoutMs(): number {
+  const v = Number(process.env.ADV_TEMPORAL_QUERY_TIMEOUT_MS);
+  return Number.isFinite(v) && v > 0 ? v : 15_000;
+}
+export const QUERY_TIMEOUT_MS = resolveQueryTimeoutMs();
 
 export interface RunTemporalQueryOptions {
   /**
    * Request-scoped aggregate deadline. The effective per-attempt
-   * timeout becomes `min(QUERY_TIMEOUT_MS, remaining budget)` and no
+   * timeout becomes `min(timeoutMs, remaining budget)` and no
    * retry/backoff begins after expiry.
    */
   deadline?: TemporalReadDeadline;
+  /**
+   * Per-attempt timeout cap. Defaults to `QUERY_TIMEOUT_MS` (15s,
+   * overridable via `ADV_TEMPORAL_QUERY_TIMEOUT_MS`); read paths
+   * override this to a lower per-member cap so a single wedged
+   * workflow cannot consume the aggregate budget.
+   */
+  timeoutMs?: number;
 }
 
 /**
@@ -341,7 +362,7 @@ export async function runTemporalQuery<T>(
   options?: RunTemporalQueryOptions,
 ): Promise<T> {
   return runTemporal(op, {
-    timeoutMs: QUERY_TIMEOUT_MS,
+    timeoutMs: options?.timeoutMs ?? QUERY_TIMEOUT_MS,
     deadline: options?.deadline,
   });
 }
@@ -529,7 +550,29 @@ export interface StoreDeps {
     changeId: string,
     state: ChangeWorkflowState,
   ) => void;
-  persistStateToDisk: (changeId: string, state: ChangeWorkflowState) => void;
+  persistStateToDisk: (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ) => Promise<DiskPersistOutcome>;
+  /**
+   * Durability-critical persist: awaits the projection write and throws
+   * DiskProjectionPersistError on failure so `success:true` implies a durable
+   * disk projection. Callers must already hold confirmed post-mutation state
+   * and have refreshed the cache (spec-delta / gate / wisdom mutations).
+   */
+  persistStateToDiskDurable: (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ) => Promise<void>;
+  /**
+   * Durable persist + cache/summary refresh for mutations that hold confirmed
+   * state but have not yet refreshed the cache (task mutations). Avoids the
+   * redundant readback in dualWriteAfterMutation.
+   */
+  persistAndRefreshDurable: (
+    changeId: string,
+    state: ChangeWorkflowState,
+  ) => Promise<void>;
   dualWriteAfterMutation: (changeId: string) => Promise<void>;
   getTemporalWorkflowClient: () => {
     workflow: {

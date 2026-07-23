@@ -70,6 +70,16 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
 const CONTRACTED_PUBLIC_REMOVALS = [
   "adv_backlog_state",
   "adv_project_wisdom_list",
+  // replaceRecoveryToolSprawl retired 8 recovery tools (merged to trunk,
+  // commits c70e3fb4 + 7e0a7523):
+  "adv_archive_repair",
+  "adv_change_status_repair",
+  "adv_change_forget",
+  "adv_epic_repair_membership",
+  "adv_temporal_diagnose",
+  "adv_temporal_reconnect",
+  "adv_temporal_register_search_attributes",
+  "adv_temporal_worker_restart",
 ] as const;
 
 /**
@@ -103,6 +113,15 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_tool_catalog",
   "adv_tool_describe",
   "adv_tool_invoke",
+  // replaceRecoveryToolSprawl added the consolidated doctor entry point:
+  "adv_doctor",
+  // resume-projection Phase E added the resume-projection MCP tool + bin
+  // adapter (feat 9f39317e); a legitimate registered public tool that was
+  // never recorded in this reintroduction-guard accounting.
+  "adv_resume_projection",
+  // addAdvLauncherReadProjection added the launcher projection rebuild MCP
+  // tool (plugin-only; never exposed via bin/adv).
+  "adv_launcher_projection_rebuild",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -303,8 +322,15 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // addLightweightChangeProfile then added the lightweight profile evaluate
     // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
     // catalog and describe tools (83 = 80 - 2 + 5); restoreDesignerFollowUp
-    // adds the typed modify writer (84 = 80 - 2 + 6); this change retires
-    // one additional public tool whose name is omitted per AC4 (83 = 80 - 3 + 6).
+    // adds the typed modify writer (84 = 80 - 2 + 6); the ROADMAP-retirement
+    // change removed one additional public tool whose name is omitted per AC4
+    // (83 = 80 - 3 + 6). Subsequent landed changes: replaceRecoveryToolSprawl
+    // removed 8 recovery tools (now in CONTRACTED_PUBLIC_REMOVALS) and added
+    // adv_doctor; the staged-delta write/read vocabulary + adv_tool_invoke
+    // landed as additions; and resume-projection Phase E added
+    // adv_resume_projection; addAdvLauncherReadProjection added
+    // adv_launcher_projection_rebuild. Net tracked totals: 10 named removals +
+    // 1 unnamed (roadmap) removal, 16 additions => 85 = 80 - 10 - 1 + 16.
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) -
         landedRemovals -

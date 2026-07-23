@@ -25,6 +25,7 @@
  * adv_change_status_repair, adv_epic_repair_membership, adv_change_forget)
  * were retired and consolidated here (design D6 / rq-recoverySurfaceParity01).
  */
+// rq-recoverySurfaceRetirement01: per-operation recovery tools retired and consolidated into adv_doctor.
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
@@ -114,6 +115,7 @@ interface DoctorInput {
 }
 
 // rq-doctorConsolidation01 option B: phantom-pointer safe-fix.
+// rq-doctorPhantomPointer01: module-level provider interface for clearing the active-change session pointer.
 // Module-level provider following the getCurrentSessionId pattern.
 // Injected by plugin-host (index.ts) only; tests and MCP-server see null,
 // so the phantom_pointer check is skipped in those contexts.

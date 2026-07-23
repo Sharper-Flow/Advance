@@ -9,16 +9,37 @@
 
 import { z } from "zod";
 import { resolve } from "path";
+import {
+  createTemporalReadContext,
+  isTemporalReadExpired,
+  type TemporalReadContext,
+} from "../storage/store-temporal/read-context";
 import type { Store } from "../storage/store-types";
-import { deriveEpicScopeLabel } from "../types";
+import { deriveEpicScopeLabel, WorkNodeRefSchema } from "../types";
 import type {
   Change,
   EpicEntry,
   FastFollowOf,
   RetiredEpicProjection,
+  WorkNodeRef,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import {
+  buildD3ContextFromStore,
+  enforceD3ForShellAdd,
+  enforceD3ForShellPromote,
+  type D3EnforcementError,
+} from "../validator/work-graph-enforcement";
+import { nodeRefKey } from "../validator/work-graph-validation";
 import { getBacklogItem } from "../utils/backlog-store";
+import {
+  assertEpicAggregatePackets,
+  assertPacketSize,
+  parsePacket,
+  ContextPacketTooLargeError,
+  EpicAggregatePacketsExceededError,
+} from "../utils/context-packet-validation";
+import type { FutureWorkContextPacket } from "../types/future-work";
 import {
   appendEpicRoutingContexts,
   EPIC_OWNER_ROUTING_ERROR_CODES,
@@ -59,6 +80,141 @@ function epicError(err: unknown) {
     code,
     ...(blockers && { blockers }),
   });
+}
+
+function contextPacketError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  if (err instanceof ContextPacketTooLargeError) {
+    return formatToolOutput({
+      success: false,
+      error: message,
+      code: "context_packet_too_large",
+    });
+  }
+  if (err instanceof EpicAggregatePacketsExceededError) {
+    return formatToolOutput({
+      success: false,
+      error: message,
+      code: "epic_aggregate_context_packets_exceeded",
+    });
+  }
+  return formatToolOutput({
+    success: false,
+    error: message,
+    code: "invalid_context_packet",
+  });
+}
+
+/**
+ * Render a structured Future-Work Context section from a validated packet.
+ * Only includes subsections for fields that are present.
+ */
+function renderContextPacketSection(packet: FutureWorkContextPacket): string {
+  const lines: string[] = [
+    "",
+    "## Future-Work Context",
+    "",
+    "<!-- Injected from the promoted Epic shell's context_packet. -->",
+    "",
+  ];
+
+  if (packet.background) {
+    lines.push("### Background", "", packet.background, "");
+  }
+
+  if (packet.design_seed) {
+    lines.push("### Design Seed", "", packet.design_seed, "");
+  }
+
+  if (packet.references && packet.references.length > 0) {
+    lines.push("### References", "");
+    for (const ref of packet.references) {
+      lines.push(`- **${ref.label}**: ${ref.locator}`);
+    }
+    lines.push("");
+  }
+
+  if (packet.constraints && packet.constraints.length > 0) {
+    lines.push("### Constraints", "");
+    for (const constraint of packet.constraints) {
+      lines.push(`- ${constraint}`);
+    }
+    lines.push("");
+  }
+
+  if (packet.avoidances && packet.avoidances.length > 0) {
+    lines.push("### Avoidances", "");
+    for (const avoidance of packet.avoidances) {
+      lines.push(`- ${avoidance}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Render a placeholder section when a shell's context_packet is present but
+ * cannot be safely injected (e.g., it exceeds the bounded size budget).
+ */
+function renderOmittedContextPacketSection(reason: string): string {
+  return [
+    "",
+    "## Future-Work Context",
+    "",
+    `<!-- The promoted shell carried a context_packet, but it ${reason}. It was omitted to keep the proposal bounded. -->`,
+    "",
+  ].join("\n");
+}
+
+/**
+ * Build the Future-Work Context appendix for a proposal seed.
+ *
+ * Re-validates the packet size before rendering. If the packet is oversized,
+ * returns an omission section instead so promotion never crashes.
+ */
+function buildContextPacketSection(
+  packet: FutureWorkContextPacket | undefined,
+): { section: string; note?: string } {
+  if (!packet) {
+    return { section: "" };
+  }
+
+  try {
+    assertPacketSize(packet);
+    return { section: renderContextPacketSection(packet) };
+  } catch (err) {
+    const reason =
+      err instanceof ContextPacketTooLargeError
+        ? `exceeded the size budget (${err.actualBytes} bytes)`
+        : "could not be bounded";
+    return {
+      section: renderOmittedContextPacketSection(reason),
+      note: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+function formatD3Error(error: D3EnforcementError): string {
+  switch (error.code) {
+    case "INVALID_WORK_NODE_REF": {
+      const reason = (error as { reason?: string }).reason;
+      if (reason === "self_edge") return "Self-dependency is not allowed.";
+      if (reason === "duplicate_ref")
+        return "Duplicate dependency reference in blocked_by.";
+      return "Invalid dependency reference.";
+    }
+    case "UNRESOLVED_DEPENDENCY":
+      return "Dependency target does not exist in scope.";
+    case "DEPENDENCY_CYCLE":
+      return "Adding this dependency would create a cycle.";
+    case "SHELL_PREREQ_NONTERMINAL": {
+      const refs = (error as { blocking_refs: WorkNodeRef[] }).blocking_refs;
+      return `Cannot add shell: prerequisites are not terminal: ${refs.map((r) => nodeRefKey(r)).join(", ")}`;
+    }
+    default:
+      return `Dependency enforcement failed: ${error.code}`;
+  }
 }
 
 // =============================================================================
@@ -131,11 +287,15 @@ async function loadFastFollowLineage(
   store: Store,
   changeId: string,
   cache: Map<string, EpicFastFollowLineage | null>,
+  ctx?: TemporalReadContext,
 ): Promise<EpicFastFollowLineage | null> {
   if (cache.has(changeId)) return cache.get(changeId) ?? null;
   let lineage: EpicFastFollowLineage | null = null;
   try {
-    const loaded = await store.changes.get(changeId);
+    const loaded = await store.changes.get(
+      changeId,
+      ctx ? { context: ctx } : undefined,
+    );
     if (loaded.success && loaded.data) {
       const ff: FastFollowOf | undefined = loaded.data.fast_follow_of;
       if (ff) {
@@ -167,11 +327,15 @@ async function buildFastFollowLineageMap(
 ): Promise<Map<string, EpicFastFollowLineage>> {
   const cache = new Map<string, EpicFastFollowLineage | null>();
   const map = new Map<string, EpicFastFollowLineage>();
+  // Share one circuit-breaker across the fast-follow lineage loop so a
+  // cluster of unresponsive children does not stack on top of convergence.
+  const ctx = createTemporalReadContext();
   for (const entry of entries) {
     if (entry.kind !== "change") continue;
     const changeId = getEpicEntryChangeId(entry);
     if (!changeId) continue;
-    const lineage = await loadFastFollowLineage(store, changeId, cache);
+    if (ctx.isCircuitBreakerTripped() || isTemporalReadExpired(ctx)) break;
+    const lineage = await loadFastFollowLineage(store, changeId, cache, ctx);
     if (lineage) map.set(entry.entry_id, lineage);
   }
   return map;
@@ -218,6 +382,7 @@ function mapEpicEntry(entry: EpicEntry) {
           title: entry.title,
           success_hint: entry.success_hint,
           imported_from: entry.imported_from,
+          context_packet: entry.context_packet,
         }
       : {
           change_id: entry.change_id,
@@ -449,8 +614,12 @@ async function loadEpicWithRetiredProjection(
 async function loadChange(
   store: Store,
   changeId: string,
+  ctx?: TemporalReadContext,
 ): Promise<Change | null> {
-  const result = await store.changes.get(changeId);
+  const result = await store.changes.get(
+    changeId,
+    ctx ? { context: ctx } : undefined,
+  );
   if (!result.success || !result.data) return null;
   return result.data;
 }
@@ -793,6 +962,12 @@ async function convergeEpicOnShow(
     return { epic, repairs };
   }
 
+  // One per-request circuit-breaker context shared across all members so
+  // K=3 consecutive unresponsive children trip the CB once (getTemporalChange
+  // short-circuits to disk+advisory) instead of each burning the full
+  // per-member budget and hanging adv_epic_show.
+  const convergenceCtx = createTemporalReadContext();
+
   let updatedEntries: EpicEntry[] = [...epic.entries];
 
   for (const entry of changeEntries) {
@@ -814,7 +989,7 @@ async function convergeEpicOnShow(
     // Observe child state.
     let childObservation: ChildObservation;
     try {
-      const change = await loadChange(ownerStore, changeId);
+      const change = await loadChange(ownerStore, changeId, convergenceCtx);
       childObservation = change
         ? { kind: "present", change }
         : { kind: "absent" };
@@ -1322,6 +1497,18 @@ export const epicTools = {
         .describe(
           "Advisory display order; assigned next available if omitted.",
         ),
+      blocked_by: z
+        .array(WorkNodeRefSchema)
+        .default([])
+        .describe(
+          "Same-project hard prerequisite edges. Shell promotion is refused while any prereq is nonterminal.",
+        ),
+      context_packet: z
+        .unknown()
+        .optional()
+        .describe(
+          "Optional durable future-work context packet. Validated and persisted on the shell entry.",
+        ),
       ...epicOwnerTargetPathSchema,
     },
     execute: async (
@@ -1332,6 +1519,8 @@ export const epicTools = {
         success_hint,
         entry_id,
         order,
+        blocked_by,
+        context_packet,
         epic_owner_target_path,
         epic_owner_target_confirmed,
         epic_owner_confirmationEvidence,
@@ -1342,6 +1531,8 @@ export const epicTools = {
         success_hint?: string;
         entry_id?: string;
         order?: number;
+        blocked_by?: WorkNodeRef[];
+        context_packet?: unknown;
         epic_owner_target_path?: string;
         epic_owner_target_confirmed?: true;
         epic_owner_confirmationEvidence?: string;
@@ -1355,6 +1546,30 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
+
+        const epic = await loadEpic(owner.store, epic_id);
+
+        let validatedContextPacket: FutureWorkContextPacket | undefined;
+        if (context_packet !== undefined) {
+          try {
+            const packet = parsePacket(context_packet);
+            assertPacketSize(packet);
+            if (epic) {
+              const existingShells = epic.entries.filter(
+                (e): e is Extract<EpicEntry, { kind: "shell" }> =>
+                  e.kind === "shell",
+              );
+              const incomingBytes = Buffer.byteLength(
+                JSON.stringify(packet),
+                "utf8",
+              );
+              assertEpicAggregatePackets(existingShells, incomingBytes);
+            }
+            validatedContextPacket = packet;
+          } catch (err) {
+            return contextPacketError(err);
+          }
+        }
 
         let importedFrom:
           | { backlog_id: string; imported_at: string }
@@ -1399,12 +1614,43 @@ export const epicTools = {
           });
         }
 
+        const sourceRef: WorkNodeRef = {
+          kind: "epic_entry",
+          epic_id: epic_id,
+          entry_id: entry_id ?? `shell-${Date.now()}`,
+        };
+        const d3Ctx = await buildD3ContextFromStore(owner.store);
+        const d3Result = enforceD3ForShellAdd(
+          sourceRef,
+          blocked_by ?? [],
+          d3Ctx,
+        );
+        if (!d3Result.ok) {
+          return formatToolOutput({
+            success: false,
+            error: formatD3Error(d3Result.error),
+            code: d3Result.error.code,
+            ...(d3Result.error.code === "SHELL_PREREQ_NONTERMINAL" ||
+            d3Result.error.code === "DEP_PREREQ_NONTERMINAL"
+              ? {
+                  blocking_refs: (
+                    d3Result.error as { blocking_refs: WorkNodeRef[] }
+                  ).blocking_refs,
+                }
+              : {}),
+          });
+        }
+
         const entry = await owner.store.epics.addShell(epic_id, {
           entryId: entry_id,
           title: finalTitle,
           successHint: finalSuccessHint,
           order,
           importedFrom,
+          blockedBy: blocked_by,
+          ...(validatedContextPacket !== undefined
+            ? { context_packet: validatedContextPacket }
+            : {}),
         });
         const output = formatToolOutput({
           success: true,
@@ -1478,6 +1724,27 @@ export const epicTools = {
           });
         }
 
+        // D3 enforcement: refuse promotion if same-project prerequisites are
+        // nonterminal. Edges were validated at shell-add time; we only check
+        // terminal status here.
+        const d3Ctx = await buildD3ContextFromStore(ownerStore);
+        const d3Result = enforceD3ForShellPromote(
+          shell.blocked_by ?? [],
+          d3Ctx,
+        );
+        if (!d3Result.ok) {
+          return formatToolOutput({
+            success: false,
+            error: formatD3Error(d3Result.error),
+            code: d3Result.error.code,
+            blocking_refs: (d3Result.error as { blocking_refs: WorkNodeRef[] })
+              .blocking_refs,
+          });
+        }
+
+        let contextPacketAppendix: { section: string; note?: string } = {
+          section: "",
+        };
         let finalChangeId = change_id;
         if (!finalChangeId) {
           if (owner.context !== null && ownerStore !== store) {
@@ -1488,7 +1755,10 @@ export const epicTools = {
               ownerContext: owner.context,
             });
           }
-          const proposal = `# ${shell.title}\n\n## Intent\n\n${shell.success_hint}\n\n## Scope\n\n- Promoted from Epic ${epic_id} shell ${entry_id}.\n`;
+          contextPacketAppendix = buildContextPacketSection(
+            shell.context_packet,
+          );
+          const proposal = `# ${shell.title}\n\n## Intent\n\n${shell.success_hint}\n\n## Scope\n\n- Promoted from Epic ${epic_id} shell ${entry_id}.\n${contextPacketAppendix.section}`;
           const problemStatement = `## Problem\n\n${shell.title}\n\n## Success Criteria\n\n${shell.success_hint}\n`;
           const createResult = await ownerStore.changes.create(shell.title, {
             artifacts: { proposal, problemStatement },
@@ -1517,7 +1787,12 @@ export const epicTools = {
           entry_id,
           change_id: finalChangeId,
           promoted: true,
-          note: `Shell '${shell.title}' promoted to change ${finalChangeId}.`,
+          note: [
+            `Shell '${shell.title}' promoted to change ${finalChangeId}.`,
+            contextPacketAppendix.note,
+          ]
+            .filter(Boolean)
+            .join(" "),
         });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {

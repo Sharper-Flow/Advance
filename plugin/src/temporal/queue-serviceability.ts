@@ -34,7 +34,7 @@ export interface QueueServiceabilityInput {
   workerDiagnostics?: unknown;
   serverPollerProbe?: ServerPollerProbe;
   staleRunningWorkflowCount?: number;
-  staleQueueProbe: "ok" | "unavailable";
+  staleQueueProbe: "ok" | "degraded" | "unavailable";
 }
 
 export interface QueueServiceability {
@@ -50,7 +50,7 @@ export interface QueueServiceability {
     serverPollerProbe: ServerPollerProbeStatus;
     pollerLastAccessMs: number | null;
     staleRunningWorkflowCount: number;
-    staleQueueProbe: "ok" | "unavailable";
+    staleQueueProbe: "ok" | "degraded" | "unavailable";
   };
   blockers: string[];
 }

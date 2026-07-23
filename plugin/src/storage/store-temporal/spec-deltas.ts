@@ -49,7 +49,7 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
     invalidateChange,
     setCachedChange,
     emitChangeSummarySignal,
-    persistStateToDisk,
+    persistStateToDiskDurable,
   } = deps;
 
   return {
@@ -92,7 +92,7 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       }
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
       return appended as DeltaAdd;
     },
     modify: async (changeId, capability, delta: DeltaModify, options) => {
@@ -132,7 +132,7 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       }
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
       return appended as DeltaModify;
     },
     amend: async (changeId, capability, deltaId, delta: Delta, options) => {
@@ -173,7 +173,7 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       }
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
       return amended as Delta;
     },
     retract: async (changeId, capability, deltaId, options) => {
@@ -213,7 +213,7 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       }
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
     },
     remove: async (changeId, capability, delta: DeltaRemove, options) => {
       invalidateChange(changeId);
@@ -252,7 +252,7 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       }
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
       return appended as DeltaRemove;
     },
     rename: async (changeId, capability, delta: DeltaRename, options) => {
@@ -292,7 +292,7 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       }
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
       return appended as DeltaRename;
     },
   };

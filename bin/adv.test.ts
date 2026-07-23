@@ -95,7 +95,7 @@ describe("adv dispatcher metadata", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("USAGE:");
     expect(stdout).toContain("epic list");
-    expect(stdout).toContain("status, slop-scan; required for epic list");
+    expect(stdout).toContain("status, slop-scan, roadmap; required for epic list");
     expect(stdout.match(/--json/g)).toHaveLength(1);
   });
 

@@ -574,6 +574,7 @@ IMPLEMENTATION_RECEIPT:
   implementation_cycle_id: {active cycle id}
   provenance: {engineer_report:{stable report key} | inline:{baseline head SHA, diff reference}}
   validation: {successful same-task/same-cycle implementation evidence}
+  # Bridge: the active cycle is carried in the DESIGNER_REPORT under `apply_context.implementation_cycle_id` (top-level is rejected by the strict schema).
 TASK_SCOPE: {one-line frontend/component objective}
 IN_SCOPE:
   - {owned UI/component files/findings for this task}
@@ -606,6 +607,20 @@ PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files i
 DESIGN EXCERPT: {relevant section if task references design}
 EXPECTED OUTPUT: implement the UI/component task, run tests, then call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test
 ```
+
+The active cycle is bound in the designer report under `apply_context.implementation_cycle_id`, not as a top-level key:
+
+```json
+"apply_context": {
+  "implementation_cycle_id": "ic_<active-cycle-id>",
+  "implementation_provenance": {
+    "kind": "engineer_report",
+    "report_key": "<stable engineer report key>"
+  }
+}
+```
+
+`implementation_provenance.kind` may be `engineer` (`baseline_head_sha`), `engineer_report` (`report_key`), or `inline` (`baseline_head_sha` + `diff_ref`). A top-level `implementation_cycle_id` is rejected by the strict schema.
 
 The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). `IMPLEMENTATION_RECEIPT` is mandatory: `engineer_report` provenance must reference a successful same-task/same-cycle ENGINEER_REPORT; inline provenance must bind the active cycle to a baseline and diff reference. The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
 

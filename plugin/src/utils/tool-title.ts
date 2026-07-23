@@ -55,6 +55,10 @@ const STATIC_TITLES: Record<
     title: "Invoke ADV tool",
     titleKind: "execute",
   },
+  adv_launcher_projection_rebuild: {
+    title: "Rebuild launcher projection",
+    titleKind: "operator",
+  },
 };
 
 const TITLE_BUILDERS: Record<string, TitleBuilder> = {
@@ -187,6 +191,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     execute(`Checkpoint task${suffix(args, "taskId")}`),
   adv_reflection_list: (args) =>
     read(`List reflections${suffix(args, "changeId", "target_path")}`),
+  adv_resume_projection: (args) =>
+    read(`Resume projection${suffix(args, "epic_ids")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
   adv_lightweight_profile_evaluate: (args) =>
     write(`Evaluate lightweight profile${suffix(args, "changeId", "phase")}`),

@@ -8,10 +8,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   buildPendingMergePhase9Status,
+  buildReleaseCompletionEvidence,
   completeReleaseGateAfterFinalization,
   verifyReleaseEvidenceFromMain,
   preservePhase9Evidence,
   runReacquiringChangeQuery,
+  verifyReleaseGateDurableForArchive,
   waitForArchiveReleaseGateCompletion,
 } from "./archive-gate";
 import * as gitFinalize from "../archive-helpers/git-finalize";
@@ -580,25 +582,22 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     vi.mocked(getProjectId).mockResolvedValue("project-test");
   });
 
-  it("calls store.changes.refresh AFTER waitForArchiveReleaseGateCompletion observes done, not before", async () => {
-    // Order-tracking mock: each handle.query and store.changes.refresh call
-    // appends to invocationLog with the observed gate state. The test asserts
-    // that the first refresh invocation occurs AFTER at least one query
-    // returned doneGate — proving refresh was sequenced after the poll
-    // observed done, not before.
-    type LogEntry = { kind: "query"; result: unknown } | { kind: "refresh" };
+  it("calls store.changes.invalidate AFTER waitForArchiveReleaseGateCompletion observes done, not refresh", async () => {
+    // Order-tracking mock: each handle.query and store.changes.invalidate call
+    // appends to invocationLog. The test asserts that the invalidate invocation
+    // occurs AFTER at least one query returned doneGate — proving invalidate was
+    // sequenced after the poll observed done, not before.
+    type LogEntry = { kind: "query"; result: unknown } | { kind: "invalidate" };
     const invocationLog: LogEntry[] = [];
 
     // Sequence models the race window:
     //   - pre-signal query: pending
     //   - poll attempt 1: pending
     //   - poll attempt 2: done (workflow has now processed the signal)
-    //   - refresh's readback after the fixed poll ordering: done
     const queryReturnSequence = [
       pendingGate, // pre-signal query
       pendingGate, // poll attempt 1
       doneGate, // poll attempt 2 — workflow caught up
-      doneGate, // refresh's post-poll readback
     ];
     let queryCallIndex = 0;
 
@@ -620,15 +619,16 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     vi.mocked(getService).mockReturnValue({ client } as never);
 
     const refreshMock = vi.fn(async () => {
-      invocationLog.push({ kind: "refresh" });
-      // Model refresh's state readback. With the pre-fix ordering this would
-      // consume the second, still-pending query result before the poll; under
-      // the fixed ordering it consumes the post-done result above.
+      // Refresh should NOT be called on the confirmed-done branch after #305.
+      invocationLog.push({ kind: "refresh" as const });
       await handle.query();
+    });
+    const invalidateMock = vi.fn(async () => {
+      invocationLog.push({ kind: "invalidate" });
     });
     const store = {
       ...createStore("/repo"),
-      changes: { refresh: refreshMock },
+      changes: { refresh: refreshMock, invalidate: invalidateMock },
     } as unknown as Store;
 
     const result = await completeReleaseGateAfterFinalization({
@@ -639,21 +639,237 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
     });
 
     expect(result).toMatchObject({ ok: true });
+    expect(refreshMock).not.toHaveBeenCalled();
 
-    // The invariant: the first refresh call must occur AFTER at least one
-    // query returned doneGate. Under the buggy sequencing (refresh before
-    // poll), the first refresh would occur after only pendingGate queries.
-    const firstRefreshIndex = invocationLog.findIndex(
-      (entry) => entry.kind === "refresh",
+    // The invariant: invalidate must occur AFTER at least one query returned
+    // doneGate. Under the pre-fix sequencing (refresh before poll), a cache-
+    // mutating call would occur before any done observation.
+    const firstInvalidateIndex = invocationLog.findIndex(
+      (entry) => entry.kind === "invalidate",
     );
-    expect(firstRefreshIndex).toBeGreaterThanOrEqual(0);
+    expect(firstInvalidateIndex).toBeGreaterThanOrEqual(0);
 
-    const queriesBeforeRefresh = invocationLog.slice(0, firstRefreshIndex);
-    const observedDoneBeforeRefresh = queriesBeforeRefresh.some(
+    const queriesBeforeInvalidate = invocationLog.slice(
+      0,
+      firstInvalidateIndex,
+    );
+    const observedDoneBeforeInvalidate = queriesBeforeInvalidate.some(
       (entry) =>
         entry.kind === "query" &&
         (entry.result as { status?: string } | null)?.status === "done",
     );
-    expect(observedDoneBeforeRefresh).toBe(true);
+    expect(observedDoneBeforeInvalidate).toBe(true);
+  });
+
+  it("calls store.changes.invalidate when the pre-signal query already returns done (alreadyDone branch)", async () => {
+    // When the release gate is ALREADY done on the first query (a prior signal
+    // landed, or a retry finds done immediately), the alreadyDone short-circuit
+    // must still drop the poisoned cache so the immediately-following second
+    // verifyReleaseGateDurableForArchive store.gates.get queries fresh instead
+    // of reading a stale pending entry left by a racing refresh.
+    const invalidateMock = vi.fn(async () => {});
+    const handle = {
+      // First (and only) query returns done → alreadyDone short-circuit, no signal.
+      query: vi.fn(async () => doneGate),
+      signal: vi.fn(async () => {}),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const store = {
+      ...createStore("/repo"),
+      changes: { refresh: vi.fn(), invalidate: invalidateMock },
+    } as unknown as Store;
+
+    const result = await completeReleaseGateAfterFinalization({
+      store,
+      change: createChange({}),
+      changeId: "fixAlreadyDoneInvalidate",
+      finalization: shippedFinalization,
+    });
+
+    expect(result).toMatchObject({ ok: true, alreadyDone: true });
+    expect(invalidateMock).toHaveBeenCalledWith("fixAlreadyDoneInvalidate");
+    // No signal should fire when the gate is already done.
+    expect(handle.signal).not.toHaveBeenCalled();
+  });
+});
+
+describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning race", () => {
+  // Even with the fixPhase9StatusSignal ordering, store.changes.refresh's
+  // readback query can return a stale pre-signal "pending" snapshot after
+  // waitForArchiveReleaseGateCompletion has observed "done". refresh then
+  // calls dualWriteAfterMutation, which classifies the stale read as
+  // "confirmed" and re-poison changeCache. The subsequent
+  // verifyReleaseGateDurableForArchive reads the poisoned cache and fails
+  // with "did not observe release done".
+  //
+  // The fix replaces refresh with invalidate on the confirmed-done branch:
+  // invalidate drops the cache entry only, so the next store.gates.get misses
+  // the cache and queries the workflow fresh, observing release=done.
+  const pendingGate = { status: "pending" };
+  const doneGate = {
+    status: "done",
+    completed_at: "2026-01-01T00:00:00Z",
+    completed_by: "adv-archive",
+  };
+  const shippedFinalization: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-1",
+  };
+
+  beforeEach(() => {
+    vi.mocked(getProjectId).mockResolvedValue("project-test");
+  });
+
+  it("invalidate (not refresh) lets verifyReleaseGateDurableForArchive observe release done from the store", async () => {
+    // Shared mutable cache variable models changeCache. store.gates.get
+    // returns the cached gate when present; an undefined cache models a
+    // cache miss and returns the fresh workflow state (doneGate).
+    let cachedReleaseGate: { status: string } | undefined;
+
+    // Sequence models the residual race:
+    //   - pre-signal query: pending
+    //   - poll attempt 1: pending
+    //   - poll attempt 2: done (workflow caught up)
+    //   - refresh's readback after the poll: stale pending (residual race)
+    const queryReturnSequence = [
+      pendingGate, // pre-signal query
+      pendingGate, // poll attempt 1
+      doneGate, // poll attempt 2
+      pendingGate, // refresh's readback returns stale pre-signal state
+    ];
+    let queryCallIndex = 0;
+
+    const handle = {
+      query: vi.fn(async () => {
+        const result =
+          queryReturnSequence[queryCallIndex] ??
+          queryReturnSequence[queryReturnSequence.length - 1] ??
+          doneGate;
+        queryCallIndex += 1;
+        return result;
+      }),
+      signal: vi.fn(async () => {
+        // Signal accepted by the server; workflow will process asynchronously.
+      }),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const refreshMock = vi.fn(async () => {
+      // Model refresh's state readback re-caching stale pre-signal state.
+      cachedReleaseGate = await handle.query();
+    });
+    const invalidateMock = vi.fn(async () => {
+      // Model invalidate: drop the cache entry only. The next store.gates.get
+      // misses cache and reads fresh workflow state.
+      cachedReleaseGate = undefined;
+    });
+    const store = {
+      ...createStore("/repo"),
+      changes: { refresh: refreshMock, invalidate: invalidateMock },
+      gates: {
+        get: vi.fn(async () => ({
+          release: cachedReleaseGate ?? doneGate,
+        })),
+      },
+    } as unknown as Store;
+
+    const completion = await completeReleaseGateAfterFinalization({
+      store,
+      change: createChange({}),
+      changeId: "issue305CachePoison",
+      finalization: shippedFinalization,
+    });
+
+    expect(completion).toMatchObject({ ok: true });
+
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "issue305CachePoison",
+      evidence: buildReleaseCompletionEvidence(shippedFinalization),
+      finalizationStatus: "shipped",
+    });
+
+    expect(durableProof).toMatchObject({
+      ok: true,
+      source: "store",
+      gate: doneGate,
+    });
+    expect(durableProof).not.toMatchObject({ source: "disk" });
+    // Under the fixed code the cache is cleared, so the proof reads fresh
+    // workflow state directly. Under the buggy code refresh poisons the cache
+    // with pending and the proof fails before this assertion.
+    expect(cachedReleaseGate).toBeUndefined();
+  });
+});
+
+describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", () => {
+  it("rejects a non-shipped change whose release gate carries a forged recovery_audit reason", async () => {
+    const forgedGate = {
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "adv-archive",
+      approval_evidence: "old-approval",
+      recovery_audit: {
+        reason: "forged_unrecognized_reason",
+        evidence: "forged-evidence",
+        audited_at: "2026-01-01T00:00:00Z",
+      },
+    };
+    const store = {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({ release: forgedGate })),
+      },
+    } as unknown as Store;
+
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "forgeGuard",
+      evidence: "legitimate-finalization-evidence",
+      finalizationStatus: "pending_merge",
+    });
+
+    expect(durableProof).toMatchObject({
+      ok: false,
+      error: expect.stringContaining(
+        "Store-backed durable release gate proof lacks matching Phase 9 evidence",
+      ),
+    });
+  });
+
+  it("accepts a shipped change whose release gate is done via shipped bypass (store path, no audit required)", async () => {
+    // Two-path forge guard (validator-confirmed): the LIVE STORE path accepts a
+    // done release gate when finalization is shipped (git-confirmed
+    // reachability is authoritative) WITHOUT requiring a recovery audit or
+    // allowlisted reason — even when the approval evidence does NOT substring-
+    // match the structured completion evidence. Only the disk fallback
+    // (loadAuditedDiskReleaseGate) requires audited + allowlisted reason.
+    const doneNoAudit = {
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "adv-archive",
+      approval_evidence: "free-text-manual-approval-notes",
+    };
+    const store = {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({ release: doneNoAudit })),
+      },
+    } as unknown as Store;
+
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "shippedBypass",
+      evidence: "structured-phase9-evidence",
+      finalizationStatus: "shipped",
+    });
+
+    expect(durableProof).toMatchObject({ ok: true, source: "store" });
   });
 });

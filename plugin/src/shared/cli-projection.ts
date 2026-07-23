@@ -72,6 +72,7 @@ export interface ChangeRecord {
   fast_follow_of?: { parent_change_id?: string };
   epic_membership?: { epic_id: string; title: string };
   lastSignalAt?: string;
+  same_project_dependencies?: unknown[];
 }
 
 /** Summary of an active change for status/epic renders. */
@@ -106,6 +107,7 @@ export interface LiveStatusPayload {
     closed: number;
   };
   changes: ChangeSummary[];
+  resume_projection?: unknown;
   error?: string;
   remediation?: string;
 }

@@ -125,7 +125,9 @@ export function createHealthProbeCache<T, K extends string = string>(
 function isTemporalHealthUsable(health: TemporalHealthSnapshot): boolean {
   // A usable Temporal dependency requires a live server probe. Worker liveness
   // and queue details are evaluated by the serviceability computation itself.
-  return health.server_alive === true;
+  // A degraded probe that timed out still keeps the dependency usable because
+  // the fallback assumes the server/worker are reachable (false-down guard).
+  return health.server_alive === true || health.probe_degraded === true;
 }
 
 export async function getQueueServiceability(

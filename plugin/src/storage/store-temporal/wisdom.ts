@@ -16,7 +16,7 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
     invalidateChange,
     setCachedChange,
     emitChangeSummarySignal,
-    persistStateToDisk,
+    persistStateToDiskDurable,
   } = deps;
 
   return {
@@ -53,7 +53,7 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
       )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
+      await persistStateToDiskDurable(changeId, state);
       const latest = state.wisdom[state.wisdom.length - 1] as
         | WisdomEntry
         | undefined;

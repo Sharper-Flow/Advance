@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.36.0",
-  "updated_at": "2026-07-23T23:44:43.204Z",
+  "version": "1.37.0",
+  "updated_at": "2026-07-23T23:50:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -7223,6 +7223,92 @@
       "meta": {
         "merged_from": "autoAdoptOrphanSessionQueues"
       }
+    },
+    {
+      "id": "rq-launcherProjectionTruth01",
+      "title": "Launcher read-projection provenance truthfulness",
+      "body": "ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times — `source:\"disk_projection\"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain Temporal-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (Temporal is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) — NOT by adding a new activity invocation to the workflow — so in-flight workflow histories replay identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the signal.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "read-model",
+        "projection",
+        "launcher",
+        "recovery",
+        "durable",
+        "truthful-provenance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-launcherProjectionTruth01.1",
+          "title": "Active-only projection with terminal-truth dominance",
+          "given": [
+            "a project with active (draft) and terminal (archived) changes",
+            "an on-disk per-change projection for each",
+            "an archive bundle for the terminal change whose canonical change.json.id matches its changeId"
+          ],
+          "when": "a change mutation regenerates the aggregate",
+          "then": [
+            "the projection file exists at the per-project external-state dir",
+            "it contains exactly the draft/non-terminal changes",
+            "the archived change is excluded even though a stale draft projection file may exist"
+          ]
+        },
+        {
+          "id": "rq-launcherProjectionTruth01.2",
+          "title": "Temporal-independent read",
+          "given": [
+            "Temporal (temporal-dev) is stopped",
+            "the per-change projections and aggregate already exist on disk"
+          ],
+          "when": "the launcher reads active-launcher-state.json",
+          "then": [
+            "the aggregate file is readable and reflects the active set",
+            "no Temporal round-trip is required to read it"
+          ]
+        },
+        {
+          "id": "rq-launcherProjectionTruth01.3",
+          "title": "Replay-safe eager regeneration",
+          "given": [
+            "a change mutation fires a signal handled by the workflow",
+            "the workflow calls writeChangeProjection with unchanged args"
+          ],
+          "when": "the activity body executes host-side",
+          "then": [
+            "both changes/{changeId}.json and active-launcher-state.json are written",
+            "the workflow's activity-invocation sequence is unchanged (the aggregate write occurs inside the activity body)",
+            "in-flight workflow histories replay identically with no wf.patch"
+          ]
+        },
+        {
+          "id": "rq-launcherProjectionTruth01.4",
+          "title": "Best-effort aggregate never fails the per-change write",
+          "given": [
+            "the aggregate write target is unwritable or fails",
+            "the per-change projection write already succeeded"
+          ],
+          "when": "the aggregate write throws",
+          "then": [
+            "the activity still returns success for the per-change projection",
+            "the signal is not failed",
+            "a structured warning is logged"
+          ]
+        },
+        {
+          "id": "rq-launcherProjectionTruth01.5",
+          "title": "Truthful provenance and epics_available",
+          "given": [
+            "active epic data is Temporal-only and not present on disk"
+          ],
+          "when": "the aggregate is generated",
+          "then": [
+            "epics_available is false (never fabricated as live)",
+            "source is always disk_projection (never temporal/live:true)",
+            "freshness is the max lastSignalAt across active summaries and degraded reflects the documented threshold"
+          ]
+        }
+      ]
     }
   ]
 }

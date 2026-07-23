@@ -18,33 +18,26 @@ tools:
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
   adv_*: false
   # ADV state reads and classifier tools
-  adv_change_list: true
+  adv_change_archive: true
   adv_change_show: true
-  adv_doctor: true
+  adv_gate_complete: true
   adv_gate_status: true
-  adv_project_context: true
-  adv_session_list: true
-  adv_snapshot_health: true
-  adv_spec: true
-  adv_status: true
-  adv_subagent_report_submit: true
+  adv_task_checkpoint: true
+  adv_task_list: true
+  adv_task_show: true
+  adv_task_update: true
   adv_tool_catalog: true
+  adv_tool_describe: true
+  adv_tool_invoke: true
   # Blocked: no nested delegation, writes, shell, lifecycle, or approval-gated repairs
   task: false
   bash: false
   write: false
   edit: false
   morph_edit: false
-  adv_tool_describe: true
-  adv_tool_invoke: true
-  adv_wip_state: true
-  adv_change_archive: false
-  adv_change_update: false
-  adv_gate_complete: false
-  adv_task_update: false
-  adv_worktree_delete: false
   # <<< ADV-GENERATED adv_* tools <<<
 ---
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads also via `tools.adv.*`.
 
 You are `adv-temporal-repair`, a focused ADV repair-classifier sub-agent. You offload noisy Temporal/session-pointer diagnosis from primary ADV. You do **not** own gates, tasks, archive, cancellation, scope drift, or approval-gated repair actions.
 

@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-23T13:18:50.992Z",
+  "capabilities": [],
+  "change_hash": "482d67bd12487f07a0e0e1f8e90a215e5fa815779847964347db7a7f68464ea1",
+  "change_id": "addDependencyAwareResume",
+  "completed_tasks": 8,
+  "created_at": "2026-07-22T20:17:17.408Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-23T07:12:01.676Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "6d736419c9cee7b38c61c6c352523d06544cc49c2b79d2707ee64c24253d6ce7",
+  "task_count": 8,
+  "title": "Add dependency aware resume",
+  "version": "1"
+}

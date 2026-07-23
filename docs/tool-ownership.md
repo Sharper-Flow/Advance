@@ -34,6 +34,7 @@ approval-gated recovery family that shares the same posture.
 | `adv_conformance` (`#override`) | operator-only | audit fields `user` + `reason` + `re_verify_deadline` | Overrides a locked conformance verdict; audit-escape hatch only. Other actions (`status`, `init`, `lock`, `unlock`, `run`) stay orchestrator-reachable |
 | `adv_change_repair_origin` | operator-only | `approvedByUser` + `approvalEvidence` + `reason` | Repairs origin provenance linkage on an open change; claim-safe audited repair |
 | `adv_change_workflow_terminate` | operator-only | `approvedByUser` + `approvalEvidence` + shipped acceptance/release gate proof + (poisoned-history describe evidence OR shipped-terminal structural proof) | Terminates the exact describe-pinned (`runId`) wedged run of a shipped change's workflow — NOT a Temporal Reset; dry-run pin assessment, idempotent completed/not-found handling only after eligibility, failure before any projection-cache refresh. Two eligibility classes (rq-shippedWorkflowTermination01): `poisoned_history` (existing — describe carries poisoned-history evidence, terminate + cache refresh only) and `shipped_terminal` (new — describe shows RUNNING/PAUSED with no poison but disk carries all 7 gates done + phase9 done + schema-valid archive bundle matching changeId; terminate + atomic status/lifecycleState=archived convergence write + read-after-write verification). Shipped-terminal refusal codes: PROOF_INVALID_DISK_PROJECTION, PROOF_MISSING_GATES, PROOF_MISSING_PHASE9, PROOF_NO_BUNDLE, PROOF_INVALID_BUNDLE, PROOF_BUNDLE_ID_MISMATCH. Convergence failure shape: `success:false, partialRecovery:true, pinnedRunTerminated:true, converged:false` with typed `successorRace` (pre-write), `lateSuccessorRace` (post-readback TOCTOU), or `readback`+`remediation`. Archived changes route to `adv_archive_purge` (rq-archivePurge01 semantics preserved) |
+| `adv_launcher_projection_rebuild` | operator-only | `approvedByUser` + `approvalEvidence` | Regenerates the aggregate `active-launcher-state.json` from the on-disk per-change projection set; plugin/MCP-only, never exposed via `bin/adv` |
 
 ## Dual Tools
 
@@ -44,6 +45,15 @@ operator-owned and must not run as routine autonomous agent actions
 | Tool | Class | Read (agent) | Mutate (operator) |
 |---|---|---|---|
 | `adv_status` | dual | All views (`summary`, `health`, `changes`, `hygiene`) | `forceRefresh` health-probe cache refresh |
+| `adv_resume_projection` | orchestrator | Dependency-aware resume projection (pure read) | — |
+| `adv_delta_add` | orchestrator | Staged delta append | — |
+| `adv_delta_amend` | orchestrator | Staged delta full-replacement amend | — |
+| `adv_delta_list` | orchestrator | Staged delta list (pure read) | — |
+| `adv_delta_show` | orchestrator | Staged delta show (pure read) | — |
+| `adv_delta_modify` | orchestrator | Staged delta modify-operation | — |
+| `adv_delta_remove` | orchestrator | Staged delta remove-operation | — |
+| `adv_delta_rename` | orchestrator | Staged delta rename-operation | — |
+| `adv_delta_retract` | orchestrator | Staged delta retract (delete) | — |
 | `adv_project_metadata` | dual | `read`, `list` | `write` — scan-owned producers only (slop-scan, comp-scan, audit, arch-scan); not ad-hoc agent writes |
 | `adv_wip_state` | dual | Cross-change work-in-progress aggregate read | No agent mutation surface; worktree/session state it reports on is operator-owned |
 | `adv_session_list` | dual | Privacy-defensive peer session inventory | No agent mutation surface; session lifecycle owned by the `oc` wrapper/operator |
@@ -63,6 +73,12 @@ class rather than operator-only.
 | `adv_spec` | orchestrator | Spec list/show/search read |
 | `adv_delta_add` | orchestrator | Change-scoped spec-delta mutation; archive remains sole global-spec writer |
 | `adv_delta_modify` | orchestrator | Typed change-scoped spec modification; archive remains sole global-spec writer |
+| `adv_delta_amend` | orchestrator | Full-replacement amend of staged spec delta; archive remains sole global-spec writer |
+| `adv_delta_retract` | orchestrator | Retract a staged spec delta; archive remains sole global-spec writer |
+| `adv_delta_remove` | orchestrator | Remove-operation spec delta; archive remains sole global-spec writer |
+| `adv_delta_rename` | orchestrator | Rename-operation spec delta; archive remains sole global-spec writer |
+| `adv_delta_list` | orchestrator | List staged spec deltas (read-only) |
+| `adv_delta_show` | orchestrator | Show a single staged spec delta (read-only) |
 
 ### Backlog
 
@@ -235,6 +251,8 @@ Two config layers cooperate:
    `adv-ci-waiter` is excluded because its documented responsibility is
    bash-only CI polling. The orchestrator (`adv`) carries every retained
    ADV tool explicitly (no `adv_*: false` wildcard).
+
+This visibility profile governs the host-plugin `adv_*` surface. Separately, under OpenCode Code Mode the 13 Tier-4 read tools are also reachable as `tools.adv.*` (e.g., `tools.adv.tool_catalog`). That namespace is distinct from host-plugin `adv_*` tools and is not governed by the `adv_*: deny` permission rule. `adv_tool_catalog` and `adv_tool_describe` exist in both surfaces.
 
 2. **`~/.config/opencode/opencode.jsonc` `agent.<name>.permission`**:
    every normal agent that already ships an `adv_*: deny` first-rule

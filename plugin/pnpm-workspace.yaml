@@ -25,3 +25,8 @@ overrides:
   # pulled transitively (tsup/vite/postcss-load-config); this override keeps the
   # patched floor without a phantom direct dependency. See CHANGELOG postcss XSS.
   postcss: '>=8.5.10'
+  # Security floor: @hono/node-server is pulled transitively by
+  # @modelcontextprotocol/sdk (HTTP server transport, which this plugin does
+  # not use — only StdioServerTransport). Floor to the patched release for
+  # GHSA-frvp-7c67-39w9 (CVSS 5.9). v2 peer (hono ^4) + engine (node >=20) hold.
+  '@hono/node-server': '>=2.0.5'

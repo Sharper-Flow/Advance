@@ -37,17 +37,12 @@ describe("adv-temporal-repair agent asset", () => {
     const { frontmatter } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
 
     for (const tool of [
+      // Tier 1 ADV tools only (slimMutationToolSurface)
       "adv_change_show",
       "adv_gate_status",
-      "adv_change_list",
-      "adv_status",
-      "adv_wip_state",
-      "adv_session_list",
-      "adv_snapshot_health",
-      "adv_doctor",
-      "adv_project_context",
-      "adv_spec",
-      "adv_subagent_report_submit",
+      "adv_task_list",
+      "adv_task_show",
+      "adv_tool_invoke",
     ]) {
       expect(getToolGrant(frontmatter, tool), `${tool} should be allowed`).toBe(
         true,
@@ -60,15 +55,14 @@ describe("adv-temporal-repair agent asset", () => {
       "write",
       "edit",
       "morph_edit",
-      "adv_gate_complete",
-      "adv_task_update",
+      // Tier 2/3 ADV tools — invoke-only (Tier 1 gate/archive/change_show ARE granted)
       "adv_change_update",
-      "adv_change_archive",
       "adv_worktree_delete",
     ]) {
-      expect(getToolGrant(frontmatter, tool), `${tool} should be blocked`).toBe(
-        false,
-      );
+      expect(
+        getToolGrant(frontmatter, tool),
+        `${tool} should not be granted`,
+      ).not.toBe(true);
     }
   });
 

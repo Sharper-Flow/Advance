@@ -190,8 +190,8 @@ describe("generate-agent-manifests", () => {
       const agent = "adv-engineer";
       const path = join(agentsDir, `${agent}.md`);
       const drifted = readFileSync(path, "utf8").replace(
-        "adv_spec: true",
-        "adv_spec: false",
+        "adv_task_list: true",
+        "adv_task_list: false",
       );
       writeFileSync(path, drifted, "utf8");
       const result = await runGenerate({ check: true, agentsDir });

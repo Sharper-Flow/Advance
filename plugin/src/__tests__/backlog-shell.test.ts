@@ -142,4 +142,57 @@ describe("backlog-shell tools", () => {
     );
     expect(list.count).toBe(0);
   });
+
+  test("adv_backlog_add persists a valid context_packet", async () => {
+    const packet = {
+      background: "Some background",
+      constraints: ["Must be fast"],
+    };
+    const result = parseToolOutput(
+      await backlogShellTools.adv_backlog_add.execute(
+        { title: "A", success_hint: "a", context_packet: packet },
+        store,
+      ),
+    );
+    expect(result.success).toBe(true);
+    expect(result.item.context_packet).toEqual(packet);
+  });
+
+  test("adv_backlog_add rejects an invalid context_packet", async () => {
+    const result = parseToolOutput(
+      await backlogShellTools.adv_backlog_add.execute(
+        { title: "A", success_hint: "a", context_packet: "not-an-object" },
+        store,
+      ),
+    );
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("invalid_context_packet");
+
+    const list = parseToolOutput(
+      await backlogShellTools.adv_backlog_list.execute({}, store),
+    );
+    expect(list.count).toBe(0);
+  });
+
+  test("adv_backlog_add rejects an oversize context_packet", async () => {
+    const packet = {
+      background: "y".repeat(4096),
+      design_seed: "x".repeat(6144),
+      constraints: Array.from({ length: 12 }, () => "z".repeat(512)),
+      avoidances: Array.from({ length: 12 }, () => "w".repeat(512)),
+    };
+    const result = parseToolOutput(
+      await backlogShellTools.adv_backlog_add.execute(
+        { title: "A", success_hint: "a", context_packet: packet },
+        store,
+      ),
+    );
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("context_packet_too_large");
+
+    const list = parseToolOutput(
+      await backlogShellTools.adv_backlog_list.execute({}, store),
+    );
+    expect(list.count).toBe(0);
+  });
 });

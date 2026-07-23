@@ -408,7 +408,7 @@ export async function reconcileArchivedBundleRetry(input: {
     store: input.store,
     changeId: input.changeId,
     evidence: releaseEvidence,
-    finalizationShipped: finalization.status === "shipped",
+    finalizationStatus: finalization.status,
   });
   let releaseResult: Extract<
     ArchiveReleaseGateResult,
@@ -417,7 +417,12 @@ export async function reconcileArchivedBundleRetry(input: {
     }
   >;
   if (durableProof.ok) {
-    releaseResult = { ok: true, gate: durableProof.gate, alreadyDone: true };
+    releaseResult = {
+      ok: true,
+      gate: durableProof.gate,
+      alreadyDone: true,
+      ...(durableProof.source === "disk" ? { recoveryMutation: true } : {}),
+    };
   } else {
     const completionResult = await completeReleaseGateAfterFinalization({
       store: input.store,
@@ -445,7 +450,7 @@ export async function reconcileArchivedBundleRetry(input: {
       store: input.store,
       changeId: input.changeId,
       evidence: releaseEvidence,
-      finalizationShipped: finalization.status === "shipped",
+      finalizationStatus: finalization.status,
     });
     if (!durableProof.ok) {
       return formatToolOutput({
@@ -849,6 +854,7 @@ export type DurableReleaseGateProofResult =
   | {
       ok: true;
       gate: GateCompletion;
+      source: "store" | "disk";
     }
   | {
       ok: false;
@@ -871,19 +877,58 @@ export function releaseGateEvidenceMatches(
   );
 }
 
+/**
+ * Bounded allowlist of the recovery-audit reasons ADV's own release-gate
+ * recovery paths stamp on a disk release gate. The shipped disk reconciliation
+ * below accepts ONLY these provenances so a forged/unrecognized recovery audit
+ * cannot bypass the evidence-match guard on the strength of `finalizationStatus`
+ * alone (fixDurableProofFallback, design-validation hardening + live-repro fix).
+ *
+ * - `completed_workflow_release_gate_recovery`: archive's own release-gate
+ *   recovery (recoverReleaseGateViaDiskProjection).
+ * - `missing_workflow`: generic gate recovery when the change workflow has
+ *   terminated (adv_gate_complete release recovery; recovery-classification).
+ * - `poisoned_history`: poisoned-history disk recovery (adv_gate_complete /
+ *   verification-evidence disposition).
+ *
+ * A single-reason binding was insufficient: a terminated-workflow change whose
+ * release gate was recovered via generic gate recovery carries `missing_workflow`
+ * (or `poisoned_history`), not the archive reason, and was wrongly rejected.
+ */
+const RELEASE_GATE_RECOVERY_REASONS = new Set<string>([
+  "completed_workflow_release_gate_recovery",
+  "missing_workflow",
+  "poisoned_history",
+]);
+
 async function loadAuditedDiskReleaseGate(input: {
   store: Store;
   changeId: string;
   evidence: string;
+  /**
+   * True when the archive's fresh Phase 9 finalization is authoritatively
+   * `shipped`. Derived structurally inside verifyReleaseGateDurableForArchive
+   * from the finalization outcome status — never a caller-trusted flag on this
+   * acceptance path (fixDurableProofFallback).
+   */
+  shipped?: boolean;
 }): Promise<GateCompletion | null> {
   const disk = await loadChange(input.store.paths.changes, input.changeId);
   if (!disk.success || !disk.data?.gates) return null;
   const gate = disk.data.gates.release;
-  if (
-    gate?.status === "done" &&
-    hasGateRecoveryAudit(gate) &&
-    releaseGateEvidenceMatches(gate, input.evidence)
-  ) {
+  if (gate?.status !== "done" || !hasGateRecoveryAudit(gate)) return null;
+  // Shipped reconciliation: a change whose git work reached the default branch
+  // (finalization shipped — git-verified reachability that cannot be forged
+  // without a real merge) but whose workflow terminated is recovered on disk
+  // with a release-gate recovery provenance. Its recovery-audit evidence text
+  // need not substring-match the freshly computed finalization evidence — this
+  // mirrors the store-backed `shipped` bypass so a terminated-workflow shipped
+  // change is not permanently unarchivable. Guarded by the bounded release-gate
+  // recovery allowlist so a forged/unrecognized recovery audit cannot bypass.
+  const shippedReconcile =
+    input.shipped === true &&
+    RELEASE_GATE_RECOVERY_REASONS.has(gate.recovery_audit?.reason ?? "");
+  if (shippedReconcile || releaseGateEvidenceMatches(gate, input.evidence)) {
     return gate;
   }
   return null;
@@ -894,20 +939,27 @@ export async function verifyReleaseGateDurableForArchive(input: {
   changeId: string;
   evidence: string;
   /**
-   * True when the archive's fresh Phase 9 git finalization reported
-   * `status: "shipped"` (rq-releaseProjectionDurability01 reconciliation,
-   * fixReleaseDurabilityFalse). `shipped` is returned by git-finalize only
-   * on confirmed reachability/merge (PR pr_merged, no_remote local merge, or
-   * direct merge+push), so it is authoritative proof the change reached the
-   * default branch. When true, the durable proof is accepted for a `done`
-   * release gate even if the stored gate evidence does not substring-match
-   * the structured completion evidence — this covers manually-completed gates
-   * (free-text approval notes) and admin/squash-merge SHA supersession. The
-   * evidence-string path is preserved for archive-completed gates (backward
-   * compatible). Absent/false preserves the strict evidence-match behavior.
+   * The archive's fresh Phase 9 git-finalization outcome status. `shipped` is
+   * derived from `finalizationStatus === "shipped"` INSIDE this verifier
+   * (fixDurableProofFallback structural-authority hardening — no caller-trusted
+   * boolean). git-finalize returns `shipped` only on confirmed reachability/
+   * merge (PR pr_merged, no_remote local merge, or direct merge+push), so it is
+   * authoritative proof the change reached the default branch. When shipped, the
+   * durable proof is accepted for a `done` release gate even if the stored gate
+   * evidence does not substring-match the structured completion evidence — this
+   * covers manually-completed gates (free-text approval notes) and admin/squash-
+   * merge SHA supersession (store-backed path), and terminated-workflow disk
+   * recovery bound to the release-gate recovery provenance (disk-fallback path).
+   * The evidence-string path is preserved for archive-completed gates (backward
+   * compatible). Non-`shipped` status preserves the strict evidence-match guard.
    */
-  finalizationShipped?: boolean;
+  finalizationStatus?: GitFinalizeOutcome["status"];
 }): Promise<DurableReleaseGateProofResult> {
+  // Structural authority (fixDurableProofFallback design-validation hardening):
+  // `shipped` is derived INSIDE the verifier from the finalization outcome
+  // status, replacing a caller-supplied boolean. git-finalize sets
+  // status === "shipped" only on confirmed default-branch reachability/merge.
+  const shipped = input.finalizationStatus === "shipped";
   let gates: Gates | null;
   try {
     gates = await input.store.gates.get(input.changeId);
@@ -919,9 +971,12 @@ export async function verifyReleaseGateDurableForArchive(input: {
   }
   const releaseGate = gates?.release;
   if (releaseGate?.status !== "done") {
-    const diskReleaseGate = await loadAuditedDiskReleaseGate(input);
+    const diskReleaseGate = await loadAuditedDiskReleaseGate({
+      ...input,
+      shipped,
+    });
     if (diskReleaseGate) {
-      return { ok: true, gate: diskReleaseGate };
+      return { ok: true, gate: diskReleaseGate, source: "disk" };
     }
     return {
       ok: false,
@@ -934,15 +989,12 @@ export async function verifyReleaseGateDurableForArchive(input: {
   }
   // rq-releaseProjectionDurability01 reconciliation: accept the durable proof
   // when the stored gate evidence corroborates finalization OR the archive's
-  // fresh finalization is authoritatively shipped. finalizationShipped is only
-  // set from finalization.status === "shipped", which git-finalize returns
+  // fresh finalization is authoritatively shipped. `shipped` is derived only
+  // from finalization.status === "shipped", which git-finalize returns
   // exclusively on confirmed reachability/merge — so this cannot accept an
   // unshipped change (guard preserved: unshipped → blocked/pending_merge →
-  // finalizationShipped false → strict evidence match still required).
-  if (
-    !releaseGateEvidenceMatches(releaseGate, input.evidence) &&
-    input.finalizationShipped !== true
-  ) {
+  // shipped false → strict evidence match still required).
+  if (!releaseGateEvidenceMatches(releaseGate, input.evidence) && !shipped) {
     return {
       ok: false,
       error:
@@ -952,7 +1004,7 @@ export async function verifyReleaseGateDurableForArchive(input: {
       stuckReason: releaseGate.stuck_reason,
     };
   }
-  return { ok: true, gate: releaseGate };
+  return { ok: true, gate: releaseGate, source: "store" };
 }
 /**
  * rq-reapOrphanAdvWorkers T3 (SC3/AC3): a gateCompletedSignal failure is
@@ -1089,6 +1141,13 @@ export async function completeReleaseGateAfterFinalization(input: {
     });
   }
   if (currentGate?.status === "done") {
+    // #305 residual: the gate is already done on the first query (a prior
+    // signal landed, or a retry finds done immediately). Drop the poisoned
+    // cache entry so the immediately-following second
+    // verifyReleaseGateDurableForArchive store.gates.get queries fresh
+    // instead of reading a stale pending left by a racing refresh. Mirrors
+    // the postSignal invalidate below (line ~1211).
+    await input.store.changes.invalidate(input.changeId);
     return { ok: true, gate: currentGate, alreadyDone: true };
   }
   // rq-reapOrphanAdvWorkers T3 (SC3/AC3): fire gateCompletedSignal in a SINGLE
@@ -1149,11 +1208,14 @@ export async function completeReleaseGateAfterFinalization(input: {
     });
   }
   if (postSignalGate?.status === "done") {
-    // rq-cacheRefresh01: refresh after a successful signal, matching
-    // fireSignalAndRefresh semantics. Deferred until AFTER the poll confirms
-    // done so the refresh's readback query returns post-signal state, not a
-    // stale pre-signal snapshot (fixPhase9StatusSignal race fix).
-    await input.store.changes.refresh(input.changeId);
+    // #305: after polling confirms the workflow has release=done, drop the
+    // in-memory change cache only. A full refresh readback can still race
+    // with the workflow's signal-processing loop and return a pre-signal
+    // "pending" snapshot that dualWriteAfterMutation classifies as
+    // "confirmed" and re-caches. invalidate avoids re-poisoning the cache;
+    // the subsequent verifyReleaseGateDurableForArchive store.gates.get
+    // misses cache and queries the workflow fresh.
+    await input.store.changes.invalidate(input.changeId);
     return { ok: true, gate: postSignalGate, alreadyDone: false };
   }
   return {

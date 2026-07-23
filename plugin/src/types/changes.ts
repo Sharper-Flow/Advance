@@ -26,6 +26,7 @@ import { AcceptanceCriteriaSnapshotSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
 import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
 import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
+import { WorkNodeRefSchema } from "./work-graph";
 export {
   ContractEvidencePolicySchema,
   type ContractEvidencePolicy,
@@ -992,6 +993,14 @@ export const ChangeSchema = z
     cross_project_links: z.array(CrossProjectLinkSchema).optional(),
     /** Advisory external dependencies on changes/gates/tasks in other projects. */
     external_dependencies: z.array(ExternalDependencySchema).optional(),
+    /**
+     * Same-project hard prerequisite edges (rq-workGraphTypes01 /
+     * addDependencyAwareResume). Validated at mutation time (cycle-safe,
+     * target-resolved). D3 enforcement refuses creation of a dependency-bearing
+     * active change whose prereqs are nonterminal. Default [] on absent
+     * field (additive schema, no migration needed).
+     */
+    same_project_dependencies: z.array(WorkNodeRefSchema).default([]),
     /** Product-linked repo scope for this change. */
     scope_repos: z.array(ChangeRepoScopeSchema).optional(),
     /** Project IDs affected by this change for cross-workflow discovery. */

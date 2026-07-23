@@ -87,6 +87,7 @@ import {
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
   applyWorktreeDeletedToState,
+  applyWorktreeRegistrationRepairedToState,
   applyWorktreeSetupFailedToState,
   archiveChangeInChangeState,
   closeChangeInChangeState,
@@ -400,6 +401,9 @@ const reflectionRecordedSignal = wf.defineSignal<
 const worktreeCreatedSignal = wf.defineSignal<
   [import("../types").WorktreeCreatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeCreated);
+const worktreeRegistrationRepairedSignal = wf.defineSignal<
+  [import("../types").WorktreeRegistrationRepairedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeRegistrationRepaired);
 const worktreeDeletedSignal = wf.defineSignal<
   [import("../types").WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
@@ -757,6 +761,10 @@ export async function changeWorkflow(
     }
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
+    }
+    if (input.seedState.same_project_dependencies) {
+      state.same_project_dependencies =
+        input.seedState.same_project_dependencies;
     }
     // rq-creationRequestHash01 (tk-74c358188ffb): stamp the canonical
     // creation-request hash onto workflow state at start time so the
@@ -1607,6 +1615,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    worktreeRegistrationRepairedSignal,
+    signalMutation("worktreeRegistrationRepaired", (payload) =>
+      applyWorktreeRegistrationRepairedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     worktreeDeletedSignal,
     signalMutation("worktreeDeleted", (payload) =>
       applyWorktreeDeletedToState(state, payload),
@@ -1961,7 +1975,9 @@ export async function changeWorkflow(
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
       lightweight_profile: state.lightweight_profile,
+      creation_request_hash: state.creation_request_hash,
       epic_membership: state.epic_membership,
+      same_project_dependencies: state.same_project_dependencies,
     },
   };
   await wf.condition(wf.allHandlersFinished);

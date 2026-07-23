@@ -25,6 +25,7 @@ export interface EpicListPayload {
   generated_at: string;
   project_id: string | null;
   epics: EpicListEntry[];
+  resume_projection?: unknown;
   error?: string;
   remediation?: string;
 }

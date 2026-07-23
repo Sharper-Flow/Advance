@@ -84,7 +84,7 @@ $XDG_DATA_HOME/opencode/plugins/advance/{project-id}/
 
 ### Never read ADV state files directly
 
-Use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.). Direct reads via `cat`/`read`/`ls` are forbidden — state format may change and direct reads bypass caching/migration logic.
+Use host-plugin ADV tools (`adv_change_show`, `adv_task_list`, etc.) as top-level tools. Thirteen read tools are also reachable via the ADV MCP server as `tools.adv.*` under Code Mode (e.g., `tools.adv.status`). Direct reads via `cat`/`read`/`ls` are forbidden — state format may change and direct reads bypass caching/migration logic.
 
 ### Conformance state
 

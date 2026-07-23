@@ -12,7 +12,7 @@
  * `scan`/`audit_history` agent-readable, `repair` operator-only) instead of
  * flattening it.
  *
- * Manifest semantics (verified against OpenCode v1.17.20
+ * Manifest semantics (verified against OpenCode 1.18.x
  * packages/core/src/v1/config/agent.ts normalize() +
  * packages/opencode/src/permission/index.ts fromConfig/disabled/evaluate):
  * legacy `tools:` entries convert to permission rules in document order and
@@ -23,6 +23,8 @@
  */
 
 import { ADV_TOOL_NAMES } from "./tool-registry";
+
+export { TIER_4_MCP_TOOLS } from "./tool-tier4-catalog.js";
 
 export type ToolRoleClass = "orchestrator" | "operator-only" | "dual";
 
@@ -76,6 +78,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "operator-only",
     rationale:
       "Consolidates orphaned identity stores into the true-root store; approval-gated, mutually serialized with cleanup.",
+  },
+  adv_launcher_projection_rebuild: {
+    class: "operator-only",
+    rationale:
+      "Regenerates the aggregate active-launcher-state.json from the on-disk per-change projection set; a producer-owned cache rebuild with external-state blast radius if misused.",
   },
 
   // ── Dual (8) ─────────────────────────────────────────────────────────
@@ -144,6 +151,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
   // task checkpoint/update/cancel, Temporal repair, cross-project trust
   // boundaries) stay distinct — no universal router (DONT1/DONT3).
+  adv_resume_projection: {
+    class: "orchestrator",
+    rationale:
+      "Pure-read dependency-aware resume projection. No mutation surface — generates an in-memory 'what next' view from changes + epics. Consumed by adv_status, /adv-coordinate, /adv-triage, and bin/adv.",
+  },
   adv_backlog_add: {
     class: "orchestrator",
     rationale: "Backlog item capture.",
@@ -484,106 +496,67 @@ export interface AgentToolPolicy {
 }
 
 /**
+ * Tier 1 — always top-level for every agent (11 tools).
+ * Core workflow reads/mutations + facade discovery surface.
+ * slimMutationToolSurface: SC1/AC1/AC2/DDC1/DDC2.
+ */
+const TIER_1_ALLOWLIST: readonly string[] = Object.freeze([
+  "adv_change_archive",
+  "adv_change_show",
+  "adv_gate_complete",
+  "adv_gate_status",
+  "adv_task_checkpoint",
+  "adv_task_list",
+  "adv_task_show",
+  "adv_task_update",
+  "adv_tool_catalog",
+  "adv_tool_describe",
+  "adv_tool_invoke",
+]);
+
+/**
+ * Tier 2 — orchestrator-only top-level (7 tools).
+ * Change lifecycle and task creation surface driven by the orchestrator
+ * through gate/command workflows. Sub-agents invoke these via
+ * adv_tool_invoke when needed.
+ */
+const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
+  "adv_change_close",
+  "adv_change_create",
+  "adv_change_list",
+  "adv_change_update",
+  "adv_run_test",
+  "adv_task_add",
+  "adv_task_ready",
+]);
+
+/**
+ * Tier 4 — MCP read surface (13 unprefixed tools, see `TIER_4_MCP_TOOLS`).
+ * These tools are additionally reachable via `tools.adv.*` under Code Mode
+ * regardless of the host-plugin `adv_*: false` enforcement, because the MCP
+ * surface is namespaced separately from the host manifest. The `adv_*: deny`
+ * wildcard above applies to the host-plugin tool surface only; it does not
+ * block the Code Mode dispatch route for these read-only tools.
+ */
+
+/**
  * Intended ADV tool surface per shipped agent manifest.
  *
- * Strict scoping never crosses destructive, privacy, approval, or
- * cross-project trust boundaries for fallback convenience (C6): operator-only
- * tools appear only in the ADV orchestrator's allowlist, where they remain
- * invocable solely on explicit operator instruction per
- * docs/tool-ownership.md.
+ * slimMutationToolSurface: ~66 low-frequency tools (Tier 3) are routed
+ * through adv_tool_invoke instead of appearing in any manifest. The
+ * orchestrator gets Tier 1 + Tier 2 (18 entries); sub-agents get Tier 1
+ * only (11 entries). Operator-only tools are invoke-only — their
+ * destructive surface is protected by the tools' own approvedByUser +
+ * approvalEvidence required arguments, not by manifest grantability.
  */
 export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
   {
     agent: "adv",
-    allowed: [
-      "adv_archive_purge",
-      "adv_backlog_add",
-      "adv_backlog_archive",
-      "adv_backlog_list",
-      "adv_backlog_promote",
-      "adv_backlog_show",
-      "adv_change_archive",
-      "adv_change_bulk_close",
-      "adv_change_close",
-      "adv_change_create",
-      "adv_change_list",
-      "adv_change_reenter",
-      "adv_change_repair_origin",
-      "adv_change_show",
-      "adv_change_update",
-      "adv_change_update_issues",
-      "adv_change_validate",
-      "adv_change_workflow_terminate",
-      "adv_conformance",
-      "adv_contract_mint",
-      "adv_contract_review_matrix_set",
-      "adv_delta_add",
-      "adv_delta_amend",
-      "adv_delta_list",
-      "adv_delta_modify",
-      "adv_delta_remove",
-      "adv_delta_rename",
-      "adv_delta_retract",
-      "adv_delta_show",
-      "adv_design_concern_disposition",
-      "adv_epic_add_shell",
-      "adv_epic_create",
-      "adv_epic_link_change",
-      "adv_epic_list",
-      "adv_epic_move_change",
-      "adv_epic_promote_shell",
-      "adv_epic_reorder",
-      "adv_epic_retire",
-      "adv_epic_show",
-      "adv_epic_unlink_change",
-      "adv_epic_update",
-      "adv_followup_promote",
-      "adv_gate_complete",
-      "adv_gate_status",
-      "adv_lightweight_profile_evaluate",
-      "adv_ops_evidence_add",
-      "adv_ops_run_evidence_add",
-      "adv_ops_run_upsert",
-      "adv_project_context",
-      "adv_project_metadata",
-      "adv_reflect",
-      "adv_reflection_list",
-      "adv_report_followup_promote",
-      "adv_run_test",
-      "adv_session_list",
-      "adv_session_show",
-      "adv_snapshot_health",
-      "adv_spec",
-      "adv_status",
-      "adv_store_cleanup",
-      "adv_store_consolidate",
-      "adv_subagent_report_submit",
-      "adv_task_add",
-      "adv_task_cancel",
-      "adv_task_checkpoint",
-      "adv_task_list",
-      "adv_task_ready",
-      "adv_task_reclassify_tdd",
-      "adv_task_show",
-      "adv_task_update",
-      "adv_doctor",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_verification_evidence_disposition",
-      "adv_wip_state",
-      "adv_wisdom_add",
-      "adv_wisdom_list",
-      "adv_worktree_cleanup",
-      "adv_worktree_create",
-      "adv_worktree_delete",
-      "adv_worktree_resume",
-      "adv_worktree_triage",
-    ],
+    allowed: [...TIER_1_ALLOWLIST, ...TIER_2_ALLOWLIST],
     explicitBlocked: [],
-    denyWildcard: false,
+    denyWildcard: true,
     rationale:
-      "ADV orchestrator: drives every retained workflow; operator-only tools stay invocable solely on explicit operator instruction (docs/tool-ownership.md).",
+      "ADV orchestrator: Tier 1 + Tier 2 (18 entries). All other ADV tools (Tier 3 ~66) dispatched through adv_tool_invoke. Operator-only tools rely on their own approvedByUser + approvalEvidence gates (C6).",
   },
   {
     agent: "adv-ci-waiter",
@@ -595,305 +568,83 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
   },
   {
     agent: "adv-designer",
-    allowed: [
-      "adv_change_show",
-      "adv_gate_status",
-      "adv_project_context",
-      "adv_run_test",
-      "adv_snapshot_health",
-      "adv_spec",
-      "adv_status",
-      "adv_subagent_report_submit",
-      "adv_task_list",
-      "adv_task_ready",
-      "adv_task_show",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_wisdom_add",
-      "adv_wisdom_list",
-    ],
-    explicitBlocked: [
-      "adv_change_archive",
-      "adv_change_close",
-      "adv_change_create",
-      "adv_change_reenter",
-      "adv_change_update",
-      "adv_change_update_issues",
-      "adv_change_validate",
-      "adv_gate_complete",
-      "adv_task_add",
-      "adv_task_cancel",
-      "adv_task_checkpoint",
-      "adv_task_reclassify_tdd",
-      "adv_task_update",
-      "adv_worktree_cleanup",
-      "adv_worktree_create",
-      "adv_worktree_delete",
-    ],
-    denyWildcard: true,
-    rationale:
-      "Design-review worker: ADV reads plus test evidence, wisdom, and typed report submission; no orchestration mutations.",
-  },
-  {
-    agent: "adv-engineer",
-    allowed: [
-      "adv_change_show",
-      "adv_gate_status",
-      "adv_project_context",
-      "adv_run_test",
-      "adv_snapshot_health",
-      "adv_spec",
-      "adv_status",
-      "adv_subagent_report_submit",
-      "adv_task_list",
-      "adv_task_ready",
-      "adv_task_show",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_wisdom_add",
-      "adv_wisdom_list",
-    ],
-    explicitBlocked: [
-      "adv_change_archive",
-      "adv_change_close",
-      "adv_change_create",
-      "adv_change_reenter",
-      "adv_change_update",
-      "adv_change_update_issues",
-      "adv_change_validate",
-      "adv_gate_complete",
-      "adv_task_add",
-      "adv_task_cancel",
-      "adv_task_checkpoint",
-      "adv_task_reclassify_tdd",
-      "adv_task_update",
-      "adv_worktree_cleanup",
-      "adv_worktree_create",
-      "adv_worktree_delete",
-    ],
-    denyWildcard: true,
-    rationale:
-      "Scoped implementation worker: ADV reads plus test evidence, wisdom, and typed report submission; no orchestration mutations.",
-  },
-  {
-    agent: "adv-researcher",
-    allowed: [
-      "adv_change_list",
-      "adv_change_show",
-      "adv_project_context",
-      "adv_snapshot_health",
-      "adv_spec",
-      "adv_status",
-      "adv_subagent_report_submit",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-    ],
-    explicitBlocked: ["adv_change_update"],
-    denyWildcard: true,
-    rationale:
-      "Change-scoped research handoff worker: ADV reads plus typed report submission only.",
-  },
-  {
-    agent: "adv-reviewer",
-    allowed: [
-      "adv_change_list",
-      "adv_change_show",
-      "adv_gate_status",
-      "adv_project_context",
-      "adv_run_test",
-      "adv_snapshot_health",
-      "adv_spec",
-      "adv_status",
-      "adv_subagent_report_submit",
-      "adv_task_list",
-      "adv_task_ready",
-      "adv_task_show",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_wisdom_add",
-      "adv_wisdom_list",
-    ],
-    explicitBlocked: [
-      "adv_change_archive",
-      "adv_change_close",
-      "adv_change_create",
-      "adv_change_reenter",
-      "adv_change_repair_origin",
-      "adv_change_update",
-      "adv_change_update_issues",
-      "adv_change_validate",
-      "adv_gate_complete",
-      "adv_task_add",
-      "adv_task_cancel",
-      "adv_task_checkpoint",
-      "adv_task_reclassify_tdd",
-      "adv_task_update",
-      "adv_worktree_cleanup",
-      "adv_worktree_create",
-      "adv_worktree_delete",
-    ],
-    denyWildcard: true,
-    rationale:
-      "Review/harden worker: ADV reads plus test evidence, wisdom, and typed report submission; no orchestration mutations or worktree control.",
-  },
-  {
-    agent: "adv-temporal-repair",
-    allowed: [
-      "adv_change_list",
-      "adv_change_show",
-      "adv_gate_status",
-      "adv_project_context",
-      "adv_session_list",
-      "adv_snapshot_health",
-      "adv_spec",
-      "adv_status",
-      "adv_subagent_report_submit",
-      "adv_doctor",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_wip_state",
-    ],
-    explicitBlocked: [
-      "adv_change_archive",
-      "adv_change_update",
-      "adv_gate_complete",
-      "adv_task_update",
-      "adv_worktree_delete",
-    ],
-    denyWildcard: true,
-    rationale:
-      "Temporal diagnostics worker: read-only Temporal/change diagnostics plus typed report submission; repair mutations stay operator-only.",
-  },
-  {
-    agent: "adv-tron",
-    allowed: [
-      "adv_change_list",
-      "adv_change_show",
-      "adv_project_context",
-      "adv_snapshot_health",
-      "adv_spec",
-      "adv_subagent_report_submit",
-      "adv_task_list",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_wisdom_list",
-    ],
-    explicitBlocked: ["adv_change_create", "adv_gate_complete", "adv_task_add"],
-    denyWildcard: true,
-    rationale:
-      "Reconnaissance worker: ADV reads plus typed report submission only.",
-  },
-  {
-    agent: "adv-verifier",
-    allowed: [
-      "adv_change_show",
-      "adv_project_context",
-      "adv_spec",
-      "adv_task_list",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-    ],
-    explicitBlocked: [
-      "adv_change_archive",
-      "adv_change_close",
-      "adv_change_create",
-      "adv_change_update",
-      "adv_gate_complete",
-      "adv_subagent_report_submit",
-      "adv_task_add",
-      "adv_task_cancel",
-      "adv_task_update",
-      "adv_worktree_create",
-      "adv_worktree_delete",
-    ],
-    denyWildcard: true,
-    rationale:
-      "Acceptance/release verification worker: minimal ADV reads; reports flow through the orchestrator, never the worker.",
-  },
-  {
-    agent: "adv-visual-review",
-    allowed: [
-      "adv_change_list",
-      "adv_change_show",
-      "adv_project_context",
-      "adv_spec",
-      "adv_subagent_report_submit",
-      "adv_task_list",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_wisdom_list",
-    ],
-    explicitBlocked: ["adv_change_create", "adv_gate_complete", "adv_task_add"],
-    denyWildcard: true,
-    rationale:
-      "Visual-review worker: ADV reads plus typed report submission only.",
-  },
-  {
-    agent: "build",
-    allowed: [
-      "adv_change_list",
-      "adv_change_show",
-      "adv_change_validate",
-      "adv_gate_status",
-      "adv_project_context",
-      "adv_run_test",
-      "adv_spec",
-      "adv_status",
-      "adv_task_checkpoint",
-      "adv_task_list",
-      "adv_task_ready",
-      "adv_task_show",
-      "adv_task_update",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-      "adv_wisdom_add",
-      "adv_wisdom_list",
-    ],
-    explicitBlocked: [
-      "adv_change_archive",
-      "adv_change_create",
-      "adv_change_reenter",
-      "adv_change_update",
-      "adv_change_update_issues",
-      "adv_gate_complete",
-      "adv_task_add",
-      "adv_task_cancel",
-      "adv_task_reclassify_tdd",
-      "adv_worktree_create",
-      "adv_worktree_delete",
-    ],
-    denyWildcard: true,
-    rationale:
-      "Repo-shipped override of the OpenCode default primary agent: ADV-lite task execution surface only; lifecycle, gate, Epic, backlog, and operator-only tools stay out.",
-  },
-  {
-    agent: "plan",
-    allowed: [
-      "adv_change_create",
-      "adv_change_list",
-      "adv_change_show",
-      "adv_change_update",
-      "adv_gate_complete",
-      "adv_project_context",
-      "adv_spec",
-      "adv_status",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-    ],
+    allowed: [...TIER_1_ALLOWLIST],
     explicitBlocked: [],
     denyWildcard: true,
     rationale:
-      "Repo-shipped override of the OpenCode plan agent: proposal/planning-phase change and gate surface only; execution, release, and operator-only tools stay out.",
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "adv-engineer",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "adv-researcher",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "adv-reviewer",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "adv-temporal-repair",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "adv-tron",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "adv-verifier",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "adv-visual-review",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "build",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
+  },
+  {
+    agent: "plan",
+    allowed: [...TIER_1_ALLOWLIST],
+    explicitBlocked: [],
+    denyWildcard: true,
+    rationale:
+      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
   },
 ] as const;
 
