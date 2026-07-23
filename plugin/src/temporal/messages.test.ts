@@ -51,6 +51,7 @@ import {
   WorktreeAutoManagedSignalPayloadSchema,
   WorktreeCreatedSignalPayloadSchema,
   WorktreeDeletedSignalPayloadSchema,
+  WorktreeRegistrationRepairedSignalPayloadSchema,
   WorktreeSetupFailedSignalPayloadSchema,
   OpsEvidenceAppendedSignalPayloadSchema,
   OpsFollowupLinkAddedSignalPayloadSchema,
@@ -91,8 +92,13 @@ const designSignalKeys = [
   "wisdomAdded",
   "specDeltaAdded",
   "specDeltaModified",
+  "specDeltaAmended",
+  "specDeltaRetracted",
+  "specDeltaRemoved",
+  "specDeltaRenamed",
   "reflectionRecorded",
   "worktreeCreated",
+  "worktreeRegistrationRepaired",
   "worktreeDeleted",
   "worktreeSetupFailed",
   "worktreeAutoManaged",
@@ -131,11 +137,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 55 signal surface", () => {
+  it("defines the 60 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(55);
+    expect(surfacedKeys).toHaveLength(60);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -406,6 +412,16 @@ describe("change workflow message contract", () => {
           baseRef: "main",
           headSha: "abc",
           createdAt: timestamp,
+        },
+      ],
+      [
+        WorktreeRegistrationRepairedSignalPayloadSchema,
+        {
+          branch: "change/x",
+          path: "/repo-x",
+          baseRef: "existing",
+          headSha: "abc",
+          repairedAt: timestamp,
         },
       ],
       [

@@ -469,6 +469,22 @@ export type WorktreeCreatedSignalPayload = z.infer<
   typeof WorktreeCreatedSignalPayloadSchema
 >;
 
+/**
+ * Repairs a missing worktree registration after disk-authoritative reuse.
+ * The change workflow performs the if-absent check so a client query failure
+ * cannot overwrite an existing setup_failed or metadata-rich record.
+ */
+export const WorktreeRegistrationRepairedSignalPayloadSchema = z.object({
+  branch: z.string(),
+  path: z.string(),
+  baseRef: z.string(),
+  headSha: z.string(),
+  repairedAt: IsoTimestampSchema,
+});
+export type WorktreeRegistrationRepairedSignalPayload = z.infer<
+  typeof WorktreeRegistrationRepairedSignalPayloadSchema
+>;
+
 export const WorktreeDeletedSignalPayloadSchema = z.object({
   branch: z.string(),
   reason: z.string(),

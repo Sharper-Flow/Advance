@@ -49,6 +49,7 @@ import {
   wisdomAddedSignal,
   worktreeCreatedSignal,
   worktreeDeletedSignal,
+  worktreeRegistrationRepairedSignal,
   worktreeSetupFailedSignal,
 } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
@@ -372,6 +373,46 @@ function extractSetHandlerBlocks(source: string): string[] {
 }
 
 describe("changeWorkflow worktree signals", () => {
+  it("inserts only once for repeated worktreeRegistrationRepairedSignal deliveries", async () => {
+    await withSignalWorker("worktree-registration-repair", async (handle) => {
+      await handle.signal(worktreeRegistrationRepairedSignal, {
+        branch: "change/repair-test",
+        path: "/wt/change/repair-test",
+        baseRef: "existing",
+        headSha: "first-head",
+        repairedAt: "2026-05-05T00:04:00.000Z",
+      });
+      const afterFirstRepair = await queryState(handle);
+
+      await handle.signal(worktreeRegistrationRepairedSignal, {
+        branch: "change/repair-test",
+        path: "/wt/change/repair-test",
+        baseRef: "existing",
+        headSha: "second-head",
+        repairedAt: "2026-05-05T00:04:01.000Z",
+      });
+      const afterSecondRepair = await queryState(handle);
+
+      expect(
+        (afterFirstRepair as any).worktrees["change/repair-test"],
+      ).toMatchObject({
+        branch: "change/repair-test",
+        path: "/wt/change/repair-test",
+        materialized: true,
+        changeId: "worktree-registration-repair",
+        status: "created",
+        createdAt: "2026-05-05T00:04:00.000Z",
+        lastSeenAt: "2026-05-05T00:04:00.000Z",
+        baseRef: "existing",
+        headSha: "first-head",
+        source: "tool",
+        sourceVersion: 1,
+        setupReady: true,
+      });
+      expect(afterSecondRepair).toEqual(afterFirstRepair);
+    });
+  }, 30_000);
+
   it("applies worktreeSetupFailedSignal with stage discriminator and reason", async () => {
     await withSignalWorker("worktree-setup-failed", async (handle) => {
       await handle.signal(worktreeSetupFailedSignal, {

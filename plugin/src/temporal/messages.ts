@@ -85,6 +85,7 @@ import type {
   WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
+  WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
 } from "../types";
 import type { MutationReceipt } from "./contracts";
@@ -284,6 +285,9 @@ export const reflectionRecordedSignal = wf.defineSignal<
 export const worktreeCreatedSignal = wf.defineSignal<
   [WorktreeCreatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeCreated);
+export const worktreeRegistrationRepairedSignal = wf.defineSignal<
+  [WorktreeRegistrationRepairedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeRegistrationRepaired);
 export const worktreeDeletedSignal = wf.defineSignal<
   [WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);

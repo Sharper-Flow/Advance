@@ -111,6 +111,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   specDeltaRenamed: "adv.change.specDeltaRenamed",
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
+  worktreeRegistrationRepaired: "adv.change.worktreeRegistrationRepaired",
   worktreeDeleted: "adv.change.worktreeDeleted",
   worktreeSetupFailed: "adv.change.worktreeSetupFailed",
   worktreeAutoManaged: "adv.change.worktreeAutoManaged",

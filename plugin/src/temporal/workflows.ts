@@ -87,6 +87,7 @@ import {
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
   applyWorktreeDeletedToState,
+  applyWorktreeRegistrationRepairedToState,
   applyWorktreeSetupFailedToState,
   archiveChangeInChangeState,
   closeChangeInChangeState,
@@ -400,6 +401,9 @@ const reflectionRecordedSignal = wf.defineSignal<
 const worktreeCreatedSignal = wf.defineSignal<
   [import("../types").WorktreeCreatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeCreated);
+const worktreeRegistrationRepairedSignal = wf.defineSignal<
+  [import("../types").WorktreeRegistrationRepairedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeRegistrationRepaired);
 const worktreeDeletedSignal = wf.defineSignal<
   [import("../types").WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
@@ -1607,6 +1611,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    worktreeRegistrationRepairedSignal,
+    signalMutation("worktreeRegistrationRepaired", (payload) =>
+      applyWorktreeRegistrationRepairedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     worktreeDeletedSignal,
     signalMutation("worktreeDeleted", (payload) =>
       applyWorktreeDeletedToState(state, payload),
@@ -1961,6 +1971,7 @@ export async function changeWorkflow(
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
       lightweight_profile: state.lightweight_profile,
+      creation_request_hash: state.creation_request_hash,
       epic_membership: state.epic_membership,
     },
   };
