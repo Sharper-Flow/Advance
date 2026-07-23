@@ -1,0 +1,28 @@
+{
+  "archived_at": "2026-07-23T23:44:43.204Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "8ff2a3cbadabaada25b357e58d6546df0a6e645ca19da8455f05dcdb34d4e8bd",
+  "change_id": "autoAdoptOrphanSessionQueues",
+  "completed_tasks": 6,
+  "created_at": "2026-07-22T04:12:10.161Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784693553100-h2spth",
+    "epic_id": "hardenTemporalReliability",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-22T04:12:33.101Z",
+    "order": 11,
+    "source": "link_existing",
+    "title": "Auto-adopt orphan session queues (bootstrap)"
+  },
+  "last_activity_at": "2026-07-23T23:34:11.783Z",
+  "lifecycle_state": "open",
+  "ops_followup_links": [],
+  "status": "archived",
+  "summary_hash": "2fb933335b57c3f8fc5671a5fcfde9f6bb4455aa958c8169f4667bdd5733f8e6",
+  "task_count": 6,
+  "title": "Auto-adopt orphan session queues",
+  "version": "1"
+}

@@ -1,0 +1,11 @@
+{
+  "entries": [
+    {
+      "id": "ws-AsNVeh",
+      "type": "gotcha",
+      "content": "Worktree-isolation guard reads the durable worktree record from the CHANGE workflow's `state.worktrees[branch]` map (state.ts:1124-1170 getWorktreeRecord → getStateQuery), NOT the project workflow. So if that map loses its entry, EVERY main-checkout (trunk/zlauncher) mutation for that change is blocked with WorktreeIsolationViolation — while other changes work fine. Two ways the map goes empty: (1) the change workflow is orphaned/unreachable (query fails → getWorktreeRecord returns null); (2) a state-repair restart seeds a fresh run WITHOUT the worktrees map. BUG (fixWorktreeReuseRegistration): advWorktreeCreate Step 0 (index.ts:1002-1017) reuses an on-disk git worktree and returns reused:true WITHOUT firing worktreeCreatedSignal (index.ts:1213) — so resume/create can never self-heal a missing worktrees entry when the disk worktree already exists. Manual recovery that works: `git worktree remove --force <path>` then `adv_worktree_create` (full path fires worktreeCreatedSignal, writes worktrees[branch] setupReady:true) → guard passes. Also: the `[worktree] mode:warp unavailable ... falling back to mode:terminal` log is NORMAL when OPENCODE_EXPERIMENTAL_WORKSPACES is off — it fires on every create/resume for every session and is NOT the blocker. When restarting an orphaned change workflow via the Temporal SDK, ALWAYS include `worktrees` in seedState.",
+      "recorded_at": "2026-07-23T01:23:20.946Z"
+    }
+  ],
+  "count": 1
+}
