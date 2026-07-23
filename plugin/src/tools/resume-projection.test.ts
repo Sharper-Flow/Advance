@@ -1,9 +1,10 @@
 /**
  * adv_resume_projection tool adapter tests.
  *
- * Pins: pure-read behavior, terminal/summary-only short-circuit, bounded
- * parallel hydration of non-terminal changes, graceful degradation, and
- * cross-Epic redirect preservation.
+ * Pins: pure-read behavior, active-first loading without broad history scans,
+ * bounded parallel hydration of non-terminal changes, bounded resolution of
+ * only referenced terminal dependencies, graceful degradation, and cross-Epic
+ * redirect preservation.
  *
  * rq-workGraphTypes01 (addDependencyAwareResume) — Phase E
  */
@@ -21,6 +22,7 @@ function changeSummary(
     title: string;
     lifecycleState: "open" | "archived" | "closed";
     epic_membership: NonNullable<Change["epic_membership"]>;
+    same_project_dependencies: Change["same_project_dependencies"];
   }> = {},
 ) {
   return {
@@ -34,6 +36,7 @@ function changeSummary(
     taskCount: 0,
     completedTasks: 0,
     epic_membership: opts.epic_membership,
+    same_project_dependencies: opts.same_project_dependencies,
   };
 }
 
@@ -145,18 +148,64 @@ describe("adv_resume_projection tool", () => {
     expect(result.diagnostics.unresolved_refs).toEqual([]);
   });
 
-  test("terminal changes are summary-only and skip get()", async () => {
+  test("ordinary call does not scan archived/closed history", async () => {
     const store = createMockStore({
-      changesList: [
-        changeSummary("done-a", "archived", { lifecycleState: "archived" }),
-        changeSummary("done-b", "closed", { lifecycleState: "closed" }),
-      ],
+      changesList: [changeSummary("ready")],
+      changesGet: { ready: fullChange("ready") },
+    });
+    await execute(store);
+    expect(store.changes.list).toHaveBeenCalledTimes(1);
+    const callArgs = (store.changes.list as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
+    expect(callArgs?.includeArchived).toBeFalsy();
+    expect(callArgs?.includeClosed).toBeFalsy();
+  });
+
+  test("terminal changes are not loaded unless referenced as dependencies", async () => {
+    const store = createMockStore({
+      changesList: [changeSummary("ready")],
+      changesGet: {
+        ready: fullChange("ready"),
+        "done-a": fullChange("done-a", "archived", {
+          lifecycleState: "archived",
+        }),
+      },
     });
     const result = await execute(store);
-    expect(result.actionable).toHaveLength(0);
-    expect(result.blocked).toHaveLength(0);
-    expect(result.active).toHaveLength(0);
-    expect(store.changes.get).not.toHaveBeenCalled();
+    expect(result.actionable).toHaveLength(1);
+    expect(result.actionable[0].node.change_id).toBe("ready");
+    expect(store.changes.get).not.toHaveBeenCalledWith("done-a");
+  });
+
+  test("only referenced terminal dependencies are fetched", async () => {
+    const store = createMockStore({
+      changesList: [
+        changeSummary("dependent", "draft", {
+          same_project_dependencies: [
+            { kind: "change", project_id: PID, change_id: "prereq" },
+          ],
+        }),
+      ],
+      changesGet: {
+        dependent: fullChange("dependent", "draft", {
+          same_project_dependencies: [
+            { kind: "change", project_id: PID, change_id: "prereq" },
+          ],
+        }),
+        prereq: fullChange("prereq", "archived", {
+          lifecycleState: "archived",
+        }),
+        unrelated: fullChange("unrelated", "archived", {
+          lifecycleState: "archived",
+        }),
+      },
+    });
+
+    const result = await execute(store);
+    expect(result.actionable).toHaveLength(1);
+    expect(result.actionable[0].node.change_id).toBe("dependent");
+    expect(store.changes.get).toHaveBeenCalledWith("prereq");
+    expect(store.changes.get).not.toHaveBeenCalledWith("unrelated");
   });
 
   test("non-terminal changes are hydrated and classified", async () => {
@@ -262,6 +311,43 @@ describe("adv_resume_projection tool", () => {
     });
   });
 
+  test("terminal epic blocked_by refs are resolved when referenced", async () => {
+    const store = createMockStore({
+      changesList: [],
+      changesGet: {
+        "done-blocker": fullChange("done-blocker", "archived", {
+          lifecycleState: "archived",
+        }),
+      },
+      epicsList: [
+        {
+          id: "epicA",
+          title: "Epic A",
+          entries: [
+            {
+              kind: "shell",
+              entry_id: "sh-1",
+              order: 0,
+              title: "Dependent shell",
+              blocked_by: [
+                { kind: "change", project_id: PID, change_id: "done-blocker" },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = await execute(store);
+    expect(result.actionable).toHaveLength(1);
+    expect(result.actionable[0].node).toEqual({
+      kind: "epic_entry",
+      epic_id: "epicA",
+      entry_id: "sh-1",
+    });
+    expect(store.changes.get).toHaveBeenCalledWith("done-blocker");
+  });
+
   test("graceful degradation when full get fails", async () => {
     const store = createMockStore({
       changesList: [changeSummary("fragile")],
@@ -294,7 +380,7 @@ describe("adv_resume_projection tool", () => {
           same_project_dependencies: [
             { kind: "change", project_id: PID, change_id: "ghost" },
           ],
-        } as unknown as Parameters<typeof changeSummary>[2]),
+        }),
       ],
       changesGet: {
         a: fullChange("a", "draft", {

@@ -13,6 +13,7 @@ import { basename } from "node:path";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
 import { mapWithConcurrency } from "../utils/concurrency";
+import type { WorkNodeRef } from "../types/work-graph";
 import {
   buildResumeProjection,
   type ChangeNodeInput,
@@ -21,12 +22,9 @@ import {
 } from "../projection/resume-projection";
 
 /**
- * Bounded concurrency for hydrating non-terminal changes. The list() call
- * already loads summaries for the full dependency graph; we only need full
- * Change objects for active/draft changes (to resolve dependencies and
- * in-progress tasks). Running these gets in parallel with a small cap avoids
- * the sequential N+1 timeout that blew the 10s direct tool deadline while
- * keeping in-flight Temporal reads bounded.
+ * Bounded concurrency for hydrating non-terminal changes. Running these gets
+ * in parallel with a small cap avoids the sequential N+1 timeout that blew the
+ * 10s direct tool deadline while keeping in-flight Temporal reads bounded.
  */
 const RESUME_PROJECTION_GET_CONCURRENCY = 8;
 
@@ -65,91 +63,44 @@ export const resumeProjectionTools = {
         : "";
 
       // -------------------------------------------------------------------
-      // Load changes (draft + archived + closed for full dependency graph).
+      // Active-first loading: only non-terminal (draft/pending/active) changes.
+      // No includeArchived/includeClosed scan on ordinary calls. This keeps the
+      // initial load proportional to live work (~5 changes) instead of full
+      // history (~88 changes), which is what was timing out under live load.
       // -------------------------------------------------------------------
       const listResult = await store.changes.list({
-        includeArchived: true,
-        includeClosed: true,
-        // Let the store hydrate the full dependency graph with a bit more
-        // parallelism than the default; this single bounded call replaces the
-        // previous sequential per-change get storm.
         validationConcurrency: RESUME_PROJECTION_GET_CONCURRENCY,
       });
 
-      const terminalInputs: ChangeNodeInput[] = [];
-      const nonTerminalSummaries: typeof listResult.changes = [];
-      for (const summary of listResult.changes) {
-        const isTerminal =
-          summary.status === "archived" || summary.status === "closed";
-
-        if (isTerminal) {
-          // Terminal changes only need status for the "done" classification.
-          terminalInputs.push({
-            id: summary.id,
-            title: summary.title,
-            status: summary.status,
-            lifecycleState: summary.lifecycleState ?? "open",
-            same_project_dependencies: [],
-            hasInProgressTasks: false,
-            epic_membership: summary.epic_membership,
-          });
-        } else {
-          nonTerminalSummaries.push(summary);
-        }
-      }
-
-      // Hydrate non-terminal changes with bounded concurrency. Each get is
-      // independent, and failures degrade to the summary-only input.
-      const nonTerminalInputs = await mapWithConcurrency(
-        nonTerminalSummaries,
+      // Hydrate every active/draft change with bounded concurrency. Failures
+      // degrade gracefully to a summary-only input.
+      const activeInputs = await mapWithConcurrency(
+        listResult.changes,
         RESUME_PROJECTION_GET_CONCURRENCY,
         async (summary): Promise<ChangeNodeInput> => {
           try {
             const full = await store.changes.get(summary.id);
             if (!full.success || !full.data) {
-              // Degrade gracefully: use summary if full get fails.
-              return {
-                id: summary.id,
-                title: summary.title,
-                status: summary.status,
-                lifecycleState: summary.lifecycleState ?? "open",
-                same_project_dependencies: [],
-                hasInProgressTasks: false,
-                epic_membership: summary.epic_membership,
-              };
+              return degradeToSummary(summary);
             }
             const change = full.data;
-            const hasInProgressTasks =
-              change.tasks?.some((t) => t.status === "in_progress") ?? false;
-
             return {
               id: change.id,
               title: change.title,
               status: change.status,
               lifecycleState: change.lifecycleState ?? "open",
               same_project_dependencies: change.same_project_dependencies ?? [],
-              hasInProgressTasks,
+              hasInProgressTasks:
+                change.tasks?.some((t) => t.status === "in_progress") ?? false,
               epic_membership: change.epic_membership,
             };
           } catch {
-            // Degrade gracefully: use summary if full get fails.
-            return {
-              id: summary.id,
-              title: summary.title,
-              status: summary.status,
-              lifecycleState: summary.lifecycleState ?? "open",
-              same_project_dependencies: [],
-              hasInProgressTasks: false,
-              epic_membership: summary.epic_membership,
-            };
+            return degradeToSummary(summary);
           }
         },
       );
 
-      const changeInputs: ChangeNodeInput[] = [
-        ...terminalInputs,
-        ...nonTerminalInputs,
-      ];
+      const activeById = new Map(activeInputs.map((c) => [c.id, c]));
 
       // -------------------------------------------------------------------
       // Load epics.
@@ -180,6 +131,70 @@ export const resumeProjectionTools = {
       }));
 
       // -------------------------------------------------------------------
+      // Resolve only referenced terminal dependencies.
+      //
+      // The kernel needs terminal prereqs in scope so that dependents blocked
+      // by completed work are classified actionable. We collect the same-
+      // project change refs from active changes and Epic shell blocked_by lists,
+      // then fetch only the IDs that are not already in the active set. This is
+      // bounded by the number of live edges, not the size of history.
+      // -------------------------------------------------------------------
+      const referencedTerminalIds = new Set<string>();
+      const collectChangeRef = (ref: WorkNodeRef) => {
+        if (
+          ref.kind === "change" &&
+          ref.project_id === projectId &&
+          !activeById.has(ref.change_id)
+        ) {
+          referencedTerminalIds.add(ref.change_id);
+        }
+      };
+
+      for (const change of activeInputs) {
+        for (const dep of change.same_project_dependencies) {
+          collectChangeRef(dep);
+        }
+      }
+      for (const epic of epicInputs) {
+        for (const entry of epic.entries) {
+          if (entry.kind === "shell") {
+            for (const dep of entry.blocked_by) {
+              collectChangeRef(dep);
+            }
+          }
+        }
+      }
+
+      const terminalInputs = await mapWithConcurrency(
+        Array.from(referencedTerminalIds),
+        RESUME_PROJECTION_GET_CONCURRENCY,
+        async (id): Promise<ChangeNodeInput | null> => {
+          try {
+            const full = await store.changes.get(id);
+            if (!full.success || !full.data) return null;
+            const change = full.data;
+            return {
+              id: change.id,
+              title: change.title,
+              status: change.status,
+              lifecycleState: change.lifecycleState ?? "open",
+              same_project_dependencies: change.same_project_dependencies ?? [],
+              hasInProgressTasks:
+                change.tasks?.some((t) => t.status === "in_progress") ?? false,
+              epic_membership: change.epic_membership,
+            };
+          } catch {
+            return null;
+          }
+        },
+      );
+
+      const changeInputs: ChangeNodeInput[] = [
+        ...activeInputs,
+        ...terminalInputs.filter((c): c is ChangeNodeInput => c !== null),
+      ];
+
+      // -------------------------------------------------------------------
       // Build projection.
       // -------------------------------------------------------------------
       const projection = buildResumeProjection(changeInputs, epicInputs, {
@@ -198,3 +213,27 @@ export const resumeProjectionTools = {
     },
   },
 };
+
+function degradeToSummary(summary: {
+  id: string;
+  title: string;
+  status: "draft" | "archived" | "closed" | string;
+  lifecycleState?: "open" | "archived" | "closed" | null;
+  epic_membership?:
+    | {
+        epic_id: string;
+        entry_id: string;
+        order: number;
+      }
+    | undefined;
+}): ChangeNodeInput {
+  return {
+    id: summary.id,
+    title: summary.title,
+    status: summary.status as ChangeNodeInput["status"],
+    lifecycleState: summary.lifecycleState ?? "open",
+    same_project_dependencies: [],
+    hasInProgressTasks: false,
+    epic_membership: summary.epic_membership,
+  };
+}
