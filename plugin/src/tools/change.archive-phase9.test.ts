@@ -628,7 +628,8 @@ describe("adv_change_archive Phase 9 behavior", () => {
           completed_by: "adv-archive",
           recovery_audit: {
             reason: "completed_workflow_release_gate_recovery",
-            evidence: "workflow execution already completed | STALE OLD EVIDENCE",
+            evidence:
+              "workflow execution already completed | STALE OLD EVIDENCE",
             recovered_at: "2026-01-01T00:00:01Z",
           },
         } as Gates["release"],
@@ -654,7 +655,8 @@ describe("adv_change_archive Phase 9 behavior", () => {
           completed_by: "adv-archive",
           recovery_audit: {
             reason: "completed_workflow_release_gate_recovery",
-            evidence: "workflow execution already completed | STALE OLD EVIDENCE",
+            evidence:
+              "workflow execution already completed | STALE OLD EVIDENCE",
             recovered_at: "2026-01-01T00:00:01Z",
           },
         } as Gates["release"],
