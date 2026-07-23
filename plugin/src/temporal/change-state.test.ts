@@ -1035,6 +1035,80 @@ describe("change-state pure mutation helpers", () => {
     expect(state.tasks[0]?.status).toBe("done");
   });
 
+  it("AC1: permits frontend completion with designer engineer-report provenance backed by a same-cycle engineer report", () => {
+    const changeId = "frontend-receipt-ok";
+    const taskId = "tk-frontend";
+    const cycleId = "ic-frontend";
+    const state = createChangeWorkflowState({
+      changeId,
+      title: "Frontend receipt ok",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: taskId,
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId,
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: cycleId,
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    const engineer = makeEngineerReport(changeId, taskId, 1, cycleId);
+    applySubagentReportSubmittedToState(state, {
+      taskId,
+      report: engineer,
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    const engineerKey = subagentReportKey({
+      changeId,
+      taskId,
+      agent: "adv-engineer",
+      attempt: 1,
+      implementationCycleId: cycleId,
+    });
+
+    const designer: DesignerSubagentReport = {
+      ...makeDesignerReport(changeId, taskId, cycleId),
+      apply_context: {
+        implementation_cycle_id: cycleId,
+        implementation_provenance: {
+          kind: "engineer_report",
+          report_key: engineerKey,
+        },
+      },
+    };
+    applySubagentReportSubmittedToState(state, {
+      taskId,
+      report: designer,
+      submittedAt: "2026-05-06T00:00:04.000Z",
+    });
+
+    applyTaskCompletedToState(state, {
+      taskId,
+      verification: "verified",
+      summary: "complete",
+      filesTouched: [],
+      completedAt: "2026-05-06T00:00:05.000Z",
+    });
+
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
   it("rejects a designer engineer-report receipt without successful same-cycle engineer evidence", () => {
     const state = createChangeWorkflowState({
       changeId: "frontend-receipt-guard",

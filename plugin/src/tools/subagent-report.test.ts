@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SubagentConsumerWarningSchema } from "../types";
+import { subagentReportKey } from "../types/subagent-reports";
 import type {
   ChangeScopedReviewerSubagentReport,
   Change,
@@ -11,6 +12,7 @@ import type {
   ResearcherSubagentReport,
   ReviewerSubagentReport,
   ScannerBundleSubagentReport,
+  Task,
   VerificationTriageBundleSubagentReport,
 } from "../types";
 import type { Store } from "../storage/store-types";
@@ -1750,6 +1752,85 @@ describe("subagentReportTools", () => {
     expect(output.error).toContain("implementation_provenance");
     expect(output.error).toContain("report_key");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("AC5: accepts an engineer report with correctly-nested apply_context symmetrically with the designer path", async () => {
+    const changeId = "frontend-engineer-symmetry";
+    const taskId = "tk-frontend";
+    const cycleId = "ic-frontend";
+    const frontendTask = {
+      id: taskId,
+      title: "Frontend task",
+      status: "in_progress" as const,
+      priority: 1,
+      created_at: "2026-05-23T00:00:00.000Z",
+      metadata: { frontend: "true" },
+      apply_cycle: {
+        implementation_cycle_id: cycleId,
+        started_at: "2026-05-23T00:00:01.000Z",
+        kind: "initial" as const,
+      },
+    } satisfies Task;
+
+    const store = storeFor(change({ tasks: [frontendTask] }));
+    const report = engineerReport({
+      change_id: changeId,
+      task_id: taskId,
+      scope: { kind: "task", task_id: taskId },
+      apply_context: {
+        implementation_cycle_id: cycleId,
+        implementation_provenance: {
+          kind: "engineer",
+          baseline_head_sha: "abc123",
+        },
+      },
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    expect(signalPayload.report.apply_context).toEqual({
+      implementation_cycle_id: cycleId,
+      implementation_provenance: {
+        kind: "engineer",
+        baseline_head_sha: "abc123",
+      },
+    });
+
+    const expectedKey = subagentReportKey({
+      changeId,
+      taskId,
+      agent: "adv-engineer",
+      attempt: 1,
+      implementationCycleId: cycleId,
+    });
+    expect(
+      subagentReportKey({
+        changeId: signalPayload.report.change_id,
+        taskId:
+          typeof signalPayload.report.scope === "string"
+            ? undefined
+            : signalPayload.report.scope.task_id,
+        scope:
+          typeof signalPayload.report.scope === "string"
+            ? undefined
+            : signalPayload.report.scope,
+        agent: signalPayload.report.agent,
+        attempt: signalPayload.report.attempt,
+        implementationCycleId:
+          signalPayload.report.apply_context?.implementation_cycle_id,
+      }),
+    ).toBe(expectedKey);
   });
 
   test("plugin preflight caps nested report issues at 10 and signals no mutation", async () => {
