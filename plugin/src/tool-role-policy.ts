@@ -536,26 +536,7 @@ const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
 export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
   {
     agent: "adv",
-    allowed: [
-      "adv_change_archive",
-      "adv_change_close",
-      "adv_change_create",
-      "adv_change_list",
-      "adv_change_show",
-      "adv_change_update",
-      "adv_gate_complete",
-      "adv_gate_status",
-      "adv_run_test",
-      "adv_task_add",
-      "adv_task_checkpoint",
-      "adv_task_list",
-      "adv_task_ready",
-      "adv_task_show",
-      "adv_task_update",
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-    ],
+    allowed: [...TIER_1_ALLOWLIST, ...TIER_2_ALLOWLIST],
     explicitBlocked: [],
     denyWildcard: true,
     rationale:
