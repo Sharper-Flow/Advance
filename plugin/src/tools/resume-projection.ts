@@ -12,23 +12,12 @@ import { z } from "zod";
 import { basename } from "node:path";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
-import { mapWithConcurrency } from "../utils/concurrency";
 import {
   buildResumeProjection,
   type ChangeNodeInput,
   type EpicNodeInput,
   type EpicEntryInput,
 } from "../projection/resume-projection";
-
-/**
- * Bounded concurrency for hydrating non-terminal changes. The list() call
- * already loads summaries for the full dependency graph; we only need full
- * Change objects for active/draft changes (to resolve dependencies and
- * in-progress tasks). Running these gets in parallel with a small cap avoids
- * the sequential N+1 timeout that blew the 10s direct tool deadline while
- * keeping in-flight Temporal reads bounded.
- */
-const RESUME_PROJECTION_GET_CONCURRENCY = 8;
 
 export const resumeProjectionTools = {
   adv_resume_projection: {
@@ -70,21 +59,16 @@ export const resumeProjectionTools = {
       const listResult = await store.changes.list({
         includeArchived: true,
         includeClosed: true,
-        // Let the store hydrate the full dependency graph with a bit more
-        // parallelism than the default; this single bounded call replaces the
-        // previous sequential per-change get storm.
-        validationConcurrency: RESUME_PROJECTION_GET_CONCURRENCY,
       });
 
-      const terminalInputs: ChangeNodeInput[] = [];
-      const nonTerminalSummaries: typeof listResult.changes = [];
+      const changeInputs: ChangeNodeInput[] = [];
       for (const summary of listResult.changes) {
         const isTerminal =
           summary.status === "archived" || summary.status === "closed";
 
         if (isTerminal) {
           // Terminal changes only need status for the "done" classification.
-          terminalInputs.push({
+          changeInputs.push({
             id: summary.id,
             title: summary.title,
             status: summary.status,
@@ -94,21 +78,12 @@ export const resumeProjectionTools = {
             epic_membership: summary.epic_membership,
           });
         } else {
-          nonTerminalSummaries.push(summary);
-        }
-      }
-
-      // Hydrate non-terminal changes with bounded concurrency. Each get is
-      // independent, and failures degrade to the summary-only input.
-      const nonTerminalInputs = await mapWithConcurrency(
-        nonTerminalSummaries,
-        RESUME_PROJECTION_GET_CONCURRENCY,
-        async (summary): Promise<ChangeNodeInput> => {
+          // Non-terminal changes need full details for deps + task status.
           try {
             const full = await store.changes.get(summary.id);
             if (!full.success || !full.data) {
               // Degrade gracefully: use summary if full get fails.
-              return {
+              changeInputs.push({
                 id: summary.id,
                 title: summary.title,
                 status: summary.status,
@@ -116,13 +91,14 @@ export const resumeProjectionTools = {
                 same_project_dependencies: [],
                 hasInProgressTasks: false,
                 epic_membership: summary.epic_membership,
-              };
+              });
+              continue;
             }
             const change = full.data;
             const hasInProgressTasks =
               change.tasks?.some((t) => t.status === "in_progress") ?? false;
 
-            return {
+            changeInputs.push({
               id: change.id,
               title: change.title,
               status: change.status,
@@ -130,10 +106,10 @@ export const resumeProjectionTools = {
               same_project_dependencies: change.same_project_dependencies ?? [],
               hasInProgressTasks,
               epic_membership: change.epic_membership,
-            };
+            });
           } catch {
             // Degrade gracefully: use summary if full get fails.
-            return {
+            changeInputs.push({
               id: summary.id,
               title: summary.title,
               status: summary.status,
@@ -141,15 +117,10 @@ export const resumeProjectionTools = {
               same_project_dependencies: [],
               hasInProgressTasks: false,
               epic_membership: summary.epic_membership,
-            };
+            });
           }
-        },
-      );
-
-      const changeInputs: ChangeNodeInput[] = [
-        ...terminalInputs,
-        ...nonTerminalInputs,
-      ];
+        }
+      }
 
       // -------------------------------------------------------------------
       // Load epics.
