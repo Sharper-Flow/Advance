@@ -1223,10 +1223,7 @@ describe("apply_context binding hint", () => {
 describe("apply_context doc↔schema drift guard (DDC2/SC1)", () => {
   it("validates the canonical adv-designer.md snippet and the binding hint example against SubagentApplyContextSchema", () => {
     const docPath = fileURLToPath(
-      new URL(
-        "../../../.opencode/agents/adv-designer.md",
-        import.meta.url,
-      ),
+      new URL("../../../.opencode/agents/adv-designer.md", import.meta.url),
     );
     const doc = readFileSync(docPath, "utf8");
     const section = doc.split("## Apply Context Binding")[1];

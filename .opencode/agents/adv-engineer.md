@@ -163,20 +163,10 @@ When scope is complete:
 
 ## Apply Context Binding
 
-When the work is the implementation receipt for a classified frontend task, bind the active `implementation_cycle_id` under `report.apply_context` (not at the top level). A top-level `implementation_cycle_id` is rejected by the strict report schema.
-
-Valid `implementation_provenance.kind` variants: `engineer` (`baseline_head_sha`), `engineer_report` (`report_key`), `inline` (`baseline_head_sha` + `diff_ref`).
-
-Canonical shape:
+Nest the active `implementation_cycle_id` under `report.apply_context` (a top-level value is rejected by the strict schema) with a valid `implementation_provenance` (`engineer`, `engineer_report`, or `inline`):
 
 ```json
-"apply_context": {
-  "implementation_cycle_id": "ic_<active-cycle-id>",
-  "implementation_provenance": {
-    "kind": "engineer_report",
-    "report_key": "<stable engineer report key>"
-  }
-}
+"apply_context": { "implementation_cycle_id": "ic_<id>", "implementation_provenance": { "kind": "engineer_report", "report_key": "<key>" } }
 ```
 
 ## Local Code Exploration Priority
