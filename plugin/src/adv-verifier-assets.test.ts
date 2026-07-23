@@ -75,9 +75,10 @@ describe("adv-verifier agent asset", () => {
       "adv_worktree_create",
       "adv_worktree_delete",
     ]) {
-      expect(getToolGrant(frontmatter, tool), `${tool} should not be granted`).not.toBe(
-        true,
-      );
+      expect(
+        getToolGrant(frontmatter, tool),
+        `${tool} should not be granted`,
+      ).not.toBe(true);
     }
   });
 
