@@ -311,9 +311,11 @@ describe("gate tools — signal-driven lifecycle", () => {
       store.changes.invalidate = vi.fn(async () => {
         cachedGates = freshGates;
       });
-      mocks.querySignal.mockResolvedValueOnce(pendingGates).mockResolvedValueOnce({
-        status: "done",
-      });
+      mocks.querySignal
+        .mockResolvedValueOnce(pendingGates)
+        .mockResolvedValueOnce({
+          status: "done",
+        });
 
       const result = await gateTools.adv_gate_complete.execute(
         {

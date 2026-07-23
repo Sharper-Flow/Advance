@@ -968,7 +968,9 @@ describe("change tools — signal-driven lifecycle", () => {
         const result = await getCachedChange("test-change");
         return {
           ...result,
-          data: result.data ? { ...result.data, gates: cachedGates } : undefined,
+          data: result.data
+            ? { ...result.data, gates: cachedGates }
+            : undefined,
         };
       });
       store.gates.get = vi.fn(async () => cachedGates);

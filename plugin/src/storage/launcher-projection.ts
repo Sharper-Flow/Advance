@@ -227,7 +227,8 @@ export async function buildLauncherProjection(
 
   activeSummaries.sort((a, b) => {
     return (
-      new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime()
+      new Date(b.last_activity_at).getTime() -
+      new Date(a.last_activity_at).getTime()
     );
   });
 
