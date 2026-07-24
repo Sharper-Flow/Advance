@@ -425,7 +425,7 @@
     {
       "id": "rq-approvedPrAutoMerge01",
       "title": "Approved Same-Change PRs Arm Squash Auto-Merge Immediately",
-      "body": "When a user explicitly grants merge authority for the current ADV change and requested end-state, ADV MUST retain that authority for matching same-change remediation PRs and MUST immediately arm GitHub squash auto-merge after each matching PR is pushed or created. Authority is bound to changeId, repository, change/<changeId> head branch, resolved default base branch, and requested end-state; push-only permission, generic gate approval, and unrelated PRs do not authorize merge. ADV MUST run `gh pr merge <number> --repo <owner/repo> --squash --auto`, re-read the OPEN PR, and require `autoMergeRequest.enabledAt` before reporting auto-merge armed. After remediation it MUST push, re-read PR identity/state, re-arm, verify, and resume adv-ci-waiter. CI green is nonterminal until PR state is MERGED or canonical default-branch reachability is proven. Authority ends on revocation, stop/cancel, identity drift, unrelated scope, terminal completion, or requested-end-state completion. Tier-B archive sign-off remains unchanged. The auto-merge command MUST NOT include `--delete-branch` or `-d`; cleanup remains post-merge.",
+      "body": "When a user explicitly grants merge authority for the current ADV change and requested end-state, ADV MUST retain that authority within the active orchestration session for matching same-change remediation PRs and MUST immediately arm GitHub squash auto-merge after each matching PR is pushed or created. Authority is bound to changeId, repository, change/<changeId> head branch, resolved default base branch, requested end-state, and active session; push-only permission, generic gate approval, and unrelated PRs do not authorize merge. ADV MUST run `gh pr merge <number> --repo <owner/repo> --squash --auto`, re-read the OPEN PR, and require `autoMergeRequest.enabledAt` before reporting auto-merge armed. After remediation it MUST push, re-read PR identity/state, re-arm, verify, and resume adv-ci-waiter. CI green is nonterminal until PR state is MERGED or canonical default-branch reachability is proven. Authority ends on revocation, stop/cancel, identity drift, unrelated scope, terminal completion, requested-end-state completion, or session restart/compaction/context loss that removes authoritative approval evidence; a new explicit merge grant is then required. Tier-B archive sign-off remains unchanged. The auto-merge command MUST NOT include `--delete-branch` or `-d`; cleanup remains post-merge.",
       "priority": "must",
       "tags": ["workflow", "approval", "git", "auto-merge"],
       "scenarios": [
@@ -434,7 +434,8 @@
           "title": "Explicit merge authority arms matching PR immediately",
           "given": [
             "The user explicitly authorizes merge for the current change and requested end-state",
-            "An OPEN PR has the current repository, change/<changeId> head, and resolved default base"
+            "An OPEN PR has the current repository, change/<changeId> head, and resolved default base",
+            "The explicit approval evidence remains available in the active orchestration session"
           ],
           "when": "The change branch is pushed or the matching PR is created",
           "then": [
@@ -461,10 +462,11 @@
           "id": "rq-approvedPrAutoMerge01.3",
           "title": "Authority invalidation fails closed",
           "given": ["Merge authority was previously granted for a change"],
-          "when": "The user revokes authority, stops or cancels, identity drifts, scope becomes unrelated, or the requested end-state completes",
+          "when": "The user revokes authority, stops or cancels, identity drifts, scope becomes unrelated, the requested end-state completes, or session restart/compaction/context loss removes authoritative approval evidence",
           "then": [
             "ADV does not arm or merge the PR under stale authority",
             "Push-only or generic gate approval is not treated as merge authority",
+            "A new session requires a new explicit merge grant",
             "Tier-B archive sign-off remains whitelist-only",
             "No auto-merge command uses `--delete-branch` or `-d`"
           ]

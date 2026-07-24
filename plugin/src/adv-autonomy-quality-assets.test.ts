@@ -73,6 +73,8 @@ describe("Human checkpoint and auto-continue policy", () => {
 
     expect(agent).toMatch(/PR Merge Authority/);
     expect(agent).toMatch(/explicit user grant to merge/i);
+    expect(agent).toMatch(/current active (ADV )?orchestration session/i);
+    expect(agent).toMatch(/session restart[^.\n]*new explicit merge grant/i);
     expect(agent).toMatch(/push-only[^.\n]*does not authorize merge/i);
     expect(agent).toMatch(
       /generic Tier-A approval[^.\n]*does not authorize merge/i,
@@ -95,6 +97,9 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(agent).toMatch(/never[^.\n]*(--delete-branch|-d)/i);
 
     expect(requirement?.body).toMatch(/requested end-state/i);
+    expect(requirement?.body).toMatch(/active orchestration session/i);
+    expect(requirement?.body).toMatch(/session restart/i);
+    expect(requirement?.body).not.toMatch(/restart-persistent authorization/i);
     expect(requirement?.body).toMatch(/autoMergeRequest\.enabledAt/);
     expect(requirement?.body).toMatch(/--delete-branch.*-d/);
     expect(requirement?.scenarios).toEqual(
