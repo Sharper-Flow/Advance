@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-24T21:39:14.624Z",
+  "capabilities": [],
+  "change_hash": "f201e98c990ab27093996e993b8cae2b5b79e22e082fb088d30ad7bf7c970407",
+  "change_id": "fixMorphWorktreeAuthorization",
+  "completed_tasks": 3,
+  "created_at": "2026-07-24T20:43:04.793Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-24T21:26:51.466Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "b466e5a1bd3f194fce7476b953137c48b5bc19f3a3ae15e489c4da805606bd0e",
+  "task_count": 3,
+  "title": "Fix morph worktree authorization",
+  "version": "1"
+}
