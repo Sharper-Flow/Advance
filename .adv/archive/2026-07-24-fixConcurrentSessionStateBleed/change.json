@@ -1,0 +1,405 @@
+{
+  "id": "fixConcurrentSessionStateBleed",
+  "title": "Fix concurrent-session state bleed",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T22:56:01.138Z",
+  "tasks": [
+    {
+      "id": "tk-c900ee3e63d6",
+      "title": "## Session-key the active-change state (AC1-AC5)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-24T22:57:40.669Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "12 tests pass (status.test.ts). pnpm run check green. Session-keyed Map via getCurrentSessionId() replaces module singleton. Session isolation test: two sessions keep distinct activeChangeId. cleanup() deletes only current session. resetStatusForTest() clears all.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/events/status.test.ts",
+        "plugin/src/events/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/events/status.test.ts",
+        "plugin/src/events/status.ts"
+      ],
+      "checkpointSha": "e9bd5bb455698341fcf176a7fafcdc07d49e0ae8",
+      "completedAt": "2026-07-24T23:04:13.017Z",
+      "completed_at": "2026-07-24T23:04:13.017Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-c900ee3e63d6": [
+      {
+        "runId": "tr_mrzjret7_44b47f7e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/events/status.test.ts",
+        "durationMs": 1400.7543369997293,
+        "recordedAt": "2026-07-24T23:04:01.026Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-24T22:57:08.420Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal has confirmed problem (module singleton, observed clobber), clear fix direction (session-keyed map via getCurrentSessionId), affected files identified.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "281cb7a1c6b3fe70693089b07eda58359b5b7235f1ae992efcea37e737388340",
+        "non_whitespace_chars": 3558,
+        "checked_at": "2026-07-21T22:56:01.214Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-24T22:57:22.781Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement + contract minted (11 items: 5 AC, 3 C, 3 DONT). Discovery confirmed: getCurrentSessionId() from utils/session-id.ts is the correct session key (memoized per-process, same as Temporal worker).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "non_whitespace_chars": 1233,
+        "checked_at": "2026-07-21T22:56:01.215Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-24T22:57:30.307Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design: session-keyed Map<string, StatusState> using getCurrentSessionId(). All public functions use getOrCreateSessionState(). cleanup() deletes current session entry. resetStatusForTest() clears map. No external file changes needed.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "a9611f6e2b9bd7617df6237f4a8e3be8817b7880419e71f8a113895c1cc5fe2b",
+        "non_whitespace_chars": 1269,
+        "checked_at": "2026-07-21T22:56:01.216Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-24T22:57:47.873Z",
+      "completed_by": "user",
+      "approval_evidence": "User directed this change. 1 task covering all 5 ACs. Session-keyed Map via getCurrentSessionId(). Focused single-file change + test."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:04:25.326Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task complete. 12 tests pass. pnpm run check green. Session-keyed Map replaces singleton."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:06:42.469Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "PR #319 admin-merged. Executive summary persisted. Review matrix 11/11 passing. 12 tests pass. pnpm run check green."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "bl-gQd9-71T"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+      "approvedAt": "2026-07-24T22:57:15.118Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — `getStatus()` returns the calling session's own `activeChangeId`, not a peer session's (tested with two simulated sessions).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — `setActiveChange()` in session A does not affect `getStatus()` in session B (isolation tested).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — `cleanup()` deletes only the calling session's entry, not the entire map (peer session state survives).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — Idempotent-init invariant preserved (post-warp duplicate instance does not destructively reset activeChangeId).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — Session key derived from `getCurrentSessionId()` (memoized per-process, same ID the Temporal worker uses).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must not regress the existing `initialized` flag behavior (warp/duplicate-instance protection).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must not require OpenCode SDK changes (use existing `getCurrentSessionId()` from `utils/session-id.ts`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "`resetStatusForTest()` clears the entire map (test-only).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do NOT use process PID as session key (reused after exit).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do NOT add session-key parameters to every public function (use implicit `getCurrentSessionId()` lookup).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do NOT access the OpenCode session DB (too complex for this scope).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-24T23:06:26.303Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Session isolation test: session-A reads own activeChangeId"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "setActiveChange in A does not affect B"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "cleanup() deletes only current session entry"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "initializeStatus preserves existing entry"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Uses getCurrentSessionId() from utils/session-id.ts"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "initialized flag preserved"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Uses existing getCurrentSessionId, no SDK changes"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "resetStatusForTest clears entire map"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No PID as key"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No session params on public functions"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No OpenCode session DB access"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — `getStatus()` returns the calling session's own `activeChangeId`, not a peer session's (tested with two simulated sessions).",
+    "**AC2** — `setActiveChange()` in session A does not affect `getStatus()` in session B (isolation tested).",
+    "**AC3** — `cleanup()` deletes only the calling session's entry, not the entire map (peer session state survives).",
+    "**AC4** — Idempotent-init invariant preserved (post-warp duplicate instance does not destructively reset activeChangeId).",
+    "**AC5** — Session key derived from `getCurrentSessionId()` (memoized per-process, same ID the Temporal worker uses)."
+  ],
+  "documents": {
+    "proposal": "# Proposal — Fix concurrent-session state bleed\n\n## Problem (confirmed 2026-07-21, fresh-session investigation)\n\nADV's plugin state that tracks the active change is a **process/directory-scoped singleton**, not session-scoped. Two independent findings:\n\n1. `plugin/src/events/status.ts:24` — `let state: StatusState = {...}` is a module-level singleton holding `activeChangeId`, `activeEpicId`, `taskProgress`, `currentStatus`.\n2. Lines 39-46 of the same file document that **OpenCode caches plugin InstanceState by directory**: \"a post-warp scenario instantiates a SECOND ADV plugin instance against the worktree directory.\" The existing `initialized` flag only prevents destructive re-init resets — it does NOT isolate concurrent sessions.\n\n**Observed symptom**: during a multi-session run (3 concurrent sessions on this repo per `adv_session_list`), the `[ADV:SESSION_HEALTH]` banner named `addTestsTaskSignalValidation` as the active change while the driving conversation was working `addWisdomAutoSurfacing`. The banner reads `state.activeChange.id`; a peer session's `setActiveChange` had clobbered the shared pointer.\n\n## Why it matters\n\n- Cross-session `activeChangeId` clobber corrupts the active-change overlay, session-health banner target, worktree-session marker, and any hook that reads the shared pointer.\n- Silent: no error surfaces; the wrong change context can mislead an agent or the user about what's in flight.\n- Amplified in high-concurrency projects (multiple OpenCode sessions per repo directory).\n\n## Proposal\n\nInvestigate and implement session-scoping for the active-work pointer:\n\n1. **Confirm the hook signal surface** — determine whether OpenCode hooks (`experimental.chat.system.transform`, `tool.execute.before/after`, session events) receive a stable `sessionID` that the plugin can key state on. (`tool.execute.before` already receives `sessionID` per existing code at index.ts ~line 80.)\n2. **Session-key the active-change pointer** — replace the directory-shared singleton read/writes for `activeChangeId` with a per-session map keyed by `sessionID`, OR scope the pointer to the session that set it so peer sessions cannot clobber it.\n3. **Preserve the existing idempotent-init invariant** (status.ts:33-51) for the warp/duplicate-instance case — the fix must not regress the post-warp reset protection.\n4. **Regression test** — simulate two sessions on the same directory setting different active changes; assert each session reads back its own pointer, not the peer's.\n\n## Alternatives considered\n\n- **Accept the directory-keyed model + document it**: cheapest, but leaves the silent-clobber bug. Rejected unless session-keying proves infeasible with OpenCode's hook surface.\n- **Per-directory locking**: doesn't help — sessions legitimately share a directory; the issue is they should have independent active-change context.\n\n## Scope notes\n\n- **Affected files**: `plugin/src/events/status.ts` (module singleton → session-keyed), `plugin/src/index.ts` (state closure + hook wiring), possibly `plugin/src/types` for a session-keyed state shape, and `plugin/src/utils/system-block.ts` consumers that read `activeChange.id`.\n- Verified low collision with the in-flight `replaceRecoveryToolSprawl` change: that change touches durable workflow/projection state, Epic convergence, and the recovery-tool surface (`epic.ts`, `task.ts` recovery classification, `status_repair`/`archive_repair`/`adv_doctor`) — a different subsystem from this in-memory session-tracking state. Only shared file is the large `index.ts`, edited in different regions (recovery classification vs session-state hooks); minor merge-conflict potential, no logic collision.\n- If OpenCode hooks do NOT expose a stable per-call sessionID, downgrade to the \"document the model + surface a peer-session warning\" fallback and record that as the outcome.\n\n## Origin\n\nPromoted from backlog `bl-gQd9-71T`. The change is scoped solely to the confirmed cross-session active-change state bleed; the sub-agent dispatch symptom originally bundled in that backlog item is being handled separately.",
+    "agreement": "## Objectives\n\n1. **Eliminate cross-session activeChangeId clobber** — the module-level singleton in `status.ts` must be replaced with a per-session state map so concurrent OpenCode sessions on the same repo directory cannot clobber each other's active-change pointer.\n\n## Acceptance Criteria\n\n- **AC1** — `getStatus()` returns the calling session's own `activeChangeId`, not a peer session's (tested with two simulated sessions).\n- **AC2** — `setActiveChange()` in session A does not affect `getStatus()` in session B (isolation tested).\n- **AC3** — `cleanup()` deletes only the calling session's entry, not the entire map (peer session state survives).\n- **AC4** — Idempotent-init invariant preserved (post-warp duplicate instance does not destructively reset activeChangeId).\n- **AC5** — Session key derived from `getCurrentSessionId()` (memoized per-process, same ID the Temporal worker uses).\n\n## Constraints\n\n- Must not regress the existing `initialized` flag behavior (warp/duplicate-instance protection).\n- Must not require OpenCode SDK changes (use existing `getCurrentSessionId()` from `utils/session-id.ts`).\n- `resetStatusForTest()` clears the entire map (test-only).\n\n## Avoidances\n\n- Do NOT use process PID as session key (reused after exit).\n- Do NOT add session-key parameters to every public function (use implicit `getCurrentSessionId()` lookup).\n- Do NOT access the OpenCode session DB (too complex for this scope).",
+    "design": "## Design\n\n### Root cause\n`plugin/src/events/status.ts:24` — `let state: StatusState = {...}` is a module-level singleton. All sessions in the same plugin process share it. `setActiveChange()` in one session overwrites `state.activeChangeId` for all sessions.\n\n### Fix\nReplace the singleton with a session-keyed `Map<string, StatusState>`:\n\n```typescript\nimport { getCurrentSessionId } from \"../utils/session-id\";\n\nconst sessions = new Map<string, StatusState>();\n\nfunction getOrCreateSessionState(): StatusState {\n  const sid = getCurrentSessionId();\n  let s = sessions.get(sid);\n  if (!s) {\n    s = { currentStatus: \"IDLE\", projectName: \"Unknown\", activeChangeId: null, ... };\n    sessions.set(sid, s);\n  }\n  return s;\n}\n```\n\nAll public functions (`getStatus`, `setActiveChange`, `setStatus`, `setTaskProgress`, etc.) call `getOrCreateSessionState()` instead of reading/writing the module-level `state`.\n\n### Migration\n- `initializeStatus()`: creates the session entry if absent; preserves existing entry if present (idempotent-init invariant).\n- `cleanup()`: deletes the current session's entry (`sessions.delete(getCurrentSessionId())`).\n- `resetStatusForTest()`: clears the entire map.\n- `resetStatus()`: resets the current session's entry to defaults.\n\n### Affected files\n- `plugin/src/events/status.ts` — primary change (singleton → session-keyed map)\n- No other files need changes (all callers use the exported functions, which now implicitly use the session key)",
+    "executiveSummary": "## Executive Summary\n\nReplaced the module-level `StatusState` singleton in `events/status.ts` with a session-keyed `Map` using `getCurrentSessionId()`. Concurrent OpenCode sessions on the same repo directory now have isolated active-change pointers — no more silent cross-session clobber of `activeChangeId`.\n\nPR #319 merged to trunk (ca8236a6). 12 tests pass, pnpm run check green."
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T23:05:19.377Z",
+      "contentHash": "281cb7a1c6b3fe70693089b07eda58359b5b7235f1ae992efcea37e737388340",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-24T22:56:52.193Z",
+      "contentHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-24T22:56:52.193Z",
+      "contentHash": "a9611f6e2b9bd7617df6237f4a8e3be8817b7880419e71f8a113895c1cc5fe2b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-24T23:06:12.281Z",
+      "contentHash": "e6f2b2536d14ea9b7181fcafacefc3434ecb171b54ea7b17d135cf7731520f39",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-24T23:06:42.469Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "change-1784822191575-9rqan9",
+    "order": 18,
+    "title": "Fix concurrent-session state bleed",
+    "linked_at": "2026-07-23T15:56:31.576Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-24T22:54:42.684Z"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-07-24T23:07:56.934Z",
+  "capabilities": [],
+  "change_hash": "748d320a6c1263e7f0e5331f466d8087fc1f98a61548ced621760c28ae841bd1",
+  "change_id": "fixConcurrentSessionStateBleed",
+  "completed_tasks": 1,
+  "created_at": "2026-07-21T22:56:01.138Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784822191575-9rqan9",
+    "epic_id": "hardenTemporalReliability",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-23T15:56:31.576Z",
+    "order": 18,
+    "source": "link_existing",
+    "title": "Fix concurrent-session state bleed"
+  },
+  "last_activity_at": "2026-07-24T23:06:42.469Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "2ef9d9dc730346062af5476101d2b5f89b97d5b90c2cfcaaff53a8492fde24b8",
+  "task_count": 1,
+  "title": "Fix concurrent-session state bleed",
+  "version": "1"
+}
