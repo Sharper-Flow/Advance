@@ -5,13 +5,22 @@
  * and getEffectiveDoomLoopInfo persistence merging.
  */
 
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect, beforeEach, vi } from "vitest";
 import {
   trackRetry,
   clearRetry,
   getDoomLoopInfo,
   getEffectiveDoomLoopInfo,
+  getStatus,
+  setActiveChange,
+  initializeStatus,
+  resetStatusForTest,
 } from "./status";
+import { getCurrentSessionId } from "../utils/session-id";
+
+vi.mock("../utils/session-id", () => ({
+  getCurrentSessionId: vi.fn(),
+}));
 
 describe("trackRetry", () => {
   beforeEach(() => {
@@ -152,5 +161,32 @@ describe("getEffectiveDoomLoopInfo", () => {
     });
     expect(info.attempts).toBe(2);
     expect(info.lastError).toBe("persisted error message");
+  });
+});
+
+describe("session-keyed status state", () => {
+  beforeEach(() => {
+    resetStatusForTest();
+    vi.clearAllMocks();
+  });
+
+  test("isolated activeChangeId per session", () => {
+    const sessionId = getCurrentSessionId as unknown as ReturnType<
+      typeof vi.fn
+    >;
+
+    sessionId.mockReturnValue("session-A");
+    initializeStatus("Project A");
+    setActiveChange("change-A");
+
+    sessionId.mockReturnValue("session-B");
+    initializeStatus("Project B");
+    setActiveChange("change-B");
+
+    sessionId.mockReturnValue("session-A");
+    expect(getStatus().activeChangeId).toBe("change-A");
+
+    sessionId.mockReturnValue("session-B");
+    expect(getStatus().activeChangeId).toBe("change-B");
   });
 });

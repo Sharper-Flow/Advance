@@ -7,6 +7,7 @@
 import type { StatusMarker } from "../types";
 import { STATUS_MARKERS } from "../types";
 import { updateTerminalStatus, cleanupTerminal } from "./terminal";
+import { getCurrentSessionId } from "../utils/session-id";
 
 // =============================================================================
 // State
@@ -21,14 +22,24 @@ interface StatusState {
   lastUpdated: number;
 }
 
-let state: StatusState = {
-  currentStatus: "IDLE",
-  projectName: "Unknown",
-  activeChangeId: null,
-  activeEpicId: null,
-  taskProgress: null,
-  lastUpdated: Date.now(),
-};
+const sessions = new Map<string, StatusState>();
+
+function getOrCreateSessionState(): StatusState {
+  const sessionId = getCurrentSessionId() ?? "__default__";
+  let sessionState = sessions.get(sessionId);
+  if (!sessionState) {
+    sessionState = {
+      currentStatus: "IDLE",
+      projectName: "Unknown",
+      activeChangeId: null,
+      activeEpicId: null,
+      taskProgress: null,
+      lastUpdated: Date.now(),
+    };
+    sessions.set(sessionId, sessionState);
+  }
+  return sessionState;
+}
 
 /**
  * Tracks whether initializeStatus has been called at least once in this
@@ -78,17 +89,17 @@ export const getStatusMarker = (status: StatusMarker): string => {
  */
 export const initializeStatus = (projectName: string): void => {
   if (initialized) {
-    state.lastUpdated = Date.now();
+    const s = getOrCreateSessionState();
+    s.lastUpdated = Date.now();
     return;
   }
-  state = {
-    currentStatus: "IDLE",
-    projectName,
-    activeChangeId: null,
-    activeEpicId: null,
-    taskProgress: null,
-    lastUpdated: Date.now(),
-  };
+  const s = getOrCreateSessionState();
+  s.currentStatus = "IDLE";
+  s.projectName = projectName;
+  s.activeChangeId = null;
+  s.activeEpicId = null;
+  s.taskProgress = null;
+  s.lastUpdated = Date.now();
   initialized = true;
   updateTerminal();
 };
@@ -99,14 +110,7 @@ export const initializeStatus = (projectName: string): void => {
  */
 export const resetStatusForTest = (): void => {
   initialized = false;
-  state = {
-    currentStatus: "IDLE",
-    projectName: "Unknown",
-    activeChangeId: null,
-    activeEpicId: null,
-    taskProgress: null,
-    lastUpdated: Date.now(),
-  };
+  sessions.clear();
 };
 
 /**
@@ -115,8 +119,9 @@ export const resetStatusForTest = (): void => {
  * Bell logic in terminal.ts independently tracks transitions.
  */
 export const setStatus = (status: StatusMarker): void => {
-  state.currentStatus = status;
-  state.lastUpdated = Date.now();
+  const s = getOrCreateSessionState();
+  s.currentStatus = status;
+  s.lastUpdated = Date.now();
   updateTerminal();
 };
 
@@ -133,8 +138,9 @@ export const setActiveChange = (
   changeId: string | null,
   context?: { epicId?: string },
 ): void => {
-  state.activeChangeId = changeId;
-  state.activeEpicId = changeId ? (context?.epicId ?? null) : null;
+  const s = getOrCreateSessionState();
+  s.activeChangeId = changeId;
+  s.activeEpicId = changeId ? (context?.epicId ?? null) : null;
   updateTerminal();
 };
 
@@ -142,7 +148,8 @@ export const setActiveChange = (
  * Update task progress display.
  */
 export const setTaskProgress = (completed: number, total: number): void => {
-  state.taskProgress = total > 0 ? `${completed}/${total}` : null;
+  const s = getOrCreateSessionState();
+  s.taskProgress = total > 0 ? `${completed}/${total}` : null;
   updateTerminal();
 };
 
@@ -154,10 +161,11 @@ export const setTaskProgress = (completed: number, total: number): void => {
  * project name, status marker, or progress text.
  */
 const updateTerminal = (): void => {
+  const s = getOrCreateSessionState();
   updateTerminalStatus(
-    state.currentStatus,
-    state.activeChangeId ?? undefined,
-    state.activeEpicId ?? undefined,
+    s.currentStatus,
+    s.activeChangeId ?? undefined,
+    s.activeEpicId ?? undefined,
   );
 };
 
@@ -165,21 +173,20 @@ const updateTerminal = (): void => {
  * Get current status state.
  */
 export const getStatus = (): Readonly<StatusState> => {
-  return { ...state };
+  const s = getOrCreateSessionState();
+  return { ...s };
 };
 
 /**
  * Reset status to idle state.
  */
 export const resetStatus = (): void => {
-  state = {
-    ...state,
-    currentStatus: "IDLE",
-    activeChangeId: null,
-    activeEpicId: null,
-    taskProgress: null,
-    lastUpdated: Date.now(),
-  };
+  const s = getOrCreateSessionState();
+  s.currentStatus = "IDLE";
+  s.activeChangeId = null;
+  s.activeEpicId = null;
+  s.taskProgress = null;
+  s.lastUpdated = Date.now();
   updateTerminal();
 };
 
@@ -190,14 +197,7 @@ export const resetStatus = (): void => {
 export const cleanup = (): void => {
   cleanupTerminal();
   initialized = false;
-  state = {
-    currentStatus: "IDLE",
-    projectName: "Unknown",
-    activeChangeId: null,
-    activeEpicId: null,
-    taskProgress: null,
-    lastUpdated: Date.now(),
-  };
+  sessions.delete(getCurrentSessionId() ?? "__default__");
   retryTrackers.clear();
 };
 
