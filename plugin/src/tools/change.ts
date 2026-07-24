@@ -4,9 +4,9 @@
  *
  * Tools for managing change proposals.
  */
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { createHash } from "crypto";
-import { rm } from "fs/promises";
+import { rm, readFile } from "fs/promises";
 import { basename, join, relative, resolve } from "path";
 import type { FastFollowOf, ChangeOrigin, WorkNodeRef } from "../types";
 import {
@@ -26,12 +26,15 @@ import {
   type ChangeRepoScope,
   type ScopedSubagentReport,
   type BriefingPacketLane,
+  type GateCompletion,
 } from "../types";
+import { ChangeSchema } from "../types/changes";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
-import { loadChange } from "../storage/json";
+import { loadChange, saveChange } from "../storage/json";
 import { getProjectId } from "../utils/project-id";
+import { formatZodError } from "../utils/safe-execute";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import {
@@ -426,6 +429,257 @@ function formatConvergeFailure(input: {
     remediation:
       "Workflow run was terminated and disk projection was written, but terminal readback did not converge. Re-run adv_change_workflow_terminate dryRun:true to re-check; if workflow is gone, run adv_doctor to diagnose the wedged projection. Status-flip recovery is being internalized (rq-creationRequestHash01 / design D4).",
   });
+}
+
+// =============================================================================
+// rq-archiveConvergenceRecovery — dead-workflow archive convergence writer.
+//
+// When a workflow dies before the archiveConvergedSignal can project, a change
+// may be stuck half-converged: status archived but lifecycleState open,
+// release gate pending, phase9_status pending. This writer repairs the disk
+// projection in a single saveChange call when shipped proof is present.
+// =============================================================================
+
+export type ArchiveConvergenceRefusalCode =
+  | "AUTHORIZATION_MISSING"
+  | "PROOF_NOT_SHIPPED"
+  | "PROOF_MISSING_BUNDLE"
+  | "PROOF_INVALID_BUNDLE"
+  | "PROOF_BUNDLE_ID_MISMATCH";
+
+export type SaveRecoveredArchiveConvergenceResult =
+  | {
+      kind: "converged";
+      change: Change;
+      readback: {
+        status: "archived";
+        lifecycleState: "archived";
+        releaseStatus: "done";
+        phase9Status: "done";
+      };
+    }
+  | {
+      kind: "refused";
+      refusalCode: ArchiveConvergenceRefusalCode;
+      evidence: string;
+    }
+  | {
+      kind: "writeFailed";
+      error: string;
+    }
+  | {
+      kind: "readbackFailed";
+      error: string;
+      readback: {
+        status?: Change["status"];
+        lifecycleState?: Change["lifecycleState"];
+        releaseStatus?: GateCompletion["status"];
+        phase9Status?: NonNullable<Change["phase9_status"]>["status"];
+      };
+    };
+
+export async function saveRecoveredArchiveConvergence(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  authorization: { reason: string; evidence: string };
+  finalization: GitFinalizeOutcome;
+  releaseGate?: GateCompletion;
+  archivedAt?: string;
+}): Promise<SaveRecoveredArchiveConvergenceResult> {
+  const { reason, evidence } = input.authorization;
+  if (!reason?.trim() || !evidence?.trim()) {
+    return {
+      kind: "refused",
+      refusalCode: "AUTHORIZATION_MISSING",
+      evidence:
+        "disk-projection recovery authorization requires non-empty reason and evidence",
+    };
+  }
+
+  // Shipped proof: finalization must be verified shipped by the archive flow.
+  if (input.finalization.status !== "shipped") {
+    return {
+      kind: "refused",
+      refusalCode: "PROOF_NOT_SHIPPED",
+      evidence: `finalization.status: ${input.finalization.status}`,
+    };
+  }
+
+  // Archive bundle proof: bundle must exist and contain a change with the
+  // requested changeId.
+  const bundlePath = await findArchiveBundle(
+    input.store.paths.archive,
+    input.changeId,
+  );
+  if (!bundlePath) {
+    return {
+      kind: "refused",
+      refusalCode: "PROOF_MISSING_BUNDLE",
+      evidence: `no archive bundle found under ${input.store.paths.archive} for ${input.changeId}`,
+    };
+  }
+  let bundleJsonText: string;
+  try {
+    bundleJsonText = await readFile(join(bundlePath, "change.json"), "utf-8");
+  } catch (error) {
+    return {
+      kind: "refused",
+      refusalCode: "PROOF_INVALID_BUNDLE",
+      evidence: `bundle change.json unreadable at ${bundlePath}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+  let bundleParsed: unknown;
+  try {
+    bundleParsed = JSON.parse(bundleJsonText);
+  } catch (error) {
+    return {
+      kind: "refused",
+      refusalCode: "PROOF_INVALID_BUNDLE",
+      evidence: `bundle change.json JSON parse failed at ${bundlePath}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+  let bundleChange: Change;
+  try {
+    bundleChange = ChangeSchema.parse(bundleParsed);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        kind: "refused",
+        refusalCode: "PROOF_INVALID_BUNDLE",
+        evidence: `bundle ChangeSchema parse failed: ${formatZodError(error)}`,
+      };
+    }
+    return {
+      kind: "refused",
+      refusalCode: "PROOF_INVALID_BUNDLE",
+      evidence: `bundle ChangeSchema parse threw non-Zod error: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+  if (bundleChange.id !== input.changeId) {
+    return {
+      kind: "refused",
+      refusalCode: "PROOF_BUNDLE_ID_MISMATCH",
+      evidence: `bundle change.id: "${bundleChange.id}", requested: "${input.changeId}"`,
+    };
+  }
+
+  const archivedAt = input.archivedAt ?? new Date().toISOString();
+  const completedBy = "adv-archive";
+  const approvalEvidence = buildReleaseCompletionEvidence(input.finalization);
+
+  const releaseGateDone: GateCompletion = input.releaseGate ?? {
+    status: "done",
+    completed_at: archivedAt,
+    completed_by: completedBy,
+    approval_evidence: approvalEvidence,
+    recovery_audit: {
+      reason: "archive_convergence_recovery",
+      evidence: `${input.authorization.reason}; ${input.authorization.evidence}`,
+      recovered_at: archivedAt,
+    },
+  };
+
+  const phase9Done = preservePhase9Evidence(input.change.phase9_status, {
+    status: "done",
+    startedAt: input.change.phase9_status?.startedAt ?? archivedAt,
+    completedAt: archivedAt,
+    route: input.finalization.route,
+    ...(input.finalization.prNumber
+      ? { prNumber: input.finalization.prNumber }
+      : {}),
+    ...(input.finalization.prUrl ? { prUrl: input.finalization.prUrl } : {}),
+    ...(input.finalization.mergeCommitSha
+      ? { mergeCommitSha: input.finalization.mergeCommitSha }
+      : {}),
+    autoMergeArmed: false,
+  });
+
+  const converged = {
+    ...input.change,
+    status: "archived",
+    lifecycleState: "archived",
+    gates: {
+      ...(input.change.gates ?? {}),
+      release: releaseGateDone,
+    },
+    phase9_status: phase9Done,
+  } as Change;
+
+  try {
+    await saveChange(input.store.paths.changes, converged);
+  } catch (error) {
+    return {
+      kind: "writeFailed",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  try {
+    await input.store.changes.refresh(input.changeId);
+  } catch {
+    // Best-effort cache refresh; the disk save is the important effect.
+  }
+
+  // Read-after-write verification: reload from disk and assert all four fields.
+  const loadResult = await loadChange(
+    input.store.paths.changes,
+    input.changeId,
+  );
+  if (!loadResult.success) {
+    return {
+      kind: "readbackFailed",
+      error: `loadChange failed: ${loadResult.error ?? "unknown error"}`,
+      readback: {},
+    };
+  }
+  if (!loadResult.data) {
+    return {
+      kind: "readbackFailed",
+      error: `loadChange failed: no data for ${input.changeId}`,
+      readback: {},
+    };
+  }
+  const diskChange = loadResult.data as Change;
+  const failures: string[] = [];
+  if (diskChange.status !== "archived") {
+    failures.push(`status: ${diskChange.status ?? "missing"}`);
+  }
+  if (diskChange.lifecycleState !== "archived") {
+    failures.push(`lifecycleState: ${diskChange.lifecycleState ?? "missing"}`);
+  }
+  if (diskChange.gates?.release?.status !== "done") {
+    failures.push(
+      `release gate: ${diskChange.gates?.release?.status ?? "missing"}`,
+    );
+  }
+  if (diskChange.phase9_status?.status !== "done") {
+    failures.push(
+      `phase9_status: ${diskChange.phase9_status?.status ?? "missing"}`,
+    );
+  }
+  const readback = {
+    status: diskChange.status,
+    lifecycleState: diskChange.lifecycleState,
+    releaseStatus: diskChange.gates?.release?.status,
+    phase9Status: diskChange.phase9_status?.status,
+  };
+  if (failures.length > 0) {
+    return {
+      kind: "readbackFailed",
+      error: `readback did not converge: ${failures.join("; ")}`,
+      readback,
+    };
+  }
+
+  return {
+    kind: "converged",
+    change: converged,
+    readback: readback as Extract<
+      SaveRecoveredArchiveConvergenceResult,
+      { kind: "converged" }
+    >["readback"],
+  };
 }
 
 /**
@@ -3784,6 +4038,67 @@ export const changeTools = {
               if (decision.kind === "recover_via_disk") {
                 const { RECOVERY_RECONCILIATION_WARNING } =
                   await import("../temporal/recovery-classification");
+                // AC4/AC6: when the archive flow detected a dead workflow and the
+                // change carries shipped proof, converge all four fields in a single
+                // disk write instead of only flipping status.
+                if (finalization?.status === "shipped") {
+                  const converge = await saveRecoveredArchiveConvergence({
+                    store,
+                    change,
+                    changeId,
+                    authorization: {
+                      reason: decision.reason,
+                      evidence: decision.evidence,
+                    },
+                    finalization,
+                    releaseGate: releaseGateCompletion?.gate,
+                    archivedAt,
+                  });
+                  if (converge.kind === "converged") {
+                    return formatToolOutput({
+                      success: true,
+                      archivePath: archiveResult.archivePath,
+                      ...(finalization ? { finalization } : {}),
+                      ...(finalization
+                        ? {
+                            continueFrom: {
+                              path: finalization.mainCheckout,
+                              branch: finalization.defaultBranch,
+                            },
+                          }
+                        : {}),
+                      ...(releaseGateCompletion
+                        ? {
+                            releaseGate: releaseGateCompletion.gate,
+                            releaseGateAlreadyDone:
+                              releaseGateCompletion.alreadyDone,
+                          }
+                        : {}),
+                      specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                        capability: s.capability,
+                        version: `${s.originalVersion} → ${s.newVersion}`,
+                        deltas: s.deltaResults.length,
+                      })),
+                      ...openOpsObligationsPayload,
+                      _recoveryMutation: true,
+                      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                      message: `Archived change ${changeId} via disk-projection convergence after workflow completed; release, phase9, status, and lifecycleState are converged.`,
+                    });
+                  }
+                  return formatToolOutput({
+                    success: false,
+                    error: `Archive convergence recovery failed: ${converge.kind === "refused" ? `${converge.refusalCode}: ${converge.evidence}` : converge.error}`,
+                    requirement: "rq-archiveConvergenceRecovery",
+                    changeId,
+                    archivePath: archiveResult.archivePath,
+                    ...(converge.kind === "refused"
+                      ? { refusalCode: converge.refusalCode }
+                      : {}),
+                    ...(converge.kind === "readbackFailed"
+                      ? { readback: converge.readback }
+                      : {}),
+                  });
+                }
                 const { saveRecoveredChangeStatus } =
                   await import("./_recovery-writers");
                 await saveRecoveredChangeStatus({

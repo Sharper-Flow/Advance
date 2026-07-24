@@ -1123,16 +1123,16 @@ describe("adv_change_archive Phase 9 behavior", () => {
       mergeCommitSha: "merge-42",
       pushStatus: "pushed",
     });
-    expect(mocks.workflow.signalPayloads).toContainEqual(
+    // After archiveConvergedSignal: phase9 done is materialized on the local
+    // change and carried into store.changes.save, not fired as a separate signal.
+    expect(store.changes.save).toHaveBeenCalledWith(
       expect.objectContaining({
+        status: "archived",
         phase9_status: expect.objectContaining({
           status: "done",
           startedAt: "2026-01-01T00:00:00Z",
         }),
       }),
-    );
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "archived" }),
     );
   });
 
@@ -1174,8 +1174,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
       mergeCommitSha: "squash-merge-sha",
       pushStatus: "pushed",
     });
-    expect(mocks.workflow.signalPayloads).toContainEqual(
+    expect(store.changes.save).toHaveBeenCalledWith(
       expect.objectContaining({
+        status: "archived",
         phase9_status: expect.objectContaining({
           status: "done",
         }),
@@ -1207,8 +1208,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
       store,
     );
 
-    expect(mocks.workflow.signalPayloads).toContainEqual(
+    expect(store.changes.save).toHaveBeenCalledWith(
       expect.objectContaining({
+        status: "archived",
         phase9_status: expect.objectContaining({
           status: "done",
           changeTipSha: "tip123abc",
@@ -1265,12 +1267,14 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(second.archivePath).toBe("/tmp/archive/example");
     expect(mocks.resolveReleaseReachability).toHaveBeenCalledTimes(2);
     expect(store.changes.save).toHaveBeenCalledTimes(1);
-    const doneSignals = mocks.workflow.signalPayloads.filter(
-      (payload) =>
-        (payload.phase9_status as { status?: string } | undefined)?.status ===
-        "done",
+    // After archiveConvergedSignal: phase9 done is materialized on the local
+    // change passed to store.changes.save, not fired as a separate signal.
+    const saveCallsWithDone = store.changes.save.mock.calls.filter(
+      (call) =>
+        (call[0] as { phase9_status?: { status?: string } })?.phase9_status
+          ?.status === "done",
     );
-    expect(doneSignals).toHaveLength(2);
+    expect(saveCallsWithDone).toHaveLength(1); // idempotent: second run is noOp
   });
 
   test("classifies failed phase9 without marking archived when recovery proof is missing", async () => {
