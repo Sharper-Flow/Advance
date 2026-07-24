@@ -168,6 +168,43 @@ describe("classifyMutationRecoveryDecision", () => {
       expect(decision.kind).toBe("proceed_with_signal");
     });
 
+    it("recovers via disk when describe reports a typed missing workflow", async () => {
+      const error = new Error("workflow not found");
+      error.name = "WorkflowNotFoundError";
+      const decision = await classifyMutationRecoveryDecision({
+        handle: makeFailingHandle(error),
+      });
+      expect(decision.kind).toBe("recover_via_disk");
+      if (decision.kind === "recover_via_disk") {
+        expect(decision.reason).toBe("missing_workflow");
+        expect(decision.authority).toBe("workflow_completed");
+      }
+    });
+
+    it.each(["workflow not found", "NOT_FOUND from a downstream service"])(
+      "proceeds with signal when an untyped describe error message says %s",
+      async (message) => {
+        const decision = await classifyMutationRecoveryDecision({
+          handle: makeFailingHandle(new Error(message)),
+        });
+        expect(decision).toEqual({ kind: "proceed_with_signal" });
+      },
+    );
+
+    it.each([
+      "workflow execution already completed",
+      "workflow is not running",
+      "cannot signal a completed workflow",
+    ])(
+      "proceeds with signal when an untyped describe error message says %s",
+      async (message) => {
+        const decision = await classifyMutationRecoveryDecision({
+          handle: makeFailingHandle(new Error(message)),
+        });
+        expect(decision).toEqual({ kind: "proceed_with_signal" });
+      },
+    );
+
     it("proceeds with signal when handle has no describe function", async () => {
       const decision = await classifyMutationRecoveryDecision({
         handle: {},

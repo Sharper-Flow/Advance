@@ -70,6 +70,20 @@ const COMPLETED_WORKFLOW_NAMES: ReadonlySet<string> = new Set([
   "workflownotfounderror",
 ]);
 
+/**
+ * Whether an error has an exact Temporal completed/absent error name.
+ *
+ * Unlike isWorkflowCompletedError(), this deliberately excludes message text
+ * so probe-first recovery never treats an untyped describe failure as proof
+ * that the workflow is absent.
+ */
+export function isWorkflowAbsentByExactName(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    COMPLETED_WORKFLOW_NAMES.has(err.name?.toLowerCase() ?? "")
+  );
+}
+
 // Case-insensitive SUBSTRING (mid-string) patterns for the real Temporal
 // message phrasings. NOT line-anchored: the phrasings appear embedded in
 // larger messages (e.g. "...Cannot signal a completed workflow handle").
@@ -89,8 +103,7 @@ const MISSING_WORKFLOW_TEXT_RE = /not[_ ]found|NOT_FOUND/i;
 
 export function isWorkflowCompletedError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
-  const name = err.name?.toLowerCase() ?? "";
-  if (COMPLETED_WORKFLOW_NAMES.has(name)) return true;
+  if (isWorkflowAbsentByExactName(err)) return true;
   const msg = err.message ?? "";
   return COMPLETED_WORKFLOW_MESSAGE_PATTERNS.some((pattern) =>
     pattern.test(msg),
