@@ -1,0 +1,798 @@
+{
+  "id": "armApprovedPrAutoMerge",
+  "title": "Arm approved PR auto-merge",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-24T22:51:46.862Z",
+  "tasks": [
+    {
+      "id": "tk-5be407ad86f8",
+      "title": "Add durable approved-PR auto-merge authority",
+      "type": "code",
+      "section": "Instruction contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-24T22:52:37.693Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "updatedAt": "2026-07-24T23:31:26.615Z",
+      "assignedTo": "agent",
+      "started_at": "2026-07-24T22:57:40.679Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "verification": "Clean-tree metadata recovery. Session-scope amendment commit exists; RED/GREEN/full checks recorded.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "b5693c411e202ad22ffae535147bd96b0fd30b7a",
+      "completedAt": "2026-07-24T23:31:45.855Z",
+      "completed_at": "2026-07-24T23:31:45.855Z"
+    },
+    {
+      "id": "tk-625cb6885837",
+      "title": "Record durable approved-PR auto-merge capability law",
+      "type": "docs",
+      "section": "Capability law",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-24T22:56:21.266Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-24T22:59:53.343Z",
+      "verification": "rq-approvedPrAutoMerge01 now explicitly limits authority to active orchestration session, invalidates on restart/compaction/context loss, and requires new explicit grant in new session. JSON parse, parsed asset assertions, diff check, and full plugin check pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "b5693c411e202ad22ffae535147bd96b0fd30b7a",
+      "completedAt": "2026-07-24T23:31:58.002Z",
+      "completed_at": "2026-07-24T23:31:58.002Z",
+      "updatedAt": "2026-07-24T23:27:44.535Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "armApprovedPrAutoMerge",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/armApprovedPrAutoMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git status / diff checks",
+          "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+          "bin/oc-test full (prior confirmation; not rerun)"
+        ],
+        "results": "pass",
+        "evidence": "HEAD b5693c411e202ad22ffae535147bd96b0fd30b7a; clean tree; diff checks pass. Focused test: 34/34 passed. Prior full suite: exit 0, 497 files passed, 7,288 tests passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git status / diff checks"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test full (prior confirmation; not rerun)"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-5be407ad86f8": [
+      {
+        "runId": "tr_mrzjjh91_45cefc56",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test plugin/src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 68.52963100001216,
+        "recordedAt": "2026-07-24T22:57:50.912Z"
+      },
+      {
+        "runId": "tr_mrzjl7u7_92cde02a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test plugin/src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 79.89858900010586,
+        "recordedAt": "2026-07-24T22:59:12.128Z"
+      },
+      {
+        "runId": "tr_mrzjmvrq_99302027",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test plugin/src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 67.0380479991436,
+        "recordedAt": "2026-07-24T23:00:29.734Z"
+      },
+      {
+        "runId": "tr_mrzjolm0_640e2bdc",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test plugin/src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 64.68975899927318,
+        "recordedAt": "2026-07-24T23:01:49.864Z"
+      },
+      {
+        "runId": "tr_mrzjqpkh_e966a3e1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 76411.99549099989,
+        "recordedAt": "2026-07-24T23:03:28.307Z"
+      },
+      {
+        "runId": "tr_mrzjzl6s_fcb2b61f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test plugin/src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 64.64402800053358,
+        "recordedAt": "2026-07-24T23:10:22.533Z"
+      },
+      {
+        "runId": "tr_mrzk0j7r_da9185bb",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 43975.42554599978,
+        "recordedAt": "2026-07-24T23:11:06.613Z"
+      },
+      {
+        "runId": "tr_mrzk1v6q_40a25dfc",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 42043.900027999654,
+        "recordedAt": "2026-07-24T23:12:08.770Z"
+      },
+      {
+        "runId": "tr_mrzkn9ko_4e1fb9eb",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test plugin/src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 63.87624699994922,
+        "recordedAt": "2026-07-24T23:28:47.211Z"
+      },
+      {
+        "runId": "tr_mrzkojvl_8097135b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test plugin/src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 62.296373998746276,
+        "recordedAt": "2026-07-24T23:29:47.231Z"
+      },
+      {
+        "runId": "tr_mrzkprw9_7d35a662",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 49178.84719800018,
+        "recordedAt": "2026-07-24T23:30:44.274Z"
+      }
+    ],
+    "tk-625cb6885837": [
+      {
+        "runId": "tr_mrzjmdle_ba172458",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "node -e \"JSON.parse(require('fs').readFileSync('.adv/specs/advance-workflow/spec.json','utf8')); console.log('valid JSON')\"",
+        "durationMs": 46.06387900002301,
+        "recordedAt": "2026-07-24T23:00:06.248Z"
+      },
+      {
+        "runId": "tr_mrzjmfs5_1ad69299",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec prettier --check ../.adv/specs/advance-workflow/spec.json ../.opencode/agents/adv.md src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 2495.5333670005202,
+        "recordedAt": "2026-07-24T23:00:08.971Z"
+      },
+      {
+        "runId": "tr_mrzjmwha_ea53e431",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec prettier --check ../.adv/specs/advance-workflow/spec.json ../.opencode/agents/adv.md src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 984.6625789999962,
+        "recordedAt": "2026-07-24T23:00:30.605Z"
+      },
+      {
+        "runId": "tr_mrzjombe_56ab6d63",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "node -e \"JSON.parse(require('fs').readFileSync('.adv/specs/advance-workflow/spec.json','utf8')); console.log('valid JSON')\" && pnpm --dir plugin exec prettier --check src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 766.555157000199,
+        "recordedAt": "2026-07-24T23:01:50.764Z"
+      },
+      {
+        "runId": "tr_mrzkok0j_b33cc6d7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "node -e \"JSON.parse(require('fs').readFileSync('.adv/specs/advance-workflow/spec.json','utf8')); console.log('valid JSON')\" && git diff --check",
+        "durationMs": 43.8683909997344,
+        "recordedAt": "2026-07-24T23:29:47.399Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-24T22:52:49.436Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User explicitly ordered `fix instructions NOW`; confirmed Advance, not generic global instructions, is canonical owner.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8830b8c7d8c2b73f551160db5512370648259f9e4dde5636e484616f73af3411",
+        "non_whitespace_chars": 1402,
+        "checked_at": "2026-07-24T22:51:57.254Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:27:54.115Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "Contract re-minted with session-scoped authority. User explicitly chose current-session-only persistence.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "non_whitespace_chars": 2285,
+        "checked_at": "2026-07-24T22:51:57.258Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:28:01.850Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "Contract-compromise checkpoint resolved by user choice: current-session-only authority, explicit restart/context-loss invalidation, no persisted runtime authorization claim.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "845f34e5774ed83eab6fbe2b97e344be0449c9dac0245485d4c5facc43116be1",
+        "non_whitespace_chars": 1521,
+        "checked_at": "2026-07-24T22:51:57.259Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:28:09.051Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "Existing two-task graph remains sufficient; tasks reopened to amend prompt/spec/tests for session-scoped authority."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:32:08.388Z",
+      "completed_by": "agent",
+      "approval_evidence": "Session-scoped authority amendment complete. RED/GREEN/full checks pass; commit b5693c411e202ad22ffae535147bd96b0fd30b7a."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:36:35.108Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved corrected session-scoped merge-authority implementation after re-entry, review, and 19-row matrix.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ae79295be4639253945bc6cfbe49e84f5a3954b1d78d67d349d1a8eafdafeb9e",
+        "non_whitespace_chars": 1524,
+        "checked_at": "2026-07-24T22:51:57.260Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Harden identified structural-contract mismatch: prompt-only implementation cannot claim restart-persistent merge authority.",
+      "scope_delta": "Narrow authority to the current active orchestration session. Same-change remediation PR authority persists only while explicit approval evidence remains in active session context; session restart/compaction authority loss invalidates it and requires a new explicit merge grant. No typed persisted runtime authority is claimed.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-24T23:26:46.558Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "pokeedge-web",
+    "source_path": "/home/jon/dev/pokeedge-web",
+    "linked_at": "2026-07-24T22:51:45.822Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+      "approvedAt": "2026-07-24T23:27:30.281Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Only an explicit user grant to merge the current change (for example `merge`, `merge and push`, or equivalent) creates session-scoped continuing merge authority. Push-only permission, generic Tier-A gate approval, and archive sign-off inference do not.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Authority is bound to the current `changeId`, repository, `change/<changeId>` head branch, resolved default base branch, stated requested end-state, and active orchestration session.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "For an OPEN PR matching those identities, ADV immediately runs `gh pr merge <number> --repo <owner/repo> --squash --auto` after PR creation/push instead of waiting for CI green or asking again.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "After remediation: fix in worktree → push change branch → re-read PR number/repository/head/base/state → arm or re-arm auto-merge → verify PR remains OPEN with `autoMergeRequest.enabledAt` present → spawn `adv-ci-waiter`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "CI green alone remains nonterminal; completion requires `gh pr view` proof that `state == MERGED` or canonical default-branch reachability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Auto-merge command never includes `--delete-branch` or `-d`; cleanup remains post-merge.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Authority ends on explicit revocation, stop/cancel, change/repo/head/base drift, unrelated scope, terminal/requested-end-state completion, session restart, or compaction/context loss that removes authoritative approval evidence. A new session requires a new explicit merge grant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Tier-B archive sign-off remains whitelist-only and unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Asset tests fail if session scope, identity bounds, invalidators, canonical command/flags, arm verification, MERGED proof, Tier-B preservation, or no-delete behavior disappear.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Advance workflow capability law records session-scoped approved-PR auto-merge behavior without claiming typed persistent authorization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No blanket authority for unrelated PRs or repositories.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No duplication in generic global Git instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Existing archive Phase 9 runtime behavior remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No claim that prompt/session authority survives restart or missing approval context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No second merge prompt for same-change remediation PRs while session-scoped authority remains valid.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No manual-merge-after-green default when GitHub auto-merge is available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No inference that push permission authorizes merge.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No claim that CI success equals merge completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "No prompt-only claim of durable persisted authorization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-24T23:35:39.507Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Agent requires explicit merge grant and defines continuing authority only within current active ADV orchestration session; test pins session wording."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Agent binds changeId, repository, change head, default base, requested end-state, and active session; parsed asset test pins identity tuple."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Immediate repo-qualified `gh pr merge ... --squash --auto` command asserted."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reviewer-hardened sequence includes fix, push, PR number/repository/head/base/state read, re-arm, enabledAt verification, waiter."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Policy requires MERGED/default reachability; CI green explicitly nonterminal."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No-delete command rule asserted."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Agent/spec invalidate on revocation, stop/cancel, drift, scope/completion, session restart, compaction/context loss; require new explicit grant."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tier-B archive sign-off remains whitelist-only and unchanged."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Parsed asset test has 187 assertions across session scope, identity, flags, re-arm, proof, invalidators, Tier-B, and no-delete."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "rq-approvedPrAutoMerge01 records active-session behavior and restart invalidation; JSON parses."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No unrelated PR/repo authority."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No generic global instructions changed."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer archive-runtime hardening was explicitly reverted; Phase 9 implementation unchanged."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No restart-persistent authorization claim; structural boundary documented."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No repeated merge prompt within valid active-session authority."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Auto-merge arms immediately rather than manual merge after green."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Push-only permission explicitly excluded."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "CI green not equated with merge completion."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Agent/spec explicitly invalidate on session authority loss; no prompt-only durable persistence claim."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Only an explicit user grant to merge the current change (for example `merge`, `merge and push`, or equivalent) creates session-scoped continuing merge authority. Push-only permission, generic Tier-A gate approval, and archive sign-off inference do not.",
+    "Authority is bound to the current `changeId`, repository, `change/<changeId>` head branch, resolved default base branch, stated requested end-state, and active orchestration session.",
+    "For an OPEN PR matching those identities, ADV immediately runs `gh pr merge <number> --repo <owner/repo> --squash --auto` after PR creation/push instead of waiting for CI green or asking again.",
+    "After remediation: fix in worktree → push change branch → re-read PR number/repository/head/base/state → arm or re-arm auto-merge → verify PR remains OPEN with `autoMergeRequest.enabledAt` present → spawn `adv-ci-waiter`.",
+    "CI green alone remains nonterminal; completion requires `gh pr view` proof that `state == MERGED` or canonical default-branch reachability.",
+    "Auto-merge command never includes `--delete-branch` or `-d`; cleanup remains post-merge.",
+    "Authority ends on explicit revocation, stop/cancel, change/repo/head/base drift, unrelated scope, terminal/requested-end-state completion, session restart, or compaction/context loss that removes authoritative approval evidence. A new session requires a new explicit merge grant.",
+    "Tier-B archive sign-off remains whitelist-only and unchanged.",
+    "Asset tests fail if session scope, identity bounds, invalidators, canonical command/flags, arm verification, MERGED proof, Tier-B preservation, or no-delete behavior disappear.",
+    "Advance workflow capability law records session-scoped approved-PR auto-merge behavior without claiming typed persistent authorization."
+  ],
+  "documents": {
+    "proposal": "## Why\nADV missed `gh pr merge --auto --squash` after the user explicitly authorized merge and push. It repeatedly waited for green CI and manually merged same-session remediation PRs.\n\n## Root Cause Analysis\n- Symptom: in-scope follow-up PRs remained OPEN after CI until another manual merge command.\n- Cause: ADV agent policy says Git operations require explicit user request but does not define the same-session lifetime/scope of merge authority or immediate auto-merge arming for remediation PRs.\n- Existing protection: archive Phase 9 already arms `gh pr merge <number> --squash --auto` and verifies MERGED.\n- Gap: pre-archive orchestration did not retain explicit merge authority across remediation PRs in the active session.\n\n## What Changes\nAdd a canonical ADV agent rule: once the user explicitly authorizes merge for the current requested end-state, immediately arm every current/subsequent in-scope PR in the active orchestration session with `gh pr merge <number> --repo <owner/repo> --auto --squash`; do not prompt again. Waiter verifies actual MERGED state. Red CI/conflicts are remediated and auto-merge re-armed as needed. Authority ends at requested completion, user stop/cancel, contract drift, unrelated PR scope, or session restart/compaction authority loss. A new session requires a new explicit merge grant.\n\nAdd capability law and asset tests pinning this behavior.\n\n## Scope\nAdvance source + tests only. No generic global Git-policy duplication, no restart-persistent authorization claim, no new runtime state/tool, and no change to archive Phase 9 implementation.",
+    "problemStatement": "ADV receives explicit user authority to merge and push, but does not retain that authority across subsequent in-scope remediation PRs. It waits for CI and manually merges each PR instead of immediately arming GitHub squash auto-merge, causing unnecessary turns and delayed completion. The archive Phase 9 path already arms auto-merge structurally; execution/remediation PR orchestration lacks an equivalent explicit instruction.",
+    "agreement": "## Objective\nMake explicit merge authority self-executing across same-change remediation PRs within the current active ADV orchestration session, without granting unrelated or restart-persistent merge power.\n\n## Acceptance Criteria\n1. Only an explicit user grant to merge the current change (for example `merge`, `merge and push`, or equivalent) creates session-scoped continuing merge authority. Push-only permission, generic Tier-A gate approval, and archive sign-off inference do not.\n2. Authority is bound to the current `changeId`, repository, `change/<changeId>` head branch, resolved default base branch, stated requested end-state, and active orchestration session.\n3. For an OPEN PR matching those identities, ADV immediately runs `gh pr merge <number> --repo <owner/repo> --squash --auto` after PR creation/push instead of waiting for CI green or asking again.\n4. After remediation: fix in worktree → push change branch → re-read PR number/repository/head/base/state → arm or re-arm auto-merge → verify PR remains OPEN with `autoMergeRequest.enabledAt` present → spawn `adv-ci-waiter`.\n5. CI green alone remains nonterminal; completion requires `gh pr view` proof that `state == MERGED` or canonical default-branch reachability.\n6. Auto-merge command never includes `--delete-branch` or `-d`; cleanup remains post-merge.\n7. Authority ends on explicit revocation, stop/cancel, change/repo/head/base drift, unrelated scope, terminal/requested-end-state completion, session restart, or compaction/context loss that removes authoritative approval evidence. A new session requires a new explicit merge grant.\n8. Tier-B archive sign-off remains whitelist-only and unchanged.\n9. Asset tests fail if session scope, identity bounds, invalidators, canonical command/flags, arm verification, MERGED proof, Tier-B preservation, or no-delete behavior disappear.\n10. Advance workflow capability law records session-scoped approved-PR auto-merge behavior without claiming typed persistent authorization.\n\n## Constraints\n- No blanket authority for unrelated PRs or repositories.\n- No duplication in generic global Git instructions.\n- Existing archive Phase 9 runtime behavior remains unchanged.\n- No claim that prompt/session authority survives restart or missing approval context.\n\n## Avoidances\n- No second merge prompt for same-change remediation PRs while session-scoped authority remains valid.\n- No manual-merge-after-green default when GitHub auto-merge is available.\n- No inference that push permission authorizes merge.\n- No claim that CI success equals merge completion.\n- No prompt-only claim of durable persisted authorization.",
+    "design": "## Implementation\n\n### Canonical agent policy\nAdd `PR Merge Authority` near checkpoint/auto-continue rules in `.opencode/agents/adv.md`.\n\nDefine:\n- explicit merge grant trigger;\n- session-scoped lifetime;\n- identity tuple: changeId + repo + `change/<changeId>` head + resolved default base + requested end-state;\n- immediate canonical command `gh pr merge <number> --repo <owner/repo> --squash --auto`;\n- remediation order: fix → push → re-read identity/state → arm/re-arm → verify `autoMergeRequest.enabledAt` while OPEN → waiter;\n- terminal `MERGED` proof;\n- invalidators, including restart/compaction authority loss;\n- Tier-B separation and no-delete behavior.\n\n### Capability law\nExtend `.adv/specs/advance-workflow/spec.json` with a narrow MUST requirement for active-session same-change merge authority and scenarios for immediate arming, remediation re-arm, and drift/restart/revocation invalidation. Explicitly deny restart-persistent authorization claims.\n\n### Tests\nAdd focused parsed assertions in `plugin/src/adv-autonomy-quality-assets.test.ts`. Assert session scope, identity bounds, invalidators, Tier-B preservation, re-arm sequence, canonical flags, arm verification, MERGED proof, and deletion prohibition.\n\n### Structural boundary\nThis change governs active-session orchestration behavior only. It does not create a persisted authorization record or guarded merge tool. If restart-persistent authority is desired later, that requires a separate typed runtime/state-machine change.\n\n## Source of Truth\nAdvance owns ADV-specific orchestration behavior. Existing deploy-local sync propagates `.opencode/agents/adv.md` to installed global configuration. Generic global instructions retain universal Git safety only.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nADV now treats an explicit user merge grant as continuing authority across matching remediation PRs within the current active orchestration session. It immediately arms GitHub squash auto-merge rather than waiting for CI green and manually merging again.\n\n## Why it matters\nSame-session delivery chains no longer stall at every remediation PR. The rule fixes the observed orchestration miss while remaining narrow and reversible.\n\n## Safety boundary\n- Explicit merge grant required; push-only and generic gate approval do not authorize merge.\n- Bound to same change, repository, change branch, default base, requested end-state, and active session.\n- Exact command: `gh pr merge <number> --repo <owner/repo> --squash --auto`.\n- Re-read PR identity/state and verify `autoMergeRequest.enabledAt`.\n- CI green remains nonterminal; require `MERGED` or default reachability.\n- Authority ends on revocation, stop/cancel, drift, unrelated scope, completion, restart, compaction, or approval-context loss.\n- A new session requires a new explicit merge grant.\n- Tier-B archive sign-off remains unchanged; no delete flags before post-merge cleanup.\n\n## Verification\n- Re-entry RED failed on missing active-session scope.\n- GREEN focused suite: 34 tests, 187 assertions.\n- Full plugin check passed: schemas, TypeScript, manifests, isolation, lock policy, ESLint, Prettier.\n- Full repository suite rerun passed: 497 files, 7,288 tests, 1 expected fail, 1 skipped, 12 todo.\n- Independent harden verdict: READY, no release blockers.\n- Final contract review matrix: 19/19 passing/respected.\n- Diff is clean; only intended agent/spec/test files committed.\n\n## Release Readiness Summary\n- Source commit: `b5693c411e202ad22ffae535147bd96b0fd30b7a` on `change/armApprovedPrAutoMerge`.\n- No PR exists yet; Phase 9 must push/create the matching PR and obtain merged/default reachability proof.\n- No runtime migration, data change, frontend preview, or operational secret impact.\n- Deployment must run only after merge from Advance trunk via `./scripts/deploy-local.sh --fix`.\n- Current OpenCode session cannot hot-reload the prompt. Restart OpenCode/plugin host after deployment, then use a new session; session-scoped merge authority does not survive that restart.\n- No open blocking follow-ups. Reviewer’s proposed archive-runtime hardening was reverted as out of scope.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-24T23:35:39.507Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Only an explicit user grant to merge the current change (for example `merge`, `merge and push`, or equivalent) creates session-scoped continuing merge authority. Push-only permission, generic Tier-A gate approval, and archive sign-off inference do not. | pass | Agent requires explicit merge grant and defines continuing authority only within current active ADV orchestration session; test pins session wording. |\n| AC2 | acceptance_criterion | Authority is bound to the current `changeId`, repository, `change/<changeId>` head branch, resolved default base branch, stated requested end-state, and active orchestration session. | pass | Agent binds changeId, repository, change head, default base, requested end-state, and active session; parsed asset test pins identity tuple. |\n| AC3 | acceptance_criterion | For an OPEN PR matching those identities, ADV immediately runs `gh pr merge <number> --repo <owner/repo> --squash --auto` after PR creation/push instead of waiting for CI green or asking again. | pass | Immediate repo-qualified `gh pr merge ... --squash --auto` command asserted. |\n| AC4 | acceptance_criterion | After remediation: fix in worktree → push change branch → re-read PR number/repository/head/base/state → arm or re-arm auto-merge → verify PR remains OPEN with `autoMergeRequest.enabledAt` present → spawn `adv-ci-waiter`. | pass | Reviewer-hardened sequence includes fix, push, PR number/repository/head/base/state read, re-arm, enabledAt verification, waiter. |\n| AC5 | acceptance_criterion | CI green alone remains nonterminal; completion requires `gh pr view` proof that `state == MERGED` or canonical default-branch reachability. | pass | Policy requires MERGED/default reachability; CI green explicitly nonterminal. |\n| AC6 | acceptance_criterion | Auto-merge command never includes `--delete-branch` or `-d`; cleanup remains post-merge. | pass | No-delete command rule asserted. |\n| AC7 | acceptance_criterion | Authority ends on explicit revocation, stop/cancel, change/repo/head/base drift, unrelated scope, terminal/requested-end-state completion, session restart, or compaction/context loss that removes authoritative approval evidence. A new session requires a new explicit merge grant. | pass | Agent/spec invalidate on revocation, stop/cancel, drift, scope/completion, session restart, compaction/context loss; require new explicit grant. |\n| AC8 | acceptance_criterion | Tier-B archive sign-off remains whitelist-only and unchanged. | pass | Tier-B archive sign-off remains whitelist-only and unchanged. |\n| AC9 | acceptance_criterion | Asset tests fail if session scope, identity bounds, invalidators, canonical command/flags, arm verification, MERGED proof, Tier-B preservation, or no-delete behavior disappear. | pass | Parsed asset test has 187 assertions across session scope, identity, flags, re-arm, proof, invalidators, Tier-B, and no-delete. |\n| AC10 | acceptance_criterion | Advance workflow capability law records session-scoped approved-PR auto-merge behavior without claiming typed persistent authorization. | pass | rq-approvedPrAutoMerge01 records active-session behavior and restart invalidation; JSON parses. |\n| C1 | constraint | No blanket authority for unrelated PRs or repositories. | respected | No unrelated PR/repo authority. |\n| C2 | constraint | No duplication in generic global Git instructions. | respected | No generic global instructions changed. |\n| C3 | constraint | Existing archive Phase 9 runtime behavior remains unchanged. | respected | Reviewer archive-runtime hardening was explicitly reverted; Phase 9 implementation unchanged. |\n| C4 | constraint | No claim that prompt/session authority survives restart or missing approval context. | respected | No restart-persistent authorization claim; structural boundary documented. |\n| DONT1 | avoidance | No second merge prompt for same-change remediation PRs while session-scoped authority remains valid. | respected | No repeated merge prompt within valid active-session authority. |\n| DONT2 | avoidance | No manual-merge-after-green default when GitHub auto-merge is available. | respected | Auto-merge arms immediately rather than manual merge after green. |\n| DONT3 | avoidance | No inference that push permission authorizes merge. | respected | Push-only permission explicitly excluded. |\n| DONT4 | avoidance | No claim that CI success equals merge completion. | respected | CI green not equated with merge completion. |\n| DONT5 | avoidance | No prompt-only claim of durable persisted authorization. | respected | Agent/spec explicitly invalidate on session authority loss; no prompt-only durable persistence claim. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-24T23:27:21.581Z",
+      "contentHash": "b2cf869f70f2a963ffb044af93ccca1ae1ab84824b3e2f8d3d9f2e27389f20ef",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-24T22:51:47.004Z",
+      "contentHash": "08c428297d659effc2cb67434544a34c209abda6f97debdafbe7758603e69c54",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-24T23:27:21.581Z",
+      "contentHash": "b44f48d2db798e97f54b5072b5f7f1ea0bee05d77184d90e637bfeaf81bfdbb5",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-24T23:27:21.581Z",
+      "contentHash": "845f34e5774ed83eab6fbe2b97e344be0449c9dac0245485d4c5facc43116be1",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-24T23:52:21.602Z",
+      "contentHash": "190363c8cbc217e22dae4697b3a8c11289a624b1b5b7f67a96c1dd33f9b0aa23",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-24T23:52:21.602Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}

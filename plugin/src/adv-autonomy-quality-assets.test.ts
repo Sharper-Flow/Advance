@@ -50,6 +50,72 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(content).toMatch(/Doom-loop recovery/);
     expect(content).toMatch(/Post-approval auto-continue/);
   });
+
+  test("explicit merge authority immediately arms same-change squash auto-merge", () => {
+    const agent = readAsset(join(AGENT_DIR, "adv.md"));
+    const ciWaiter = readAsset(join(AGENT_DIR, "adv-ci-waiter.md"));
+    const spec = JSON.parse(
+      readAsset(join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json")),
+    ) as {
+      requirements: Array<{
+        id: string;
+        body: string;
+        scenarios: Array<{ id: string; then: string[] }>;
+      }>;
+    };
+    const requirement = spec.requirements.find(
+      (entry) => entry.id === "rq-approvedPrAutoMerge01",
+    );
+    const remediationScenario = requirement?.scenarios.find(
+      (scenario) => scenario.id === "rq-approvedPrAutoMerge01.2",
+    );
+    expect(requirement).toBeDefined();
+
+    expect(agent).toMatch(/PR Merge Authority/);
+    expect(agent).toMatch(/explicit user grant to merge/i);
+    expect(agent).toMatch(/current active (ADV )?orchestration session/i);
+    expect(agent).toMatch(/session restart[^.\n]*new explicit merge grant/i);
+    expect(agent).toMatch(/push-only[^.\n]*does not authorize merge/i);
+    expect(agent).toMatch(
+      /generic Tier-A approval[^.\n]*does not authorize merge/i,
+    );
+    expect(agent).toMatch(
+      /changeId[^.\n]*repository[^.\n]*change\/<changeId>[^.\n]*default base[^.\n]*requested end-state/i,
+    );
+    expect(agent).toContain(
+      "gh pr merge <number> --repo <owner/repo> --squash --auto",
+    );
+    expect(agent).toMatch(/autoMergeRequest\.enabledAt/);
+    expect(agent).toMatch(/^\s*task:\s*true\s*$/m);
+    expect(ciWaiter).toMatch(/^\s*mode:\s*subagent\s*$/m);
+    expect(agent).toMatch(
+      /fix in worktree[^\n]*push change branch[^\n]*re-read PR number\/repository\/head\/base\/state[^\n]*arm or re-arm[^\n]*verify[^\n]*spawn `adv-ci-waiter`/i,
+    );
+    expect(agent).toMatch(/state == `MERGED`|state == MERGED/);
+    expect(agent).toMatch(/revocation[^.\n]*stop\/cancel[^.\n]*drift/i);
+    expect(agent).toMatch(/Tier-B archive sign-off[^.\n]*unchanged/i);
+    expect(agent).toMatch(/never[^.\n]*(--delete-branch|-d)/i);
+
+    expect(requirement?.body).toMatch(/requested end-state/i);
+    expect(requirement?.body).toMatch(/active orchestration session/i);
+    expect(requirement?.body).toMatch(/session restart/i);
+    expect(requirement?.body).not.toMatch(/restart-persistent authorization/i);
+    expect(requirement?.body).toMatch(/autoMergeRequest\.enabledAt/);
+    expect(requirement?.body).toMatch(/--delete-branch.*-d/);
+    expect(requirement?.scenarios).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "rq-approvedPrAutoMerge01.1" }),
+        expect.objectContaining({ id: "rq-approvedPrAutoMerge01.2" }),
+        expect.objectContaining({ id: "rq-approvedPrAutoMerge01.3" }),
+      ]),
+    );
+    expect(remediationScenario?.then).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/repository, head, base, and state/i),
+        expect.stringMatching(/autoMergeRequest\.enabledAt/),
+      ]),
+    );
+  });
 });
 
 // =============================================================================

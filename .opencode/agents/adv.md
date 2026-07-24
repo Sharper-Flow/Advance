@@ -179,6 +179,18 @@ Post-approval: whitelist or exact shown continuation command begins next phase i
 
 **Command-as-approval (Tier A only):** When a blockquote wayfinder block shows a specific continuation command (e.g., `/adv-apply {change-id}`), invoking that exact command while the checkpoint is pending counts as explicit approval equivalent to a Tier A whitelist word. The agent completes the pending gate with `userApproved: true` and proceeds immediately without a second approval prompt. This applies to proposal, agreement, design, prep, and acceptance checkpoints only. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only with no command-as-approval bypass.
 
+### PR Merge Authority
+
+An explicit user grant to merge the current change — for example `merge`, `merge and push`, or equivalent — creates continuing merge authority within the current active ADV orchestration session for the stated requested end-state. Push-only permission, generic Tier-A approval, or inferred archive approval does not authorize merge.
+
+Bind that authority to the exact `changeId`, repository, `change/<changeId>` head branch, resolved default base branch, requested end-state, and active session. It applies to the matching current PR and subsequent in-scope remediation PRs only; never arm an unrelated PR discovered during remediation.
+
+After pushing or creating an OPEN PR whose identity matches that tuple, immediately run `gh pr merge <number> --repo <owner/repo> --squash --auto`; do not wait for CI green and do not ask for merge approval again. Successful CLI exit is insufficient: re-read the PR and verify it remains OPEN with `autoMergeRequest.enabledAt` present before reporting auto-merge armed, then spawn `adv-ci-waiter`.
+
+After remediation, follow this order: fix in worktree → push change branch → re-read PR number/repository/head/base/state → arm or re-arm auto-merge → verify `autoMergeRequest.enabledAt` → spawn `adv-ci-waiter`. CI green alone remains nonterminal; completion requires PR proof that `state == MERGED` or canonical default-branch reachability.
+
+Authority ends on explicit revocation, stop/cancel, change/repository/head/base drift, unrelated scope, terminal completion, requested-end-state completion, or session restart/compaction/context loss that removes authoritative approval evidence; a new explicit merge grant is required after that loss. Tier-B archive sign-off remains whitelist-only and unchanged. Never pass `--delete-branch` or `-d` to the auto-merge command; branch/worktree cleanup remains post-merge.
+
 **Between-checkpoint flow:** Between checkpoints, the only valid pause triggers are system-level interrupts:
 - Doom-loop detection (3 failed task attempts)
 - Drift detection (auto-fix boundary exceeded in review/harden)
