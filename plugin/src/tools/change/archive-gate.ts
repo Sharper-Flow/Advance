@@ -915,8 +915,17 @@ async function loadAuditedDiskReleaseGate(input: {
 }): Promise<GateCompletion | null> {
   const disk = await loadChange(input.store.paths.changes, input.changeId);
   if (!disk.success || !disk.data?.gates) return null;
-  const gate = disk.data.gates.release;
-  if (gate?.status !== "done" || !hasGateRecoveryAudit(gate)) return null;
+	const gate = disk.data.gates.release;
+	// Resilience (rq-releaseProjectionDurability01): when the store-backed gate
+	// read is stale — a poisoned/missing workflow returns a pre-completion
+	// projection — a disk release gate that ADV genuinely completed is still
+	// authoritative. Require `done`; accept without a recovery audit only when
+	// the archive's fresh finalization is git-verified `shipped` (finalization
+	// sets `shipped` exclusively on confirmed default-branch reachability/merge,
+	// which cannot be forged without a real merge). Recovery-audit remains
+	// required for non-shipped disk fallbacks, preserving the strict guard.
+	if (gate?.status !== "done") return null;
+	if (!hasGateRecoveryAudit(gate) && !input.shipped) return null;
   // Shipped reconciliation: a change whose git work reached the default branch
   // (finalization shipped — git-verified reachability that cannot be forged
   // without a real merge) but whose workflow terminated is recovered on disk
