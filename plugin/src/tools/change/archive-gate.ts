@@ -20,6 +20,7 @@ import {
   collectErrorText,
   classifyTemporalError,
   isReconnectableError,
+  TemporalQueryTimeoutError,
 } from "../../temporal/retry-wrapper";
 import { getService } from "../../temporal/service";
 import {
@@ -28,9 +29,12 @@ import {
   waitForGateCompletion,
 } from "../_adapters";
 import {
+  createTemporalReadContext,
   runTemporalQuery,
+  runTemporalRead,
   type WorkflowHandleLike,
 } from "../../storage/store-temporal/shared";
+import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import {
   gateCompletedSignal,
   getGateStatusQuery,
@@ -213,6 +217,87 @@ function reacquiringChangeQueryHandle(
       ),
   };
 }
+
+const RELEASE_GATE_PRE_QUERY_BUDGET_MS = 3_000;
+
+const TERMINAL_WORKFLOW_STATUS_NAMES = new Set([
+  "COMPLETED",
+  "TERMINATED",
+  "FAILED",
+  "CANCELLED",
+  "TIMED_OUT",
+]);
+
+function isTerminalWorkflowStatus(description: unknown): boolean {
+  const name = (description as { status?: { name?: unknown } } | undefined)
+    ?.status?.name;
+  return typeof name === "string" && TERMINAL_WORKFLOW_STATUS_NAMES.has(name);
+}
+
+function isUnresponsiveWorkflowError(error: unknown): boolean {
+  return (
+    error instanceof TemporalQueryTimeoutError ||
+    (error instanceof Error && error.name === "TemporalQueryTimeout")
+  );
+}
+
+async function describeChangeHandleWithDeadline(
+  bundle: NonNullable<ReturnType<typeof getService>>,
+  projectId: string,
+  changeId: string,
+): Promise<unknown> {
+  const handle = getChangeHandle(bundle.client, projectId, changeId);
+  // Fallback for environments without native deadline support (test mocks):
+  // use the direct describe() call. Production uses runTemporalRead for a
+  // bounded 3s deadline + AbortController that cancels the gRPC call cleanly.
+  if (
+    !bundle.connection ||
+    typeof (bundle.connection as unknown as { withDeadline?: unknown })
+      .withDeadline !== "function"
+  ) {
+    return handle.describe?.();
+  }
+  const ctx = createTemporalReadContext(RELEASE_GATE_PRE_QUERY_BUDGET_MS);
+  const result = await runTemporalRead(
+    bundle.connection,
+    () =>
+      handle.describe?.() ??
+      Promise.reject(new Error("Workflow handle has no describe() method")),
+    ctx,
+    { timeoutMs: RELEASE_GATE_PRE_QUERY_BUDGET_MS },
+  );
+  if (result.error) throw result.error;
+  return result.data;
+}
+
+async function runBoundedReacquiringChangeQuery<T>(
+  bundle: NonNullable<ReturnType<typeof getService>>,
+  projectId: string,
+  changeId: string,
+  query: unknown,
+  ...args: unknown[]
+): Promise<T> {
+  // Fallback for environments without native deadline support (test mocks):
+  // use the original unbounded query path. Production uses runTemporalRead
+  // for a bounded 3s deadline + AbortController.
+  if (
+    !bundle.connection ||
+    typeof (bundle.connection as unknown as { withDeadline?: unknown })
+      .withDeadline !== "function"
+  ) {
+    return runReacquiringChangeQuery<T>(projectId, changeId, query, ...args);
+  }
+  const ctx = createTemporalReadContext(RELEASE_GATE_PRE_QUERY_BUDGET_MS);
+  const result = await runTemporalRead(
+    bundle.connection,
+    () => queryWithFreshChangeHandle(projectId, changeId, query, args),
+    ctx,
+    { timeoutMs: RELEASE_GATE_PRE_QUERY_BUDGET_MS },
+  );
+  if (result.error) throw result.error;
+  return result.data as T;
+}
+
 export async function waitForArchiveReleaseGateCompletion(
   projectId: string,
   changeId: string,
@@ -830,6 +915,7 @@ export async function recoverReleaseGateIfWorkflowCompleted(
     change: Change;
     evidence: string;
   },
+  options: { recoverOnUnresponsive?: boolean } = {},
 ): Promise<
   Extract<
     ArchiveReleaseGateResult,
@@ -838,9 +924,15 @@ export async function recoverReleaseGateIfWorkflowCompleted(
     }
   >
 > {
-  const { isWorkflowCompletedError } =
-    await import("../../temporal/recovery-classification");
   if (isWorkflowCompletedError(error)) {
+    return recoverReleaseGateViaDiskProjection({
+      store: ctx.store,
+      change: ctx.change,
+      evidence: ctx.evidence,
+      recoveryEvidence: collectErrorText(error),
+    });
+  }
+  if (options.recoverOnUnresponsive && isUnresponsiveWorkflowError(error)) {
     return recoverReleaseGateViaDiskProjection({
       store: ctx.store,
       change: ctx.change,
@@ -1112,18 +1204,39 @@ export async function completeReleaseGateAfterFinalization(input: {
   const evidence = buildReleaseCompletionEvidence(input.finalization);
   let currentGate: GateCompletion | undefined;
   try {
-    currentGate = await runReacquiringChangeQuery<GateCompletion>(
+    const description = await describeChangeHandleWithDeadline(
+      bundle,
+      projectId,
+      input.changeId,
+    );
+    if (isTerminalWorkflowStatus(description)) {
+      return recoverReleaseGateViaDiskProjection({
+        store: input.store,
+        change: input.change,
+        evidence,
+        recoveryEvidence: `workflow describe returned terminal status ${
+          (description as { status: { name: string } }).status.name
+        }`,
+      });
+    }
+
+    currentGate = await runBoundedReacquiringChangeQuery<GateCompletion>(
+      bundle,
       projectId,
       input.changeId,
       getGateStatusQuery,
       "release",
     );
   } catch (error) {
-    return recoverReleaseGateIfWorkflowCompleted(error, {
-      store: input.store,
-      change: input.change,
-      evidence,
-    });
+    return recoverReleaseGateIfWorkflowCompleted(
+      error,
+      {
+        store: input.store,
+        change: input.change,
+        evidence,
+      },
+      { recoverOnUnresponsive: true },
+    );
   }
   if (currentGate?.status === "done") {
     // #305 residual: the gate is already done on the first query (a prior

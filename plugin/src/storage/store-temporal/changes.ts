@@ -9,12 +9,16 @@ import {
   type GateId,
   type TerminalSource,
   type TerminalWarning,
+  type ArchiveConvergedSignalPayload,
+  type GateCompletedSignalPayload,
+  type Phase9FinalizationStatus,
 } from "../../types";
 import { createHash } from "crypto";
 import {
   acceptanceUpdatedSignal,
   agreementUpdatedSignal,
   archiveChangeSignal,
+  archiveConvergedSignal,
   archiveRequestedSignal,
   closeChangeSignal,
   designUpdatedSignal,
@@ -485,28 +489,63 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             `changes.save(${change.id}, archived): accepted deltas require archive_projection_proof before terminal state.`,
           );
         }
-        const outcome = change.archive_projection_proof
-          ? await fireSignalWithMutationGuard(
-              input,
-              change.id,
-              archiveRequestedSignal,
-              [
-                {
-                  approvalEvidence:
-                    change.gates?.release?.approval_evidence ??
-                    "Archive projection proof verified before terminal state",
-                  requestedBy: "archive-projection-reconciler",
-                  requestedAt: change.archive_projection_proof.verified_at,
-                  projectionProof: change.archive_projection_proof,
-                },
-              ],
-            )
-          : await fireSignalWithMutationGuard(
-              input,
-              change.id,
-              archiveChangeSignal,
-              [],
-            );
+
+        const releaseGateDone = change.gates?.release?.status === "done";
+        const phase9Done = change.phase9_status?.status === "done";
+        const useArchiveConverged = releaseGateDone && phase9Done;
+
+        const requestedAt =
+          change.archive_projection_proof?.verified_at ??
+          new Date().toISOString();
+        const approvalEvidence =
+          change.gates?.release?.approval_evidence ??
+          "Archive projection proof verified before terminal state";
+
+        let outcome: import("../../temporal/mutation-safety").TemporalMutationOutcome;
+        if (useArchiveConverged) {
+          const releaseCompletion: GateCompletedSignalPayload = {
+            gateId: "release",
+            completedAt: change.gates!.release!.completed_at ?? requestedAt,
+            completedBy: change.gates!.release!.completed_by ?? "adv-archive",
+            approvalEvidence,
+            artifactEvidence: change.gates!.release!.artifact_evidence,
+          };
+          const payload: ArchiveConvergedSignalPayload = {
+            requestedAt,
+            requestedBy: "archive-projection-reconciler",
+            approvalEvidence,
+            releaseCompletion,
+            phase9Status: change.phase9_status as Phase9FinalizationStatus,
+            projectionProof: change.archive_projection_proof,
+          };
+          outcome = await fireSignalWithMutationGuard(
+            input,
+            change.id,
+            archiveConvergedSignal,
+            [payload],
+          );
+        } else {
+          outcome = change.archive_projection_proof
+            ? await fireSignalWithMutationGuard(
+                input,
+                change.id,
+                archiveRequestedSignal,
+                [
+                  {
+                    approvalEvidence,
+                    requestedBy: "archive-projection-reconciler",
+                    requestedAt,
+                    projectionProof: change.archive_projection_proof,
+                  },
+                ],
+              )
+            : await fireSignalWithMutationGuard(
+                input,
+                change.id,
+                archiveChangeSignal,
+                [],
+              );
+        }
         if (outcome === "outcome_unknown_readback_unavailable") {
           throw new Error(
             `changes.save(${change.id}, archived): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,

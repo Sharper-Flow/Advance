@@ -121,6 +121,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   conformanceVerdict: "adv.change.conformanceVerdict",
   conformanceOverridden: "adv.change.conformanceOverridden",
   archiveRequested: "adv.change.archiveRequested",
+  archiveConverged: "adv.change.archiveConverged",
   phase9StatusUpdated: "adv.change.phase9StatusUpdated",
   changeCancelled: "adv.change.changeCancelled",
   opsFollowupSeeded: "adv.change.opsFollowupSeeded",

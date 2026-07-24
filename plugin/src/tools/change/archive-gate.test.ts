@@ -18,6 +18,7 @@ import {
 } from "./archive-gate";
 import * as gitFinalize from "../archive-helpers/git-finalize";
 import { getService, reinitStsl } from "../../temporal/service";
+import { TemporalQueryTimeoutError } from "../../temporal/retry-wrapper";
 import { getGateStatusQuery } from "../../temporal/messages";
 import { getProjectId } from "../../utils/project-id";
 import type { Change, Store } from "../../types";
@@ -329,8 +330,18 @@ describe("preservePhase9Evidence", () => {
   });
 });
 
-function fakeClientWithHandle(handle: { query: ReturnType<typeof vi.fn> }) {
-  return { workflow: { getHandle: vi.fn(() => handle) } };
+function fakeClientWithHandle(handle: {
+  query: ReturnType<typeof vi.fn>;
+  describe?: ReturnType<typeof vi.fn>;
+  signal?: ReturnType<typeof vi.fn>;
+}) {
+  const fullHandle = {
+    describe:
+      handle.describe ?? vi.fn(async () => ({ status: { name: "RUNNING" } })),
+    query: handle.query,
+    signal: handle.signal ?? vi.fn(),
+  };
+  return { workflow: { getHandle: vi.fn(() => fullHandle) } };
 }
 
 describe("runReacquiringChangeQuery", () => {
@@ -560,6 +571,81 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
     // read (only the pre-signal query) and no re-signal.
     expect(handle.query).toHaveBeenCalledTimes(1);
     expect(handle.signal).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("completeReleaseGateAfterFinalization — bounded release-gate query (AC1/AC2)", () => {
+  const shippedFinalization: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-1",
+  };
+
+  beforeEach(() => {
+    vi.mocked(getProjectId).mockResolvedValue("project-test");
+    recoveryWriterMocks.saveRecoveredGateCompletion.mockReset();
+    recoveryWriterMocks.saveRecoveredGateCompletion.mockImplementation(
+      async (input: {
+        change: Change;
+        gateId: string;
+        completion: unknown;
+      }) => ({
+        ...input.change,
+        gates: {
+          ...(input.change.gates ?? {}),
+          [input.gateId]: input.completion,
+        },
+      }),
+    );
+  });
+
+  it("AC2: describe() pre-check detects TERMINATED and skips the hanging query", async () => {
+    const handle = {
+      query: vi.fn(() => new Promise(() => {})), // never resolves
+      describe: vi.fn(async () => ({ status: { name: "TERMINATED" } })),
+      signal: vi.fn(),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const result = await completeReleaseGateAfterFinalization({
+      store: createStore("/repo"),
+      change: createChange({}),
+      changeId: "fixArchiveConvergenceAc2",
+      finalization: shippedFinalization,
+    });
+
+    expect(result).toMatchObject({ ok: true, recoveryMutation: true });
+    expect(handle.describe).toHaveBeenCalledTimes(1);
+    expect(handle.query).not.toHaveBeenCalled();
+  });
+
+  it("AC1: bounded query failure routes to recovery on an orphaned/unresponsive workflow", async () => {
+    // Simulates the 3s budget expiry: the query throws a
+    // TemporalQueryTimeoutError (as runTemporalRead would after the budget).
+    // The catch must route to recoverReleaseGateIfWorkflowCompleted with
+    // recoverOnUnresponsive → disk-projection recovery → { ok: true }.
+    const handle = {
+      query: vi.fn(async () => {
+        throw new TemporalQueryTimeoutError(3_000);
+      }),
+      describe: vi.fn(async () => ({ status: { name: "RUNNING" } })),
+      signal: vi.fn(),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const result = await completeReleaseGateAfterFinalization({
+      store: createStore("/repo"),
+      change: createChange({}),
+      changeId: "fixArchiveConvergenceAc1",
+      finalization: shippedFinalization,
+    });
+
+    expect(result).toMatchObject({ ok: true, recoveryMutation: true });
+    expect(handle.query).toHaveBeenCalledTimes(1);
   });
 });
 

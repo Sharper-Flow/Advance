@@ -22,6 +22,7 @@ import type {
   AcceptanceCriteriaSetSignalPayload,
   AcceptanceUpdatedSignalPayload,
   AgreementUpdatedSignalPayload,
+  ArchiveConvergedSignalPayload,
   ArchiveRequestedSignalPayload,
   ChangeCancelledSignalPayload,
   ChangeLinkedSignalPayload,
@@ -315,6 +316,9 @@ export const conformanceOverriddenSignal = wf.defineSignal<
 export const archiveRequestedSignal = wf.defineSignal<
   [ArchiveRequestedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+export const archiveConvergedSignal = wf.defineSignal<
+  [ArchiveConvergedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveConverged);
 export const phase9StatusUpdatedSignal = wf.defineSignal<
   [Phase9StatusUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);

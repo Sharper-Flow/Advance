@@ -18,6 +18,8 @@ import {
   applyTaskAssignedToState,
   applyTaskCompletedToState,
   applyTestRunRecordedToState,
+  applyGateCompletedToState,
+  applyArchiveRequestedToState,
   changeSeedStateFromChange,
   changeToWorkflowState,
   completeGateInChangeState,
@@ -25,6 +27,7 @@ import {
   normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
 } from "./change-state";
+import { createDefaultGates } from "../types";
 import type { Change, ChangeOrigin } from "../types";
 import { subagentReportKey } from "../types/subagent-reports";
 import type { ChangeWorkflowInput } from "./contracts";
@@ -2866,5 +2869,46 @@ describe("applyVerificationEvidenceDispositionedToState", () => {
     });
 
     expect(state.verification_evidence_dispositions).toHaveLength(2);
+  });
+});
+
+describe("archive convergence split-state invariant", () => {
+  function baseState() {
+    return createChangeWorkflowState({
+      changeId: "archiveConverged",
+      title: "Archive convergence",
+      createdAt: "2026-07-24T00:00:00.000Z",
+      gates: createDefaultGates(),
+    });
+  }
+
+  const releaseCompletion = {
+    gateId: "release" as const,
+    completedAt: "2026-07-24T01:00:00.000Z",
+    completedBy: "adv-archive",
+    approvalEvidence: "shipped via direct merge",
+  };
+
+  const phase9Status = {
+    status: "done" as const,
+    startedAt: "2026-07-24T00:30:00.000Z",
+    completedAt: "2026-07-24T01:00:00.000Z",
+  };
+
+  it("never leaves status archived without release done and phase9 done", () => {
+    const state = baseState();
+    applyGateCompletedToState(state, releaseCompletion);
+    state.phase9_status = phase9Status;
+    applyArchiveRequestedToState(state, {
+      requestedAt: "2026-07-24T01:00:00.000Z",
+      requestedBy: "adv-archive",
+      approvalEvidence: "shipped via direct merge",
+    });
+
+    expect(state.status).toBe("archived");
+    expect(state.lifecycleState).toBe("archived");
+    expect(state.terminated).toBe(true);
+    expect(state.gates.release?.status).toBe("done");
+    expect(state.phase9_status?.status).toBe("done");
   });
 });
