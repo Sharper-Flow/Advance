@@ -332,6 +332,18 @@ export type GateCompletedSignalPayload = z.infer<
   typeof GateCompletedSignalPayloadSchema
 >;
 
+export const ArchiveConvergedSignalPayloadSchema = z.object({
+  requestedAt: IsoTimestampSchema,
+  requestedBy: z.string(),
+  approvalEvidence: z.string().min(1),
+  releaseCompletion: GateCompletedSignalPayloadSchema,
+  phase9Status: Phase9FinalizationStatusSchema,
+  projectionProof: ArchiveProjectionProofReceiptSchema.optional(),
+});
+export type ArchiveConvergedSignalPayload = z.infer<
+  typeof ArchiveConvergedSignalPayloadSchema
+>;
+
 export const GateReenteredSignalPayloadSchema = z.object({
   fromGateId: GateIdSchema,
   reason: z.string().min(1),

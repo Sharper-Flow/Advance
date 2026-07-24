@@ -431,6 +431,9 @@ const conformanceOverriddenSignal = wf.defineSignal<
 const archiveRequestedSignal = wf.defineSignal<
   [import("../types").ArchiveRequestedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+const archiveConvergedSignal = wf.defineSignal<
+  [import("../types").ArchiveConvergedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveConverged);
 
 // Old branch: archiveChangeActivity applied spec deltas and wrote the durable
 // summary. New branch: archive/tool reconciliation owns the sole spec mutation;
@@ -1058,6 +1061,11 @@ export async function changeWorkflow(
   // rq-acceptancePatchReplay01: consume this marker before legacy branch return.
   const STATE_BACKED_ACCEPTANCE_PROOF_PATCH =
     "state-backed-acceptance-proof-v1";
+  // Patch rationale: archive convergence combines release gate completion,
+  // Phase 9 finalization, and archive status into a single atomic signal.
+  // Histories that processed these as three separate signals replay the old
+  // handlers; new histories record this marker inside the converged handler.
+  const ARCHIVE_CONVERGED_PATCH = "archive-converged-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -1696,6 +1704,68 @@ export async function changeWorkflow(
             triggeredAt: payload.requestedAt,
           });
           upsertSignalSearchAttributes("archiveRequestedProjectionFailure");
+        }
+      },
+      { afterSuccess: false },
+    ),
+  );
+  wf.setHandler(
+    archiveConvergedSignal,
+    signalAsync(
+      "archiveConverged",
+      async (payload) => {
+        // All three state mutations BEFORE the first await — single Workflow
+        // Task atomicity. The wf.patched marker ensures histories that did not
+        // have this handler replay as a no-op (signal did not exist for them).
+        wf.patched(ARCHIVE_CONVERGED_PATCH);
+        const previousStatus = state.status;
+        const previousLifecycleState = state.lifecycleState;
+        const previousTerminated = state.terminated;
+        const previousReleaseGate = state.gates.release;
+        const previousPhase9Status = state.phase9_status;
+        const previousArchiveRequest = state.archiveRequest;
+        const previousLastSignalAt = state.lastSignalAt;
+        applyGateCompletedToState(state, payload.releaseCompletion);
+        state.phase9_status = payload.phase9Status;
+        state.lastSignalAt = payload.requestedAt;
+        applyArchiveRequestedToState(state, {
+          requestedAt: payload.requestedAt,
+          requestedBy: payload.requestedBy,
+          approvalEvidence: payload.approvalEvidence,
+          projectionProof: payload.projectionProof,
+        });
+        upsertSignalSearchAttributes("archiveConverged");
+        const archived = await runArchiveActivity({
+          approvalEvidence: payload.approvalEvidence,
+          requestedBy: payload.requestedBy,
+          requestedAt: payload.requestedAt,
+          projectionProof: payload.projectionProof,
+        });
+        const projected = archived
+          ? await projectChangeState("archiveConverged")
+          : false;
+        if (!projected || !archived) {
+          // Rollback all in-task mutations so a half-converged state cannot
+          // persist if the workflow dies here.
+          state.status = previousStatus;
+          state.lifecycleState = previousLifecycleState;
+          if (typeof previousTerminated === "undefined")
+            delete state.terminated;
+          else state.terminated = previousTerminated;
+          state.gates.release = previousReleaseGate;
+          state.phase9_status = previousPhase9Status;
+          if (typeof previousArchiveRequest === "undefined")
+            delete state.archiveRequest;
+          else state.archiveRequest = previousArchiveRequest;
+          state.lastSignalAt = previousLastSignalAt;
+          applyGateStuckToState(state, {
+            gateId: "release",
+            reason: archived
+              ? "Projection write failed during atomic archive convergence"
+              : "Archive activity failed during atomic archive convergence",
+            triggeredAt: payload.requestedAt,
+          });
+          upsertSignalSearchAttributes("archiveConvergedProjectionFailure");
         }
       },
       { afterSuccess: false },

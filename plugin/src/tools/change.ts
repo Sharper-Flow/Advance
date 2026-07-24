@@ -3655,32 +3655,6 @@ export const changeTools = {
               ...openOpsObligationsPayload,
             });
           }
-          // rq-releaseFinalization01 / AC3 split-brain recovery: record Phase 9
-          // done whenever it is not already done — INCLUDING when unset. Same
-          // defect class as the reconcile path (archive-gate.ts): the prior
-          // guard (`phase9_status?.status && ...`) skipped the unset case, so a
-          // bundle-present re-run with an unset phase9_status never recorded the
-          // terminal status. `preservePhase9Evidence(undefined, next)` returns
-          // `next`, recording an unset status cleanly.
-          //
-          // Guard on `!releaseResult.recoveryMutation`: a disk-projection release
-          // recovery means the change workflow already completed and cannot
-          // accept the phase9 signal; skip there to preserve poisoned-recovery.
-          if (
-            change.phase9_status?.status !== "done" &&
-            !releaseResult.recoveryMutation
-          ) {
-            await recordPhase9Status({
-              store,
-              changeId,
-              status: preservePhase9Evidence(change.phase9_status, {
-                status: "done",
-                startedAt:
-                  change.phase9_status?.startedAt ?? new Date().toISOString(),
-                completedAt: new Date().toISOString(),
-              }),
-            });
-          }
           releaseGateCompletion = {
             ...releaseResult,
             gate: durableProof.gate,
@@ -3755,6 +3729,23 @@ export const changeTools = {
           if (!statusAlreadyArchived) {
             const archivedAt = new Date().toISOString();
             change.status = "archived";
+            // Materialize the confirmed release gate and Phase 9 done state
+            // on the local change so store.changes.save can fire the atomic
+            // archiveConvergedSignal instead of three separate signals.
+            if (releaseGateCompletion) {
+              change.gates = {
+                ...(change.gates ?? {}),
+                release: releaseGateCompletion.gate,
+              };
+              change.phase9_status = preservePhase9Evidence(
+                change.phase9_status,
+                {
+                  status: "done",
+                  startedAt: change.phase9_status?.startedAt ?? archivedAt,
+                  completedAt: archivedAt,
+                },
+              );
+            }
             try {
               await store.changes.save(change);
               const epicProjection =
