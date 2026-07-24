@@ -25,6 +25,7 @@ import { changeToDirectiveState } from "../temporal/change-state";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import * as gitFinalize from "./archive-helpers/git-finalize";
 import * as worktree from "./worktree";
+import { gateTools } from "./gate";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -155,6 +156,8 @@ vi.mock("./_adapters", () => ({
   fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
+  waitForGateCompletion: async (handle: unknown, gateId: unknown) =>
+    mocks.querySignal(handle, undefined, gateId),
 }));
 
 vi.mock("./target-project", async () => {
@@ -941,6 +944,62 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(JSON.stringify(parsed)).not.toContain(phantomPath);
       } finally {
         await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("keeps top-level gates and snapshot gates consistent after gate completion", async () => {
+      const pendingGates = {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as Change["gates"];
+      const completedGates = {
+        ...pendingGates,
+        discovery: { status: "done" },
+      } as Change["gates"];
+      const store = createMockStore({ gates: pendingGates });
+      let cachedGates = pendingGates;
+      const getCachedChange = store.changes.get;
+      store.changes.get = vi.fn(async () => {
+        const result = await getCachedChange("test-change");
+        return {
+          ...result,
+          data: result.data
+            ? { ...result.data, gates: cachedGates }
+            : undefined,
+        };
+      });
+      store.gates.get = vi.fn(async () => cachedGates);
+      store.changes.invalidate = vi.fn(async () => {
+        cachedGates = completedGates;
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce(pendingGates)
+        .mockResolvedValueOnce({ status: "done" });
+
+      const completion = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "discovery",
+          completedBy: "adv-researcher",
+        },
+        store,
+      );
+      expect(JSON.parse(completion).success).toBe(true);
+      expect(store.changes.invalidate).toHaveBeenCalledWith("test-change");
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { snapshot: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      for (const [gateId, gate] of Object.entries(parsed.gates)) {
+        const marker = gate.status === "done" ? "✓" : "○";
+        expect(parsed._contextSnapshot).toContain(`[${marker} ${gateId}]`);
       }
     });
 
