@@ -3793,6 +3793,67 @@ export const changeTools = {
               if (decision.kind === "recover_via_disk") {
                 const { RECOVERY_RECONCILIATION_WARNING } =
                   await import("../temporal/recovery-classification");
+                // AC4/AC6: when the archive flow detected a dead workflow and the
+                // change carries shipped proof, converge all four fields in a single
+                // disk write instead of only flipping status.
+                if (finalization?.status === "shipped") {
+                  const converge = await saveRecoveredArchiveConvergence({
+                    store,
+                    change,
+                    changeId,
+                    authorization: {
+                      reason: decision.reason,
+                      evidence: decision.evidence,
+                    },
+                    finalization,
+                    releaseGate: releaseGateCompletion?.gate,
+                    archivedAt,
+                  });
+                  if (converge.kind === "converged") {
+                    return formatToolOutput({
+                      success: true,
+                      archivePath: archiveResult.archivePath,
+                      ...(finalization ? { finalization } : {}),
+                      ...(finalization
+                        ? {
+                            continueFrom: {
+                              path: finalization.mainCheckout,
+                              branch: finalization.defaultBranch,
+                            },
+                          }
+                        : {}),
+                      ...(releaseGateCompletion
+                        ? {
+                            releaseGate: releaseGateCompletion.gate,
+                            releaseGateAlreadyDone:
+                              releaseGateCompletion.alreadyDone,
+                          }
+                        : {}),
+                      specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                        capability: s.capability,
+                        version: `${s.originalVersion} → ${s.newVersion}`,
+                        deltas: s.deltaResults.length,
+                      })),
+                      ...openOpsObligationsPayload,
+                      _recoveryMutation: true,
+                      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                      message: `Archived change ${changeId} via disk-projection convergence after workflow completed; release, phase9, status, and lifecycleState are converged.`,
+                    });
+                  }
+                  return formatToolOutput({
+                    success: false,
+                    error: `Archive convergence recovery failed: ${converge.kind === "refused" ? `${converge.refusalCode}: ${converge.evidence}` : converge.error}`,
+                    requirement: "rq-archiveConvergenceRecovery",
+                    changeId,
+                    archivePath: archiveResult.archivePath,
+                    ...(converge.kind === "refused"
+                      ? { refusalCode: converge.refusalCode }
+                      : {}),
+                    ...(converge.kind === "readbackFailed"
+                      ? { readback: converge.readback }
+                      : {}),
+                  });
+                }
                 const { saveRecoveredChangeStatus } =
                   await import("./_recovery-writers");
                 await saveRecoveredChangeStatus({
