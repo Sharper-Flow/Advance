@@ -5,6 +5,7 @@
  */
 
 import type { Spec, Delta } from "../types";
+import { requirementsContentEqual } from "../types/specs";
 import { appendDebugLog, createLogger } from "../utils/debug-log";
 import { SPEC_SCHEMA_URL } from "../schema-registry";
 
@@ -50,6 +51,19 @@ function applyAddDelta(
   // Check for duplicate ID
   const existing = spec.requirements.find((r) => r.id === requirement.id);
   if (existing) {
+    // rq-releaseProjectionDurability01 idempotency: a prior partial-archive may
+    // have already applied this requirement. If the existing requirement is
+    // content-equal to the delta's, accept idempotently instead of failing —
+    // the archive is the sole global-spec writer, so an identical duplicate is
+    // a re-apply, not a conflict.
+    if (requirementsContentEqual(existing, requirement)) {
+      return {
+        success: true,
+        deltaId: delta.id,
+        operation: "add",
+        newId: requirement.id,
+      };
+    }
     return {
       success: false,
       deltaId: delta.id,

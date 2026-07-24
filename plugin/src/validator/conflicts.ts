@@ -9,6 +9,22 @@ import type { ValidationIssue, ValidationContext } from "./types";
 import { ValidationCodes } from "./types";
 
 /**
+ * Find an existing requirement (minimal shape) by ID across all existing specs.
+ * Used for the idempotency identity check; the validator's existingSpecs carry
+ * only id/title/priority, so the full-content guard lives in archive/delta.ts.
+ */
+function findExistingRequirement(
+  context: ValidationContext,
+  reqId: string,
+): { id: string; title: string; priority: string } | undefined {
+  for (const spec of context.existingSpecs.values()) {
+    const found = spec.requirements.find((r) => r.id === reqId);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/**
  * Check for duplicate requirement IDs across all deltas and existing specs
  */
 function checkDuplicateRequirementIds(
@@ -25,13 +41,26 @@ function checkDuplicateRequirementIds(
 
         // Check against existing specs
         if (context.existingRequirementIds.has(reqId)) {
-          issues.push({
-            code: ValidationCodes.DUPLICATE_REQUIREMENT_ID,
-            severity: "error",
-            message: `Requirement ID "${reqId}" already exists in specs`,
-            path: `deltas.${capability}.${delta.id}`,
-            details: { requirementId: reqId },
-          });
+          // rq-releaseProjectionDurability01 idempotency: if the existing
+          // requirement matches the delta's id+title+priority, a prior
+          // partial-archive likely already applied it — accept rather than
+          // blocking. The validator's existingSpecs carry only minimal fields;
+          // the apply stage (archive/delta.ts) does the full content guard, so
+          // a content-divergent duplicate still fails there.
+          const existingReq = findExistingRequirement(context, reqId);
+          const sameIdentity =
+            existingReq !== undefined &&
+            existingReq.title === delta.requirement.title &&
+            existingReq.priority === delta.requirement.priority;
+          if (!sameIdentity) {
+            issues.push({
+              code: ValidationCodes.DUPLICATE_REQUIREMENT_ID,
+              severity: "error",
+              message: `Requirement ID "${reqId}" already exists in specs`,
+              path: `deltas.${capability}.${delta.id}`,
+              details: { requirementId: reqId },
+            });
+          }
         }
 
         // Check against other deltas in this change

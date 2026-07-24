@@ -65,6 +65,40 @@ export const RequirementSchema = z
 
 export type Requirement = z.infer<typeof RequirementSchema>;
 
+/**
+ * Content equality for two requirements, excluding provenance `meta` and
+ * normalizing tag/scenario order. Used for idempotent delta application
+ * (rq-releaseProjectionDurability01): an "add" delta whose requirement already
+ * exists with identical content is treated as already-applied, not a conflict.
+ */
+export function requirementsContentEqual(
+  a: Requirement,
+  b: Requirement,
+): boolean {
+  if (a.id !== b.id) return false;
+  if (a.title !== b.title) return false;
+  if (a.body !== b.body) return false;
+  if (a.priority !== b.priority) return false;
+  const aTags = [...(a.tags ?? [])].sort().join("\n");
+  const bTags = [...(b.tags ?? [])].sort().join("\n");
+  if (aTags !== bTags) return false;
+  const norm = (s: Scenario) =>
+    JSON.stringify({
+      id: s.id,
+      title: s.title,
+      given: s.given,
+      when: s.when,
+      then: s.then,
+    });
+  const aScn = [...(a.scenarios ?? [])]
+    .sort((x, y) => x.id.localeCompare(y.id))
+    .map(norm);
+  const bScn = [...(b.scenarios ?? [])]
+    .sort((x, y) => x.id.localeCompare(y.id))
+    .map(norm);
+  return aScn.length === bScn.length && aScn.every((n, i) => n === bScn[i]);
+}
+
 // =============================================================================
 // Spec (The Law)
 // =============================================================================
